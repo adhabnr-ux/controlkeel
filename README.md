@@ -4,6 +4,7 @@
 [![Release Smoke](https://github.com/aryaminus/controlkeel/actions/workflows/release-smoke.yml/badge.svg)](https://github.com/aryaminus/controlkeel/actions/workflows/release-smoke.yml)
 [![Latest Release](https://img.shields.io/github/v/release/aryaminus/controlkeel.svg)](https://github.com/aryaminus/controlkeel/releases/latest)
 [![npm bootstrap](https://img.shields.io/npm/v/%40aryaminus/controlkeel.svg)](https://www.npmjs.com/package/@aryaminus/controlkeel)
+[![Socket Badge](https://badge.socket.dev/npm/package/@aryaminus/controlkeel/0.3.4)](https://socket.dev/npm/package/@aryaminus/controlkeel/overview/0.3.4)
 
 > Agent output is cheap. Governed delivery is not.
 
@@ -115,17 +116,58 @@ To run a host comparison: `controlkeel benchmark run --suite host_comparison_v1 
 
 ## Published surfaces
 
-ControlKeel has one primary CLI and a smaller set of published companion packages. Everything else ships as release bundles or attach-time generated assets.
+ControlKeel has one primary CLI bootstrap package, published companion packages for specific hosts, and generated distribution bundles for all supported integrations.
+
+### Core Bootstrap Package
 
 | Surface | Version | Install / use |
 | --- | --- | --- |
 | ControlKeel CLI bootstrap | [![npm bootstrap](https://img.shields.io/npm/v/%40aryaminus/controlkeel.svg)](https://www.npmjs.com/package/@aryaminus/controlkeel) | `npm i -g @aryaminus/controlkeel` |
-| Skills.sh / AgentSkills install | [Skills docs](https://skills.sh/docs) | `npx skills add https://github.com/aryaminus/controlkeel --skill controlkeel-governance` |
-| OpenCode companion package | [![npm opencode](https://img.shields.io/npm/v/%40aryaminus/controlkeel-opencode.svg)](https://www.npmjs.com/package/@aryaminus/controlkeel-opencode) | Add `"plugin": ["@aryaminus/controlkeel-opencode"]` to `opencode.json`; MCP uses `mcp.controlkeel` local command-array config; attach installs `.opencode/*` plus `.agents/skills` compatibility skills |
-| Pi companion package | [![npm pi](https://img.shields.io/npm/v/%40aryaminus/controlkeel-pi-extension.svg)](https://www.npmjs.com/package/@aryaminus/controlkeel-pi-extension) | `pi install npm:@aryaminus/controlkeel-pi-extension` |
-| Release bundles and VSIX | [![GitHub release](https://img.shields.io/github/v/release/aryaminus/controlkeel.svg?label=release%20bundles)](https://github.com/aryaminus/controlkeel/releases/latest) | Tagged releases include platform binaries, plugin tarballs, exported native bundles, and `controlkeel-vscode-companion.vsix` |
 
-Release-only bundles currently cover the unpublished host artifacts such as Claude, Copilot, Codex, Augment, Gemini CLI, Amp, OpenClaw, and other exported native companions. Those surfaces follow the repository release version rather than separate package registries.
+**This is the required foundation** - install this first before using any other ControlKeel packages or features.
+
+### Companion Packages
+
+Published npm packages for direct host integration:
+
+| Package | Host | Version | Install |
+| --- | --- | --- | --- |
+| OpenCode companion | OpenCode | [![npm opencode](https://img.shields.io/npm/v/%40aryaminus/controlkeel-opencode.svg)](https://www.npmjs.com/package/@aryaminus/controlkeel-opencode) | Add `"plugin": ["@aryaminus/controlkeel-opencode"]` to `opencode.json` |
+| Pi extension | Pi | [![npm pi](https://img.shields.io/npm/v/%40aryaminus/controlkeel-pi-extension.svg)](https://www.npmjs.com/package/@aryaminus/controlkeel-pi-extension) | `pi install npm:@aryaminus/controlkeel-pi-extension` |
+
+**Note:** After installing companion packages, also run `controlkeel attach <host>` for the full repo-local experience with commands, agents, and MCP config.
+
+### Distribution Bundles
+
+Generated bundles for 40+ hosts and runtimes, available via `controlkeel attach <host>` or `controlkeel runtime export <target>`:
+
+| Bundle Type | Examples | How to Install |
+| --- | --- | --- |
+| Host native bundles | OpenCode, Claude Code, Codex, Copilot, Cursor, Windsurf, etc. | `controlkeel attach <host>` |
+| Runtime bundles | Devin, Open SWE, Executor, Virtual Bash, Cloudflare Workers | `controlkeel runtime export <runtime>` |
+| Framework adapters | Forge ACP, framework adapters | Generated via export system |
+| Utility bundles | VS Code companion, GitHub repo, instructions-only | Included in releases |
+
+**See [docs/packages.md](docs/packages.md) for the complete package catalog and detailed installation instructions.**
+
+### Skills.sh / AgentSkills
+
+ControlKeel skills are also available through the public [skills.sh](https://skills.sh/) registry:
+
+| Surface | Install |
+| --- | --- |
+| Whole CK skill collection | `npx skills add https://github.com/aryaminus/controlkeel` |
+| Single CK governance skill | `npx skills add https://github.com/aryaminus/controlkeel --skill controlkeel-governance` |
+
+### Release Bundles
+
+Tagged GitHub releases include:
+- Platform binaries (macOS, Linux, Windows)
+- Plugin tarballs for various hosts
+- Exported native bundles
+- `controlkeel-vscode-companion.vsix`
+
+[![GitHub release](https://img.shields.io/github/v/release/aryaminus/controlkeel.svg?label=release%20bundles)](https://github.com/aryaminus/controlkeel/releases/latest)
 
 ---
 

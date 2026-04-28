@@ -37,4 +37,14 @@ echo "//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN_WITH_READ_PACKAGES" >> 
 npm i -g @aryaminus/controlkeel --registry=https://npm.pkg.github.com
 ```
 
+## Security
+
+This package uses a postinstall script to download the native ControlKeel binary from GitHub Releases. This is intentional and necessary for cross-platform distribution. For detailed information about security practices and how the postinstall script works, see [SECURITY.md](SECURITY.md).
+
+To skip automatic binary download, set the environment variable:
+
+```bash
+CONTROLKEEL_SKIP_DOWNLOAD=1 npm i -g @aryaminus/controlkeel
+```
+
 <!-- mcp-name: io.github.aryaminus/controlkeel -->

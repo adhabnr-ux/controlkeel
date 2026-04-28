@@ -15,6 +15,7 @@ Use this page to decide where to read next.
 - [how-controlkeel-works.md](how-controlkeel-works.md): the detailed implementation-level walkthrough of CK's control loop, runtime model, validation path, and evidence model
 - [defensive-security-with-controlkeel.md](defensive-security-with-controlkeel.md): the defense-first security workflow guide covering cyber access modes, disclosure defaults, and benchmark interpretation
 - [getting-started.md](getting-started.md): first install, first attach, provider setup, and hosted protocol basics
+- [packages.md](packages.md): complete overview of all ControlKeel packages, their purposes, and when to use each one
 - [direct-host-installs.md](direct-host-installs.md): package, plugin, skills.sh, VSIX, and attach-first host install paths
 - [support-matrix.md](support-matrix.md): canonical code-aligned inventory of hosts, transport modes, exports, and protocol tools
 

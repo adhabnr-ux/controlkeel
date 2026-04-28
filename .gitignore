@@ -41,6 +41,15 @@ npm-debug.log
 # Python cache artifacts
 __pycache__/
 *.py[cod]
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Database files
 *.db
@@ -69,6 +78,7 @@ session-ses_*.md
 /.cursor/
 /.cursor-plugin/*
 !/.cursor-plugin/plugin.json
+/.devin/
 /.windsurf/
 /.continue/
 /.cline/
@@ -106,3 +116,31 @@ session-ses_*.md
 /.github/commands/
 /.github/mcp.json
 /.github/copilot-instructions.md
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor-specific files
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+.idea/
+*.iml
+.vscode/
+!.vscode/extensions.example.json
+*.sublime-project
+*.sublime-workspace
+
+# Environment files (keep .env.example)
+.env
+.env.local
+.env.*.local

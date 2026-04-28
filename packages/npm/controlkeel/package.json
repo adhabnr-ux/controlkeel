@@ -1,8 +1,12 @@
 {
   "name": "@aryaminus/controlkeel",
   "version": "0.3.4",
-  "description": "Bootstrap installer for the ControlKeel native CLI.",
+  "description": "Bootstrap installer for the ControlKeel native CLI - a control plane for agent-generated software delivery.",
   "license": "Apache-2.0",
+  "author": {
+    "name": "aryaminus",
+    "url": "https://github.com/aryaminus"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aryaminus/controlkeel.git"
@@ -11,13 +15,30 @@
   "bugs": {
     "url": "https://github.com/aryaminus/controlkeel/issues"
   },
+  "keywords": [
+    "controlkeel",
+    "governance",
+    "agent",
+    "ai",
+    "cli",
+    "devops",
+    "security",
+    "validation",
+    "compliance",
+    "automation",
+    "mcp",
+    "model-context-protocol"
+  ],
+  "main": "index.js",
   "bin": {
     "controlkeel": "bin/controlkeel.js"
   },
   "files": [
     "bin",
     "lib",
+    "index.js",
     "README.md",
+    "SECURITY.md",
     "server.json"
   ],
   "scripts": {
