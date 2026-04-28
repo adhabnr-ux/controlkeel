@@ -1643,6 +1643,36 @@ defmodule ControlKeel.SkillsTest do
     assert File.exists?(Path.join(tmp_dir, ".agents/plugins/marketplace.json"))
   end
 
+  test "export and claude install stay idempotent with pre-existing dist and partial skill trees",
+       %{
+         tmp_dir: tmp_dir
+       } do
+    dist_root = Path.join(tmp_dir, "controlkeel/dist/codex")
+    File.mkdir_p!(dist_root)
+    File.write!(Path.join(dist_root, "stale.txt"), "stale")
+
+    assert {:ok, first_plan} = Skills.export("codex", tmp_dir, scope: "export")
+    assert File.exists?(Path.join(first_plan.output_dir, ".codex/config.toml"))
+
+    assert {:ok, second_plan} = Skills.export("codex", tmp_dir, scope: "export")
+    assert second_plan.output_dir == first_plan.output_dir
+    refute File.exists?(Path.join(second_plan.output_dir, "stale.txt"))
+
+    stale_cloudflare_root = Path.join(tmp_dir, ".claude/skills/cloudflare-agent")
+    File.mkdir_p!(stale_cloudflare_root)
+    File.write!(Path.join(stale_cloudflare_root, "SKILL.md"), "stale\n")
+
+    assert {:ok, install} = Skills.install("claude-standalone", tmp_dir, scope: "project")
+    assert install.destination == Path.join(tmp_dir, ".claude/skills")
+
+    assert File.exists?(
+             Path.join(
+               tmp_dir,
+               ".claude/skills/cloudflare-agent/references/cloudflare-integration.md"
+             )
+           )
+  end
+
   test "codex post-tool-use hook only warns on explicit failures", %{tmp_dir: tmp_dir} do
     assert {:ok, _install} = Skills.install("codex", tmp_dir, scope: "project")
 

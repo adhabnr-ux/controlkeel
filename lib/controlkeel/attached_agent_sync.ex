@@ -43,32 +43,40 @@ defmodule ControlKeel.AttachedAgentSync do
   end
 
   defp sync_agent(agent_key, attrs, project_root, current_version) do
-    attrs = stringify_keys(attrs)
+    try do
+      attrs = stringify_keys(attrs)
 
-    if attrs["controlkeel_version"] == current_version do
-      {:ok, attrs, false}
-    else
-      with %AgentIntegration{} = integration <- inferred_integration(agent_key),
-           {:ok, target} <- inferred_target(attrs, integration),
-           {:ok, scope} <- inferred_scope(attrs, integration),
-           {:ok, result} <- Skills.install(target, project_root, scope: scope) do
-        updated_attrs =
-          attrs
-          |> Map.put("target", target)
-          |> Map.put("scope", scope)
-          |> Map.put("controlkeel_version", current_version)
-          |> Map.put(
-            "synced_at",
-            DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
-          )
-          |> merge_install_result(result)
-
-        {:ok, updated_attrs, true}
+      if attrs["controlkeel_version"] == current_version do
+        {:ok, attrs, false}
       else
-        nil -> {:ok, attrs, false}
-        {:skip, _reason} -> {:ok, attrs, false}
-        {:error, reason} -> {:error, reason}
+        with %AgentIntegration{} = integration <- inferred_integration(agent_key),
+             {:ok, target} <- inferred_target(attrs, integration),
+             {:ok, scope} <- inferred_scope(attrs, integration),
+             {:ok, result} <- Skills.install(target, project_root, scope: scope) do
+          updated_attrs =
+            attrs
+            |> Map.put("target", target)
+            |> Map.put("scope", scope)
+            |> Map.put("controlkeel_version", current_version)
+            |> Map.put(
+              "synced_at",
+              DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
+            )
+            |> merge_install_result(result)
+
+          {:ok, updated_attrs, true}
+        else
+          nil -> {:ok, attrs, false}
+          {:skip, _reason} -> {:ok, attrs, false}
+          {:error, reason} -> {:error, reason}
+        end
       end
+    rescue
+      exception ->
+        {:error, {:exception, Exception.message(exception)}}
+    catch
+      kind, reason ->
+        {:error, {kind, reason}}
     end
   end
 

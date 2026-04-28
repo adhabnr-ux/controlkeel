@@ -927,8 +927,7 @@ defmodule ControlKeel.Skills.Installer do
       destination = Path.join(destination_root, skill.name)
 
       unless same_path?(skill.skill_dir, destination) do
-        File.rm_rf!(destination)
-        File.cp_r!(skill.skill_dir, destination)
+        replace_directory!(skill.skill_dir, destination)
       end
     end)
   end
@@ -942,8 +941,36 @@ defmodule ControlKeel.Skills.Installer do
       source = Path.join(source_root, entry)
       destination = Path.join(destination_root, entry)
       File.rm_rf!(destination)
-      File.cp_r!(source, destination)
+      copy_path!(source, destination)
     end)
+  end
+
+  defp replace_directory!(source_root, destination_root) do
+    File.rm_rf!(destination_root)
+    File.mkdir_p!(destination_root)
+
+    source_root
+    |> File.ls!()
+    |> Enum.each(fn entry ->
+      copy_path!(Path.join(source_root, entry), Path.join(destination_root, entry))
+    end)
+  end
+
+  defp copy_path!(source, destination) do
+    cond do
+      File.dir?(source) ->
+        File.mkdir_p!(destination)
+
+        source
+        |> File.ls!()
+        |> Enum.each(fn entry ->
+          copy_path!(Path.join(source, entry), Path.join(destination, entry))
+        end)
+
+      true ->
+        File.mkdir_p!(Path.dirname(destination))
+        File.cp!(source, destination)
+    end
   end
 
   defp merge_json_file!(source_path, destination_path) do

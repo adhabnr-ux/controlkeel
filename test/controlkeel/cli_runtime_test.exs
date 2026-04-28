@@ -1174,6 +1174,64 @@ defmodule ControlKeel.CLIRuntimeTest do
     assert resume_output =~ "Resumed task"
   end
 
+  test "status refreshes stale claude and codex attachments with pre-existing destinations", %{
+    tmp_dir: tmp_dir
+  } do
+    session = session_fixture(%{title: "CLI attached sync session"})
+
+    {:ok, _binding} =
+      ProjectBinding.write(
+        %{
+          "workspace_id" => session.workspace_id,
+          "session_id" => session.id,
+          "agent" => "claude",
+          "attached_agents" => %{
+            "claude_code" => %{
+              "target" => "claude-standalone",
+              "scope" => "user",
+              "controlkeel_version" => "0.0.1"
+            },
+            "codex-cli" => %{
+              "target" => "codex",
+              "scope" => "project",
+              "controlkeel_version" => "0.0.1"
+            }
+          }
+        },
+        tmp_dir
+      )
+
+    File.mkdir_p!(Path.join(tmp_dir, "controlkeel/dist/codex"))
+    File.write!(Path.join(tmp_dir, "controlkeel/dist/codex/stale.txt"), "stale")
+
+    File.mkdir_p!(Path.join(tmp_dir, "home/.claude/skills/cloudflare-agent"))
+
+    File.write!(
+      Path.join(tmp_dir, "home/.claude/skills/cloudflare-agent/SKILL.md"),
+      "stale\n"
+    )
+
+    status_output =
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :status, options: %{}, args: []}, project_root: tmp_dir)
+      end)
+
+    assert status_output =~ "Attached agents:"
+    assert status_output =~ "claude_code (CK v"
+    assert status_output =~ "codex-cli (CK v"
+
+    assert File.exists?(
+             Path.join(
+               tmp_dir,
+               "home/.claude/skills/cloudflare-agent/references/cloudflare-integration.md"
+             )
+           )
+
+    assert File.exists?(Path.join(tmp_dir, ".codex/config.toml"))
+    refute File.exists?(Path.join(tmp_dir, "controlkeel/dist/codex/stale.txt"))
+  end
+
   test "runtime benchmark commands list, run, show, import, and export", %{tmp_dir: tmp_dir} do
     write_benchmark_subjects!(tmp_dir, [
       %{

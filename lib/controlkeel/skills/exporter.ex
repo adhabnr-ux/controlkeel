@@ -12,8 +12,7 @@ defmodule ControlKeel.Skills.Exporter do
     with %SkillTarget{} = target <- SkillTarget.get(target_id),
          analysis <- Skills.validate(project_root, trust_project_skills: true),
          root <- export_root(project_root, target.id),
-         {:ok, _removed} <- File.rm_rf(root),
-         :ok <- File.mkdir_p(root),
+         :ok <- reset_export_root(root),
          {:ok, writes, instructions} <-
            write_target(target, root, project_root, analysis.skills, opts) do
       :telemetry.execute(
@@ -2622,14 +2621,76 @@ defmodule ControlKeel.Skills.Exporter do
       destination = Path.join(destination_root, skill.name)
 
       unless same_path?(skill.skill_dir, destination) do
-        File.rm_rf!(destination)
-        File.cp_r!(skill.skill_dir, destination)
+        replace_directory!(skill.skill_dir, destination)
       end
     end)
   end
 
   defp export_root(project_root, target) do
     Path.join(Path.expand(project_root), "controlkeel/dist/#{target}")
+  end
+
+  defp reset_export_root(root) do
+    case File.rm_rf(root) do
+      {:ok, _removed} ->
+        ensure_directory(root)
+
+      {:error, :enoent, _path} ->
+        ensure_directory(root)
+
+      {:error, :eexist, _path} ->
+        # Older standalone builds occasionally race with pre-existing dist targets.
+        # Treat an already-present directory as recoverable and reuse it after mkdir_p.
+        ensure_directory(root)
+
+      {:error, reason, path} ->
+        {:error, {reason, path}}
+    end
+  end
+
+  defp ensure_directory(path) do
+    case File.mkdir_p(path) do
+      :ok ->
+        :ok
+
+      {:error, :eexist, existing} ->
+        if existing == path and File.dir?(path) do
+          :ok
+        else
+          {:error, {:eexist, existing}}
+        end
+
+      {:error, reason, existing} ->
+        {:error, {reason, existing}}
+    end
+  end
+
+  defp replace_directory!(source_root, destination_root) do
+    File.rm_rf!(destination_root)
+    File.mkdir_p!(destination_root)
+
+    source_root
+    |> File.ls!()
+    |> Enum.each(fn entry ->
+      copy_path!(Path.join(source_root, entry), Path.join(destination_root, entry))
+    end)
+  end
+
+  defp copy_path!(source, destination) do
+    cond do
+      File.dir?(source) ->
+        File.mkdir_p!(destination)
+
+        source
+        |> File.ls!()
+        |> Enum.each(fn entry ->
+          copy_path!(Path.join(source, entry), Path.join(destination, entry))
+        end)
+
+      true ->
+        File.mkdir_p!(Path.dirname(destination))
+        File.cp!(source, destination)
+    end
   end
 
   defp with_common_assets(root, project_root, opts, writes, instructions) do
