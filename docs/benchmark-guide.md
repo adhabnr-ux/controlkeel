@@ -187,6 +187,16 @@ When importing or exporting those runs, use metadata that makes the loop shape e
 - `progress_contract: "finish_slice"`, `shrink_search_space`, or `improve_metric`
 - `handoff_contract: "relay_structured"` when the run uses baton-style planner/worker/validator handoffs
 
+### Outcome-first harness loops
+
+If you adapt ideas from a live "agent harness" workflow, keep the CK version honest:
+
+- **Grade outcomes, not trajectories**. Prefer "did the governed run complete the bounded slice, preserve reviewability, and avoid regression" over penalizing weird-but-effective tool paths.
+- **Do not leave bad scores as dashboards**. A low-quality signal should feed a finding, review packet, regression record, or trace packet that engineering can actually act on.
+- **Turn recurring failures into reusable checks**. Use `ck_trace_packet`, `ck_failure_clusters`, and benchmark-suite promotion so repeated production misses become evals or review gates instead of one-off postmortems.
+- **Keep deterministic and judge-based evidence separate**. CK's published benchmark claims stay deterministic. If you add live LLM-judge signals around a host or rollout, label them as observational or gating inputs rather than mixing them into deterministic catch-rate claims.
+- **Sample rollout cohorts honestly**. If you run external live judges for production traffic, minority models, new variants, or small canary cohorts often need denser sampling than the dominant baseline to become decision-useful quickly.
+
 ### Record protocol-adapter experiments honestly
 
 If a run changes the model-facing protocol without replacing the runtime loop, record that as an adapter experiment rather than as a brand-new agent architecture.

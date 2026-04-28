@@ -35,6 +35,12 @@ Before expensive or parallel work:
 7. Watch provider/host quota warnings; if a 429 occurs, respect `retry-after` instead of looping.
 8. Configure hard spend caps in provider dashboards for BYOK/API usage.
 
+For teams running a real multi-agent stack, the practical goal is not loyalty to one premium host. It is routing the right task to the right cost profile:
+
+- use cheaper or local models/hosts for routine search, boilerplate, first-pass tests, formatting, and broad codebase sweeps
+- reserve premium reasoning models for architecture, novel failure analysis, or long high-stakes loops
+- record that routing choice explicitly through `ck_route`, `ck_budget`, outcome tracking, and benchmark metadata instead of treating "one host for everything" as the baseline
+
 For overnight or AFK work, decide which loop you are actually running before launch:
 
 - **Closed loop**: the answer is known enough that the agent should finish a bounded slice by morning.

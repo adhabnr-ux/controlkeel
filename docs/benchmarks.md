@@ -312,6 +312,7 @@ When evaluating hosts or extensions that delegate to child agents, score the del
 
 - **Depth and recursion guards**: maximum delegation depth, whether nested delegation is blocked or bounded, and what happens when the limit is reached.
 - **Isolation model**: fresh context, forked session, isolated worktree, or shared workspace; include whether parallel children can clobber each other.
+- **Fork semantics and reproducibility**: whether fork/fresh-context behavior is declared in repo-visible config or only through ambient env/runtime switches; hidden toggles should be documented explicitly because they weaken replayability and file-based review.
 - **Tool/MCP/skill/extension allowlists**: which tools are inherited, overridden, or disabled for each child agent.
 - **Async/background observability**: status files, event logs, progress state, interrupt behavior, and completion receipts.
 - **Decision channels**: how a child asks for clarification or escalates a blocker instead of guessing.
