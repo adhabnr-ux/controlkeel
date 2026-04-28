@@ -412,10 +412,11 @@ defmodule ControlKeel.MCP.Protocol do
         "List recent prior sessions in the same workspace and the read-only experience artifacts available for each run.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id"],
+        "required" => [],
         "properties" => %{
           "session_id" => %{"type" => ["integer", "string"]},
           "session_limit" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
           "same_domain_only" => %{"type" => "boolean"}
         }
       }
@@ -429,9 +430,10 @@ defmodule ControlKeel.MCP.Protocol do
         "Read one prior-run artifact such as a session summary, audit log, trace packet, or proof summary from the workspace experience archive.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id", "artifact_type"],
+        "required" => ["artifact_type"],
         "properties" => %{
           "session_id" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
           "source_session_id" => %{"type" => ["integer", "string"]},
           "task_id" => %{"type" => ["integer", "string"]},
           "artifact_type" => %{
@@ -475,9 +477,10 @@ defmodule ControlKeel.MCP.Protocol do
         "Export a structured session or task trace packet with failure patterns and eval candidates for trace-centered improvement loops.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id"],
+        "required" => [],
         "properties" => %{
           "session_id" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
           "task_id" => %{"type" => ["integer", "string"]},
           "events_limit" => %{"type" => ["integer", "string"]}
         }
@@ -492,9 +495,10 @@ defmodule ControlKeel.MCP.Protocol do
         "Cluster recurring failure modes across recent session traces in the same workspace and return reusable eval candidates.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id"],
+        "required" => [],
         "properties" => %{
           "session_id" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
           "session_limit" => %{"type" => ["integer", "string"]},
           "same_domain_only" => %{"type" => "boolean"}
         }
@@ -509,9 +513,10 @@ defmodule ControlKeel.MCP.Protocol do
         "Analyze governance coverage across recent sessions in the workspace — which CK governance tools (ck_validate, ck_review_submit, ck_budget, ck_memory_record, ck_goal) are load-bearing, active, low-usage, or unused — and return actionable recommendations for gaps.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id"],
+        "required" => [],
         "properties" => %{
           "session_id" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
           "session_limit" => %{
             "type" => ["integer", "string"],
             "description" => "Number of recent sessions to analyze. Defaults to 10."
@@ -528,9 +533,10 @@ defmodule ControlKeel.MCP.Protocol do
         "Synthesize a deduplicated skill-evolution packet from recent traces and recurring failure clusters, including anti-patterns, reinforced practices, and a ready-to-merge skill draft.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id"],
+        "required" => [],
         "properties" => %{
           "session_id" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
           "session_limit" => %{"type" => ["integer", "string"]},
           "same_domain_only" => %{"type" => "boolean"},
           "current_skill_name" => %{"type" => "string"},
@@ -547,9 +553,10 @@ defmodule ControlKeel.MCP.Protocol do
         "List files and directories inside the bound project root through a read-only virtual workspace surface.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id"],
+        "required" => [],
         "properties" => %{
           "session_id" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
           "path" => %{"type" => "string"}
         }
       }
@@ -563,9 +570,10 @@ defmodule ControlKeel.MCP.Protocol do
         "Read a file from the bound project root through the read-only virtual workspace without using a sandbox.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id", "path"],
+        "required" => ["path"],
         "properties" => %{
           "session_id" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
           "path" => %{"type" => "string"},
           "start_line" => %{"type" => ["integer", "string"]},
           "max_lines" => %{"type" => ["integer", "string"]}
@@ -581,9 +589,10 @@ defmodule ControlKeel.MCP.Protocol do
         "Find files or directories by path fragment inside the bound project root through the read-only virtual workspace.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id", "query"],
+        "required" => ["query"],
         "properties" => %{
           "session_id" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
           "path" => %{"type" => "string"},
           "query" => %{"type" => "string"},
           "limit" => %{"type" => ["integer", "string"]}
@@ -599,9 +608,10 @@ defmodule ControlKeel.MCP.Protocol do
         "Search file contents inside the bound project root through the read-only virtual workspace using grep-style semantics.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id", "query"],
+        "required" => ["query"],
         "properties" => %{
           "session_id" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
           "path" => %{"type" => "string"},
           "query" => %{"type" => "string"},
           "limit" => %{"type" => ["integer", "string"]},
@@ -759,7 +769,34 @@ defmodule ControlKeel.MCP.Protocol do
           "session_id" => %{"type" => ["integer", "string"]},
           "project_root" => %{"type" => "string"},
           "task_id" => %{"type" => ["integer", "string"]},
-          "memory" => %{"type" => "string"},
+          "memory" => %{
+            "oneOf" => [
+              %{"type" => "string"},
+              %{
+                "type" => "object",
+                "properties" => %{
+                  "content" => %{"type" => "string"},
+                  "memory" => %{"type" => "string"},
+                  "body" => %{"type" => "string"},
+                  "title" => %{"type" => "string"},
+                  "summary" => %{"type" => "string"},
+                  "record_type" => %{
+                    "type" => "string",
+                    "enum" => ControlKeel.Memory.record_types()
+                  },
+                  "tags" => %{
+                    "oneOf" => [
+                      %{"type" => "array", "items" => %{"type" => "string"}},
+                      %{"type" => "string"}
+                    ]
+                  },
+                  "source_type" => %{"type" => "string"},
+                  "source_id" => %{"type" => "string"},
+                  "metadata" => %{"type" => "object"}
+                }
+              }
+            ]
+          },
           "title" => %{"type" => "string"},
           "summary" => %{"type" => "string"},
           "body" => %{"type" => "string"},

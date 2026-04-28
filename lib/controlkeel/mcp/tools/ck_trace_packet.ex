@@ -1,10 +1,11 @@
 defmodule ControlKeel.MCP.Tools.CkTracePacket do
   @moduledoc false
 
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.Mission
 
   def call(arguments) when is_map(arguments) do
-    with {:ok, session_id} <- required_integer(arguments, "session_id"),
+    with {:ok, session_id} <- Arguments.resolve_session_id(arguments),
          {:ok, task_id} <- optional_integer(arguments, "task_id"),
          {:ok, events_limit} <- optional_integer(arguments, "events_limit", 25) do
       Mission.trace_improvement_packet(session_id,
@@ -15,13 +16,6 @@ defmodule ControlKeel.MCP.Tools.CkTracePacket do
   end
 
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
-
-  defp required_integer(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-      value -> normalize_integer(value, key)
-    end
-  end
 
   defp optional_integer(arguments, key, default \\ nil) do
     case Map.get(arguments, key, default) do

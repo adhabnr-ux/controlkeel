@@ -6,7 +6,7 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
 
   def call(arguments) when is_map(arguments) do
     with {:ok, task_id} <- Arguments.optional_integer(arguments, "task_id"),
-         {:ok, memory} <- required_binary(arguments, "memory"),
+         {:ok, memory} <- normalize_memory(arguments),
          {:ok, session} <- Arguments.fetch_session(arguments),
          :ok <- Arguments.validate_task(task_id, session.id),
          {:ok, record} <- create_record(arguments, session, task_id, memory) do
@@ -25,8 +25,10 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
 
   defp create_record(arguments, session, task_id, memory) do
+    payload = merged_payload(arguments, memory)
+
     metadata =
-      Map.get(arguments, "metadata", %{})
+      Map.get(payload, "metadata", %{})
       |> ensure_map()
       |> Map.put_new("source", "mcp")
 
@@ -34,15 +36,61 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
       workspace_id: session.workspace_id,
       session_id: session.id,
       task_id: task_id,
-      record_type: Map.get(arguments, "record_type", "decision"),
-      title: title_for(arguments, memory),
-      summary: summary_for(arguments, memory),
-      body: body_for(arguments, memory),
-      tags: normalize_tags(Map.get(arguments, "tags")),
-      source_type: Map.get(arguments, "source_type", "generated"),
-      source_id: Map.get(arguments, "source_id"),
+      record_type: Map.get(payload, "record_type", "decision"),
+      title: title_for(payload, memory),
+      summary: summary_for(payload, memory),
+      body: body_for(payload, memory),
+      tags: normalize_tags(Map.get(payload, "tags")),
+      source_type: Map.get(payload, "source_type", "generated"),
+      source_id: Map.get(payload, "source_id"),
       metadata: metadata
     })
+  end
+
+  defp normalize_memory(arguments) do
+    case Map.get(arguments, "memory") do
+      value when is_binary(value) ->
+        value
+        |> String.trim()
+        |> case do
+          "" -> {:error, {:invalid_arguments, "`memory` is required"}}
+          trimmed -> {:ok, trimmed}
+        end
+
+      value when is_map(value) ->
+        content =
+          first_present_binary([
+            Map.get(value, "content"),
+            Map.get(value, "memory"),
+            Map.get(value, "body"),
+            Map.get(value, :content),
+            Map.get(value, :memory),
+            Map.get(value, :body)
+          ])
+
+        case content do
+          nil -> {:error, {:invalid_arguments, "`memory` is required"}}
+          trimmed -> {:ok, trimmed}
+        end
+
+      _ ->
+        {:error, {:invalid_arguments, "`memory` is required"}}
+    end
+  end
+
+  defp merged_payload(arguments, memory) do
+    case Map.get(arguments, "memory") do
+      value when is_map(value) ->
+        value
+        |> stringify_keys()
+        |> Map.put_new("memory", memory)
+        |> Map.merge(Map.delete(arguments, "memory"), fn _key, memory_value, arg_value ->
+          if blank_value?(arg_value), do: memory_value, else: arg_value
+        end)
+
+      _ ->
+        arguments
+    end
   end
 
   defp title_for(arguments, memory) do
@@ -77,21 +125,32 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
 
   defp normalize_tags(_tags), do: []
 
-  defp required_binary(arguments, key) do
-    case Map.get(arguments, key) do
-      value when is_binary(value) ->
-        value
-        |> String.trim()
-        |> case do
-          "" -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-          trimmed -> {:ok, trimmed}
-        end
-
-      _ ->
-        {:error, {:invalid_arguments, "`#{key}` is required"}}
-    end
+  defp stringify_keys(map) do
+    Map.new(map, fn
+      {key, value} when is_atom(key) -> {Atom.to_string(key), value}
+      {key, value} -> {key, value}
+    end)
   end
 
   defp ensure_map(value) when is_map(value), do: value
   defp ensure_map(_value), do: %{}
+
+  defp first_present_binary(values) do
+    Enum.find_value(values, fn
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> nil
+          trimmed -> trimmed
+        end
+
+      _ ->
+        nil
+    end)
+  end
+
+  defp blank_value?(value) when is_binary(value), do: String.trim(value) == ""
+  defp blank_value?(nil), do: true
+  defp blank_value?(value) when is_list(value), do: value == []
+  defp blank_value?(value) when is_map(value), do: map_size(value) == 0
+  defp blank_value?(_value), do: false
 end

@@ -1,10 +1,11 @@
 defmodule ControlKeel.MCP.Tools.CkFsGrep do
   @moduledoc false
 
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.VirtualWorkspace
 
   def call(arguments) when is_map(arguments) do
-    with {:ok, session_id} <- required_integer(arguments, "session_id"),
+    with {:ok, session_id} <- Arguments.resolve_session_id(arguments),
          {:ok, query} <- required_binary(arguments, "query"),
          {:ok, limit} <- optional_integer(arguments, "limit", 50),
          {:ok, ignore_case} <- optional_boolean(arguments, "ignore_case", false),
@@ -19,13 +20,6 @@ defmodule ControlKeel.MCP.Tools.CkFsGrep do
   end
 
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
-
-  defp required_integer(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-      value -> normalize_integer(value, key)
-    end
-  end
 
   defp required_binary(arguments, key) do
     case Map.get(arguments, key) do

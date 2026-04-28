@@ -3,6 +3,7 @@ defmodule ControlKeel.MCP.Tools.CkToolHealthTest do
 
   alias ControlKeel.MCP.Tools.CkToolHealth
   alias ControlKeel.Mission
+  alias ControlKeel.ProjectBinding
 
   import ControlKeel.MissionFixtures
 
@@ -110,6 +111,30 @@ defmodule ControlKeel.MCP.Tools.CkToolHealthTest do
     id_string = Integer.to_string(session.id)
 
     assert {:ok, result} = CkToolHealth.call(%{"session_id" => id_string})
+    assert result["source_session_id"] == session.id
+  end
+
+  test "resolves the active bound session from project_root" do
+    session = session_fixture()
+
+    tmp_dir = Path.join(System.tmp_dir!(), "ck-tool-health-#{System.unique_integer([:positive])}")
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => session.workspace_id,
+                 "session_id" => session.id,
+                 "agent" => "codex",
+                 "attached_agents" => %{}
+               },
+               tmp_dir
+             )
+
+    assert {:ok, result} = CkToolHealth.call(%{"project_root" => tmp_dir})
     assert result["source_session_id"] == session.id
   end
 

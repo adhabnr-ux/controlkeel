@@ -1535,7 +1535,7 @@ defmodule ControlKeel.Mission do
          "artifact_types" => ["session_summary", "audit_log", "trace_packet", "proof_summary"],
          "sessions" => Enum.map(sessions, &experience_index_entry/1),
          "usage_hint" =>
-           "Call ck_experience_read with a source_session_id and artifact_type to inspect one prior run in detail."
+           "Call ck_experience_read with artifact_type and, optionally, source_session_id to inspect one prior run in detail. If the project is bound, the active session can be resolved automatically."
        }}
     else
       _ -> {:error, :not_found}

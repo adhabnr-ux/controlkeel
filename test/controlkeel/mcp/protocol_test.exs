@@ -97,12 +97,32 @@ defmodule ControlKeel.MCP.ProtocolTest do
     by_name = Map.new(tools, &{&1["name"], &1})
 
     assert get_in(by_name["ck_context_pack"], ["inputSchema", "required"]) == []
+    assert get_in(by_name["ck_experience_index"], ["inputSchema", "required"]) == []
+    assert get_in(by_name["ck_experience_read"], ["inputSchema", "required"]) == ["artifact_type"]
+    assert get_in(by_name["ck_trace_packet"], ["inputSchema", "required"]) == []
+    assert get_in(by_name["ck_failure_clusters"], ["inputSchema", "required"]) == []
+    assert get_in(by_name["ck_tool_health"], ["inputSchema", "required"]) == []
+    assert get_in(by_name["ck_skill_evolution"], ["inputSchema", "required"]) == []
+    assert get_in(by_name["ck_fs_ls"], ["inputSchema", "required"]) == []
+    assert get_in(by_name["ck_fs_read"], ["inputSchema", "required"]) == ["path"]
+    assert get_in(by_name["ck_fs_find"], ["inputSchema", "required"]) == ["query"]
+    assert get_in(by_name["ck_fs_grep"], ["inputSchema", "required"]) == ["query"]
     assert get_in(by_name["ck_memory_search"], ["inputSchema", "required"]) == ["query"]
     assert get_in(by_name["ck_memory_record"], ["inputSchema", "required"]) == ["memory"]
     assert get_in(by_name["ck_memory_archive"], ["inputSchema", "required"]) == ["memory_id"]
 
     for tool_name <- [
           "ck_context_pack",
+          "ck_experience_index",
+          "ck_experience_read",
+          "ck_trace_packet",
+          "ck_failure_clusters",
+          "ck_tool_health",
+          "ck_skill_evolution",
+          "ck_fs_ls",
+          "ck_fs_read",
+          "ck_fs_find",
+          "ck_fs_grep",
           "ck_memory_search",
           "ck_memory_record",
           "ck_memory_archive"
@@ -370,14 +390,14 @@ defmodule ControlKeel.MCP.ProtocolTest do
       |> get_in(["result", "tools"])
       |> Enum.find(&(&1["name"] == "ck_fs_grep"))
 
-    assert get_in(tool, ["inputSchema", "required"]) == ["session_id", "query"]
+    assert get_in(tool, ["inputSchema", "required"]) == ["query"]
 
     find_tool =
       response
       |> get_in(["result", "tools"])
       |> Enum.find(&(&1["name"] == "ck_fs_find"))
 
-    assert get_in(find_tool, ["inputSchema", "required"]) == ["session_id", "query"]
+    assert get_in(find_tool, ["inputSchema", "required"]) == ["query"]
     assert get_in(tool, ["inputSchema", "properties", "fixed_strings", "type"]) == "boolean"
     assert get_in(tool, ["inputSchema", "properties", "ignore_case", "type"]) == "boolean"
   end
@@ -395,7 +415,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
       |> get_in(["result", "tools"])
       |> Enum.find(&(&1["name"] == "ck_trace_packet"))
 
-    assert get_in(tool, ["inputSchema", "required"]) == ["session_id"]
+    assert get_in(tool, ["inputSchema", "required"]) == []
 
     assert get_in(tool, ["inputSchema", "properties", "events_limit", "type"]) == [
              "integer",
@@ -416,7 +436,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
       |> get_in(["result", "tools"])
       |> Enum.find(&(&1["name"] == "ck_failure_clusters"))
 
-    assert get_in(tool, ["inputSchema", "required"]) == ["session_id"]
+    assert get_in(tool, ["inputSchema", "required"]) == []
     assert get_in(tool, ["inputSchema", "properties", "same_domain_only", "type"]) == "boolean"
   end
 
@@ -545,7 +565,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
           "method" => "tools/call",
           "params" => %{
             "name" => "ck_fs_ls",
-            "arguments" => %{"session_id" => session.id, "path" => "."}
+            "arguments" => %{"path" => "."}
           }
         })
       end)
@@ -565,7 +585,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
           "method" => "tools/call",
           "params" => %{
             "name" => "ck_fs_read",
-            "arguments" => %{"session_id" => session.id, "path" => "README.md"}
+            "arguments" => %{"path" => "README.md"}
           }
         })
       end)
@@ -583,7 +603,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
           "method" => "tools/call",
           "params" => %{
             "name" => "ck_fs_grep",
-            "arguments" => %{"session_id" => session.id, "query" => "OAuth"}
+            "arguments" => %{"query" => "OAuth"}
           }
         })
       end)
@@ -599,7 +619,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
           "method" => "tools/call",
           "params" => %{
             "name" => "ck_fs_find",
-            "arguments" => %{"session_id" => session.id, "query" => "guide"}
+            "arguments" => %{"query" => "guide"}
           }
         })
       end)
@@ -1177,6 +1197,46 @@ defmodule ControlKeel.MCP.ProtocolTest do
            )
   end
 
+  test "tools/call ck_trace_packet resolves the active bound session from project_root" do
+    session = session_fixture()
+    task = task_fixture(%{session: session, status: "done"})
+
+    tmp_dir =
+      Path.join(System.tmp_dir!(), "ck-trace-packet-#{System.unique_integer([:positive])}")
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => session.workspace_id,
+                 "session_id" => session.id,
+                 "agent" => "codex",
+                 "attached_agents" => %{}
+               },
+               tmp_dir
+             )
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 202_301,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_trace_packet",
+          "arguments" => %{
+            "project_root" => tmp_dir,
+            "task_id" => task.id,
+            "events_limit" => 5
+          }
+        }
+      })
+
+    assert get_in(response, ["result", "structuredContent", "session_id"]) == session.id
+  end
+
   test "tools/call ck_experience_index lists prior-run artifacts" do
     workspace = workspace_fixture()
 
@@ -1217,6 +1277,51 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
     assert Enum.any?(entry["artifacts"], &(&1["artifact_type"] == "session_summary"))
     assert Enum.any?(entry["artifacts"], &(&1["artifact_type"] == "audit_log"))
+  end
+
+  test "tools/call ck_experience_index resolves the active bound session from project_root" do
+    workspace = workspace_fixture()
+
+    session =
+      session_fixture(%{
+        workspace: workspace,
+        execution_brief: %{"domain_pack" => "software"}
+      })
+
+    tmp_dir =
+      Path.join(System.tmp_dir!(), "ck-experience-index-#{System.unique_integer([:positive])}")
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => workspace.id,
+                 "session_id" => session.id,
+                 "agent" => "codex",
+                 "attached_agents" => %{}
+               },
+               tmp_dir
+             )
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 202_311,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_experience_index",
+          "arguments" => %{
+            "project_root" => tmp_dir,
+            "session_limit" => 1
+          }
+        }
+      })
+
+    assert get_in(response, ["result", "structuredContent", "source_session_id"]) == session.id
   end
 
   test "tools/call ck_experience_read returns a prior trace packet" do
@@ -1270,6 +1375,56 @@ defmodule ControlKeel.MCP.ProtocolTest do
              ]),
              &(&1["code"] == "security.sql_injection")
            )
+  end
+
+  test "tools/call ck_experience_read resolves the active bound session from project_root" do
+    workspace = workspace_fixture()
+
+    session =
+      session_fixture(%{
+        workspace: workspace,
+        execution_brief: %{"domain_pack" => "software"}
+      })
+
+    task = task_fixture(%{session: session, status: "done"})
+
+    tmp_dir =
+      Path.join(System.tmp_dir!(), "ck-experience-read-#{System.unique_integer([:positive])}")
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => workspace.id,
+                 "session_id" => session.id,
+                 "agent" => "codex",
+                 "attached_agents" => %{}
+               },
+               tmp_dir
+             )
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 202_321,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_experience_read",
+          "arguments" => %{
+            "project_root" => tmp_dir,
+            "source_session_id" => session.id,
+            "task_id" => task.id,
+            "artifact_type" => "trace_packet"
+          }
+        }
+      })
+
+    assert get_in(response, ["result", "structuredContent", "source_session_id"]) == session.id
+    assert get_in(response, ["result", "structuredContent", "target_session_id"]) == session.id
   end
 
   test "tools/call ck_failure_clusters groups recurring failure modes across recent sessions" do
@@ -1337,6 +1492,52 @@ defmodule ControlKeel.MCP.ProtocolTest do
              get_in(response, ["result", "structuredContent", "eval_candidates"]),
              &(&1["cluster_code"] == "security.sql_injection")
            )
+  end
+
+  test "tools/call ck_failure_clusters resolves the active bound session from project_root" do
+    workspace = workspace_fixture()
+
+    session =
+      session_fixture(%{
+        workspace: workspace,
+        execution_brief: %{"domain_pack" => "software"}
+      })
+
+    _task = task_fixture(%{session: session, status: "done"})
+
+    tmp_dir =
+      Path.join(System.tmp_dir!(), "ck-failure-clusters-#{System.unique_integer([:positive])}")
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => workspace.id,
+                 "session_id" => session.id,
+                 "agent" => "codex",
+                 "attached_agents" => %{}
+               },
+               tmp_dir
+             )
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 202_510,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_failure_clusters",
+          "arguments" => %{
+            "project_root" => tmp_dir,
+            "session_limit" => 1
+          }
+        }
+      })
+
+    assert get_in(response, ["result", "structuredContent", "source_session_id"]) == session.id
   end
 
   test "tools/call ck_skill_evolution returns a consolidated skill draft from traces" do
@@ -1410,6 +1611,53 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
     assert get_in(response, ["result", "structuredContent", "suggested_skill_document"]) =~
              "name: secure-sql-review"
+  end
+
+  test "tools/call ck_skill_evolution resolves the active bound session from project_root" do
+    workspace = workspace_fixture()
+
+    session =
+      session_fixture(%{
+        workspace: workspace,
+        execution_brief: %{"domain_pack" => "software"}
+      })
+
+    _task = task_fixture(%{session: session, status: "done"})
+
+    tmp_dir =
+      Path.join(System.tmp_dir!(), "ck-skill-evolution-#{System.unique_integer([:positive])}")
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => workspace.id,
+                 "session_id" => session.id,
+                 "agent" => "codex",
+                 "attached_agents" => %{}
+               },
+               tmp_dir
+             )
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 202_610,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_skill_evolution",
+          "arguments" => %{
+            "project_root" => tmp_dir,
+            "session_limit" => 1,
+            "current_skill_name" => "trace-evolved-skill"
+          }
+        }
+      })
+
+    assert get_in(response, ["result", "structuredContent", "source_session_id"]) == session.id
   end
 
   test "tools/call ck_review_submit returns grill questions for weak planning packets" do
@@ -1659,6 +1907,64 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert count >= 1
     assert semantic_available in [true, false]
     assert Enum.any?(records, &(&1["id"] == memory_id))
+  end
+
+  test "tools/call ck_memory_record accepts object-shaped memory payloads" do
+    session = session_fixture()
+    task = task_fixture(%{session: session})
+
+    record_response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 2071,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_memory_record",
+          "arguments" => %{
+            "session_id" => session.id,
+            "task_id" => task.id,
+            "memory" => %{
+              "content" => "Carry session continuity decisions across runtimes.",
+              "record_type" => "decision",
+              "tags" => ["continuity", "memory"],
+              "metadata" => %{"origin" => "compat-test"}
+            }
+          }
+        }
+      })
+
+    assert %{
+             "result" => %{
+               "structuredContent" => %{
+                 "recorded" => true,
+                 "record_type" => "decision"
+               }
+             }
+           } = record_response
+
+    search_response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 2072,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_memory_search",
+          "arguments" => %{
+            "session_id" => session.id,
+            "query" => "continuity decisions",
+            "record_type" => "decision",
+            "top_k" => 3
+          }
+        }
+      })
+
+    records = get_in(search_response, ["result", "structuredContent", "records"])
+
+    assert Enum.any?(records, fn record ->
+             [record["body"], record["summary"], record["title"]]
+             |> Enum.filter(&is_binary/1)
+             |> Enum.any?(&String.contains?(&1, "Carry session continuity decisions"))
+           end)
   end
 
   test "tools/call ck_goal records, lists, and updates persistent governed goals" do
