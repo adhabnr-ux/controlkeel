@@ -394,6 +394,47 @@ If the host is the cockpit, ControlKeel is the system making sure the aircraft i
 
 If the model writes the code, ControlKeel governs the path from idea to safe delivery.
 
+## ControlKeel as the governance layer for company context graphs
+
+The industry is moving from giving agents access to tools (connectors, MCP servers, integrations) to building **company brains** — synthesized, conflict-resolved, continuously updated representations of organizational context. ControlKeel provides the governance foundation for this next phase.
+
+### From retrieval to synthesis
+
+Current agent systems focus on retrieval: when the agent needs context, it searches Slack, Google Drive, CRM, and other tools. This is a scavenger hunt that starts from zero every time. ControlKeel's `ck_context_pack` and typed memory provide **synthesized understanding** — a persistent, accumulated model of your project's context that agents read from instead of searching for.
+
+### Filesystem-based context delivery
+
+The most robust way to deliver company context to agents is through the filesystem. Every agent already knows how to read files. ControlKeel's workspace snapshots, `.agents/skills`, `.opencode/`, `.codex/`, and other repo-native assets deliver governed context as structured files that any agent can read without custom integration. When you switch from OpenCode to Claude Code to Codex, the context persists because it lives in your repository, not in a specific agent runtime.
+
+### Cross-agent context compatibility
+
+A company brain shouldn't be locked into one agent vendor. ControlKeel's cross-host consistency ensures that the same governed context, typed memory, and proof bundles work across OpenCode, Codex, Claude Code, Copilot, Cursor, Windsurf, and dozens of other hosts. Your accumulated understanding survives host switches and tool changes.
+
+### Conflict resolution and source authority
+
+Company data constantly contradicts itself — Slack says one deadline, Linear says another, a meeting recording says a third. ControlKeel's findings system and validation gates provide the conflict-resolution framework: when sources disagree, CK's deterministic validation and policy enforcement determine what's authoritative. Proof bundles track which decisions were made, which sources were consulted, and why.
+
+### Identity and continuity across sessions
+
+The same person appears as "Lisa Chen" in email, "@lisa" in Slack, and "L. Chen" in calendar invites. ControlKeel's session/task graph, agent binding, and typed memory unify identity across these fragmented representations. Resume packets and task continuity mean work survives not just across sessions, but across hosts and team members.
+
+### Accumulated understanding that compounds
+
+A context graph gets better every day it runs. Day one, it knows a little. Day thirty, it has absorbed thousands of decisions, resolved hundreds of conflicts, and built a model of how your team actually works. ControlKeel's typed memory, proof bundles, and experience index capture this accumulated understanding. Every new decision, finding, and proof event makes the existing context more valuable. You can't fast-forward six months of accumulated understanding — but you can start building it today.
+
+### The governance layer for company brains
+
+ControlKeel is not itself a context graph or company brain. It's the governance layer that makes context graphs trustworthy, auditable, and portable. When you build a system that synthesizes company context from Slack, Notion, GitHub, and other tools, ControlKeel provides:
+
+- **Validation**: Ensure synthesized context meets security and compliance standards before agents use it
+- **Proof bundles**: Immutable records of what context was used, what decisions were made, and why
+- **Review gates**: Human approval workflows for high-impact context changes or agent decisions
+- **Cross-host portability**: The same governed context works across any agent host
+- **Budget and cost control**: Track spend and resource usage across all context-aware agents
+- **Typed memory**: Persistent, citable records of context synthesis decisions that compound over time
+
+The industry gave agents access in 2025. In 2026, we're building company brains. ControlKeel provides the governance foundation that makes those brains safe, auditable, and portable.
+
 ## The practical takeaway
 
 If you only need code generation, you may not need ControlKeel.
@@ -406,5 +447,6 @@ If you need:
 - findings, approvals, and proofs
 - resumable task state
 - delivery and ship discipline
+- governance for company context graphs and synthesized understanding
 
 then that is exactly what ControlKeel is for.

@@ -25,7 +25,7 @@ Beyond the scanner, CK also provides what no single agent host gives you portabl
 
 ### One-line setup via your agent
 
-Copy/paste this into your agent (OpenCode, Claude, Codex, or another supported host):
+Copy/paste this into your agent (OpenCode, Codex, Claude, or another supported host):
 
 ```text
 Set up ControlKeel end-to-end for this repository with minimal user action: read and follow https://raw.githubusercontent.com/aryaminus/controlkeel/main/README.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/getting-started.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/direct-host-installs.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/support-matrix.md, and https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/agent-integrations.md; detect this host's capabilities, install ControlKeel if missing, run controlkeel setup in the repo, then attach the strongest active supported host path first (attach additional configured hosts only when they add real value for this workspace) with plugin and MCP plus skills/hooks/agents as available; run controlkeel attach doctor, controlkeel provider doctor, controlkeel status, controlkeel findings, and the host-specific MCP check, and if a fix is safe and local apply it then re-verify; if the host requires a trusted project/workspace, restart after attach/plugin changes, needs manual provider configuration, or a plan review cannot auto-wait to approved, pause and ask the user to take that step before continuing; redact proxy tokens/secrets from any shared logs; for Codex ensure the project is trusted and restart Codex after attach/plugin changes.
@@ -138,7 +138,7 @@ OpenCode is the primary host used in the benchmark evidence above, and CK suppor
 3. OpenCode can call `ck_context` / `ck_context_pack` to reacquire bounded session state, current task, proof summary, memory hits, resume packet, budget summary, review gate state, and workspace context without relying on chat history.
 4. OpenCode can call `ck_validate`, `ck_review_submit`, `ck_memory_record`, and `ck_budget` so validation, approvals, durable memory, and spend evidence stay in CK rather than in one host runtime.
 
-The same governed loop is available to Codex, Claude Code, Copilot, and other supported hosts, but the README examples lead with OpenCode because that is the best current host-backed evidence path in this repository.
+The same governed loop is available to OpenCode, Codex, Claude Code, Copilot, and other supported hosts, but the README examples lead with OpenCode because that is the best current host-backed evidence path in this repository.
 
 ---
 
@@ -159,6 +159,8 @@ Validation is the most visible part. CK also provides:
 **Cross-host consistency** — the same governance loop works across OpenCode, Codex, Claude Code, Copilot, Cline, Windsurf, Continue, Goose, Roo Code, and others. Project binding plus `ck_context`/typed memory/resume packets let a later host reacquire the same governed state. See [docs/support-matrix.md](docs/support-matrix.md).
 
 **Ship readiness** — deploy-ready proof state, outcome metrics, and comparative benchmark evidence. The question is not just "did the agent finish?" but "is this ready to ship?"
+
+**Governance for company context graphs** — as the industry moves from retrieval-based agents to synthesized "company brains," ControlKeel provides the governance layer that makes context graphs trustworthy, auditable, and portable. CK validates synthesized context, tracks proof bundles for auditability, ensures cross-host portability, and provides typed memory that captures accumulated understanding. See [docs/explaining-controlkeel.md](docs/explaining-controlkeel.md) for details.
 
 ---
 

@@ -77,6 +77,7 @@ defmodule ControlKeel.Skills.Parser do
           |> Enum.uniq()
 
         metadata_map = Map.get(meta, "metadata", %{})
+
         owner =
           normalize_nil(Map.get(meta, "owner")) ||
             normalize_nil(Map.get(metadata_map, "owner"))
