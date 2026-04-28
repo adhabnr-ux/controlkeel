@@ -751,7 +751,9 @@ defmodule ControlKeel.MCP.Protocol do
           "task_id" => %{"type" => ["integer", "string"]},
           "query" => %{"type" => "string"},
           "record_type" => %{"type" => "string", "enum" => ControlKeel.Memory.record_types()},
-          "top_k" => %{"type" => ["integer", "string"]}
+          "top_k" => %{"type" => ["integer", "string"]},
+          "source_type" => %{"type" => "string"},
+          "source_id" => %{"type" => "string"}
         }
       }
     }
@@ -884,7 +886,7 @@ defmodule ControlKeel.MCP.Protocol do
         "properties" => %{
           "session_id" => %{"type" => ["integer", "string"]},
           "task_id" => %{"type" => ["integer", "string"]},
-          "mode" => %{"type" => "string", "enum" => ["estimate", "commit"]},
+          "mode" => %{"type" => "string", "enum" => ["estimate", "commit", "status"]},
           "estimated_cost_cents" => %{"type" => ["integer", "string"]},
           "provider" => %{"type" => "string"},
           "model" => %{"type" => "string"},

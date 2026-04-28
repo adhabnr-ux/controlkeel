@@ -3,13 +3,14 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
 
   alias ControlKeel.Budget
 
-  @allowed_modes ~w(estimate commit)
+  @allowed_modes ~w(estimate commit status)
 
   def call(arguments) when is_map(arguments) do
     with {:ok, normalized} <- normalize(arguments) do
       case normalized["mode"] do
         "estimate" -> Budget.estimate(normalized)
         "commit" -> Budget.commit(normalized)
+        "status" -> Budget.status(normalized)
       end
     end
   end
@@ -47,7 +48,7 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
   defp mode(arguments) do
     case Map.get(arguments, "mode", "estimate") do
       value when value in @allowed_modes -> {:ok, value}
-      _ -> {:error, {:invalid_arguments, "`mode` must be `estimate` or `commit`"}}
+      _ -> {:error, {:invalid_arguments, "`mode` must be `estimate`, `commit`, or `status`"}}
     end
   end
 

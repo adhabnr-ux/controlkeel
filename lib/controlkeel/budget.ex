@@ -86,6 +86,40 @@ defmodule ControlKeel.Budget do
     end
   end
 
+  def status(attrs) when is_map(attrs) do
+    with {:ok, session} <- fetch_session(attrs["session_id"]) do
+      rolling_24h = rolling_24h_spend_cents(session.id)
+      spent = session.spent_cents || 0
+      session_budget = session.budget_cents
+      daily_budget = session.daily_budget_cents
+
+      base_decision =
+        cond do
+          exceeds_limit?(ratio(spent, session_budget)) or
+              exceeds_limit?(ratio(rolling_24h, daily_budget)) ->
+            "block"
+
+          near_limit?(ratio(spent, session_budget)) or
+              near_limit?(ratio(rolling_24h, daily_budget)) ->
+            "warn"
+
+          true ->
+            "allow"
+        end
+
+      {:ok,
+       %{
+         "decision" => base_decision,
+         "session_budget_cents" => session_budget,
+         "spent_cents" => spent,
+         "remaining_session_cents" => remaining(spent, session_budget),
+         "daily_budget_cents" => daily_budget,
+         "rolling_24h_spend_cents" => rolling_24h,
+         "remaining_daily_cents" => remaining(rolling_24h, daily_budget)
+       }}
+    end
+  end
+
   def commit(attrs) when is_map(attrs) do
     with {:ok, estimate} <- estimate(attrs),
          {:ok, task_id} <- validate_task_id(attrs["task_id"], attrs["session_id"]) do
