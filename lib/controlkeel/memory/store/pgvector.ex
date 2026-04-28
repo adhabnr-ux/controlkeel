@@ -32,6 +32,8 @@ defmodule ControlKeel.Memory.Store.Pgvector do
           AND ($3::bigint IS NULL OR mr.session_id = $3)
           AND ($4::bigint IS NULL OR mr.task_id = $4)
           AND ($5::text IS NULL OR mr.record_type = $5)
+          AND ($7::text IS NULL OR mr.source_type = $7)
+          AND ($8::text IS NULL OR mr.source_id = $8)
         ORDER BY me.embedding_text::vector <=> $1::vector
         LIMIT $6
         """
@@ -42,7 +44,9 @@ defmodule ControlKeel.Memory.Store.Pgvector do
                opts[:session_id],
                opts[:task_id],
                opts[:record_type],
-               top_k
+               top_k,
+               opts[:source_type],
+               opts[:source_id]
              ]) do
           {:ok, %{rows: rows}} ->
             base = Sqlite.search(query, Keyword.put(opts, :top_k, top_k * 2))

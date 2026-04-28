@@ -18,6 +18,8 @@ defmodule ControlKeel.MCP.Tools.CkMemorySearch do
           session_id: session.id,
           task_id: task_id,
           record_type: Map.get(arguments, "record_type"),
+          source_type: Map.get(arguments, "source_type"),
+          source_id: Map.get(arguments, "source_id"),
           top_k: top_k
         )
 
@@ -56,6 +58,7 @@ defmodule ControlKeel.MCP.Tools.CkMemorySearch do
       "summary" => entry.summary,
       "tags" => entry.tags,
       "source_type" => entry.source_type,
+      "source_id" => entry.source_id,
       "session_id" => entry.session_id,
       "task_id" => entry.task_id,
       "inserted_at" => entry.inserted_at,

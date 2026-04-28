@@ -99,6 +99,8 @@ defmodule ControlKeel.Memory.Store.Sqlite do
     |> maybe_scope(:session_id, opts[:session_id])
     |> maybe_scope(:task_id, opts[:task_id])
     |> maybe_scope(:record_type, opts[:record_type])
+    |> maybe_scope(:source_type, opts[:source_type])
+    |> maybe_scope(:source_id, opts[:source_id])
   end
 
   defp maybe_scope(query, _field, nil), do: query
@@ -242,6 +244,8 @@ defmodule ControlKeel.Memory.Store.Sqlite do
       |> maybe_clause("mr.session_id = ?", opts[:session_id])
       |> maybe_clause("mr.task_id = ?", opts[:task_id])
       |> maybe_clause("mr.record_type = ?", opts[:record_type])
+      |> maybe_clause("mr.source_type = ?", opts[:source_type])
+      |> maybe_clause("mr.source_id = ?", opts[:source_id])
       |> Kernel.++(["mr.archived_at IS NULL"])
 
     " AND " <> Enum.join(clauses, " AND ")
@@ -253,6 +257,8 @@ defmodule ControlKeel.Memory.Store.Sqlite do
     |> maybe_param(opts[:session_id])
     |> maybe_param(opts[:task_id])
     |> maybe_param(opts[:record_type])
+    |> maybe_param(opts[:source_type])
+    |> maybe_param(opts[:source_id])
   end
 
   defp maybe_clause(clauses, _sql, nil), do: clauses
