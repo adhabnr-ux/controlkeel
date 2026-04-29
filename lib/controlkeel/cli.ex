@@ -403,6 +403,9 @@ defmodule ControlKeel.CLI do
       ["obs", "timeline" | rest] ->
         parse_obs_timeline(rest)
 
+      ["obs", "memory" | rest] ->
+        parse_obs_memory(rest)
+
       ["obs", "export", session_id | rest] ->
         parse_obs_session_command(:obs_export, session_id, rest)
 
@@ -2154,6 +2157,19 @@ defmodule ControlKeel.CLI do
       limit = options[:limit] || 50
 
       render_observability_timeline(session_id, limit, format)
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_memory, args: args, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      session_id = List.first(args) || session.id
+      limit = options[:limit] || 10
+
+      render_observability_memory(session_id, limit, format)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -4225,6 +4241,20 @@ defmodule ControlKeel.CLI do
     end
   end
 
+  defp parse_obs_memory([]), do: parse_with_switches(:obs_memory, [], @obs_switches)
+
+  defp parse_obs_memory([maybe_session_id | rest]) do
+    case Integer.parse(maybe_session_id) do
+      {session_id, ""} ->
+        with {:ok, parsed} <- parse_with_switches(:obs_memory, rest, @obs_switches) do
+          {:ok, %{parsed | args: [session_id]}}
+        end
+
+      _ ->
+        parse_with_switches(:obs_memory, [maybe_session_id | rest], @obs_switches)
+    end
+  end
+
   defp parse_with_switches(command, argv, switches) do
     {options, remainder, invalid} = OptionParser.parse(argv, strict: switches)
 
@@ -5079,6 +5109,41 @@ defmodule ControlKeel.CLI do
       Enum.map(timeline.events, fn event ->
         "- #{event.inserted_at || "unknown time"} #{event.event_type} by #{event.actor}: #{event.summary}"
       end)
+  end
+
+  defp render_observability_memory(session_id, limit, format) do
+    case Observability.memory_context(session_id, limit: limit) do
+      {:ok, memory_context} ->
+        case format do
+          "json" -> {:ok, [Jason.encode!(memory_context)]}
+          _ -> {:ok, observability_memory_lines(memory_context)}
+        end
+
+      {:error, :not_found} ->
+        {:error, "Session not found: #{session_id}"}
+
+      {:error, :invalid_session_id} ->
+        {:error, "Invalid session id: #{session_id}"}
+    end
+  end
+
+  defp observability_memory_lines(memory_context) do
+    memory = memory_context.memory
+    context = memory_context.context
+
+    [
+      "Observability memory: #{memory_context.session.title} (##{memory_context.session.id})",
+      "Context: #{context.tasks} task(s), #{context.findings} finding(s), #{context.reviews} review(s), #{context.invocations} invocation(s)",
+      "Memory: #{memory.active} active / #{memory.archived} archived / #{memory.count} recent",
+      "Types: #{format_frequency(memory.by_type)}",
+      "Sources: #{format_frequency(memory.by_source)}",
+      "Recent memory:"
+    ] ++
+      Enum.map(memory.recent, fn record ->
+        archived = if record.archived, do: "archived", else: "active"
+        "- [#{record.record_type}] #{record.title} (#{archived}) — #{record.summary}"
+      end) ++
+      ["Recommendations:"] ++ Enum.map(memory_context.recommendations, &"- #{&1}")
   end
 
   defp format_frequency(map) when map == %{}, do: "none"

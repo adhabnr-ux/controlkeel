@@ -1190,6 +1190,8 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert {:ok, %{command: :obs_compare}} = CLI.parse(["obs", "compare"])
       assert {:ok, %{command: :obs_timeline}} = CLI.parse(["obs", "timeline"])
       assert {:ok, %{command: :obs_timeline, args: [123]}} = CLI.parse(["obs", "timeline", "123"])
+      assert {:ok, %{command: :obs_memory}} = CLI.parse(["obs", "memory"])
+      assert {:ok, %{command: :obs_memory, args: [123]}} = CLI.parse(["obs", "memory", "123"])
       assert {:ok, %{command: :obs_run, args: [123]}} = CLI.parse(["obs", "run", "123"])
       assert {:ok, %{command: :obs_export, args: [123]}} = CLI.parse(["obs", "export", "123"])
 
@@ -1582,6 +1584,65 @@ defmodule ControlKeel.CLI.NewCommandsTest do
              } = Jason.decode!(output)
 
       assert id == session.id
+    end
+
+    test "obs memory renders current session memory summary", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      memory_record_fixture(%{
+        session: session,
+        record_type: "decision",
+        title: "CLI memory",
+        summary: "CLI memory summary.",
+        source_type: "agent"
+      })
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_memory, options: %{}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability memory:"
+      assert output =~ "CLI memory"
+      assert output =~ "Memory:"
+    end
+
+    test "obs memory supports explicit session id and json output", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      memory_record_fixture(%{
+        session: session,
+        record_type: "checkpoint",
+        title: "JSON memory",
+        summary: "JSON memory summary.",
+        source_type: "review"
+      })
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_memory, options: %{json: true}, args: [session.id]},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "session" => %{"id" => id},
+               "memory" => %{"active" => active, "recent" => recent}
+             } = Jason.decode!(output)
+
+      assert id == session.id
+      assert active >= 1
+      assert Enum.any?(recent, &(&1["title"] == "JSON memory"))
     end
 
     test "obs problems supports json output", %{tmp_dir: tmp_dir} do

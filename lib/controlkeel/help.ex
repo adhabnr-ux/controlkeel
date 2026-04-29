@@ -400,6 +400,7 @@ defmodule ControlKeel.Help do
       controlkeel obs compare [--by source|model|provider|tool]
                                       Compare local invocation groups
       controlkeel obs timeline [id]   Show recent session timeline events
+      controlkeel obs memory [id]     Show session memory and context summary
       controlkeel obs export <id>     Export a local observability envelope
       controlkeel obs import <file> --dry-run
                                       Validate and preview an observability envelope

@@ -56,6 +56,13 @@ defmodule ControlKeelWeb.ObservabilityLive do
             >
               Timeline
             </.link>
+            <.link
+              id="observability-open-memory"
+              navigate={~p"/observability/sessions/#{@run.session.id}/memory"}
+              class="ck-link"
+            >
+              Memory
+            </.link>
           </div>
         </div>
 
@@ -159,6 +166,12 @@ defmodule ControlKeelWeb.ObservabilityLive do
                 <div>
                   <h3>Memory records</h3>
                   <p class="ck-note">{@run.memory.records}</p>
+                  <.link
+                    navigate={~p"/observability/sessions/#{@run.session.id}/memory"}
+                    class="ck-link"
+                  >
+                    Open memory
+                  </.link>
                 </div>
                 <div>
                   <h3>Proof bundles</h3>

@@ -3,6 +3,7 @@ defmodule ControlKeel.ObservabilityTest do
 
   import ControlKeel.MissionFixtures
 
+  alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Finding, Invocation, Session, SessionEvent}
   alias ControlKeel.Observability
@@ -101,6 +102,53 @@ defmodule ControlKeel.ObservabilityTest do
     assert timeline.by_event_type["tool_call"] == 1
     assert timeline.by_actor["agent"] == 1
     assert Enum.any?(timeline.events, &(&1.summary == "Ran timeline validation"))
+  end
+
+  test "memory_context/2 summarizes session context and memory metadata" do
+    session = session_fixture()
+    task_fixture(%{session: session})
+    finding_fixture(%{session: session})
+
+    active_record =
+      memory_record_fixture(%{
+        session: session,
+        record_type: "decision",
+        title: "Use summary memory",
+        summary: "Keep memory output summary-only.",
+        source_type: "agent",
+        tags: ["observability"]
+      })
+
+    archived_record =
+      memory_record_fixture(%{
+        session: session,
+        record_type: "checkpoint",
+        title: "Old checkpoint",
+        summary: "Archived checkpoint.",
+        source_type: "review",
+        tags: ["stale"]
+      })
+
+    assert {:ok, _archived} =
+             archived_record
+             |> MemoryRecord.changeset(%{
+               archived_at: DateTime.utc_now() |> DateTime.truncate(:second)
+             })
+             |> Repo.update()
+
+    assert {:ok, memory_context} = Observability.memory_context(session.id, limit: 10)
+
+    assert memory_context.session.id == session.id
+    assert memory_context.context.tasks == 1
+    assert memory_context.context.findings == 1
+    assert memory_context.memory.count >= 2
+    assert memory_context.memory.active >= 1
+    assert memory_context.memory.archived >= 1
+    assert memory_context.memory.by_type["decision"] == 1
+    assert memory_context.memory.by_type["checkpoint"] == 1
+    assert memory_context.memory.by_source["agent"] == 1
+    assert Enum.any?(memory_context.memory.recent, &(&1.id == active_record.id))
+    assert Enum.any?(memory_context.recommendations, &String.contains?(&1, "Archived memory"))
   end
 
   test "costs/1 summarizes invocation spend and groups by selected field" do

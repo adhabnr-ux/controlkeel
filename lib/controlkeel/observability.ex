@@ -177,6 +177,49 @@ defmodule ControlKeel.Observability do
     end
   end
 
+  def memory_context(session_or_id, opts \\ [])
+
+  def memory_context(%Session{} = session, opts) do
+    session = ensure_preloaded(session)
+    limit = Keyword.get(opts, :limit, 10)
+    records = memory_records(session.id, limit)
+    active_records = Enum.filter(records, &is_nil(&1.archived_at))
+    archived_records = Enum.reject(records, &is_nil(&1.archived_at))
+
+    %{
+      session: session_summary(session),
+      context: %{
+        tasks: length(session.tasks || []),
+        findings: length(session.findings || []),
+        reviews: length(session.reviews || []),
+        invocations: length(session.invocations || [])
+      },
+      memory: %{
+        count: length(records),
+        active: length(active_records),
+        archived: length(archived_records),
+        by_type: frequencies(records, &(&1.record_type || "unknown")),
+        by_source: frequencies(records, &(&1.source_type || "unknown")),
+        recent: Enum.map(records, &memory_record_summary/1)
+      },
+      recommendations: memory_context_recommendations(active_records, archived_records)
+    }
+  end
+
+  def memory_context(session_id, opts) when is_integer(session_id) do
+    case Mission.get_session_context(session_id) do
+      nil -> {:error, :not_found}
+      %Session{} = session -> {:ok, memory_context(session, opts)}
+    end
+  end
+
+  def memory_context(session_id, opts) when is_binary(session_id) do
+    case Integer.parse(session_id) do
+      {parsed, ""} -> memory_context(parsed, opts)
+      _ -> {:error, :invalid_session_id}
+    end
+  end
+
   def session_run(session_or_id, opts \\ [])
 
   def session_run(%Session{} = session, opts) do
@@ -656,6 +699,44 @@ defmodule ControlKeel.Observability do
       task_id: event_value(event, :task_id),
       inserted_at: format_datetime(event_value(event, :inserted_at))
     }
+  end
+
+  defp memory_records(session_id, limit) do
+    MemoryRecord
+    |> where([r], r.session_id == ^session_id)
+    |> order_by([r], desc: r.inserted_at, desc: r.id)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  defp memory_record_summary(record) do
+    %{
+      id: record.id,
+      record_type: record.record_type,
+      title: record.title,
+      summary: record.summary,
+      tags: record.tags || [],
+      source_type: record.source_type,
+      source_id: record.source_id,
+      archived: not is_nil(record.archived_at),
+      inserted_at: format_datetime(record.inserted_at),
+      archived_at: format_datetime(record.archived_at)
+    }
+  end
+
+  defp memory_context_recommendations([], _archived_records),
+    do: ["No active memory records are available for this session."]
+
+  defp memory_context_recommendations(_active_records, archived_records) do
+    []
+    |> maybe_reason(
+      archived_records != [],
+      "Archived memory is present; confirm current context is not relying on stale notes."
+    )
+    |> case do
+      [] -> ["Session memory has active records available for continuity."]
+      recommendations -> recommendations
+    end
   end
 
   defp problem_key(finding),
