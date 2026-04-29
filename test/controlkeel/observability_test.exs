@@ -626,6 +626,37 @@ defmodule ControlKeel.ObservabilityTest do
     assert regressions.recommendations != []
   end
 
+  test "update_benchmark_draft_status/3 changes only local draft review state" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Draft status finding",
+      severity: "high",
+      status: "open",
+      category: "security",
+      rule_id: "security.draft_status"
+    })
+
+    assert %{stored: 1} = Observability.save_eval_candidates(workspace_id: session.workspace_id)
+
+    assert %{stored: 1, drafts: [draft]} =
+             Observability.generate_benchmark_drafts(workspace_id: session.workspace_id)
+
+    assert {:ok, result} =
+             Observability.update_benchmark_draft_status(draft.id, "approved",
+               reviewed_by: "test"
+             )
+
+    assert result.status == "approved"
+    assert result.human_gate_required == true
+    assert result.mutation == "draft_status_only"
+    assert result.draft.metadata["reviewed_by"] == "test"
+
+    drafts = Observability.benchmark_drafts(workspace_id: session.workspace_id)
+    assert drafts.by_status == %{"approved" => 1}
+  end
+
   test "regressions/1 warns when drafts exist but no benchmark runs close the loop" do
     session = session_fixture()
 

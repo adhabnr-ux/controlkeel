@@ -1190,6 +1190,16 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert {:ok, %{command: :obs_recommend}} = CLI.parse(["obs", "recommend"])
       assert {:ok, %{command: :obs_evals}} = CLI.parse(["obs", "evals"])
       assert {:ok, %{command: :obs_regressions}} = CLI.parse(["obs", "regressions"])
+
+      assert {:ok, %{command: :obs_benchmark_approve, args: [123]}} =
+               CLI.parse(["obs", "benchmarks", "approve", "123"])
+
+      assert {:ok, %{command: :obs_benchmark_reject, args: [123]}} =
+               CLI.parse(["obs", "benchmarks", "reject", "123"])
+
+      assert {:ok, %{command: :obs_benchmark_archive, args: [123]}} =
+               CLI.parse(["obs", "benchmarks", "archive", "123"])
+
       assert {:ok, %{command: :obs_compare}} = CLI.parse(["obs", "compare"])
       assert {:ok, %{command: :obs_timeline}} = CLI.parse(["obs", "timeline"])
       assert {:ok, %{command: :obs_timeline, args: [123]}} = CLI.parse(["obs", "timeline", "123"])
@@ -1624,6 +1634,50 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                "by_status" => %{"draft" => 1},
                "drafts" => [%{"status" => "draft", "human_gate_required" => true}]
              } = Jason.decode!(output)
+    end
+
+    test "obs benchmarks approve updates a local draft status", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "CLI benchmark draft approval",
+        severity: "high",
+        status: "open",
+        category: "review",
+        rule_id: "review.cli_benchmark_approval"
+      })
+
+      write_binding(tmp_dir, session)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_evals_save, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_draft, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      draft = Repo.one!(ControlKeel.Observability.BenchmarkDraft)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_benchmark_approve, options: %{}, args: [draft.id]},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability benchmark draft updated:"
+      assert output =~ "Status: approved"
+      assert output =~ "draft_status_only"
     end
 
     test "obs regressions reports benchmark posture", %{tmp_dir: tmp_dir} do

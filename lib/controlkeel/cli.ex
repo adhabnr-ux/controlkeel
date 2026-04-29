@@ -422,6 +422,15 @@ defmodule ControlKeel.CLI do
       ["obs", "benchmarks", "draft" | rest] ->
         parse_with_switches(:obs_benchmark_draft, rest, @obs_switches)
 
+      ["obs", "benchmarks", "approve", draft_id | rest] ->
+        parse_obs_benchmark_status(:obs_benchmark_approve, draft_id, rest)
+
+      ["obs", "benchmarks", "reject", draft_id | rest] ->
+        parse_obs_benchmark_status(:obs_benchmark_reject, draft_id, rest)
+
+      ["obs", "benchmarks", "archive", draft_id | rest] ->
+        parse_obs_benchmark_status(:obs_benchmark_archive, draft_id, rest)
+
       ["obs", "benchmarks", "drafts" | rest] ->
         parse_with_switches(:obs_benchmark_drafts, rest, @obs_switches)
 
@@ -2273,6 +2282,35 @@ defmodule ControlKeel.CLI do
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: command, args: [draft_id], options: options}, _project_root)
+      when command in [:obs_benchmark_approve, :obs_benchmark_reject, :obs_benchmark_archive] do
+    status = benchmark_status_for_command(command)
+
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, result} <-
+           Observability.update_benchmark_draft_status(draft_id, status, reviewed_by: "cli") do
+      case format do
+        "json" -> {:ok, [Jason.encode!(result)]}
+        _ -> {:ok, observability_benchmark_status_lines(result)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} ->
+        {:error, message}
+
+      {:error, :invalid_id} ->
+        {:error, "Invalid benchmark draft id: #{draft_id}"}
+
+      {:error, :not_found} ->
+        {:error, "Benchmark draft not found: #{draft_id}"}
+
+      {:error, :invalid_status} ->
+        {:error, "Invalid benchmark draft status."}
+
+      {:error, changeset} ->
+        {:error, "Failed to update benchmark draft: #{inspect(changeset.errors)}"}
     end
   end
 
@@ -4384,6 +4422,15 @@ defmodule ControlKeel.CLI do
     end
   end
 
+  defp parse_obs_benchmark_status(command, draft_id, rest) do
+    with {id, ""} <- Integer.parse(draft_id),
+         {:ok, parsed} <- parse_with_switches(command, rest, @obs_switches) do
+      {:ok, %{parsed | args: [id]}}
+    else
+      _ -> {:error, "Invalid benchmark draft id: #{draft_id}"}
+    end
+  end
+
   defp parse_obs_import(file_path, rest) do
     with {:ok, parsed} <- parse_with_switches(:obs_import, rest, @obs_import_switches) do
       {:ok, %{parsed | args: [file_path]}}
@@ -5387,6 +5434,22 @@ defmodule ControlKeel.CLI do
       Enum.map(drafts.drafts, fn draft ->
         "- ##{draft.id} [#{draft.status}] #{draft.title}: #{draft.expected_behavior}"
       end)
+  end
+
+  defp benchmark_status_for_command(:obs_benchmark_approve), do: "approved"
+  defp benchmark_status_for_command(:obs_benchmark_reject), do: "rejected"
+  defp benchmark_status_for_command(:obs_benchmark_archive), do: "archived"
+
+  defp observability_benchmark_status_lines(result) do
+    draft = result.draft
+
+    [
+      "Observability benchmark draft updated:",
+      "Draft: ##{draft.id} #{draft.title}",
+      "Status: #{result.status}",
+      "Human gate required: #{result.human_gate_required}",
+      "Mutation: #{result.mutation}"
+    ]
   end
 
   defp observability_regression_lines(regressions) do

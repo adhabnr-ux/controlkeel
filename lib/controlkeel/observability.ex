@@ -213,6 +213,19 @@ defmodule ControlKeel.Observability do
     }
   end
 
+  def update_benchmark_draft_status(id, status, opts \\ [])
+
+  def update_benchmark_draft_status(id, status, opts)
+      when status in ["approved", "rejected", "archived"] do
+    with {:ok, draft_id} <- parse_id(id),
+         %BenchmarkDraft{} = draft <- Repo.get(BenchmarkDraft, draft_id) || {:error, :not_found},
+         {:ok, updated} <- update_benchmark_draft_record(draft, status, opts) do
+      {:ok, benchmark_draft_status_result(updated)}
+    end
+  end
+
+  def update_benchmark_draft_status(_id, _status, _opts), do: {:error, :invalid_status}
+
   def regressions(opts \\ []) do
     days = Keyword.get(opts, :days) || 30
     limit = Keyword.get(opts, :limit) || 12
@@ -1085,6 +1098,17 @@ defmodule ControlKeel.Observability do
     end
   end
 
+  defp parse_id(id) when is_integer(id), do: {:ok, id}
+
+  defp parse_id(id) when is_binary(id) do
+    case Integer.parse(id) do
+      {parsed, ""} -> {:ok, parsed}
+      _other -> {:error, :invalid_id}
+    end
+  end
+
+  defp parse_id(_id), do: {:error, :invalid_id}
+
   defp benchmark_run_records(days, limit) do
     since = DateTime.add(DateTime.utc_now(), -max(days, 1) * 86_400, :second)
 
@@ -1233,6 +1257,32 @@ defmodule ControlKeel.Observability do
             raise "failed to save benchmark draft: #{inspect(changeset.errors)}"
         end
     end
+  end
+
+  defp update_benchmark_draft_record(%BenchmarkDraft{} = draft, status, opts) do
+    reviewed_by = Keyword.get(opts, :reviewed_by, "local_user")
+
+    metadata =
+      draft.metadata
+      |> Kernel.||(%{})
+      |> Map.put("reviewed_by", reviewed_by)
+      |> Map.put(
+        "reviewed_at",
+        DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
+      )
+
+    draft
+    |> BenchmarkDraft.changeset(%{status: status, metadata: metadata})
+    |> Repo.update()
+  end
+
+  defp benchmark_draft_status_result(%BenchmarkDraft{} = draft) do
+    %{
+      status: draft.status,
+      draft: benchmark_draft_summary(draft),
+      human_gate_required: draft.human_gate_required,
+      mutation: "draft_status_only"
+    }
   end
 
   defp benchmark_draft_attrs(%EvalCandidate{} = candidate) do

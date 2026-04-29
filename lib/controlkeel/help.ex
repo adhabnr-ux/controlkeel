@@ -407,6 +407,8 @@ defmodule ControlKeel.Help do
                                       Generate local benchmark drafts from saved evals
       controlkeel obs benchmarks drafts
                                       List local benchmark drafts
+      controlkeel obs benchmarks approve|reject|archive <id>
+                                      Review a local benchmark draft without running it
       controlkeel obs compare [--by source|model|provider|tool]
                                       Compare local invocation groups
       controlkeel obs regressions [--days N]

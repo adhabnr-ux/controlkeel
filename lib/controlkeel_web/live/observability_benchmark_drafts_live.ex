@@ -13,7 +13,23 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
     {:ok,
      socket
      |> assign(:page_title, "Benchmark Drafts")
+     |> assign(:opts, opts)
      |> assign(:drafts, drafts)}
+  end
+
+  @impl true
+  def handle_event("approve-draft", %{"id" => id}, socket) do
+    {:ok, _result} =
+      Observability.update_benchmark_draft_status(id, "approved", reviewed_by: "web")
+
+    {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
+  end
+
+  def handle_event("reject-draft", %{"id" => id}, socket) do
+    {:ok, _result} =
+      Observability.update_benchmark_draft_status(id, "rejected", reviewed_by: "web")
+
+    {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
   end
 
   @impl true
@@ -77,6 +93,26 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
                   <p>{draft.scenario_prompt}</p>
                   <p class="ck-note">Expected: {draft.expected_behavior}</p>
                   <p class="ck-note">Human gate required: {draft.human_gate_required}</p>
+                  <div class="ck-button-row">
+                    <button
+                      id={"observability-benchmark-draft-approve-#{draft.id}"}
+                      type="button"
+                      class="ck-button ck-button-primary"
+                      phx-click="approve-draft"
+                      phx-value-id={draft.id}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      id={"observability-benchmark-draft-reject-#{draft.id}"}
+                      type="button"
+                      class="ck-button"
+                      phx-click="reject-draft"
+                      phx-value-id={draft.id}
+                    >
+                      Reject
+                    </button>
+                  </div>
                 </li>
               <% end %>
             </ul>
