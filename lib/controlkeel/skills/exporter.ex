@@ -4105,7 +4105,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "sh \"$(git rev-parse --show-toplevel)/.codex/hooks/ck-session-start.sh\"",
+                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-session-start.sh\"",
                 "statusMessage" => "Loading ControlKeel context",
                 "timeout" => 10
               }
@@ -4119,7 +4119,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "sh \"$(git rev-parse --show-toplevel)/.codex/hooks/ck-validate-shell.sh\"",
+                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-validate-shell.sh\"",
                 "statusMessage" => "Checking Bash command with ControlKeel",
                 "timeout" => 15
               }
@@ -4133,7 +4133,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "sh \"$(git rev-parse --show-toplevel)/.codex/hooks/ck-post-tool-use.sh\"",
+                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-post-tool-use.sh\"",
                 "statusMessage" => "Reviewing Bash output with ControlKeel",
                 "timeout" => 15
               }
@@ -4146,7 +4146,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "sh \"$(git rev-parse --show-toplevel)/.codex/hooks/ck-user-prompt-submit.sh\"",
+                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-user-prompt-submit.sh\"",
                 "timeout" => 10
               }
             ]
@@ -4157,7 +4157,8 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh \"$(git rev-parse --show-toplevel)/.codex/hooks/ck-stop.sh\"",
+                "command" =>
+                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-stop.sh\"",
                 "timeout" => 10
               }
             ]
