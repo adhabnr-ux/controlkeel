@@ -7786,12 +7786,7 @@ defmodule ControlKeel.Skills.Exporter do
 
   defp gemini_command_contents do
     """
-    # ControlKeel Governance Review
-    # Usage: /controlkeel:review [scope]
-
-    [command]
-    version = 1
-
+    description = "Run a ControlKeel governance review on this project"
     prompt = \"\"\"
     Run a ControlKeel governance review on this project.
 
@@ -7811,12 +7806,7 @@ defmodule ControlKeel.Skills.Exporter do
 
   defp gemini_submit_plan_command_contents do
     """
-    # ControlKeel Submit Plan
-    # Usage: /controlkeel:submit-plan
-
-    [command]
-    version = 1
-
+    description = "Submit the current plan to ControlKeel for governance review"
     prompt = \"\"\"
     Save the current plan to `.gemini/review-plan.md`, then submit it with:
     !{controlkeel review plan submit --body-file .gemini/review-plan.md --submitted-by gemini-cli --json}
@@ -7831,12 +7821,7 @@ defmodule ControlKeel.Skills.Exporter do
 
   defp gemini_annotate_command_contents do
     """
-    # ControlKeel Annotate
-    # Usage: /controlkeel:annotate <file>
-
-    [command]
-    version = 1
-
+    description = "Annotate a file for ControlKeel review"
     prompt = \"\"\"
     Save focused annotation notes for {{args}} to `.gemini/annotate.md`, then submit them with:
     !{controlkeel review plan submit --title "File annotation review" --body-file .gemini/annotate.md --submitted-by gemini-cli --json}
@@ -7848,12 +7833,7 @@ defmodule ControlKeel.Skills.Exporter do
 
   defp gemini_last_command_contents do
     """
-    # ControlKeel Last
-    # Usage: /controlkeel:last
-
-    [command]
-    version = 1
-
+    description = "Re-open or wait for the last ControlKeel review"
     prompt = \"\"\"
     Re-open the most recent ControlKeel review you are tracking for this task:
     !{controlkeel review plan open --id <review_id> --json}
