@@ -36,6 +36,13 @@ defmodule ControlKeelWeb.ObservabilityLive do
             <span class="ck-pill ck-pill-neutral">session ##{@run.session.id}</span>
             <.link navigate={~p"/missions/#{@run.session.id}"} class="ck-link">Open mission</.link>
             <.link
+              id="observability-export-json"
+              href={~p"/observability/sessions/#{@run.session.id}/export.json"}
+              class="ck-link"
+            >
+              Export JSON
+            </.link>
+            <.link
               id="observability-open-problems"
               navigate={~p"/observability/problems"}
               class="ck-link"
@@ -164,6 +171,19 @@ defmodule ControlKeelWeb.ObservabilityLive do
               <li>{recommendation}</li>
             <% end %>
           </ul>
+        </div>
+
+        <div id="observability-telemetry-export" class="ck-card">
+          <p class="ck-mini-label">Trace/proof export</p>
+          <p class="ck-note">
+            Download the local observability envelope for this run, then preview it locally with <code>controlkeel obs import &lt;file&gt; --dry-run</code>.
+          </p>
+          <.link
+            href={~p"/observability/sessions/#{@run.session.id}/export.json"}
+            class="ck-link"
+          >
+            Download JSON envelope
+          </.link>
         </div>
 
         <div class="ck-grid ck-grid-dashboard">

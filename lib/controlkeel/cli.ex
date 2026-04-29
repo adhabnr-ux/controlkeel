@@ -33,6 +33,7 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.MCP.Tools.CkValidate
   alias ControlKeel.Mission
   alias ControlKeel.Observability
+  alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
   alias ControlKeel.Platform
   alias ControlKeel.PolicyTraining
   alias ControlKeel.ProviderBroker
@@ -136,6 +137,7 @@ defmodule ControlKeel.CLI do
   @policy_train_switches [type: :string]
   @watch_switches [interval: :integer, status: :boolean]
   @obs_switches [format: :string, json: :boolean]
+  @obs_import_switches [dry_run: :boolean, format: :string, json: :boolean]
   @audit_log_switches [format: :string]
   @service_account_create_switches [workspace_id: :integer, name: :string, scopes: :string]
   @service_account_list_switches [workspace_id: :integer]
@@ -385,6 +387,12 @@ defmodule ControlKeel.CLI do
 
       ["obs", "problems" | rest] ->
         parse_with_switches(:obs_problems, rest, @obs_switches)
+
+      ["obs", "export", session_id | rest] ->
+        parse_obs_session_command(:obs_export, session_id, rest)
+
+      ["obs", "import", file_path | rest] ->
+        parse_obs_import(file_path, rest)
 
       ["obs", "run", session_id | rest] ->
         parse_obs_run(session_id, rest)
@@ -2061,6 +2069,55 @@ defmodule ControlKeel.CLI do
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_export, args: [session_id], options: options}, _project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, envelope} <- ObservabilityTelemetry.export_session(session_id) do
+      case format do
+        "json" -> {:ok, [Jason.encode!(envelope)]}
+        _ -> {:ok, observability_export_lines(envelope)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, :not_found} -> {:error, "Session not found: #{session_id}"}
+      {:error, :invalid_session_id} -> {:error, "Invalid session id: #{session_id}"}
+    end
+  end
+
+  def run_command(%{command: :obs_import, args: [file_path], options: options}, _project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, preview} <-
+           ObservabilityTelemetry.import_preview(file_path, dry_run: options[:dry_run] == true) do
+      case format do
+        "json" -> {:ok, [Jason.encode!(preview)]}
+        _ -> {:ok, observability_import_preview_lines(preview)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} ->
+        {:error, message}
+
+      {:error, :dry_run_required} ->
+        {:error, "Observability import is preview-only; pass --dry-run."}
+
+      {:error, :enoent} ->
+        {:error, "Observability import file was not found."}
+
+      {:error, {:invalid_json, message}} ->
+        {:error, "Observability import file must be valid JSON: #{message}"}
+
+      {:error, {:missing_keys, keys}} ->
+        {:error, "Observability envelope is missing required key(s): #{Enum.join(keys, ", ")}"}
+
+      {:error, {:unsupported_schema_version, version}} ->
+        {:error, "Unsupported observability schema version: #{inspect(version)}"}
+
+      {:error, {:invalid_field, field}} ->
+        {:error, "Observability envelope field `#{field}` has an invalid shape."}
+
+      {:error, :invalid_envelope} ->
+        {:error, "Observability import file must contain a JSON object envelope."}
     end
   end
 
@@ -4048,11 +4105,21 @@ defmodule ControlKeel.CLI do
   end
 
   defp parse_obs_run(session_id, rest) do
+    parse_obs_session_command(:obs_run, session_id, rest)
+  end
+
+  defp parse_obs_session_command(command, session_id, rest) do
     with {id, ""} <- Integer.parse(session_id),
-         {:ok, parsed} <- parse_with_switches(:obs_run, rest, @obs_switches) do
+         {:ok, parsed} <- parse_with_switches(command, rest, @obs_switches) do
       {:ok, %{parsed | args: [id]}}
     else
       _ -> {:error, "Invalid session id: #{session_id}"}
+    end
+  end
+
+  defp parse_obs_import(file_path, rest) do
+    with {:ok, parsed} <- parse_with_switches(:obs_import, rest, @obs_import_switches) do
+      {:ok, %{parsed | args: [file_path]}}
     end
   end
 
@@ -4781,6 +4848,39 @@ defmodule ControlKeel.CLI do
           "  Human gate required: #{problem.feedback_loop.human_gate_required}"
         ]
       end)
+  end
+
+  defp observability_export_lines(envelope) do
+    session = envelope.session_run.session
+    integrity = envelope.integrity
+
+    [
+      "Observability export preview: #{session.title} (##{session.id})",
+      "Schema: #{envelope.schema_version}",
+      "Exported at: #{envelope.exported_at}",
+      "Health: #{integrity.health}",
+      "Timeline events: #{integrity.timeline_events}",
+      "Active findings: #{integrity.active_findings}",
+      "Problem groups: #{integrity.problem_groups}",
+      "Redaction: #{envelope.redaction.policy} (raw context/memory/tool inputs excluded)",
+      "Integrity: import mutation allowed = #{integrity.import_mutation_allowed}",
+      "Use --format json to write a portable envelope."
+    ]
+  end
+
+  defp observability_import_preview_lines(preview) do
+    [
+      "Observability import dry-run:",
+      "Schema: #{preview.schema_version}",
+      "Exported at: #{preview.exported_at}",
+      "Session: #{preview.session_title || "unknown"} (##{preview.session_id || "unknown"})",
+      "Health: #{preview.health || "unknown"}",
+      "Problem groups: #{preview.problem_groups}",
+      "Total problem findings: #{preview.total_problem_findings}",
+      "Redaction: #{preview.redaction_policy || "unknown"}",
+      "Integrity: #{preview.integrity_status || "unknown"}",
+      "Mutation: #{preview.mutation}"
+    ]
   end
 
   defp render_observability(session_id, format) do

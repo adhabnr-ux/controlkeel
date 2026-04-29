@@ -1183,6 +1183,11 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert {:ok, %{command: :obs_status}} = CLI.parse(["obs"])
       assert {:ok, %{command: :obs_status}} = CLI.parse(["obs", "status"])
       assert {:ok, %{command: :obs_run, args: [123]}} = CLI.parse(["obs", "run", "123"])
+      assert {:ok, %{command: :obs_export, args: [123]}} = CLI.parse(["obs", "export", "123"])
+
+      assert {:ok, %{command: :obs_import, args: ["trace.json"]}} =
+               CLI.parse(["obs", "import", "trace.json", "--dry-run"])
+
       assert {:error, _} = CLI.parse(["obs", "run", "not-an-id"])
     end
 
@@ -1289,6 +1294,78 @@ defmodule ControlKeel.CLI.NewCommandsTest do
 
       assert %{"session" => %{"id" => id}, "health" => %{"status" => _}} = Jason.decode!(output)
       assert id == session.id
+    end
+
+    test "obs export supports json telemetry envelopes", %{tmp_dir: _tmp_dir} do
+      session = session_fixture()
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_export, options: %{json: true}, args: [session.id]},
+                     project_root: "."
+                   )
+        end)
+
+      assert %{
+               "schema_version" => "controlkeel.observability.v1",
+               "session_run" => %{"session" => %{"id" => id}},
+               "redaction" => %{"policy" => "summary_only"},
+               "integrity" => %{
+                 "import_mutation_allowed" => false,
+                 "payload_sha256" => payload_sha256
+               }
+             } = Jason.decode!(output)
+
+      assert id == session.id
+      assert payload_sha256 =~ ~r/^[a-f0-9]{64}$/
+    end
+
+    test "obs import dry-run previews telemetry envelopes without mutation", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      export_output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_export, options: %{json: true}, args: [session.id]},
+                     project_root: "."
+                   )
+        end)
+
+      path = Path.join(tmp_dir, "observability-export.json")
+      File.write!(path, export_output)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_import, options: %{dry_run: true}, args: [path]},
+                     project_root: "."
+                   )
+        end)
+
+      assert output =~ "Observability import dry-run:"
+      assert output =~ "Session:"
+      assert output =~ "Integrity: verified"
+      assert output =~ "Mutation: none"
+    end
+
+    test "obs import requires dry-run", %{tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "observability-export.json")
+      File.write!(path, Jason.encode!(%{}))
+
+      output =
+        capture_io(:stderr, fn ->
+          assert 1 ==
+                   CLI.execute(
+                     %{command: :obs_import, options: %{}, args: [path]},
+                     project_root: "."
+                   )
+        end)
+
+      assert output =~ "preview-only"
     end
   end
 

@@ -38,6 +38,9 @@ defmodule ControlKeelWeb.ObservabilityLiveTest do
     assert has_element?(view, "#observability-costs")
     assert has_element?(view, "#observability-tools")
     assert has_element?(view, "#observability-recommendations")
+    assert has_element?(view, "#observability-export-json")
+    assert has_element?(view, "#observability-telemetry-export")
+    assert html =~ "/observability/sessions/#{session.id}/export.json"
     assert html =~ "Observable finding"
     assert html =~ "Observation review"
   end
@@ -46,6 +49,27 @@ defmodule ControlKeelWeb.ObservabilityLiveTest do
     assert {:error,
             {:live_redirect, %{to: "/", flash: %{"error" => "Session observability not found."}}}} =
              live(conn, ~p"/observability/sessions/999999")
+  end
+
+  test "observability export route returns local telemetry envelope", %{conn: conn} do
+    session = session_fixture()
+
+    conn = get(conn, ~p"/observability/sessions/#{session.id}/export.json")
+
+    assert %{
+             "schema_version" => "controlkeel.observability.v1",
+             "session_run" => %{"session" => %{"id" => id}},
+             "redaction" => %{"policy" => "summary_only"},
+             "integrity" => %{"import_mutation_allowed" => false}
+           } = json_response(conn, 200)
+
+    assert id == session.id
+  end
+
+  test "observability export route returns not found for missing sessions", %{conn: conn} do
+    conn = get(conn, ~p"/observability/sessions/999999/export.json")
+
+    assert %{"error" => "session not found"} = json_response(conn, 404)
   end
 
   test "mission control links to dedicated observability page", %{conn: conn} do

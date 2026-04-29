@@ -390,6 +390,12 @@ defmodule ControlKeel.Help do
       controlkeel registry status acp
                                       Show ACP registry cache freshness and matches
       controlkeel status              Show current session status
+      controlkeel obs status          Show compact observability for the current session
+      controlkeel obs run <id>        Show observability for a session run
+      controlkeel obs problems        Show grouped observability problems
+      controlkeel obs export <id>     Export a local observability envelope
+      controlkeel obs import <file> --dry-run
+                                      Validate and preview an observability envelope
       controlkeel update [options]    Check for a newer GitHub release and refresh attached surfaces
       controlkeel context [options]   Show governed session context via the CK context surface
       controlkeel validate [options]  Validate proposed content via the CK validation surface

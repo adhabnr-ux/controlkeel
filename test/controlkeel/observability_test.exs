@@ -4,8 +4,9 @@ defmodule ControlKeel.ObservabilityTest do
   import ControlKeel.MissionFixtures
 
   alias ControlKeel.Mission
-  alias ControlKeel.Mission.{Invocation, SessionEvent}
+  alias ControlKeel.Mission.{Finding, Invocation, Session, SessionEvent}
   alias ControlKeel.Observability
+  alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
   alias ControlKeel.Repo
 
   test "session_run/1 composes health, costs, gates, memory, proofs, timeline, and calls" do
@@ -129,7 +130,137 @@ defmodule ControlKeel.ObservabilityTest do
     assert Enum.any?(sql_problem.examples, &(&1.session_id == session.id))
   end
 
+  test "workspace_overview/1 summarizes recent runs, problems, costs, and recommendations" do
+    workspace = workspace_fixture()
+    session = session_fixture(%{workspace: workspace, budget_cents: 2_000, spent_cents: 450})
+    task_fixture(%{session: session, status: "in_progress"})
+
+    finding_fixture(%{
+      session: session,
+      title: "Overview finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.overview"
+    })
+
+    overview = Observability.workspace_overview(workspace_id: workspace.id)
+
+    assert overview.health.status == "red"
+    assert overview.workspace.id == workspace.id
+    assert overview.runs.count == 1
+    assert [%{id: id, health: "red"}] = overview.runs.recent
+    assert id == session.id
+    assert overview.problems.count == 1
+    assert [%{rule_id: "security.overview"}] = overview.problems.top
+    assert overview.costs.spent_cents == 450
+    assert overview.costs.budget_cents == 2_000
+    assert overview.telemetry.import_mode == "dry_run_only"
+    assert overview.telemetry.integrity == "sha256"
+    assert Enum.any?(overview.recommendations, &String.contains?(&1, "red session runs"))
+  end
+
   test "session_run/1 returns not_found for unknown sessions" do
     assert {:error, :not_found} = Observability.session_run(999_999)
+  end
+
+  test "telemetry export builds a redacted local-first envelope" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Exported issue",
+      severity: "high",
+      status: "open",
+      category: "security",
+      rule_id: "security.exported_issue"
+    })
+
+    assert {:ok, envelope} =
+             ObservabilityTelemetry.export_session(session.id,
+               exported_at: ~U[2026-04-29 04:00:00Z]
+             )
+
+    assert envelope.schema_version == ObservabilityTelemetry.schema_version()
+    assert envelope.exported_at == "2026-04-29T04:00:00Z"
+    assert envelope.session_run.session.id == session.id
+    assert envelope.problems.count == 1
+    assert envelope.redaction.policy == "summary_only"
+    assert envelope.redaction.raw_context_bodies == false
+    assert envelope.redaction.raw_memory_bodies == false
+    assert envelope.integrity.session_id == session.id
+    assert envelope.integrity.import_mutation_allowed == false
+    assert envelope.integrity.fingerprint_algorithm == "sha256"
+    assert envelope.integrity.payload_sha256 =~ ~r/^[a-f0-9]{64}$/
+  end
+
+  test "telemetry import preview validates an envelope without mutating storage" do
+    session = session_fixture()
+    session_count = Repo.aggregate(Session, :count, :id)
+    finding_count = Repo.aggregate(Finding, :count, :id)
+
+    assert {:ok, envelope} =
+             ObservabilityTelemetry.export_session(session.id,
+               exported_at: ~U[2026-04-29 04:00:00Z]
+             )
+
+    path =
+      Path.join(System.tmp_dir!(), "controlkeel-observability-#{System.unique_integer()}.json")
+
+    File.write!(path, Jason.encode!(envelope))
+
+    assert {:ok, preview} = ObservabilityTelemetry.import_preview(path, dry_run: true)
+
+    assert preview.dry_run == true
+    assert preview.mutation == "none"
+    assert preview.session_id == session.id
+    assert preview.schema_version == ObservabilityTelemetry.schema_version()
+    assert preview.integrity_status == "verified"
+    assert preview.payload_sha256 == envelope.integrity.payload_sha256
+    assert Repo.aggregate(Session, :count, :id) == session_count
+    assert Repo.aggregate(Finding, :count, :id) == finding_count
+  end
+
+  test "telemetry import preview detects integrity mismatches" do
+    session = session_fixture()
+
+    assert {:ok, envelope} =
+             ObservabilityTelemetry.export_session(session.id,
+               exported_at: ~U[2026-04-29 04:00:00Z]
+             )
+
+    tampered =
+      envelope
+      |> Jason.encode!()
+      |> Jason.decode!()
+      |> put_in(["session_run", "health", "status"], "red")
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-observability-tampered-#{System.unique_integer()}.json"
+      )
+
+    File.write!(path, Jason.encode!(tampered))
+
+    assert {:ok, preview} = ObservabilityTelemetry.import_preview(path, dry_run: true)
+    assert preview.integrity_status == "mismatch"
+  end
+
+  test "telemetry import preview rejects invalid envelopes" do
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-observability-invalid-#{System.unique_integer()}.json"
+      )
+
+    File.write!(path, Jason.encode!(%{"schema_version" => "wrong"}))
+
+    assert {:error, :dry_run_required} = ObservabilityTelemetry.import_preview(path)
+
+    assert {:error, {:missing_keys, missing}} =
+             ObservabilityTelemetry.import_preview(path, dry_run: true)
+
+    assert "session_run" in missing
   end
 end

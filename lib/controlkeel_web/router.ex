@@ -49,7 +49,9 @@ defmodule ControlKeelWeb.Router do
     live "/proofs/:id", ProofBrowserLive, :show
     live "/reviews/:id", ReviewLive, :show
     live "/ship", ShipLive, :index
+    live "/observability", ObservabilityOverviewLive, :index
     live "/observability/problems", ObservabilityProblemsLive, :index
+    get "/observability/sessions/:id/export.json", ObservabilityController, :export_session
     live "/observability/sessions/:id", ObservabilityLive, :show
     live "/missions/:id", MissionControlLive, :show
     live "/policies", PolicyStudioLive, :index

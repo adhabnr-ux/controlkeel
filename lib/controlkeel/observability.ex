@@ -12,6 +12,50 @@ defmodule ControlKeel.Observability do
   @active_finding_statuses ~w(open blocked escalated)
   @active_task_statuses ~w(queued in_progress blocked paused)
 
+  def workspace_overview(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 6)
+    sessions = recent_sessions(opts, limit)
+    runs = Enum.map(sessions, &session_run(&1.id, events_limit: 3))
+
+    run_summaries =
+      runs
+      |> Enum.flat_map(fn
+        {:ok, run} -> [overview_run_summary(run)]
+        _other -> []
+      end)
+
+    workspace_id =
+      Keyword.get(opts, :workspace_id) ||
+        run_summaries |> List.first() |> then(&(&1 && &1.workspace_id))
+
+    problems_opts = if workspace_id, do: [workspace_id: workspace_id, limit: 5], else: [limit: 5]
+    problem_summary = problems(problems_opts)
+    health = overview_health(run_summaries, problem_summary)
+
+    %{
+      health: health,
+      workspace: overview_workspace(run_summaries),
+      runs: %{
+        count: length(run_summaries),
+        recent: run_summaries
+      },
+      problems: %{
+        health: problem_summary.health,
+        count: problem_summary.count,
+        total_findings: problem_summary.total_findings,
+        top: problem_summary.problems,
+        recommendations: problem_summary.recommendations
+      },
+      costs: overview_costs(run_summaries),
+      telemetry: %{
+        export_schema_version: ControlKeel.Observability.Telemetry.schema_version(),
+        import_mode: "dry_run_only",
+        integrity: "sha256"
+      },
+      recommendations: overview_recommendations(health, run_summaries, problem_summary)
+    }
+  end
+
   def problems(opts \\ []) do
     limit = Keyword.get(opts, :limit, 20)
     findings = problem_findings(opts)
@@ -73,6 +117,103 @@ defmodule ControlKeel.Observability do
     case Integer.parse(session_id) do
       {parsed, ""} -> session_run(parsed, opts)
       _ -> {:error, :invalid_session_id}
+    end
+  end
+
+  defp recent_sessions(opts, limit) do
+    workspace_id = Keyword.get(opts, :workspace_id)
+
+    Session
+    |> maybe_filter_session_workspace(workspace_id)
+    |> order_by([s], desc: s.inserted_at, desc: s.id)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  defp maybe_filter_session_workspace(query, nil), do: query
+
+  defp maybe_filter_session_workspace(query, workspace_id),
+    do: where(query, [s], s.workspace_id == ^workspace_id)
+
+  defp overview_run_summary(run) do
+    %{
+      id: run.session.id,
+      title: run.session.title,
+      objective: run.session.objective,
+      workspace_id: run.session.workspace_id,
+      workspace_name: run.session.workspace_name,
+      health: run.health.status,
+      health_label: run.health.label,
+      active_findings: run.findings.active,
+      blocked_findings: run.findings.blocked,
+      pending_gates: run.gates.pending_reviews,
+      timeline_events: run.timeline.count,
+      memory_records: run.memory.records,
+      proof_bundles: run.proofs.count,
+      invocations: run.hosts_models_tools.invocations,
+      estimated_cost_cents: run.hosts_models_tools.estimated_cost_cents,
+      budget_spent_cents: run.budget["spent_cents"] || 0,
+      budget_limit_cents: run.budget["session_budget_cents"] || 0,
+      recommendations: Enum.take(run.recommendations, 2)
+    }
+  end
+
+  defp overview_workspace([]), do: %{id: nil, name: "No workspace"}
+
+  defp overview_workspace([run | _runs]) do
+    %{id: run.workspace_id, name: run.workspace_name || "Workspace #{run.workspace_id}"}
+  end
+
+  defp overview_health(runs, problems) do
+    status =
+      cond do
+        Enum.any?(runs, &(&1.health == "red")) or problems.health == "red" -> "red"
+        Enum.any?(runs, &(&1.health == "yellow")) or problems.health == "yellow" -> "yellow"
+        runs == [] -> "yellow"
+        true -> "green"
+      end
+
+    %{
+      status: status,
+      label: health_label(status),
+      run_count: length(runs),
+      red_runs: Enum.count(runs, &(&1.health == "red")),
+      yellow_runs: Enum.count(runs, &(&1.health == "yellow")),
+      green_runs: Enum.count(runs, &(&1.health == "green"))
+    }
+  end
+
+  defp overview_costs(runs) do
+    %{
+      spent_cents: Enum.reduce(runs, 0, &(&1.budget_spent_cents + &2)),
+      budget_cents: Enum.reduce(runs, 0, &(&1.budget_limit_cents + &2)),
+      estimated_invocation_cents: Enum.reduce(runs, 0, &(&1.estimated_cost_cents + &2)),
+      invocations: Enum.reduce(runs, 0, &(&1.invocations + &2))
+    }
+  end
+
+  defp overview_recommendations(health, runs, problems) do
+    []
+    |> maybe_reason(runs == [], "No session runs are available yet.")
+    |> maybe_reason(
+      health.status == "red",
+      "Prioritize red session runs and blocked findings before widening automation."
+    )
+    |> maybe_reason(
+      problems.count > 0,
+      "Review grouped problems and convert recurring failures into eval coverage."
+    )
+    |> maybe_reason(
+      Enum.any?(runs, &(&1.pending_gates > 0)),
+      "Clear pending review gates before marking runs healthy."
+    )
+    |> maybe_reason(
+      Enum.any?(runs, &(&1.proof_bundles == 0)),
+      "Generate proof bundles for runs that need reproducible evidence."
+    )
+    |> case do
+      [] -> ["Workspace observability is healthy."]
+      recommendations -> Enum.take(recommendations ++ problems.recommendations, 5)
     end
   end
 
