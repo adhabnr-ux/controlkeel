@@ -6,11 +6,12 @@ defmodule ControlKeel.Observability do
   alias ControlKeel.Budget
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
-  alias ControlKeel.Mission.{Finding, Session}
+  alias ControlKeel.Mission.{Finding, Invocation, Session}
   alias ControlKeel.Repo
 
   @active_finding_statuses ~w(open blocked escalated)
   @active_task_statuses ~w(queued in_progress blocked paused)
+  @cost_group_fields ~w(model tool source provider)
 
   def workspace_overview(opts \\ []) do
     limit = Keyword.get(opts, :limit, 6)
@@ -73,6 +74,60 @@ defmodule ControlKeel.Observability do
       problems: groups,
       health: problems_health(groups),
       recommendations: problems_recommendations(groups)
+    }
+  end
+
+  def costs(opts \\ []) do
+    by = normalize_cost_group(Keyword.get(opts, :by, "model"))
+    invocations = cost_invocations(opts)
+    totals = cost_totals(invocations)
+    groups = cost_groups(invocations, by)
+
+    %{
+      by: by,
+      totals: totals,
+      groups: groups,
+      recommendations: cost_recommendations(totals, groups, by),
+      available_groupings: @cost_group_fields
+    }
+  end
+
+  def recommendations(opts \\ []) do
+    overview = workspace_overview(opts)
+    workspace_id = overview.workspace.id
+    scoped_opts = if workspace_id, do: [workspace_id: workspace_id], else: []
+    problems = problems(Keyword.put(scoped_opts, :limit, 5))
+    costs = costs(scoped_opts)
+
+    actions =
+      []
+      |> add_health_actions(overview)
+      |> add_problem_actions(problems)
+      |> add_cost_actions(costs)
+      |> Enum.sort_by(&{priority_rank(&1.priority), &1.id})
+
+    %{
+      health: recommendation_health(actions),
+      count: length(actions),
+      actions: actions,
+      categories: actions |> Enum.map(& &1.category) |> Enum.uniq(),
+      workspace: overview.workspace
+    }
+  end
+
+  def eval_candidates(opts \\ []) do
+    problem_summary = problems(opts)
+
+    candidates =
+      problem_summary.problems
+      |> Enum.map(&eval_candidate_from_problem/1)
+      |> Enum.sort_by(&{priority_rank(&1.priority), &1.rule_id})
+
+    %{
+      count: length(candidates),
+      health: eval_candidates_health(candidates),
+      candidates: candidates,
+      recommendations: eval_candidate_recommendations(candidates)
     }
   end
 
@@ -237,6 +292,261 @@ defmodule ControlKeel.Observability do
 
   defp maybe_filter_workspace(query, workspace_id),
     do: where(query, [_f, s], s.workspace_id == ^workspace_id)
+
+  defp cost_invocations(opts) do
+    base = from(i in Invocation, join: s in assoc(i, :session), preload: [session: s])
+
+    base
+    |> maybe_filter_invocation_session(Keyword.get(opts, :session_id))
+    |> maybe_filter_invocation_workspace(Keyword.get(opts, :workspace_id))
+    |> order_by([i, _s], desc: i.inserted_at, desc: i.id)
+    |> Repo.all()
+  end
+
+  defp maybe_filter_invocation_session(query, nil), do: query
+
+  defp maybe_filter_invocation_session(query, session_id),
+    do: where(query, [i, _s], i.session_id == ^session_id)
+
+  defp maybe_filter_invocation_workspace(query, nil), do: query
+
+  defp maybe_filter_invocation_workspace(query, workspace_id),
+    do: where(query, [_i, s], s.workspace_id == ^workspace_id)
+
+  defp normalize_cost_group(group) when group in @cost_group_fields, do: group
+  defp normalize_cost_group(_group), do: "model"
+
+  defp cost_totals(invocations) do
+    %{
+      invocations: length(invocations),
+      estimated_cost_cents: sum_invocation_field(invocations, :estimated_cost_cents),
+      input_tokens: sum_invocation_field(invocations, :input_tokens),
+      cached_input_tokens: sum_invocation_field(invocations, :cached_input_tokens),
+      output_tokens: sum_invocation_field(invocations, :output_tokens),
+      sessions: invocations |> Enum.map(& &1.session_id) |> Enum.uniq() |> length()
+    }
+  end
+
+  defp cost_groups(invocations, by) do
+    invocations
+    |> Enum.group_by(&cost_group_value(&1, by))
+    |> Enum.map(fn {name, group} ->
+      %{
+        name: name,
+        invocations: length(group),
+        estimated_cost_cents: sum_invocation_field(group, :estimated_cost_cents),
+        input_tokens: sum_invocation_field(group, :input_tokens),
+        cached_input_tokens: sum_invocation_field(group, :cached_input_tokens),
+        output_tokens: sum_invocation_field(group, :output_tokens),
+        sessions: group |> Enum.map(& &1.session_id) |> Enum.uniq() |> length()
+      }
+    end)
+    |> Enum.sort_by(&{&1.estimated_cost_cents, &1.invocations}, :desc)
+  end
+
+  defp cost_group_value(invocation, "model"), do: invocation.model || "unknown"
+  defp cost_group_value(invocation, "tool"), do: invocation.tool || "unknown"
+  defp cost_group_value(invocation, "source"), do: invocation.source || "unknown"
+  defp cost_group_value(invocation, "provider"), do: invocation.provider || "unknown"
+
+  defp sum_invocation_field(invocations, field) do
+    Enum.reduce(invocations, 0, &((Map.get(&1, field) || 0) + &2))
+  end
+
+  defp cost_recommendations(%{invocations: 0}, _groups, _by),
+    do: ["No invocation cost data has been recorded yet."]
+
+  defp cost_recommendations(totals, groups, by) do
+    top_group = List.first(groups)
+
+    []
+    |> maybe_reason(
+      totals.cached_input_tokens == 0 and totals.input_tokens > 0,
+      "No cached input tokens recorded; check whether repeated context can be reused."
+    )
+    |> maybe_top_cost_reason(top_group, totals, by)
+    |> maybe_reason(
+      totals.estimated_cost_cents > 0 and totals.invocations > 0,
+      "Track cost per successful task once outcomes are available for these invocations."
+    )
+    |> case do
+      [] -> ["Invocation cost distribution looks balanced."]
+      recommendations -> recommendations
+    end
+  end
+
+  defp maybe_top_cost_reason(recommendations, nil, _totals, _by), do: recommendations
+
+  defp maybe_top_cost_reason(recommendations, top_group, totals, by) do
+    maybe_reason(
+      recommendations,
+      top_group.estimated_cost_cents > div(totals.estimated_cost_cents, 2),
+      "Most estimated spend is concentrated in #{by} #{top_group.name}; compare it against cheaper alternatives before scaling similar runs."
+    )
+  end
+
+  defp add_health_actions(actions, overview) do
+    actions
+    |> maybe_action(
+      overview.health.status == "red",
+      %{
+        id: "health-red-runs",
+        title: "Prioritize red session runs",
+        category: "health",
+        priority: "critical",
+        source: "workspace",
+        evidence:
+          "#{overview.health.red_runs} red run(s), #{overview.problems.total_findings} active finding(s).",
+        suggested_action: "Open affected runs and clear blocked findings or review gates.",
+        link: "/observability",
+        human_gate_required: true
+      }
+    )
+    |> maybe_action(
+      overview.health.status == "yellow",
+      %{
+        id: "health-yellow-runs",
+        title: "Review yellow session runs",
+        category: "health",
+        priority: "medium",
+        source: "workspace",
+        evidence:
+          "#{overview.health.yellow_runs} yellow run(s), #{overview.health.green_runs} green run(s).",
+        suggested_action: "Inspect active findings, pending gates, and proof coverage.",
+        link: "/observability",
+        human_gate_required: true
+      }
+    )
+    |> maybe_action(
+      Enum.any?(overview.runs.recent, &(&1.proof_bundles == 0)),
+      %{
+        id: "proof-coverage",
+        title: "Add proof coverage for runs",
+        category: "proof",
+        priority: "medium",
+        source: "session_runs",
+        evidence: "At least one recent run has no proof bundle.",
+        suggested_action: "Generate proof bundles for runs that need reproducible evidence.",
+        link: "/proofs",
+        human_gate_required: false
+      }
+    )
+  end
+
+  defp add_problem_actions(actions, problems) do
+    Enum.reduce(problems.problems, actions, fn problem, acc ->
+      feedback = problem.feedback_loop
+
+      acc ++
+        [
+          %{
+            id: "problem-#{problem.rule_id}",
+            title: feedback.eval_candidate_title,
+            category: "problem",
+            priority: recommendation_priority(problem.health, problem.severity),
+            source: "problem_group",
+            evidence: feedback.evidence_summary,
+            suggested_action: feedback.suggested_action,
+            benchmark_hint: feedback.benchmark_hint,
+            link: "/observability/problems",
+            example_session_id: feedback.example_session_id,
+            example_finding_id: feedback.example_finding_id,
+            human_gate_required: feedback.human_gate_required
+          }
+        ]
+    end)
+  end
+
+  defp add_cost_actions(actions, costs) do
+    Enum.reduce(costs.recommendations, actions, fn recommendation, acc ->
+      acc ++
+        [
+          %{
+            id: "cost-#{length(acc)}",
+            title: "Review cost efficiency",
+            category: "cost",
+            priority: "low",
+            source: "invocations",
+            evidence:
+              "#{costs.totals.invocations} invocation(s), #{costs.totals.estimated_cost_cents} estimated cent(s).",
+            suggested_action: recommendation,
+            link: "/observability/costs",
+            human_gate_required: false
+          }
+        ]
+    end)
+  end
+
+  defp maybe_action(actions, true, action), do: actions ++ [action]
+  defp maybe_action(actions, false, _action), do: actions
+
+  defp recommendation_priority("red", _severity), do: "critical"
+  defp recommendation_priority(_health, "critical"), do: "critical"
+  defp recommendation_priority(_health, "high"), do: "high"
+  defp recommendation_priority(_health, _severity), do: "medium"
+
+  defp priority_rank("critical"), do: 1
+  defp priority_rank("high"), do: 2
+  defp priority_rank("medium"), do: 3
+  defp priority_rank("low"), do: 4
+  defp priority_rank(_priority), do: 5
+
+  defp recommendation_health(actions) do
+    cond do
+      Enum.any?(actions, &(&1.priority == "critical")) -> "red"
+      Enum.any?(actions, &(&1.priority in ["high", "medium"])) -> "yellow"
+      actions == [] -> "green"
+      true -> "green"
+    end
+  end
+
+  defp eval_candidate_from_problem(problem) do
+    feedback = problem.feedback_loop
+
+    %{
+      id: "eval-#{problem.rule_id}",
+      title: feedback.eval_candidate_title,
+      rule_id: problem.rule_id,
+      category: problem.category,
+      severity: problem.severity,
+      priority: recommendation_priority(problem.health, problem.severity),
+      evidence_kind: feedback.evidence_kind,
+      evidence_summary: feedback.evidence_summary,
+      suggested_action: feedback.suggested_action,
+      benchmark_hint: feedback.benchmark_hint,
+      affected_session_count: problem.affected_session_count,
+      finding_count: problem.count,
+      example_session_id: feedback.example_session_id,
+      example_finding_id: feedback.example_finding_id,
+      human_gate_required: feedback.human_gate_required,
+      links: %{
+        problems: "/observability/problems",
+        benchmarks: "/benchmarks",
+        example_session:
+          feedback.example_session_id && "/observability/sessions/#{feedback.example_session_id}"
+      }
+    }
+  end
+
+  defp eval_candidates_health([]), do: "green"
+
+  defp eval_candidates_health(candidates) do
+    cond do
+      Enum.any?(candidates, &(&1.priority == "critical")) -> "red"
+      Enum.any?(candidates, &(&1.priority in ["high", "medium"])) -> "yellow"
+      true -> "green"
+    end
+  end
+
+  defp eval_candidate_recommendations([]),
+    do: ["No eval candidates are active from grouped problems."]
+
+  defp eval_candidate_recommendations(candidates) do
+    [
+      "Review #{length(candidates)} candidate(s) and approve benchmark coverage before promotion.",
+      "Start with critical and high priority candidates linked to blocked or recurring findings."
+    ]
+  end
 
   defp problem_key(finding),
     do: {finding.rule_id || "unknown_rule", finding.category || "uncategorized"}

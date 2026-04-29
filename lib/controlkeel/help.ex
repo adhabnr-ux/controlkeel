@@ -393,6 +393,10 @@ defmodule ControlKeel.Help do
       controlkeel obs status          Show compact observability for the current session
       controlkeel obs run <id>        Show observability for a session run
       controlkeel obs problems        Show grouped observability problems
+      controlkeel obs costs [--by model|tool|source|provider]
+                                      Show local cost and efficiency totals
+      controlkeel obs recommend      Show prioritized observability recommendations
+      controlkeel obs evals          Show advisory eval candidates from problems
       controlkeel obs export <id>     Export a local observability envelope
       controlkeel obs import <file> --dry-run
                                       Validate and preview an observability envelope

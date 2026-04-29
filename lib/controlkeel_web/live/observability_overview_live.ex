@@ -37,6 +37,10 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
               {@overview.health.status}
             </span>
             <span class="ck-pill ck-pill-neutral">{@overview.runs.count} recent runs</span>
+            <.link navigate={~p"/observability/recommendations"} class="ck-link">
+              Recommendations
+            </.link>
+            <.link navigate={~p"/observability/evals"} class="ck-link">Eval candidates</.link>
             <.link navigate={~p"/observability/problems"} class="ck-link">Open problems</.link>
           </div>
         </div>
@@ -69,6 +73,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
                 @overview.costs.estimated_invocation_cents
               )} estimated
             </p>
+            <.link navigate={~p"/observability/costs"} class="ck-link">Review costs</.link>
           </div>
 
           <div id="observability-overview-telemetry" class="ck-card ck-stat-card">
@@ -87,6 +92,9 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
               <li>{recommendation}</li>
             <% end %>
           </ul>
+          <.link navigate={~p"/observability/recommendations"} class="ck-link">
+            Open recommendations
+          </.link>
         </div>
 
         <div class="ck-grid ck-grid-dashboard">

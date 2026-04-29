@@ -77,6 +77,132 @@ defmodule ControlKeel.ObservabilityTest do
     assert Enum.any?(run.recommendations, &String.contains?(&1, "blocked or critical"))
   end
 
+  test "costs/1 summarizes invocation spend and groups by selected field" do
+    session = session_fixture()
+    workspace = Repo.preload(session, :workspace).workspace
+    other_session = session_fixture(%{workspace: workspace})
+
+    assert {:ok, _invocation} =
+             %Invocation{}
+             |> Invocation.changeset(%{
+               session_id: session.id,
+               source: "codex-cli",
+               tool: "ck_validate",
+               provider: "openai",
+               model: "gpt-5.5",
+               input_tokens: 1_000,
+               cached_input_tokens: 200,
+               output_tokens: 300,
+               estimated_cost_cents: 14,
+               decision: "allow",
+               metadata: %{}
+             })
+             |> Repo.insert()
+
+    assert {:ok, _invocation} =
+             %Invocation{}
+             |> Invocation.changeset(%{
+               session_id: other_session.id,
+               source: "opencode",
+               tool: "ck_budget",
+               provider: "anthropic",
+               model: "claude-sonnet",
+               input_tokens: 500,
+               cached_input_tokens: 0,
+               output_tokens: 100,
+               estimated_cost_cents: 6,
+               decision: "allow",
+               metadata: %{}
+             })
+             |> Repo.insert()
+
+    costs = Observability.costs(workspace_id: session.workspace_id, by: "provider")
+
+    assert costs.by == "provider"
+    assert costs.totals.invocations == 2
+    assert costs.totals.sessions == 2
+    assert costs.totals.estimated_cost_cents == 20
+    assert costs.totals.input_tokens == 1_500
+    assert costs.totals.cached_input_tokens == 200
+    assert costs.totals.output_tokens == 400
+    assert Enum.map(costs.groups, & &1.name) == ["openai", "anthropic"]
+    assert Enum.any?(costs.recommendations, &String.contains?(&1, "cost per successful task"))
+  end
+
+  test "recommendations/1 prioritizes health, problem, proof, and cost actions" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Recommendation finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.recommendation"
+    })
+
+    assert {:ok, _invocation} =
+             %Invocation{}
+             |> Invocation.changeset(%{
+               session_id: session.id,
+               source: "codex-cli",
+               tool: "ck_validate",
+               provider: "openai",
+               model: "gpt-5.5",
+               input_tokens: 1_000,
+               output_tokens: 250,
+               estimated_cost_cents: 10,
+               decision: "allow",
+               metadata: %{}
+             })
+             |> Repo.insert()
+
+    recommendations = Observability.recommendations(workspace_id: session.workspace_id)
+
+    assert recommendations.health == "red"
+    assert recommendations.count >= 3
+    assert "problem" in recommendations.categories
+    assert "cost" in recommendations.categories
+
+    assert Enum.any?(recommendations.actions, &(&1.id == "health-red-runs"))
+
+    assert Enum.any?(
+             recommendations.actions,
+             &(&1.title == "Regression eval for security.recommendation")
+           )
+
+    assert Enum.any?(
+             recommendations.actions,
+             &String.contains?(&1.suggested_action, "cost per successful task")
+           )
+  end
+
+  test "eval_candidates/1 turns grouped problems into advisory backlog items" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Eval candidate finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.eval_candidate"
+    })
+
+    eval_candidates = Observability.eval_candidates(workspace_id: session.workspace_id)
+
+    assert eval_candidates.health == "red"
+    assert eval_candidates.count == 1
+    assert [candidate] = eval_candidates.candidates
+    assert candidate.title == "Regression eval for security.eval_candidate"
+    assert candidate.priority == "critical"
+    assert candidate.benchmark_hint == "security-regression"
+    assert candidate.example_session_id == session.id
+    assert candidate.human_gate_required == true
+    assert candidate.links.problems == "/observability/problems"
+    assert candidate.links.benchmarks == "/benchmarks"
+  end
+
   test "problems/1 groups active findings by rule and category" do
     session = session_fixture()
     workspace = Repo.preload(session, :workspace).workspace

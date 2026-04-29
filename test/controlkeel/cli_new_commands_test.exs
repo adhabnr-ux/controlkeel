@@ -6,6 +6,8 @@ defmodule ControlKeel.CLI.NewCommandsTest do
 
   alias ControlKeel.CLI
   alias ControlKeel.Mission
+  alias ControlKeel.Mission.Invocation
+  alias ControlKeel.Repo
   alias ControlKeel.ReviewBridge
   alias ControlKeel.ProjectBinding
   alias ControlKeel.Governance.CircuitBreaker
@@ -1182,6 +1184,9 @@ defmodule ControlKeel.CLI.NewCommandsTest do
     test "obs commands parse correctly" do
       assert {:ok, %{command: :obs_status}} = CLI.parse(["obs"])
       assert {:ok, %{command: :obs_status}} = CLI.parse(["obs", "status"])
+      assert {:ok, %{command: :obs_costs}} = CLI.parse(["obs", "costs"])
+      assert {:ok, %{command: :obs_recommend}} = CLI.parse(["obs", "recommend"])
+      assert {:ok, %{command: :obs_evals}} = CLI.parse(["obs", "evals"])
       assert {:ok, %{command: :obs_run, args: [123]}} = CLI.parse(["obs", "run", "123"])
       assert {:ok, %{command: :obs_export, args: [123]}} = CLI.parse(["obs", "export", "123"])
 
@@ -1250,6 +1255,193 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert output =~ "Health: red"
       assert output =~ "Feedback loop: Regression eval for security.sql_injection"
       assert output =~ "Human gate required: true"
+    end
+
+    test "obs costs renders grouped local cost summary", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      assert {:ok, _invocation} =
+               %Invocation{}
+               |> Invocation.changeset(%{
+                 session_id: session.id,
+                 source: "codex-cli",
+                 tool: "ck_validate",
+                 provider: "openai",
+                 model: "gpt-5.5",
+                 input_tokens: 900,
+                 cached_input_tokens: 100,
+                 output_tokens: 250,
+                 estimated_cost_cents: 11,
+                 decision: "allow",
+                 metadata: %{}
+               })
+               |> Repo.insert()
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_costs, options: %{by: "tool"}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability costs:"
+      assert output =~ "Grouped by: tool"
+      assert output =~ "ck_validate"
+      assert output =~ "Recommendations:"
+    end
+
+    test "obs costs supports json output", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      assert {:ok, _invocation} =
+               %Invocation{}
+               |> Invocation.changeset(%{
+                 session_id: session.id,
+                 source: "opencode",
+                 tool: "ck_budget",
+                 provider: "anthropic",
+                 model: "claude-sonnet",
+                 input_tokens: 400,
+                 output_tokens: 120,
+                 estimated_cost_cents: 7,
+                 decision: "allow",
+                 metadata: %{}
+               })
+               |> Repo.insert()
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_costs, options: %{by: "provider", json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "by" => "provider",
+               "totals" => %{"invocations" => 1, "estimated_cost_cents" => 7},
+               "groups" => [%{"name" => "anthropic"}]
+             } = Jason.decode!(output)
+    end
+
+    test "obs recommend renders prioritized recommendations", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "Recommendation issue",
+        severity: "critical",
+        status: "blocked",
+        category: "security",
+        rule_id: "security.recommend"
+      })
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_recommend, options: %{}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability recommendations:"
+      assert output =~ "Health: red"
+      assert output =~ "Regression eval for security.recommend"
+      assert output =~ "Human gate required:"
+    end
+
+    test "obs recommend supports json output", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "JSON recommendation issue",
+        severity: "high",
+        status: "open",
+        category: "review",
+        rule_id: "review.recommend"
+      })
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_recommend, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{"count" => count, "actions" => actions} = Jason.decode!(output)
+      assert count >= 1
+      assert Enum.any?(actions, &(&1["title"] == "Regression eval for review.recommend"))
+    end
+
+    test "obs evals renders advisory eval candidates", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "Eval CLI issue",
+        severity: "critical",
+        status: "blocked",
+        category: "security",
+        rule_id: "security.eval_cli"
+      })
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_evals, options: %{}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability eval candidates:"
+      assert output =~ "Regression eval for security.eval_cli"
+      assert output =~ "Benchmark hint: security-regression"
+      assert output =~ "Human gate required: true"
+    end
+
+    test "obs evals supports json output", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "Eval JSON issue",
+        severity: "high",
+        status: "open",
+        category: "review",
+        rule_id: "review.eval_json"
+      })
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_evals, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{"count" => 1, "candidates" => [%{"rule_id" => "review.eval_json"}]} =
+               Jason.decode!(output)
     end
 
     test "obs problems supports json output", %{tmp_dir: tmp_dir} do

@@ -136,7 +136,7 @@ defmodule ControlKeel.CLI do
   @benchmark_export_switches [format: :string]
   @policy_train_switches [type: :string]
   @watch_switches [interval: :integer, status: :boolean]
-  @obs_switches [format: :string, json: :boolean]
+  @obs_switches [by: :string, format: :string, json: :boolean]
   @obs_import_switches [dry_run: :boolean, format: :string, json: :boolean]
   @audit_log_switches [format: :string]
   @service_account_create_switches [workspace_id: :integer, name: :string, scopes: :string]
@@ -387,6 +387,15 @@ defmodule ControlKeel.CLI do
 
       ["obs", "problems" | rest] ->
         parse_with_switches(:obs_problems, rest, @obs_switches)
+
+      ["obs", "costs" | rest] ->
+        parse_with_switches(:obs_costs, rest, @obs_switches)
+
+      ["obs", "recommend" | rest] ->
+        parse_with_switches(:obs_recommend, rest, @obs_switches)
+
+      ["obs", "evals" | rest] ->
+        parse_with_switches(:obs_evals, rest, @obs_switches)
 
       ["obs", "export", session_id | rest] ->
         parse_obs_session_command(:obs_export, session_id, rest)
@@ -2065,6 +2074,51 @@ defmodule ControlKeel.CLI do
       case format do
         "json" -> {:ok, [Jason.encode!(problems)]}
         _ -> {:ok, observability_problem_lines(problems)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_costs, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      costs = Observability.costs(workspace_id: session.workspace_id, by: options[:by])
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(costs)]}
+        _ -> {:ok, observability_cost_lines(costs)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_recommend, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      recommendations = Observability.recommendations(workspace_id: session.workspace_id)
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(recommendations)]}
+        _ -> {:ok, observability_recommendation_lines(recommendations)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_evals, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      candidates = Observability.eval_candidates(workspace_id: session.workspace_id)
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(candidates)]}
+        _ -> {:ok, observability_eval_candidate_lines(candidates)}
       end
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
@@ -4881,6 +4935,61 @@ defmodule ControlKeel.CLI do
       "Integrity: #{preview.integrity_status || "unknown"}",
       "Mutation: #{preview.mutation}"
     ]
+  end
+
+  defp observability_cost_lines(costs) do
+    totals = costs.totals
+
+    [
+      "Observability costs: #{totals.invocations} invocation(s) across #{totals.sessions} session(s)",
+      "Estimated spend: #{format_money(totals.estimated_cost_cents)}",
+      "Tokens: #{totals.input_tokens} input / #{totals.cached_input_tokens} cached / #{totals.output_tokens} output",
+      "Grouped by: #{costs.by}",
+      "Groups:"
+    ] ++
+      Enum.map(costs.groups, fn group ->
+        "- #{group.name}: #{group.invocations} call(s), #{format_money(group.estimated_cost_cents)}, #{group.input_tokens} input, #{group.output_tokens} output"
+      end) ++
+      ["Recommendations:"] ++ Enum.map(costs.recommendations, &"- #{&1}")
+  end
+
+  defp observability_recommendation_lines(recommendations) do
+    [
+      "Observability recommendations: #{recommendations.count} action(s)",
+      "Health: #{recommendations.health}",
+      "Categories: #{Enum.join(recommendations.categories, ", ")}"
+    ] ++
+      Enum.flat_map(recommendations.actions, fn action ->
+        [
+          "",
+          "[#{action.priority}] #{action.title}",
+          "  Category: #{action.category} | Source: #{action.source}",
+          "  Evidence: #{action.evidence}",
+          "  Next: #{action.suggested_action}",
+          "  Link: #{action.link}",
+          "  Human gate required: #{action.human_gate_required}"
+        ]
+      end)
+  end
+
+  defp observability_eval_candidate_lines(eval_candidates) do
+    [
+      "Observability eval candidates: #{eval_candidates.count} candidate(s)",
+      "Health: #{eval_candidates.health}",
+      "Recommendations:"
+    ] ++
+      Enum.map(eval_candidates.recommendations, &"- #{&1}") ++
+      Enum.flat_map(eval_candidates.candidates, fn candidate ->
+        [
+          "",
+          "[#{candidate.priority}] #{candidate.title}",
+          "  Rule: #{candidate.rule_id} | Category: #{candidate.category} | Severity: #{candidate.severity}",
+          "  Evidence: #{candidate.evidence_summary}",
+          "  Benchmark hint: #{candidate.benchmark_hint}",
+          "  Example session: #{candidate.example_session_id || "unknown"}",
+          "  Human gate required: #{candidate.human_gate_required}"
+        ]
+      end)
   end
 
   defp render_observability(session_id, format) do

@@ -31,6 +31,9 @@ defmodule ControlKeelWeb.ObservabilityOverviewLiveTest do
     assert has_element?(view, "#observability-overview-problem-list")
     assert html =~ "security.overview"
     assert html =~ "/observability/problems"
+    assert html =~ "/observability/costs"
+    assert html =~ "/observability/recommendations"
+    assert html =~ "/observability/evals"
     assert html =~ "/observability/sessions/#{session.id}"
     assert html =~ "/observability/sessions/#{session.id}/export.json"
   end
