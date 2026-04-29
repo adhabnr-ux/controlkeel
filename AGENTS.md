@@ -452,7 +452,7 @@ And **never** do this:
 This project is governed by ControlKeel. Prefer the ControlKeel MCP server for validation, findings, budgets, proof context, workspace snapshots, transcript state, and routing.
 
 Project root: this repository (your IDE workspace / `CK_PROJECT_ROOT`)
-Target: `codex`
+Target: `opencode`
 Primary CK loop: `ck_context -> ck_validate -> ck_review_submit/ck_finding -> ck_budget/ck_route/ck_delegate`
 
 Required workflow:
@@ -460,9 +460,8 @@ Required workflow:
 2. Call `ck_validate` before writing code, config, shell, or deploy content.
 3. Submit plans or approval packets with `ck_review_submit` and check `ck_review_status` before execution.
 4. Record any human-review issue with `ck_finding`.
-5. Check `ck_budget` before expensive model or multi-agent work, and keep `ck_context` compact unless full raw context is needed.
-6. Before AFK or delegated implementation, split large work into human-approved vertical slices with explicit dependencies; prefer durable behavior-first issues, stable deep-module interfaces, and branch-level automated review plus human QA before merge.
-7. Use `ck_route`, `ck_skill_list`, and `ck_skill_load` to delegate or activate specialized CK workflows.
+5. Check `ck_budget` before expensive model or multi-agent work.
+6. Use `ck_route`, `ck_skill_list`, and `ck_skill_load` to delegate or activate specialized CK workflows.
 
 Install ControlKeel:
 - Homebrew: `brew tap aryaminus/controlkeel && brew install controlkeel`
