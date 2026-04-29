@@ -1178,6 +1178,120 @@ defmodule ControlKeel.CLI.NewCommandsTest do
     end
   end
 
+  describe "observability commands" do
+    test "obs commands parse correctly" do
+      assert {:ok, %{command: :obs_status}} = CLI.parse(["obs"])
+      assert {:ok, %{command: :obs_status}} = CLI.parse(["obs", "status"])
+      assert {:ok, %{command: :obs_run, args: [123]}} = CLI.parse(["obs", "run", "123"])
+      assert {:error, _} = CLI.parse(["obs", "run", "not-an-id"])
+    end
+
+    test "obs status renders compact run observability", %{tmp_dir: tmp_dir} do
+      session =
+        session_fixture(%{budget_cents: 2_000, daily_budget_cents: 2_000, spent_cents: 300})
+
+      finding_fixture(%{
+        session: session,
+        title: "Review needed",
+        severity: "medium",
+        status: "open"
+      })
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_status, options: %{}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability:"
+      assert output =~ "Health:"
+      assert output =~ "Budget:"
+      assert output =~ "Findings:"
+      assert output =~ "Recommendations:"
+    end
+
+    test "obs problems parses and renders grouped problems", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "SQL problem",
+        severity: "critical",
+        status: "blocked",
+        category: "security",
+        rule_id: "security.sql_injection"
+      })
+
+      write_binding(tmp_dir, session)
+
+      assert {:ok, %{command: :obs_problems}} = CLI.parse(["obs", "problems"])
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_problems, options: %{}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability problems:"
+      assert output =~ "security.sql_injection"
+      assert output =~ "Health: red"
+      assert output =~ "Feedback loop: Regression eval for security.sql_injection"
+      assert output =~ "Human gate required: true"
+    end
+
+    test "obs problems supports json output", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "Review problem",
+        severity: "medium",
+        status: "open",
+        category: "review",
+        rule_id: "review.required"
+      })
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_problems, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{"count" => 1, "problems" => [%{"rule_id" => "review.required"}]} =
+               Jason.decode!(output)
+    end
+
+    test "obs run supports json output", %{tmp_dir: _tmp_dir} do
+      session =
+        session_fixture(%{budget_cents: 2_000, daily_budget_cents: 2_000, spent_cents: 300})
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_run, options: %{json: true}, args: [session.id]},
+                     project_root: "."
+                   )
+        end)
+
+      assert %{"session" => %{"id" => id}, "health" => %{"status" => _}} = Jason.decode!(output)
+      assert id == session.id
+    end
+  end
+
   defp write_binding(tmp_dir, session) do
     {:ok, _binding} =
       ProjectBinding.write(

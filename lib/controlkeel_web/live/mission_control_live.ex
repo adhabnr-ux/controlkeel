@@ -4,6 +4,7 @@ defmodule ControlKeelWeb.MissionControlLive do
   alias ControlKeel.Analytics
   alias ControlKeel.Intent
   alias ControlKeel.Mission
+  alias ControlKeel.Observability
   alias ControlKeel.Proxy
   alias ControlKeelWeb.FindingComponents
 
@@ -240,6 +241,73 @@ defmodule ControlKeelWeb.MissionControlLive do
           <div class="ck-card ck-stat-card">
             <p class="ck-mini-label">Proof bundles</p>
             <strong>{map_size(@latest_proofs)}</strong>
+          </div>
+        </div>
+
+        <div id="mission-observability-panel" class="ck-card">
+          <div class="ck-section-header" style="margin-bottom: 1rem;">
+            <div>
+              <p class="ck-mini-label">Session run observability</p>
+              <h2 style="margin: 0; font-size: 1.25rem;">{@observability.health.label}</h2>
+              <p class="ck-note" style="margin: 0.35rem 0 0;">
+                Compact local-first view of health, events, findings, gates, memory, proofs, and cost.
+              </p>
+            </div>
+            <div class="ck-badge-stack">
+              <span
+                id="mission-observability-health"
+                class={obs_health_pill_class(@observability.health.status)}
+              >
+                {@observability.health.status}
+              </span>
+              <.link
+                id="mission-observability-open"
+                navigate={~p"/observability/sessions/#{@session.id}"}
+                class="ck-link"
+              >
+                Open run observability
+              </.link>
+            </div>
+          </div>
+
+          <div class="ck-stat-grid">
+            <div id="mission-observability-budget" class="ck-stat-card">
+              <p class="ck-mini-label">Budget health</p>
+              <strong>{@observability.budget["decision"] || "unknown"}</strong>
+              <p class="ck-note">
+                {format_currency(@observability.budget["spent_cents"] || 0)} / {format_currency(
+                  @observability.budget["session_budget_cents"] || 0
+                )} used
+              </p>
+            </div>
+            <div id="mission-observability-findings" class="ck-stat-card">
+              <p class="ck-mini-label">Findings</p>
+              <strong>{@observability.findings.active} active</strong>
+              <p class="ck-note">
+                {@observability.findings.critical} critical · {@observability.findings.high} high · {@observability.findings.blocked} blocked
+              </p>
+            </div>
+            <div id="mission-observability-gates" class="ck-stat-card">
+              <p class="ck-mini-label">Gates</p>
+              <strong>{@observability.gates.pending_reviews} pending</strong>
+              <p class="ck-note">{@observability.gates.total_reviews} total review gates</p>
+            </div>
+            <div id="mission-observability-timeline" class="ck-stat-card">
+              <p class="ck-mini-label">Timeline</p>
+              <strong>{@observability.timeline.count} events</strong>
+              <p class="ck-note">
+                {@observability.memory.records} memory · {@observability.proofs.count} proofs · {@observability.hosts_models_tools.invocations} calls
+              </p>
+            </div>
+          </div>
+
+          <div style="margin-top: 1rem;">
+            <p class="ck-mini-label">Recommendations</p>
+            <ul id="mission-observability-recommendations" class="ck-mini-list">
+              <%= for recommendation <- Enum.take(@observability.recommendations, 3) do %>
+                <li>{recommendation}</li>
+              <% end %>
+            </ul>
           </div>
         </div>
 
@@ -805,6 +873,7 @@ defmodule ControlKeelWeb.MissionControlLive do
       active_tasks: Enum.count(session.tasks, &(&1.status in ["queued", "in_progress"])),
       compliance_score: compliance_score(session.findings),
       latest_proofs: Mission.latest_proof_bundles_for_session(session.id),
+      observability: Observability.session_run(session),
       current_proof_summary: current_task(session.tasks) |> Mission.proof_summary_for_task(),
       current_memory_hits: current_memory_hits(session),
       current_workspace_context: Mission.workspace_context(session),
@@ -872,6 +941,10 @@ defmodule ControlKeelWeb.MissionControlLive do
   defp task_status_pill_class("verified"), do: "ck-pill ck-pill-low"
   defp task_status_pill_class("done"), do: "ck-pill ck-pill-warning"
   defp task_status_pill_class(_status), do: "ck-pill ck-pill-neutral"
+
+  defp obs_health_pill_class("red"), do: "ck-pill ck-pill-critical"
+  defp obs_health_pill_class("yellow"), do: "ck-pill ck-pill-warning"
+  defp obs_health_pill_class(_status), do: "ck-pill ck-pill-low"
 
   defp done_unverified?(%{status: "done"}), do: true
   defp done_unverified?(_task), do: false

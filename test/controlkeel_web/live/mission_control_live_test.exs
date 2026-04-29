@@ -125,6 +125,27 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
     assert html =~ "$40/month to start"
   end
 
+  test "mission control renders compact observability panel", %{conn: conn} do
+    session = session_fixture(%{budget_cents: 2_000, daily_budget_cents: 2_000, spent_cents: 300})
+    task_fixture(%{session: session, status: "in_progress"})
+
+    finding_fixture(%{
+      session: session,
+      title: "Observation finding",
+      severity: "high",
+      status: "open"
+    })
+
+    {:ok, _view, html} = live(conn, ~p"/missions/#{session.id}")
+
+    assert html =~ "mission-observability-panel"
+    assert html =~ "Session run observability"
+    assert html =~ "mission-observability-health"
+    assert html =~ "mission-observability-budget"
+    assert html =~ "mission-observability-findings"
+    assert html =~ "mission-observability-recommendations"
+  end
+
   test "mission control refreshes when new findings and spend data appear", %{conn: conn} do
     session = session_fixture(%{spent_cents: 600, budget_cents: 5_000})
     task_fixture(%{session: session})

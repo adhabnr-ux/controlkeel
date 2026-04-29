@@ -32,6 +32,7 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.MCP.Tools.CkContext
   alias ControlKeel.MCP.Tools.CkValidate
   alias ControlKeel.Mission
+  alias ControlKeel.Observability
   alias ControlKeel.Platform
   alias ControlKeel.PolicyTraining
   alias ControlKeel.ProviderBroker
@@ -134,6 +135,7 @@ defmodule ControlKeel.CLI do
   @benchmark_export_switches [format: :string]
   @policy_train_switches [type: :string]
   @watch_switches [interval: :integer, status: :boolean]
+  @obs_switches [format: :string, json: :boolean]
   @audit_log_switches [format: :string]
   @service_account_create_switches [workspace_id: :integer, name: :string, scopes: :string]
   @service_account_list_switches [workspace_id: :integer]
@@ -374,6 +376,18 @@ defmodule ControlKeel.CLI do
 
       ["status" | rest] ->
         parse_with_switches(:status, rest, @status_switches)
+
+      ["obs"] ->
+        parse_with_switches(:obs_status, [], @obs_switches)
+
+      ["obs", "status" | rest] ->
+        parse_with_switches(:obs_status, rest, @obs_switches)
+
+      ["obs", "problems" | rest] ->
+        parse_with_switches(:obs_problems, rest, @obs_switches)
+
+      ["obs", "run", session_id | rest] ->
+        parse_obs_run(session_id, rest)
 
       ["context" | rest] ->
         parse_with_switches(:context, rest, @context_switches)
@@ -2016,6 +2030,37 @@ defmodule ControlKeel.CLI do
 
       {:error, reason} ->
         {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_status, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      render_observability(session.id, format)
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_run, args: [session_id], options: options}, _project_root) do
+    with {:ok, format} <- effective_cli_format(options) do
+      render_observability(session_id, format)
+    end
+  end
+
+  def run_command(%{command: :obs_problems, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      problems = Observability.problems(workspace_id: session.workspace_id)
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(problems)]}
+        _ -> {:ok, observability_problem_lines(problems)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
     end
   end
 
@@ -4002,6 +4047,15 @@ defmodule ControlKeel.CLI do
     parse_with_switches(command, argv, switches)
   end
 
+  defp parse_obs_run(session_id, rest) do
+    with {id, ""} <- Integer.parse(session_id),
+         {:ok, parsed} <- parse_with_switches(:obs_run, rest, @obs_switches) do
+      {:ok, %{parsed | args: [id]}}
+    else
+      _ -> {:error, "Invalid session id: #{session_id}"}
+    end
+  end
+
   defp parse_with_switches(command, argv, switches) do
     {options, remainder, invalid} = OptionParser.parse(argv, strict: switches)
 
@@ -4706,6 +4760,72 @@ defmodule ControlKeel.CLI do
   end
 
   defp cli_output_format(_options), do: {:ok, "text"}
+
+  defp observability_problem_lines(problems) do
+    [
+      "Observability problems: #{problems.count} grouped / #{problems.total_findings} active finding(s)",
+      "Health: #{problems.health}",
+      "Recommendations:"
+    ] ++
+      Enum.map(problems.recommendations, &"- #{&1}") ++
+      Enum.flat_map(problems.problems, fn problem ->
+        [
+          "",
+          "[#{problem.health}] #{problem.rule_id} (#{problem.category})",
+          "  Severity: #{problem.severity} | Count: #{problem.count} | Sessions: #{problem.affected_session_count}",
+          "  Last seen: #{problem.last_seen || "unknown"}",
+          "  Next: #{problem.recommendation}",
+          "  Feedback loop: #{problem.feedback_loop.eval_candidate_title}",
+          "  Eval action: #{problem.feedback_loop.suggested_action}",
+          "  Benchmark hint: #{problem.feedback_loop.benchmark_hint}",
+          "  Human gate required: #{problem.feedback_loop.human_gate_required}"
+        ]
+      end)
+  end
+
+  defp render_observability(session_id, format) do
+    case Observability.session_run(session_id) do
+      {:ok, run} ->
+        case format do
+          "json" -> {:ok, [Jason.encode!(run)]}
+          _ -> {:ok, observability_lines(run)}
+        end
+
+      {:error, :not_found} ->
+        {:error, "Session not found: #{session_id}"}
+
+      {:error, :invalid_session_id} ->
+        {:error, "Invalid session id: #{session_id}"}
+    end
+  end
+
+  defp observability_lines(run) do
+    session = run.session
+    health = run.health
+    budget = run.budget
+    findings = run.findings
+    tasks = run.tasks
+    gates = run.gates
+    timeline = run.timeline
+    memory = run.memory
+    proofs = run.proofs
+    host_metrics = run.hosts_models_tools
+
+    [
+      "Observability: #{session.title} (##{session.id})",
+      "Health: #{health.status} — #{health.label}",
+      "Reasons: #{Enum.join(health.reasons, "; ")}",
+      "Budget: #{format_money(budget["spent_cents"] || 0)} / #{format_money(budget["session_budget_cents"] || 0)} used (#{budget["decision"] || "unknown"})",
+      "Findings: #{findings.active} active / #{findings.total} total (#{findings.critical} critical, #{findings.high} high, #{findings.blocked} blocked)",
+      "Tasks: #{tasks.active} active / #{tasks.total} total",
+      "Gates: #{gates.pending_reviews} pending review(s) / #{gates.total_reviews} total",
+      "Timeline: #{timeline.count} recent event(s)",
+      "Memory: #{memory.records} active record(s)",
+      "Proof bundles: #{proofs.count}",
+      "Invocations: #{host_metrics.invocations} call(s), #{format_money(host_metrics.estimated_cost_cents)} estimated",
+      "Recommendations:"
+    ] ++ Enum.map(run.recommendations, &"- #{&1}")
+  end
 
   defp proofs_filter_summary(options) do
     filters =
