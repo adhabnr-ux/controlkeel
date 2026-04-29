@@ -449,6 +449,9 @@ defmodule ControlKeel.CLI do
       ["obs", "benchmarks", "run" | rest] ->
         parse_with_switches(:obs_benchmark_run, rest, @obs_switches)
 
+      ["obs", "benchmarks", "history" | rest] ->
+        parse_with_switches(:obs_benchmark_history, rest, @obs_switches)
+
       ["obs", "compare" | rest] ->
         parse_with_switches(:obs_compare, rest, @obs_switches)
 
@@ -2324,6 +2327,25 @@ defmodule ControlKeel.CLI do
       case format do
         "json" -> {:ok, [Jason.encode!(scenarios)]}
         _ -> {:ok, observability_benchmark_scenario_lines(scenarios)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_benchmark_history, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      history =
+        Observability.observability_benchmark_history(
+          workspace_id: session.workspace_id,
+          limit: options[:limit] || 12
+        )
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(history)]}
+        _ -> {:ok, observability_benchmark_history_lines(history)}
       end
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
@@ -5514,6 +5536,28 @@ defmodule ControlKeel.CLI do
   defp benchmark_status_for_command(:obs_benchmark_approve), do: "approved"
   defp benchmark_status_for_command(:obs_benchmark_reject), do: "rejected"
   defp benchmark_status_for_command(:obs_benchmark_archive), do: "archived"
+
+  defp observability_benchmark_history_lines(history) do
+    latest = history.latest_run
+
+    [
+      "Observability benchmark history:",
+      "Readiness: #{history.readiness.status} — #{history.readiness.reason}",
+      "Saved eval candidates: #{history.coverage.saved_eval_candidates}",
+      "Benchmark drafts: #{history.coverage.benchmark_drafts}",
+      "Approved drafts: #{history.coverage.approved_drafts}",
+      "Materialized scenarios: #{history.coverage.materialized_scenarios}",
+      "Covered scenarios: #{history.coverage.covered_scenarios}",
+      "Benchmark runs: #{history.coverage.benchmark_runs}",
+      "Latest run: #{if latest, do: "##{latest.id} #{latest.status} catch #{latest.catch_rate}%", else: "none"}",
+      "Recommendations:"
+    ] ++
+      Enum.map(history.recommendations, &"- #{&1}") ++
+      ["Recent runs:"] ++
+      Enum.map(history.runs, fn run ->
+        "- ##{run.id} #{run.suite}: #{run.status}, catch #{run.catch_rate}%, rule-hit #{run.expected_rule_hit_rate}%"
+      end)
+  end
 
   defp observability_benchmark_dry_run?(options) do
     if Map.has_key?(options, :dry_run),

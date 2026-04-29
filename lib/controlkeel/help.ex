@@ -411,6 +411,8 @@ defmodule ControlKeel.Help do
                                       Create local scenarios from approved drafts
       controlkeel obs benchmarks scenarios
                                       List generated observability scenarios
+      controlkeel obs benchmarks history
+                                      Show generated benchmark run history/readiness
       controlkeel obs benchmarks run --dry-run [--suite slug] [--subjects ids]
                                       Preview generated observability benchmark execution
       controlkeel obs benchmarks run --execute --suite slug --subjects ids

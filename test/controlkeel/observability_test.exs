@@ -562,6 +562,54 @@ defmodule ControlKeel.ObservabilityTest do
     assert Repo.aggregate(Finding, :count, :id) == finding_count
   end
 
+  test "observability_benchmark_history/1 reports generated benchmark run evidence" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "History finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.history"
+    })
+
+    assert %{stored: 1} = Observability.save_eval_candidates(workspace_id: session.workspace_id)
+
+    assert %{stored: 1, drafts: [%{id: draft_id}]} =
+             Observability.generate_benchmark_drafts(workspace_id: session.workspace_id)
+
+    assert {:ok, _result} =
+             Observability.update_benchmark_draft_status(draft_id, "approved",
+               reviewed_by: "test"
+             )
+
+    assert %{materialized: 1} =
+             Observability.materialize_benchmark_drafts(workspace_id: session.workspace_id)
+
+    before_run = Observability.observability_benchmark_history(workspace_id: session.workspace_id)
+    assert before_run.readiness.status == "yellow"
+    assert before_run.coverage.materialized_scenarios == 1
+    assert before_run.coverage.benchmark_runs == 0
+
+    assert {:ok, %{benchmark_execution: true}} =
+             Observability.run_observability_benchmark(
+               [
+                 workspace_id: session.workspace_id,
+                 subjects: "controlkeel_validate",
+                 dry_run: false,
+                 execute: true
+               ],
+               File.cwd!()
+             )
+
+    history = Observability.observability_benchmark_history(workspace_id: session.workspace_id)
+    assert history.coverage.benchmark_runs == 1
+    assert history.coverage.covered_scenarios == 1
+    assert history.latest_run.id
+    assert history.readiness.status in ["green", "red"]
+  end
+
   test "observability benchmark run preview is non-mutating and execution is explicit" do
     session = session_fixture()
 

@@ -52,6 +52,7 @@ defmodule ControlKeelWeb.Router do
     live "/observability", ObservabilityOverviewLive, :index
     live "/observability/benchmarks/drafts", ObservabilityBenchmarkDraftsLive, :index
     live "/observability/benchmarks/scenarios", ObservabilityBenchmarkScenariosLive, :index
+    live "/observability/benchmarks/history", ObservabilityBenchmarkHistoryLive, :index
     live "/observability/compare", ObservabilityCompareLive, :index
     live "/observability/costs", ObservabilityCostsLive, :index
     live "/observability/evals", ObservabilityEvalsLive, :index

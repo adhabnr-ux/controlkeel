@@ -1556,6 +1556,74 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert Enum.any?(actions, &(&1["title"] == "Regression eval for review.recommend"))
     end
 
+    test "obs benchmarks history reports readiness as json", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "CLI history finding",
+        severity: "critical",
+        status: "blocked",
+        category: "security",
+        rule_id: "security.cli_history"
+      })
+
+      write_binding(tmp_dir, session)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_evals_save, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_draft, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      draft_output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_benchmark_drafts, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      %{"drafts" => [%{"id" => draft_id}]} = Jason.decode!(draft_output)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_approve, options: %{}, args: [draft_id]},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_materialize, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_benchmark_history, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "coverage" => %{"materialized_scenarios" => 1, "benchmark_runs" => 0},
+               "readiness" => %{"status" => "yellow"}
+             } = Jason.decode!(output)
+    end
+
     test "obs benchmarks run dry-run previews without creating runs", %{tmp_dir: tmp_dir} do
       session = session_fixture()
 

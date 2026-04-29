@@ -324,6 +324,44 @@ defmodule ControlKeel.Observability do
     end
   end
 
+  def observability_benchmark_history(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 12)
+    workspace_id = Keyword.get(opts, :workspace_id)
+    scenarios = observability_scenario_records([workspace_id: workspace_id, limit: 500], 500)
+    scenario_ids = Enum.map(scenarios, & &1.id)
+    runs = observability_benchmark_run_records(scenarios, limit)
+
+    covered_ids =
+      runs
+      |> Enum.flat_map(&(&1.results || []))
+      |> Enum.map(& &1.scenario_id)
+      |> Enum.uniq()
+
+    saved = saved_eval_candidates(workspace_id: workspace_id)
+    drafts = benchmark_drafts(workspace_id: workspace_id)
+    approved_drafts = benchmark_draft_count(workspace_id: workspace_id, status: "approved")
+    latest = List.first(runs)
+
+    coverage = %{
+      saved_eval_candidates: saved.count,
+      benchmark_drafts: drafts.count,
+      approved_drafts: approved_drafts,
+      materialized_scenarios: length(scenario_ids),
+      covered_scenarios: length(Enum.filter(scenario_ids, &(&1 in covered_ids))),
+      benchmark_runs: length(runs)
+    }
+
+    %{
+      limit: limit,
+      readiness: observability_benchmark_readiness(latest, coverage),
+      coverage: coverage,
+      latest_run: if(latest, do: observability_benchmark_history_run_summary(latest), else: nil),
+      runs: Enum.map(runs, &observability_benchmark_history_run_summary/1),
+      missed: observability_benchmark_missed_summaries(runs),
+      recommendations: observability_benchmark_history_recommendations(latest, coverage)
+    }
+  end
+
   def update_benchmark_draft_status(id, status, opts \\ [])
 
   def update_benchmark_draft_status(id, status, opts)
@@ -1550,6 +1588,123 @@ defmodule ControlKeel.Observability do
       "Review #{length(scenarios)} materialized scenario(s) before running benchmark suites.",
       "Benchmark execution remains separate and should stay human-gated."
     ]
+  end
+
+  defp observability_benchmark_run_records([], _limit), do: []
+
+  defp observability_benchmark_run_records(scenarios, limit) do
+    suite_ids = scenarios |> Enum.map(& &1.suite_id) |> Enum.uniq()
+    scenario_ids = scenarios |> Enum.map(& &1.id) |> MapSet.new()
+
+    BenchmarkRun
+    |> where([run], run.suite_id in ^suite_ids)
+    |> order_by([run], desc: run.inserted_at, desc: run.id)
+    |> limit(^limit)
+    |> preload([:suite, results: [:scenario]])
+    |> Repo.all()
+    |> Enum.map(fn run ->
+      results = Enum.filter(run.results || [], &MapSet.member?(scenario_ids, &1.scenario_id))
+      %{run | results: results}
+    end)
+    |> Enum.reject(&(&1.results == []))
+  end
+
+  defp observability_benchmark_history_run_summary(%BenchmarkRun{} = run) do
+    detail = Benchmark.run_detail_metrics(run)
+
+    %{
+      id: run.id,
+      status: run.status,
+      suite: benchmark_run_suite_slug(run),
+      subjects: run.subjects || [],
+      total_scenarios: run.total_scenarios,
+      observed_scenarios: run.results |> Enum.map(& &1.scenario_id) |> Enum.uniq() |> length(),
+      caught_count: run.caught_count,
+      blocked_count: run.blocked_count,
+      catch_rate: run.catch_rate || 0.0,
+      block_rate: detail.block_rate,
+      expected_rule_hit_rate: detail.expected_rule_hit_rate,
+      inserted_at: format_datetime(run.inserted_at),
+      finished_at: format_datetime(run.finished_at)
+    }
+  end
+
+  defp observability_benchmark_missed_summaries(runs) do
+    runs
+    |> Enum.flat_map(&(&1.results || []))
+    |> Enum.reject(& &1.matched_expected)
+    |> Enum.take(10)
+    |> Enum.map(fn result ->
+      %{
+        run_id: result.run_id,
+        scenario_id: result.scenario_id,
+        scenario_slug: if(result.scenario, do: result.scenario.slug, else: nil),
+        subject: result.subject,
+        status: result.status,
+        decision: result.decision,
+        expected_rules: if(result.scenario, do: result.scenario.expected_rules || [], else: [])
+      }
+    end)
+  end
+
+  defp observability_benchmark_readiness(nil, %{materialized_scenarios: materialized})
+       when materialized > 0,
+       do: %{
+         status: "yellow",
+         reason:
+           "Materialized observability scenarios exist, but none have benchmark run evidence yet."
+       }
+
+  defp observability_benchmark_readiness(nil, _coverage),
+    do: %{status: "red", reason: "No materialized observability benchmark scenarios exist yet."}
+
+  defp observability_benchmark_readiness(run, coverage) do
+    cond do
+      coverage.covered_scenarios < coverage.materialized_scenarios ->
+        %{
+          status: "yellow",
+          reason:
+            "Some materialized observability scenarios are not covered by recent benchmark runs."
+        }
+
+      (run.catch_rate || 0.0) < 100.0 ->
+        %{status: "red", reason: "Latest observability benchmark run missed expected coverage."}
+
+      true ->
+        %{
+          status: "green",
+          reason: "Latest observability benchmark evidence covers materialized scenarios."
+        }
+    end
+  end
+
+  defp observability_benchmark_history_recommendations(nil, %{materialized_scenarios: 0}),
+    do: ["Approve and materialize benchmark drafts before regression history can be established."]
+
+  defp observability_benchmark_history_recommendations(nil, _coverage),
+    do: [
+      "Run `controlkeel obs benchmarks run --dry-run` first, then execute a reviewed generated suite from the CLI."
+    ]
+
+  defp observability_benchmark_history_recommendations(run, coverage) do
+    []
+    |> maybe_reason(
+      coverage.covered_scenarios < coverage.materialized_scenarios,
+      "Run uncovered generated scenarios before using this evidence for promotion decisions."
+    )
+    |> maybe_reason(
+      (run.catch_rate || 0.0) < 100.0,
+      "Investigate missed observability benchmark scenarios before promotion or autofix work."
+    )
+    |> case do
+      [] ->
+        [
+          "Observability benchmark history is ready for human review before any promotion workflow."
+        ]
+
+      recommendations ->
+        recommendations
+    end
   end
 
   defp normalize_observability_scenario_slugs(nil), do: []
