@@ -1421,6 +1421,71 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert original_session_id == session.id
     end
 
+    test "obs trends renders local trend summary", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "Trend CLI finding",
+        severity: "critical",
+        status: "blocked",
+        category: "security",
+        rule_id: "security.trend_cli"
+      })
+
+      assert {:ok, _invocation} =
+               %Invocation{}
+               |> Invocation.changeset(%{
+                 session_id: session.id,
+                 source: "opencode",
+                 tool: "ck_validate",
+                 provider: "openai",
+                 model: "gpt-5.5",
+                 estimated_cost_cents: 5,
+                 decision: "allow",
+                 metadata: %{}
+               })
+               |> Repo.insert()
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_trends, options: %{days: 7}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability trends:"
+      assert output =~ "Runs: 1 total"
+      assert output =~ "Findings: 1 active / 1 blocked"
+      assert output =~ "Daily series:"
+    end
+
+    test "obs trends supports json output", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_trends, options: %{days: 3, json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "days" => 3,
+               "totals" => %{"runs" => 1},
+               "series" => series
+             } = Jason.decode!(output)
+
+      assert length(series) == 3
+    end
+
     test "obs recommend renders prioritized recommendations", %{tmp_dir: tmp_dir} do
       session = session_fixture()
 
@@ -1476,6 +1541,74 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert %{"count" => count, "actions" => actions} = Jason.decode!(output)
       assert count >= 1
       assert Enum.any?(actions, &(&1["title"] == "Regression eval for review.recommend"))
+    end
+
+    test "obs evals save persists advisory candidates", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "CLI save eval finding",
+        severity: "critical",
+        status: "blocked",
+        category: "security",
+        rule_id: "security.cli_save_eval"
+      })
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_evals_save, options: %{}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability eval candidates saved:"
+      assert output =~ "Stored: 1"
+      assert output =~ "Human gate required: true"
+    end
+
+    test "obs evals persisted lists saved candidates as json", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "CLI saved eval listing",
+        severity: "high",
+        status: "open",
+        category: "review",
+        rule_id: "review.cli_saved_eval"
+      })
+
+      write_binding(tmp_dir, session)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(
+                   %{command: :obs_evals_save, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_evals_persisted, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "count" => 1,
+               "by_status" => %{"open" => 1},
+               "candidates" => [
+                 %{"rule_id" => "review.cli_saved_eval", "human_gate_required" => true}
+               ]
+             } = Jason.decode!(output)
     end
 
     test "obs evals renders advisory eval candidates", %{tmp_dir: tmp_dir} do
@@ -1669,6 +1802,66 @@ defmodule ControlKeel.CLI.NewCommandsTest do
              } = Jason.decode!(output)
 
       assert id == session.id
+    end
+
+    test "obs memory-quality renders workspace memory diagnostics", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+      write_binding(tmp_dir, session)
+
+      memory_record_fixture(%{
+        session: session,
+        title: "CLI stale memory",
+        summary: "Review stale memory.",
+        source_type: "agent"
+      })
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_memory_quality, options: %{stale_days: 1}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability memory quality:"
+      assert output =~ "Active:"
+      assert output =~ "Stale candidates:"
+      assert output =~ "Recommendations:"
+    end
+
+    test "obs memory-quality supports json output", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+      write_binding(tmp_dir, session)
+
+      memory_record_fixture(%{
+        session: session,
+        title: "JSON quality memory",
+        summary: "Quality summary.",
+        source_type: "agent"
+      })
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{
+                       command: :obs_memory_quality,
+                       options: %{stale_days: 7, json: true},
+                       args: []
+                     },
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "stale_days" => 7,
+               "totals" => %{"records" => records},
+               "distributions" => %{"by_source" => %{"agent" => agent_records}}
+             } = Jason.decode!(output)
+
+      assert records >= 1
+      assert agent_records >= 1
     end
 
     test "obs memory renders current session memory summary", %{tmp_dir: tmp_dir} do

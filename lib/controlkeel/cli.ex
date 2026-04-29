@@ -136,7 +136,14 @@ defmodule ControlKeel.CLI do
   @benchmark_export_switches [format: :string]
   @policy_train_switches [type: :string]
   @watch_switches [interval: :integer, status: :boolean]
-  @obs_switches [by: :string, format: :string, json: :boolean, limit: :integer]
+  @obs_switches [
+    by: :string,
+    days: :integer,
+    format: :string,
+    json: :boolean,
+    limit: :integer,
+    stale_days: :integer
+  ]
   @obs_import_switches [dry_run: :boolean, persist: :boolean, format: :string, json: :boolean]
   @audit_log_switches [format: :string]
   @service_account_create_switches [workspace_id: :integer, name: :string, scopes: :string]
@@ -394,8 +401,17 @@ defmodule ControlKeel.CLI do
       ["obs", "imports" | rest] ->
         parse_with_switches(:obs_imports, rest, @obs_switches)
 
+      ["obs", "trends" | rest] ->
+        parse_with_switches(:obs_trends, rest, @obs_switches)
+
       ["obs", "recommend" | rest] ->
         parse_with_switches(:obs_recommend, rest, @obs_switches)
+
+      ["obs", "evals", "save" | rest] ->
+        parse_with_switches(:obs_evals_save, rest, @obs_switches)
+
+      ["obs", "evals", "persisted" | rest] ->
+        parse_with_switches(:obs_evals_persisted, rest, @obs_switches)
 
       ["obs", "evals" | rest] ->
         parse_with_switches(:obs_evals, rest, @obs_switches)
@@ -405,6 +421,9 @@ defmodule ControlKeel.CLI do
 
       ["obs", "timeline" | rest] ->
         parse_obs_timeline(rest)
+
+      ["obs", "memory-quality" | rest] ->
+        parse_with_switches(:obs_memory_quality, rest, @obs_switches)
 
       ["obs", "memory" | rest] ->
         parse_obs_memory(rest)
@@ -2123,6 +2142,21 @@ defmodule ControlKeel.CLI do
     end
   end
 
+  def run_command(%{command: :obs_trends, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      trends = Observability.trends(workspace_id: session.workspace_id, days: options[:days])
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(trends)]}
+        _ -> {:ok, observability_trend_lines(trends)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
   def run_command(%{command: :obs_recommend, options: options}, project_root) do
     with {:ok, format} <- effective_cli_format(options),
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
@@ -2146,6 +2180,36 @@ defmodule ControlKeel.CLI do
       case format do
         "json" -> {:ok, [Jason.encode!(candidates)]}
         _ -> {:ok, observability_eval_candidate_lines(candidates)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_evals_save, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      result = Observability.save_eval_candidates(workspace_id: session.workspace_id)
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(result)]}
+        _ -> {:ok, observability_eval_save_lines(result)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_evals_persisted, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      candidates = Observability.saved_eval_candidates(workspace_id: session.workspace_id)
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(candidates)]}
+        _ -> {:ok, observability_saved_eval_lines(candidates)}
       end
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
@@ -2188,6 +2252,25 @@ defmodule ControlKeel.CLI do
       limit = options[:limit] || 10
 
       render_observability_memory(session_id, limit, format)
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_memory_quality, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      quality =
+        Observability.memory_quality(
+          workspace_id: session.workspace_id,
+          stale_days: options[:stale_days]
+        )
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(quality)]}
+        _ -> {:ok, observability_memory_quality_lines(quality)}
+      end
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -5077,6 +5160,52 @@ defmodule ControlKeel.CLI do
     ]
   end
 
+  defp observability_memory_quality_lines(quality) do
+    totals = quality.totals
+
+    [
+      "Observability memory quality: #{totals.records} record(s)",
+      "Active: #{totals.active} / Archived: #{totals.archived}",
+      "Stale candidates: #{totals.stale_candidates} (threshold #{quality.stale_days} day(s))",
+      "Duplicate clusters: #{totals.duplicate_clusters}",
+      "Contradiction candidates: #{totals.contradiction_candidates}",
+      "Missed-memory sessions: #{totals.missed_memory_sessions}",
+      "Types: #{format_frequency(quality.distributions.by_type)}",
+      "Sources: #{format_frequency(quality.distributions.by_source)}",
+      "Recommendations:"
+    ] ++
+      Enum.map(quality.recommendations, &"- #{&1}") ++
+      ["Stale memory:"] ++
+      Enum.map(quality.stale_candidates, fn record ->
+        "- ##{record.id} #{record.title} (#{record.age_days || 0} day(s), #{record.record_type})"
+      end) ++
+      ["Duplicate clusters:"] ++
+      Enum.map(quality.duplicate_clusters, fn cluster ->
+        "- #{cluster.key}: #{cluster.count} record(s)"
+      end) ++
+      ["Missed-memory sessions:"] ++
+      Enum.map(quality.missed_memory_sessions, fn session ->
+        "- ##{session.id} #{session.title}: #{session.findings} finding(s), #{session.reviews} review(s), #{session.invocations} invocation(s)"
+      end)
+  end
+
+  defp observability_trend_lines(trends) do
+    totals = trends.totals
+
+    [
+      "Observability trends: #{trends.start_date} to #{trends.end_date} (#{trends.days} day(s))",
+      "Runs: #{totals.runs} total (#{totals.red_runs} red / #{totals.yellow_runs} yellow / #{totals.green_runs} green)",
+      "Findings: #{totals.active_findings} active / #{totals.blocked_findings} blocked",
+      "Estimated spend: #{format_money(totals.estimated_cost_cents)}",
+      "Imports: #{totals.imports} persisted (#{totals.verified_imports} verified / #{totals.non_verified_imports} non-verified)",
+      "Daily series:"
+    ] ++
+      Enum.map(trends.series, fn day ->
+        "- #{day.date}: #{day.runs} run(s), red #{day.health.red}, yellow #{day.health.yellow}, green #{day.health.green}, findings #{day.active_findings}/#{day.blocked_findings} blocked, cost #{format_money(day.estimated_cost_cents)}, imports #{day.imports}"
+      end) ++
+      ["Recommendations:"] ++ Enum.map(trends.recommendations, &"- #{&1}")
+  end
+
   defp observability_import_list_lines(imports) do
     [
       "Observability imports: #{imports.count} persisted snapshot(s)",
@@ -5142,6 +5271,34 @@ defmodule ControlKeel.CLI do
           "  Example session: #{candidate.example_session_id || "unknown"}",
           "  Human gate required: #{candidate.human_gate_required}"
         ]
+      end)
+  end
+
+  defp observability_eval_save_lines(result) do
+    [
+      "Observability eval candidates saved:",
+      "Source candidates: #{result.source_count}",
+      "Stored: #{result.stored}",
+      "Existing: #{result.existing}",
+      "Human gate required: #{result.human_gate_required}",
+      "Mutation: #{result.mutation}"
+    ] ++
+      Enum.map(result.candidates, fn candidate ->
+        "- ##{candidate.id} [#{candidate.priority}] #{candidate.title} (#{candidate.status})"
+      end)
+  end
+
+  defp observability_saved_eval_lines(saved) do
+    [
+      "Saved observability eval candidates: #{saved.count}",
+      "Status: #{format_frequency(saved.by_status)}",
+      "Priority: #{format_frequency(saved.by_priority)}",
+      "Recommendations:"
+    ] ++
+      Enum.map(saved.recommendations, &"- #{&1}") ++
+      ["Candidates:"] ++
+      Enum.map(saved.candidates, fn candidate ->
+        "- ##{candidate.id} [#{candidate.priority}/#{candidate.status}] #{candidate.title}: #{candidate.evidence_summary}"
       end)
   end
 

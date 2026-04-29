@@ -2,12 +2,13 @@ defmodule ControlKeel.ObservabilityTest do
   use ControlKeel.DataCase
 
   import ControlKeel.MissionFixtures
+  import Ecto.Query
 
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Finding, Invocation, Session, SessionEvent}
   alias ControlKeel.Observability
-  alias ControlKeel.Observability.ImportedEnvelope
+  alias ControlKeel.Observability.{EvalCandidate, ImportedEnvelope}
   alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
   alias ControlKeel.Repo
 
@@ -557,6 +558,167 @@ defmodule ControlKeel.ObservabilityTest do
 
     assert Repo.aggregate(Session, :count, :id) == session_count
     assert Repo.aggregate(Finding, :count, :id) == finding_count
+  end
+
+  test "save_eval_candidates/1 saves problem-derived candidates idempotently" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Persist eval finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.persist_eval"
+    })
+
+    first = Observability.save_eval_candidates(workspace_id: session.workspace_id)
+    second = Observability.save_eval_candidates(workspace_id: session.workspace_id)
+
+    assert first.source_count == 1
+    assert first.stored == 1
+    assert first.existing == 0
+    assert second.stored == 0
+    assert second.existing == 1
+    assert first.human_gate_required == true
+    assert first.mutation == "advisory_record_only"
+    assert Repo.aggregate(EvalCandidate, :count, :id) == 1
+
+    saved = Observability.saved_eval_candidates(workspace_id: session.workspace_id)
+
+    assert saved.count == 1
+    assert saved.by_status == %{"open" => 1}
+    assert [%{rule_id: "security.persist_eval", human_gate_required: true}] = saved.candidates
+    assert Enum.any?(saved.recommendations, &String.contains?(&1, "human gate"))
+  end
+
+  test "memory_quality/1 detects stale duplicates contradictions and missed memory" do
+    workspace = workspace_fixture()
+    session = session_fixture(%{workspace: workspace})
+    missed_session = session_fixture(%{workspace: workspace})
+
+    old_record =
+      memory_record_fixture(%{
+        session: session,
+        record_type: "decision",
+        title: "Old decision",
+        summary: "Review this old memory.",
+        source_type: "agent"
+      })
+
+    duplicate_a =
+      memory_record_fixture(%{
+        session: session,
+        record_type: "checkpoint",
+        title: "Duplicate checkpoint",
+        summary: "Same summary.",
+        source_type: "agent"
+      })
+
+    _duplicate_b =
+      memory_record_fixture(%{
+        session: session,
+        record_type: "checkpoint",
+        title: "Duplicate checkpoint",
+        summary: "Same summary.",
+        source_type: "agent"
+      })
+
+    contradiction =
+      memory_record_fixture(%{
+        session: session,
+        record_type: "decision",
+        title: "Superseded routing decision",
+        summary: "This memory is superseded by a newer decision.",
+        tags: ["superseded"],
+        source_type: "review"
+      })
+
+    old_inserted_at = DateTime.utc_now() |> DateTime.add(-60, :day) |> DateTime.truncate(:second)
+
+    Repo.update_all(
+      from(m in MemoryRecord, where: m.id == ^old_record.id),
+      set: [inserted_at: old_inserted_at, updated_at: old_inserted_at]
+    )
+
+    finding_fixture(%{session: missed_session, status: "blocked", severity: "critical"})
+
+    quality = Observability.memory_quality(workspace_id: session.workspace_id, stale_days: 30)
+
+    assert quality.totals.records >= 4
+    assert quality.totals.active >= 4
+    assert quality.totals.stale_candidates >= 1
+    assert quality.totals.duplicate_clusters >= 1
+    assert quality.totals.contradiction_candidates >= 1
+    assert Enum.any?(quality.stale_candidates, &(&1.id == old_record.id and &1.age_days >= 30))
+
+    assert Enum.any?(
+             quality.duplicate_clusters,
+             &(&1.count >= 2 and &1.key =~ "duplicate checkpoint")
+           )
+
+    assert Enum.any?(quality.contradiction_candidates, &(&1.id == contradiction.id))
+    assert is_list(quality.missed_memory_sessions)
+    assert missed_session.id
+    assert quality.distributions.by_type["decision"] >= 2
+    assert quality.distributions.by_source["agent"] >= 3
+    assert duplicate_a.id
+  end
+
+  test "trends/1 summarizes local runs findings costs and imports" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Trend blocked finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.trend"
+    })
+
+    assert {:ok, _invocation} =
+             %Invocation{}
+             |> Invocation.changeset(%{
+               session_id: session.id,
+               source: "opencode",
+               tool: "ck_validate",
+               provider: "openai",
+               model: "gpt-5.5",
+               estimated_cost_cents: 13,
+               decision: "allow",
+               metadata: %{}
+             })
+             |> Repo.insert()
+
+    assert {:ok, envelope} =
+             ObservabilityTelemetry.export_session(session.id,
+               exported_at: ~U[2026-04-29 04:00:00Z]
+             )
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-observability-trends-#{System.unique_integer()}.json"
+      )
+
+    File.write!(path, Jason.encode!(envelope))
+
+    assert {:ok, _result} =
+             ObservabilityTelemetry.import_persist(path, workspace_id: session.workspace_id)
+
+    trends = Observability.trends(workspace_id: session.workspace_id, days: 7)
+
+    assert trends.days == 7
+    assert trends.totals.runs == 1
+    assert trends.totals.red_runs == 1
+    assert trends.totals.active_findings == 1
+    assert trends.totals.blocked_findings == 1
+    assert trends.totals.estimated_cost_cents == 13
+    assert trends.totals.imports == 1
+    assert trends.totals.verified_imports == 1
+    assert Enum.any?(trends.series, &(&1.runs == 1 and &1.imports == 1))
+    assert Enum.any?(trends.recommendations, &String.contains?(&1, "Blocked findings"))
   end
 
   test "imports/1 summarizes persisted observability snapshots" do

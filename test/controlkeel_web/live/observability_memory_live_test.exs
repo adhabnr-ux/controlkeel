@@ -29,5 +29,6 @@ defmodule ControlKeelWeb.ObservabilityMemoryLiveTest do
     assert html =~ "Memory page decision"
     assert html =~ "Keep memory visible as a summary."
     assert html =~ "/observability/sessions/#{session.id}"
+    assert html =~ "/observability/memory-quality"
   end
 end

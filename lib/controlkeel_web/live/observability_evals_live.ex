@@ -37,6 +37,9 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
             <.link navigate={~p"/observability/recommendations"} class="ck-link">
               Recommendations
             </.link>
+            <.link navigate={~p"/observability/evals/persisted"} class="ck-link">
+              Saved candidates
+            </.link>
           </div>
         </div>
 

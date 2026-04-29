@@ -6,7 +6,7 @@ defmodule ControlKeel.Observability do
   alias ControlKeel.Budget
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
-  alias ControlKeel.Observability.ImportedEnvelope
+  alias ControlKeel.Observability.{EvalCandidate, ImportedEnvelope}
   alias ControlKeel.Mission.{Finding, Invocation, Session}
   alias ControlKeel.Repo
 
@@ -68,6 +68,31 @@ defmodule ControlKeel.Observability do
     }
   end
 
+  def trends(opts \\ []) do
+    days = opts |> Keyword.get(:days, 7) |> normalize_days()
+    workspace_id = Keyword.get(opts, :workspace_id)
+    today = Date.utc_today()
+    start_date = Date.add(today, -(days - 1))
+    since = DateTime.new!(start_date, ~T[00:00:00], "Etc/UTC")
+
+    sessions = trend_sessions(workspace_id, since)
+    findings = trend_findings(workspace_id, since)
+    invocations = trend_invocations(workspace_id, since)
+    imports = trend_imports(workspace_id, since)
+
+    series = trend_series(today, days, sessions, findings, invocations, imports)
+    totals = trend_totals(series)
+
+    %{
+      days: days,
+      start_date: Date.to_iso8601(start_date),
+      end_date: Date.to_iso8601(today),
+      totals: totals,
+      series: series,
+      recommendations: trend_recommendations(series, totals)
+    }
+  end
+
   def problems(opts \\ []) do
     limit = Keyword.get(opts, :limit, 20)
     findings = problem_findings(opts)
@@ -114,6 +139,40 @@ defmodule ControlKeel.Observability do
       groups: groups,
       available_groupings: @cost_group_fields,
       recommendations: comparison_recommendations(groups, by)
+    }
+  end
+
+  def saved_eval_candidates(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50)
+    candidates = saved_eval_candidate_records(opts, limit)
+
+    %{
+      count: saved_eval_candidate_count(opts),
+      limit: limit,
+      candidates: Enum.map(candidates, &saved_eval_candidate_summary/1),
+      by_status: frequencies(candidates, &(&1.status || "unknown")),
+      by_priority: frequencies(candidates, &(&1.priority || "unknown")),
+      recommendations: saved_eval_candidate_recommendations(candidates)
+    }
+  end
+
+  def save_eval_candidates(opts \\ []) do
+    workspace_id = Keyword.get(opts, :workspace_id)
+    derived = eval_candidates(if(workspace_id, do: [workspace_id: workspace_id], else: []))
+
+    results =
+      Enum.map(derived.candidates, fn candidate ->
+        save_eval_candidate(candidate, workspace_id)
+      end)
+
+    %{
+      source_count: derived.count,
+      stored: Enum.count(results, &match?({:stored, _}, &1)),
+      existing: Enum.count(results, &match?({:existing, _}, &1)),
+      candidates:
+        Enum.map(results, fn {_status, record} -> saved_eval_candidate_summary(record) end),
+      human_gate_required: true,
+      mutation: "advisory_record_only"
     }
   end
 
@@ -231,6 +290,46 @@ defmodule ControlKeel.Observability do
     end
   end
 
+  def memory_quality(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 10)
+    stale_days = opts |> Keyword.get(:stale_days, 30) |> normalize_stale_days()
+    workspace_id = Keyword.get(opts, :workspace_id)
+    records = memory_quality_records(workspace_id)
+
+    sessions =
+      recent_sessions([workspace_id: workspace_id], Keyword.get(opts, :session_limit, 20))
+
+    active_records = Enum.filter(records, &is_nil(&1.archived_at))
+    archived_records = Enum.reject(records, &is_nil(&1.archived_at))
+    stale = stale_memory_candidates(active_records, stale_days, limit)
+    duplicates = duplicate_memory_clusters(active_records, limit)
+    contradictions = contradiction_memory_candidates(active_records, limit)
+    missed = missed_memory_sessions(sessions, records, limit)
+
+    %{
+      stale_days: stale_days,
+      totals: %{
+        records: length(records),
+        active: length(active_records),
+        archived: length(archived_records),
+        stale_candidates: length(stale),
+        duplicate_clusters: length(duplicates),
+        contradiction_candidates: length(contradictions),
+        missed_memory_sessions: length(missed)
+      },
+      distributions: %{
+        by_type: frequencies(records, &(&1.record_type || "unknown")),
+        by_source: frequencies(records, &(&1.source_type || "unknown"))
+      },
+      stale_candidates: stale,
+      duplicate_clusters: duplicates,
+      contradiction_candidates: contradictions,
+      missed_memory_sessions: missed,
+      recommendations:
+        memory_quality_recommendations(stale, duplicates, contradictions, missed, records)
+    }
+  end
+
   def session_run(session_or_id, opts \\ [])
 
   def session_run(%Session{} = session, opts) do
@@ -274,6 +373,299 @@ defmodule ControlKeel.Observability do
       _ -> {:error, :invalid_session_id}
     end
   end
+
+  defp normalize_stale_days(days) when is_integer(days) and days > 0 and days <= 365, do: days
+  defp normalize_stale_days(days) when is_integer(days) and days > 365, do: 365
+  defp normalize_stale_days(_days), do: 30
+
+  defp memory_quality_records(workspace_id) do
+    MemoryRecord
+    |> maybe_filter_memory_workspace(workspace_id)
+    |> order_by([m], desc: m.inserted_at, desc: m.id)
+    |> Repo.all()
+  end
+
+  defp maybe_filter_memory_workspace(query, nil), do: query
+
+  defp maybe_filter_memory_workspace(query, workspace_id),
+    do: where(query, [m], m.workspace_id == ^workspace_id)
+
+  defp stale_memory_candidates(records, stale_days, limit) do
+    today = Date.utc_today()
+
+    records
+    |> Enum.map(fn record -> {record, memory_age_days(record, today)} end)
+    |> Enum.filter(fn {_record, age_days} -> age_days >= stale_days end)
+    |> Enum.sort_by(fn {_record, age_days} -> age_days end, :desc)
+    |> Enum.take(limit)
+    |> Enum.map(fn {record, age_days} -> memory_quality_record_summary(record, age_days) end)
+  end
+
+  defp memory_age_days(record, today) do
+    case record.inserted_at do
+      %DateTime{} = inserted_at -> Date.diff(today, DateTime.to_date(inserted_at))
+      %NaiveDateTime{} = inserted_at -> Date.diff(today, NaiveDateTime.to_date(inserted_at))
+      _ -> 0
+    end
+  end
+
+  defp duplicate_memory_clusters(records, limit) do
+    records
+    |> Enum.group_by(&memory_duplicate_key/1)
+    |> Enum.reject(fn {key, group} -> key == "" or length(group) < 2 end)
+    |> Enum.map(fn {key, group} ->
+      %{
+        key: key,
+        count: length(group),
+        records: group |> Enum.take(5) |> Enum.map(&memory_quality_record_summary(&1, nil))
+      }
+    end)
+    |> Enum.sort_by(& &1.count, :desc)
+    |> Enum.take(limit)
+  end
+
+  defp memory_duplicate_key(record) do
+    [record.title, record.summary]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join(" | ")
+    |> String.downcase()
+  end
+
+  defp contradiction_memory_candidates(records, limit) do
+    records
+    |> Enum.filter(&contradiction_marker?/1)
+    |> Enum.take(limit)
+    |> Enum.map(&memory_quality_record_summary(&1, nil))
+  end
+
+  defp contradiction_marker?(record) do
+    text =
+      [record.title, record.summary | List.wrap(record.tags)]
+      |> Enum.concat(record.metadata |> Map.keys() |> Enum.map(&to_string/1))
+      |> Enum.concat(record.metadata |> Map.values() |> Enum.map(&to_string/1))
+      |> Enum.reject(&is_nil/1)
+      |> Enum.join(" ")
+      |> String.downcase()
+
+    Enum.any?(["contradict", "superseded", "obsolete", "conflict"], &String.contains?(text, &1))
+  end
+
+  defp missed_memory_sessions(sessions, records, limit) do
+    memory_session_ids =
+      records
+      |> Enum.filter(&(&1.record_type in ["brief", "checkpoint", "decision", "goal"]))
+      |> Enum.map(& &1.session_id)
+      |> MapSet.new()
+
+    sessions
+    |> Enum.reject(&MapSet.member?(memory_session_ids, &1.id))
+    |> Enum.map(fn session -> {session, session_evidence_counts(session.id)} end)
+    |> Enum.filter(fn {_session, counts} ->
+      counts.findings > 0 or counts.reviews > 0 or counts.invocations > 0
+    end)
+    |> Enum.take(limit)
+    |> Enum.map(fn {session, counts} ->
+      %{
+        id: session.id,
+        title: session.title,
+        findings: counts.findings,
+        reviews: counts.reviews,
+        invocations: counts.invocations,
+        recommendation: "Record a checkpoint or decision memory for this session's evidence."
+      }
+    end)
+  end
+
+  defp session_evidence_counts(session_id) do
+    %{
+      findings:
+        Repo.aggregate(from(f in Finding, where: f.session_id == ^session_id), :count, :id),
+      reviews:
+        Repo.aggregate(
+          from(r in ControlKeel.Mission.Review, where: r.session_id == ^session_id),
+          :count,
+          :id
+        ),
+      invocations:
+        Repo.aggregate(from(i in Invocation, where: i.session_id == ^session_id), :count, :id)
+    }
+  end
+
+  defp memory_quality_record_summary(record, age_days) do
+    %{
+      id: record.id,
+      title: record.title,
+      summary: record.summary,
+      record_type: record.record_type,
+      source_type: record.source_type,
+      session_id: record.session_id,
+      task_id: record.task_id,
+      tags: record.tags || [],
+      archived: not is_nil(record.archived_at),
+      inserted_at: format_datetime(record.inserted_at),
+      age_days: age_days
+    }
+  end
+
+  defp memory_quality_recommendations(stale, duplicates, contradictions, missed, records) do
+    []
+    |> maybe_reason(
+      records == [],
+      "No memory records exist yet; record checkpoints and decisions for durable continuity."
+    )
+    |> maybe_reason(
+      stale != [],
+      "Review stale memory candidates and archive or supersede records that no longer match current behavior."
+    )
+    |> maybe_reason(
+      duplicates != [],
+      "Deduplicate repeated memory records to reduce retrieval noise."
+    )
+    |> maybe_reason(
+      contradictions != [],
+      "Review contradiction or superseded memory candidates before relying on retrieved context."
+    )
+    |> maybe_reason(
+      missed != [],
+      "Add checkpoint or decision memory for sessions with evidence but no durable memory."
+    )
+    |> case do
+      [] -> ["Memory quality signals look stable for this workspace."]
+      recommendations -> recommendations
+    end
+  end
+
+  defp normalize_days(days) when is_integer(days) and days > 0 and days <= 90, do: days
+  defp normalize_days(days) when is_integer(days) and days > 90, do: 90
+  defp normalize_days(_days), do: 7
+
+  defp trend_sessions(workspace_id, since) do
+    Session
+    |> maybe_filter_session_workspace(workspace_id)
+    |> where([s], s.inserted_at >= ^since)
+    |> order_by([s], asc: s.inserted_at, asc: s.id)
+    |> Repo.all()
+    |> Enum.map(&ensure_preloaded/1)
+  end
+
+  defp trend_findings(workspace_id, since) do
+    Finding
+    |> join(:inner, [f], s in assoc(f, :session))
+    |> maybe_filter_workspace(workspace_id)
+    |> where([f, _s], f.inserted_at >= ^since)
+    |> where([f, _s], f.status in ^@active_finding_statuses)
+    |> Repo.all()
+  end
+
+  defp trend_invocations(workspace_id, since) do
+    Invocation
+    |> join(:inner, [i], s in assoc(i, :session))
+    |> maybe_filter_invocation_workspace(workspace_id)
+    |> where([i, _s], i.inserted_at >= ^since)
+    |> Repo.all()
+  end
+
+  defp trend_imports(workspace_id, since) do
+    ImportedEnvelope
+    |> maybe_filter_import_workspace(workspace_id)
+    |> where([i], i.imported_at >= ^since)
+    |> Repo.all()
+  end
+
+  defp trend_series(today, days, sessions, findings, invocations, imports) do
+    session_groups = Enum.group_by(sessions, &day_key(&1.inserted_at))
+    finding_groups = Enum.group_by(findings, &day_key(&1.inserted_at))
+    invocation_groups = Enum.group_by(invocations, &day_key(&1.inserted_at))
+    import_groups = Enum.group_by(imports, &day_key(&1.imported_at))
+
+    0..(days - 1)
+    |> Enum.map(fn offset -> Date.add(today, -(days - 1 - offset)) end)
+    |> Enum.map(fn date ->
+      key = Date.to_iso8601(date)
+      day_sessions = Map.get(session_groups, key, [])
+      day_findings = Map.get(finding_groups, key, [])
+      day_invocations = Map.get(invocation_groups, key, [])
+      day_imports = Map.get(import_groups, key, [])
+      health_counts = frequencies(day_sessions, &session_health_status/1)
+
+      %{
+        date: key,
+        runs: length(day_sessions),
+        health: %{
+          red: Map.get(health_counts, "red", 0),
+          yellow: Map.get(health_counts, "yellow", 0),
+          green: Map.get(health_counts, "green", 0)
+        },
+        active_findings: length(day_findings),
+        blocked_findings: Enum.count(day_findings, &(&1.status == "blocked")),
+        estimated_cost_cents: sum_invocation_field(day_invocations, :estimated_cost_cents),
+        imports: length(day_imports),
+        verified_imports: Enum.count(day_imports, &(&1.integrity_status == "verified")),
+        non_verified_imports: Enum.count(day_imports, &(&1.integrity_status != "verified"))
+      }
+    end)
+  end
+
+  defp session_health_status(session) do
+    session = ensure_preloaded(session)
+    findings = session.findings || []
+    tasks = session.tasks || []
+    reviews = session.reviews || []
+
+    health(findings, tasks, reviews, budget_status(session)).status
+  end
+
+  defp trend_totals(series) do
+    %{
+      runs: Enum.reduce(series, 0, &(&1.runs + &2)),
+      red_runs: Enum.reduce(series, 0, &(&1.health.red + &2)),
+      yellow_runs: Enum.reduce(series, 0, &(&1.health.yellow + &2)),
+      green_runs: Enum.reduce(series, 0, &(&1.health.green + &2)),
+      active_findings: Enum.reduce(series, 0, &(&1.active_findings + &2)),
+      blocked_findings: Enum.reduce(series, 0, &(&1.blocked_findings + &2)),
+      estimated_cost_cents: Enum.reduce(series, 0, &(&1.estimated_cost_cents + &2)),
+      imports: Enum.reduce(series, 0, &(&1.imports + &2)),
+      verified_imports: Enum.reduce(series, 0, &(&1.verified_imports + &2)),
+      non_verified_imports: Enum.reduce(series, 0, &(&1.non_verified_imports + &2))
+    }
+  end
+
+  defp trend_recommendations(series, totals) do
+    last_day = List.last(series) || %{}
+
+    []
+    |> maybe_reason(totals.runs == 0, "No session runs recorded in this trend window yet.")
+    |> maybe_reason(
+      totals.red_runs > 0,
+      "Red runs appeared in the trend window; inspect blocked findings and gates before widening automation."
+    )
+    |> maybe_reason(
+      totals.blocked_findings > 0,
+      "Blocked findings are still present in the trend window; resolve or disposition them before promotion work."
+    )
+    |> maybe_reason(
+      totals.imports == 0,
+      "No persisted import snapshots in this trend window; persist verified exports to enable cross-run trend baselines."
+    )
+    |> maybe_reason(
+      totals.non_verified_imports > 0,
+      "Some imports are not verified; exclude them from benchmark evidence until resolved."
+    )
+    |> maybe_reason(
+      (last_day[:estimated_cost_cents] || 0) > div(max(totals.estimated_cost_cents, 1), 2),
+      "Recent estimated spend is concentrated in the latest day; review cost efficiency before scaling."
+    )
+    |> case do
+      [] -> ["Local observability trends look stable for this window."]
+      recommendations -> recommendations
+    end
+  end
+
+  defp day_key(nil), do: "unknown"
+  defp day_key(%DateTime{} = datetime), do: datetime |> DateTime.to_date() |> Date.to_iso8601()
+
+  defp day_key(%NaiveDateTime{} = datetime),
+    do: datetime |> NaiveDateTime.to_date() |> Date.to_iso8601()
 
   defp overview_telemetry(workspace_id) do
     import_summary =
@@ -615,6 +1007,135 @@ defmodule ControlKeel.Observability do
       top_group.estimated_cost_cents > div(totals.estimated_cost_cents, 2),
       "Most estimated spend is concentrated in #{by} #{top_group.name}; compare it against cheaper alternatives before scaling similar runs."
     )
+  end
+
+  defp saved_eval_candidate_records(opts, limit) do
+    EvalCandidate
+    |> maybe_filter_eval_workspace(Keyword.get(opts, :workspace_id))
+    |> maybe_filter_eval_status(Keyword.get(opts, :status))
+    |> order_by([c], desc: c.inserted_at, desc: c.id)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  defp saved_eval_candidate_count(opts) do
+    EvalCandidate
+    |> maybe_filter_eval_workspace(Keyword.get(opts, :workspace_id))
+    |> maybe_filter_eval_status(Keyword.get(opts, :status))
+    |> Repo.aggregate(:count, :id)
+  end
+
+  defp maybe_filter_eval_workspace(query, nil), do: query
+
+  defp maybe_filter_eval_workspace(query, workspace_id),
+    do: where(query, [c], c.workspace_id == ^workspace_id)
+
+  defp maybe_filter_eval_status(query, nil), do: query
+  defp maybe_filter_eval_status(query, status), do: where(query, [c], c.status == ^status)
+
+  defp save_eval_candidate(candidate, workspace_id) do
+    source_problem_key = eval_candidate_source_key(candidate)
+
+    case Repo.get_by(EvalCandidate,
+           workspace_id: workspace_id,
+           source_problem_key: source_problem_key
+         ) do
+      %EvalCandidate{} = existing ->
+        {:existing, existing}
+
+      nil ->
+        %EvalCandidate{}
+        |> EvalCandidate.changeset(
+          eval_candidate_attrs(candidate, workspace_id, source_problem_key)
+        )
+        |> Repo.insert()
+        |> case do
+          {:ok, record} ->
+            {:stored, record}
+
+          {:error, changeset} ->
+            raise "failed to save eval candidate: #{inspect(changeset.errors)}"
+        end
+    end
+  end
+
+  defp eval_candidate_attrs(candidate, workspace_id, source_problem_key) do
+    %{
+      title: candidate.title,
+      rule_id: candidate.rule_id,
+      category: candidate.category,
+      severity: candidate.severity,
+      priority: candidate.priority,
+      evidence_kind: candidate.evidence_kind,
+      evidence_summary: candidate.evidence_summary,
+      suggested_action: candidate.suggested_action,
+      benchmark_hint: candidate.benchmark_hint,
+      source_problem_key: source_problem_key,
+      status: "open",
+      human_gate_required: true,
+      workspace_id: workspace_id,
+      session_id: candidate.example_session_id,
+      finding_id: candidate.example_finding_id,
+      metadata: %{
+        "affected_session_count" => candidate.affected_session_count,
+        "finding_count" => candidate.finding_count,
+        "derived_id" => candidate.id,
+        "links" => candidate.links
+      }
+    }
+  end
+
+  defp eval_candidate_source_key(candidate) do
+    [candidate.rule_id, candidate.category, candidate.severity]
+    |> Enum.map(&to_string(&1 || "unknown"))
+    |> Enum.join(":")
+  end
+
+  defp saved_eval_candidate_summary(%EvalCandidate{} = candidate) do
+    %{
+      id: candidate.id,
+      title: candidate.title,
+      rule_id: candidate.rule_id,
+      category: candidate.category,
+      severity: candidate.severity,
+      priority: candidate.priority,
+      evidence_kind: candidate.evidence_kind,
+      evidence_summary: candidate.evidence_summary,
+      suggested_action: candidate.suggested_action,
+      benchmark_hint: candidate.benchmark_hint,
+      source_problem_key: candidate.source_problem_key,
+      status: candidate.status,
+      human_gate_required: candidate.human_gate_required,
+      workspace_id: candidate.workspace_id,
+      session_id: candidate.session_id,
+      finding_id: candidate.finding_id,
+      metadata: candidate.metadata || %{},
+      inserted_at: format_datetime(candidate.inserted_at)
+    }
+  end
+
+  defp saved_eval_candidate_recommendations([]),
+    do: [
+      "No saved eval candidates yet; save advisory candidates before generating benchmark coverage."
+    ]
+
+  defp saved_eval_candidate_recommendations(candidates) do
+    open = Enum.count(candidates, &(&1.status == "open"))
+    high = Enum.count(candidates, &(&1.priority in ["critical", "high"]))
+
+    []
+    |> maybe_reason(
+      open > 0,
+      "Review #{open} open saved eval candidate(s) with a human gate before benchmark generation."
+    )
+    |> maybe_reason(
+      high > 0,
+      "Prioritize #{high} critical/high saved candidate(s) for regression coverage."
+    )
+    |> case do
+      [] -> ["Saved eval candidates are triaged."]
+      recommendations -> recommendations
+    end
   end
 
   defp add_health_actions(actions, overview) do

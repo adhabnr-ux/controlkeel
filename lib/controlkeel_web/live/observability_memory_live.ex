@@ -43,6 +43,7 @@ defmodule ControlKeelWeb.ObservabilityMemoryLive do
             >
               Run
             </.link>
+            <.link navigate={~p"/observability/memory-quality"} class="ck-link">Memory quality</.link>
             <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
           </div>
         </div>

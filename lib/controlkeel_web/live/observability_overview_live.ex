@@ -41,8 +41,11 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
               Recommendations
             </.link>
             <.link navigate={~p"/observability/evals"} class="ck-link">Eval candidates</.link>
+            <.link navigate={~p"/observability/evals/persisted"} class="ck-link">Saved evals</.link>
             <.link navigate={~p"/observability/compare"} class="ck-link">Compare</.link>
             <.link navigate={~p"/observability/imports"} class="ck-link">Imports</.link>
+            <.link navigate={~p"/observability/memory-quality"} class="ck-link">Memory quality</.link>
+            <.link navigate={~p"/observability/trends"} class="ck-link">Trends</.link>
             <.link navigate={~p"/observability/problems"} class="ck-link">Open problems</.link>
           </div>
         </div>
