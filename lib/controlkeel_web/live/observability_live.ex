@@ -49,6 +49,13 @@ defmodule ControlKeelWeb.ObservabilityLive do
             >
               Open problems
             </.link>
+            <.link
+              id="observability-open-timeline"
+              navigate={~p"/observability/sessions/#{@run.session.id}/timeline"}
+              class="ck-link"
+            >
+              Timeline
+            </.link>
           </div>
         </div>
 
@@ -112,6 +119,9 @@ defmodule ControlKeelWeb.ObservabilityLive do
                 <% end %>
               </ul>
             <% end %>
+            <.link navigate={~p"/observability/sessions/#{@run.session.id}/timeline"} class="ck-link">
+              Open full timeline
+            </.link>
           </div>
 
           <div class="ck-side-stack">

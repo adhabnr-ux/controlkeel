@@ -397,6 +397,9 @@ defmodule ControlKeel.Help do
                                       Show local cost and efficiency totals
       controlkeel obs recommend      Show prioritized observability recommendations
       controlkeel obs evals          Show advisory eval candidates from problems
+      controlkeel obs compare [--by source|model|provider|tool]
+                                      Compare local invocation groups
+      controlkeel obs timeline [id]   Show recent session timeline events
       controlkeel obs export <id>     Export a local observability envelope
       controlkeel obs import <file> --dry-run
                                       Validate and preview an observability envelope

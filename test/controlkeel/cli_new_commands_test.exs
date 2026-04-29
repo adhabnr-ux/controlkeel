@@ -6,7 +6,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
 
   alias ControlKeel.CLI
   alias ControlKeel.Mission
-  alias ControlKeel.Mission.Invocation
+  alias ControlKeel.Mission.{Invocation, SessionEvent}
   alias ControlKeel.Repo
   alias ControlKeel.ReviewBridge
   alias ControlKeel.ProjectBinding
@@ -1187,6 +1187,9 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert {:ok, %{command: :obs_costs}} = CLI.parse(["obs", "costs"])
       assert {:ok, %{command: :obs_recommend}} = CLI.parse(["obs", "recommend"])
       assert {:ok, %{command: :obs_evals}} = CLI.parse(["obs", "evals"])
+      assert {:ok, %{command: :obs_compare}} = CLI.parse(["obs", "compare"])
+      assert {:ok, %{command: :obs_timeline}} = CLI.parse(["obs", "timeline"])
+      assert {:ok, %{command: :obs_timeline, args: [123]}} = CLI.parse(["obs", "timeline", "123"])
       assert {:ok, %{command: :obs_run, args: [123]}} = CLI.parse(["obs", "run", "123"])
       assert {:ok, %{command: :obs_export, args: [123]}} = CLI.parse(["obs", "export", "123"])
 
@@ -1442,6 +1445,143 @@ defmodule ControlKeel.CLI.NewCommandsTest do
 
       assert %{"count" => 1, "candidates" => [%{"rule_id" => "review.eval_json"}]} =
                Jason.decode!(output)
+    end
+
+    test "obs compare renders invocation comparison", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      assert {:ok, _invocation} =
+               %Invocation{}
+               |> Invocation.changeset(%{
+                 session_id: session.id,
+                 source: "codex-cli",
+                 tool: "ck_validate",
+                 provider: "openai",
+                 model: "gpt-5.5",
+                 input_tokens: 700,
+                 output_tokens: 200,
+                 estimated_cost_cents: 9,
+                 decision: "allow",
+                 metadata: %{}
+               })
+               |> Repo.insert()
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_compare, options: %{by: "source"}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability comparison by source:"
+      assert output =~ "codex-cli"
+      assert output =~ "cent(s)/call"
+      assert output =~ "Recommendations:"
+    end
+
+    test "obs compare supports json output", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      assert {:ok, _invocation} =
+               %Invocation{}
+               |> Invocation.changeset(%{
+                 session_id: session.id,
+                 source: "opencode",
+                 tool: "ck_budget",
+                 provider: "anthropic",
+                 model: "claude-sonnet",
+                 input_tokens: 300,
+                 output_tokens: 100,
+                 estimated_cost_cents: 4,
+                 decision: "warn",
+                 metadata: %{}
+               })
+               |> Repo.insert()
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_compare, options: %{by: "model", json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "by" => "model",
+               "groups" => [%{"name" => "claude-sonnet", "decisions" => %{"warn" => 1}}]
+             } = Jason.decode!(output)
+    end
+
+    test "obs timeline renders current session events", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      assert {:ok, _event} =
+               %SessionEvent{}
+               |> SessionEvent.changeset(%{
+                 session_id: session.id,
+                 event_type: "context_loaded",
+                 actor: "agent",
+                 summary: "Loaded context",
+                 payload: %{},
+                 metadata: %{}
+               })
+               |> Repo.insert()
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_timeline, options: %{}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability timeline:"
+      assert output =~ "context_loaded"
+      assert output =~ "Loaded context"
+    end
+
+    test "obs timeline supports explicit session id and json output", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      assert {:ok, _event} =
+               %SessionEvent{}
+               |> SessionEvent.changeset(%{
+                 session_id: session.id,
+                 event_type: "review_submitted",
+                 actor: "agent",
+                 summary: "Submitted review",
+                 payload: %{},
+                 metadata: %{}
+               })
+               |> Repo.insert()
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_timeline, options: %{json: true}, args: [session.id]},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "session" => %{"id" => id},
+               "events" => [%{"event_type" => "review_submitted"} | _]
+             } = Jason.decode!(output)
+
+      assert id == session.id
     end
 
     test "obs problems supports json output", %{tmp_dir: tmp_dir} do

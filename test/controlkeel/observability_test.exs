@@ -77,6 +77,32 @@ defmodule ControlKeel.ObservabilityTest do
     assert Enum.any?(run.recommendations, &String.contains?(&1, "blocked or critical"))
   end
 
+  test "timeline/2 summarizes recent session events" do
+    session = session_fixture()
+
+    assert {:ok, _event} =
+             %SessionEvent{}
+             |> SessionEvent.changeset(%{
+               session_id: session.id,
+               event_type: "tool_call",
+               actor: "agent",
+               summary: "Ran timeline validation",
+               body: "Detailed event body",
+               payload: %{},
+               metadata: %{}
+             })
+             |> Repo.insert()
+
+    assert {:ok, timeline} = Observability.timeline(session.id, limit: 10)
+
+    assert timeline.session.id == session.id
+    assert timeline.count >= 1
+    assert timeline.limit == 10
+    assert timeline.by_event_type["tool_call"] == 1
+    assert timeline.by_actor["agent"] == 1
+    assert Enum.any?(timeline.events, &(&1.summary == "Ran timeline validation"))
+  end
+
   test "costs/1 summarizes invocation spend and groups by selected field" do
     session = session_fixture()
     workspace = Repo.preload(session, :workspace).workspace
@@ -127,6 +153,56 @@ defmodule ControlKeel.ObservabilityTest do
     assert costs.totals.output_tokens == 400
     assert Enum.map(costs.groups, & &1.name) == ["openai", "anthropic"]
     assert Enum.any?(costs.recommendations, &String.contains?(&1, "cost per successful task"))
+  end
+
+  test "comparison/1 compares invocation groups by selected field" do
+    session = session_fixture()
+
+    assert {:ok, _invocation} =
+             %Invocation{}
+             |> Invocation.changeset(%{
+               session_id: session.id,
+               source: "codex-cli",
+               tool: "ck_validate",
+               provider: "openai",
+               model: "gpt-5.5",
+               input_tokens: 900,
+               output_tokens: 300,
+               estimated_cost_cents: 12,
+               decision: "allow",
+               metadata: %{}
+             })
+             |> Repo.insert()
+
+    assert {:ok, _invocation} =
+             %Invocation{}
+             |> Invocation.changeset(%{
+               session_id: session.id,
+               source: "opencode",
+               tool: "ck_review_submit",
+               provider: "anthropic",
+               model: "claude-sonnet",
+               input_tokens: 300,
+               output_tokens: 100,
+               estimated_cost_cents: 4,
+               decision: "warn",
+               metadata: %{}
+             })
+             |> Repo.insert()
+
+    comparison = Observability.comparison(workspace_id: session.workspace_id, by: "source")
+
+    assert comparison.by == "source"
+    assert comparison.totals.invocations == 2
+    assert comparison.totals.estimated_cost_cents == 16
+    assert Enum.map(comparison.groups, & &1.name) == ["codex-cli", "opencode"]
+
+    codex = Enum.find(comparison.groups, &(&1.name == "codex-cli"))
+    assert codex.cost_per_call_cents == 12.0
+    assert codex.tokens_per_call == 1200.0
+    assert codex.decisions == %{"allow" => 1}
+
+    assert Enum.any?(comparison.recommendations, &String.contains?(&1, "Compare source"))
   end
 
   test "recommendations/1 prioritizes health, problem, proof, and cost actions" do

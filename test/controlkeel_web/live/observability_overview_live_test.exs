@@ -34,6 +34,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLiveTest do
     assert html =~ "/observability/costs"
     assert html =~ "/observability/recommendations"
     assert html =~ "/observability/evals"
+    assert html =~ "/observability/compare"
     assert html =~ "/observability/sessions/#{session.id}"
     assert html =~ "/observability/sessions/#{session.id}/export.json"
   end

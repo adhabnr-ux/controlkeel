@@ -41,6 +41,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
               Recommendations
             </.link>
             <.link navigate={~p"/observability/evals"} class="ck-link">Eval candidates</.link>
+            <.link navigate={~p"/observability/compare"} class="ck-link">Compare</.link>
             <.link navigate={~p"/observability/problems"} class="ck-link">Open problems</.link>
           </div>
         </div>

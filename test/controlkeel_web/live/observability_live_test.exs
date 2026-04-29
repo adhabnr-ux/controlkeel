@@ -39,8 +39,10 @@ defmodule ControlKeelWeb.ObservabilityLiveTest do
     assert has_element?(view, "#observability-tools")
     assert has_element?(view, "#observability-recommendations")
     assert has_element?(view, "#observability-export-json")
+    assert has_element?(view, "#observability-open-timeline")
     assert has_element?(view, "#observability-telemetry-export")
     assert html =~ "/observability/sessions/#{session.id}/export.json"
+    assert html =~ "/observability/sessions/#{session.id}/timeline"
     assert html =~ "Observable finding"
     assert html =~ "Observation review"
   end

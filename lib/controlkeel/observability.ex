@@ -92,6 +92,20 @@ defmodule ControlKeel.Observability do
     }
   end
 
+  def comparison(opts \\ []) do
+    by = normalize_cost_group(Keyword.get(opts, :by, "model"))
+    invocations = cost_invocations(opts)
+    groups = comparison_groups(invocations, by)
+
+    %{
+      by: by,
+      totals: cost_totals(invocations),
+      groups: groups,
+      available_groupings: @cost_group_fields,
+      recommendations: comparison_recommendations(groups, by)
+    }
+  end
+
   def recommendations(opts \\ []) do
     overview = workspace_overview(opts)
     workspace_id = overview.workspace.id
@@ -129,6 +143,38 @@ defmodule ControlKeel.Observability do
       candidates: candidates,
       recommendations: eval_candidate_recommendations(candidates)
     }
+  end
+
+  def timeline(session_or_id, opts \\ [])
+
+  def timeline(%Session{} = session, opts) do
+    session = ensure_preloaded(session)
+    limit = Keyword.get(opts, :limit, 50)
+    events = Mission.list_session_events(session.id, limit)
+    event_summaries = Enum.map(events, &timeline_event/1)
+
+    %{
+      session: session_summary(session),
+      count: length(event_summaries),
+      limit: limit,
+      by_event_type: frequencies(event_summaries, & &1.event_type),
+      by_actor: frequencies(event_summaries, & &1.actor),
+      events: event_summaries
+    }
+  end
+
+  def timeline(session_id, opts) when is_integer(session_id) do
+    case Mission.get_session_context(session_id) do
+      nil -> {:error, :not_found}
+      %Session{} = session -> {:ok, timeline(session, opts)}
+    end
+  end
+
+  def timeline(session_id, opts) when is_binary(session_id) do
+    case Integer.parse(session_id) do
+      {parsed, ""} -> timeline(parsed, opts)
+      _ -> {:error, :invalid_session_id}
+    end
   end
 
   def session_run(session_or_id, opts \\ [])
@@ -344,6 +390,31 @@ defmodule ControlKeel.Observability do
     |> Enum.sort_by(&{&1.estimated_cost_cents, &1.invocations}, :desc)
   end
 
+  defp comparison_groups(invocations, by) do
+    invocations
+    |> Enum.group_by(&cost_group_value(&1, by))
+    |> Enum.map(fn {name, group} ->
+      total_cost = sum_invocation_field(group, :estimated_cost_cents)
+      total_tokens = total_tokens(group)
+      invocation_count = length(group)
+
+      %{
+        name: name,
+        invocations: invocation_count,
+        sessions: group |> Enum.map(& &1.session_id) |> Enum.uniq() |> length(),
+        estimated_cost_cents: total_cost,
+        input_tokens: sum_invocation_field(group, :input_tokens),
+        cached_input_tokens: sum_invocation_field(group, :cached_input_tokens),
+        output_tokens: sum_invocation_field(group, :output_tokens),
+        total_tokens: total_tokens,
+        cost_per_call_cents: ratio(total_cost, invocation_count),
+        tokens_per_call: ratio(total_tokens, invocation_count),
+        decisions: frequencies(group, &(&1.decision || "unknown"))
+      }
+    end)
+    |> Enum.sort_by(&{&1.estimated_cost_cents, &1.invocations}, :desc)
+  end
+
   defp cost_group_value(invocation, "model"), do: invocation.model || "unknown"
   defp cost_group_value(invocation, "tool"), do: invocation.tool || "unknown"
   defp cost_group_value(invocation, "source"), do: invocation.source || "unknown"
@@ -352,6 +423,15 @@ defmodule ControlKeel.Observability do
   defp sum_invocation_field(invocations, field) do
     Enum.reduce(invocations, 0, &((Map.get(&1, field) || 0) + &2))
   end
+
+  defp total_tokens(invocations) do
+    sum_invocation_field(invocations, :input_tokens) +
+      sum_invocation_field(invocations, :cached_input_tokens) +
+      sum_invocation_field(invocations, :output_tokens)
+  end
+
+  defp ratio(_numerator, 0), do: 0.0
+  defp ratio(numerator, denominator), do: Float.round(numerator / denominator, 2)
 
   defp cost_recommendations(%{invocations: 0}, _groups, _by),
     do: ["No invocation cost data has been recorded yet."]
@@ -373,6 +453,24 @@ defmodule ControlKeel.Observability do
       [] -> ["Invocation cost distribution looks balanced."]
       recommendations -> recommendations
     end
+  end
+
+  defp comparison_recommendations([], _by),
+    do: ["No invocation data is available for comparison yet."]
+
+  defp comparison_recommendations(groups, by) do
+    top_cost = List.first(groups)
+    lowest_cost = Enum.min_by(groups, & &1.cost_per_call_cents, fn -> nil end)
+
+    []
+    |> maybe_reason(
+      length(groups) > 1 and top_cost != nil,
+      "Compare #{by} #{top_cost.name} against lower-cost groups before scaling similar work."
+    )
+    |> maybe_reason(
+      lowest_cost != nil,
+      "Lowest observed cost per call is #{lowest_cost.cost_per_call_cents} cent(s) for #{by} #{lowest_cost.name}."
+    )
   end
 
   defp maybe_top_cost_reason(recommendations, nil, _totals, _by), do: recommendations
@@ -546,6 +644,18 @@ defmodule ControlKeel.Observability do
       "Review #{length(candidates)} candidate(s) and approve benchmark coverage before promotion.",
       "Start with critical and high priority candidates linked to blocked or recurring findings."
     ]
+  end
+
+  defp timeline_event(event) do
+    %{
+      id: event_value(event, :id),
+      event_type: event_value(event, :event_type) || "event",
+      actor: event_value(event, :actor) || "unknown",
+      summary: event_value(event, :summary) || "No summary",
+      body: event_value(event, :body),
+      task_id: event_value(event, :task_id),
+      inserted_at: format_datetime(event_value(event, :inserted_at))
+    }
   end
 
   defp problem_key(finding),

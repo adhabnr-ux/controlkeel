@@ -136,7 +136,7 @@ defmodule ControlKeel.CLI do
   @benchmark_export_switches [format: :string]
   @policy_train_switches [type: :string]
   @watch_switches [interval: :integer, status: :boolean]
-  @obs_switches [by: :string, format: :string, json: :boolean]
+  @obs_switches [by: :string, format: :string, json: :boolean, limit: :integer]
   @obs_import_switches [dry_run: :boolean, format: :string, json: :boolean]
   @audit_log_switches [format: :string]
   @service_account_create_switches [workspace_id: :integer, name: :string, scopes: :string]
@@ -396,6 +396,12 @@ defmodule ControlKeel.CLI do
 
       ["obs", "evals" | rest] ->
         parse_with_switches(:obs_evals, rest, @obs_switches)
+
+      ["obs", "compare" | rest] ->
+        parse_with_switches(:obs_compare, rest, @obs_switches)
+
+      ["obs", "timeline" | rest] ->
+        parse_obs_timeline(rest)
 
       ["obs", "export", session_id | rest] ->
         parse_obs_session_command(:obs_export, session_id, rest)
@@ -2120,6 +2126,34 @@ defmodule ControlKeel.CLI do
         "json" -> {:ok, [Jason.encode!(candidates)]}
         _ -> {:ok, observability_eval_candidate_lines(candidates)}
       end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_compare, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      comparison = Observability.comparison(workspace_id: session.workspace_id, by: options[:by])
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(comparison)]}
+        _ -> {:ok, observability_comparison_lines(comparison)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_timeline, args: args, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      session_id = List.first(args) || session.id
+      limit = options[:limit] || 50
+
+      render_observability_timeline(session_id, limit, format)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -4177,6 +4211,20 @@ defmodule ControlKeel.CLI do
     end
   end
 
+  defp parse_obs_timeline([]), do: parse_with_switches(:obs_timeline, [], @obs_switches)
+
+  defp parse_obs_timeline([maybe_session_id | rest]) do
+    case Integer.parse(maybe_session_id) do
+      {session_id, ""} ->
+        with {:ok, parsed} <- parse_with_switches(:obs_timeline, rest, @obs_switches) do
+          {:ok, %{parsed | args: [session_id]}}
+        end
+
+      _ ->
+        parse_with_switches(:obs_timeline, [maybe_session_id | rest], @obs_switches)
+    end
+  end
+
   defp parse_with_switches(command, argv, switches) do
     {options, remainder, invalid} = OptionParser.parse(argv, strict: switches)
 
@@ -4990,6 +5038,56 @@ defmodule ControlKeel.CLI do
           "  Human gate required: #{candidate.human_gate_required}"
         ]
       end)
+  end
+
+  defp observability_comparison_lines(comparison) do
+    [
+      "Observability comparison by #{comparison.by}: #{comparison.totals.invocations} invocation(s)",
+      "Estimated spend: #{format_money(comparison.totals.estimated_cost_cents)}",
+      "Groups:"
+    ] ++
+      Enum.map(comparison.groups, fn group ->
+        "- #{group.name}: #{group.invocations} call(s), #{format_money(group.estimated_cost_cents)}, #{group.cost_per_call_cents} cent(s)/call, #{group.tokens_per_call} token(s)/call, decisions #{inspect(group.decisions)}"
+      end) ++
+      ["Recommendations:"] ++ Enum.map(comparison.recommendations, &"- #{&1}")
+  end
+
+  defp render_observability_timeline(session_id, limit, format) do
+    case Observability.timeline(session_id, limit: limit) do
+      {:ok, timeline} ->
+        case format do
+          "json" -> {:ok, [Jason.encode!(timeline)]}
+          _ -> {:ok, observability_timeline_lines(timeline)}
+        end
+
+      {:error, :not_found} ->
+        {:error, "Session not found: #{session_id}"}
+
+      {:error, :invalid_session_id} ->
+        {:error, "Invalid session id: #{session_id}"}
+    end
+  end
+
+  defp observability_timeline_lines(timeline) do
+    [
+      "Observability timeline: #{timeline.session.title} (##{timeline.session.id})",
+      "Events: #{timeline.count} recent / limit #{timeline.limit}",
+      "Event types: #{format_frequency(timeline.by_event_type)}",
+      "Actors: #{format_frequency(timeline.by_actor)}",
+      "Timeline:"
+    ] ++
+      Enum.map(timeline.events, fn event ->
+        "- #{event.inserted_at || "unknown time"} #{event.event_type} by #{event.actor}: #{event.summary}"
+      end)
+  end
+
+  defp format_frequency(map) when map == %{}, do: "none"
+
+  defp format_frequency(map) when is_map(map) do
+    map
+    |> Enum.sort_by(fn {_key, count} -> count end, :desc)
+    |> Enum.map(fn {key, count} -> "#{key}: #{count}" end)
+    |> Enum.join(", ")
   end
 
   defp render_observability(session_id, format) do
