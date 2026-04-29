@@ -51,6 +51,9 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
             </span>
             <.link navigate={~p"/observability/evals/persisted"} class="ck-link">Saved evals</.link>
             <.link navigate={~p"/observability/regressions"} class="ck-link">Regressions</.link>
+            <.link navigate={~p"/observability/benchmarks/scenarios"} class="ck-link">
+              Scenarios
+            </.link>
             <.link navigate={~p"/benchmarks"} class="ck-link">Benchmarks</.link>
             <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
           </div>
@@ -93,6 +96,7 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
                   <p>{draft.scenario_prompt}</p>
                   <p class="ck-note">Expected: {draft.expected_behavior}</p>
                   <p class="ck-note">Human gate required: {draft.human_gate_required}</p>
+                  <p class="ck-note">Scenario: {materialized_scenario(draft)}</p>
                   <div class="ck-button-row">
                     <button
                       id={"observability-benchmark-draft-approve-#{draft.id}"}
@@ -121,6 +125,13 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
       </section>
     </Layouts.app>
     """
+  end
+
+  defp materialized_scenario(draft) do
+    case get_in(draft.metadata || %{}, ["materialized_scenario_id"]) do
+      id when is_integer(id) -> "##{id}"
+      _ -> "not materialized"
+    end
   end
 
   defp format_frequency(map) when map == %{}, do: "none"

@@ -34,6 +34,8 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLiveTest do
     assert has_element?(view, "#observability-benchmark-drafts-list")
     assert html =~ "Benchmark draft for security.benchmark_page"
     assert html =~ "Human gate required: true"
+    assert html =~ "not materialized"
+    assert html =~ "/observability/benchmarks/scenarios"
   end
 
   test "benchmark drafts page can approve and reject drafts", %{conn: conn} do

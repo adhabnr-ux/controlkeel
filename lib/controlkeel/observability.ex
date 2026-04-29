@@ -3,6 +3,8 @@ defmodule ControlKeel.Observability do
 
   import Ecto.Query, warn: false
 
+  alias ControlKeel.Benchmark
+  alias ControlKeel.Benchmark.{Scenario, Suite}
   alias ControlKeel.Benchmark.Run, as: BenchmarkRun
   alias ControlKeel.Budget
   alias ControlKeel.Memory.Record, as: MemoryRecord
@@ -211,6 +213,115 @@ defmodule ControlKeel.Observability do
       human_gate_required: true,
       mutation: "draft_record_only"
     }
+  end
+
+  def materialize_benchmark_drafts(opts \\ []) do
+    workspace_id = Keyword.get(opts, :workspace_id)
+
+    drafts =
+      BenchmarkDraft
+      |> maybe_filter_draft_workspace(workspace_id)
+      |> maybe_filter_draft_status("approved")
+      |> order_by([d], asc: d.id)
+      |> Repo.all()
+
+    results = Enum.map(drafts, &materialize_benchmark_draft/1)
+
+    %{
+      source_count: length(drafts),
+      materialized: Enum.count(results, &match?({:materialized, _}, &1)),
+      existing: Enum.count(results, &match?({:existing, _}, &1)),
+      scenarios:
+        Enum.map(results, fn {_status, scenario} -> observability_scenario_summary(scenario) end),
+      benchmark_execution: false,
+      human_gate_required: true,
+      mutation: "local_benchmark_scenario_only"
+    }
+  end
+
+  def observability_benchmark_scenarios(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50)
+    scenarios = observability_scenario_records(opts, limit)
+
+    %{
+      count: observability_scenario_count(opts),
+      limit: limit,
+      scenarios: Enum.map(scenarios, &observability_scenario_summary/1),
+      by_suite: frequencies(scenarios, &observability_scenario_suite_slug/1),
+      recommendations: observability_scenario_recommendations(scenarios)
+    }
+  end
+
+  def observability_benchmark_run_preview(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50)
+    suite_slug = Keyword.get(opts, :suite)
+    scenario_slugs = normalize_observability_scenario_slugs(Keyword.get(opts, :scenario_slugs))
+    subjects = Keyword.get(opts, :subjects)
+
+    scenarios =
+      opts
+      |> Keyword.put(:limit, limit)
+      |> observability_scenario_records(limit)
+      |> maybe_filter_observability_scenarios_by_suite(suite_slug)
+      |> maybe_filter_observability_scenarios_by_slugs(scenario_slugs)
+
+    suites =
+      scenarios
+      |> Enum.map(&observability_scenario_suite_slug/1)
+      |> Enum.uniq()
+      |> Enum.sort()
+
+    selected_suite = suite_slug || single_suite(suites)
+
+    selected_scenarios =
+      if selected_suite do
+        Enum.filter(scenarios, &(observability_scenario_suite_slug(&1) == selected_suite))
+      else
+        scenarios
+      end
+
+    %{
+      suite: selected_suite,
+      suites: suites,
+      scenario_slugs: Enum.map(selected_scenarios, & &1.slug),
+      scenarios: Enum.map(selected_scenarios, &observability_scenario_summary/1),
+      subjects: subjects,
+      executable:
+        selected_suite != nil and subjects_present?(subjects) and selected_scenarios != [],
+      dry_run: true,
+      benchmark_execution: false,
+      command: observability_benchmark_run_command(selected_suite, selected_scenarios, subjects),
+      recommendations:
+        observability_run_recommendations(selected_suite, suites, selected_scenarios, subjects)
+    }
+  end
+
+  def run_observability_benchmark(opts \\ [], project_root \\ File.cwd!()) do
+    preview = observability_benchmark_run_preview(opts)
+
+    cond do
+      Keyword.get(opts, :dry_run, true) ->
+        {:ok, preview}
+
+      not Keyword.get(opts, :execute, false) ->
+        {:error, :execute_required, preview}
+
+      not preview.executable ->
+        {:error, :not_executable, preview}
+
+      true ->
+        attrs = %{
+          "suite" => preview.suite,
+          "subjects" => preview.subjects,
+          "baseline_subject" => Keyword.get(opts, :baseline_subject) || preview.subjects,
+          "scenario_slugs" => Enum.join(preview.scenario_slugs, ",")
+        }
+
+        case Benchmark.run_suite(attrs, project_root) do
+          {:ok, run} -> {:ok, observability_benchmark_run_result(run, preview)}
+          {:error, reason} -> {:error, reason, preview}
+        end
+    end
   end
 
   def update_benchmark_draft_status(id, status, opts \\ [])
@@ -1257,6 +1368,272 @@ defmodule ControlKeel.Observability do
             raise "failed to save benchmark draft: #{inspect(changeset.errors)}"
         end
     end
+  end
+
+  defp materialize_benchmark_draft(%BenchmarkDraft{} = draft) do
+    case get_in(draft.metadata || %{}, ["materialized_scenario_id"]) do
+      scenario_id when is_integer(scenario_id) ->
+        case Repo.get(Scenario, scenario_id) |> Repo.preload(:suite) do
+          %Scenario{} = scenario -> {:existing, scenario}
+          nil -> create_observability_scenario(draft)
+        end
+
+      _other ->
+        create_observability_scenario(draft)
+    end
+  end
+
+  defp create_observability_scenario(%BenchmarkDraft{} = draft) do
+    suite = ensure_observability_suite(draft)
+    slug = "observability-draft-#{draft.id}"
+
+    case Repo.get_by(Scenario, suite_id: suite.id, slug: slug) |> Repo.preload(:suite) do
+      %Scenario{} = existing ->
+        update_draft_materialized_metadata(draft, existing)
+        {:existing, existing}
+
+      nil ->
+        position =
+          Repo.aggregate(from(s in Scenario, where: s.suite_id == ^suite.id), :count, :id)
+
+        %Scenario{}
+        |> Scenario.changeset(%{
+          suite_id: suite.id,
+          slug: slug,
+          name: draft.title,
+          category: draft.benchmark_hint || draft.suite_slug,
+          incident_label: draft.title,
+          path: "observability/benchmark_drafts/#{draft.id}",
+          kind: "text",
+          content: draft.scenario_prompt,
+          expected_rules: expected_rules_for_draft(draft),
+          expected_decision: "warn",
+          position: position,
+          split: "local",
+          metadata: %{
+            "source" => "observability_benchmark_draft",
+            "benchmark_draft_id" => draft.id,
+            "eval_candidate_id" => draft.eval_candidate_id,
+            "expected_behavior" => draft.expected_behavior,
+            "evidence_summary" => draft.evidence_summary,
+            "human_gate_required" => draft.human_gate_required
+          }
+        })
+        |> Repo.insert!()
+        |> Repo.preload(:suite)
+        |> then(fn scenario ->
+          update_draft_materialized_metadata(draft, scenario)
+          {:materialized, scenario}
+        end)
+    end
+  end
+
+  defp ensure_observability_suite(%BenchmarkDraft{} = draft) do
+    slug = "observability-#{draft.suite_slug}"
+
+    case Repo.get_by(Suite, slug: slug) do
+      %Suite{} = suite ->
+        suite
+
+      nil ->
+        %Suite{}
+        |> Suite.changeset(%{
+          slug: slug,
+          name: "Observability #{draft.suite_slug}",
+          description:
+            "Local generated suite from approved ControlKeel observability benchmark drafts.",
+          version: 1,
+          status: "active",
+          metadata: %{
+            "source" => "observability_benchmark_drafts",
+            "human_gate_required" => true,
+            "benchmark_execution" => false
+          }
+        })
+        |> Repo.insert!()
+    end
+  end
+
+  defp expected_rules_for_draft(%BenchmarkDraft{} = draft) do
+    draft.metadata
+    |> Kernel.||(%{})
+    |> Map.get("candidate_rule_id")
+    |> case do
+      rule_id when is_binary(rule_id) and rule_id != "" -> [rule_id]
+      _ -> []
+    end
+  end
+
+  defp update_draft_materialized_metadata(%BenchmarkDraft{} = draft, %Scenario{} = scenario) do
+    metadata =
+      draft.metadata
+      |> Kernel.||(%{})
+      |> Map.put("materialized_scenario_id", scenario.id)
+      |> Map.put("materialized_suite_id", scenario.suite_id)
+      |> Map.put(
+        "materialized_at",
+        DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
+      )
+
+    draft
+    |> BenchmarkDraft.changeset(%{metadata: metadata})
+    |> Repo.update!()
+  end
+
+  defp observability_scenario_records(opts, limit) do
+    Scenario
+    |> join(:inner, [s], suite in assoc(s, :suite))
+    |> where(
+      [s, _suite],
+      fragment("json_extract(?, ?) = ?", s.metadata, "$.source", "observability_benchmark_draft")
+    )
+    |> maybe_filter_observability_scenario_workspace(Keyword.get(opts, :workspace_id))
+    |> preload([_s, suite], suite: suite)
+    |> order_by([s, _suite], desc: s.inserted_at, desc: s.id)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  defp observability_scenario_count(opts) do
+    Scenario
+    |> join(:inner, [s], suite in assoc(s, :suite))
+    |> where(
+      [s, _suite],
+      fragment("json_extract(?, ?) = ?", s.metadata, "$.source", "observability_benchmark_draft")
+    )
+    |> maybe_filter_observability_scenario_workspace(Keyword.get(opts, :workspace_id))
+    |> Repo.aggregate(:count, :id)
+  end
+
+  defp maybe_filter_observability_scenario_workspace(query, nil), do: query
+
+  defp maybe_filter_observability_scenario_workspace(query, workspace_id) do
+    draft_ids =
+      BenchmarkDraft
+      |> where([d], d.workspace_id == ^workspace_id)
+      |> select([d], d.id)
+      |> Repo.all()
+
+    where(
+      query,
+      [s, _suite],
+      fragment("json_extract(?, ?)", s.metadata, "$.benchmark_draft_id") in ^draft_ids
+    )
+  end
+
+  defp observability_scenario_summary(%Scenario{} = scenario) do
+    %{
+      id: scenario.id,
+      slug: scenario.slug,
+      name: scenario.name,
+      suite_id: scenario.suite_id,
+      suite_slug: observability_scenario_suite_slug(scenario),
+      category: scenario.category,
+      expected_rules: scenario.expected_rules || [],
+      expected_decision: scenario.expected_decision,
+      split: scenario.split,
+      metadata: scenario.metadata || %{},
+      inserted_at: format_datetime(scenario.inserted_at)
+    }
+  end
+
+  defp observability_scenario_suite_slug(%Scenario{suite: %Suite{slug: slug}}), do: slug
+  defp observability_scenario_suite_slug(_scenario), do: "unknown"
+
+  defp observability_scenario_recommendations([]),
+    do: [
+      "No materialized observability benchmark scenarios yet; approve drafts and materialize them before execution."
+    ]
+
+  defp observability_scenario_recommendations(scenarios) do
+    [
+      "Review #{length(scenarios)} materialized scenario(s) before running benchmark suites.",
+      "Benchmark execution remains separate and should stay human-gated."
+    ]
+  end
+
+  defp normalize_observability_scenario_slugs(nil), do: []
+
+  defp normalize_observability_scenario_slugs(value) when is_binary(value) do
+    value
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp normalize_observability_scenario_slugs(value) when is_list(value), do: value
+  defp normalize_observability_scenario_slugs(_value), do: []
+
+  defp maybe_filter_observability_scenarios_by_suite(scenarios, nil), do: scenarios
+
+  defp maybe_filter_observability_scenarios_by_suite(scenarios, suite_slug),
+    do: Enum.filter(scenarios, &(observability_scenario_suite_slug(&1) == suite_slug))
+
+  defp maybe_filter_observability_scenarios_by_slugs(scenarios, []), do: scenarios
+
+  defp maybe_filter_observability_scenarios_by_slugs(scenarios, slugs),
+    do: Enum.filter(scenarios, &(&1.slug in slugs))
+
+  defp single_suite([suite]), do: suite
+  defp single_suite(_suites), do: nil
+
+  defp subjects_present?(subjects) when is_binary(subjects), do: String.trim(subjects) != ""
+  defp subjects_present?(_subjects), do: false
+
+  defp observability_benchmark_run_command(nil, _scenarios, _subjects), do: nil
+
+  defp observability_benchmark_run_command(suite, scenarios, subjects) do
+    scenario_part =
+      case Enum.map(scenarios, & &1.slug) do
+        [] -> ""
+        slugs -> " --scenario-slugs #{Enum.join(slugs, ",")}"
+      end
+
+    subject_part =
+      if subjects_present?(subjects),
+        do: " --subjects #{subjects}",
+        else: " --subjects <subject_ids>"
+
+    "controlkeel obs benchmarks run --suite #{suite}#{subject_part}#{scenario_part} --execute"
+  end
+
+  defp observability_run_recommendations(nil, [], _scenarios, _subjects),
+    do: ["No materialized observability benchmark scenarios are available to run."]
+
+  defp observability_run_recommendations(nil, suites, _scenarios, _subjects),
+    do: ["Choose one observability suite before execution: #{Enum.join(suites, ", ")}."]
+
+  defp observability_run_recommendations(_suite, _suites, [], _subjects),
+    do: ["No scenarios match the selected observability benchmark filters."]
+
+  defp observability_run_recommendations(_suite, _suites, _scenarios, subjects)
+       when not is_binary(subjects) or subjects == "",
+       do: [
+         "Add --subjects before execution; use --dry-run to inspect generated scenarios first."
+       ]
+
+  defp observability_run_recommendations(_suite, _suites, scenarios, _subjects),
+    do: [
+      "Dry-run reviewed #{length(scenarios)} generated observability scenario(s).",
+      "Execution is CLI-only and still requires explicit operator intent."
+    ]
+
+  defp observability_benchmark_run_result(run, preview) do
+    detail = Benchmark.run_detail_metrics(run)
+
+    %{
+      run_id: run.id,
+      suite: run.suite.slug,
+      subjects: run.subjects || [],
+      status: run.status,
+      total_scenarios: run.total_scenarios,
+      catch_rate: run.catch_rate,
+      block_rate: detail.block_rate,
+      expected_rule_hit_rate: detail.expected_rule_hit_rate,
+      benchmark_execution: true,
+      mutation: "benchmark_run_record",
+      preview: preview
+    }
   end
 
   defp update_benchmark_draft_record(%BenchmarkDraft{} = draft, status, opts) do

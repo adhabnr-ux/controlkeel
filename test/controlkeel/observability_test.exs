@@ -5,6 +5,7 @@ defmodule ControlKeel.ObservabilityTest do
   import ControlKeel.MissionFixtures
   import Ecto.Query
 
+  alias ControlKeel.Benchmark.{Run, Scenario}
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Finding, Invocation, Session, SessionEvent}
@@ -559,6 +560,105 @@ defmodule ControlKeel.ObservabilityTest do
 
     assert Repo.aggregate(Session, :count, :id) == session_count
     assert Repo.aggregate(Finding, :count, :id) == finding_count
+  end
+
+  test "observability benchmark run preview is non-mutating and execution is explicit" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Run preview finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.run_preview"
+    })
+
+    assert %{stored: 1} = Observability.save_eval_candidates(workspace_id: session.workspace_id)
+
+    assert %{stored: 1, drafts: [%{id: draft_id}]} =
+             Observability.generate_benchmark_drafts(workspace_id: session.workspace_id)
+
+    assert {:ok, _result} =
+             Observability.update_benchmark_draft_status(draft_id, "approved",
+               reviewed_by: "test"
+             )
+
+    assert %{materialized: 1} =
+             Observability.materialize_benchmark_drafts(workspace_id: session.workspace_id)
+
+    run_count = Repo.aggregate(Run, :count, :id)
+
+    preview =
+      Observability.observability_benchmark_run_preview(
+        workspace_id: session.workspace_id,
+        subjects: "controlkeel_validate"
+      )
+
+    assert preview.benchmark_execution == false
+    assert preview.executable == true
+    assert preview.command =~ "controlkeel obs benchmarks run"
+    assert preview.command =~ "--execute"
+    assert Repo.aggregate(Run, :count, :id) == run_count
+
+    assert {:error, :execute_required, _preview} =
+             Observability.run_observability_benchmark(
+               [
+                 workspace_id: session.workspace_id,
+                 subjects: "controlkeel_validate",
+                 dry_run: false
+               ],
+               File.cwd!()
+             )
+
+    assert Repo.aggregate(Run, :count, :id) == run_count
+  end
+
+  test "materialize_benchmark_drafts/1 creates local scenarios from approved drafts" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Materialize finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.materialize"
+    })
+
+    assert %{stored: 1} = Observability.save_eval_candidates(workspace_id: session.workspace_id)
+
+    assert %{stored: 1, drafts: [%{id: draft_id}]} =
+             Observability.generate_benchmark_drafts(workspace_id: session.workspace_id)
+
+    assert {:ok, _result} =
+             Observability.update_benchmark_draft_status(draft_id, "approved",
+               reviewed_by: "test"
+             )
+
+    first = Observability.materialize_benchmark_drafts(workspace_id: session.workspace_id)
+    second = Observability.materialize_benchmark_drafts(workspace_id: session.workspace_id)
+
+    assert first.source_count == 1
+    assert first.materialized == 1
+    assert first.existing == 0
+    assert second.materialized == 0
+    assert second.existing == 1
+    assert first.benchmark_execution == false
+    assert first.mutation == "local_benchmark_scenario_only"
+    assert Repo.aggregate(Scenario, :count, :id) >= 1
+
+    scenarios =
+      Observability.observability_benchmark_scenarios(workspace_id: session.workspace_id)
+
+    assert scenarios.count == 1
+    assert [%{expected_rules: ["security.materialize"]} = scenario] = scenarios.scenarios
+    assert scenario.name =~ "security.materialize"
+    assert scenario.suite_slug =~ "observability-"
+
+    drafts = Observability.benchmark_drafts(workspace_id: session.workspace_id)
+    assert [%{metadata: %{"materialized_scenario_id" => scenario_id}}] = drafts.drafts
+    assert scenario_id == scenario.id
   end
 
   test "generate_benchmark_drafts/1 creates human-gated drafts idempotently" do

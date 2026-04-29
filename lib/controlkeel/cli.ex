@@ -142,7 +142,13 @@ defmodule ControlKeel.CLI do
     format: :string,
     json: :boolean,
     limit: :integer,
-    stale_days: :integer
+    stale_days: :integer,
+    suite: :string,
+    subjects: :string,
+    baseline_subject: :string,
+    scenario_slugs: :string,
+    dry_run: :boolean,
+    execute: :boolean
   ]
   @obs_import_switches [dry_run: :boolean, persist: :boolean, format: :string, json: :boolean]
   @audit_log_switches [format: :string]
@@ -433,6 +439,15 @@ defmodule ControlKeel.CLI do
 
       ["obs", "benchmarks", "drafts" | rest] ->
         parse_with_switches(:obs_benchmark_drafts, rest, @obs_switches)
+
+      ["obs", "benchmarks", "materialize" | rest] ->
+        parse_with_switches(:obs_benchmark_materialize, rest, @obs_switches)
+
+      ["obs", "benchmarks", "scenarios" | rest] ->
+        parse_with_switches(:obs_benchmark_scenarios, rest, @obs_switches)
+
+      ["obs", "benchmarks", "run" | rest] ->
+        parse_with_switches(:obs_benchmark_run, rest, @obs_switches)
 
       ["obs", "compare" | rest] ->
         parse_with_switches(:obs_compare, rest, @obs_switches)
@@ -2278,6 +2293,66 @@ defmodule ControlKeel.CLI do
       case format do
         "json" -> {:ok, [Jason.encode!(drafts)]}
         _ -> {:ok, observability_benchmark_draft_lines(drafts)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_benchmark_materialize, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      result = Observability.materialize_benchmark_drafts(workspace_id: session.workspace_id)
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(result)]}
+        _ -> {:ok, observability_benchmark_materialize_lines(result)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_benchmark_scenarios, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      scenarios =
+        Observability.observability_benchmark_scenarios(workspace_id: session.workspace_id)
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(scenarios)]}
+        _ -> {:ok, observability_benchmark_scenario_lines(scenarios)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_benchmark_run, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      run_opts = observability_benchmark_run_options(options, session.workspace_id)
+
+      case Observability.run_observability_benchmark(run_opts, project_root) do
+        {:ok, result} ->
+          case format do
+            "json" -> {:ok, [Jason.encode!(result)]}
+            _ -> {:ok, observability_benchmark_run_lines(result)}
+          end
+
+        {:error, :execute_required, preview} ->
+          {:error,
+           "Refusing to run without --execute. Preview command: #{preview.command || "materialize scenarios first"}"}
+
+        {:error, :not_executable, preview} ->
+          {:error,
+           "Observability benchmark is not executable yet: #{Enum.join(preview.recommendations, " ")}"}
+
+        {:error, reason, _preview} ->
+          {:error, "Failed to run observability benchmark: #{inspect(reason)}"}
       end
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
@@ -5439,6 +5514,79 @@ defmodule ControlKeel.CLI do
   defp benchmark_status_for_command(:obs_benchmark_approve), do: "approved"
   defp benchmark_status_for_command(:obs_benchmark_reject), do: "rejected"
   defp benchmark_status_for_command(:obs_benchmark_archive), do: "archived"
+
+  defp observability_benchmark_dry_run?(options) do
+    if Map.has_key?(options, :dry_run),
+      do: options[:dry_run] == true,
+      else: options[:execute] != true
+  end
+
+  defp observability_benchmark_run_options(options, workspace_id) do
+    [
+      workspace_id: workspace_id,
+      suite: options[:suite],
+      subjects: options[:subjects],
+      baseline_subject: options[:baseline_subject],
+      scenario_slugs: options[:scenario_slugs],
+      dry_run: observability_benchmark_dry_run?(options),
+      execute: options[:execute] == true
+    ]
+  end
+
+  defp observability_benchmark_run_lines(%{benchmark_execution: true} = result) do
+    [
+      "Observability benchmark run ##{result.run_id} completed.",
+      "Suite: #{result.suite}",
+      "Subjects: #{Enum.join(result.subjects, ", ")}",
+      "Status: #{result.status}",
+      "Total scenarios: #{result.total_scenarios}",
+      "Catch rate: #{result.catch_rate}%",
+      "Block rate: #{result.block_rate}%",
+      "Expected rule hit rate: #{result.expected_rule_hit_rate}%",
+      "Mutation: #{result.mutation}"
+    ]
+  end
+
+  defp observability_benchmark_run_lines(preview) do
+    [
+      "Observability benchmark run preview:",
+      "Suite: #{preview.suite || "choose one"}",
+      "Available suites: #{Enum.join(preview.suites, ", ")}",
+      "Subjects: #{preview.subjects || "<required>"}",
+      "Scenarios: #{Enum.join(preview.scenario_slugs, ", ")}",
+      "Executable: #{preview.executable}",
+      "Benchmark execution: #{preview.benchmark_execution}",
+      "Command: #{preview.command || "materialize scenarios first"}",
+      "Recommendations:"
+    ] ++ Enum.map(preview.recommendations, &"- #{&1}")
+  end
+
+  defp observability_benchmark_materialize_lines(result) do
+    [
+      "Observability benchmark scenarios materialized:",
+      "Source drafts: #{result.source_count}",
+      "Materialized: #{result.materialized}",
+      "Existing: #{result.existing}",
+      "Benchmark execution: #{result.benchmark_execution}",
+      "Mutation: #{result.mutation}"
+    ] ++
+      Enum.map(result.scenarios, fn scenario ->
+        "- ##{scenario.id} #{scenario.name} (#{scenario.suite_slug}/#{scenario.slug})"
+      end)
+  end
+
+  defp observability_benchmark_scenario_lines(scenarios) do
+    [
+      "Observability benchmark scenarios: #{scenarios.count}",
+      "Suites: #{format_frequency(scenarios.by_suite)}",
+      "Recommendations:"
+    ] ++
+      Enum.map(scenarios.recommendations, &"- #{&1}") ++
+      ["Scenarios:"] ++
+      Enum.map(scenarios.scenarios, fn scenario ->
+        "- ##{scenario.id} #{scenario.name}: #{Enum.join(scenario.expected_rules, ", ")}"
+      end)
+  end
 
   defp observability_benchmark_status_lines(result) do
     draft = result.draft

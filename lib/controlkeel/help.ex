@@ -407,6 +407,14 @@ defmodule ControlKeel.Help do
                                       Generate local benchmark drafts from saved evals
       controlkeel obs benchmarks drafts
                                       List local benchmark drafts
+      controlkeel obs benchmarks materialize
+                                      Create local scenarios from approved drafts
+      controlkeel obs benchmarks scenarios
+                                      List generated observability scenarios
+      controlkeel obs benchmarks run --dry-run [--suite slug] [--subjects ids]
+                                      Preview generated observability benchmark execution
+      controlkeel obs benchmarks run --execute --suite slug --subjects ids
+                                      Run generated observability benchmarks via local runner
       controlkeel obs benchmarks approve|reject|archive <id>
                                       Review a local benchmark draft without running it
       controlkeel obs compare [--by source|model|provider|tool]

@@ -5,6 +5,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
   import ControlKeel.MissionFixtures
   import ExUnit.CaptureIO
 
+  alias ControlKeel.Benchmark.Run
   alias ControlKeel.CLI
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Invocation, SessionEvent}
@@ -1553,6 +1554,227 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert %{"count" => count, "actions" => actions} = Jason.decode!(output)
       assert count >= 1
       assert Enum.any?(actions, &(&1["title"] == "Regression eval for review.recommend"))
+    end
+
+    test "obs benchmarks run dry-run previews without creating runs", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "CLI dry run finding",
+        severity: "critical",
+        status: "blocked",
+        category: "security",
+        rule_id: "security.cli_dry_run"
+      })
+
+      write_binding(tmp_dir, session)
+      run_count = Repo.aggregate(Run, :count, :id)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_evals_save, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_draft, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      draft_output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_benchmark_drafts, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      %{"drafts" => [%{"id" => draft_id}]} = Jason.decode!(draft_output)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_approve, options: %{}, args: [draft_id]},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_materialize, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{
+                       command: :obs_benchmark_run,
+                       options: %{dry_run: true, subjects: "controlkeel_validate"},
+                       args: []
+                     },
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability benchmark run preview:"
+      assert output =~ "Benchmark execution: false"
+      assert output =~ "--execute"
+      assert Repo.aggregate(Run, :count, :id) == run_count
+    end
+
+    test "obs benchmarks run refuses execution without execute flag", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(:stderr, fn ->
+          assert 1 ==
+                   CLI.execute(
+                     %{
+                       command: :obs_benchmark_run,
+                       options: %{dry_run: false, subjects: "controlkeel_validate"},
+                       args: []
+                     },
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Refusing to run without --execute"
+    end
+
+    test "obs benchmarks materialize creates local scenarios", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "CLI materialize finding",
+        severity: "critical",
+        status: "blocked",
+        category: "security",
+        rule_id: "security.cli_materialize"
+      })
+
+      write_binding(tmp_dir, session)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_evals_save, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_draft, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      draft_output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_benchmark_drafts, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      %{"drafts" => [%{"id" => draft_id}]} = Jason.decode!(draft_output)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_approve, options: %{}, args: [draft_id]},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_benchmark_materialize, options: %{}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability benchmark scenarios materialized:"
+      assert output =~ "Materialized: 1"
+      assert output =~ "Benchmark execution: false"
+    end
+
+    test "obs benchmarks scenarios lists generated scenarios as json", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "CLI scenario list finding",
+        severity: "high",
+        status: "open",
+        category: "review",
+        rule_id: "review.cli_scenario"
+      })
+
+      write_binding(tmp_dir, session)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_evals_save, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_draft, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      draft_output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_benchmark_drafts, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      %{"drafts" => [%{"id" => draft_id}]} = Jason.decode!(draft_output)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_approve, options: %{}, args: [draft_id]},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_materialize, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_benchmark_scenarios, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "count" => 1,
+               "scenarios" => [%{"expected_rules" => ["review.cli_scenario"]}]
+             } = Jason.decode!(output)
     end
 
     test "obs benchmarks draft generates local drafts", %{tmp_dir: tmp_dir} do
