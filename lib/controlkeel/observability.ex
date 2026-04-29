@@ -3,6 +3,7 @@ defmodule ControlKeel.Observability do
 
   import Ecto.Query, warn: false
 
+  alias ControlKeel.Benchmark.Run, as: BenchmarkRun
   alias ControlKeel.Budget
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
@@ -209,6 +210,34 @@ defmodule ControlKeel.Observability do
       drafts: Enum.map(results, fn {_status, draft} -> benchmark_draft_summary(draft) end),
       human_gate_required: true,
       mutation: "draft_record_only"
+    }
+  end
+
+  def regressions(opts \\ []) do
+    days = Keyword.get(opts, :days) || 30
+    limit = Keyword.get(opts, :limit) || 12
+    workspace_id = Keyword.get(opts, :workspace_id)
+    runs = benchmark_run_records(days, limit)
+    drafts = benchmark_drafts(workspace_id: workspace_id)
+    saved = saved_eval_candidates(workspace_id: workspace_id)
+
+    %{
+      days: days,
+      health: regression_health(runs, drafts, saved),
+      benchmark_runs: %{
+        count: length(runs),
+        recent: Enum.map(runs, &benchmark_run_summary/1),
+        average_catch_rate: average_value(Enum.map(runs, &(&1.catch_rate || 0.0))),
+        by_status: frequencies(runs, &(&1.status || "unknown")),
+        by_suite: frequencies(runs, &benchmark_run_suite_slug/1)
+      },
+      draft_coverage: %{
+        saved_eval_candidates: saved.count,
+        benchmark_drafts: drafts.count,
+        draft_status: drafts.by_status,
+        draft_suites: drafts.by_suite
+      },
+      recommendations: regression_recommendations(runs, drafts, saved)
     }
   end
 
@@ -1043,6 +1072,124 @@ defmodule ControlKeel.Observability do
       top_group.estimated_cost_cents > div(totals.estimated_cost_cents, 2),
       "Most estimated spend is concentrated in #{by} #{top_group.name}; compare it against cheaper alternatives before scaling similar runs."
     )
+  end
+
+  defp average_value([]), do: 0.0
+
+  defp average_value(values) do
+    values = Enum.reject(values, &is_nil/1)
+
+    case values do
+      [] -> 0.0
+      values -> Enum.sum(values) / length(values)
+    end
+  end
+
+  defp benchmark_run_records(days, limit) do
+    since = DateTime.add(DateTime.utc_now(), -max(days, 1) * 86_400, :second)
+
+    BenchmarkRun
+    |> where([run], run.inserted_at >= ^since)
+    |> order_by([run], desc: run.inserted_at, desc: run.id)
+    |> limit(^limit)
+    |> preload([:suite, results: []])
+    |> Repo.all()
+  end
+
+  defp benchmark_run_summary(%BenchmarkRun{} = run) do
+    %{
+      id: run.id,
+      status: run.status,
+      suite: benchmark_run_suite_slug(run),
+      baseline_subject: run.baseline_subject,
+      subjects: run.subjects || [],
+      total_scenarios: run.total_scenarios,
+      caught_count: run.caught_count,
+      blocked_count: run.blocked_count,
+      catch_rate: run.catch_rate || 0.0,
+      median_latency_ms: run.median_latency_ms,
+      average_overhead_percent: run.average_overhead_percent,
+      result_count: length(run.results || []),
+      inserted_at: format_datetime(run.inserted_at),
+      finished_at: format_datetime(run.finished_at)
+    }
+  end
+
+  defp benchmark_run_suite_slug(%BenchmarkRun{suite: %{slug: slug}}) when is_binary(slug),
+    do: slug
+
+  defp benchmark_run_suite_slug(_run), do: "unknown"
+
+  defp regression_health([], %{count: draft_count}, %{count: saved_count})
+       when draft_count > 0 or saved_count > 0 do
+    %{
+      status: "yellow",
+      reason:
+        "Eval candidates or benchmark drafts exist, but no recent benchmark run closes the loop."
+    }
+  end
+
+  defp regression_health([], _drafts, _saved) do
+    %{status: "green", reason: "No recent benchmark regressions recorded."}
+  end
+
+  defp regression_health(runs, _drafts, _saved) do
+    latest = List.first(runs)
+    average_catch_rate = average_value(Enum.map(runs, &(&1.catch_rate || 0.0)))
+
+    cond do
+      (latest.catch_rate || 0.0) < 1.0 ->
+        %{status: "red", reason: "Latest benchmark run did not catch every expected scenario."}
+
+      average_catch_rate < 1.0 ->
+        %{
+          status: "yellow",
+          reason: "Recent benchmark history includes missed expected scenarios."
+        }
+
+      true ->
+        %{status: "green", reason: "Recent benchmark runs are fully catching expected scenarios."}
+    end
+  end
+
+  defp regression_recommendations([], %{count: draft_count}, _saved) when draft_count > 0,
+    do: [
+      "Review benchmark drafts and run an approved benchmark suite to establish regression history."
+    ]
+
+  defp regression_recommendations([], _drafts, %{count: saved_count}) when saved_count > 0,
+    do: [
+      "Generate benchmark drafts from saved eval candidates before regression tracking can compare runs."
+    ]
+
+  defp regression_recommendations([], _drafts, _saved),
+    do: ["No regression action is needed until eval candidates or benchmark drafts exist."]
+
+  defp regression_recommendations(runs, drafts, _saved) do
+    latest = List.first(runs)
+    recommendations = []
+
+    recommendations =
+      maybe_reason(
+        recommendations,
+        (latest.catch_rate || 0.0) < 1.0,
+        "Investigate latest benchmark misses before promoting policy, prompt, or routing changes."
+      )
+
+    recommendations =
+      maybe_reason(
+        recommendations,
+        drafts.count > 0,
+        "Keep benchmark drafts linked to saved eval candidates so reviewed failure patterns become regression coverage."
+      )
+
+    if recommendations == [] do
+      [
+        "Recent benchmark runs look healthy; keep tracking regressions after each self-improvement change."
+      ]
+    else
+      recommendations
+    end
   end
 
   defp benchmark_draft_records(opts, limit) do

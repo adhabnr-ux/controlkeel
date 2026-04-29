@@ -1,6 +1,7 @@
 defmodule ControlKeel.ObservabilityTest do
   use ControlKeel.DataCase
 
+  import ControlKeel.BenchmarkFixtures
   import ControlKeel.MissionFixtures
   import Ecto.Query
 
@@ -594,6 +595,59 @@ defmodule ControlKeel.ObservabilityTest do
     assert draft.title =~ "security.benchmark_draft"
     assert draft.scenario_prompt =~ "summary-only evidence"
     assert Enum.any?(drafts.recommendations, &String.contains?(&1, "human gate"))
+  end
+
+  test "regressions/1 summarizes benchmark runs and draft coverage" do
+    session = session_fixture()
+    _run = benchmark_run_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Regression candidate",
+      severity: "high",
+      status: "open",
+      category: "security",
+      rule_id: "security.regression_candidate"
+    })
+
+    assert %{stored: 1} = Observability.save_eval_candidates(workspace_id: session.workspace_id)
+
+    assert %{stored: 1} =
+             Observability.generate_benchmark_drafts(workspace_id: session.workspace_id)
+
+    regressions = Observability.regressions(workspace_id: session.workspace_id)
+
+    assert regressions.days == 30
+    assert regressions.benchmark_runs.count >= 1
+    assert regressions.benchmark_runs.average_catch_rate >= 0.0
+    assert regressions.draft_coverage.saved_eval_candidates == 1
+    assert regressions.draft_coverage.benchmark_drafts == 1
+    assert regressions.health.status in ["green", "yellow", "red"]
+    assert regressions.recommendations != []
+  end
+
+  test "regressions/1 warns when drafts exist but no benchmark runs close the loop" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Unrun regression candidate",
+      severity: "high",
+      status: "open",
+      category: "security",
+      rule_id: "security.unrun_regression_candidate"
+    })
+
+    assert %{stored: 1} = Observability.save_eval_candidates(workspace_id: session.workspace_id)
+
+    assert %{stored: 1} =
+             Observability.generate_benchmark_drafts(workspace_id: session.workspace_id)
+
+    regressions = Observability.regressions(workspace_id: session.workspace_id, days: 1)
+
+    assert regressions.health.status == "yellow"
+    assert regressions.health.reason =~ "no recent benchmark run"
+    assert regressions.recommendations != []
   end
 
   test "save_eval_candidates/1 saves problem-derived candidates idempotently" do

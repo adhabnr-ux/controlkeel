@@ -409,6 +409,8 @@ defmodule ControlKeel.Help do
                                       List local benchmark drafts
       controlkeel obs compare [--by source|model|provider|tool]
                                       Compare local invocation groups
+      controlkeel obs regressions [--days N]
+                                      Show local benchmark regression posture
       controlkeel obs timeline [id]   Show recent session timeline events
       controlkeel obs memory [id]     Show session memory and context summary
       controlkeel obs memory-quality [--stale-days N]

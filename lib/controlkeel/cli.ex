@@ -404,6 +404,9 @@ defmodule ControlKeel.CLI do
       ["obs", "trends" | rest] ->
         parse_with_switches(:obs_trends, rest, @obs_switches)
 
+      ["obs", "regressions" | rest] ->
+        parse_with_switches(:obs_regressions, rest, @obs_switches)
+
       ["obs", "recommend" | rest] ->
         parse_with_switches(:obs_recommend, rest, @obs_switches)
 
@@ -2156,6 +2159,26 @@ defmodule ControlKeel.CLI do
       case format do
         "json" -> {:ok, [Jason.encode!(trends)]}
         _ -> {:ok, observability_trend_lines(trends)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_regressions, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      regressions =
+        Observability.regressions(
+          workspace_id: session.workspace_id,
+          days: options[:days],
+          limit: options[:limit] || 12
+        )
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(regressions)]}
+        _ -> {:ok, observability_regression_lines(regressions)}
       end
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
@@ -5363,6 +5386,26 @@ defmodule ControlKeel.CLI do
       ["Drafts:"] ++
       Enum.map(drafts.drafts, fn draft ->
         "- ##{draft.id} [#{draft.status}] #{draft.title}: #{draft.expected_behavior}"
+      end)
+  end
+
+  defp observability_regression_lines(regressions) do
+    [
+      "Observability regressions: #{regressions.health.status}",
+      "Window: #{regressions.days} day(s)",
+      "Reason: #{regressions.health.reason}",
+      "Benchmark runs: #{regressions.benchmark_runs.count}",
+      "Average catch rate: #{Float.round(regressions.benchmark_runs.average_catch_rate || 0.0, 3)}",
+      "Run status: #{format_frequency(regressions.benchmark_runs.by_status)}",
+      "Run suites: #{format_frequency(regressions.benchmark_runs.by_suite)}",
+      "Saved eval candidates: #{regressions.draft_coverage.saved_eval_candidates}",
+      "Benchmark drafts: #{regressions.draft_coverage.benchmark_drafts}",
+      "Recommendations:"
+    ] ++
+      Enum.map(regressions.recommendations, &"- #{&1}") ++
+      ["Recent runs:"] ++
+      Enum.map(regressions.benchmark_runs.recent, fn run ->
+        "- ##{run.id} #{run.suite} #{run.status}: catch #{Float.round(run.catch_rate || 0.0, 3)} (#{run.caught_count}/#{run.total_scenarios})"
       end)
   end
 

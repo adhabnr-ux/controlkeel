@@ -45,6 +45,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
             <.link navigate={~p"/observability/benchmarks/drafts"} class="ck-link">
               Benchmark drafts
             </.link>
+            <.link navigate={~p"/observability/regressions"} class="ck-link">Regressions</.link>
             <.link navigate={~p"/observability/compare"} class="ck-link">Compare</.link>
             <.link navigate={~p"/observability/imports"} class="ck-link">Imports</.link>
             <.link navigate={~p"/observability/memory-quality"} class="ck-link">Memory quality</.link>

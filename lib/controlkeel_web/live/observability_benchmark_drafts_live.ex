@@ -34,6 +34,7 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
               {@drafts.count} draft(s)
             </span>
             <.link navigate={~p"/observability/evals/persisted"} class="ck-link">Saved evals</.link>
+            <.link navigate={~p"/observability/regressions"} class="ck-link">Regressions</.link>
             <.link navigate={~p"/benchmarks"} class="ck-link">Benchmarks</.link>
             <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
           </div>
