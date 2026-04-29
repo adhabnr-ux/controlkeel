@@ -406,8 +406,9 @@ defmodule ControlKeel.ObservabilityTest do
     assert [%{rule_id: "security.overview"}] = overview.problems.top
     assert overview.costs.spent_cents == 450
     assert overview.costs.budget_cents == 2_000
-    assert overview.telemetry.import_mode == "dry_run_only"
+    assert overview.telemetry.import_mode == "dry_run_or_local_persist"
     assert overview.telemetry.integrity == "sha256"
+    assert overview.telemetry.persisted_imports == 0
     assert Enum.any?(overview.recommendations, &String.contains?(&1, "red session runs"))
   end
 
@@ -556,6 +557,70 @@ defmodule ControlKeel.ObservabilityTest do
 
     assert Repo.aggregate(Session, :count, :id) == session_count
     assert Repo.aggregate(Finding, :count, :id) == finding_count
+  end
+
+  test "imports/1 summarizes persisted observability snapshots" do
+    session = session_fixture()
+
+    assert {:ok, envelope} =
+             ObservabilityTelemetry.export_session(session.id,
+               exported_at: ~U[2026-04-29 04:00:00Z]
+             )
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-observability-imports-#{System.unique_integer()}.json"
+      )
+
+    File.write!(path, Jason.encode!(envelope))
+
+    assert {:ok, _result} =
+             ObservabilityTelemetry.import_persist(path,
+               workspace_id: session.workspace_id,
+               session_id: session.id,
+               imported_at: ~U[2026-04-29 05:00:00Z]
+             )
+
+    imports = Observability.imports(workspace_id: session.workspace_id)
+
+    assert imports.count == 1
+    assert imports.by_integrity == %{"verified" => 1}
+    assert imports.by_health["green"] == 1
+
+    assert [%{original_session_id: original_session_id, payload_fingerprint: fingerprint}] =
+             imports.recent
+
+    assert original_session_id == session.id
+    assert fingerprint == String.slice(envelope.integrity.payload_sha256, 0, 12)
+    assert Enum.any?(imports.recommendations, &String.contains?(&1, "trend analysis"))
+  end
+
+  test "workspace_overview includes local persisted import posture" do
+    session = session_fixture()
+
+    assert {:ok, envelope} =
+             ObservabilityTelemetry.export_session(session.id,
+               exported_at: ~U[2026-04-29 04:00:00Z]
+             )
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-observability-overview-import-#{System.unique_integer()}.json"
+      )
+
+    File.write!(path, Jason.encode!(envelope))
+
+    assert {:ok, _result} =
+             ObservabilityTelemetry.import_persist(path, workspace_id: session.workspace_id)
+
+    overview = Observability.workspace_overview(workspace_id: session.workspace_id)
+
+    assert overview.telemetry.import_mode == "dry_run_or_local_persist"
+    assert overview.telemetry.persisted_imports == 1
+    assert [%{original_session_id: original_session_id}] = overview.telemetry.recent_imports
+    assert original_session_id == session.id
   end
 
   test "telemetry import persist deduplicates by payload hash" do

@@ -391,6 +391,9 @@ defmodule ControlKeel.CLI do
       ["obs", "costs" | rest] ->
         parse_with_switches(:obs_costs, rest, @obs_switches)
 
+      ["obs", "imports" | rest] ->
+        parse_with_switches(:obs_imports, rest, @obs_switches)
+
       ["obs", "recommend" | rest] ->
         parse_with_switches(:obs_recommend, rest, @obs_switches)
 
@@ -2098,6 +2101,21 @@ defmodule ControlKeel.CLI do
       case format do
         "json" -> {:ok, [Jason.encode!(costs)]}
         _ -> {:ok, observability_cost_lines(costs)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_imports, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      imports = Observability.imports(workspace_id: session.workspace_id)
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(imports)]}
+        _ -> {:ok, observability_import_list_lines(imports)}
       end
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
@@ -5057,6 +5075,19 @@ defmodule ControlKeel.CLI do
       "Integrity: #{result.integrity_status || "unknown"}",
       "Mutation: #{result.mutation}"
     ]
+  end
+
+  defp observability_import_list_lines(imports) do
+    [
+      "Observability imports: #{imports.count} persisted snapshot(s)",
+      "Integrity: #{format_frequency(imports.by_integrity)}",
+      "Health: #{format_frequency(imports.by_health)}",
+      "Recent imports:"
+    ] ++
+      Enum.map(imports.recent, fn imported ->
+        "- ##{imported.id} #{imported.original_session_title || "unknown"} (session ##{imported.original_session_id || "unknown"}): #{imported.health}, #{imported.problem_groups} problem group(s), integrity #{imported.integrity_status}, hash #{imported.payload_fingerprint || "unknown"}"
+      end) ++
+      ["Recommendations:"] ++ Enum.map(imports.recommendations, &"- #{&1}")
   end
 
   defp observability_cost_lines(costs) do

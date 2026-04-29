@@ -6,6 +6,7 @@ defmodule ControlKeel.Observability do
   alias ControlKeel.Budget
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
+  alias ControlKeel.Observability.ImportedEnvelope
   alias ControlKeel.Mission.{Finding, Invocation, Session}
   alias ControlKeel.Repo
 
@@ -48,12 +49,22 @@ defmodule ControlKeel.Observability do
         recommendations: problem_summary.recommendations
       },
       costs: overview_costs(run_summaries),
-      telemetry: %{
-        export_schema_version: ControlKeel.Observability.Telemetry.schema_version(),
-        import_mode: "dry_run_only",
-        integrity: "sha256"
-      },
+      telemetry: overview_telemetry(workspace_id),
       recommendations: overview_recommendations(health, run_summaries, problem_summary)
+    }
+  end
+
+  def imports(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 20)
+    snapshots = imported_envelopes(opts, limit)
+
+    %{
+      count: imported_envelope_count(opts),
+      limit: limit,
+      recent: Enum.map(snapshots, &import_summary/1),
+      by_integrity: frequencies(snapshots, &(&1.integrity_status || "unknown")),
+      by_health: frequencies(snapshots, &(&1.health || "unknown")),
+      recommendations: import_recommendations(snapshots)
     }
   end
 
@@ -261,6 +272,86 @@ defmodule ControlKeel.Observability do
     case Integer.parse(session_id) do
       {parsed, ""} -> session_run(parsed, opts)
       _ -> {:error, :invalid_session_id}
+    end
+  end
+
+  defp overview_telemetry(workspace_id) do
+    import_summary =
+      imports(if(workspace_id, do: [workspace_id: workspace_id, limit: 3], else: [limit: 3]))
+
+    %{
+      export_schema_version: ControlKeel.Observability.Telemetry.schema_version(),
+      import_mode: "dry_run_or_local_persist",
+      integrity: "sha256",
+      persisted_imports: import_summary.count,
+      recent_imports: import_summary.recent
+    }
+  end
+
+  defp imported_envelopes(opts, limit) do
+    ImportedEnvelope
+    |> maybe_filter_import_workspace(Keyword.get(opts, :workspace_id))
+    |> order_by([i], desc: i.imported_at, desc: i.id)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  defp imported_envelope_count(opts) do
+    ImportedEnvelope
+    |> maybe_filter_import_workspace(Keyword.get(opts, :workspace_id))
+    |> Repo.aggregate(:count, :id)
+  end
+
+  defp maybe_filter_import_workspace(query, nil), do: query
+
+  defp maybe_filter_import_workspace(query, workspace_id),
+    do: where(query, [i], i.workspace_id == ^workspace_id)
+
+  defp import_summary(%ImportedEnvelope{} = imported) do
+    %{
+      id: imported.id,
+      schema_version: imported.schema_version,
+      exported_at: format_datetime(imported.exported_at),
+      imported_at: format_datetime(imported.imported_at),
+      original_session_id: imported.original_session_id,
+      original_session_title: imported.original_session_title,
+      health: imported.health || "unknown",
+      problem_groups: imported.problem_groups || 0,
+      total_problem_findings: imported.total_problem_findings || 0,
+      redaction_policy: imported.redaction_policy,
+      integrity_status: imported.integrity_status || "unknown",
+      payload_sha256: imported.payload_sha256,
+      payload_fingerprint: fingerprint_prefix(imported.payload_sha256),
+      import_mode: imported.import_mode,
+      source: imported.source || %{},
+      mutation: "none",
+      workspace_id: imported.workspace_id,
+      session_id: imported.session_id
+    }
+  end
+
+  defp fingerprint_prefix(nil), do: nil
+  defp fingerprint_prefix(value) when is_binary(value), do: String.slice(value, 0, 12)
+
+  defp import_recommendations([]) do
+    [
+      "No persisted observability imports yet; use `controlkeel obs import <file> --persist` after verifying an envelope."
+    ]
+  end
+
+  defp import_recommendations(imports) do
+    []
+    |> maybe_reason(
+      Enum.any?(imports, &(&1.integrity_status != "verified")),
+      "Review imports with non-verified integrity before using them as benchmark evidence."
+    )
+    |> maybe_reason(
+      Enum.any?(imports, &((&1.problem_groups || 0) > 0)),
+      "Convert recurring imported problem groups into eval or benchmark coverage."
+    )
+    |> case do
+      [] -> ["Imported observability snapshots are verified and ready for trend analysis."]
+      recommendations -> recommendations
     end
   end
 

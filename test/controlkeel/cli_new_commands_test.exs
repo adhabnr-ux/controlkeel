@@ -1340,6 +1340,87 @@ defmodule ControlKeel.CLI.NewCommandsTest do
              } = Jason.decode!(output)
     end
 
+    test "obs imports renders persisted snapshots", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+      write_binding(tmp_dir, session)
+
+      export_output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_export, options: %{json: true}, args: [session.id]},
+                     project_root: "."
+                   )
+        end)
+
+      path = Path.join(tmp_dir, "observability-export.json")
+      File.write!(path, export_output)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(
+                   %{command: :obs_import, options: %{persist: true}, args: [path]},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_imports, options: %{}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability imports: 1 persisted snapshot"
+      assert output =~ "Integrity: verified: 1"
+      assert output =~ "Recent imports:"
+      assert output =~ "hash"
+    end
+
+    test "obs imports supports json output", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+      write_binding(tmp_dir, session)
+
+      export_output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_export, options: %{json: true}, args: [session.id]},
+                     project_root: "."
+                   )
+        end)
+
+      path = Path.join(tmp_dir, "observability-export-json.json")
+      File.write!(path, export_output)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(
+                   %{command: :obs_import, options: %{persist: true}, args: [path]},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_imports, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "count" => 1,
+               "by_integrity" => %{"verified" => 1},
+               "recent" => [%{"original_session_id" => original_session_id, "mutation" => "none"}]
+             } = Jason.decode!(output)
+
+      assert original_session_id == session.id
+    end
+
     test "obs recommend renders prioritized recommendations", %{tmp_dir: tmp_dir} do
       session = session_fixture()
 

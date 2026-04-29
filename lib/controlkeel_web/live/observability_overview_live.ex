@@ -42,6 +42,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
             </.link>
             <.link navigate={~p"/observability/evals"} class="ck-link">Eval candidates</.link>
             <.link navigate={~p"/observability/compare"} class="ck-link">Compare</.link>
+            <.link navigate={~p"/observability/imports"} class="ck-link">Imports</.link>
             <.link navigate={~p"/observability/problems"} class="ck-link">Open problems</.link>
           </div>
         </div>
@@ -83,6 +84,8 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
             <p class="ck-note">
               {@overview.telemetry.export_schema_version} · {@overview.telemetry.integrity}
             </p>
+            <p class="ck-note">{@overview.telemetry.persisted_imports} persisted import(s)</p>
+            <.link navigate={~p"/observability/imports"} class="ck-link">Review imports</.link>
           </div>
         </div>
 
