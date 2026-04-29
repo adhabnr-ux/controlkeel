@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.3.5 — 2026-04-29
+
+### What's changed
+
+- fix: update Codex CLI status to verified and clarify checks for sandbox execution
+- feat: add observability features and UI components
+- fix: update command descriptions for clarity in governance review and submission
+- fix: enhance ck_budget check and clarify workflow for delegated implementation
+- docs: add cross-runtime continuity verification guide
+- test: add cross-runtime continuity tests for budget status and memory source filters
+- feat: add source_type and source_id filtering to ck_memory_search
+- fix: add ck_budget status mode to check spend without cost inputs
+- fix: make skills export/install idempotent with pre-existing destinations
+- Refactor MCP tools to resolve session_id from project_root and update input schemas
+- feat: Enhance benchmark and cost governance documentation with new guidelines for outcome-first harness loops and multi-agent routing strategies
+- feat: Update documentation and security policies, add new packages overview, and enhance .gitignore
+- feat: Enhance README and documentation with governance layer details for company context graphs
+
 ## v0.3.4 — 2026-04-28
 
 ### What's changed
