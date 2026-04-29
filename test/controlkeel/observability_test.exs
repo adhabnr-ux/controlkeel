@@ -562,6 +562,55 @@ defmodule ControlKeel.ObservabilityTest do
     assert Repo.aggregate(Finding, :count, :id) == finding_count
   end
 
+  test "promotion_candidates/1 reports blocked and ready advisory states" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Promotion finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.promotion"
+    })
+
+    assert %{stored: 1} = Observability.save_eval_candidates(workspace_id: session.workspace_id)
+
+    initial = Observability.promotion_candidates(workspace_id: session.workspace_id)
+    assert initial.promotion_execution == false
+    assert [%{readiness: "needs_draft"}] = initial.candidates
+
+    assert %{stored: 1, drafts: [%{id: draft_id}]} =
+             Observability.generate_benchmark_drafts(workspace_id: session.workspace_id)
+
+    assert {:ok, _result} =
+             Observability.update_benchmark_draft_status(draft_id, "approved",
+               reviewed_by: "test"
+             )
+
+    assert %{materialized: 1} =
+             Observability.materialize_benchmark_drafts(workspace_id: session.workspace_id)
+
+    needs_run = Observability.promotion_candidates(workspace_id: session.workspace_id)
+    assert [%{readiness: "needs_run", promotion_execution: false}] = needs_run.candidates
+
+    assert {:ok, %{benchmark_execution: true}} =
+             Observability.run_observability_benchmark(
+               [
+                 workspace_id: session.workspace_id,
+                 subjects: "controlkeel_validate",
+                 dry_run: false,
+                 execute: true
+               ],
+               File.cwd!()
+             )
+
+    after_run = Observability.promotion_candidates(workspace_id: session.workspace_id)
+    assert [%{readiness: readiness, latest_run_id: run_id}] = after_run.candidates
+    assert readiness in ["ready", "blocked"]
+    assert is_integer(run_id)
+  end
+
   test "observability_benchmark_history/1 reports generated benchmark run evidence" do
     session = session_fixture()
 

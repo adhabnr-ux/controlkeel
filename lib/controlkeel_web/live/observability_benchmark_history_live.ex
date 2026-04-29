@@ -37,6 +37,7 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkHistoryLive do
               Scenarios
             </.link>
             <.link navigate={~p"/observability/benchmarks/drafts"} class="ck-link">Drafts</.link>
+            <.link navigate={~p"/observability/promotions"} class="ck-link">Promotions</.link>
             <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
           </div>
         </div>

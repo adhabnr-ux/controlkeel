@@ -63,6 +63,7 @@ defmodule ControlKeelWeb.Router do
     live "/observability/regressions", ObservabilityRegressionsLive, :index
     live "/observability/trends", ObservabilityTrendsLive, :index
     live "/observability/problems", ObservabilityProblemsLive, :index
+    live "/observability/promotions", ObservabilityPromotionsLive, :index
     get "/observability/sessions/:id/export.json", ObservabilityController, :export_session
     live "/observability/sessions/:id/memory", ObservabilityMemoryLive, :show
     live "/observability/sessions/:id/timeline", ObservabilityTimelineLive, :show

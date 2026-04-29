@@ -1556,6 +1556,44 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert Enum.any?(actions, &(&1["title"] == "Regression eval for review.recommend"))
     end
 
+    test "obs promotions reports advisory candidates as json", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "CLI promotion finding",
+        severity: "critical",
+        status: "blocked",
+        category: "security",
+        rule_id: "security.cli_promotion"
+      })
+
+      write_binding(tmp_dir, session)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_evals_save, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_promotions, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "promotion_execution" => false,
+               "candidates" => [
+                 %{"readiness" => "needs_draft", "rule_id" => "security.cli_promotion"}
+               ]
+             } = Jason.decode!(output)
+    end
+
     test "obs benchmarks history reports readiness as json", %{tmp_dir: tmp_dir} do
       session = session_fixture()
 

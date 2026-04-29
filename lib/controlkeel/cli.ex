@@ -452,6 +452,9 @@ defmodule ControlKeel.CLI do
       ["obs", "benchmarks", "history" | rest] ->
         parse_with_switches(:obs_benchmark_history, rest, @obs_switches)
 
+      ["obs", "promotions" | rest] ->
+        parse_with_switches(:obs_promotions, rest, @obs_switches)
+
       ["obs", "compare" | rest] ->
         parse_with_switches(:obs_compare, rest, @obs_switches)
 
@@ -2327,6 +2330,25 @@ defmodule ControlKeel.CLI do
       case format do
         "json" -> {:ok, [Jason.encode!(scenarios)]}
         _ -> {:ok, observability_benchmark_scenario_lines(scenarios)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :obs_promotions, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      promotions =
+        Observability.promotion_candidates(
+          workspace_id: session.workspace_id,
+          limit: options[:limit] || 50
+        )
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(promotions)]}
+        _ -> {:ok, observability_promotion_lines(promotions)}
       end
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
@@ -5536,6 +5558,20 @@ defmodule ControlKeel.CLI do
   defp benchmark_status_for_command(:obs_benchmark_approve), do: "approved"
   defp benchmark_status_for_command(:obs_benchmark_reject), do: "rejected"
   defp benchmark_status_for_command(:obs_benchmark_archive), do: "archived"
+
+  defp observability_promotion_lines(promotions) do
+    [
+      "Observability promotion candidates: #{promotions.count}",
+      "Promotion execution: #{promotions.promotion_execution}",
+      "Readiness: #{format_frequency(promotions.by_readiness)}",
+      "Recommendations:"
+    ] ++
+      Enum.map(promotions.recommendations, &"- #{&1}") ++
+      ["Candidates:"] ++
+      Enum.map(promotions.candidates, fn candidate ->
+        "- ##{candidate.id} #{candidate.rule_id}: #{candidate.readiness} — #{candidate.suggested_action}"
+      end)
+  end
 
   defp observability_benchmark_history_lines(history) do
     latest = history.latest_run

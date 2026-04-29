@@ -362,6 +362,29 @@ defmodule ControlKeel.Observability do
     }
   end
 
+  def promotion_candidates(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50)
+    workspace_id = Keyword.get(opts, :workspace_id)
+    candidates = saved_eval_candidate_records([workspace_id: workspace_id], limit)
+    drafts = benchmark_draft_records([workspace_id: workspace_id], 500)
+    history = observability_benchmark_history(workspace_id: workspace_id)
+
+    items =
+      Enum.map(candidates, fn candidate ->
+        draft = Enum.find(drafts, &(&1.eval_candidate_id == candidate.id))
+        promotion_candidate_summary(candidate, draft, history)
+      end)
+
+    %{
+      count: length(items),
+      limit: limit,
+      promotion_execution: false,
+      by_readiness: frequencies(items, & &1.readiness),
+      candidates: items,
+      recommendations: promotion_candidate_recommendations(items, history)
+    }
+  end
+
   def update_benchmark_draft_status(id, status, opts \\ [])
 
   def update_benchmark_draft_status(id, status, opts)
@@ -1789,6 +1812,86 @@ defmodule ControlKeel.Observability do
       mutation: "benchmark_run_record",
       preview: preview
     }
+  end
+
+  defp promotion_candidate_summary(%EvalCandidate{} = candidate, draft, history) do
+    materialized_scenario_id =
+      if draft, do: get_in(draft.metadata || %{}, ["materialized_scenario_id"])
+
+    readiness = promotion_candidate_readiness(draft, materialized_scenario_id, history)
+
+    %{
+      id: candidate.id,
+      title: candidate.title,
+      rule_id: candidate.rule_id,
+      category: candidate.category,
+      priority: candidate.priority,
+      status: candidate.status,
+      readiness: readiness,
+      source_eval_candidate_id: candidate.id,
+      benchmark_draft_id: if(draft, do: draft.id, else: nil),
+      benchmark_draft_status: if(draft, do: draft.status, else: nil),
+      materialized_scenario_id: materialized_scenario_id,
+      latest_run_id: if(history.latest_run, do: history.latest_run.id, else: nil),
+      evidence_summary: candidate.evidence_summary,
+      suggested_action: promotion_candidate_action(readiness, candidate),
+      promotion_execution: false,
+      human_gate_required: true
+    }
+  end
+
+  defp promotion_candidate_readiness(nil, _scenario_id, _history), do: "needs_draft"
+
+  defp promotion_candidate_readiness(%BenchmarkDraft{status: status}, _scenario_id, _history)
+       when status != "approved", do: "needs_approval"
+
+  defp promotion_candidate_readiness(_draft, nil, _history), do: "needs_materialization"
+
+  defp promotion_candidate_readiness(_draft, _scenario_id, %{coverage: %{benchmark_runs: 0}}),
+    do: "needs_run"
+
+  defp promotion_candidate_readiness(_draft, _scenario_id, %{readiness: %{status: "green"}}),
+    do: "ready"
+
+  defp promotion_candidate_readiness(_draft, _scenario_id, _history), do: "blocked"
+
+  defp promotion_candidate_action("ready", candidate),
+    do:
+      "Human review may consider promotion evidence for #{candidate.rule_id}; no automatic mutation will occur."
+
+  defp promotion_candidate_action("needs_draft", _candidate),
+    do: "Generate a benchmark draft from saved eval candidates."
+
+  defp promotion_candidate_action("needs_approval", _candidate),
+    do: "Approve the benchmark draft with a human gate before materialization."
+
+  defp promotion_candidate_action("needs_materialization", _candidate),
+    do: "Materialize the approved draft into local benchmark scenarios."
+
+  defp promotion_candidate_action("needs_run", _candidate),
+    do: "Run generated observability benchmarks from the CLI after dry-run review."
+
+  defp promotion_candidate_action("blocked", _candidate),
+    do: "Investigate failed or incomplete benchmark evidence before promotion review."
+
+  defp promotion_candidate_recommendations([], _history),
+    do: [
+      "No promotion candidates yet; save eval candidates and establish benchmark evidence first."
+    ]
+
+  defp promotion_candidate_recommendations(items, _history) do
+    ready = Enum.count(items, &(&1.readiness == "ready"))
+    blocked = length(items) - ready
+
+    []
+    |> maybe_reason(
+      ready > 0,
+      "#{ready} candidate(s) have benchmark evidence ready for human promotion review."
+    )
+    |> maybe_reason(
+      blocked > 0,
+      "#{blocked} candidate(s) still need approval, materialization, successful runs, or investigation."
+    )
   end
 
   defp update_benchmark_draft_record(%BenchmarkDraft{} = draft, status, opts) do
