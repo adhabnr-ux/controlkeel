@@ -6,7 +6,7 @@ defmodule ControlKeel.Observability do
   alias ControlKeel.Budget
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
-  alias ControlKeel.Observability.{EvalCandidate, ImportedEnvelope}
+  alias ControlKeel.Observability.{BenchmarkDraft, EvalCandidate, ImportedEnvelope}
   alias ControlKeel.Mission.{Finding, Invocation, Session}
   alias ControlKeel.Repo
 
@@ -173,6 +173,42 @@ defmodule ControlKeel.Observability do
         Enum.map(results, fn {_status, record} -> saved_eval_candidate_summary(record) end),
       human_gate_required: true,
       mutation: "advisory_record_only"
+    }
+  end
+
+  def benchmark_drafts(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50)
+    drafts = benchmark_draft_records(opts, limit)
+
+    %{
+      count: benchmark_draft_count(opts),
+      limit: limit,
+      drafts: Enum.map(drafts, &benchmark_draft_summary/1),
+      by_status: frequencies(drafts, &(&1.status || "unknown")),
+      by_suite: frequencies(drafts, &(&1.suite_slug || "unknown")),
+      recommendations: benchmark_draft_recommendations(drafts)
+    }
+  end
+
+  def generate_benchmark_drafts(opts \\ []) do
+    workspace_id = Keyword.get(opts, :workspace_id)
+
+    candidates =
+      EvalCandidate
+      |> maybe_filter_eval_workspace(workspace_id)
+      |> maybe_filter_eval_status("open")
+      |> order_by([c], desc: c.inserted_at, desc: c.id)
+      |> Repo.all()
+
+    results = Enum.map(candidates, &generate_benchmark_draft/1)
+
+    %{
+      source_count: length(candidates),
+      stored: Enum.count(results, &match?({:stored, _}, &1)),
+      existing: Enum.count(results, &match?({:existing, _}, &1)),
+      drafts: Enum.map(results, fn {_status, draft} -> benchmark_draft_summary(draft) end),
+      human_gate_required: true,
+      mutation: "draft_record_only"
     }
   end
 
@@ -1007,6 +1043,142 @@ defmodule ControlKeel.Observability do
       top_group.estimated_cost_cents > div(totals.estimated_cost_cents, 2),
       "Most estimated spend is concentrated in #{by} #{top_group.name}; compare it against cheaper alternatives before scaling similar runs."
     )
+  end
+
+  defp benchmark_draft_records(opts, limit) do
+    BenchmarkDraft
+    |> maybe_filter_draft_workspace(Keyword.get(opts, :workspace_id))
+    |> maybe_filter_draft_status(Keyword.get(opts, :status))
+    |> order_by([d], desc: d.inserted_at, desc: d.id)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  defp benchmark_draft_count(opts) do
+    BenchmarkDraft
+    |> maybe_filter_draft_workspace(Keyword.get(opts, :workspace_id))
+    |> maybe_filter_draft_status(Keyword.get(opts, :status))
+    |> Repo.aggregate(:count, :id)
+  end
+
+  defp maybe_filter_draft_workspace(query, nil), do: query
+
+  defp maybe_filter_draft_workspace(query, workspace_id),
+    do: where(query, [d], d.workspace_id == ^workspace_id)
+
+  defp maybe_filter_draft_status(query, nil), do: query
+  defp maybe_filter_draft_status(query, status), do: where(query, [d], d.status == ^status)
+
+  defp generate_benchmark_draft(%EvalCandidate{} = candidate) do
+    case Repo.get_by(BenchmarkDraft, eval_candidate_id: candidate.id) do
+      %BenchmarkDraft{} = existing ->
+        {:existing, existing}
+
+      nil ->
+        %BenchmarkDraft{}
+        |> BenchmarkDraft.changeset(benchmark_draft_attrs(candidate))
+        |> Repo.insert()
+        |> case do
+          {:ok, draft} ->
+            {:stored, draft}
+
+          {:error, changeset} ->
+            raise "failed to save benchmark draft: #{inspect(changeset.errors)}"
+        end
+    end
+  end
+
+  defp benchmark_draft_attrs(%EvalCandidate{} = candidate) do
+    suite_slug = benchmark_suite_slug(candidate)
+
+    %{
+      title: "Benchmark draft for #{candidate.rule_id}",
+      suite_slug: suite_slug,
+      scenario_prompt: benchmark_scenario_prompt(candidate),
+      expected_behavior: benchmark_expected_behavior(candidate),
+      evidence_summary: candidate.evidence_summary,
+      benchmark_hint: candidate.benchmark_hint,
+      status: "draft",
+      human_gate_required: true,
+      workspace_id: candidate.workspace_id,
+      eval_candidate_id: candidate.id,
+      metadata: %{
+        "candidate_rule_id" => candidate.rule_id,
+        "candidate_priority" => candidate.priority,
+        "candidate_status" => candidate.status,
+        "candidate_source_problem_key" => candidate.source_problem_key,
+        "example_session_id" => candidate.session_id,
+        "example_finding_id" => candidate.finding_id,
+        "suggested_action" => candidate.suggested_action
+      }
+    }
+  end
+
+  defp benchmark_suite_slug(%EvalCandidate{benchmark_hint: hint})
+       when is_binary(hint) and hint != "" do
+    hint
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/, "-")
+    |> String.trim("-")
+    |> then(&if(&1 == "", do: "observability-regression", else: &1))
+  end
+
+  defp benchmark_suite_slug(%EvalCandidate{category: category})
+       when is_binary(category) and category != "" do
+    "#{category}-regression"
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/, "-")
+  end
+
+  defp benchmark_suite_slug(_candidate), do: "observability-regression"
+
+  defp benchmark_scenario_prompt(candidate) do
+    "Reproduce the governed failure pattern for #{candidate.rule_id} using summary-only evidence: #{candidate.evidence_summary || "No evidence summary recorded."}"
+  end
+
+  defp benchmark_expected_behavior(candidate) do
+    "A governed agent should detect or prevent #{candidate.rule_id}, preserve human approval gates, and avoid regressions before promotion. Suggested action: #{candidate.suggested_action || "review candidate evidence"}."
+  end
+
+  defp benchmark_draft_summary(%BenchmarkDraft{} = draft) do
+    %{
+      id: draft.id,
+      title: draft.title,
+      suite_slug: draft.suite_slug,
+      scenario_prompt: draft.scenario_prompt,
+      expected_behavior: draft.expected_behavior,
+      evidence_summary: draft.evidence_summary,
+      benchmark_hint: draft.benchmark_hint,
+      status: draft.status,
+      human_gate_required: draft.human_gate_required,
+      workspace_id: draft.workspace_id,
+      eval_candidate_id: draft.eval_candidate_id,
+      metadata: draft.metadata || %{},
+      inserted_at: format_datetime(draft.inserted_at)
+    }
+  end
+
+  defp benchmark_draft_recommendations([]),
+    do: [
+      "No benchmark drafts yet; generate drafts from saved eval candidates before running benchmark coverage."
+    ]
+
+  defp benchmark_draft_recommendations(drafts) do
+    draft_count = Enum.count(drafts, &(&1.status == "draft"))
+
+    []
+    |> maybe_reason(
+      draft_count > 0,
+      "Review #{draft_count} draft benchmark scenario(s) with a human gate before execution."
+    )
+    |> maybe_reason(
+      Enum.any?(drafts, & &1.human_gate_required),
+      "Keep benchmark drafts human-gated until scenario expectations are approved."
+    )
+    |> case do
+      [] -> ["Benchmark drafts are triaged."]
+      recommendations -> recommendations
+    end
   end
 
   defp saved_eval_candidate_records(opts, limit) do

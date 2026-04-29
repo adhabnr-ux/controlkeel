@@ -1543,6 +1543,87 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert Enum.any?(actions, &(&1["title"] == "Regression eval for review.recommend"))
     end
 
+    test "obs benchmarks draft generates local drafts", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "CLI benchmark draft finding",
+        severity: "critical",
+        status: "blocked",
+        category: "security",
+        rule_id: "security.cli_benchmark_draft"
+      })
+
+      write_binding(tmp_dir, session)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(
+                   %{command: :obs_evals_save, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_benchmark_draft, options: %{}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability benchmark drafts generated:"
+      assert output =~ "Stored: 1"
+      assert output =~ "Human gate required: true"
+      assert output =~ "draft_record_only"
+    end
+
+    test "obs benchmarks drafts lists local drafts as json", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "CLI benchmark draft listing",
+        severity: "high",
+        status: "open",
+        category: "review",
+        rule_id: "review.cli_benchmark_draft"
+      })
+
+      write_binding(tmp_dir, session)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_evals_save, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :obs_benchmark_draft, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_benchmark_drafts, options: %{json: true}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert %{
+               "count" => 1,
+               "by_status" => %{"draft" => 1},
+               "drafts" => [%{"status" => "draft", "human_gate_required" => true}]
+             } = Jason.decode!(output)
+    end
+
     test "obs evals save persists advisory candidates", %{tmp_dir: tmp_dir} do
       session = session_fixture()
 

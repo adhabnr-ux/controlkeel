@@ -8,7 +8,7 @@ defmodule ControlKeel.ObservabilityTest do
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Finding, Invocation, Session, SessionEvent}
   alias ControlKeel.Observability
-  alias ControlKeel.Observability.{EvalCandidate, ImportedEnvelope}
+  alias ControlKeel.Observability.{BenchmarkDraft, EvalCandidate, ImportedEnvelope}
   alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
   alias ControlKeel.Repo
 
@@ -558,6 +558,42 @@ defmodule ControlKeel.ObservabilityTest do
 
     assert Repo.aggregate(Session, :count, :id) == session_count
     assert Repo.aggregate(Finding, :count, :id) == finding_count
+  end
+
+  test "generate_benchmark_drafts/1 creates human-gated drafts idempotently" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Benchmark draft finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.benchmark_draft"
+    })
+
+    assert %{stored: 1} = Observability.save_eval_candidates(workspace_id: session.workspace_id)
+
+    first = Observability.generate_benchmark_drafts(workspace_id: session.workspace_id)
+    second = Observability.generate_benchmark_drafts(workspace_id: session.workspace_id)
+
+    assert first.source_count == 1
+    assert first.stored == 1
+    assert first.existing == 0
+    assert second.stored == 0
+    assert second.existing == 1
+    assert first.human_gate_required == true
+    assert first.mutation == "draft_record_only"
+    assert Repo.aggregate(BenchmarkDraft, :count, :id) == 1
+
+    drafts = Observability.benchmark_drafts(workspace_id: session.workspace_id)
+
+    assert drafts.count == 1
+    assert drafts.by_status == %{"draft" => 1}
+    assert [%{status: "draft", human_gate_required: true} = draft] = drafts.drafts
+    assert draft.title =~ "security.benchmark_draft"
+    assert draft.scenario_prompt =~ "summary-only evidence"
+    assert Enum.any?(drafts.recommendations, &String.contains?(&1, "human gate"))
   end
 
   test "save_eval_candidates/1 saves problem-derived candidates idempotently" do

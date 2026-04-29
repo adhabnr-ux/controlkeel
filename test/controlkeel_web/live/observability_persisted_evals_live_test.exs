@@ -29,6 +29,7 @@ defmodule ControlKeelWeb.ObservabilityPersistedEvalsLiveTest do
     assert has_element?(view, "#observability-persisted-evals-priority")
     assert has_element?(view, "#observability-persisted-evals-recommendations")
     assert has_element?(view, "#observability-persisted-evals-list")
+    assert html =~ "/observability/benchmarks/drafts"
     assert html =~ "Regression eval for security.persisted_page"
     assert html =~ "human gate true"
   end

@@ -403,6 +403,10 @@ defmodule ControlKeel.Help do
       controlkeel obs evals save     Save current advisory eval candidates locally
       controlkeel obs evals persisted
                                       List saved local eval candidates
+      controlkeel obs benchmarks draft
+                                      Generate local benchmark drafts from saved evals
+      controlkeel obs benchmarks drafts
+                                      List local benchmark drafts
       controlkeel obs compare [--by source|model|provider|tool]
                                       Compare local invocation groups
       controlkeel obs timeline [id]   Show recent session timeline events

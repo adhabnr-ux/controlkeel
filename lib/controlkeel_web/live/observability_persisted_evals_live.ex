@@ -34,6 +34,9 @@ defmodule ControlKeelWeb.ObservabilityPersistedEvalsLive do
               {@saved.count} saved
             </span>
             <.link navigate={~p"/observability/evals"} class="ck-link">Advisory evals</.link>
+            <.link navigate={~p"/observability/benchmarks/drafts"} class="ck-link">
+              Benchmark drafts
+            </.link>
             <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
           </div>
         </div>
