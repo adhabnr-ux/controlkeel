@@ -16,7 +16,7 @@ Each runtime that completes the checklist below should mark its row in the statu
 | Gemini CLI | ✅ PASS | 2026-04-29 ~00:15 | Memory 714-720 searchable, Finding 338 via source filter, budget status PASS |
 | Cursor | ✅ PASS | 2026-04-29 ~00:56 UTC | Finding 362 · MCP five-check run from Cursor agent; `bin/controlkeel-mcp` initialize JSON-RPC OK |
 | Antigravity | ✅ PASS | 2026-04-29 ~01:02 UTC | Finding 363 · MCP five-check run from Antigravity agent; `bin/controlkeel-mcp` initialize JSON-RPC OK |
-| Codex CLI | ⏳ Pending | — | — |
+| Codex CLI | ✅ PASS | 2026-04-29 ~04:07 UTC | Finding 369 · MCP five-check run from Codex agent; `.codex/config.toml` and `bin/controlkeel-mcp` initialize JSON-RPC OK |
 
 ---
 
@@ -33,6 +33,16 @@ printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocol
   | CK_PROJECT_ROOT="<project_root>" bin/controlkeel-mcp 2>/dev/null | head -c 500
 # expect: JSON result with serverInfo.name "controlkeel"
 ```
+
+If this check is run from a restricted sandbox and fails with a Mix PubSub `:eperm` socket error, rerun it from the trusted host environment. The launcher is local-stdio MCP, but this source checkout uses `mix ck.mcp`, and Mix may need to open its local PubSub socket while booting.
+
+For Codex CLI specifically, also verify the repo-local attach surface before marking the host complete:
+
+- `.codex/config.toml` registers `[mcp_servers.controlkeel]` with `bin/controlkeel-mcp`.
+- `.codex/hooks.json` and `.codex/hooks/` exist for CK lifecycle hooks.
+- `.codex/commands/`, `.codex/agents/`, and `.codex/skills/` are present.
+- `.agents/skills/` compatibility copies are present.
+- `mix ck.attach doctor --project-root <project_root>` lists `codex-cli` under attached agents.
 
 Run these five checks against the shared session:
 
@@ -85,7 +95,7 @@ Then update the Status table above with your row.
 | Session ID | 1 |
 | Workspace ID | (resolved via `ck_context`) |
 | Baseline memory IDs | 713 (checkpoint), 714 (finding shadow), 715 (decision), 720 (OpenCode decision) |
-| Baseline finding IDs | 338 (Devin checkpoint), 339 (OpenCode verify), 344 (OpenCode final), 363 (Antigravity verify) |
+| Baseline finding IDs | 338 (Devin checkpoint), 339 (OpenCode verify), 344 (OpenCode final), 363 (Antigravity verify), 369 (Codex CLI verify) |
 | Budget cap | $20.00 session / $20.00 daily |
 
 ---
@@ -104,4 +114,4 @@ Both fixes shipped 2026-04-28, 973 tests 0 failures, Review 179 approved.
 
 ## Success Criterion
 
-Every runtime listed in the Status table should show ✅ PASS, each with a recorded finding for the five-check continuity run, before that host is treated as verified for cross-runtime dogfood. One session, one workspace, one governed memory store across all participating hosts. **Codex CLI** is still pending in the matrix above.
+Every runtime listed in the Status table should show ✅ PASS, each with a recorded finding for the five-check continuity run, before that host is treated as verified for cross-runtime dogfood. One session, one workspace, one governed memory store across all participating hosts. Codex CLI is verified by Finding 369.
