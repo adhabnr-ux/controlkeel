@@ -7,6 +7,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
   alias ControlKeel.CLI
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Invocation, SessionEvent}
+  alias ControlKeel.Observability.ImportedEnvelope
   alias ControlKeel.Repo
   alias ControlKeel.ReviewBridge
   alias ControlKeel.ProjectBinding
@@ -1198,6 +1199,9 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert {:ok, %{command: :obs_import, args: ["trace.json"]}} =
                CLI.parse(["obs", "import", "trace.json", "--dry-run"])
 
+      assert {:ok, %{command: :obs_import, args: ["trace.json"], options: [persist: true]}} =
+               CLI.parse(["obs", "import", "trace.json", "--persist"])
+
       assert {:error, _} = CLI.parse(["obs", "run", "not-an-id"])
     end
 
@@ -1745,6 +1749,42 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert output =~ "Mutation: none"
     end
 
+    test "obs import persist stores a local telemetry snapshot", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+      write_binding(tmp_dir, session)
+
+      export_output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_export, options: %{json: true}, args: [session.id]},
+                     project_root: "."
+                   )
+        end)
+
+      path = Path.join(tmp_dir, "observability-export.json")
+      File.write!(path, export_output)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_import, options: %{persist: true}, args: [path]},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability import persisted:"
+      assert output =~ "Status: stored"
+      assert output =~ "Integrity: verified"
+      assert output =~ "Mutation: none"
+      assert Repo.aggregate(ImportedEnvelope, :count, :id) == 1
+
+      persisted = Repo.one(ImportedEnvelope)
+      assert persisted.workspace_id == session.workspace_id
+      assert persisted.session_id == session.id
+    end
+
     test "obs import requires dry-run", %{tmp_dir: tmp_dir} do
       path = Path.join(tmp_dir, "observability-export.json")
       File.write!(path, Jason.encode!(%{}))
@@ -1758,7 +1798,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                    )
         end)
 
-      assert output =~ "preview-only"
+      assert output =~ "requires --dry-run or --persist"
     end
   end
 

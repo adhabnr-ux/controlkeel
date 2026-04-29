@@ -402,8 +402,8 @@ defmodule ControlKeel.Help do
       controlkeel obs timeline [id]   Show recent session timeline events
       controlkeel obs memory [id]     Show session memory and context summary
       controlkeel obs export <id>     Export a local observability envelope
-      controlkeel obs import <file> --dry-run
-                                      Validate and preview an observability envelope
+      controlkeel obs import <file> --dry-run|--persist
+                                      Preview or persist a local observability envelope snapshot
       controlkeel update [options]    Check for a newer GitHub release and refresh attached surfaces
       controlkeel context [options]   Show governed session context via the CK context surface
       controlkeel validate [options]  Validate proposed content via the CK validation surface

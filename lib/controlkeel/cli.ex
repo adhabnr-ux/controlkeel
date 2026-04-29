@@ -137,7 +137,7 @@ defmodule ControlKeel.CLI do
   @policy_train_switches [type: :string]
   @watch_switches [interval: :integer, status: :boolean]
   @obs_switches [by: :string, format: :string, json: :boolean, limit: :integer]
-  @obs_import_switches [dry_run: :boolean, format: :string, json: :boolean]
+  @obs_import_switches [dry_run: :boolean, persist: :boolean, format: :string, json: :boolean]
   @audit_log_switches [format: :string]
   @service_account_create_switches [workspace_id: :integer, name: :string, scopes: :string]
   @service_account_list_switches [workspace_id: :integer]
@@ -2190,20 +2190,19 @@ defmodule ControlKeel.CLI do
     end
   end
 
-  def run_command(%{command: :obs_import, args: [file_path], options: options}, _project_root) do
+  def run_command(%{command: :obs_import, args: [file_path], options: options}, project_root) do
     with {:ok, format} <- effective_cli_format(options),
-         {:ok, preview} <-
-           ObservabilityTelemetry.import_preview(file_path, dry_run: options[:dry_run] == true) do
+         {:ok, result} <- observability_import(file_path, options, project_root) do
       case format do
-        "json" -> {:ok, [Jason.encode!(preview)]}
-        _ -> {:ok, observability_import_preview_lines(preview)}
+        "json" -> {:ok, [Jason.encode!(result)]}
+        _ -> {:ok, observability_import_lines(result)}
       end
     else
       {:error, {:invalid_output_format, message}} ->
         {:error, message}
 
       {:error, :dry_run_required} ->
-        {:error, "Observability import is preview-only; pass --dry-run."}
+        {:error, "Observability import requires --dry-run or --persist."}
 
       {:error, :enoent} ->
         {:error, "Observability import file was not found."}
@@ -2222,6 +2221,10 @@ defmodule ControlKeel.CLI do
 
       {:error, :invalid_envelope} ->
         {:error, "Observability import file must contain a JSON object envelope."}
+
+      {:error, {:integrity_not_verified, status}} ->
+        {:error,
+         "Observability envelope integrity must be verified before persistence; got #{status || "unknown"}."}
     end
   end
 
@@ -5000,7 +5003,30 @@ defmodule ControlKeel.CLI do
     ]
   end
 
-  defp observability_import_preview_lines(preview) do
+  defp observability_import(file_path, options, project_root) do
+    cond do
+      options[:persist] == true ->
+        ObservabilityTelemetry.import_persist(file_path, observability_import_opts(project_root))
+
+      options[:dry_run] == true ->
+        ObservabilityTelemetry.import_preview(file_path, dry_run: true)
+
+      true ->
+        {:error, :dry_run_required}
+    end
+  end
+
+  defp observability_import_opts(project_root) do
+    case ensure_local_project(project_root) do
+      {:ok, _binding, session, _mode} ->
+        [workspace_id: session.workspace_id, session_id: session.id]
+
+      _other ->
+        []
+    end
+  end
+
+  defp observability_import_lines(%{dry_run: true} = preview) do
     [
       "Observability import dry-run:",
       "Schema: #{preview.schema_version}",
@@ -5012,6 +5038,24 @@ defmodule ControlKeel.CLI do
       "Redaction: #{preview.redaction_policy || "unknown"}",
       "Integrity: #{preview.integrity_status || "unknown"}",
       "Mutation: #{preview.mutation}"
+    ]
+  end
+
+  defp observability_import_lines(result) do
+    [
+      "Observability import persisted:",
+      "Status: #{result.status}",
+      "Record: ##{result.id}",
+      "Schema: #{result.schema_version}",
+      "Exported at: #{result.exported_at}",
+      "Imported at: #{result.imported_at}",
+      "Session: #{result.session_title || "unknown"} (##{result.session_id || "unknown"})",
+      "Health: #{result.health || "unknown"}",
+      "Problem groups: #{result.problem_groups}",
+      "Total problem findings: #{result.total_problem_findings}",
+      "Redaction: #{result.redaction_policy || "unknown"}",
+      "Integrity: #{result.integrity_status || "unknown"}",
+      "Mutation: #{result.mutation}"
     ]
   end
 

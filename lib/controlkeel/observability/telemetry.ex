@@ -2,6 +2,8 @@ defmodule ControlKeel.Observability.Telemetry do
   @moduledoc false
 
   alias ControlKeel.Observability
+  alias ControlKeel.Observability.ImportedEnvelope
+  alias ControlKeel.Repo
 
   @schema_version "controlkeel.observability.v1"
   @required_keys ~w(schema_version exported_at source session_run problems redaction integrity)
@@ -22,16 +24,20 @@ defmodule ControlKeel.Observability.Telemetry do
 
   def import_preview(path, opts \\ []) when is_binary(path) do
     with true <- Keyword.get(opts, :dry_run, false) || {:error, :dry_run_required},
-         {:ok, contents} <- File.read(path),
-         {:ok, payload} <- Jason.decode(contents),
-         :ok <- validate_envelope(payload) do
+         {:ok, payload} <- read_envelope(path) do
       {:ok, preview(payload)}
     else
-      {:error, %Jason.DecodeError{} = error} ->
-        {:error, {:invalid_json, Exception.message(error)}}
-
       error ->
         error
+    end
+  end
+
+  def import_persist(path, opts \\ []) when is_binary(path) do
+    with {:ok, payload} <- read_envelope(path),
+         preview <- preview(payload),
+         :ok <- ensure_verified(preview),
+         {:ok, result} <- persist_payload(payload, preview, opts) do
+      {:ok, result}
     end
   end
 
@@ -57,6 +63,20 @@ defmodule ControlKeel.Observability.Telemetry do
   end
 
   def validate_envelope(_payload), do: {:error, :invalid_envelope}
+
+  defp read_envelope(path) do
+    with {:ok, contents} <- File.read(path),
+         {:ok, payload} <- Jason.decode(contents),
+         :ok <- validate_envelope(payload) do
+      {:ok, payload}
+    else
+      {:error, %Jason.DecodeError{} = error} ->
+        {:error, {:invalid_json, Exception.message(error)}}
+
+      error ->
+        error
+    end
+  end
 
   defp envelope(run, problems, opts) do
     exported_at =
@@ -131,6 +151,81 @@ defmodule ControlKeel.Observability.Telemetry do
       payload_sha256: Map.get(integrity, "payload_sha256")
     }
   end
+
+  defp ensure_verified(%{integrity_status: "verified"}), do: :ok
+
+  defp ensure_verified(%{integrity_status: status}),
+    do: {:error, {:integrity_not_verified, status}}
+
+  defp persist_payload(payload, preview, opts) do
+    case Repo.get_by(ImportedEnvelope, payload_sha256: preview.payload_sha256) do
+      %ImportedEnvelope{} = existing ->
+        {:ok, import_result(existing, "duplicate")}
+
+      nil ->
+        %ImportedEnvelope{}
+        |> ImportedEnvelope.changeset(import_attrs(payload, preview, opts))
+        |> Repo.insert()
+        |> case do
+          {:ok, record} -> {:ok, import_result(record, "stored")}
+          error -> error
+        end
+    end
+  end
+
+  defp import_attrs(payload, preview, opts) do
+    %{
+      schema_version: preview.schema_version,
+      exported_at: parse_datetime(preview.exported_at),
+      source: Map.get(payload, "source", %{}),
+      original_session_id: preview.session_id,
+      original_session_title: preview.session_title,
+      health: preview.health,
+      problem_groups: preview.problem_groups,
+      total_problem_findings: preview.total_problem_findings,
+      redaction_policy: preview.redaction_policy,
+      integrity_status: preview.integrity_status,
+      payload_sha256: preview.payload_sha256,
+      import_mode: "local_persist",
+      imported_at:
+        Keyword.get(opts, :imported_at, DateTime.utc_now()) |> DateTime.truncate(:second),
+      envelope: payload,
+      workspace_id: Keyword.get(opts, :workspace_id),
+      session_id: Keyword.get(opts, :session_id)
+    }
+  end
+
+  defp import_result(%ImportedEnvelope{} = record, status) do
+    %{
+      status: status,
+      id: record.id,
+      schema_version: record.schema_version,
+      exported_at: datetime_to_iso8601(record.exported_at),
+      imported_at: datetime_to_iso8601(record.imported_at),
+      import_mode: record.import_mode,
+      session_id: record.original_session_id,
+      session_title: record.original_session_title,
+      health: record.health,
+      problem_groups: record.problem_groups,
+      total_problem_findings: record.total_problem_findings,
+      redaction_policy: record.redaction_policy,
+      integrity_status: record.integrity_status,
+      payload_sha256: record.payload_sha256,
+      mutation: "none"
+    }
+  end
+
+  defp parse_datetime(nil), do: nil
+
+  defp parse_datetime(value) when is_binary(value) do
+    case DateTime.from_iso8601(value) do
+      {:ok, datetime, _offset} -> DateTime.truncate(datetime, :second)
+      _other -> nil
+    end
+  end
+
+  defp datetime_to_iso8601(nil), do: nil
+  defp datetime_to_iso8601(%DateTime{} = datetime), do: DateTime.to_iso8601(datetime)
 
   defp integrity_status(payload) do
     expected = get_in(payload, ["integrity", "payload_sha256"])

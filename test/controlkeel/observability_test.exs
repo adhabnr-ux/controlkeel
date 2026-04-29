@@ -7,6 +7,7 @@ defmodule ControlKeel.ObservabilityTest do
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Finding, Invocation, Session, SessionEvent}
   alias ControlKeel.Observability
+  alias ControlKeel.Observability.ImportedEnvelope
   alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
   alias ControlKeel.Repo
 
@@ -512,5 +513,101 @@ defmodule ControlKeel.ObservabilityTest do
              ObservabilityTelemetry.import_preview(path, dry_run: true)
 
     assert "session_run" in missing
+  end
+
+  test "telemetry import persist stores a local snapshot without mutating operational records" do
+    session = session_fixture()
+    session_count = Repo.aggregate(Session, :count, :id)
+    finding_count = Repo.aggregate(Finding, :count, :id)
+
+    assert {:ok, envelope} =
+             ObservabilityTelemetry.export_session(session.id,
+               exported_at: ~U[2026-04-29 04:00:00Z]
+             )
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-observability-persist-#{System.unique_integer()}.json"
+      )
+
+    File.write!(path, Jason.encode!(envelope))
+
+    assert {:ok, result} =
+             ObservabilityTelemetry.import_persist(path,
+               workspace_id: session.workspace_id,
+               session_id: session.id,
+               imported_at: ~U[2026-04-29 05:00:00Z]
+             )
+
+    assert result.status == "stored"
+    assert result.session_id == session.id
+    assert result.session_title == session.title
+    assert result.integrity_status == "verified"
+    assert result.payload_sha256 == envelope.integrity.payload_sha256
+    assert result.imported_at == "2026-04-29T05:00:00Z"
+    assert result.mutation == "none"
+
+    persisted = Repo.get!(ImportedEnvelope, result.id)
+    assert persisted.workspace_id == session.workspace_id
+    assert persisted.session_id == session.id
+    assert persisted.original_session_id == session.id
+    assert persisted.envelope["schema_version"] == ObservabilityTelemetry.schema_version()
+
+    assert Repo.aggregate(Session, :count, :id) == session_count
+    assert Repo.aggregate(Finding, :count, :id) == finding_count
+  end
+
+  test "telemetry import persist deduplicates by payload hash" do
+    session = session_fixture()
+
+    assert {:ok, envelope} =
+             ObservabilityTelemetry.export_session(session.id,
+               exported_at: ~U[2026-04-29 04:00:00Z]
+             )
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-observability-dupe-#{System.unique_integer()}.json"
+      )
+
+    File.write!(path, Jason.encode!(envelope))
+
+    assert {:ok, first} = ObservabilityTelemetry.import_persist(path)
+    assert {:ok, second} = ObservabilityTelemetry.import_persist(path)
+
+    assert first.status == "stored"
+    assert second.status == "duplicate"
+    assert second.id == first.id
+    assert Repo.aggregate(ImportedEnvelope, :count, :id) == 1
+  end
+
+  test "telemetry import persist rejects unverified envelopes" do
+    session = session_fixture()
+
+    assert {:ok, envelope} =
+             ObservabilityTelemetry.export_session(session.id,
+               exported_at: ~U[2026-04-29 04:00:00Z]
+             )
+
+    tampered =
+      envelope
+      |> Jason.encode!()
+      |> Jason.decode!()
+      |> put_in(["session_run", "health", "status"], "red")
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-observability-rejected-#{System.unique_integer()}.json"
+      )
+
+    File.write!(path, Jason.encode!(tampered))
+
+    assert {:error, {:integrity_not_verified, "mismatch"}} =
+             ObservabilityTelemetry.import_persist(path)
+
+    assert Repo.aggregate(ImportedEnvelope, :count, :id) == 0
   end
 end
