@@ -150,7 +150,11 @@ if config_env() == :prod do
 
   config :controlkeel, ControlKeel.Repo,
     database: database_path,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+    journal_mode: :wal,
+    synchronous: :normal,
+    queue_target: 50,
+    queue_interval: 1_000
 
   if runtime_mode == :cloud do
     database_url =

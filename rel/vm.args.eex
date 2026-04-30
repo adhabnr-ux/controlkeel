@@ -1,0 +1,32 @@
+## BEAM VM tuning for ControlKeel release binary
+##
+## Scheduler flags — reduce idle CPU burn and battery drain on developer machines.
+## These are safe for both local MCP server use and cloud deployment.
+
+# Match online schedulers to logical CPU count (default; explicit for clarity).
++S <%= :erlang.system_info(:logical_processors_available) %>:<%= :erlang.system_info(:logical_processors_available) %>
+
+# Disable scheduler busy-wait. Default BEAM spins at 100% on idle schedulers,
+# which drains battery on laptops even when the MCP server is idle between calls.
++sbwt none
+
+# Low wakeup threshold: schedulers sleep quickly when there is no work.
+# Pairs with +sbwt none for near-zero CPU when idle.
++swt very_low
+
+# Reduce dirty-CPU and dirty-IO thread counts for an I/O-bound governance tool.
+# Default is 10 each; 4 is sufficient for local + light cloud workloads.
++SDcpu 4:4
++SDio 4
+
+# Best-fit allocator reduces long-running process memory fragmentation.
++MBas aobf
++MHas aobf
++MBlmbcs 512
+
+# Allow enough ports for multi-agent MCP + Phoenix HTTP + internal BEAM traffic.
+-env ERL_MAX_PORTS 65536
+
+# Crash dumps go to a predictable location rather than cwd.
+-env ERL_CRASH_DUMP /tmp/controlkeel_erl_crash.dump
+-env ERL_CRASH_DUMP_SECONDS 10

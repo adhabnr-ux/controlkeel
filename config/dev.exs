@@ -3,9 +3,16 @@ import Config
 # Configure your database
 config :controlkeel, ControlKeel.Repo,
   database: Path.expand("../controlkeel_dev.db", __DIR__),
-  pool_size: 5,
+  pool_size: 10,
   # Avoid long waits when another process (e.g. phx.server + MCP) holds SQLite.
   busy_timeout: 15_000,
+  # WAL mode: concurrent readers don't block writers; ~3-5x write latency improvement.
+  journal_mode: :wal,
+  # NORMAL sync is safe for local dev and avoids fsync on every commit.
+  synchronous: :normal,
+  # Emit telemetry when checkout queues — catch pool saturation early.
+  queue_target: 50,
+  queue_interval: 1_000,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true
 

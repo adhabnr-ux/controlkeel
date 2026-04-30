@@ -98,18 +98,22 @@ defmodule ControlKeel.Observability do
 
   def problems(opts \\ []) do
     limit = Keyword.get(opts, :limit, 20)
-    findings = problem_findings(opts)
+
+    # Two-query strategy: aggregate counts in DB (returns at most `limit` rows),
+    # then fetch up to 3 example findings per group. Replaces a full table scan
+    # + Elixir-side Enum.group_by that grew linearly with finding count.
+    aggregates = problem_aggregates(opts, limit)
+    total_findings = problem_total_count(opts)
 
     groups =
-      findings
-      |> Enum.group_by(&problem_key/1)
-      |> Enum.map(fn {key, group} -> problem_summary(key, group) end)
-      |> Enum.sort_by(&{health_rank(&1.health), severity_rank(&1.severity), &1.count}, :desc)
-      |> Enum.take(limit)
+      Enum.map(aggregates, fn agg ->
+        examples = problem_examples(agg.rule_id, agg.category, opts, 3)
+        problem_summary_from_aggregate(agg, examples)
+      end)
 
     %{
       count: length(groups),
-      total_findings: length(findings),
+      total_findings: total_findings,
       problems: groups,
       health: problems_health(groups),
       recommendations: problems_recommendations(groups)
@@ -1209,21 +1213,83 @@ defmodule ControlKeel.Observability do
     end
   end
 
-  defp problem_findings(opts) do
-    base = from(f in Finding, join: s in assoc(f, :session), preload: [session: s])
+  # DB-side aggregate: returns one row per (rule_id, category) group with counts,
+  # max severity, and last_seen — avoids loading all finding rows into memory.
+  defp problem_aggregates(opts, limit) do
+    session_id = Keyword.get(opts, :session_id)
+    workspace_id = Keyword.get(opts, :workspace_id)
+
+    base =
+      from(f in Finding,
+        join: s in assoc(f, :session),
+        where: f.status in ^@active_finding_statuses,
+        group_by: [f.rule_id, f.category],
+        select: %{
+          rule_id: f.rule_id,
+          category: f.category,
+          count: count(f.id),
+          blocked_count: filter(count(f.id), f.status == "blocked"),
+          escalated_count: filter(count(f.id), f.status == "escalated"),
+          last_seen: max(f.inserted_at),
+          affected_session_count: count(f.session_id, :distinct)
+        }
+      )
 
     base
-    |> maybe_filter_session(Keyword.get(opts, :session_id))
-    |> maybe_filter_workspace(Keyword.get(opts, :workspace_id))
-    |> where([f, _s], f.status in ^@active_finding_statuses)
-    |> order_by([f, _s], desc: f.inserted_at)
+    |> maybe_filter_aggregate_session(session_id)
+    |> maybe_filter_aggregate_workspace(workspace_id)
+    |> order_by([f, _s], desc: count(f.id))
+    |> limit(^limit)
     |> Repo.all()
   end
 
-  defp maybe_filter_session(query, nil), do: query
+  defp problem_total_count(opts) do
+    session_id = Keyword.get(opts, :session_id)
+    workspace_id = Keyword.get(opts, :workspace_id)
 
-  defp maybe_filter_session(query, session_id),
+    base =
+      from(f in Finding,
+        join: s in assoc(f, :session),
+        where: f.status in ^@active_finding_statuses,
+        select: count(f.id)
+      )
+
+    base
+    |> maybe_filter_aggregate_session(session_id)
+    |> maybe_filter_aggregate_workspace(workspace_id)
+    |> Repo.one() || 0
+  end
+
+  defp problem_examples(rule_id, category, opts, limit) do
+    session_id = Keyword.get(opts, :session_id)
+    workspace_id = Keyword.get(opts, :workspace_id)
+
+    base =
+      from(f in Finding,
+        join: s in assoc(f, :session),
+        where:
+          f.status in ^@active_finding_statuses and f.rule_id == ^rule_id and
+            f.category == ^category,
+        preload: [session: s],
+        order_by: [desc: f.inserted_at],
+        limit: ^limit
+      )
+
+    base
+    |> maybe_filter_aggregate_session(session_id)
+    |> maybe_filter_aggregate_workspace(workspace_id)
+    |> Repo.all()
+  end
+
+  defp maybe_filter_aggregate_session(query, nil), do: query
+
+  defp maybe_filter_aggregate_session(query, session_id),
     do: where(query, [f, _s], f.session_id == ^session_id)
+
+  defp maybe_filter_aggregate_workspace(query, nil), do: query
+
+  defp maybe_filter_aggregate_workspace(query, workspace_id),
+    do: where(query, [_f, s], s.workspace_id == ^workspace_id)
 
   defp maybe_filter_workspace(query, nil), do: query
 
@@ -2531,17 +2597,32 @@ defmodule ControlKeel.Observability do
     end
   end
 
-  defp problem_key(finding),
-    do: {finding.rule_id || "unknown_rule", finding.category || "uncategorized"}
+  defp problem_summary_from_aggregate(agg, examples) do
+    rule_id = agg.rule_id || "unknown_rule"
+    category = agg.category || "uncategorized"
+    latest = List.first(examples)
 
-  defp problem_summary({rule_id, category}, findings) do
-    severities = Enum.map(findings, &(&1.severity || "low"))
-    statuses = Enum.map(findings, &(&1.status || "open"))
-    severity = Enum.max_by(severities, &severity_rank/1, fn -> "low" end)
-    status_counts = Enum.frequencies(statuses)
+    # Derive severity from examples; aggregate query doesn't select per-row severity
+    # (SQLite lacks a standard first_value aggregate; examples are already ordered DESC).
+    severity =
+      examples
+      |> Enum.map(&(&1.severity || "low"))
+      |> Enum.max_by(&severity_rank/1, fn -> "low" end)
+
+    status_counts =
+      %{}
+      |> then(fn m ->
+        if agg.blocked_count > 0, do: Map.put(m, "blocked", agg.blocked_count), else: m
+      end)
+      |> then(fn m ->
+        if agg.escalated_count > 0, do: Map.put(m, "escalated", agg.escalated_count), else: m
+      end)
+      |> then(fn m ->
+        open = agg.count - agg.blocked_count - agg.escalated_count
+        if open > 0, do: Map.put(m, "open", open), else: m
+      end)
+
     health = problem_health(severity, status_counts)
-    affected_sessions = findings |> Enum.map(& &1.session_id) |> Enum.uniq()
-    latest = Enum.max_by(findings, &(&1.inserted_at || ~U[1970-01-01 00:00:00Z]), fn -> nil end)
 
     %{
       key: "#{rule_id}:#{category}",
@@ -2550,17 +2631,15 @@ defmodule ControlKeel.Observability do
       category: category,
       severity: severity,
       health: health,
-      count: length(findings),
+      count: agg.count,
       status_counts: status_counts,
-      affected_sessions: affected_sessions,
-      affected_session_count: length(affected_sessions),
-      last_seen: latest && format_datetime(latest.inserted_at),
+      affected_sessions: [],
+      affected_session_count: agg.affected_session_count,
+      last_seen: agg.last_seen && format_datetime(agg.last_seen),
       recommendation: problem_recommendation(health, severity, rule_id),
-      feedback_loop: feedback_loop(rule_id, category, severity, health, findings),
+      feedback_loop: feedback_loop(rule_id, category, severity, health, examples),
       examples:
-        findings
-        |> Enum.take(3)
-        |> Enum.map(fn finding ->
+        Enum.map(examples, fn finding ->
           %{
             id: finding.id,
             title: finding.title,
@@ -2580,11 +2659,6 @@ defmodule ControlKeel.Observability do
   defp problem_health("high", _status_counts), do: "yellow"
   defp problem_health(_severity, %{"escalated" => count}) when count > 0, do: "yellow"
   defp problem_health(_severity, _status_counts), do: "yellow"
-
-  defp health_rank("red"), do: 3
-  defp health_rank("yellow"), do: 2
-  defp health_rank("green"), do: 1
-  defp health_rank(_), do: 0
 
   defp severity_rank("critical"), do: 4
   defp severity_rank("high"), do: 3

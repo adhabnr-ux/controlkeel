@@ -5,7 +5,21 @@ defmodule ControlKeelWeb.ProxyController do
   alias ControlKeel.Proxy
   alias ControlKeel.Proxy.{Errors, Governor, Payload, SSE}
 
-  @hop_by_hop_headers ~w(connection content-length host transfer-encoding)
+  # Strip hop-by-hop headers and upstream CORS headers. Upstreams (OpenAI, Anthropic,
+  # Gemini) often return Access-Control-Allow-Origin: * which must not be forwarded
+  # to browser clients — the proxy sets its own CORS policy via the router pipeline.
+  @hop_by_hop_headers ~w(
+    connection
+    content-length
+    host
+    transfer-encoding
+    access-control-allow-origin
+    access-control-allow-credentials
+    access-control-allow-methods
+    access-control-allow-headers
+    access-control-expose-headers
+    access-control-max-age
+  )
 
   def openai_responses(conn, params),
     do: handle_proxy(conn, params, :openai, :responses, "/v1/responses")
