@@ -575,22 +575,25 @@ defmodule ControlKeel.SkillsTest do
     assert governance.required_mcp_tools != []
   end
 
-  test "checked-in attached skill copies include observability loop guidance" do
+  test "built-in skills include observability loop guidance" do
     root = Path.expand("../..", __DIR__)
+    skills = ["benchmark-operator", "policy-training", "proof-memory", "ship-readiness"]
 
-    for target <- [".claude/skills", ".github/skills"],
-        skill <- ["benchmark-operator", "policy-training", "proof-memory", "ship-readiness"] do
-      path = Path.join([root, target, skill, "SKILL.md"])
-      assert File.exists?(path)
-      contents = File.read!(path)
+    for skill <- skills do
+      contents = File.read!(Path.join([root, "priv/skills", skill, "SKILL.md"]))
       assert contents =~ "ck_observability"
     end
 
-    assert File.read!(Path.join([root, ".claude/skills/ship-readiness/SKILL.md"])) =~
+    assert File.read!(Path.join([root, "priv/skills/ship-readiness/SKILL.md"])) =~
              "loop_status"
 
-    assert File.read!(Path.join([root, ".github/skills/ship-readiness/SKILL.md"])) =~
-             "loop_status"
+    for target <- [".claude/skills", ".github/skills"],
+        File.dir?(Path.join(root, target)),
+        skill <- skills do
+      path = Path.join([root, target, skill, "SKILL.md"])
+      assert File.exists?(path)
+      assert File.read!(path) =~ "ck_observability"
+    end
   end
 
   test "export writes codex and claude plugin bundles", %{tmp_dir: tmp_dir} do
