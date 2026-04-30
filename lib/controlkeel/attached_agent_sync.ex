@@ -60,7 +60,8 @@ defmodule ControlKeel.AttachedAgentSync do
           with %AgentIntegration{} = integration <- inferred_integration(agent_key),
                {:ok, target} <- inferred_target(attrs, integration),
                {:ok, scope} <- inferred_scope(attrs, integration),
-               {:ok, result} <- Skills.install(target, project_root, scope: scope) do
+               {:ok, result} <-
+                 Skills.install(target, project_root, scope: scope, write_agents_md: false) do
             updated_attrs =
               attrs
               |> Map.put("target", target)

@@ -1917,6 +1917,25 @@ defmodule ControlKeel.SkillsTest do
     assert plugin["version"] == current
   end
 
+  test "install with write_agents_md: false does not overwrite AGENTS.md", %{tmp_dir: tmp_dir} do
+    agents_md = Path.join(tmp_dir, "AGENTS.md")
+    File.write!(agents_md, "# sentinel\n")
+
+    assert {:ok, _} =
+             Skills.install("cursor-native", tmp_dir, scope: "project", write_agents_md: false)
+
+    assert File.read!(agents_md) == "# sentinel\n"
+  end
+
+  test "install with write_agents_md: true (default) updates AGENTS.md", %{tmp_dir: tmp_dir} do
+    agents_md = Path.join(tmp_dir, "AGENTS.md")
+
+    assert {:ok, _} = Skills.install("cursor-native", tmp_dir, scope: "project")
+
+    assert File.exists?(agents_md)
+    assert File.read!(agents_md) =~ "ControlKeel"
+  end
+
   defp prompt_hook_output(hook_path, prompt) do
     input = Jason.encode!(%{"prompt" => prompt})
 

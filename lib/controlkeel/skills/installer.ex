@@ -49,7 +49,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "codex"}, scope, project_root, skills, _opts)
+  defp do_install(%SkillTarget{id: "codex"}, scope, project_root, skills, opts)
        when scope in ["user", "project"] do
     compat_skill_root =
       if scope == "user",
@@ -104,7 +104,7 @@ defmodule ControlKeel.Skills.Installer do
 
     if scope == "project" do
       File.cp!(Path.join(plan.output_dir, ".mcp.json"), Path.join(project_root, ".mcp.json"))
-      install_project_agents_md!(plan.output_dir, project_root)
+      maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     end
 
     {:ok,
@@ -197,7 +197,7 @@ defmodule ControlKeel.Skills.Installer do
     install_plugin_bundle("claude-plugin", "claude", scope, project_root)
   end
 
-  defp do_install(%SkillTarget{id: "devin-terminal-native"}, scope, project_root, _skills, _opts)
+  defp do_install(%SkillTarget{id: "devin-terminal-native"}, scope, project_root, _skills, opts)
        when scope in ["user", "project"] do
     {:ok, plan} = Exporter.export("devin-terminal-native", project_root, scope: scope)
 
@@ -236,7 +236,7 @@ defmodule ControlKeel.Skills.Installer do
     File.cp!(Path.join(plan.output_dir, ".devin/README.md"), Path.join(devin_root, "README.md"))
 
     if scope == "project" do
-      install_project_agents_md!(plan.output_dir, project_root)
+      maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     end
 
     {:ok,
@@ -252,7 +252,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "cline-native"}, scope, project_root, skills, _opts)
+  defp do_install(%SkillTarget{id: "cline-native"}, scope, project_root, skills, opts)
        when scope in ["user", "project"] do
     {:ok, plan} = Exporter.export("cline-native", project_root, scope: scope)
 
@@ -320,7 +320,7 @@ defmodule ControlKeel.Skills.Installer do
           Path.join(project_root, ".cline/hooks")
         )
 
-        install_project_agents_md!(plan.output_dir, project_root)
+        maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
 
         {:ok,
          %{
@@ -334,7 +334,7 @@ defmodule ControlKeel.Skills.Installer do
     end
   end
 
-  defp do_install(%SkillTarget{id: "cursor-native"}, "project", project_root, skills, _opts) do
+  defp do_install(%SkillTarget{id: "cursor-native"}, "project", project_root, skills, opts) do
     {:ok, plan} = Exporter.export("cursor-native", project_root, scope: "project")
 
     copy_skills(skills, Path.join(project_root, ".agents/skills"))
@@ -352,7 +352,7 @@ defmodule ControlKeel.Skills.Installer do
         Path.join(project_root, ".cursor-plugin")
       )
 
-      install_project_agents_md!(plan.output_dir, project_root)
+      maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     end
 
     {:ok,
@@ -365,7 +365,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "windsurf-native"}, "project", project_root, skills, _opts) do
+  defp do_install(%SkillTarget{id: "windsurf-native"}, "project", project_root, skills, opts) do
     {:ok, plan} = Exporter.export("windsurf-native", project_root, scope: "project")
 
     copy_skills(skills, Path.join(project_root, ".agents/skills"))
@@ -375,7 +375,7 @@ defmodule ControlKeel.Skills.Installer do
       Path.join(project_root, ".windsurf")
     )
 
-    install_project_agents_md!(plan.output_dir, project_root)
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
 
     {:ok,
      %{
@@ -386,7 +386,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "continue-native"}, "project", project_root, skills, _opts) do
+  defp do_install(%SkillTarget{id: "continue-native"}, "project", project_root, skills, opts) do
     {:ok, plan} = Exporter.export("continue-native", project_root, scope: "project")
 
     copy_skills(skills, Path.join(project_root, ".continue/skills"))
@@ -396,7 +396,7 @@ defmodule ControlKeel.Skills.Installer do
       Path.join(project_root, ".continue")
     )
 
-    install_project_agents_md!(plan.output_dir, project_root)
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
 
     {:ok,
      %{
@@ -406,7 +406,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "letta-code-native"}, "project", project_root, skills, _opts) do
+  defp do_install(%SkillTarget{id: "letta-code-native"}, "project", project_root, skills, opts) do
     {:ok, plan} = Exporter.export("letta-code-native", project_root, scope: "project")
 
     skill_root = Path.join(project_root, ".agents/skills")
@@ -415,7 +415,7 @@ defmodule ControlKeel.Skills.Installer do
     copy_skills(skills, skill_root)
     copy_tree_contents(Path.join(plan.output_dir, ".letta"), letta_root)
     File.cp!(Path.join(plan.output_dir, ".mcp.json"), Path.join(project_root, ".mcp.json"))
-    install_project_agents_md!(plan.output_dir, project_root)
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
 
     {:ok,
      %{
@@ -448,7 +448,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "roo-native"}, "project", project_root, skills, _opts) do
+  defp do_install(%SkillTarget{id: "roo-native"}, "project", project_root, skills, opts) do
     {:ok, plan} = Exporter.export("roo-native", project_root, scope: "project")
 
     skill_root = Path.join(project_root, ".roo/skills")
@@ -458,7 +458,7 @@ defmodule ControlKeel.Skills.Installer do
     copy_tree_contents(Path.join(plan.output_dir, ".roo"), roo_root)
     File.cp!(Path.join(plan.output_dir, ".roomodes"), Path.join(project_root, ".roomodes"))
     File.cp!(Path.join(plan.output_dir, ".mcp.json"), Path.join(project_root, ".mcp.json"))
-    install_project_agents_md!(plan.output_dir, project_root)
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
 
     {:ok,
      %{
@@ -471,7 +471,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "warp-native"}, scope, project_root, _skills, _opts)
+  defp do_install(%SkillTarget{id: "warp-native"}, scope, project_root, _skills, opts)
        when scope in ["user", "project"] do
     {:ok, plan} = Exporter.export("warp-native", project_root, scope: scope)
 
@@ -499,7 +499,7 @@ defmodule ControlKeel.Skills.Installer do
     File.cp!(Path.join(plan.output_dir, ".warp/README.md"), Path.join(warp_root, "README.md"))
 
     if scope == "project" do
-      install_project_agents_md!(plan.output_dir, project_root)
+      maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     end
 
     {:ok,
@@ -513,7 +513,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "goose-native"}, "project", project_root, _skills, _opts) do
+  defp do_install(%SkillTarget{id: "goose-native"}, "project", project_root, _skills, opts) do
     {:ok, plan} = Exporter.export("goose-native", project_root, scope: "project")
 
     workflow_root = Path.join(project_root, "goose/workflow_recipes")
@@ -521,7 +521,7 @@ defmodule ControlKeel.Skills.Installer do
     copy_tree_contents(Path.join(plan.output_dir, "goose"), Path.join(project_root, "goose"))
     File.cp!(Path.join(plan.output_dir, ".goosehints"), Path.join(project_root, ".goosehints"))
     File.cp!(Path.join(plan.output_dir, ".mcp.json"), Path.join(project_root, ".mcp.json"))
-    install_project_agents_md!(plan.output_dir, project_root)
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
 
     {:ok,
      %{
@@ -533,7 +533,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "opencode-native"}, "project", project_root, skills, _opts) do
+  defp do_install(%SkillTarget{id: "opencode-native"}, "project", project_root, skills, opts) do
     {:ok, plan} = Exporter.export("opencode-native", project_root, scope: "project")
 
     opencode_root = Path.join(project_root, ".opencode")
@@ -559,7 +559,7 @@ defmodule ControlKeel.Skills.Installer do
       Path.join(opencode_root, "mcp.json")
     )
 
-    install_project_agents_md!(plan.output_dir, project_root)
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
 
     {:ok,
      %{
@@ -613,7 +613,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "kiro-native"}, "project", project_root, _skills, _opts) do
+  defp do_install(%SkillTarget{id: "kiro-native"}, "project", project_root, _skills, opts) do
     {:ok, plan} = Exporter.export("kiro-native", project_root, scope: "project")
 
     kiro_root = Path.join(project_root, ".kiro")
@@ -637,7 +637,7 @@ defmodule ControlKeel.Skills.Installer do
       Path.join(kiro_root, "mcp.json")
     )
 
-    install_project_agents_md!(plan.output_dir, project_root)
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
 
     {:ok,
      %{
@@ -651,7 +651,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "kilo-native"}, "project", project_root, skills, _opts) do
+  defp do_install(%SkillTarget{id: "kilo-native"}, "project", project_root, skills, opts) do
     kilo_root = Path.join(project_root, ".kilo")
     skills_root = Path.join(kilo_root, "skills")
 
@@ -669,7 +669,7 @@ defmodule ControlKeel.Skills.Installer do
       Path.join(kilo_root, "kilo.json")
     )
 
-    install_project_agents_md!(plan.output_dir, project_root)
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
 
     {:ok,
      %{
@@ -681,7 +681,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "amp-native"}, "project", project_root, _skills, _opts) do
+  defp do_install(%SkillTarget{id: "amp-native"}, "project", project_root, _skills, opts) do
     {:ok, plan} = Exporter.export("amp-native", project_root, scope: "project")
 
     amp_root = Path.join(project_root, ".amp")
@@ -692,7 +692,7 @@ defmodule ControlKeel.Skills.Installer do
     copy_tree_contents(Path.join(plan.output_dir, ".amp"), amp_root)
     copy_tree_contents(Path.join(plan.output_dir, ".agents/skills"), skill_root)
     File.cp!(Path.join(plan.output_dir, ".mcp.json"), Path.join(project_root, ".mcp.json"))
-    install_project_agents_md!(plan.output_dir, project_root)
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
 
     {:ok,
      %{
@@ -705,14 +705,14 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "augment-native"}, "project", project_root, _skills, _opts) do
+  defp do_install(%SkillTarget{id: "augment-native"}, "project", project_root, _skills, opts) do
     {:ok, plan} = Exporter.export("augment-native", project_root, scope: "project")
 
     augment_root = Path.join(project_root, ".augment")
     File.mkdir_p!(augment_root)
 
     copy_tree_contents(Path.join(plan.output_dir, ".augment"), augment_root)
-    install_project_agents_md!(plan.output_dir, project_root)
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     File.cp!(Path.join(plan.output_dir, "AUGMENT.md"), Path.join(project_root, "AUGMENT.md"))
 
     {:ok,
@@ -727,10 +727,10 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "instructions-only"}, "project", project_root, _skills, _opts) do
+  defp do_install(%SkillTarget{id: "instructions-only"}, "project", project_root, _skills, opts) do
     {:ok, plan} = Exporter.export("instructions-only", project_root, scope: "project")
 
-    install_project_agents_md!(plan.output_dir, project_root)
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     File.cp!(Path.join(plan.output_dir, "CLAUDE.md"), Path.join(project_root, "CLAUDE.md"))
 
     File.cp!(
@@ -755,7 +755,7 @@ defmodule ControlKeel.Skills.Installer do
      }}
   end
 
-  defp do_install(%SkillTarget{id: "hermes-native"}, scope, project_root, skills, _opts)
+  defp do_install(%SkillTarget{id: "hermes-native"}, scope, project_root, skills, opts)
        when scope in ["user", "project"] do
     base =
       if(scope == "user",
@@ -771,14 +771,14 @@ defmodule ControlKeel.Skills.Installer do
     copy_tree_contents(Path.join(plan.output_dir, ".hermes"), base)
 
     if scope == "project" do
-      install_project_agents_md!(plan.output_dir, project_root)
+      maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     end
 
     {:ok,
      %{target: "hermes-native", scope: scope, destination: skill_root, agent_destination: base}}
   end
 
-  defp do_install(%SkillTarget{id: "openclaw-native"}, scope, project_root, skills, _opts)
+  defp do_install(%SkillTarget{id: "openclaw-native"}, scope, project_root, skills, opts)
        when scope in ["user", "project"] do
     {skill_root, config_root} =
       if scope == "user" do
@@ -798,7 +798,7 @@ defmodule ControlKeel.Skills.Installer do
     )
 
     if scope == "project" do
-      install_project_agents_md!(plan.output_dir, project_root)
+      maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     end
 
     {:ok,
@@ -839,7 +839,7 @@ defmodule ControlKeel.Skills.Installer do
     end
   end
 
-  defp do_install(%SkillTarget{id: "droid-bundle"}, scope, project_root, skills, _opts)
+  defp do_install(%SkillTarget{id: "droid-bundle"}, scope, project_root, skills, opts)
        when scope in ["user", "project"] do
     base =
       if(scope == "user",
@@ -855,14 +855,14 @@ defmodule ControlKeel.Skills.Installer do
     copy_tree_contents(Path.join(plan.output_dir, ".factory"), base)
 
     if scope == "project" do
-      install_project_agents_md!(plan.output_dir, project_root)
+      maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     end
 
     {:ok,
      %{target: "droid-bundle", scope: scope, destination: skill_root, agent_destination: base}}
   end
 
-  defp do_install(%SkillTarget{id: "forge-acp"}, scope, project_root, skills, _opts)
+  defp do_install(%SkillTarget{id: "forge-acp"}, scope, project_root, skills, opts)
        when scope in ["user", "project"] do
     skill_root =
       if scope == "user",
@@ -887,7 +887,7 @@ defmodule ControlKeel.Skills.Installer do
 
     if scope == "project" do
       File.cp!(Path.join(plan.output_dir, ".mcp.json"), Path.join(project_root, ".mcp.json"))
-      install_project_agents_md!(plan.output_dir, project_root)
+      maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     end
 
     {:ok,
@@ -1003,6 +1003,12 @@ defmodule ControlKeel.Skills.Installer do
       end)
 
     File.write!(destination_path, Jason.encode!(updated, pretty: true) <> "\n")
+  end
+
+  defp maybe_install_project_agents_md!(plan_output_dir, project_root, opts) do
+    unless Keyword.get(opts, :write_agents_md, true) == false do
+      install_project_agents_md!(plan_output_dir, project_root)
+    end
   end
 
   defp install_project_agents_md!(plan_output_dir, project_root) do
