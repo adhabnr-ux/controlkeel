@@ -54,6 +54,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "ck_execute_code",
              "ck_context",
              "ck_context_pack",
+             "ck_observability",
              "ck_experience_index",
              "ck_experience_read",
              "ck_trace_packet",
@@ -97,6 +98,21 @@ defmodule ControlKeel.MCP.ProtocolTest do
     by_name = Map.new(tools, &{&1["name"], &1})
 
     assert get_in(by_name["ck_context_pack"], ["inputSchema", "required"]) == []
+    assert get_in(by_name["ck_observability"], ["inputSchema", "required"]) == []
+
+    assert get_in(by_name["ck_observability"], ["inputSchema", "properties", "report", "enum"]) ==
+             [
+               "overview",
+               "problems",
+               "evals",
+               "saved_evals",
+               "benchmark_drafts",
+               "benchmark_scenarios",
+               "benchmark_history",
+               "promotions",
+               "regressions"
+             ]
+
     assert get_in(by_name["ck_experience_index"], ["inputSchema", "required"]) == []
     assert get_in(by_name["ck_experience_read"], ["inputSchema", "required"]) == ["artifact_type"]
     assert get_in(by_name["ck_trace_packet"], ["inputSchema", "required"]) == []
@@ -113,6 +129,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
     for tool_name <- [
           "ck_context_pack",
+          "ck_observability",
           "ck_experience_index",
           "ck_experience_read",
           "ck_trace_packet",
@@ -130,6 +147,40 @@ defmodule ControlKeel.MCP.ProtocolTest do
       assert get_in(by_name[tool_name], ["inputSchema", "properties", "project_root", "type"]) ==
                "string"
     end
+  end
+
+  test "tools/call ck_observability returns read-only local reports" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "MCP observability finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.mcp_observability"
+    })
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 2040,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_observability",
+          "arguments" => %{
+            "report" => "problems",
+            "session_id" => session.id,
+            "workspace_id" => session.workspace_id
+          }
+        }
+      })
+
+    assert %{"result" => %{"structuredContent" => result}} = response
+    assert result.report == "problems"
+    assert result.read_only == true
+    assert result.mutation == "none"
+    assert result.data.count >= 1
   end
 
   test "tools/call ck_execute_code supports dry run" do

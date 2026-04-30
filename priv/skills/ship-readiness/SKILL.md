@@ -16,6 +16,7 @@ metadata:
   version: "2.0"
   category: release
   ck_mcp_tools:
+    - ck_observability
     - ck_context
     - ck_deployment_advisor
 ---
@@ -31,6 +32,10 @@ Use this skill when the operator asks whether a mission or session is ready for 
 3. Confirm proof state and rollback guidance.
 4. Summarize approvals, rejections, and any remaining human work.
 5. Provide automatic deployment resources via `ck_deployment_advisor` (Dockerize, CI pipes) for the relevant stack (Phoenix, etc.).
+
+## Observability readiness
+
+Before calling a feature ready, check whether relevant local observability evidence exists. Use `ck_observability` reports for `benchmark_history` and `promotions` to summarize readiness, uncovered scenarios, missed runs, and advisory promotion candidates. A ready advisory candidate is not a policy/router/prompt promotion; it still requires explicit human review.
 
 ## Additional resources
 

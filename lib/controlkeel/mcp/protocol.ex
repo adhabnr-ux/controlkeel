@@ -25,6 +25,7 @@ defmodule ControlKeel.MCP.Protocol do
     CkMemoryArchive,
     CkMemoryRecord,
     CkMemorySearch,
+    CkObservability,
     CkSkillEvolution,
     CkReviewFeedback,
     CkRegressionResult,
@@ -183,6 +184,7 @@ defmodule ControlKeel.MCP.Protocol do
       ck_execute_code_tool(),
       ck_context_tool(),
       ck_context_pack_tool(),
+      ck_observability_tool(),
       ck_experience_index_tool(),
       ck_experience_read_tool(),
       ck_trace_packet_tool(),
@@ -226,6 +228,7 @@ defmodule ControlKeel.MCP.Protocol do
   def dispatch_tool("ck_execute_code", arguments), do: CkExecuteCode.call(arguments)
   def dispatch_tool("ck_context", arguments), do: CkContext.call(arguments)
   def dispatch_tool("ck_context_pack", arguments), do: CkContextPack.call(arguments)
+  def dispatch_tool("ck_observability", arguments), do: CkObservability.call(arguments)
   def dispatch_tool("ck_experience_index", arguments), do: CkExperienceIndex.call(arguments)
   def dispatch_tool("ck_experience_read", arguments), do: CkExperienceRead.call(arguments)
   def dispatch_tool("ck_trace_packet", arguments), do: CkTracePacket.call(arguments)
@@ -400,6 +403,35 @@ defmodule ControlKeel.MCP.Protocol do
           },
           "top_k" => %{"type" => ["integer", "string"]},
           "detail_level" => %{"type" => "string", "enum" => ["compact", "full"]}
+        }
+      }
+    }
+  end
+
+  def ck_observability_tool do
+    %{
+      "name" => "ck_observability",
+      "description" =>
+        "Read local observability reports for sessions, problems, evals, generated benchmarks, history, and advisory promotion candidates. Read-only: no benchmark execution, draft approval, materialization, or promotion mutation.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => [],
+        "properties" => %{
+          "report" => %{
+            "type" => "string",
+            "enum" => CkObservability.reports(),
+            "description" => "Report to return; defaults to overview."
+          },
+          "surface" => %{
+            "type" => "string",
+            "enum" => CkObservability.reports(),
+            "description" => "Compatibility alias for report."
+          },
+          "session_id" => %{"type" => ["integer", "string"]},
+          "workspace_id" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
+          "limit" => %{"type" => ["integer", "string"]},
+          "days" => %{"type" => ["integer", "string"]}
         }
       }
     }

@@ -17,6 +17,7 @@ metadata:
   version: "2.0"
   category: policy
   ck_mcp_tools:
+    - ck_observability
     - ck_outcome_tracker
 ---
 
@@ -31,6 +32,10 @@ Use this skill only when the task is offline policy training or artifact promoti
 3. Review promotion gates and never weaken deterministic controls.
 4. Summarize held-out metrics against the heuristic baseline before promotion.
 5. Consider real-world success inputs using `ck_outcome_tracker` (leaderboards, recorded session outcomes).
+
+## Observability promotion evidence
+
+Before policy artifact promotion, inspect `ck_observability` report `promotions` and `benchmark_history`. Promotion candidates are advisory and non-mutating; require human approval, successful held-out or generated benchmark evidence, and explicit policy-training intent before changing router, budget-hint, prompt, or policy artifacts.
 
 ## Additional resources
 

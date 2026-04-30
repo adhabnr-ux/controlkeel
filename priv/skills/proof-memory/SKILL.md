@@ -16,6 +16,7 @@ metadata:
   version: "2.0"
   category: proof
   ck_mcp_tools:
+    - ck_observability
     - ck_context
     - ck_memory_search
     - ck_memory_record
@@ -35,6 +36,10 @@ Use this skill when you need the durable system-of-record view instead of only t
 4. Use `ck_memory_search` when prior decisions, checkpoints, or findings need explicit retrieval instead of relying only on passive memory hits.
 5. Use `ck_memory_record` to preserve new decisions or operator intent that future agents should recover explicitly.
 6. Use `ck_memory_archive` to retire stale or superseded memories so retrieval quality does not decay.
+
+## Observability evidence
+
+When closing or resuming work, include local observability loop evidence when relevant: saved evals, benchmark drafts, materialized scenarios, generated benchmark history, and advisory promotion candidates. Prefer the read-only `ck_observability` MCP surface for summaries and record durable checkpoints with `ck_memory_record`; do not treat advisory promotion candidates as executed changes.
 
 ## Additional resources
 
