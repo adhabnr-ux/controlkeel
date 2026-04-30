@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.7 — 2026-04-30
+
+### What's changed
+
+- chore: sync attached ControlKeel surfaces
+
 ## v0.3.6 — 2026-04-30
 
 ### What's changed
