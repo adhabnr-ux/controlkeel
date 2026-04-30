@@ -25,6 +25,7 @@ Use this page to decide where to read next.
 - [agent-integrations.md](agent-integrations.md): how ControlKeel models integrations, bidirectional execution, and protocol interop
 - [autonomy-and-findings.md](autonomy-and-findings.md): how findings, review state, and human approval interact
 - [benchmarks.md](benchmarks.md): benchmark and evaluation surfaces
+- [observability-feedback-loop.md](observability-feedback-loop.md): local eval-to-draft-to-benchmark-to-promotion-advisory workflow
 - [control-plane-architecture.md](control-plane-architecture.md): higher-level architecture map
 - [code-mode-governance.md](code-mode-governance.md): progressive discovery, generated scripts, and code-mode runtime guardrails
 - [cost-governance.md](cost-governance.md): token, rate-limit, subscription-window, and budget-control guidance

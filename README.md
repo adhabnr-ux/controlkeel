@@ -206,6 +206,26 @@ Validation is the most visible part. CK also provides:
 
 ---
 
+## Local observability feedback loop
+
+ControlKeel can turn local governance evidence into a human-gated regression loop without sending telemetry to a hosted service or automatically changing policy, router, prompt, or autofix artifacts. A typical local loop is:
+
+```bash
+controlkeel obs evals save
+controlkeel obs benchmarks draft
+controlkeel obs benchmarks drafts
+controlkeel obs benchmarks approve <draft-id>
+controlkeel obs benchmarks materialize
+controlkeel obs benchmarks run --dry-run --subjects controlkeel_validate
+controlkeel obs benchmarks run --execute --suite <observability-suite> --subjects controlkeel_validate
+controlkeel obs benchmarks history
+controlkeel obs promotions
+```
+
+Safety boundaries are explicit: draft approval only changes local draft review state; materialization only creates local `Benchmark.Suite` and `Benchmark.Scenario` rows; benchmark execution is CLI-only and requires explicit operator intent; promotion candidates are advisory reports with no automatic mutation. Use `controlkeel obs import <file> --dry-run|--persist` for local observability snapshots and `controlkeel obs regressions` for the broader benchmark posture. See [docs/observability-feedback-loop.md](docs/observability-feedback-loop.md).
+
+---
+
 ## Supported hosts
 
 ControlKeel supports hosts through a few real mechanisms:

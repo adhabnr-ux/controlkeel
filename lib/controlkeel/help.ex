@@ -416,13 +416,15 @@ defmodule ControlKeel.Help do
       controlkeel obs benchmarks run --dry-run [--suite slug] [--subjects ids]
                                       Preview generated observability benchmark execution
       controlkeel obs benchmarks run --execute --suite slug --subjects ids
-                                      Run generated observability benchmarks via local runner
+                                      Run generated observability benchmarks via local runner (explicit only)
       controlkeel obs benchmarks approve|reject|archive <id>
                                       Review a local benchmark draft without running it
       controlkeel obs compare [--by source|model|provider|tool]
                                       Compare local invocation groups
       controlkeel obs regressions [--days N]
                                       Show local benchmark regression posture
+      controlkeel obs promotions
+                                      Show advisory promotion candidates without mutating artifacts
       controlkeel obs timeline [id]   Show recent session timeline events
       controlkeel obs memory [id]     Show session memory and context summary
       controlkeel obs memory-quality [--stale-days N]
