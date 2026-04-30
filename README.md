@@ -4,7 +4,7 @@
 [![Release Smoke](https://github.com/aryaminus/controlkeel/actions/workflows/release-smoke.yml/badge.svg)](https://github.com/aryaminus/controlkeel/actions/workflows/release-smoke.yml)
 [![Latest Release](https://img.shields.io/github/v/release/aryaminus/controlkeel.svg)](https://github.com/aryaminus/controlkeel/releases/latest)
 [![npm bootstrap](https://img.shields.io/npm/v/%40aryaminus/controlkeel.svg)](https://www.npmjs.com/package/@aryaminus/controlkeel)
-[![Socket Badge](https://badge.socket.dev/npm/package/@aryaminus/controlkeel/0.3.4)](https://socket.dev/npm/package/@aryaminus/controlkeel/overview/0.3.4)
+[![Socket Badge](https://badge.socket.dev/npm/package/@aryaminus/controlkeel)](https://socket.dev/npm/package/@aryaminus/controlkeel/overview)
 
 > Agent output is cheap. Governed delivery is not.
 
@@ -18,7 +18,7 @@ You already have an AI coding agent. Maybe you use OpenCode with an `opencode.js
 
 Because a rules file is a promise made *to* the model. ControlKeel enforces the *output*. ControlKeel's deterministic scanner checks what the model *produced*, not just what it was *told*, and blocks or flags violations before they ship.
 
-Beyond the scanner, CK also provides what no single agent host gives you portably: task continuity and resume context, review gates and approval flows, proof bundle state plus typed memory, budget and cost control, reusable operational context, and cross-host consistency — whether you are using OpenCode, move to Codex, switch to Claude Code, or use another supported host.
+Beyond the scanner, CK also provides what no single agent host gives you portably: task continuity and resume context, review gates and approval flows, proof bundle state plus typed memory, budget and cost control, reusable operational context, cross-host consistency — whether you are using OpenCode, move to Codex, switch to Claude Code, or use another supported host — and a local observability loop that turns governance evidence into human-gated regression testing and evidence-driven improvement without sending telemetry to a hosted service.
 
 ---
 
@@ -202,6 +202,8 @@ Validation is the most visible part. CK also provides:
 
 **Ship readiness** — deploy-ready proof state, outcome metrics, and comparative benchmark evidence. The question is not just "did the agent finish?" but "is this ready to ship?"
 
+**Local observability and learning loop** — a local-first cockpit (web, CLI, and MCP) that reconstructs session runs, timelines, memory quality, cost trends, and benchmark history from governance evidence. Operators can save eval candidates, draft and approve benchmark suites, detect regressions, and review promotion candidates — all human-gated, all local, no telemetry sent to a hosted service. Use `controlkeel obs loop` for a canonical learning-loop status report. See [docs/observability-feedback-loop.md](docs/observability-feedback-loop.md).
+
 **Governance for company context graphs** — as the industry moves from retrieval-based agents to synthesized "company brains," ControlKeel provides the governance layer that makes context graphs trustworthy, auditable, and portable. CK validates synthesized context, tracks proof bundles for auditability, ensures cross-host portability, and provides typed memory that captures accumulated understanding. See [docs/explaining-controlkeel.md](docs/explaining-controlkeel.md) for details.
 
 ---
@@ -266,6 +268,8 @@ Web app:
 - `/skills` for install/export compatibility and bundle inventory
 - `/ship` for deploy readiness and session metrics
 - `/benchmarks` for benchmark runs and cross-agent comparison
+- `/observability` for local workspace overview and session timeline
+- `/observability/loop` for the read-only human-gated learning loop
 
 CLI:
 
@@ -279,6 +283,8 @@ controlkeel skills list
 controlkeel plugin install codex
 controlkeel run task <id>
 controlkeel benchmark run --suite vibe_failures_v1 --subjects controlkeel_validate
+controlkeel obs loop
+controlkeel obs status
 controlkeel help
 ```
 
@@ -342,6 +348,8 @@ To run the benchmark suite locally:
 
 ```bash
 controlkeel benchmark run --suite vibe_failures_v1 --subjects controlkeel_validate
+controlkeel obs loop
+controlkeel obs status
 controlkeel benchmark run --suite benign_baseline_v1 --subjects controlkeel_validate
 controlkeel benchmark export <RUN_ID> --format json
 ```
