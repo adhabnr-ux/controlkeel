@@ -562,6 +562,29 @@ defmodule ControlKeel.ObservabilityTest do
     assert Repo.aggregate(Finding, :count, :id) == finding_count
   end
 
+  test "loop_status/1 summarizes the human-gated self-improvement loop" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Loop finding",
+      severity: "critical",
+      status: "blocked",
+      category: "security",
+      rule_id: "security.loop"
+    })
+
+    loop = Observability.loop_status(workspace_id: session.workspace_id)
+
+    assert loop.read_only == true
+    assert loop.mutation == "none"
+    assert loop.learning_loop.mode == "local_first_human_gated"
+    assert loop.learning_loop.automatic_promotion == false
+    assert loop.active_problems.total_findings == 1
+    assert loop.evals.derived == 1
+    assert Enum.any?(loop.blockers, &(&1.id == "active_problems"))
+  end
+
   test "promotion_candidates/1 reports blocked and ready advisory states" do
     session = session_fixture()
 
@@ -606,9 +629,14 @@ defmodule ControlKeel.ObservabilityTest do
              )
 
     after_run = Observability.promotion_candidates(workspace_id: session.workspace_id)
-    assert [%{readiness: readiness, latest_run_id: run_id}] = after_run.candidates
+
+    assert [%{readiness: readiness, latest_run_id: run_id, scenario_evidence: evidence}] =
+             after_run.candidates
+
     assert readiness in ["ready", "blocked"]
     assert is_integer(run_id)
+    assert evidence.scenario_covered == true
+    assert is_integer(evidence.latest_result_id)
   end
 
   test "observability_benchmark_history/1 reports generated benchmark run evidence" do
@@ -792,6 +820,24 @@ defmodule ControlKeel.ObservabilityTest do
     assert draft.title =~ "security.benchmark_draft"
     assert draft.scenario_prompt =~ "summary-only evidence"
     assert Enum.any?(drafts.recommendations, &String.contains?(&1, "human gate"))
+  end
+
+  test "regressions/1 treats catch rate as a 0 to 100 percentage" do
+    run = benchmark_run_fixture()
+
+    run
+    |> Run.changeset(%{catch_rate: 80.0, status: "completed"})
+    |> Repo.update!()
+
+    regressions = Observability.regressions(days: 30)
+
+    assert regressions.health.status == "red"
+    assert regressions.health.reason =~ "did not catch every expected scenario"
+
+    assert Enum.any?(
+             regressions.recommendations,
+             &String.contains?(&1, "latest benchmark misses")
+           )
   end
 
   test "regressions/1 summarizes benchmark runs and draft coverage" do

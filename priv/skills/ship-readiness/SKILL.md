@@ -40,3 +40,6 @@ Before calling a feature ready, check whether relevant local observability evide
 ## Additional resources
 
 - [Release checklist](references/release-checklist.md)
+
+
+Before calling a session ready to ship, inspect `ck_observability` with `report: "loop_status"` when available. Treat it as read-only evidence: unresolved blockers, uncovered observability benchmarks, or non-ready promotion candidates mean the operator should keep the release human-gated.

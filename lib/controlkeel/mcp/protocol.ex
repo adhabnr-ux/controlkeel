@@ -412,7 +412,7 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_observability",
       "description" =>
-        "Read local observability reports for sessions, problems, evals, generated benchmarks, history, and advisory promotion candidates. Read-only: no benchmark execution, draft approval, materialization, or promotion mutation.",
+        "Read local observability reports for sessions, loop status, problems, memory, costs, trends, evals, generated benchmarks, history, and advisory promotion candidates. Read-only: no benchmark execution, draft approval, materialization, or promotion mutation.",
       "inputSchema" => %{
         "type" => "object",
         "required" => [],
@@ -431,7 +431,9 @@ defmodule ControlKeel.MCP.Protocol do
           "workspace_id" => %{"type" => ["integer", "string"]},
           "project_root" => %{"type" => "string"},
           "limit" => %{"type" => ["integer", "string"]},
-          "days" => %{"type" => ["integer", "string"]}
+          "days" => %{"type" => ["integer", "string"]},
+          "stale_days" => %{"type" => ["integer", "string"]},
+          "by" => %{"type" => "string", "enum" => ["model", "tool", "source", "provider"]}
         }
       }
     }

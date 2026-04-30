@@ -398,6 +398,12 @@ defmodule ControlKeel.CLI do
       ["obs", "status" | rest] ->
         parse_with_switches(:obs_status, rest, @obs_switches)
 
+      ["obs", "loop" | rest] ->
+        parse_with_switches(:obs_loop_status, rest, @obs_switches)
+
+      ["obs", "loop-status" | rest] ->
+        parse_with_switches(:obs_loop_status, rest, @obs_switches)
+
       ["obs", "problems" | rest] ->
         parse_with_switches(:obs_problems, rest, @obs_switches)
 
@@ -2133,6 +2139,25 @@ defmodule ControlKeel.CLI do
   def run_command(%{command: :obs_run, args: [session_id], options: options}, _project_root) do
     with {:ok, format} <- effective_cli_format(options) do
       render_observability(session_id, format)
+    end
+  end
+
+  def run_command(%{command: :obs_loop_status, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
+      loop =
+        Observability.loop_status(
+          workspace_id: session.workspace_id,
+          limit: options[:limit] || 10
+        )
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(loop)]}
+        _ -> {:ok, observability_loop_status_lines(loop)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} -> {:error, message}
+      {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
     end
   end
 
@@ -5288,6 +5313,27 @@ defmodule ControlKeel.CLI do
   end
 
   defp cli_output_format(_options), do: {:ok, "text"}
+
+  defp observability_loop_status_lines(loop) do
+    [
+      "Observability learning loop: #{loop.health}",
+      "Mode: #{loop.learning_loop.mode}",
+      "Read-only: #{loop.read_only} | Mutation: #{loop.mutation}",
+      "Automatic benchmark execution: #{loop.learning_loop.automatic_benchmark_execution}",
+      "Automatic promotion: #{loop.learning_loop.automatic_promotion}",
+      "Problems: #{loop.active_problems.count} group(s) / #{loop.active_problems.total_findings} finding(s)",
+      "Evals: #{loop.evals.derived} derived / #{loop.evals.saved} saved",
+      "Benchmarks: #{loop.benchmarks.drafts} draft(s), #{loop.benchmarks.scenarios} scenario(s), readiness #{loop.benchmarks.history_readiness.status}",
+      "Promotions: #{loop.promotions.count} candidate(s), readiness #{format_frequency(loop.promotions.by_readiness)}",
+      "Blockers:"
+    ] ++
+      Enum.map(loop.blockers, &"- #{&1.id}: #{&1.reason}") ++
+      ["Next actions:"] ++
+      Enum.map(loop.next_actions, fn action ->
+        "- [#{action.priority}] #{action.title}: #{action.suggested_action}"
+      end) ++
+      ["Recommendations:"] ++ Enum.map(loop.recommendations, &"- #{&1}")
+  end
 
   defp observability_problem_lines(problems) do
     [

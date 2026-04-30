@@ -74,3 +74,10 @@ controlkeel obs imports
 ```
 
 Persisted imports are snapshots and are deduplicated by payload hash; they do not rewrite sessions, findings, or memory.
+
+
+## Learning loop status
+
+Use `controlkeel obs loop` or the read-only MCP `ck_observability` report `loop_status` when an agent or operator needs the whole self-improvement picture in one place. The loop status combines active problems, derived and saved eval candidates, benchmark drafts, materialized scenarios, benchmark history, promotion readiness, blockers, and next actions.
+
+This report is intentionally evidence-driven and human-gated: generated benchmarks are regression seeds for operator review, benchmark execution stays explicit, and policy/router/prompt/skill promotion is never automatic. Agents should use the report to propose safer next steps, not to mutate artifacts directly.

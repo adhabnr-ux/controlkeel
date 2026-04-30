@@ -4,7 +4,7 @@ defmodule ControlKeel.Observability do
   import Ecto.Query, warn: false
 
   alias ControlKeel.Benchmark
-  alias ControlKeel.Benchmark.{Scenario, Suite}
+  alias ControlKeel.Benchmark.{Result, Scenario, Suite}
   alias ControlKeel.Benchmark.Run, as: BenchmarkRun
   alias ControlKeel.Budget
   alias ControlKeel.Memory.Record, as: MemoryRecord
@@ -423,6 +423,58 @@ defmodule ControlKeel.Observability do
         draft_suites: drafts.by_suite
       },
       recommendations: regression_recommendations(runs, drafts, saved)
+    }
+  end
+
+  def loop_status(opts \\ []) do
+    overview = workspace_overview(opts)
+    workspace_id = Keyword.get(opts, :workspace_id) || overview.workspace.id
+    scoped_opts = if workspace_id, do: [workspace_id: workspace_id], else: []
+    problems_report = problems(Keyword.put(scoped_opts, :limit, 5))
+    evals = eval_candidates(Keyword.put(scoped_opts, :limit, 5))
+    saved = saved_eval_candidates(Keyword.put(scoped_opts, :limit, 10))
+    drafts = benchmark_drafts(Keyword.put(scoped_opts, :limit, 10))
+    scenarios = observability_benchmark_scenarios(Keyword.put(scoped_opts, :limit, 10))
+    history = observability_benchmark_history(Keyword.put(scoped_opts, :limit, 10))
+    promotions = promotion_candidates(Keyword.put(scoped_opts, :limit, 10))
+    recommendations_report = recommendations(scoped_opts)
+
+    blockers = loop_status_blockers(overview, problems_report, drafts, history, promotions)
+
+    %{
+      health: loop_status_health(overview.health, history.readiness, promotions, blockers),
+      workspace: overview.workspace,
+      read_only: true,
+      mutation: "none",
+      learning_loop: %{
+        mode: "local_first_human_gated",
+        automatic_benchmark_execution: false,
+        automatic_promotion: false,
+        generated_benchmarks: "operator_reviewed_regression_seeds"
+      },
+      active_problems: %{
+        count: problems_report.count,
+        total_findings: problems_report.total_findings,
+        top: problems_report.problems
+      },
+      evals: %{derived: evals.count, saved: saved.count, saved_by_status: saved.by_status},
+      benchmarks: %{
+        drafts: drafts.count,
+        draft_status: drafts.by_status,
+        scenarios: scenarios.count,
+        history_readiness: history.readiness,
+        coverage: history.coverage,
+        latest_run: history.latest_run
+      },
+      promotions: %{
+        count: promotions.count,
+        by_readiness: promotions.by_readiness,
+        promotion_execution: promotions.promotion_execution,
+        candidates: promotions.candidates
+      },
+      blockers: blockers,
+      next_actions: Enum.take(recommendations_report.actions, 8),
+      recommendations: loop_status_recommendations(blockers, history, promotions)
     }
   end
 
@@ -1069,6 +1121,69 @@ defmodule ControlKeel.Observability do
     }
   end
 
+  defp loop_status_blockers(overview, problems, drafts, history, promotions) do
+    []
+    |> maybe_add_loop_blocker(
+      overview.health.status == "red",
+      "session_health",
+      "Session health is red; clear critical/high findings or pending gates first."
+    )
+    |> maybe_add_loop_blocker(
+      problems.total_findings > 0,
+      "active_problems",
+      "Active governed findings should become reviewed eval coverage before widening automation."
+    )
+    |> maybe_add_loop_blocker(
+      Map.get(drafts.by_status, "draft", 0) > 0,
+      "draft_review",
+      "Benchmark drafts need human approval before materialization."
+    )
+    |> maybe_add_loop_blocker(
+      history.readiness.status != "green",
+      "benchmark_evidence",
+      history.readiness.reason
+    )
+    |> maybe_add_loop_blocker(
+      Map.get(promotions.by_readiness, "blocked", 0) > 0,
+      "promotion_blocked",
+      "Promotion candidates with incomplete or failed candidate-specific evidence remain blocked."
+    )
+  end
+
+  defp maybe_add_loop_blocker(blockers, true, id, reason),
+    do: [%{id: id, reason: reason} | blockers]
+
+  defp maybe_add_loop_blocker(blockers, false, _id, _reason), do: blockers
+
+  defp loop_status_health(%{status: "red"}, _history_readiness, _promotions, _blockers), do: "red"
+  defp loop_status_health(_overview, %{status: "red"}, _promotions, _blockers), do: "red"
+
+  defp loop_status_health(_overview, _history_readiness, promotions, _blockers) do
+    cond do
+      Map.get(promotions.by_readiness, "blocked", 0) > 0 -> "red"
+      Map.get(promotions.by_readiness, "ready", 0) > 0 -> "green"
+      promotions.count > 0 -> "yellow"
+      true -> "yellow"
+    end
+  end
+
+  defp loop_status_recommendations([], _history, promotions) do
+    if Map.get(promotions.by_readiness, "ready", 0) > 0 do
+      ["Review ready promotion candidates manually; no automatic mutation will occur."]
+    else
+      [
+        "Keep using CK so findings, reviews, memory, and benchmark outcomes can become evidence for agent improvement."
+      ]
+    end
+  end
+
+  defp loop_status_recommendations(blockers, _history, _promotions) do
+    [
+      "Work blockers from top to bottom: active problems → saved evals → reviewed drafts → benchmark evidence → human promotion review.",
+      "Agents should use this read-only loop status before proposing policy, prompt, routing, or skill changes."
+    ] ++ Enum.map(blockers, & &1.reason)
+  end
+
   defp overview_recommendations(health, runs, problems) do
     []
     |> maybe_reason(runs == [], "No session runs are available yet.")
@@ -1334,10 +1449,10 @@ defmodule ControlKeel.Observability do
     average_catch_rate = average_value(Enum.map(runs, &(&1.catch_rate || 0.0)))
 
     cond do
-      (latest.catch_rate || 0.0) < 1.0 ->
+      (latest.catch_rate || 0.0) < 100.0 ->
         %{status: "red", reason: "Latest benchmark run did not catch every expected scenario."}
 
-      average_catch_rate < 1.0 ->
+      average_catch_rate < 100.0 ->
         %{
           status: "yellow",
           reason: "Recent benchmark history includes missed expected scenarios."
@@ -1368,7 +1483,7 @@ defmodule ControlKeel.Observability do
     recommendations =
       maybe_reason(
         recommendations,
-        (latest.catch_rate || 0.0) < 1.0,
+        (latest.catch_rate || 0.0) < 100.0,
         "Investigate latest benchmark misses before promoting policy, prompt, or routing changes."
       )
 
@@ -1818,7 +1933,8 @@ defmodule ControlKeel.Observability do
     materialized_scenario_id =
       if draft, do: get_in(draft.metadata || %{}, ["materialized_scenario_id"])
 
-    readiness = promotion_candidate_readiness(draft, materialized_scenario_id, history)
+    evidence = promotion_candidate_evidence(materialized_scenario_id)
+    readiness = promotion_candidate_readiness(draft, materialized_scenario_id, evidence, history)
 
     %{
       id: candidate.id,
@@ -1832,7 +1948,9 @@ defmodule ControlKeel.Observability do
       benchmark_draft_id: if(draft, do: draft.id, else: nil),
       benchmark_draft_status: if(draft, do: draft.status, else: nil),
       materialized_scenario_id: materialized_scenario_id,
-      latest_run_id: if(history.latest_run, do: history.latest_run.id, else: nil),
+      latest_run_id: evidence.latest_run_id,
+      latest_result_id: evidence.latest_result_id,
+      scenario_evidence: evidence,
       evidence_summary: candidate.evidence_summary,
       suggested_action: promotion_candidate_action(readiness, candidate),
       promotion_execution: false,
@@ -1840,20 +1958,32 @@ defmodule ControlKeel.Observability do
     }
   end
 
-  defp promotion_candidate_readiness(nil, _scenario_id, _history), do: "needs_draft"
+  defp promotion_candidate_readiness(nil, _scenario_id, _evidence, _history), do: "needs_draft"
 
-  defp promotion_candidate_readiness(%BenchmarkDraft{status: status}, _scenario_id, _history)
+  defp promotion_candidate_readiness(
+         %BenchmarkDraft{status: status},
+         _scenario_id,
+         _evidence,
+         _history
+       )
        when status != "approved", do: "needs_approval"
 
-  defp promotion_candidate_readiness(_draft, nil, _history), do: "needs_materialization"
+  defp promotion_candidate_readiness(_draft, nil, _evidence, _history),
+    do: "needs_materialization"
 
-  defp promotion_candidate_readiness(_draft, _scenario_id, %{coverage: %{benchmark_runs: 0}}),
+  defp promotion_candidate_readiness(_draft, _scenario_id, %{scenario_covered: false}, _history),
     do: "needs_run"
 
-  defp promotion_candidate_readiness(_draft, _scenario_id, %{readiness: %{status: "green"}}),
-    do: "ready"
+  defp promotion_candidate_readiness(
+         _draft,
+         _scenario_id,
+         %{matched_expected: true, run_status: status},
+         _history
+       )
+       when status in ["completed", "passed"],
+       do: "ready"
 
-  defp promotion_candidate_readiness(_draft, _scenario_id, _history), do: "blocked"
+  defp promotion_candidate_readiness(_draft, _scenario_id, _evidence, _history), do: "blocked"
 
   defp promotion_candidate_action("ready", candidate),
     do:
@@ -1873,6 +2003,52 @@ defmodule ControlKeel.Observability do
 
   defp promotion_candidate_action("blocked", _candidate),
     do: "Investigate failed or incomplete benchmark evidence before promotion review."
+
+  defp promotion_candidate_evidence(nil) do
+    %{
+      scenario_covered: false,
+      latest_run_id: nil,
+      latest_result_id: nil,
+      matched_expected: false,
+      run_status: nil,
+      result_status: nil,
+      decision: nil,
+      catch_rate: nil
+    }
+  end
+
+  defp promotion_candidate_evidence(scenario_id) when is_integer(scenario_id) do
+    case latest_result_for_scenario(scenario_id) do
+      %Result{} = result ->
+        run = result.run
+
+        %{
+          scenario_covered: true,
+          latest_run_id: run && run.id,
+          latest_result_id: result.id,
+          matched_expected: result.matched_expected == true,
+          run_status: run && run.status,
+          result_status: result.status,
+          decision: result.decision,
+          catch_rate: if(run, do: run.catch_rate || 0.0, else: nil)
+        }
+
+      nil ->
+        promotion_candidate_evidence(nil)
+    end
+  end
+
+  defp promotion_candidate_evidence(_scenario_id), do: promotion_candidate_evidence(nil)
+
+  defp latest_result_for_scenario(scenario_id) do
+    Result
+    |> where([r], r.scenario_id == ^scenario_id)
+    |> join(:inner, [r], run in assoc(r, :run))
+    |> order_by([_r, run], desc: run.inserted_at, desc: run.id)
+    |> preload([_r, run], run: run)
+    |> limit(1)
+    |> Repo.one()
+  end
 
   defp promotion_candidate_recommendations([], _history),
     do: [

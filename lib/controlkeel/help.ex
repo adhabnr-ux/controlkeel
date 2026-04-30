@@ -391,6 +391,7 @@ defmodule ControlKeel.Help do
                                       Show ACP registry cache freshness and matches
       controlkeel status              Show current session status
       controlkeel obs status          Show compact observability for the current session
+      controlkeel obs loop            Show the local human-gated learning loop status
       controlkeel obs run <id>        Show observability for a session run
       controlkeel obs problems        Show grouped observability problems
       controlkeel obs costs [--by model|tool|source|provider]

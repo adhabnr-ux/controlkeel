@@ -1187,6 +1187,8 @@ defmodule ControlKeel.CLI.NewCommandsTest do
     test "obs commands parse correctly" do
       assert {:ok, %{command: :obs_status}} = CLI.parse(["obs"])
       assert {:ok, %{command: :obs_status}} = CLI.parse(["obs", "status"])
+      assert {:ok, %{command: :obs_loop_status}} = CLI.parse(["obs", "loop"])
+      assert {:ok, %{command: :obs_loop_status}} = CLI.parse(["obs", "loop-status"])
       assert {:ok, %{command: :obs_costs}} = CLI.parse(["obs", "costs"])
       assert {:ok, %{command: :obs_recommend}} = CLI.parse(["obs", "recommend"])
       assert {:ok, %{command: :obs_evals}} = CLI.parse(["obs", "evals"])
@@ -1245,6 +1247,35 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert output =~ "Budget:"
       assert output =~ "Findings:"
       assert output =~ "Recommendations:"
+    end
+
+    test "obs loop renders canonical human-gated learning status", %{tmp_dir: tmp_dir} do
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        title: "Loop CLI finding",
+        severity: "high",
+        status: "open",
+        category: "security",
+        rule_id: "security.loop_cli"
+      })
+
+      write_binding(tmp_dir, session)
+
+      output =
+        capture_io(fn ->
+          assert 0 ==
+                   CLI.execute(
+                     %{command: :obs_loop_status, options: %{}, args: []},
+                     project_root: tmp_dir
+                   )
+        end)
+
+      assert output =~ "Observability learning loop:"
+      assert output =~ "Automatic promotion: false"
+      assert output =~ "Problems:"
+      assert output =~ "Benchmarks:"
     end
 
     test "obs problems parses and renders grouped problems", %{tmp_dir: tmp_dir} do

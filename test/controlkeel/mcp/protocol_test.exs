@@ -103,6 +103,16 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert get_in(by_name["ck_observability"], ["inputSchema", "properties", "report", "enum"]) ==
              [
                "overview",
+               "loop_status",
+               "session_run",
+               "timeline",
+               "memory",
+               "memory_quality",
+               "recommendations",
+               "costs",
+               "compare",
+               "imports",
+               "trends",
                "problems",
                "evals",
                "saved_evals",
@@ -181,6 +191,42 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert result.read_only == true
     assert result.mutation == "none"
     assert result.data.count >= 1
+  end
+
+  test "tools/call ck_observability exposes canonical loop status without mutation" do
+    session = session_fixture()
+
+    finding_fixture(%{
+      session: session,
+      title: "Loop status finding",
+      severity: "high",
+      status: "open",
+      category: "security",
+      rule_id: "security.loop_status"
+    })
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 2041,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_observability",
+          "arguments" => %{
+            "report" => "loop_status",
+            "session_id" => session.id,
+            "workspace_id" => session.workspace_id
+          }
+        }
+      })
+
+    assert %{"result" => %{"structuredContent" => result}} = response
+    assert result.report == "loop_status"
+    assert result.read_only == true
+    assert result.mutation == "none"
+    assert result.data.read_only == true
+    assert result.data.learning_loop.automatic_promotion == false
+    assert result.data.active_problems.total_findings >= 1
   end
 
   test "tools/call ck_execute_code supports dry run" do
