@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.8 — 2026-04-30
+
+### What's changed
+
+- fix: make observability skill guidance test CI-safe
+- feat: complete observability surface coverage
+- chore: sync ControlKeel 0.3.7 surfaces
+- feat: strengthen observability learning loop
+
 ## v0.3.7 — 2026-04-30
 
 ### What's changed
