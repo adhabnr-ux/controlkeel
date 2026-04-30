@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.3.6 — 2026-04-30
+
+### What's changed
+
+- feat: add ck_observability tool and integrate into MCP protocol
+- feat: add local observability feedback loop documentation and commands
+- feat: add observability promotions command, UI, and tests
+- feat: add observability benchmark history command, UI, and tests
+- feat(cli): add new commands for observability benchmarks
+- fix: update command paths to handle missing git repository context
+- feat: add commands to approve, reject, and archive benchmark drafts with corresponding updates and tests
+- feat: add observability regressions command, UI integration, and related tests
+- feat: add benchmark draft commands, UI integration, and related tests
+- feat: add new observability features including memory quality, trends, and saved eval candidates
+- feat: add observability imports command, UI integration, and related tests
+- feat: implement observability import with persist option and update related commands and tests
+- feat: add observability memory command, context summary, and UI integration
+- feat: add observability comparison and timeline commands, UI components, and tests
+- feat: add observability costs, eval candidates, and recommendations pages
+- feat: add observability import/export commands and overview
+
 ## v0.3.5 — 2026-04-29
 
 ### What's changed
