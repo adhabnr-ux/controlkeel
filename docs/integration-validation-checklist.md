@@ -40,7 +40,7 @@ For the full QA procedure and feature-by-feature test plan, use [qa-validation-g
   - `.vscode/mcp.json`
   - `.github/copilot-instructions.md`
 - [x] MCP stdio runtime validated with framed `initialize` + `tools/list`
-- [x] Tool inventory includes core and extended CK tools (`ck_context`, `ck_validate`, `ck_finding`, `ck_budget`, `ck_route`, `ck_delegate`, `ck_skill_list`, `ck_skill_load`, plus optimizer/deployment/outcome tools)
+- [x] Tool inventory includes core and extended CK tools (`ck_context`, `ck_validate`, `ck_finding`, `ck_budget`, `ck_route`, `ck_delegate`, `ck_skill_list`, `ck_skill_load`, plus observability/optimizer/deployment/outcome tools including `ck_observability`)
 
 ### OpenCode integration
 

@@ -347,3 +347,6 @@ controlkeel benchmark export <RUN_ID> --format json
 ```
 
 See [docs/benchmark-guide.md](docs/benchmark-guide.md) for multi-host comparison setup and how to add Codex or OpenCode as subjects.
+
+
+Local observability web cockpit includes `/observability` for workspace overview and `/observability/loop` for the read-only human-gated learning loop.

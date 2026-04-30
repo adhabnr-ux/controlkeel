@@ -229,6 +229,36 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert result.data.active_problems.total_findings >= 1
   end
 
+  test "tools/call ck_observability returns benchmark history and promotions reports" do
+    session = session_fixture()
+
+    for {report, expected_key} <- [
+          {"benchmark_history", :readiness},
+          {"promotions", :promotion_execution}
+        ] do
+      response =
+        Protocol.handle_request(%{
+          "jsonrpc" => "2.0",
+          "id" => 2042,
+          "method" => "tools/call",
+          "params" => %{
+            "name" => "ck_observability",
+            "arguments" => %{
+              "report" => report,
+              "session_id" => session.id,
+              "workspace_id" => session.workspace_id
+            }
+          }
+        })
+
+      assert %{"result" => %{"structuredContent" => result}} = response
+      assert result.report == report
+      assert result.read_only == true
+      assert result.mutation == "none"
+      assert Map.has_key?(result.data, expected_key)
+    end
+  end
+
   test "tools/call ck_execute_code supports dry run" do
     response =
       Protocol.handle_request(%{

@@ -37,6 +37,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
               {@overview.health.status}
             </span>
             <span class="ck-pill ck-pill-neutral">{@overview.runs.count} recent runs</span>
+            <.link navigate={~p"/observability/loop"} class="ck-link">Learning loop</.link>
             <.link navigate={~p"/observability/recommendations"} class="ck-link">
               Recommendations
             </.link>
@@ -45,6 +46,10 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
             <.link navigate={~p"/observability/benchmarks/drafts"} class="ck-link">
               Benchmark drafts
             </.link>
+            <.link navigate={~p"/observability/benchmarks/history"} class="ck-link">
+              Benchmark history
+            </.link>
+            <.link navigate={~p"/observability/promotions"} class="ck-link">Promotions</.link>
             <.link navigate={~p"/observability/regressions"} class="ck-link">Regressions</.link>
             <.link navigate={~p"/observability/compare"} class="ck-link">Compare</.link>
             <.link navigate={~p"/observability/imports"} class="ck-link">Imports</.link>
