@@ -353,9 +353,9 @@ defmodule ControlKeel.Skills.Installer do
         Path.join(plan.output_dir, ".cursor-plugin"),
         Path.join(project_root, ".cursor-plugin")
       )
-
-      maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     end
+
+    maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
 
     # When the version guard blocked the plugin copy, report the on-disk
     # plugin version so the sync layer records the correct (newer) version
@@ -1018,7 +1018,7 @@ defmodule ControlKeel.Skills.Installer do
   end
 
   defp maybe_install_project_agents_md!(plan_output_dir, project_root, opts) do
-    unless Keyword.get(opts, :write_agents_md, true) == false do
+    if Keyword.get(opts, :write_agents_md, true) != false do
       install_project_agents_md!(plan_output_dir, project_root)
     end
   end

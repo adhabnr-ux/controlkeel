@@ -91,7 +91,7 @@ if [ -z "$ZIG_BIN" ]; then
 fi
 
 # --- Read version from mix.exs ---
-VSN="$(rg -o 'version:\s*"[^"]*"' "$ROOT/mix.exs" | head -1 | rg -o '"[^"]*"' | tr -d '"')"
+VSN="$(grep -oE 'version: "[^"]*"' "$ROOT/mix.exs" | head -1 | grep -oE '"[^"]*"' | tr -d '"')"
 if [ -z "$VSN" ]; then
   echo "ERROR: could not read version from mix.exs" >&2
   exit 1
@@ -116,7 +116,7 @@ if [ ! -f "$BUILT_BINARY" ]; then
   exit 1
 fi
 
-BUILT_VSN="$("$BUILT_BINARY" version 2>/dev/null | rg -o '[0-9]+\.[0-9]+\.[0-9]+' || true)"
+BUILT_VSN="$("$BUILT_BINARY" version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)"
 echo "==> Built binary version: ${BUILT_VSN:-unknown}"
 
 if [ "$BUILT_VSN" != "$VSN" ]; then
@@ -135,6 +135,6 @@ chmod +x "$DEST"
 echo "==> Installed to ${DEST}"
 
 # Verify
-INSTALLED_VSN="$("$DEST" version 2>/dev/null | rg -o '[0-9]+\.[0-9]+\.[0-9]+' || true)"
+INSTALLED_VSN="$("$DEST" version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)"
 echo "==> Installed version: ${INSTALLED_VSN:-unknown}"
 echo "==> Done!"

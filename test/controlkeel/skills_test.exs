@@ -1959,6 +1959,11 @@ defmodule ControlKeel.SkillsTest do
     # so the sync layer records the correct version in the binding.
     assert result[:version_guarded] == true
     assert result[:recorded_version] == future_version
+
+    # AGENTS.md must still be written — the version guard only protects the
+    # plugin bundle, not the instruction file.
+    assert File.exists?(Path.join(tmp_dir, "AGENTS.md"))
+    assert File.read!(Path.join(tmp_dir, "AGENTS.md")) =~ "ControlKeel"
   end
 
   test "cursor-native install writes plugin.json when existing version is older", %{
