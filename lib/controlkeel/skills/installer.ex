@@ -340,12 +340,20 @@ defmodule ControlKeel.Skills.Installer do
     copy_skills(skills, Path.join(project_root, ".agents/skills"))
     copy_tree_contents(Path.join(plan.output_dir, ".cursor"), Path.join(project_root, ".cursor"))
 
-    copy_tree_contents(
-      Path.join(plan.output_dir, ".cursor-plugin"),
-      Path.join(project_root, ".cursor-plugin")
-    )
+    # Guard: do not overwrite an existing plugin.json if the exported version is
+    # older than what is already on disk. This prevents the installed binary
+    # (which runs Stop hooks) from downgrading a source-synced plugin bundle.
+    dest_plugin_json = Path.join(project_root, ".cursor-plugin/plugin.json")
+    src_plugin_json = Path.join(plan.output_dir, ".cursor-plugin/plugin.json")
 
-    install_project_agents_md!(plan.output_dir, project_root)
+    unless plugin_version_downgrade?(src_plugin_json, dest_plugin_json) do
+      copy_tree_contents(
+        Path.join(plan.output_dir, ".cursor-plugin"),
+        Path.join(project_root, ".cursor-plugin")
+      )
+
+      install_project_agents_md!(plan.output_dir, project_root)
+    end
 
     {:ok,
      %{
@@ -1152,6 +1160,32 @@ defmodule ControlKeel.Skills.Installer do
       _ ->
         {:ok, result}
     end
+  end
+
+  # Returns true when the source plugin.json version is strictly older than the
+  # version already recorded in the destination plugin.json on disk.
+  defp plugin_version_downgrade?(src_path, dest_path) do
+    with {:ok, src_raw} <- File.read(src_path),
+         {:ok, src_data} <- Jason.decode(src_raw),
+         src_vsn when is_binary(src_vsn) <- Map.get(src_data, "version"),
+         {:ok, dest_raw} <- File.read(dest_path),
+         {:ok, dest_data} <- Jason.decode(dest_raw),
+         dest_vsn when is_binary(dest_vsn) <- Map.get(dest_data, "version") do
+      parse_plugin_vsn(src_vsn) < parse_plugin_vsn(dest_vsn)
+    else
+      _ -> false
+    end
+  end
+
+  defp parse_plugin_vsn(vsn) when is_binary(vsn) do
+    vsn
+    |> String.split(".")
+    |> Enum.map(fn part ->
+      case Integer.parse(part) do
+        {n, _} -> n
+        :error -> 0
+      end
+    end)
   end
 
   defp cline_home do

@@ -45,31 +45,39 @@ defmodule ControlKeel.AttachedAgentSync do
   defp sync_agent(agent_key, attrs, project_root, current_version) do
     try do
       attrs = stringify_keys(attrs)
+      recorded_version = attrs["controlkeel_version"]
 
-      if attrs["controlkeel_version"] == current_version do
-        {:ok, attrs, false}
-      else
-        with %AgentIntegration{} = integration <- inferred_integration(agent_key),
-             {:ok, target} <- inferred_target(attrs, integration),
-             {:ok, scope} <- inferred_scope(attrs, integration),
-             {:ok, result} <- Skills.install(target, project_root, scope: scope) do
-          updated_attrs =
-            attrs
-            |> Map.put("target", target)
-            |> Map.put("scope", scope)
-            |> Map.put("controlkeel_version", current_version)
-            |> Map.put(
-              "synced_at",
-              DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
-            )
-            |> merge_install_result(result)
+      cond do
+        recorded_version == current_version ->
+          {:ok, attrs, false}
 
-          {:ok, updated_attrs, true}
-        else
-          nil -> {:ok, attrs, false}
-          {:skip, _reason} -> {:ok, attrs, false}
-          {:error, reason} -> {:error, reason}
-        end
+        is_binary(recorded_version) and version_downgrade?(current_version, recorded_version) ->
+          # Running binary is older than what's already recorded — never let an old
+          # install overwrite a newer source-synced version.
+          {:ok, attrs, false}
+
+        true ->
+          with %AgentIntegration{} = integration <- inferred_integration(agent_key),
+               {:ok, target} <- inferred_target(attrs, integration),
+               {:ok, scope} <- inferred_scope(attrs, integration),
+               {:ok, result} <- Skills.install(target, project_root, scope: scope) do
+            updated_attrs =
+              attrs
+              |> Map.put("target", target)
+              |> Map.put("scope", scope)
+              |> Map.put("controlkeel_version", current_version)
+              |> Map.put(
+                "synced_at",
+                DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
+              )
+              |> merge_install_result(result)
+
+            {:ok, updated_attrs, true}
+          else
+            nil -> {:ok, attrs, false}
+            {:skip, _reason} -> {:ok, attrs, false}
+            {:error, reason} -> {:error, reason}
+          end
       end
     rescue
       exception ->
@@ -78,6 +86,21 @@ defmodule ControlKeel.AttachedAgentSync do
       kind, reason ->
         {:error, {kind, reason}}
     end
+  end
+
+  defp version_downgrade?(current, recorded) do
+    parse_vsn(current) < parse_vsn(recorded)
+  end
+
+  defp parse_vsn(vsn) when is_binary(vsn) do
+    vsn
+    |> String.split(".")
+    |> Enum.map(fn part ->
+      case Integer.parse(part) do
+        {n, _} -> n
+        :error -> 0
+      end
+    end)
   end
 
   defp inferred_integration(agent_key) do

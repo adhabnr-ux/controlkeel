@@ -762,7 +762,7 @@ defmodule ControlKeel.Mission do
     total_count = Repo.aggregate(base_query, :count, :id)
     total_pages = max(div(total_count + @findings_page_size - 1, @findings_page_size), 1)
     page = min(filters.page, total_pages)
-    security_summary = base_query |> Repo.all() |> security_case_summary()
+    security_summary = security_case_summary_for_query(base_query)
 
     entries =
       base_query
@@ -779,6 +779,23 @@ defmodule ControlKeel.Mission do
       total_pages: total_pages,
       page: page,
       page_size: @findings_page_size
+    }
+  end
+
+  defp security_case_summary_for_query(query) do
+    cases_query = vulnerability_cases_query(query)
+
+    %{
+      "case_count" => Repo.aggregate(cases_query, :count, :id),
+      "unresolved" =>
+        Repo.aggregate(unresolved_vulnerability_cases_query(cases_query), :count, :id),
+      "critical_unresolved" =>
+        Repo.aggregate(critical_unresolved_vulnerability_cases_query(cases_query), :count, :id),
+      "patch_status" => count_vulnerability_metadata(cases_query, "patch_status"),
+      "disclosure_status" => count_vulnerability_metadata(cases_query, "disclosure_status"),
+      "maintainer_scope" => count_vulnerability_metadata(cases_query, "maintainer_scope"),
+      "exploitability_status" =>
+        count_vulnerability_metadata(cases_query, "exploitability_status")
     }
   end
 
@@ -5141,6 +5158,58 @@ defmodule ControlKeel.Mission do
     from([f, _s, _w] in query,
       where: fragment("json_extract(?, ?)", f.metadata, ^"$.#{key}") == ^value
     )
+  end
+
+  defp vulnerability_cases_query(query) do
+    query
+    |> exclude(:preload)
+    |> where([f, _s, _w], f.category == "security")
+    |> where(
+      [f, _s, _w],
+      fragment("json_extract(?, '$.finding_family')", f.metadata) == "vulnerability_case"
+    )
+  end
+
+  defp unresolved_vulnerability_cases_query(query) do
+    where(query, [f, _s, _w], ^unresolved_vulnerability_case_dynamic())
+  end
+
+  defp critical_unresolved_vulnerability_cases_query(query) do
+    query
+    |> where(
+      [f, _s, _w],
+      f.severity == "critical" and f.status in ["open", "blocked", "escalated"]
+    )
+    |> unresolved_vulnerability_cases_query()
+  end
+
+  defp unresolved_vulnerability_case_dynamic do
+    dynamic(
+      [f],
+      fragment("coalesce(json_extract(?, '$.patch_status'), 'none')", f.metadata) not in [
+        "validated",
+        "merged"
+      ] or
+        fragment("coalesce(json_extract(?, '$.disclosure_status'), 'draft')", f.metadata) in [
+          "draft",
+          "triaged",
+          "reported"
+        ]
+    )
+  end
+
+  defp count_vulnerability_metadata(query, key) do
+    query
+    |> group_by(
+      [f, _s, _w],
+      fragment("coalesce(json_extract(?, ?), 'unknown')", f.metadata, ^"$.#{key}")
+    )
+    |> select(
+      [f, _s, _w],
+      {fragment("coalesce(json_extract(?, ?), 'unknown')", f.metadata, ^"$.#{key}"), count(f.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
   end
 
   defp maybe_filter_session(query, nil), do: query

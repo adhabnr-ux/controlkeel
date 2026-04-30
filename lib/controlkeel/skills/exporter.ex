@@ -533,7 +533,10 @@ defmodule ControlKeel.Skills.Exporter do
     write_cursor_plugin_bundle!(root, project_root, opts)
 
     agents_path = Path.join(root, "AGENTS.md")
-    File.write!(agents_path, instructions_only_contents("cursor", project_root, opts))
+
+    unless version_downgrade_for_path?(app_version(), plugin_path) do
+      File.write!(agents_path, instructions_only_contents("cursor", project_root, opts))
+    end
 
     with_common_assets(
       root,
@@ -5117,40 +5120,73 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp write_cursor_plugin_bundle!(root, project_root, opts) do
-    Enum.each(
-      [
-        {Path.join(root, ".cursor/rules"), Path.join(root, ".cursor-plugin/rules")},
-        {Path.join(root, ".cursor/skills"), Path.join(root, ".cursor-plugin/skills")},
-        {Path.join(root, ".cursor/agents"), Path.join(root, ".cursor-plugin/agents")},
-        {Path.join(root, ".cursor/commands"), Path.join(root, ".cursor-plugin/commands")}
-      ],
-      fn {from, to} ->
-        if File.exists?(from) do
-          File.rm_rf!(to)
-          File.mkdir_p!(Path.dirname(to))
-          File.cp_r!(from, to)
+    plugin_json_path = Path.join(root, ".cursor-plugin/plugin.json")
+    current_version = app_version()
+
+    # Skip the entire bundle write if the running binary is older than what's
+    # already on disk — prevents an installed homebrew/npm binary from
+    # overwriting a newer source-synced version on every Stop hook invocation.
+    if version_downgrade_for_path?(current_version, plugin_json_path) do
+      :ok
+    else
+      Enum.each(
+        [
+          {Path.join(root, ".cursor/rules"), Path.join(root, ".cursor-plugin/rules")},
+          {Path.join(root, ".cursor/skills"), Path.join(root, ".cursor-plugin/skills")},
+          {Path.join(root, ".cursor/agents"), Path.join(root, ".cursor-plugin/agents")},
+          {Path.join(root, ".cursor/commands"), Path.join(root, ".cursor-plugin/commands")}
+        ],
+        fn {from, to} ->
+          if File.exists?(from) do
+            File.rm_rf!(to)
+            File.mkdir_p!(Path.dirname(to))
+            File.cp_r!(from, to)
+          end
         end
+      )
+
+      plugin_hook_dir = Path.join(root, ".cursor-plugin/hooks")
+      File.mkdir_p!(plugin_hook_dir)
+
+      File.write!(
+        Path.join(plugin_hook_dir, "hooks.json"),
+        Jason.encode!(cursor_plugin_hooks_manifest(), pretty: true) <> "\n"
+      )
+
+      for {name, contents_fn} <- cursor_hook_scripts() do
+        path = Path.join(plugin_hook_dir, name)
+        File.write!(path, contents_fn.())
+        File.chmod!(path, 0o755)
       end
-    )
 
-    plugin_hook_dir = Path.join(root, ".cursor-plugin/hooks")
-    File.mkdir_p!(plugin_hook_dir)
-
-    File.write!(
-      Path.join(plugin_hook_dir, "hooks.json"),
-      Jason.encode!(cursor_plugin_hooks_manifest(), pretty: true) <> "\n"
-    )
-
-    for {name, contents_fn} <- cursor_hook_scripts() do
-      path = Path.join(plugin_hook_dir, name)
-      File.write!(path, contents_fn.())
-      File.chmod!(path, 0o755)
+      File.write!(
+        plugin_json_path,
+        Jason.encode!(cursor_plugin_manifest(project_root, opts), pretty: true) <> "\n"
+      )
     end
+  end
 
-    File.write!(
-      Path.join(root, ".cursor-plugin/plugin.json"),
-      Jason.encode!(cursor_plugin_manifest(project_root, opts), pretty: true) <> "\n"
-    )
+  # Returns true when the running binary's version is strictly older than the
+  # version already recorded in the given plugin.json file on disk.
+  defp version_downgrade_for_path?(current_version, plugin_json_path) do
+    with {:ok, raw} <- File.read(plugin_json_path),
+         {:ok, data} <- Jason.decode(raw),
+         recorded when is_binary(recorded) <- Map.get(data, "version") do
+      parse_plugin_vsn(current_version) < parse_plugin_vsn(recorded)
+    else
+      _ -> false
+    end
+  end
+
+  defp parse_plugin_vsn(vsn) when is_binary(vsn) do
+    vsn
+    |> String.split(".")
+    |> Enum.map(fn part ->
+      case Integer.parse(part) do
+        {n, _} -> n
+        :error -> 0
+      end
+    end)
   end
 
   defp write_cursor_skill_tree(skills, cursor_skill_root) do
@@ -5296,10 +5332,56 @@ defmodule ControlKeel.Skills.Exporter do
     ]
   end
 
-  defp cursor_validate_shell_hook_contents do
+  defp cursor_hook_runtime_helpers do
     ~S"""
+    set -u
+
+    ck_bin() {
+      if [ -n "${CONTROLKEEL_BIN:-}" ] && [ -x "${CONTROLKEEL_BIN:-}" ]; then
+        printf '%s\n' "$CONTROLKEEL_BIN"
+        return 0
+      fi
+
+      repo_root="${CK_PROJECT_ROOT:-}"
+      if [ -z "$repo_root" ] && command -v git >/dev/null 2>&1; then
+        repo_root=$(git rev-parse --show-toplevel 2>/dev/null || true)
+      fi
+
+      if [ -n "$repo_root" ] && [ -x "$repo_root/bin/controlkeel" ]; then
+        printf '%s\n' "$repo_root/bin/controlkeel"
+        return 0
+      fi
+
+      if command -v controlkeel >/dev/null 2>&1; then
+        command -v controlkeel
+        return 0
+      fi
+
+      return 1
+    }
+
+    ck_run() {
+      seconds="${CONTROLKEEL_HOOK_TIMEOUT_SECONDS:-4}"
+      bin=$(ck_bin 2>/dev/null || true)
+      if [ -z "$bin" ]; then
+        return 127
+      fi
+
+      if command -v perl >/dev/null 2>&1; then
+        perl -e 'alarm shift; exec @ARGV' "$seconds" "$bin" "$@"
+      elif command -v timeout >/dev/null 2>&1; then
+        timeout "$seconds" "$bin" "$@"
+      else
+        "$bin" "$@"
+      fi
+    }
+    """
+  end
+
+  defp cursor_validate_shell_hook_contents do
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{cursor_hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5315,8 +5397,8 @@ defmodule ControlKeel.Skills.Exporter do
       exit 0
     fi
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      result=$(controlkeel validate --content "$command_text" --kind shell --json 2>/dev/null || true)
+    result=$(ck_run validate --content "$command_text" --kind shell --json 2>/dev/null || true)
+    if [ -n "$result" ]; then
 
       if printf '%s' "$result" | grep -q '"decision":"block"'; then
         printf '{"permission":"deny","user_message":"ControlKeel blocked this shell command.","agent_message":"CK governance blocked this shell command. Check ck_validate for details."}\n'
@@ -5335,9 +5417,9 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp cursor_validate_write_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{cursor_hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5350,8 +5432,8 @@ defmodule ControlKeel.Skills.Exporter do
 
     sensitive_pattern='\.env|credentials|secret|\.pem|\.key|id_rsa|token|password'
     if printf '%s' "$file_path" | grep -qiE "$sensitive_pattern"; then
-      if command -v controlkeel >/dev/null 2>&1; then
-        result=$(controlkeel validate --content "Writing to $file_path" --kind config --json 2>/dev/null || true)
+      result=$(ck_run validate --content "Writing to $file_path" --kind config --json 2>/dev/null || true)
+      if [ -n "$result" ]; then
         if printf '%s' "$result" | grep -q '"decision":"block"'; then
           printf '{"permission":"deny","user_message":"ControlKeel blocked write to sensitive file: %s"}\n' "$file_path"
           exit 0
@@ -5367,9 +5449,9 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp cursor_session_start_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{cursor_hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5381,9 +5463,7 @@ defmodule ControlKeel.Skills.Exporter do
     fi
 
     context=""
-    if command -v controlkeel >/dev/null 2>&1; then
-      context=$(controlkeel context --session-id "${session_id:-1}" --json 2>/dev/null || true)
-    fi
+    context=$(ck_run context --session-id "${session_id:-1}" --json 2>/dev/null || true)
 
     context_ok=""
     if [ -n "$context" ]; then
@@ -5401,21 +5481,19 @@ defmodule ControlKeel.Skills.Exporter do
     fi
 
     update_available=""
-    if command -v controlkeel >/dev/null 2>&1; then
-      update_report=$(controlkeel update --json 2>/dev/null || true)
+    update_report=$(ck_run update --json 2>/dev/null || true)
 
-      if [ -n "$update_report" ]; then
-        if command -v jq >/dev/null 2>&1; then
-          printf '%s' "$update_report" | jq -e '.update_available == true' >/dev/null 2>&1 && update_available=1
-        elif command -v python3 >/dev/null 2>&1; then
-          if printf '%s' "$update_report" | python3 -c "import json,sys; d=json.load(sys.stdin); raise SystemExit(0 if d.get('update_available') is True else 1)" >/dev/null 2>&1; then
-            update_available=1
-          fi
-        else
-          case "$update_report" in
-            *\"update_available\":true*) update_available=1 ;;
-          esac
+    if [ -n "$update_report" ]; then
+      if command -v jq >/dev/null 2>&1; then
+        printf '%s' "$update_report" | jq -e '.update_available == true' >/dev/null 2>&1 && update_available=1
+      elif command -v python3 >/dev/null 2>&1; then
+        if printf '%s' "$update_report" | python3 -c "import json,sys; d=json.load(sys.stdin); raise SystemExit(0 if d.get('update_available') is True else 1)" >/dev/null 2>&1; then
+          update_available=1
         fi
+      else
+        case "$update_report" in
+          *\"update_available\":true*) update_available=1 ;;
+        esac
       fi
     fi
 
@@ -5437,30 +5515,28 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp cursor_session_end_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{cursor_hook_runtime_helpers()}
 
     input=$(cat)
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      session_id=""
-      if command -v jq >/dev/null 2>&1; then
-        session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
-      elif command -v python3 >/dev/null 2>&1; then
-        session_id=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null)
-      fi
-      controlkeel context --session-id "${session_id:-1}" --json >/dev/null 2>&1 || true
+    session_id=""
+    if command -v jq >/dev/null 2>&1; then
+      session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
+    elif command -v python3 >/dev/null 2>&1; then
+      session_id=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null)
     fi
+    ck_run context --session-id "${session_id:-1}" --json >/dev/null 2>&1 || true
 
     exit 0
     """
   end
 
   defp cursor_subagent_start_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{cursor_hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5479,8 +5555,8 @@ defmodule ControlKeel.Skills.Exporter do
       exit 0
     fi
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      result=$(controlkeel validate --content "Delegating to $subagent_type subagent: $task" --kind text --json 2>/dev/null || true)
+    result=$(ck_run validate --content "Delegating to $subagent_type subagent: $task" --kind text --json 2>/dev/null || true)
+    if [ -n "$result" ]; then
 
       if printf '%s' "$result" | grep -q '"decision":"block"'; then
         printf '{"permission":"deny","user_message":"ControlKeel blocked subagent delegation: %s"}\n' "$subagent_type"
@@ -5494,9 +5570,9 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp cursor_mcp_gate_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{cursor_hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5519,8 +5595,8 @@ defmodule ControlKeel.Skills.Exporter do
       exit 0
     fi
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      result=$(controlkeel validate --content "MCP tool call: $tool_name" --kind text --json 2>/dev/null || true)
+    result=$(ck_run validate --content "MCP tool call: $tool_name" --kind text --json 2>/dev/null || true)
+    if [ -n "$result" ]; then
 
       if printf '%s' "$result" | grep -q '"decision":"block"'; then
         printf '{"permission":"deny","user_message":"ControlKeel blocked MCP tool: %s"}\n' "$tool_name"
@@ -5539,9 +5615,9 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp cursor_stop_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{cursor_hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5559,11 +5635,12 @@ defmodule ControlKeel.Skills.Exporter do
       exit 0
     fi
 
-    if [ "$status" = "completed" ] && command -v controlkeel >/dev/null 2>&1; then
-      context=$(controlkeel context --session-id 1 --json 2>/dev/null || true)
+    if [ "$status" = "completed" ]; then
+      context=$(CONTROLKEEL_HOOK_TIMEOUT_SECONDS="${CONTROLKEEL_STOP_HOOK_TIMEOUT_SECONDS:-3}" ck_run context --session-id 1 --json 2>/dev/null || true)
 
-      if printf '%s' "$context" | grep -q '"findings"' 2>/dev/null; then
-        has_blocked=$(printf '%s' "$context" | grep -c '"severity":"blocked"' 2>/dev/null || echo "0")
+      if printf '%s' "$context" | grep -q '"active_findings"' 2>/dev/null; then
+        has_blocked=$(printf '%s' "$context" | sed -n 's/.*"blocked":[[:space:]]*\([0-9][0-9]*\).*/\1/p' | head -n 1)
+        has_blocked="${has_blocked:-0}"
 
         if [ "$has_blocked" -gt 0 ] 2>/dev/null; then
           printf '{"followup_message":"There are unresolved blocked findings from ControlKeel governance. Please call ck_context to review them before closing."}\n'

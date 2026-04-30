@@ -1601,8 +1601,42 @@ defmodule ControlKeel.SkillsTest do
     assert get_in(plugin, ["hooks"]) == "./hooks/hooks.json"
 
     session_start_hook = File.read!(Path.join(tmp_dir, ".cursor/hooks/ck-session-start.sh"))
-    assert session_start_hook =~ "controlkeel update --json"
+    assert session_start_hook =~ "ck_run update --json"
     assert session_start_hook =~ "CK_UPDATE_AVAILABLE"
+
+    session_end_hook = File.read!(Path.join(tmp_dir, ".cursor/hooks/ck-session-end.sh"))
+    subagent_start_hook = File.read!(Path.join(tmp_dir, ".cursor/hooks/ck-subagent-start.sh"))
+    validate_shell_hook = File.read!(Path.join(tmp_dir, ".cursor/hooks/ck-validate-shell.sh"))
+    validate_write_hook = File.read!(Path.join(tmp_dir, ".cursor/hooks/ck-validate-write.sh"))
+    mcp_gate_hook = File.read!(Path.join(tmp_dir, ".cursor/hooks/ck-mcp-gate.sh"))
+    stop_hook = File.read!(Path.join(tmp_dir, ".cursor/hooks/ck-stop.sh"))
+    plugin_stop_hook = File.read!(Path.join(tmp_dir, ".cursor-plugin/hooks/ck-stop.sh"))
+
+    for hook <- [
+          session_start_hook,
+          session_end_hook,
+          subagent_start_hook,
+          validate_shell_hook,
+          validate_write_hook,
+          mcp_gate_hook,
+          stop_hook,
+          plugin_stop_hook
+        ] do
+      assert hook =~ "CONTROLKEEL_HOOK_TIMEOUT_SECONDS"
+      assert hook =~ "ck_run()"
+      assert hook =~ "exit 0"
+      refute hook =~ "set -eu"
+    end
+
+    assert session_start_hook =~ "ck_run context --session-id"
+    assert session_end_hook =~ "ck_run context --session-id"
+    assert subagent_start_hook =~ "ck_run validate --content"
+    assert validate_shell_hook =~ "ck_run validate --content"
+    assert validate_write_hook =~ "ck_run validate --content"
+    assert mcp_gate_hook =~ "ck_run validate --content"
+    assert stop_hook =~ "CONTROLKEEL_STOP_HOOK_TIMEOUT_SECONDS"
+    assert stop_hook =~ "ck_run context --session-id 1 --json"
+    refute stop_hook =~ ~S|"severity":"blocked"|
 
     cursor_agent = File.read!(Path.join(tmp_dir, ".cursor/agents/controlkeel-governor.md"))
     assert cursor_agent =~ "controlkeel update --json"
@@ -1841,6 +1875,46 @@ defmodule ControlKeel.SkillsTest do
              "${workspaceFolder}/bin/controlkeel-mcp"
 
     assert get_in(mcp, ["mcpServers", "controlkeel", "args"]) == []
+  end
+
+  test "cursor-native install does not downgrade plugin.json when existing version is newer", %{
+    tmp_dir: tmp_dir
+  } do
+    # Write a plugin.json that claims a far-future version — simulates a
+    # source-synced install that is newer than the currently running binary.
+    plugin_dir = Path.join(tmp_dir, ".cursor-plugin")
+    File.mkdir_p!(plugin_dir)
+
+    future_version = "99.0.0"
+
+    File.write!(
+      Path.join(plugin_dir, "plugin.json"),
+      Jason.encode!(%{"name" => "controlkeel", "version" => future_version}, pretty: true) <> "\n"
+    )
+
+    # Install should succeed but must NOT overwrite the newer version.
+    assert {:ok, _} = Skills.install("cursor-native", tmp_dir, scope: "project")
+
+    plugin = Jason.decode!(File.read!(Path.join(plugin_dir, "plugin.json")))
+    assert plugin["version"] == future_version
+  end
+
+  test "cursor-native install writes plugin.json when existing version is older", %{
+    tmp_dir: tmp_dir
+  } do
+    plugin_dir = Path.join(tmp_dir, ".cursor-plugin")
+    File.mkdir_p!(plugin_dir)
+
+    File.write!(
+      Path.join(plugin_dir, "plugin.json"),
+      Jason.encode!(%{"name" => "controlkeel", "version" => "0.0.1"}, pretty: true) <> "\n"
+    )
+
+    assert {:ok, _} = Skills.install("cursor-native", tmp_dir, scope: "project")
+
+    plugin = Jason.decode!(File.read!(Path.join(plugin_dir, "plugin.json")))
+    current = to_string(Application.spec(:controlkeel, :vsn) || "0.1.0")
+    assert plugin["version"] == current
   end
 
   defp prompt_hook_output(hook_path, prompt) do

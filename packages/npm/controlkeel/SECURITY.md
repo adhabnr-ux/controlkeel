@@ -24,7 +24,7 @@ The `postinstall` script (`lib/postinstall.js`) performs the following actions:
 ### Security considerations
 
 - **Source**: Binaries are downloaded exclusively from official GitHub Releases
-- **Verification**: The download process uses GitHub's authenticated release endpoints
+- **Checksum verification**: After download, the installer fetches `SHASUMS256.txt` from the same release and verifies the SHA-256 digest of the downloaded binary before installing it. A mismatch causes the install to fail and the partial download is removed.
 - **Transparency**: The source code for the bootstrap installer is fully visible in this repository
 - **Opt-out**: Users can skip automatic download by setting `CONTROLKEEL_SKIP_DOWNLOAD=1`
 - **No external dependencies**: The bootstrap installer has no runtime dependencies beyond Node.js built-ins

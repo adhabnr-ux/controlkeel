@@ -14,7 +14,17 @@ MIX_EXS = ROOT / "mix.exs"
 CHANGELOG = ROOT / "CHANGELOG.md"
 NPM_PACKAGE = ROOT / "packages" / "npm" / "controlkeel" / "package.json"
 NPM_SERVER = ROOT / "packages" / "npm" / "controlkeel" / "server.json"
-PLUGIN_MANIFESTS = [ROOT / "plugin.json", ROOT / ".cursor-plugin" / "plugin.json"]
+PLUGIN_MANIFESTS = [
+    ROOT / "plugin.json",
+    ROOT / ".cursor-plugin" / "plugin.json",
+    ROOT / "plugins" / "controlkeel" / ".codex-plugin" / "plugin.json",
+    ROOT / "controlkeel" / "dist" / "cursor-native" / ".cursor-plugin" / "plugin.json",
+    ROOT / "controlkeel" / "dist" / "codex-plugin" / ".codex-plugin" / "plugin.json",
+    ROOT / "controlkeel" / "dist" / "augment-plugin" / ".augment-plugin" / "plugin.json",
+    ROOT / "controlkeel" / "dist" / "claude-plugin" / ".claude-plugin" / "plugin.json",
+    ROOT / "controlkeel" / "dist" / "copilot-plugin" / "plugin.json",
+    ROOT / "controlkeel" / "dist" / "droid-plugin" / ".factory-plugin" / "plugin.json",
+]
 
 
 def read_version() -> tuple[str, str]:

@@ -583,9 +583,9 @@ defmodule ControlKeel.Observability do
   end
 
   def memory_context(session_id, opts) when is_integer(session_id) do
-    case Mission.get_session_context(session_id) do
+    case Mission.get_session_with_workspace(session_id) do
       nil -> {:error, :not_found}
-      %Session{} = session -> {:ok, memory_context(session, opts)}
+      %Session{} = session -> {:ok, memory_context_for_session_id(session, opts)}
     end
   end
 
@@ -594,6 +594,27 @@ defmodule ControlKeel.Observability do
       {parsed, ""} -> memory_context(parsed, opts)
       _ -> {:error, :invalid_session_id}
     end
+  end
+
+  defp memory_context_for_session_id(%Session{} = session, opts) do
+    limit = Keyword.get(opts, :limit, 10)
+    records = memory_records(session.id, limit)
+    active_records = Enum.filter(records, &is_nil(&1.archived_at))
+    archived_records = Enum.reject(records, &is_nil(&1.archived_at))
+
+    %{
+      session: session_summary(session),
+      context: session_context_counts(session.id),
+      memory: %{
+        count: length(records),
+        active: length(active_records),
+        archived: length(archived_records),
+        by_type: frequencies(records, &(&1.record_type || "unknown")),
+        by_source: frequencies(records, &(&1.source_type || "unknown")),
+        recent: Enum.map(records, &memory_record_summary/1)
+      },
+      recommendations: memory_context_recommendations(active_records, archived_records)
+    }
   end
 
   def memory_quality(opts \\ []) do
@@ -2921,6 +2942,27 @@ defmodule ControlKeel.Observability do
     MemoryRecord
     |> where([r], r.session_id == ^session_id and is_nil(r.archived_at))
     |> Repo.aggregate(:count, :id)
+  end
+
+  defp session_context_counts(session_id) do
+    %{
+      tasks:
+        Repo.aggregate(
+          from(t in ControlKeel.Mission.Task, where: t.session_id == ^session_id),
+          :count,
+          :id
+        ),
+      findings:
+        Repo.aggregate(from(f in Finding, where: f.session_id == ^session_id), :count, :id),
+      reviews:
+        Repo.aggregate(
+          from(r in ControlKeel.Mission.Review, where: r.session_id == ^session_id),
+          :count,
+          :id
+        ),
+      invocations:
+        Repo.aggregate(from(i in Invocation, where: i.session_id == ^session_id), :count, :id)
+    }
   end
 
   defp frequencies(items, fun) do

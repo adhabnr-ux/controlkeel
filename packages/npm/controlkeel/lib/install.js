@@ -1,5 +1,6 @@
 "use strict";
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -85,6 +86,72 @@ function download(url, destination) {
   });
 }
 
+function downloadText(url) {
+  return new Promise((resolve, reject) => {
+    const request = https.get(url, (response) => {
+      if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        response.resume();
+        downloadText(response.headers.location).then(resolve, reject);
+        return;
+      }
+
+      if (response.statusCode !== 200) {
+        reject(new Error(`Failed to download ${url} (HTTP ${response.statusCode})`));
+        return;
+      }
+
+      let data = "";
+      response.on("data", (chunk) => { data += chunk; });
+      response.on("end", () => resolve(data));
+    });
+
+    request.on("error", reject);
+  });
+}
+
+function sha256File(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    const stream = fs.createReadStream(filePath);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+    stream.on("error", reject);
+  });
+}
+
+async function verifyChecksum(filePath, asset) {
+  const checksumUrl = `${releaseBaseUrl()}/SHASUMS256.txt`;
+
+  let checksumText;
+  try {
+    checksumText = await downloadText(checksumUrl);
+  } catch {
+    // Checksum file not available for this release — skip verification but warn.
+    console.warn(`[controlkeel] Warning: could not download checksum file from ${checksumUrl}. Skipping integrity check.`);
+    return;
+  }
+
+  const expectedHash = checksumText
+    .split("\n")
+    .map((line) => line.trim().split(/\s+/))
+    .find(([, name]) => name === asset || name === `./${asset}`)?.[0];
+
+  if (!expectedHash) {
+    console.warn(`[controlkeel] Warning: no checksum entry found for ${asset}. Skipping integrity check.`);
+    return;
+  }
+
+  const actualHash = await sha256File(filePath);
+
+  if (actualHash !== expectedHash) {
+    fs.rmSync(filePath, { force: true });
+    throw new Error(
+      `Checksum mismatch for ${asset}.\n  Expected: ${expectedHash}\n  Got:      ${actualHash}\n` +
+      `The downloaded binary has been removed. Retry the installation or set CONTROLKEEL_SKIP_DOWNLOAD=1 and install manually.`
+    );
+  }
+}
+
 async function ensureBinary({ forceDownload = false } = {}) {
   const destination = binaryPath();
 
@@ -93,10 +160,13 @@ async function ensureBinary({ forceDownload = false } = {}) {
   }
 
   ensureVendorDir();
-  const tempPath = path.join(os.tmpdir(), `${assetName()}-${Date.now()}`);
-  const url = `${releaseBaseUrl()}/${assetName()}`;
+  const asset = assetName();
+  const tempPath = path.join(os.tmpdir(), `${asset}-${Date.now()}`);
+  const url = `${releaseBaseUrl()}/${asset}`;
 
   await download(url, tempPath);
+  await verifyChecksum(tempPath, asset);
+
   fs.copyFileSync(tempPath, destination);
   fs.rmSync(tempPath, { force: true });
 
