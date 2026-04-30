@@ -62,11 +62,21 @@ defmodule ControlKeel.AttachedAgentSync do
                {:ok, scope} <- inferred_scope(attrs, integration),
                {:ok, result} <-
                  Skills.install(target, project_root, scope: scope, write_agents_md: false) do
+            # When the install hit a version guard (binary older than on-disk plugin),
+            # record the on-disk version so the binding stays accurate and future
+            # syncs don't keep retrying with a stale binary.
+            effective_version =
+              if Map.get(result, :version_guarded) == true and Map.get(result, :recorded_version) do
+                result.recorded_version
+              else
+                current_version
+              end
+
             updated_attrs =
               attrs
               |> Map.put("target", target)
               |> Map.put("scope", scope)
-              |> Map.put("controlkeel_version", current_version)
+              |> Map.put("controlkeel_version", effective_version)
               |> Map.put(
                 "synced_at",
                 DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()

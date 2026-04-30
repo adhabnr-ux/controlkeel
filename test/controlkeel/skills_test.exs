@@ -627,6 +627,26 @@ defmodule ControlKeel.SkillsTest do
     assert File.exists?(Path.join(codex_plan.output_dir, ".codex/hooks/ck-user-prompt-submit.sh"))
     assert File.exists?(Path.join(codex_plan.output_dir, ".codex/hooks/ck-stop.sh"))
 
+    codex_session_hook =
+      File.read!(Path.join(codex_plan.output_dir, ".codex/hooks/ck-session-start.sh"))
+
+    assert codex_session_hook =~ "ck_run context --session-id"
+    assert codex_session_hook =~ "CONTROLKEEL_HOOK_TIMEOUT_SECONDS"
+    refute codex_session_hook =~ "set -eu"
+
+    codex_validate_hook =
+      File.read!(Path.join(codex_plan.output_dir, ".codex/hooks/ck-validate-shell.sh"))
+
+    assert codex_validate_hook =~ "ck_run validate --content"
+    refute codex_validate_hook =~ "set -eu"
+
+    codex_stop_hook =
+      File.read!(Path.join(codex_plan.output_dir, ".codex/hooks/ck-stop.sh"))
+
+    assert codex_stop_hook =~ "ck_run context --session-id"
+    assert codex_stop_hook =~ "CONTROLKEEL_STOP_HOOK_TIMEOUT_SECONDS"
+    refute codex_stop_hook =~ "set -eu"
+
     assert File.exists?(
              Path.join(codex_plan.output_dir, ".agents/skills/controlkeel-governance/SKILL.md")
            )
@@ -710,6 +730,25 @@ defmodule ControlKeel.SkillsTest do
     assert File.exists?(Path.join(claude_plan.output_dir, "settings.json"))
     assert File.exists?(Path.join(claude_plan.output_dir, "hooks/hooks.json"))
     assert File.exists?(Path.join(claude_plan.output_dir, "hooks/controlkeel-review.sh"))
+
+    claude_review_sh =
+      File.read!(Path.join(claude_plan.output_dir, "hooks/controlkeel-review.sh"))
+
+    assert claude_review_sh =~ "ck_run review plan submit"
+    refute claude_review_sh =~ "set -eu"
+
+    claude_validate_shell =
+      File.read!(Path.join(claude_plan.output_dir, "hooks/ck-validate-shell.sh"))
+
+    assert claude_validate_shell =~ "ck_run validate --content"
+    assert claude_validate_shell =~ "CONTROLKEEL_HOOK_TIMEOUT_SECONDS"
+    refute claude_validate_shell =~ "set -eu"
+
+    claude_session_end =
+      File.read!(Path.join(claude_plan.output_dir, "hooks/ck-session-end.sh"))
+
+    assert claude_session_end =~ "ck_run context --session-id"
+    refute claude_session_end =~ "set -eu"
     assert File.exists?(Path.join(claude_plan.output_dir, "hooks/controlkeel-review.ps1"))
     assert File.exists?(Path.join(claude_plan.output_dir, "commands/controlkeel-review.md"))
 
@@ -771,7 +810,18 @@ defmodule ControlKeel.SkillsTest do
         Path.join(cline_plan.output_dir, ".cline/hooks/TaskStart/controlkeel-context.sh")
       )
 
-    assert cline_taskstart_hook =~ "controlkeel update --json"
+    assert cline_taskstart_hook =~ "ck_run update --json"
+    assert cline_taskstart_hook =~ "CONTROLKEEL_HOOK_TIMEOUT_SECONDS"
+    refute cline_taskstart_hook =~ "set -eu"
+
+    cline_review_hook =
+      File.read!(
+        Path.join(cline_plan.output_dir, ".cline/hooks/PreToolUse/controlkeel-review.sh")
+      )
+
+    assert cline_review_hook =~ "ck_run review plan submit"
+    assert cline_review_hook =~ "CONTROLKEEL_HOOK_TIMEOUT_SECONDS"
+    refute cline_review_hook =~ "set -eu"
 
     assert File.exists?(
              Path.join(cline_plan.output_dir, ".cline/data/settings/cline_mcp_settings.json")
@@ -976,7 +1026,14 @@ defmodule ControlKeel.SkillsTest do
     letta_session_hook =
       File.read!(Path.join(letta_plan.output_dir, ".letta/hooks/controlkeel-session-start.sh"))
 
-    assert letta_session_hook =~ "controlkeel update --json"
+    assert letta_session_hook =~ "ck_run update --json"
+
+    letta_findings_hook =
+      File.read!(Path.join(letta_plan.output_dir, ".letta/hooks/controlkeel-findings.sh"))
+
+    assert letta_findings_hook =~ "ck_run findings"
+    assert letta_findings_hook =~ "CONTROLKEEL_HOOK_TIMEOUT_SECONDS"
+    refute letta_findings_hook =~ "set -eu"
 
     assert {:ok, opencode_plan} = Skills.export("opencode-native", tmp_dir, scope: "export")
     assert File.exists?(Path.join(opencode_plan.output_dir, "package.json"))
@@ -1440,7 +1497,7 @@ defmodule ControlKeel.SkillsTest do
     cline_install_hook =
       File.read!(Path.join(tmp_dir, ".cline/hooks/TaskStart/controlkeel-context.sh"))
 
-    assert cline_install_hook =~ "controlkeel update --json"
+    assert cline_install_hook =~ "ck_run update --json"
 
     assert {:ok, roo_install} = Skills.install("roo-native", tmp_dir, scope: "project")
     assert roo_install.destination == Path.join(tmp_dir, ".roo/skills")
@@ -1683,7 +1740,7 @@ defmodule ControlKeel.SkillsTest do
     letta_install_hook =
       File.read!(Path.join(tmp_dir, ".letta/hooks/controlkeel-session-start.sh"))
 
-    assert letta_install_hook =~ "controlkeel update --json"
+    assert letta_install_hook =~ "ck_run update --json"
 
     assert {:ok, aider_install} = Skills.install("instructions-only", tmp_dir, scope: "project")
     assert aider_install.destination == tmp_dir
@@ -1893,10 +1950,15 @@ defmodule ControlKeel.SkillsTest do
     )
 
     # Install should succeed but must NOT overwrite the newer version.
-    assert {:ok, _} = Skills.install("cursor-native", tmp_dir, scope: "project")
+    assert {:ok, result} = Skills.install("cursor-native", tmp_dir, scope: "project")
 
     plugin = Jason.decode!(File.read!(Path.join(plugin_dir, "plugin.json")))
     assert plugin["version"] == future_version
+
+    # The install result must report the guard fired and carry the on-disk version
+    # so the sync layer records the correct version in the binding.
+    assert result[:version_guarded] == true
+    assert result[:recorded_version] == future_version
   end
 
   test "cursor-native install writes plugin.json when existing version is older", %{
@@ -1910,11 +1972,15 @@ defmodule ControlKeel.SkillsTest do
       Jason.encode!(%{"name" => "controlkeel", "version" => "0.0.1"}, pretty: true) <> "\n"
     )
 
-    assert {:ok, _} = Skills.install("cursor-native", tmp_dir, scope: "project")
+    assert {:ok, result} = Skills.install("cursor-native", tmp_dir, scope: "project")
 
     plugin = Jason.decode!(File.read!(Path.join(plugin_dir, "plugin.json")))
     current = to_string(Application.spec(:controlkeel, :vsn) || "0.1.0")
     assert plugin["version"] == current
+
+    # No version guard should fire when upgrading.
+    assert result[:version_guarded] == false
+    assert is_nil(result[:recorded_version])
   end
 
   test "install with write_agents_md: false does not overwrite AGENTS.md", %{tmp_dir: tmp_dir} do

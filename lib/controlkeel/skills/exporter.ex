@@ -4202,7 +4202,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp claude_plugin_post_compact_hook_contents do
     ~S"""
     #!/usr/bin/env sh
-    set -eu
+    set -u
 
     printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PostCompact","additionalContext":"Context was compacted. You are in a ControlKeel-governed session: always call ck_context before proceeding, ck_validate before code or shell changes, and ck_finding for any issues you discover. Resume any in-progress work only after re-loading governance state."}}'
     exit 0
@@ -4210,9 +4210,9 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp claude_plugin_session_end_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
     input=$(cat)
     session_id=""
@@ -4223,9 +4223,7 @@ defmodule ControlKeel.Skills.Exporter do
       session_id=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null)
     fi
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      controlkeel context --session-id "${session_id:-1}" --save-snapshot --json >/dev/null 2>&1 || true
-    fi
+    ck_run context --session-id "${session_id:-1}" --save-snapshot --json >/dev/null 2>&1 || true
 
     exit 0
     """
@@ -4234,7 +4232,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp claude_plugin_subagent_start_hook_contents do
     ~S"""
     #!/usr/bin/env sh
-    set -eu
+    set -u
 
     printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"SubagentStart","additionalContext":"You are in a ControlKeel-governed session. Call ck_context before proceeding with any task, ck_validate before code or shell changes, and ck_finding for issues you discover. Follow all governance constraints from the parent session."}}'
     exit 0
@@ -4242,9 +4240,9 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp claude_plugin_post_tool_use_failure_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
     input=$(cat)
     tool="unknown"
@@ -4255,9 +4253,7 @@ defmodule ControlKeel.Skills.Exporter do
       tool=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('tool_name','unknown'))" 2>/dev/null || echo "unknown")
     fi
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      controlkeel finding --severity low --title "Tool failure: ${tool}" --json >/dev/null 2>&1 || true
-    fi
+    ck_run finding --severity low --title "Tool failure: ${tool}" --json >/dev/null 2>&1 || true
 
     exit 0
     """
@@ -4266,7 +4262,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp claude_plugin_config_change_hook_contents do
     ~S"""
     #!/usr/bin/env sh
-    set -eu
+    set -u
 
     input=$(cat)
     source="unknown"
@@ -4285,7 +4281,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp claude_plugin_permission_denied_hook_contents do
     ~S"""
     #!/usr/bin/env sh
-    set -eu
+    set -u
 
     input=$(cat)
     tool_name="unknown"
@@ -4304,9 +4300,9 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp claude_plugin_validate_write_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
     input=$(cat)
     tool_name=""
@@ -4326,8 +4322,8 @@ defmodule ControlKeel.Skills.Exporter do
 
     sensitive_pattern='\.env$|credentials|secret|\.pem$|\.key$|id_rsa|\.token$|passw'
     if printf '%s' "$file_path" | grep -qiE "$sensitive_pattern"; then
-      if command -v controlkeel >/dev/null 2>&1; then
-        result=$(controlkeel validate --content "${tool_name:-Write} to ${file_path}" --kind config --json 2>/dev/null || true)
+      result=$(ck_run validate --content "${tool_name:-Write} to ${file_path}" --kind config --json 2>/dev/null || true)
+      if [ -n "$result" ]; then
         if printf '%s' "$result" | grep -q '"decision":"block"'; then
           printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"ControlKeel blocked write to sensitive file: %s. Review ck_finding before retrying."}}\n' "$file_path"
           exit 0
@@ -4342,9 +4338,9 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp claude_plugin_post_write_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
     input=$(cat)
     file_path=""
@@ -4362,18 +4358,16 @@ defmodule ControlKeel.Skills.Exporter do
       exit 0
     fi
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      controlkeel finding --severity info --title "${tool_name:-Write}: ${file_path}" --json >/dev/null 2>&1 || true
-    fi
+    ck_run finding --severity info --title "${tool_name:-Write}: ${file_path}" --json >/dev/null 2>&1 || true
 
     exit 0
     """
   end
 
   defp claude_plugin_user_prompt_submit_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
     input=$(cat)
     prompt=""
@@ -4401,27 +4395,25 @@ defmodule ControlKeel.Skills.Exporter do
       exit 0
     fi
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      context=$(controlkeel context --session-id "${session_id:-1}" --json 2>/dev/null || true)
-      if [ -n "$context" ]; then
-        blocked="0"
-        budget_pct="0"
-        if command -v jq >/dev/null 2>&1; then
-          blocked=$(printf '%s' "$context" | jq -r '.active_findings.blocked // 0' 2>/dev/null || echo "0")
-          budget_pct=$(printf '%s' "$context" | jq -r '.budget.used_pct // 0' 2>/dev/null || echo "0")
-        elif command -v python3 >/dev/null 2>&1; then
-          blocked=$(printf '%s' "$context" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('active_findings',{}).get('blocked',0))" 2>/dev/null || echo "0")
-          budget_pct=$(printf '%s' "$context" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('budget',{}).get('used_pct',0))" 2>/dev/null || echo "0")
-        fi
+    context=$(ck_run context --session-id "${session_id:-1}" --json 2>/dev/null || true)
+    if [ -n "$context" ]; then
+      blocked="0"
+      budget_pct="0"
+      if command -v jq >/dev/null 2>&1; then
+        blocked=$(printf '%s' "$context" | jq -r '.active_findings.blocked // 0' 2>/dev/null || echo "0")
+        budget_pct=$(printf '%s' "$context" | jq -r '.budget.used_pct // 0' 2>/dev/null || echo "0")
+      elif command -v python3 >/dev/null 2>&1; then
+        blocked=$(printf '%s' "$context" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('active_findings',{}).get('blocked',0))" 2>/dev/null || echo "0")
+        budget_pct=$(printf '%s' "$context" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('budget',{}).get('used_pct',0))" 2>/dev/null || echo "0")
+      fi
 
-        if [ "${blocked:-0}" != "0" ] && [ "${blocked:-0}" != "" ]; then
-          printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"WARNING: %s blocked finding(s) active in this session. Call ck_context and resolve them before proceeding with this task."}}\n' "$blocked"
-          exit 0
-        fi
+      if [ "${blocked:-0}" != "0" ] && [ "${blocked:-0}" != "" ]; then
+        printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"WARNING: %s blocked finding(s) active in this session. Call ck_context and resolve them before proceeding with this task."}}\n' "$blocked"
+        exit 0
+      fi
 
-        if command -v awk >/dev/null 2>&1; then
-          awk "BEGIN{exit!(${budget_pct:-0}+0>=80)}" 2>/dev/null && printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"NOTE: Budget at %s%% capacity. Call ck_budget before expensive model or multi-agent operations."}}\n' "$budget_pct" || true
-        fi
+      if command -v awk >/dev/null 2>&1; then
+        awk "BEGIN{exit!(${budget_pct:-0}+0>=80)}" 2>/dev/null && printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"NOTE: Budget at %s%% capacity. Call ck_budget before expensive model or multi-agent operations."}}\n' "$budget_pct" || true
       fi
     fi
 
@@ -4430,23 +4422,20 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp codex_session_start_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
     input=$(cat)
+    session_id=""
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      session_id=""
-
-      if command -v jq >/dev/null 2>&1; then
-        session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
-      elif command -v python3 >/dev/null 2>&1; then
-        session_id=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null)
-      fi
-
-      controlkeel context --session-id "${session_id:-1}" --json >/dev/null 2>&1 || true
+    if command -v jq >/dev/null 2>&1; then
+      session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
+    elif command -v python3 >/dev/null 2>&1; then
+      session_id=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null)
     fi
+
+    ck_run context --session-id "${session_id:-1}" --json >/dev/null 2>&1 || true
 
     printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"ControlKeel available. Start with ck_context to load mission state, call ck_validate before risky edits, ck_budget before expensive operations, and ck_route before delegation."}}'
     exit 0
@@ -4454,9 +4443,9 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp codex_validate_shell_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
     input=$(cat)
     command_text=""
@@ -4467,20 +4456,21 @@ defmodule ControlKeel.Skills.Exporter do
       command_text=$(printf '%s' "$input" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tool_input', {}).get('command', ''))" 2>/dev/null)
     fi
 
-    if [ -z "$command_text" ] || ! command -v controlkeel >/dev/null 2>&1; then
+    if [ -z "$command_text" ]; then
       exit 0
     fi
 
-    result=$(controlkeel validate --content "$command_text" --kind shell --json 2>/dev/null || true)
+    result=$(ck_run validate --content "$command_text" --kind shell --json 2>/dev/null || true)
+    if [ -n "$result" ]; then
+      if printf '%s' "$result" | grep -q '"decision":"block"'; then
+        printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"ControlKeel blocked this Bash command. Review ck_validate findings before retrying."}}'
+        exit 0
+      fi
 
-    if printf '%s' "$result" | grep -q '"decision":"block"'; then
-      printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"ControlKeel blocked this Bash command. Review ck_validate findings before retrying."}}'
-      exit 0
-    fi
-
-    if printf '%s' "$result" | grep -q '"decision":"warn"'; then
-      printf '%s\n' '{"systemMessage":"ControlKeel flagged this Bash command with a warning. Review ck_validate details before proceeding."}'
-      exit 0
+      if printf '%s' "$result" | grep -q '"decision":"warn"'; then
+        printf '%s\n' '{"systemMessage":"ControlKeel flagged this Bash command with a warning. Review ck_validate details before proceeding."}'
+        exit 0
+      fi
     fi
 
     exit 0
@@ -4488,9 +4478,9 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   defp codex_stop_hook_contents do
-    ~S"""
+    """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
     input=$(cat)
     blocked_count="0"
@@ -4502,23 +4492,21 @@ defmodule ControlKeel.Skills.Exporter do
       stop_hook_active=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('stop_hook_active', False))" 2>/dev/null || printf 'false')
     fi
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      session_id=""
+    session_id=""
 
+    if command -v jq >/dev/null 2>&1; then
+      session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
+    elif command -v python3 >/dev/null 2>&1; then
+      session_id=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null)
+    fi
+
+    context=$(CONTROLKEEL_HOOK_TIMEOUT_SECONDS="${CONTROLKEEL_STOP_HOOK_TIMEOUT_SECONDS:-3}" ck_run context --session-id "${session_id:-1}" --json 2>/dev/null || true)
+
+    if [ -n "$context" ]; then
       if command -v jq >/dev/null 2>&1; then
-        session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
+        blocked_count=$(printf '%s' "$context" | jq -r '.active_findings.blocked // 0')
       elif command -v python3 >/dev/null 2>&1; then
-        session_id=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null)
-      fi
-
-      context=$(controlkeel context --session-id "${session_id:-1}" --json 2>/dev/null || true)
-
-      if [ -n "$context" ]; then
-        if command -v jq >/dev/null 2>&1; then
-          blocked_count=$(printf '%s' "$context" | jq -r '.active_findings.blocked // 0')
-        elif command -v python3 >/dev/null 2>&1; then
-          blocked_count=$(printf '%s' "$context" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('active_findings', {}).get('blocked', 0))" 2>/dev/null || printf '0')
-        fi
+        blocked_count=$(printf '%s' "$context" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('active_findings', {}).get('blocked', 0))" 2>/dev/null || printf '0')
       fi
     fi
 
@@ -4533,7 +4521,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp codex_post_tool_use_hook_contents do
     ~S"""
     #!/usr/bin/env sh
-    set -eu
+    set -u
 
     input=$(cat)
     command_text=""
@@ -4653,7 +4641,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp codex_user_prompt_submit_hook_contents do
     ~S"""
     #!/usr/bin/env sh
-    set -eu
+    set -u
 
     input=$(cat)
     prompt=""
@@ -4740,7 +4728,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp review_bridge_shell_contents(submitted_by) do
     """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
     tmp_body=$(mktemp)
     trap 'rm -f "$tmp_body"' EXIT INT TERM
@@ -4750,7 +4738,7 @@ defmodule ControlKeel.Skills.Exporter do
     : "${CONTROLKEEL_AGENT_ID:=#{submitted_by}}"
     export CONTROLKEEL_AGENT_ID
 
-    submit_output=$(controlkeel review plan submit --stdin --submitted-by "#{submitted_by}" --json <"$tmp_body")
+    submit_output=$(ck_run review plan submit --stdin --submitted-by "#{submitted_by}" --json <"$tmp_body")
     printf "%s\\n" "$submit_output"
 
     if command -v jq >/dev/null 2>&1; then
@@ -4761,10 +4749,10 @@ defmodule ControlKeel.Skills.Exporter do
 
     if [ -z "$review_id" ]; then
       echo "ControlKeel hook could not parse the submitted review id." >&2
-      exit 1
+      exit 0
     fi
 
-    controlkeel review plan wait --id "$review_id" --json
+    ck_run review plan wait --id "$review_id" --json
     """
   end
 
@@ -4857,23 +4845,21 @@ defmodule ControlKeel.Skills.Exporter do
   defp cline_taskstart_hook_contents do
     """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
-    controlkeel status >/dev/null 2>&1 || true
+    ck_run status >/dev/null 2>&1 || true
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      update_report=$(controlkeel update --json 2>/dev/null || true)
+    update_report=$(ck_run update --json 2>/dev/null || true)
 
-      if [ -n "$update_report" ]; then
-        update_available=$(printf '%s' "$update_report" | grep -o '"update_available":[[:space:]]*[^,}]*' | head -n1 | cut -d: -f2 | tr -d '[:space:]')
-        latest_version=$(printf '%s' "$update_report" | grep -o '"latest_version":[[:space:]]*"[^"]*"' | head -n1 | sed 's/.*"latest_version":[[:space:]]*"\([^"]*\)"/\1/')
+    if [ -n "$update_report" ]; then
+      update_available=$(printf '%s' "$update_report" | grep -o '"update_available":[[:space:]]*[^,}]*' | head -n1 | cut -d: -f2 | tr -d '[:space:]')
+      latest_version=$(printf '%s' "$update_report" | grep -o '"latest_version":[[:space:]]*"[^"]*"' | head -n1 | sed 's/.*"latest_version":[[:space:]]*"\([^"]*\)"/\1/')
 
-        if [ "$update_available" = "true" ]; then
-          if [ -n "$latest_version" ]; then
-            printf 'ControlKeel update available: %s. Consider `controlkeel update --sync-attached` after upgrading.\n' "$latest_version"
-          else
-            printf 'ControlKeel update available. Consider `controlkeel update --sync-attached` after upgrading.\n'
-          fi
+      if [ "$update_available" = "true" ]; then
+        if [ -n "$latest_version" ]; then
+          printf 'ControlKeel update available: %s. Consider `controlkeel update --sync-attached` after upgrading.\n' "$latest_version"
+        else
+          printf 'ControlKeel update available. Consider `controlkeel update --sync-attached` after upgrading.\n'
         fi
       fi
     fi
@@ -5332,7 +5318,7 @@ defmodule ControlKeel.Skills.Exporter do
     ]
   end
 
-  defp cursor_hook_runtime_helpers do
+  defp hook_runtime_helpers do
     ~S"""
     set -u
 
@@ -5381,7 +5367,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp cursor_validate_shell_hook_contents do
     """
     #!/usr/bin/env sh
-    #{cursor_hook_runtime_helpers()}
+    #{hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5419,7 +5405,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp cursor_validate_write_hook_contents do
     """
     #!/usr/bin/env sh
-    #{cursor_hook_runtime_helpers()}
+    #{hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5451,7 +5437,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp cursor_session_start_hook_contents do
     """
     #!/usr/bin/env sh
-    #{cursor_hook_runtime_helpers()}
+    #{hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5517,7 +5503,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp cursor_session_end_hook_contents do
     """
     #!/usr/bin/env sh
-    #{cursor_hook_runtime_helpers()}
+    #{hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5536,7 +5522,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp cursor_subagent_start_hook_contents do
     """
     #!/usr/bin/env sh
-    #{cursor_hook_runtime_helpers()}
+    #{hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5572,7 +5558,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp cursor_mcp_gate_hook_contents do
     """
     #!/usr/bin/env sh
-    #{cursor_hook_runtime_helpers()}
+    #{hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5617,7 +5603,7 @@ defmodule ControlKeel.Skills.Exporter do
   defp cursor_stop_hook_contents do
     """
     #!/usr/bin/env sh
-    #{cursor_hook_runtime_helpers()}
+    #{hook_runtime_helpers()}
 
     input=$(cat)
 
@@ -5884,13 +5870,9 @@ defmodule ControlKeel.Skills.Exporter do
   defp letta_findings_hook_contents do
     """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
-    if ! command -v controlkeel >/dev/null 2>&1; then
-      exit 0
-    fi
-
-    controlkeel findings --format summary --quiet 2>/dev/null || true
+    ck_run findings --format summary --quiet 2>/dev/null || true
     exit 0
     """
   end
@@ -5898,23 +5880,20 @@ defmodule ControlKeel.Skills.Exporter do
   defp letta_session_start_hook_contents do
     """
     #!/usr/bin/env sh
-    set -eu
+    #{hook_runtime_helpers()}
 
     update_notice=""
+    update_report=$(ck_run update --json 2>/dev/null || true)
 
-    if command -v controlkeel >/dev/null 2>&1; then
-      update_report=$(controlkeel update --json 2>/dev/null || true)
+    if [ -n "$update_report" ]; then
+      update_available=$(printf '%s' "$update_report" | grep -o '"update_available":[[:space:]]*[^,}]*' | head -n1 | cut -d: -f2 | tr -d '[:space:]')
+      latest_version=$(printf '%s' "$update_report" | grep -o '"latest_version":[[:space:]]*"[^"]*"' | head -n1 | sed 's/.*"latest_version":[[:space:]]*"\([^"]*\)"/\1/')
 
-      if [ -n "$update_report" ]; then
-        update_available=$(printf '%s' "$update_report" | grep -o '"update_available":[[:space:]]*[^,}]*' | head -n1 | cut -d: -f2 | tr -d '[:space:]')
-        latest_version=$(printf '%s' "$update_report" | grep -o '"latest_version":[[:space:]]*"[^"]*"' | head -n1 | sed 's/.*"latest_version":[[:space:]]*"\([^"]*\)"/\1/')
-
-        if [ "$update_available" = "true" ]; then
-          if [ -n "$latest_version" ]; then
-            update_notice="ControlKeel update available: ${latest_version}. Consider `controlkeel update --sync-attached` after upgrading."
-          else
-            update_notice="ControlKeel update available. Consider `controlkeel update --sync-attached` after upgrading."
-          fi
+      if [ "$update_available" = "true" ]; then
+        if [ -n "$latest_version" ]; then
+          update_notice="ControlKeel update available: ${latest_version}. Consider `controlkeel update --sync-attached` after upgrading."
+        else
+          update_notice="ControlKeel update available. Consider `controlkeel update --sync-attached` after upgrading."
         fi
       fi
     fi

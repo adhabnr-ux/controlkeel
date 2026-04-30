@@ -346,7 +346,9 @@ defmodule ControlKeel.Skills.Installer do
     dest_plugin_json = Path.join(project_root, ".cursor-plugin/plugin.json")
     src_plugin_json = Path.join(plan.output_dir, ".cursor-plugin/plugin.json")
 
-    unless plugin_version_downgrade?(src_plugin_json, dest_plugin_json) do
+    guarded? = plugin_version_downgrade?(src_plugin_json, dest_plugin_json)
+
+    unless guarded? do
       copy_tree_contents(
         Path.join(plan.output_dir, ".cursor-plugin"),
         Path.join(project_root, ".cursor-plugin")
@@ -355,13 +357,23 @@ defmodule ControlKeel.Skills.Installer do
       maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
     end
 
+    # When the version guard blocked the plugin copy, report the on-disk
+    # plugin version so the sync layer records the correct (newer) version
+    # in the binding instead of the running binary's older version.
+    recorded_version =
+      if guarded? do
+        read_plugin_version(dest_plugin_json)
+      end
+
     {:ok,
      %{
        target: "cursor-native",
        scope: "project",
        destination: Path.join(project_root, ".cursor"),
        plugin_destination: Path.join(project_root, ".cursor-plugin"),
-       skill_destination: Path.join(project_root, ".agents/skills")
+       skill_destination: Path.join(project_root, ".agents/skills"),
+       version_guarded: guarded?,
+       recorded_version: recorded_version
      }}
   end
 
@@ -1200,5 +1212,15 @@ defmodule ControlKeel.Skills.Installer do
 
   defp cline_documents_dir(name) do
     Path.join([user_home(), "Documents", "Cline", name])
+  end
+
+  defp read_plugin_version(path) do
+    with {:ok, raw} <- File.read(path),
+         {:ok, data} <- Jason.decode(raw),
+         vsn when is_binary(vsn) <- Map.get(data, "version") do
+      vsn
+    else
+      _ -> nil
+    end
   end
 end
