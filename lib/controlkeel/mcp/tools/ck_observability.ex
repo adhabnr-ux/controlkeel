@@ -31,8 +31,17 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
   def call(arguments) when is_map(arguments) do
     with {:ok, report} <- report(arguments),
          {:ok, opts} <- report_opts(arguments) do
+      persist = Keyword.get(opts, :persist, false)
+      read_only = not persist
+      mutation = if persist, do: "memory_record", else: "none"
+
       {:ok,
-       %{report: report, read_only: true, mutation: "none", data: dispatch_report(report, opts)}}
+       %{
+         report: report,
+         read_only: read_only,
+         mutation: mutation,
+         data: dispatch_report(report, opts)
+       }}
     end
   end
 
@@ -53,17 +62,21 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
   defp report_opts(arguments) do
     with {:ok, session_id} <- optional_integer(arguments, "session_id"),
          {:ok, workspace_id} <- optional_integer(arguments, "workspace_id"),
+         {:ok, task_id} <- optional_integer(arguments, "task_id"),
          {:ok, limit} <- optional_integer(arguments, "limit"),
          {:ok, days} <- optional_integer(arguments, "days"),
          {:ok, stale_days} <- optional_integer(arguments, "stale_days"),
-         {:ok, by} <- optional_string(arguments, "by") do
+         {:ok, by} <- optional_string(arguments, "by"),
+         {:ok, persist} <- optional_boolean(arguments, "persist") do
       opts = []
       opts = if session_id, do: Keyword.put(opts, :session_id, session_id), else: opts
       opts = if workspace_id, do: Keyword.put(opts, :workspace_id, workspace_id), else: opts
+      opts = if task_id, do: Keyword.put(opts, :task_id, task_id), else: opts
       opts = if limit, do: Keyword.put(opts, :limit, limit), else: opts
       opts = if days, do: Keyword.put(opts, :days, days), else: opts
       opts = if stale_days, do: Keyword.put(opts, :stale_days, stale_days), else: opts
       opts = if by, do: Keyword.put(opts, :by, by), else: opts
+      opts = if persist, do: Keyword.put(opts, :persist, persist), else: opts
 
       opts =
         if workspace_id || session_id do
@@ -102,6 +115,26 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
       nil -> {:ok, nil}
       value when is_binary(value) -> {:ok, value}
       value -> {:ok, to_string(value)}
+    end
+  end
+
+  defp optional_boolean(arguments, key) do
+    case Map.get(arguments, key) do
+      nil ->
+        {:ok, nil}
+
+      value when is_boolean(value) ->
+        {:ok, value}
+
+      value when is_binary(value) ->
+        lower = String.downcase(value)
+
+        if lower in ["true", "1", "yes"],
+          do: {:ok, true},
+          else: if(lower in ["false", "0", "no"], do: {:ok, false}, else: {:ok, nil})
+
+      _ ->
+        {:ok, nil}
     end
   end
 

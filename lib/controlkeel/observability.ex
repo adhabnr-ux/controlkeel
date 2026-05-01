@@ -510,6 +510,7 @@ defmodule ControlKeel.Observability do
     workspace_id = Keyword.get(opts, :workspace_id)
     session_id = Keyword.get(opts, :session_id)
     task_id = Keyword.get(opts, :task_id)
+    persist = Keyword.get(opts, :persist, false)
 
     items =
       []
@@ -523,7 +524,7 @@ defmodule ControlKeel.Observability do
       |> maybe_add_mission_perf_items(session_id)
       |> maybe_add_memory_perf_items(session_id, workspace_id, task_id)
 
-    %{
+    snapshot = %{
       generated_at: DateTime.utc_now() |> DateTime.truncate(:second),
       workspace_id: workspace_id,
       session_id: session_id,
@@ -531,6 +532,12 @@ defmodule ControlKeel.Observability do
       items: items,
       summary: perf_summary(items)
     }
+
+    if persist do
+      persist_perf_snapshot(snapshot, opts)
+    end
+
+    snapshot
   end
 
   def eval_candidates(opts \\ []) do
@@ -3205,5 +3212,68 @@ defmodule ControlKeel.Observability do
     |> Enum.map(fun)
     |> Enum.reject(&is_nil/1)
     |> Enum.frequencies()
+  end
+
+  defp persist_perf_snapshot(snapshot, opts) do
+    workspace_id = snapshot.workspace_id || Keyword.get(opts, :workspace_id)
+    session_id = snapshot.session_id || Keyword.get(opts, :session_id)
+    task_id = snapshot.task_id || Keyword.get(opts, :task_id)
+
+    attrs = %{
+      workspace_id: workspace_id,
+      session_id: session_id,
+      record_type: "telemetry",
+      title: "Performance Snapshot",
+      summary: "Performance metrics for observability reports and core functions",
+      body: perf_snapshot_to_text(snapshot),
+      tags:
+        ["perf_snapshot", "telemetry", "observability"]
+        |> Enum.concat(if(session_id, do: ["session:#{session_id}"], else: []))
+        |> Enum.concat(if(task_id, do: ["task:#{task_id}"], else: [])),
+      source_type: "observability",
+      source_id: "perf_snapshot:#{System.unique_integer([:positive])}",
+      metadata: %{
+        "generated_at" => DateTime.to_iso8601(snapshot.generated_at),
+        "workspace_id" => workspace_id,
+        "session_id" => session_id,
+        "task_id" => task_id,
+        "item_count" => snapshot.summary.item_count,
+        "total_wall_ms" => snapshot.summary.total_wall_ms,
+        "total_ecto_queries" => snapshot.summary.total_ecto_queries,
+        "total_payload_bytes" => snapshot.summary.total_payload_bytes,
+        "items" => snapshot.items
+      }
+    }
+
+    case Memory.record(attrs) do
+      {:ok, _record} -> :ok
+      {:error, _reason} = error -> error
+    end
+  end
+
+  defp perf_snapshot_to_text(snapshot) do
+    items_text =
+      snapshot.items
+      |> Enum.map(fn item ->
+        "  #{item.label}: wall=#{item.wall_ms}ms, queries=#{item.ecto_query_count}, payload=#{item.payload_bytes}B"
+      end)
+      |> Enum.join("\n")
+
+    """
+    Performance Snapshot - #{DateTime.to_iso8601(snapshot.generated_at)}
+    Workspace: #{snapshot.workspace_id || "N/A"}
+    Session: #{snapshot.session_id || "N/A"}
+    Task: #{snapshot.task_id || "N/A"}
+
+    Summary:
+      Items: #{snapshot.summary.item_count}
+      Total Wall Time: #{snapshot.summary.total_wall_ms}ms
+      Total Queries: #{snapshot.summary.total_ecto_queries}
+      Total Payload: #{snapshot.summary.total_payload_bytes}B
+
+    Items:
+    #{items_text}
+    """
+    |> String.trim()
   end
 end

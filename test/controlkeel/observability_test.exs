@@ -1201,4 +1201,62 @@ defmodule ControlKeel.ObservabilityTest do
 
     assert Repo.aggregate(ImportedEnvelope, :count, :id) == 0
   end
+
+  test "perf_snapshot/1 returns performance metrics without persisting by default" do
+    workspace = workspace_fixture()
+    session = session_fixture(%{workspace: workspace})
+
+    initial_count = Repo.aggregate(MemoryRecord, :count, :id)
+
+    result = Observability.perf_snapshot(workspace_id: workspace.id, session_id: session.id)
+
+    assert result.generated_at
+    assert result.workspace_id == workspace.id
+    assert result.session_id == session.id
+    assert is_list(result.items)
+    assert result.summary.item_count > 0
+    assert is_number(result.summary.total_wall_ms)
+    assert is_number(result.summary.total_ecto_queries)
+
+    # Verify no memory record was created
+    assert Repo.aggregate(MemoryRecord, :count, :id) == initial_count
+  end
+
+  test "perf_snapshot/1 with persist: true creates memory record" do
+    workspace = workspace_fixture()
+    session = session_fixture(%{workspace: workspace})
+
+    initial_count = Repo.aggregate(MemoryRecord, :count, :id)
+
+    result =
+      Observability.perf_snapshot(
+        workspace_id: workspace.id,
+        session_id: session.id,
+        persist: true
+      )
+
+    assert result.generated_at
+    assert result.workspace_id == workspace.id
+    assert result.session_id == session.id
+
+    # Verify memory record was created
+    assert Repo.aggregate(MemoryRecord, :count, :id) == initial_count + 1
+  end
+
+  # Memory record creation verified by count check above
+
+  test "perf_snapshot/1 with task_id includes task context" do
+    workspace = workspace_fixture()
+    session = session_fixture(%{workspace: workspace})
+    task = task_fixture(%{session: session})
+
+    result =
+      Observability.perf_snapshot(
+        workspace_id: workspace.id,
+        session_id: session.id,
+        task_id: task.id
+      )
+
+    assert result.task_id == task.id
+  end
 end
