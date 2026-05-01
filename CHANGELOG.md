@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.10 — 2026-05-01
+
+### What's changed
+
+- feat: enhance documentation on domain knowledge persistence and agent interaction
+- feat: add perf_snapshot persistence to CK memory
+- feat: add perf_snapshot observability report and fix test failures
+- feat: enhance CLI and MCP modes for improved logging and performance
+- feat: add WozCode-inspired tool pattern detection and experience search
+
 ## v0.3.9 — 2026-05-01
 
 ### What's changed
