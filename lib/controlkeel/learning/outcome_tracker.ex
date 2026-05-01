@@ -42,13 +42,13 @@ defmodule ControlKeel.Learning.OutcomeTracker do
           source_id: "outcome:#{session_id}:#{outcome}:#{System.unique_integer([:positive])}",
           metadata:
             Map.merge(metadata, %{
-              outcome: to_string(outcome),
-              reward: outcome_def.reward,
-              label: outcome_def.label,
-              agent_id: agent_id,
-              task_type: task_type,
-              session_id: session_id,
-              recorded_at: DateTime.utc_now() |> DateTime.to_iso8601()
+              "outcome" => to_string(outcome),
+              "reward" => outcome_def.reward,
+              "label" => outcome_def.label,
+              "agent_id" => agent_id,
+              "task_type" => task_type,
+              "session_id" => session_id,
+              "recorded_at" => DateTime.utc_now() |> DateTime.to_iso8601()
             })
         }
 
@@ -66,7 +66,8 @@ defmodule ControlKeel.Learning.OutcomeTracker do
     case Memory.search("outcome session:#{session_id}",
            session_id: session_id,
            workspace_id: workspace_id_for_session(session_id),
-           top_k: 200
+           top_k: 200,
+           include_metadata: true
          ) do
       %{entries: entries} ->
         outcomes =
@@ -77,7 +78,7 @@ defmodule ControlKeel.Learning.OutcomeTracker do
           end)
           |> Enum.map(fn e ->
             Map.get(e, :metadata, %{})
-            |> Map.put(:id, Map.get(e, :id))
+            |> Map.put("id", Map.get(e, :id))
           end)
 
         {:ok, outcomes}
@@ -88,7 +89,7 @@ defmodule ControlKeel.Learning.OutcomeTracker do
     window = Keyword.get(opts, :window, 30)
     cutoff = DateTime.utc_now() |> DateTime.add(-window * 24 * 60 * 60, :second)
 
-    case Memory.search("outcome agent:#{agent_id}", top_k: 500) do
+    case Memory.search("outcome agent:#{agent_id}", top_k: 500, include_metadata: true) do
       %{entries: entries} ->
         outcomes =
           entries
@@ -122,7 +123,11 @@ defmodule ControlKeel.Learning.OutcomeTracker do
     window = Keyword.get(opts, :window, 30)
     workspace_id = Keyword.get(opts, :workspace_id)
 
-    case Memory.search("outcome agent:", top_k: 1000, workspace_id: workspace_id) do
+    case Memory.search("outcome agent:",
+           top_k: 1000,
+           workspace_id: workspace_id,
+           include_metadata: true
+         ) do
       %{entries: entries} ->
         cutoff = DateTime.utc_now() |> DateTime.add(-window * 24 * 60 * 60, :second)
 

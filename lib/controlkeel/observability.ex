@@ -7,6 +7,7 @@ defmodule ControlKeel.Observability do
   alias ControlKeel.Benchmark.{Result, Scenario, Suite}
   alias ControlKeel.Benchmark.Run, as: BenchmarkRun
   alias ControlKeel.Budget
+  alias ControlKeel.Memory
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
   alias ControlKeel.Observability.{BenchmarkDraft, EvalCandidate, ImportedEnvelope}
@@ -502,6 +503,33 @@ defmodule ControlKeel.Observability do
       actions: actions,
       categories: actions |> Enum.map(& &1.category) |> Enum.uniq(),
       workspace: overview.workspace
+    }
+  end
+
+  def perf_snapshot(opts \\ []) do
+    workspace_id = Keyword.get(opts, :workspace_id)
+    session_id = Keyword.get(opts, :session_id)
+    task_id = Keyword.get(opts, :task_id)
+
+    items =
+      []
+      |> Kernel.++([
+        perf_item("observability.workspace_overview", fn -> workspace_overview(opts) end),
+        perf_item("observability.loop_status", fn -> loop_status(opts) end),
+        perf_item("observability.recommendations", fn -> recommendations(opts) end),
+        perf_item("observability.costs", fn -> costs(opts) end)
+      ])
+      |> maybe_add_session_perf_items(session_id, opts)
+      |> maybe_add_mission_perf_items(session_id)
+      |> maybe_add_memory_perf_items(session_id, workspace_id, task_id)
+
+    %{
+      generated_at: DateTime.utc_now() |> DateTime.truncate(:second),
+      workspace_id: workspace_id,
+      session_id: session_id,
+      task_id: task_id,
+      items: items,
+      summary: perf_summary(items)
     }
   end
 
@@ -3005,6 +3033,138 @@ defmodule ControlKeel.Observability do
       [] -> ["Run is observable and no immediate action is required."]
       recommendations -> recommendations
     end
+  end
+
+  defp perf_item(label, fun) when is_binary(label) and is_function(fun, 0) do
+    handler_id = "controlkeel-perf-snapshot-#{System.unique_integer([:positive])}"
+
+    parent = self()
+
+    handler = fn _event, measurements, _metadata, _config ->
+      send(parent, {:perf_query, measurements})
+    end
+
+    events = [[:ecto, :repo, :query]]
+    _ = :telemetry.detach(handler_id)
+
+    :ok =
+      :telemetry.attach_many(
+        handler_id,
+        events,
+        handler,
+        %{}
+      )
+
+    {elapsed_us, result} = :timer.tc(fun)
+
+    _ = :telemetry.detach(handler_id)
+
+    {query_count, query_time_us} = drain_query_measurements(0, 0)
+
+    %{
+      label: label,
+      wall_ms: Float.round(elapsed_us / 1000, 3),
+      ecto_query_count: query_count,
+      ecto_query_ms: Float.round(query_time_us / 1000, 3),
+      payload_bytes: safe_payload_bytes(result)
+    }
+  end
+
+  defp drain_query_measurements(count, time_us) do
+    receive do
+      {:perf_query, measurements} ->
+        duration = Map.get(measurements, :total_time, 0)
+        drain_query_measurements(count + 1, time_us + duration)
+    after
+      0 ->
+        {count, time_us}
+    end
+  end
+
+  defp safe_payload_bytes(result) do
+    try do
+      byte_size(:erlang.term_to_binary(result))
+    rescue
+      _ -> nil
+    end
+  end
+
+  defp perf_summary(items) do
+    %{
+      item_count: length(items),
+      total_wall_ms: Float.round(Enum.reduce(items, 0.0, &(&1.wall_ms + &2)), 3),
+      total_ecto_queries: Enum.reduce(items, 0, &(&1.ecto_query_count + &2)),
+      total_payload_bytes:
+        Enum.reduce(items, 0, fn item, acc -> acc + (item.payload_bytes || 0) end)
+    }
+  end
+
+  defp maybe_add_session_perf_items(items, nil, _opts), do: items
+
+  defp maybe_add_session_perf_items(items, session_id, opts) when is_integer(session_id) do
+    items ++
+      [
+        perf_item("observability.session_run", fn -> session_run(session_id, opts) end),
+        perf_item("observability.timeline", fn -> timeline(session_id, opts) end),
+        perf_item("observability.memory", fn -> memory_context(session_id, opts) end)
+      ]
+  end
+
+  defp maybe_add_mission_perf_items(items, nil), do: items
+
+  defp maybe_add_mission_perf_items(items, session_id) when is_integer(session_id) do
+    items ++
+      [
+        perf_item("mission.get_session_context.default", fn ->
+          Mission.get_session_context(session_id)
+        end),
+        perf_item("mission.get_session_context.bounded", fn ->
+          Mission.get_session_context(session_id,
+            findings_limit: 10,
+            tasks_limit: 20,
+            reviews_limit: 5,
+            invocations_limit: 20
+          )
+        end)
+      ]
+  end
+
+  defp maybe_add_memory_perf_items(items, nil, _workspace_id, _task_id), do: items
+
+  defp maybe_add_memory_perf_items(items, session_id, workspace_id, task_id)
+       when is_integer(session_id) do
+    query = "session:#{session_id}"
+
+    items ++
+      [
+        perf_item("memory.search.slim", fn ->
+          Memory.search(query,
+            session_id: session_id,
+            workspace_id: workspace_id,
+            task_id: task_id,
+            top_k: 10
+          )
+        end),
+        perf_item("memory.search.with_metadata", fn ->
+          Memory.search(query,
+            session_id: session_id,
+            workspace_id: workspace_id,
+            task_id: task_id,
+            top_k: 10,
+            include_metadata: true
+          )
+        end),
+        perf_item("memory.search.with_body", fn ->
+          Memory.search(query,
+            session_id: session_id,
+            workspace_id: workspace_id,
+            task_id: task_id,
+            top_k: 10,
+            include_body: true,
+            include_metadata: true
+          )
+        end)
+      ]
   end
 
   defp event_value(event, key) when is_map(event),

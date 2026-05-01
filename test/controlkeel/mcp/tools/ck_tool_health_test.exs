@@ -142,9 +142,30 @@ defmodule ControlKeel.MCP.Tools.CkToolHealthTest do
     assert {:error, :not_found} = CkToolHealth.call(%{"session_id" => 999_999_999})
   end
 
-  test "returns error for missing session_id" do
-    assert {:error, {:invalid_arguments, msg}} = CkToolHealth.call(%{})
-    assert msg =~ "session_id"
+  test "resolves active session when session_id is omitted" do
+    session = session_fixture()
+
+    tmp_dir =
+      Path.join(System.tmp_dir!(), "ck-tool-health-omit-#{System.unique_integer([:positive])}")
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => session.workspace_id,
+                 "session_id" => session.id,
+                 "agent" => "codex",
+                 "attached_agents" => %{}
+               },
+               tmp_dir
+             )
+
+    assert {:ok, result_without_id} = CkToolHealth.call(%{"project_root" => tmp_dir})
+    assert result_without_id["source_session_id"] == session.id
   end
 
   test "respects session_limit" do

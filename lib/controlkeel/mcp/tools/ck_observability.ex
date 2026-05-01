@@ -23,6 +23,7 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
     "benchmark_drafts",
     "benchmark_scenarios",
     "benchmark_history",
+    "perf_snapshot",
     "promotions",
     "regressions"
   ]
@@ -128,6 +129,8 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
 
   defp dispatch_report("benchmark_history", opts),
     do: Observability.observability_benchmark_history(opts)
+
+  defp dispatch_report("perf_snapshot", opts), do: Observability.perf_snapshot(opts)
 
   defp dispatch_report("promotions", opts), do: Observability.promotion_candidates(opts)
   defp dispatch_report("regressions", opts), do: Observability.regressions(opts)

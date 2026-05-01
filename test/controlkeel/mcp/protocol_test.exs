@@ -57,6 +57,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "ck_observability",
              "ck_experience_index",
              "ck_experience_read",
+             "ck_experience_search",
              "ck_trace_packet",
              "ck_failure_clusters",
              "ck_tool_health",
@@ -119,6 +120,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
                "benchmark_drafts",
                "benchmark_scenarios",
                "benchmark_history",
+               "perf_snapshot",
                "promotions",
                "regressions"
              ]
