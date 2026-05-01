@@ -72,6 +72,8 @@ defmodule ControlKeel.WorkspaceContext do
         key_files = discovered_files(repo_root, @manifest_candidates)
         branch = git_value(repo_root, ["rev-parse", "--abbrev-ref", "HEAD"])
         head_sha = git_value(repo_root, ["rev-parse", "HEAD"])
+        worktrees = detect_worktrees(repo_root)
+        current_worktree = current_worktree_info(repo_root, worktrees)
         orientation = orientation_snapshot(repo_root, instruction_files, key_files)
         design_drift = design_drift_snapshot(repo_root, status_counts)
 
@@ -83,7 +85,9 @@ defmodule ControlKeel.WorkspaceContext do
             "available" => true,
             "branch" => branch,
             "head_sha" => head_sha,
-            "status_counts" => status_counts
+            "status_counts" => status_counts,
+            "worktrees" => worktrees,
+            "current_worktree" => current_worktree
           },
           "instruction_files" => instruction_files,
           "key_files" => key_files,
@@ -113,7 +117,9 @@ defmodule ControlKeel.WorkspaceContext do
         "available" => false,
         "branch" => nil,
         "head_sha" => nil,
-        "status_counts" => %{"modified" => 0, "staged" => 0, "untracked" => 0}
+        "status_counts" => %{"modified" => 0, "staged" => 0, "untracked" => 0},
+        "worktrees" => [],
+        "current_worktree" => nil
       },
       "instruction_files" => [],
       "key_files" => [],
@@ -603,6 +609,92 @@ defmodule ControlKeel.WorkspaceContext do
     |> then(&(&1 in @source_extensions))
   end
 
+  def detect_worktrees(repo_root) do
+    case System.cmd("git", ["worktree", "list", "--porcelain"],
+           cd: repo_root,
+           stderr_to_stdout: true
+         ) do
+      {output, 0} ->
+        output
+        |> String.split("\n\n", trim: true)
+        |> Enum.map(&parse_worktree_entry/1)
+        |> Enum.reject(&is_nil/1)
+
+      _ ->
+        []
+    end
+  end
+
+  defp parse_worktree_entry(entry) do
+    lines = String.split(entry, "\n", trim: true)
+
+    worktree_path =
+      Enum.find_value(lines, fn line ->
+        if String.starts_with?(line, "worktree ") do
+          String.trim_leading(line, "worktree ")
+        end
+      end)
+
+    head_sha =
+      Enum.find_value(lines, fn line ->
+        if String.starts_with?(line, "HEAD ") do
+          String.trim_leading(line, "HEAD ")
+        end
+      end)
+
+    branch =
+      Enum.find_value(lines, fn line ->
+        if String.starts_with?(line, "branch ") do
+          String.trim_leading(line, "branch ") |> String.replace_prefix("refs/heads/", "")
+        end
+      end)
+
+    detached = Enum.any?(lines, &String.starts_with?(&1, "detached"))
+
+    if worktree_path do
+      %{
+        "path" => worktree_path,
+        "head_sha" => head_sha,
+        "branch" => branch,
+        "detached" => detached,
+        "is_main" => !detached && branch in ["main", "master"]
+      }
+    else
+      nil
+    end
+  end
+
+  defp current_worktree_info(repo_root, worktrees) do
+    normalized_root = Path.expand(repo_root)
+
+    Enum.find(worktrees, fn worktree ->
+      Path.expand(worktree["path"]) == normalized_root
+    end)
+  end
+
+  def list_worktrees(project_root) when is_binary(project_root) do
+    root = Path.expand(project_root)
+
+    case repo_root(root) do
+      {:ok, repo_root} ->
+        worktrees = detect_worktrees(repo_root)
+        current = current_worktree_info(root, worktrees)
+
+        {:ok,
+         %{
+           "repo_root" => repo_root,
+           "worktrees" => worktrees,
+           "current_worktree" => current,
+           "count" => length(worktrees)
+         }}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def list_worktrees(_), do: {:error, :invalid_project_root}
+
   defp summary_text(context) do
     branch = get_in(context, ["git", "branch"]) || "unknown"
     sha = get_in(context, ["git", "head_sha"]) || "unknown"
@@ -639,6 +731,17 @@ defmodule ControlKeel.WorkspaceContext do
         "orientation",
         "design_drift"
       ])
+      |> Map.put(
+        "git",
+        Map.take(Map.get(context, "git", %{}), [
+          "available",
+          "branch",
+          "head_sha",
+          "status_counts",
+          "worktrees",
+          "current_worktree"
+        ])
+      )
       |> Jason.encode!()
 
     :crypto.hash(:sha256, payload)
