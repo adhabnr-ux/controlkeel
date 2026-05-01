@@ -24,6 +24,7 @@ jobs:
       github.event_name != 'push' ||
       !startsWith(github.event.head_commit.message || '', 'chore(release): bump version to ')
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       MIX_ENV: test
     steps:
@@ -48,7 +49,9 @@ jobs:
       - run: sh scripts/verify_ci_workflow.sh
       - run: mix deps.get
       - run: mix compile --warnings-as-errors
-      - run: mix test
+      - name: Run tests
+        run: mix test
+        timeout-minutes: 30
       - run: sh -n scripts/install.sh
       - run: python3 -m py_compile scripts/bump_version.py scripts/render_release_notes.py
       - run: node --check packages/npm/controlkeel/bin/controlkeel.js
