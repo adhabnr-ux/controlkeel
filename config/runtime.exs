@@ -26,13 +26,16 @@ end
 
 # Stdio MCP must own stdout exclusively. Dev normally starts esbuild/tailwind watchers
 # that print build output to stdout and break JSON-RPC framing for Cursor and other hosts.
-if System.get_env("CK_MCP_MODE") in ~w(1 true TRUE yes YES) do
+# CLI commands also need quiet mode to avoid debug SQL and build friction.
+if System.get_env("CK_MCP_MODE") in ~w(1 true TRUE yes YES) or
+     System.get_env("CK_CLI_MODE") in ~w(1 true TRUE yes YES) do
   config :controlkeel, ControlKeelWeb.Endpoint,
     watchers: [],
     server: false,
     code_reloader: false,
     # Avoid Phoenix dev loggers that attach to :logger and write free-form lines to stdout;
     # MCP stdio requires stdout to be JSON-RPC only (newline-delimited).
+    # CLI commands should avoid unnecessary noise and build friction.
     live_reload: [
       web_console_logger: false,
       patterns: []
@@ -40,11 +43,13 @@ if System.get_env("CK_MCP_MODE") in ~w(1 true TRUE yes YES) do
 
   # Anything on stdout after Content-Length framing corrupts the stream; clients then
   # hang and abort (~10s). Repo SQL logs default to :debug in dev and were observed on stdout.
+  # CLI commands should avoid debug SQL noise for cleaner output.
   config :controlkeel, ControlKeel.Repo, log: false
   config :controlkeel, ControlKeel.CloudRepo, log: false
 
   # OTP :logger default handler uses type :standard_io (stdout). Cursor parses stdout as
   # JSON-RPC only — log lines must go to stderr (logger_std_h type :standard_error).
+  # CLI commands benefit from stderr logging to avoid corrupting structured output.
   config :logger, :default_handler, config: [type: :standard_error]
 
   # If the host did not set LOGGER_LEVEL (e.g. older .cursor/mcp.json), avoid :debug noise.

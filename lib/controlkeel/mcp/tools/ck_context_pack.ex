@@ -33,7 +33,8 @@ defmodule ControlKeel.MCP.Tools.CkContextPack do
         session_id: session.id,
         task_id: task && task.id,
         domain_pack: domain_pack,
-        top_k: top_k
+        top_k: top_k,
+        include_body: true
       )
 
     proof_summary = Mission.proof_summary_for_task(task)

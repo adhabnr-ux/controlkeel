@@ -24,6 +24,7 @@ defmodule ControlKeel.EntryPoint do
       {:ok, parsed} ->
         ensure_standalone_logger_stderr()
         maybe_prepare_stdio_mcp!(parsed)
+        maybe_prepare_cli_mode!(parsed)
         maybe_prepare_machine_output!(parsed)
         maybe_prepare_non_server_endpoint!(parsed)
 
@@ -89,6 +90,53 @@ defmodule ControlKeel.EntryPoint do
   end
 
   defp maybe_prepare_stdio_mcp!(_parsed), do: :ok
+
+  defp maybe_prepare_cli_mode!(parsed) do
+    # Set CK_CLI_MODE for non-MCP, non-serve CLI commands to avoid debug SQL
+    # and build friction, matching the runtime.exs configuration.
+    if not mcp_command?(parsed) and not server_command?(parsed) do
+      System.put_env("CK_CLI_MODE", "1")
+
+      endpoint_config = Application.get_env(:controlkeel, ControlKeelWeb.Endpoint, [])
+
+      Application.put_env(
+        :controlkeel,
+        ControlKeelWeb.Endpoint,
+        endpoint_config
+        |> Keyword.put(:watchers, [])
+        |> Keyword.put(:code_reloader, false)
+        |> Keyword.put(:live_reload, web_console_logger: false, patterns: [])
+      )
+
+      repo_cfg = Application.get_env(:controlkeel, ControlKeel.Repo) || []
+
+      Application.put_env(
+        :controlkeel,
+        ControlKeel.Repo,
+        Keyword.put(repo_cfg, :log, false)
+      )
+
+      cloud_cfg = Application.get_env(:controlkeel, ControlKeel.CloudRepo) || []
+
+      Application.put_env(
+        :controlkeel,
+        ControlKeel.CloudRepo,
+        Keyword.put(cloud_cfg, :log, false)
+      )
+
+      if System.get_env("LOGGER_LEVEL") in [nil, ""] do
+        Application.put_env(:logger, :level, :warning)
+      end
+    end
+
+    :ok
+  end
+
+  defp mcp_command?(%{command: :mcp}), do: true
+  defp mcp_command?(_parsed), do: false
+
+  defp server_command?(%{command: :serve}), do: true
+  defp server_command?(_parsed), do: false
 
   defp maybe_prepare_machine_output!(parsed) do
     if System.get_env("LOGGER_LEVEL") in [nil, ""] and machine_output?(parsed) do

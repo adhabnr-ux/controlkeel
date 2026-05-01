@@ -551,6 +551,131 @@ defmodule ControlKeel.Mission do
     end
   end
 
+  def get_session_context(id, opts) when is_list(opts) do
+    Session
+    |> Repo.get(id)
+    |> case do
+      nil ->
+        nil
+
+      session ->
+        tasks_limit = Keyword.get(opts, :tasks_limit, :all)
+        findings_limit = Keyword.get(opts, :findings_limit, :all)
+        invocations_limit = Keyword.get(opts, :invocations_limit, :all)
+        reviews_limit = Keyword.get(opts, :reviews_limit, :all)
+
+        Repo.preload(session, [
+          :workspace,
+          tasks: build_limited_query(Task, :position, tasks_limit),
+          task_edges: from(edge in ControlKeel.Platform.TaskEdge, order_by: edge.id),
+          findings: build_limited_query(Finding, :inserted_at, findings_limit, :desc),
+          invocations: build_limited_query(Invocation, :inserted_at, invocations_limit, :desc),
+          reviews: build_reviews_limited_query(reviews_limit)
+        ])
+    end
+  end
+
+  defp build_reviews_limited_query(:all) do
+    from(r in Review, order_by: [desc: r.inserted_at, desc: r.id])
+  end
+
+  defp build_reviews_limited_query(limit) when is_integer(limit) do
+    from(r in Review, order_by: [desc: r.inserted_at, desc: r.id], limit: ^limit)
+  end
+
+  defp build_limited_query(schema, order_field, limit, direction \\ :asc)
+
+  defp build_limited_query(schema, order_field, :all, direction) do
+    case direction do
+      :asc -> from(s in schema, order_by: [{:asc, ^order_field}])
+      :desc -> from(s in schema, order_by: [{:desc, ^order_field}])
+    end
+  end
+
+  defp build_limited_query(schema, order_field, limit, direction) when is_integer(limit) do
+    base_query = build_limited_query(schema, order_field, :all, direction)
+    from(s in base_query, limit: ^limit)
+  end
+
+  def session_context_counts(session_id) when is_integer(session_id) do
+    %{
+      tasks: Repo.aggregate(from(t in Task, where: t.session_id == ^session_id), :count, :id),
+      findings:
+        Repo.aggregate(from(f in Finding, where: f.session_id == ^session_id), :count, :id),
+      reviews: Repo.aggregate(from(r in Review, where: r.session_id == ^session_id), :count, :id),
+      invocations:
+        Repo.aggregate(from(i in Invocation, where: i.session_id == ^session_id), :count, :id)
+    }
+  end
+
+  def session_finding_counts(session_id) when is_integer(session_id) do
+    base_query = from(f in Finding, where: f.session_id == ^session_id)
+
+    %{
+      total: Repo.aggregate(base_query, :count, :id),
+      active:
+        Repo.aggregate(
+          from(f in base_query, where: f.status in ^["open", "blocked", "escalated"]),
+          :count,
+          :id
+        ),
+      blocked: Repo.aggregate(from(f in base_query, where: f.status == "blocked"), :count, :id),
+      critical_active:
+        Repo.aggregate(
+          from(f in base_query,
+            where: f.status in ^["open", "blocked", "escalated"] and f.severity == "critical"
+          ),
+          :count,
+          :id
+        ),
+      high_active:
+        Repo.aggregate(
+          from(f in base_query,
+            where: f.status in ^["open", "blocked", "escalated"] and f.severity == "high"
+          ),
+          :count,
+          :id
+        )
+    }
+  end
+
+  def session_task_counts(session_id) when is_integer(session_id) do
+    base_query = from(t in Task, where: t.session_id == ^session_id)
+
+    %{
+      total: Repo.aggregate(base_query, :count, :id),
+      active:
+        Repo.aggregate(
+          from(t in base_query, where: t.status in ^["ready", "queued", "in_progress"]),
+          :count,
+          :id
+        )
+    }
+  end
+
+  def session_review_counts(session_id) when is_integer(session_id) do
+    base_query = from(r in Review, where: r.session_id == ^session_id)
+
+    %{
+      total: Repo.aggregate(base_query, :count, :id),
+      pending: Repo.aggregate(from(r in base_query, where: r.status == "pending"), :count, :id)
+    }
+  end
+
+  def session_invocation_counts(session_id) when is_integer(session_id) do
+    base_query = from(i in Invocation, where: i.session_id == ^session_id)
+
+    %{
+      total: Repo.aggregate(base_query, :count, :id),
+      total_cost_cents:
+        Repo.aggregate(
+          from(i in base_query, select: coalesce(i.estimated_cost_cents, 0)),
+          :sum,
+          :estimated_cost_cents
+        ) || 0
+    }
+  end
+
   def list_session_events(session_id, limit \\ 10) when is_integer(session_id) do
     SessionTranscript.recent_events(session_id, limit: limit)
   end

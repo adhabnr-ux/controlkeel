@@ -10,12 +10,46 @@ defmodule ControlKeel.Memory.Store.Sqlite do
 
   @candidate_multiplier 8
 
+  use Agent
+
+  def start_link(_opts) do
+    Agent.start_link(fn -> :not_checked end, name: __MODULE__)
+  end
+
+  defp check_fts_availability do
+    case SQL.query(
+           Repo,
+           "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'memory_records_fts'",
+           []
+         ) do
+      {:ok, %{rows: [[_name]]}} -> true
+      _ -> false
+    end
+  end
+
+  defp sqlite_fts_available? do
+    try do
+      case Agent.get(__MODULE__, & &1) do
+        :not_checked ->
+          result = check_fts_availability()
+          Agent.update(__MODULE__, fn _ -> result end)
+          result
+
+        cached ->
+          cached
+      end
+    rescue
+      ArgumentError -> check_fts_availability()
+    end
+  end
+
   def search(query, opts \\ []) do
     top_k = opts[:top_k] || Application.get_env(:controlkeel, :memory_top_k, 5)
     candidate_limit = max(top_k * @candidate_multiplier, 25)
+    include_body = Keyword.get(opts, :include_body, false)
+    include_metadata = Keyword.get(opts, :include_metadata, false)
     lexical = lexical_hits(query, opts, candidate_limit)
     records = load_records(Map.keys(lexical), query, opts, candidate_limit)
-    embeddings = load_embeddings(records)
 
     {semantic_available, query_embedding} =
       case Embeddings.embed(query) do
@@ -23,9 +57,26 @@ defmodule ControlKeel.Memory.Store.Sqlite do
         _error -> {false, nil}
       end
 
+    embeddings =
+      if semantic_available do
+        load_embeddings(records)
+      else
+        %{}
+      end
+
     entries =
       records
-      |> Enum.map(&score_record(&1, lexical, embeddings, query_embedding, opts))
+      |> Enum.map(
+        &score_record(
+          &1,
+          lexical,
+          embeddings,
+          query_embedding,
+          opts,
+          include_body,
+          include_metadata
+        )
+      )
       |> Enum.sort_by(& &1.score, :desc)
       |> Enum.take(top_k)
 
@@ -139,7 +190,15 @@ defmodule ControlKeel.Memory.Store.Sqlite do
     |> Enum.into(%{}, fn {id, [latest | _rest]} -> {id, latest.embedding} end)
   end
 
-  defp score_record(record, lexical, embeddings, query_embedding, opts) do
+  defp score_record(
+         record,
+         lexical,
+         embeddings,
+         query_embedding,
+         opts,
+         include_body,
+         include_metadata
+       ) do
     lexical_score = Map.get(lexical, record.id, fallback_lexical_score(record))
     semantic_score = cosine_similarity(query_embedding, Map.get(embeddings, record.id))
     workspace_bonus = if(record.workspace_id == opts[:workspace_id], do: 0.75, else: 0.0)
@@ -158,25 +217,30 @@ defmodule ControlKeel.Memory.Store.Sqlite do
       lexical_score + semantic_score * 1.5 + workspace_bonus + session_bonus + domain_bonus +
         recency_bonus
 
-    %{
+    base = %{
       id: record.id,
       record_type: record.record_type,
       title: record.title,
       summary: record.summary,
-      body: record.body,
-      tags: record.tags,
       source_type: record.source_type,
       source_id: record.source_id,
       session_id: record.session_id,
       task_id: record.task_id,
       workspace_id: record.workspace_id,
-      metadata: record.metadata,
       inserted_at: record.inserted_at,
       lexical_score: Float.round(lexical_score, 4),
       semantic_score: Float.round(semantic_score, 4),
       score: Float.round(score, 4)
     }
+
+    base
+    |> maybe_add_field(:body, record.body, include_body)
+    |> maybe_add_field(:tags, record.tags, true)
+    |> maybe_add_field(:metadata, record.metadata, include_metadata)
   end
+
+  defp maybe_add_field(map, _key, _value, false), do: map
+  defp maybe_add_field(map, key, value, true), do: Map.put(map, key, value)
 
   defp recency_bonus(inserted_at) do
     age_seconds =
@@ -211,17 +275,6 @@ defmodule ControlKeel.Memory.Store.Sqlite do
   end
 
   defp cosine_similarity(_left, _right), do: 0.0
-
-  defp sqlite_fts_available? do
-    case SQL.query(
-           Repo,
-           "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'memory_records_fts'",
-           []
-         ) do
-      {:ok, %{rows: [[_name]]}} -> true
-      _ -> false
-    end
-  end
 
   defp fts_query(query) do
     query

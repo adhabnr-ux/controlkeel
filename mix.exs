@@ -16,11 +16,13 @@ defmodule ControlKeel.MixProject do
     ]
   end
 
-  # When CK_MCP_MODE is set before Mix loads the project (see bin/controlkeel-mcp),
+  # When CK_MCP_MODE or CK_CLI_MODE is set before Mix loads the project,
   # skip the Phoenix.CodeReloader listener so stdio MCP is not blocked by dev
-  # recompilation hooks on the critical path to the first JSON-RPC frame.
+  # recompilation hooks on the critical path to the first JSON-RPC frame,
+  # and CLI commands avoid unnecessary build friction.
   defp mix_listeners do
-    if System.get_env("CK_MCP_MODE") in ~w(1 true TRUE yes YES) do
+    if System.get_env("CK_MCP_MODE") in ~w(1 true TRUE yes YES) or
+         System.get_env("CK_CLI_MODE") in ~w(1 true TRUE yes YES) do
       []
     else
       [Phoenix.CodeReloader]

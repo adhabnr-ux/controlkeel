@@ -83,6 +83,7 @@ defmodule ControlKeel.Application do
         {DNSCluster, query: Application.get_env(:controlkeel, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: ControlKeel.PubSub},
         ControlKeel.Skills.Activation,
+        ControlKeel.Memory.Store.Sqlite,
         {DynamicSupervisor, strategy: :one_for_one, name: ControlKeel.MCP.Supervisor},
         ControlKeelWeb.Endpoint
       ]
@@ -108,7 +109,8 @@ defmodule ControlKeel.Application do
       analytics_children() ++
       [
         {Phoenix.PubSub, name: ControlKeel.PubSub},
-        ControlKeel.Skills.Activation
+        ControlKeel.Skills.Activation,
+        ControlKeel.Memory.Store.Sqlite
       ]
   end
 

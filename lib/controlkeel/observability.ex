@@ -524,7 +524,7 @@ defmodule ControlKeel.Observability do
   def timeline(session_or_id, opts \\ [])
 
   def timeline(%Session{} = session, opts) do
-    session = ensure_preloaded(session)
+    session = ensure_workspace_preloaded(session)
     limit = Keyword.get(opts, :limit, 50)
     events = Mission.list_session_events(session.id, limit)
     event_summaries = Enum.map(events, &timeline_event/1)
@@ -540,7 +540,7 @@ defmodule ControlKeel.Observability do
   end
 
   def timeline(session_id, opts) when is_integer(session_id) do
-    case Mission.get_session_context(session_id) do
+    case Mission.get_session_with_workspace(session_id) do
       nil -> {:error, :not_found}
       %Session{} = session -> {:ok, timeline(session, opts)}
     end
@@ -664,31 +664,63 @@ defmodule ControlKeel.Observability do
     events_limit = Keyword.get(opts, :events_limit, 8)
     events = Mission.list_session_events(session.id, events_limit)
     budget = budget_status(session)
+
     findings = session.findings || []
     tasks = session.tasks || []
     reviews = session.reviews || []
     invocations = session.invocations || []
+
+    finding_counts = Mission.session_finding_counts(session.id)
+    task_counts = Mission.session_task_counts(session.id)
+    review_counts = Mission.session_review_counts(session.id)
+    invocation_counts = Mission.session_invocation_counts(session.id)
+
     proofs = Mission.latest_proof_bundles_for_session(session.id)
     memory_count = memory_count(session.id)
-    health = health(findings, tasks, reviews, budget)
+
+    health =
+      health(
+        finding_counts.total,
+        finding_counts.active,
+        finding_counts.blocked,
+        finding_counts.critical_active,
+        task_counts.active,
+        review_counts.pending,
+        budget
+      )
 
     %{
       session: session_summary(session),
       health: health,
       budget: budget,
-      findings: finding_summary(findings),
-      tasks: task_summary(tasks),
-      gates: gate_summary(reviews),
+      findings: finding_summary_with_counts(findings, finding_counts),
+      tasks: task_summary_with_counts(tasks, task_counts),
+      gates: gate_summary_with_counts(reviews, review_counts),
       timeline: timeline_summary(events),
       memory: %{records: memory_count},
       proofs: proof_summary(proofs),
-      hosts_models_tools: invocation_summary(invocations),
-      recommendations: recommendations(health, findings, reviews, budget, memory_count)
+      hosts_models_tools: invocation_summary_with_counts(invocations, invocation_counts),
+      recommendations:
+        recommendations(
+          health,
+          finding_counts.total,
+          finding_counts.active,
+          finding_counts.critical_active,
+          finding_counts.high_active,
+          review_counts.pending,
+          budget,
+          memory_count
+        )
     }
   end
 
   def session_run(session_id, opts) when is_integer(session_id) do
-    case Mission.get_session_context(session_id) do
+    case Mission.get_session_context(session_id,
+           findings_limit: 10,
+           tasks_limit: 20,
+           reviews_limit: 5,
+           invocations_limit: 20
+         ) do
       nil -> {:error, :not_found}
       %Session{} = session -> {:ok, session_run(session, opts)}
     end
@@ -2752,6 +2784,11 @@ defmodule ControlKeel.Observability do
 
   defp ensure_preloaded(%Session{} = session), do: session
 
+  defp ensure_workspace_preloaded(%Session{workspace: %Ecto.Association.NotLoaded{}} = session),
+    do: Mission.get_session_with_workspace(session.id)
+
+  defp ensure_workspace_preloaded(%Session{} = session), do: session
+
   defp budget_status(session) do
     case Budget.status(%{"session_id" => session.id}) do
       {:ok, budget} -> budget
@@ -2794,6 +2831,34 @@ defmodule ControlKeel.Observability do
     }
   end
 
+  defp health(
+         _findings_total,
+         findings_active,
+         findings_blocked,
+         findings_critical_active,
+         tasks_active,
+         reviews_pending,
+         budget
+       ) do
+    critical = findings_critical_active
+    high = findings_active - findings_critical_active
+    blocked = findings_blocked
+
+    status =
+      cond do
+        Map.get(budget, "decision") == "block" or critical > 0 or blocked > 0 -> "red"
+        Map.get(budget, "decision") == "warn" or high > 0 or reviews_pending > 0 -> "yellow"
+        findings_active > 0 or tasks_active > 0 -> "yellow"
+        true -> "green"
+      end
+
+    %{
+      status: status,
+      label: health_label(status),
+      reasons: health_reasons(status, critical, high, blocked, reviews_pending, budget)
+    }
+  end
+
   defp health_label("red"), do: "Needs intervention"
   defp health_label("yellow"), do: "Needs attention"
   defp health_label("green"), do: "Healthy"
@@ -2817,16 +2882,16 @@ defmodule ControlKeel.Observability do
   defp maybe_reason(reasons, true, reason), do: reasons ++ [reason]
   defp maybe_reason(reasons, false, _reason), do: reasons
 
-  defp finding_summary(findings) do
-    active = Enum.filter(findings, &(&1.status in @active_finding_statuses))
+  defp finding_summary_with_counts(findings, counts) do
+    active_findings = Enum.filter(findings, &(&1.status in @active_finding_statuses))
 
     %{
-      total: length(findings),
-      active: length(active),
-      blocked: Enum.count(findings, &(&1.status == "blocked")),
-      critical: Enum.count(active, &(&1.severity == "critical")),
-      high: Enum.count(active, &(&1.severity == "high")),
-      by_severity: frequencies(active, & &1.severity),
+      total: counts.total,
+      active: counts.active,
+      blocked: counts.blocked,
+      critical: counts.critical_active,
+      high: counts.high_active,
+      by_severity: frequencies(active_findings, & &1.severity),
       recent:
         findings
         |> Enum.take(5)
@@ -2842,18 +2907,18 @@ defmodule ControlKeel.Observability do
     }
   end
 
-  defp task_summary(tasks) do
+  defp task_summary_with_counts(tasks, counts) do
     %{
-      total: length(tasks),
-      active: Enum.count(tasks, &(&1.status in @active_task_statuses)),
+      total: counts.total,
+      active: counts.active,
       by_status: frequencies(tasks, & &1.status)
     }
   end
 
-  defp gate_summary(reviews) do
+  defp gate_summary_with_counts(reviews, counts) do
     %{
-      total_reviews: length(reviews),
-      pending_reviews: Enum.count(reviews, &(&1.status == "pending")),
+      total_reviews: counts.total,
+      pending_reviews: counts.pending,
       latest:
         reviews
         |> Enum.take(3)
@@ -2891,19 +2956,26 @@ defmodule ControlKeel.Observability do
     }
   end
 
-  defp invocation_summary(invocations) do
-    total_cost = Enum.reduce(invocations, 0, &(&1.estimated_cost_cents + &2))
-
+  defp invocation_summary_with_counts(invocations, counts) do
     %{
-      invocations: length(invocations),
-      estimated_cost_cents: total_cost,
+      invocations: counts.total,
+      estimated_cost_cents: counts.total_cost_cents,
       by_source: frequencies(invocations, &(&1.source || "unknown")),
       by_model: frequencies(invocations, &(&1.model || "unknown")),
       by_tool: frequencies(invocations, &(&1.tool || "unknown"))
     }
   end
 
-  defp recommendations(health, findings, reviews, budget, memory_count) do
+  defp recommendations(
+         health,
+         findings_total,
+         _findings_active,
+         _findings_critical_active,
+         _findings_high_active,
+         reviews_pending,
+         budget,
+         memory_count
+       ) do
     []
     |> maybe_reason(
       health.status == "red",
@@ -2914,7 +2986,7 @@ defmodule ControlKeel.Observability do
       "Review active findings, pending gates, or budget warnings before calling the run healthy."
     )
     |> maybe_reason(
-      Enum.any?(reviews, &(&1.status == "pending")),
+      reviews_pending > 0,
       "Finish pending human review gates or narrow the plan."
     )
     |> maybe_reason(
@@ -2925,7 +2997,10 @@ defmodule ControlKeel.Observability do
       memory_count == 0,
       "Record key decisions in CK memory so future hosts can resume with context."
     )
-    |> maybe_reason(findings == [], "No findings recorded yet; run validation before shipping.")
+    |> maybe_reason(
+      findings_total == 0,
+      "No findings recorded yet; run validation before shipping."
+    )
     |> case do
       [] -> ["Run is observable and no immediate action is required."]
       recommendations -> recommendations
