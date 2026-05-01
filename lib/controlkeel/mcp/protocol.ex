@@ -40,7 +40,16 @@ defmodule ControlKeel.MCP.Protocol do
     CkCostOptimizer,
     CkDeploymentAdvisor,
     CkOutcomeTracker,
-    CkToolHealth
+    CkToolHealth,
+    CkWorktreeList,
+    CkWorktreeSwitch,
+    CkCheckpointCreate,
+    CkCheckpointRestore,
+    CkCheckpointList,
+    CkGitDiff,
+    CkGitCommit,
+    CkGitStatus,
+    CkMonitorSubscribe
   }
 
   @server_info %{
@@ -197,6 +206,15 @@ defmodule ControlKeel.MCP.Protocol do
       ck_fs_read_tool(),
       ck_fs_find_tool(),
       ck_fs_grep_tool(),
+      ck_worktree_list_tool(),
+      ck_worktree_switch_tool(),
+      ck_checkpoint_create_tool(),
+      ck_checkpoint_restore_tool(),
+      ck_checkpoint_list_tool(),
+      ck_git_diff_tool(),
+      ck_git_commit_tool(),
+      ck_git_status_tool(),
+      ck_monitor_subscribe_tool(),
       ck_finding_tool(),
       ck_review_submit_tool(),
       ck_review_status_tool(),
@@ -242,6 +260,15 @@ defmodule ControlKeel.MCP.Protocol do
   def dispatch_tool("ck_fs_read", arguments), do: CkFsRead.call(arguments)
   def dispatch_tool("ck_fs_find", arguments), do: CkFsFind.call(arguments)
   def dispatch_tool("ck_fs_grep", arguments), do: CkFsGrep.call(arguments)
+  def dispatch_tool("ck_worktree_list", arguments), do: CkWorktreeList.call(arguments)
+  def dispatch_tool("ck_worktree_switch", arguments), do: CkWorktreeSwitch.call(arguments)
+  def dispatch_tool("ck_checkpoint_create", arguments), do: CkCheckpointCreate.call(arguments)
+  def dispatch_tool("ck_checkpoint_restore", arguments), do: CkCheckpointRestore.call(arguments)
+  def dispatch_tool("ck_checkpoint_list", arguments), do: CkCheckpointList.call(arguments)
+  def dispatch_tool("ck_git_diff", arguments), do: CkGitDiff.call(arguments)
+  def dispatch_tool("ck_git_commit", arguments), do: CkGitCommit.call(arguments)
+  def dispatch_tool("ck_git_status", arguments), do: CkGitStatus.call(arguments)
+  def dispatch_tool("ck_monitor_subscribe", arguments), do: CkMonitorSubscribe.call(arguments)
   def dispatch_tool("ck_finding", arguments), do: CkFinding.call(arguments)
   def dispatch_tool("ck_review_submit", arguments), do: CkReviewSubmit.call(arguments)
   def dispatch_tool("ck_review_status", arguments), do: CkReviewStatus.call(arguments)
@@ -687,6 +714,168 @@ defmodule ControlKeel.MCP.Protocol do
           "limit" => %{"type" => ["integer", "string"]},
           "ignore_case" => %{"type" => "boolean"},
           "fixed_strings" => %{"type" => "boolean"}
+        }
+      }
+    }
+  end
+
+  def ck_worktree_list_tool do
+    %{
+      "name" => "ck_worktree_list",
+      "description" =>
+        "List all git worktrees in the current repository with their branch, HEAD, and status information.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => [],
+        "properties" => %{
+          "project_root" => %{"type" => "string"}
+        }
+      }
+    }
+  end
+
+  def ck_worktree_switch_tool do
+    %{
+      "name" => "ck_worktree_switch",
+      "description" =>
+        "Switch the current session to a different git worktree and update session metadata accordingly.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["worktree_path"],
+        "properties" => %{
+          "session_id" => %{"type" => ["integer", "string"]},
+          "worktree_path" => %{"type" => "string"}
+        }
+      }
+    }
+  end
+
+  def ck_checkpoint_create_tool do
+    %{
+      "name" => "ck_checkpoint_create",
+      "description" =>
+        "Create a workspace checkpoint capturing git state, workspace context, and metadata for migration or rollback.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["task_id"],
+        "properties" => %{
+          "session_id" => %{"type" => ["integer", "string"]},
+          "task_id" => %{"type" => ["integer", "string"]},
+          "type" => %{
+            "type" => "string",
+            "enum" => ["workspace_snapshot", "git_state", "dependency_state", "task_milestone"]
+          },
+          "summary" => %{"type" => "string"},
+          "created_by" => %{"type" => "string"}
+        }
+      }
+    }
+  end
+
+  def ck_checkpoint_restore_tool do
+    %{
+      "name" => "ck_checkpoint_restore",
+      "description" =>
+        "Restore session state from a previous checkpoint, updating session metadata with checkpoint information.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["checkpoint_id"],
+        "properties" => %{
+          "session_id" => %{"type" => ["integer", "string"]},
+          "checkpoint_id" => %{"type" => ["integer", "string"]},
+          "strict" => %{"type" => "boolean"}
+        }
+      }
+    }
+  end
+
+  def ck_checkpoint_list_tool do
+    %{
+      "name" => "ck_checkpoint_list",
+      "description" => "List all checkpoints for a session, optionally filtered by type.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => [],
+        "properties" => %{
+          "session_id" => %{"type" => ["integer", "string"]},
+          "type" => %{
+            "type" => "string",
+            "enum" => ["workspace_snapshot", "git_state", "dependency_state", "task_milestone"]
+          },
+          "limit" => %{"type" => ["integer", "string"]}
+        }
+      }
+    }
+  end
+
+  def ck_git_diff_tool do
+    %{
+      "name" => "ck_git_diff",
+      "description" =>
+        "Generate a git diff between two refs and run CK validation on the diff for governed review.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => [],
+        "properties" => %{
+          "project_root" => %{"type" => "string"},
+          "base_ref" => %{"type" => "string"},
+          "head_ref" => %{"type" => "string"},
+          "session_id" => %{"type" => ["integer", "string"]}
+        }
+      }
+    }
+  end
+
+  def ck_git_commit_tool do
+    %{
+      "name" => "ck_git_commit",
+      "description" =>
+        "Validate a commit message through CK and execute git commit if validation passes and no findings are blocked.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["message"],
+        "properties" => %{
+          "project_root" => %{"type" => "string"},
+          "message" => %{"type" => "string"},
+          "session_id" => %{"type" => ["integer", "string"]}
+        }
+      }
+    }
+  end
+
+  def ck_git_status_tool do
+    %{
+      "name" => "ck_git_status",
+      "description" =>
+        "Get git status with CK findings correlation for the current session state.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => [],
+        "properties" => %{
+          "project_root" => %{"type" => "string"},
+          "session_id" => %{"type" => ["integer", "string"]}
+        }
+      }
+    }
+  end
+
+  def ck_monitor_subscribe_tool do
+    %{
+      "name" => "ck_monitor_subscribe",
+      "description" =>
+        "Subscribe to session events for remote monitoring via webhook. Provides read-only visibility into session activity.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["subscriber_url"],
+        "properties" => %{
+          "session_id" => %{"type" => ["integer", "string"]},
+          "subscriber_url" => %{"type" => "string"},
+          "event_types" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" =>
+              "Array of event types to subscribe to. Omit for all events. Examples: task_started, task_completed, finding_created"
+          }
         }
       }
     }
