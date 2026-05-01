@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.11 — 2026-05-01
+
+### What's changed
+
+- fix: add CI timeouts to prevent 6-hour test hangs
+- fix: make observability skill guidance test resilient to empty gitignored dirs
+
 ## v0.3.10 — 2026-05-01
 
 ### What's changed
