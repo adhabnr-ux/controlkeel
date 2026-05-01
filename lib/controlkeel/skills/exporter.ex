@@ -1716,6 +1716,20 @@ defmodule ControlKeel.Skills.Exporter do
     review_hook_path = Path.join(root, ".kiro/hooks/controlkeel-review.json")
     File.write!(review_hook_path, Jason.encode!(kiro_review_hook_spec(), pretty: true) <> "\n")
 
+    nudge_validate_hook_path = Path.join(root, ".kiro/hooks/controlkeel-nudge-validate.json")
+
+    File.write!(
+      nudge_validate_hook_path,
+      Jason.encode!(kiro_nudge_validate_hook_spec(), pretty: true) <> "\n"
+    )
+
+    nudge_finding_hook_path = Path.join(root, ".kiro/hooks/controlkeel-nudge-finding.json")
+
+    File.write!(
+      nudge_finding_hook_path,
+      Jason.encode!(kiro_nudge_finding_hook_spec(), pretty: true) <> "\n"
+    )
+
     # 2. Steering file
     steering_path = Path.join(root, ".kiro/steering/controlkeel.md")
     File.mkdir_p!(Path.dirname(steering_path))
@@ -1765,6 +1779,8 @@ defmodule ControlKeel.Skills.Exporter do
       [
         %{"path" => hook_path, "kind" => "hook"},
         %{"path" => review_hook_path, "kind" => "hook"},
+        %{"path" => nudge_validate_hook_path, "kind" => "hook"},
+        %{"path" => nudge_finding_hook_path, "kind" => "hook"},
         %{"path" => steering_path, "kind" => "instructions"},
         %{"path" => tool_policy_path, "kind" => "settings"},
         %{"path" => command_path, "kind" => "command"},
@@ -2806,6 +2822,30 @@ defmodule ControlKeel.Skills.Exporter do
                 "timeout" => 15
               }
             ]
+          },
+          %{
+            "matcher" => "mcp__controlkeel__ck_validate",
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" =>
+                  ~s|sh "${DEVIN_PROJECT_DIR:-$(pwd)}/.devin/hooks/ck-nudge-validate.sh"|,
+                "statusMessage" => "ControlKeel validation nudge",
+                "timeout" => 5
+              }
+            ]
+          },
+          %{
+            "matcher" => "mcp__controlkeel__ck_finding",
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" =>
+                  ~s|sh "${DEVIN_PROJECT_DIR:-$(pwd)}/.devin/hooks/ck-nudge-finding.sh"|,
+                "statusMessage" => "ControlKeel finding nudge",
+                "timeout" => 5
+              }
+            ]
           }
         ],
         "UserPromptSubmit" => [
@@ -2853,7 +2893,9 @@ defmodule ControlKeel.Skills.Exporter do
       {"ck-post-tool-use.sh", &codex_post_tool_use_hook_contents/0},
       {"ck-user-prompt-submit.sh", &codex_user_prompt_submit_hook_contents/0},
       {"ck-stop.sh", &codex_stop_hook_contents/0},
-      {"ck-session-end.sh", &claude_plugin_session_end_hook_contents/0}
+      {"ck-session-end.sh", &claude_plugin_session_end_hook_contents/0},
+      {"ck-nudge-validate.sh", &claude_plugin_nudge_validate_hook_contents/0},
+      {"ck-nudge-finding.sh", &claude_plugin_nudge_finding_hook_contents/0}
     ]
   end
 
@@ -3815,6 +3857,28 @@ defmodule ControlKeel.Skills.Exporter do
                 "timeout" => 10
               }
             ]
+          },
+          %{
+            "matcher" => "mcp__controlkeel__ck_validate",
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" => "./hooks/ck-nudge-validate.sh",
+                "statusMessage" => "ControlKeel validation nudge",
+                "timeout" => 5
+              }
+            ]
+          },
+          %{
+            "matcher" => "mcp__controlkeel__ck_finding",
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" => "./hooks/ck-nudge-finding.sh",
+                "statusMessage" => "ControlKeel finding nudge",
+                "timeout" => 5
+              }
+            ]
           }
         ],
         "UserPromptSubmit" => [
@@ -4141,6 +4205,30 @@ defmodule ControlKeel.Skills.Exporter do
                 "timeout" => 15
               }
             ]
+          },
+          %{
+            "matcher" => "mcp__controlkeel__ck_validate",
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" =>
+                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-nudge-validate.sh\"",
+                "statusMessage" => "ControlKeel validation nudge",
+                "timeout" => 5
+              }
+            ]
+          },
+          %{
+            "matcher" => "mcp__controlkeel__ck_finding",
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" =>
+                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-nudge-finding.sh\"",
+                "statusMessage" => "ControlKeel finding nudge",
+                "timeout" => 5
+              }
+            ]
           }
         ],
         "UserPromptSubmit" => [
@@ -4177,7 +4265,9 @@ defmodule ControlKeel.Skills.Exporter do
       {"ck-validate-shell.sh", &codex_validate_shell_hook_contents/0},
       {"ck-post-tool-use.sh", &codex_post_tool_use_hook_contents/0},
       {"ck-user-prompt-submit.sh", &codex_user_prompt_submit_hook_contents/0},
-      {"ck-stop.sh", &codex_stop_hook_contents/0}
+      {"ck-stop.sh", &codex_stop_hook_contents/0},
+      {"ck-nudge-validate.sh", &claude_plugin_nudge_validate_hook_contents/0},
+      {"ck-nudge-finding.sh", &claude_plugin_nudge_finding_hook_contents/0}
     ]
   end
 
@@ -4195,7 +4285,9 @@ defmodule ControlKeel.Skills.Exporter do
       {"ck-subagent-start.sh", &claude_plugin_subagent_start_hook_contents/0},
       {"ck-post-tool-use-failure.sh", &claude_plugin_post_tool_use_failure_hook_contents/0},
       {"ck-config-change.sh", &claude_plugin_config_change_hook_contents/0},
-      {"ck-permission-denied.sh", &claude_plugin_permission_denied_hook_contents/0}
+      {"ck-permission-denied.sh", &claude_plugin_permission_denied_hook_contents/0},
+      {"ck-nudge-validate.sh", &claude_plugin_nudge_validate_hook_contents/0},
+      {"ck-nudge-finding.sh", &claude_plugin_nudge_finding_hook_contents/0}
     ]
   end
 
@@ -4295,6 +4387,72 @@ defmodule ControlKeel.Skills.Exporter do
     # Surface the denied tool so Claude can adjust its approach.
     # We do not retry by default — governance rules should be respected.
     printf '{"hookSpecificOutput":{"hookEventName":"PermissionDenied","additionalContext":"Tool call denied: %s. This is a governance or safety constraint. Do not retry the same action. If unintended, call ck_context to review active governance rules or check ck_finding for active blocks."}}\n' "$tool_name"
+    exit 0
+    """
+  end
+
+  defp claude_plugin_nudge_validate_hook_contents do
+    ~S"""
+    #!/usr/bin/env sh
+    set -u
+
+    input=$(cat)
+    decision="unknown"
+
+    if command -v jq >/dev/null 2>&1; then
+      decision=$(printf '%s' "$input" | jq -r '.tool_response.decision // .tool_result.decision // "unknown"' 2>/dev/null || printf 'unknown')
+    elif command -v python3 >/dev/null 2>&1; then
+      decision=$(printf '%s' "$input" | python3 -c "import sys,json; d=json.load(sys.stdin); print((d.get('tool_response') or d.get('tool_result') or {}).get('decision','unknown'))" 2>/dev/null || printf 'unknown')
+    fi
+
+    case "$decision" in
+      allow)
+        printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"ck_validate passed (allow). You are clear to proceed. Prefer batching remaining writes into as few Edit calls as possible before calling ck_review_submit."}}\n'
+        ;;
+      warn)
+        printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"ck_validate returned a warning. Review the findings before proceeding. If the warning is expected, document it with ck_finding before continuing."}}\n'
+        ;;
+      block)
+        printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"ck_validate blocked this action. Do not proceed with the blocked operation. Record the issue with ck_finding and call ck_review_submit if human approval is needed."}}\n'
+        ;;
+      *)
+        printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"ck_validate completed. Check the decision field and act accordingly: allow=proceed, warn=document then proceed, block=stop and record a finding."}}\n'
+        ;;
+    esac
+
+    exit 0
+    """
+  end
+
+  defp claude_plugin_nudge_finding_hook_contents do
+    ~S"""
+    #!/usr/bin/env sh
+    set -u
+
+    input=$(cat)
+    severity="unknown"
+
+    if command -v jq >/dev/null 2>&1; then
+      severity=$(printf '%s' "$input" | jq -r '.tool_input.severity // "unknown"' 2>/dev/null || printf 'unknown')
+    elif command -v python3 >/dev/null 2>&1; then
+      severity=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('tool_input',{}).get('severity','unknown'))" 2>/dev/null || printf 'unknown')
+    fi
+
+    case "$severity" in
+      critical|high)
+        printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"High-severity finding recorded. Stop all non-remediation work. Call ck_review_submit immediately for human approval before continuing."}}\n'
+        ;;
+      medium)
+        printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"Medium-severity finding recorded. Group any remaining low-severity findings before calling ck_review_submit — do not submit one finding at a time."}}\n'
+        ;;
+      low|info)
+        printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"Low-severity finding recorded. Continue work and batch additional low-severity findings before submitting for review."}}\n'
+        ;;
+      *)
+        printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"Finding recorded. Batch related findings before calling ck_review_submit to avoid unnecessary review round-trips."}}\n'
+        ;;
+    esac
+
     exit 0
     """
   end
@@ -5228,6 +5386,20 @@ defmodule ControlKeel.Skills.Exporter do
             "failClosed" => false
           }
         ],
+        "afterMCPExecution" => [
+          %{
+            "matcher" => "mcp__controlkeel__ck_validate",
+            "command" => ".cursor/hooks/ck-nudge-validate.sh",
+            "timeout" => 5,
+            "failClosed" => false
+          },
+          %{
+            "matcher" => "mcp__controlkeel__ck_finding",
+            "command" => ".cursor/hooks/ck-nudge-finding.sh",
+            "timeout" => 5,
+            "failClosed" => false
+          }
+        ],
         "subagentStart" => [
           %{
             "command" => ".cursor/hooks/ck-subagent-start.sh",
@@ -5287,6 +5459,20 @@ defmodule ControlKeel.Skills.Exporter do
             "failClosed" => false
           }
         ],
+        "afterMCPExecution" => [
+          %{
+            "matcher" => "mcp__controlkeel__ck_validate",
+            "command" => ".cursor-plugin/hooks/ck-nudge-validate.sh",
+            "timeout" => 5,
+            "failClosed" => false
+          },
+          %{
+            "matcher" => "mcp__controlkeel__ck_finding",
+            "command" => ".cursor-plugin/hooks/ck-nudge-finding.sh",
+            "timeout" => 5,
+            "failClosed" => false
+          }
+        ],
         "subagentStart" => [
           %{
             "command" => ".cursor-plugin/hooks/ck-subagent-start.sh",
@@ -5314,7 +5500,9 @@ defmodule ControlKeel.Skills.Exporter do
       {"ck-session-end.sh", &cursor_session_end_hook_contents/0},
       {"ck-subagent-start.sh", &cursor_subagent_start_hook_contents/0},
       {"ck-mcp-gate.sh", &cursor_mcp_gate_hook_contents/0},
-      {"ck-stop.sh", &cursor_stop_hook_contents/0}
+      {"ck-stop.sh", &cursor_stop_hook_contents/0},
+      {"ck-nudge-validate.sh", &claude_plugin_nudge_validate_hook_contents/0},
+      {"ck-nudge-finding.sh", &claude_plugin_nudge_finding_hook_contents/0}
     ]
   end
 
@@ -8263,6 +8451,44 @@ defmodule ControlKeel.Skills.Exporter do
       "then" => %{
         "type" => "runCommand",
         "command" => "controlkeel findings --format summary --quiet"
+      }
+    }
+  end
+
+  defp kiro_nudge_validate_hook_spec do
+    %{
+      "name" => "ControlKeel Validate Nudge",
+      "description" =>
+        "Injects governance guidance after ck_validate completes so the agent acts on the result.",
+      "version" => "1.0",
+      "enabled" => true,
+      "when" => %{
+        "type" => "postToolUse",
+        "tool" => "mcp__controlkeel__ck_validate"
+      },
+      "then" => %{
+        "type" => "injectContext",
+        "message" =>
+          "ck_validate completed. Check the decision: allow=proceed and batch writes, warn=document with ck_finding before continuing, block=stop and call ck_review_submit for human approval."
+      }
+    }
+  end
+
+  defp kiro_nudge_finding_hook_spec do
+    %{
+      "name" => "ControlKeel Finding Nudge",
+      "description" =>
+        "Injects governance guidance after ck_finding to steer severity-appropriate escalation.",
+      "version" => "1.0",
+      "enabled" => true,
+      "when" => %{
+        "type" => "postToolUse",
+        "tool" => "mcp__controlkeel__ck_finding"
+      },
+      "then" => %{
+        "type" => "injectContext",
+        "message" =>
+          "Finding recorded. For critical/high severity: stop and call ck_review_submit immediately. For medium/low: batch related findings before submitting to avoid unnecessary review round-trips."
       }
     }
   end

@@ -89,6 +89,47 @@ JSON
   exit 0
 fi
 
+if [[ "$event" == "PostToolUse" ]]; then
+  # Governance nudges after specific CK MCP tool calls
+  tool_name=""
+  if echo "$payload" | grep -Eq '"tool"[[:space:]]*:[[:space:]]*"mcp__controlkeel__ck_validate"'; then
+    tool_name="ck_validate"
+  elif echo "$payload" | grep -Eq '"tool"[[:space:]]*:[[:space:]]*"mcp__controlkeel__ck_finding"'; then
+    tool_name="ck_finding"
+  elif echo "$payload" | grep -Eq '"tool"[[:space:]]*:[[:space:]]*"mcp__controlkeel__ck_fs_read"'; then
+    tool_name="ck_fs_read"
+  fi
+
+  nudge=""
+  if [[ "$tool_name" == "ck_validate" ]]; then
+    # Check if validation passed (decision=allow in output)
+    if echo "$payload" | grep -Eq '"decision"[[:space:]]*:[[:space:]]*"allow"'; then
+      nudge="Governance check passed. You're in a clean state; prefer one ck_review_submit batch over multiple incremental submissions to reduce governance overhead."
+    fi
+  elif [[ "$tool_name" == "ck_finding" ]]; then
+    # Check if finding severity is low
+    if echo "$payload" | grep -Eq '"severity"[[:space:]]*:[[:space:]]*"low"'; then
+      nudge="Low-severity finding recorded. Group low-severity findings before escalating to reduce governance overhead."
+    fi
+  elif [[ "$tool_name" == "ck_fs_read" ]]; then
+    # Check for consecutive reads (would need session state tracking in a real implementation)
+    # For now, provide a general nudge about batching
+    nudge="Tip: Consider using ck_fs_grep to locate content first, then read only relevant files to reduce round-trips."
+  fi
+
+  if [[ -n "$nudge" ]]; then
+    cat <<JSON
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PostToolUse",
+    "additionalContext": "$nudge"
+  }
+}
+JSON
+    exit 0
+  fi
+fi
+
 cat <<'JSON'
 {
   "continue": true

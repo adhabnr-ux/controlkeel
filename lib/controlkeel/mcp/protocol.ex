@@ -14,6 +14,7 @@ defmodule ControlKeel.MCP.Protocol do
     CkDelegate,
     CkExperienceIndex,
     CkExperienceRead,
+    CkExperienceSearch,
     CkFsFind,
     CkFsGrep,
     CkFsLs,
@@ -187,6 +188,7 @@ defmodule ControlKeel.MCP.Protocol do
       ck_observability_tool(),
       ck_experience_index_tool(),
       ck_experience_read_tool(),
+      ck_experience_search_tool(),
       ck_trace_packet_tool(),
       ck_failure_clusters_tool(),
       ck_tool_health_tool(),
@@ -231,6 +233,7 @@ defmodule ControlKeel.MCP.Protocol do
   def dispatch_tool("ck_observability", arguments), do: CkObservability.call(arguments)
   def dispatch_tool("ck_experience_index", arguments), do: CkExperienceIndex.call(arguments)
   def dispatch_tool("ck_experience_read", arguments), do: CkExperienceRead.call(arguments)
+  def dispatch_tool("ck_experience_search", arguments), do: CkExperienceSearch.call(arguments)
   def dispatch_tool("ck_trace_packet", arguments), do: CkTracePacket.call(arguments)
   def dispatch_tool("ck_failure_clusters", arguments), do: CkFailureClusters.call(arguments)
   def dispatch_tool("ck_tool_health", arguments), do: CkToolHealth.call(arguments)
@@ -443,7 +446,9 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_experience_index",
       "description" =>
-        "List recent prior sessions in the same workspace and the read-only experience artifacts available for each run.",
+        "List recent prior sessions in the same workspace and the read-only experience artifacts available for each run. " <>
+          "Pass `query` for freeform keyword search across session titles, task titles, and finding descriptions — " <>
+          "useful for questions like 'has this deployment pattern caused a blocked finding before?'",
       "inputSchema" => %{
         "type" => "object",
         "required" => [],
@@ -451,7 +456,13 @@ defmodule ControlKeel.MCP.Protocol do
           "session_id" => %{"type" => ["integer", "string"]},
           "session_limit" => %{"type" => ["integer", "string"]},
           "project_root" => %{"type" => "string"},
-          "same_domain_only" => %{"type" => "boolean"}
+          "same_domain_only" => %{"type" => "boolean"},
+          "query" => %{
+            "type" => "string",
+            "description" =>
+              "Freeform keyword filter applied to session title, task titles, and finding descriptions. " <>
+                "All tokens must match (AND logic). Omit to return all recent sessions."
+          }
         }
       }
     }
@@ -473,6 +484,31 @@ defmodule ControlKeel.MCP.Protocol do
           "artifact_type" => %{
             "type" => "string",
             "enum" => ["session_summary", "audit_log", "trace_packet", "proof_summary"]
+          }
+        }
+      }
+    }
+  end
+
+  def ck_experience_search_tool do
+    %{
+      "name" => "ck_experience_search",
+      "description" =>
+        "Freeform full-text search across findings and tasks within the current workspace. Returns ranked results with citations. Useful for questions like 'has this deployment pattern caused a blocked finding before?' or 'what did we do about the SQL performance issue?'",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["query"],
+        "properties" => %{
+          "session_id" => %{"type" => ["integer", "string"]},
+          "project_root" => %{"type" => "string"},
+          "query" => %{
+            "type" => "string",
+            "description" =>
+              "Freeform search query. Supports natural language and keyword search."
+          },
+          "limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Maximum number of results to return. Defaults to 10, maximum 20."
           }
         }
       }

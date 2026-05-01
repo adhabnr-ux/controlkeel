@@ -1,15 +1,22 @@
 defmodule ControlKeel.Budget.CostOptimizer do
   @moduledoc false
 
+  alias ControlKeel.Analytics.ToolPatternAnalyzer
   alias ControlKeel.Budget.Pricing
 
-  def suggest(_session_id, opts \\ []) do
+  def suggest(session_id, opts \\ []) do
     spending = Keyword.get(opts, :spending, [])
     top_provider = Keyword.get(opts, :top_provider)
     top_model = Keyword.get(opts, :top_model)
 
+    pattern_suggestions =
+      case session_id && ToolPatternAnalyzer.analyze(session_id) do
+        {:ok, patterns} -> patterns
+        _ -> []
+      end
+
     suggestions =
-      []
+      pattern_suggestions
       |> add_model_alternatives(top_provider, top_model)
       |> add_caching_suggestions(spending)
       |> add_session_hygiene_suggestion(spending)

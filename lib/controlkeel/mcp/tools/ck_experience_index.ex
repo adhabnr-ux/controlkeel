@@ -7,10 +7,12 @@ defmodule ControlKeel.MCP.Tools.CkExperienceIndex do
   def call(arguments) when is_map(arguments) do
     with {:ok, session_id} <- Arguments.resolve_session_id(arguments),
          {:ok, session_limit} <- optional_integer(arguments, "session_limit", 10),
-         {:ok, same_domain_only} <- optional_boolean(arguments, "same_domain_only", true) do
+         {:ok, same_domain_only} <- optional_boolean(arguments, "same_domain_only", true),
+         {:ok, query} <- optional_string(arguments, "query") do
       Mission.experience_history_index(session_id,
         session_limit: session_limit,
-        same_domain_only: same_domain_only
+        same_domain_only: same_domain_only,
+        query: query
       )
     end
   end
@@ -42,4 +44,12 @@ defmodule ControlKeel.MCP.Tools.CkExperienceIndex do
 
   defp normalize_integer(_value, key),
     do: {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
+
+  defp optional_string(arguments, key) do
+    case Map.get(arguments, key) do
+      nil -> {:ok, nil}
+      value when is_binary(value) -> {:ok, value}
+      _ -> {:error, {:invalid_arguments, "`#{key}` must be a string if provided"}}
+    end
+  end
 end

@@ -1529,6 +1529,7 @@ defmodule ControlKeel.Mission do
     with %Session{} = session <- get_session_with_workspace(session_id) do
       session_limit = Keyword.get(opts, :session_limit, 10)
       same_domain_only = Keyword.get(opts, :same_domain_only, true)
+      query = Keyword.get(opts, :query)
       domain_pack = get_in(session.execution_brief || %{}, ["domain_pack"])
 
       sessions =
@@ -1542,17 +1543,28 @@ defmodule ControlKeel.Mission do
         |> Enum.map(&get_session_context(&1.id))
         |> Enum.reject(&is_nil/1)
 
+      {filtered_sessions, query_matched} =
+        if is_binary(query) and query != "" do
+          tokens = query |> String.downcase() |> String.split(~r/\s+/, trim: true)
+          matched = Enum.filter(sessions, &experience_query_match?(&1, tokens))
+          {matched, length(matched)}
+        else
+          {sessions, nil}
+        end
+
       {:ok,
        %{
          "workspace_id" => session.workspace_id,
          "source_session_id" => session.id,
          "same_domain_only" => same_domain_only,
          "domain_pack" => domain_pack,
+         "query" => query,
          "sessions_analyzed" => length(sessions),
+         "query_matched" => query_matched,
          "artifact_types" => ["session_summary", "audit_log", "trace_packet", "proof_summary"],
-         "sessions" => Enum.map(sessions, &experience_index_entry/1),
+         "sessions" => Enum.map(filtered_sessions, &experience_index_entry/1),
          "usage_hint" =>
-           "Call ck_experience_read with artifact_type and, optionally, source_session_id to inspect one prior run in detail. If the project is bound, the active session can be resolved automatically."
+           "Call ck_experience_read with artifact_type and, optionally, source_session_id to inspect one prior run in detail. Pass `query` to keyword-filter sessions by title, task, or finding description. If the project is bound, the active session can be resolved automatically."
        }}
     else
       _ -> {:error, :not_found}
@@ -1576,6 +1588,124 @@ defmodule ControlKeel.Mission do
     else
       _ -> {:error, :not_found}
     end
+  end
+
+  @doc """
+  Freeform full-text search across findings and tasks within a workspace.
+  Returns ranked results with citations.
+  """
+  def experience_search(workspace_id, query, opts \\ [])
+      when is_integer(workspace_id) and is_binary(query) do
+    limit = Keyword.get(opts, :limit, 10)
+
+    # Search findings using SQLite FTS5
+    findings_query =
+      """
+      SELECT f.id, f.title, f.severity, f.category, f.plain_message, f.session_id, f.inserted_at
+      FROM findings f
+      INNER JOIN findings_fts fts ON f.id = fts.rowid
+      WHERE f.session_id IN (SELECT id FROM sessions WHERE workspace_id = ?)
+      AND findings_fts MATCH ?
+      ORDER BY rank
+      LIMIT ?
+      """
+
+    findings =
+      Repo.query(findings_query, [workspace_id, query, limit])
+      |> case do
+        {:ok, %{rows: rows}} when is_list(rows) ->
+          Enum.map(rows, fn row ->
+            [id, title, severity, category, plain_message, session_id, inserted_at] =
+              Tuple.to_list(row)
+
+            %{
+              type: "finding",
+              id: id,
+              title: title,
+              severity: severity,
+              category: category,
+              plain_message: plain_message,
+              session_id: session_id,
+              inserted_at: inserted_at
+            }
+          end)
+
+        _ ->
+          []
+      end
+
+    # Search tasks using SQLite FTS5
+    tasks_query =
+      """
+      SELECT t.id, t.title, t.status, t.validation_gate, t.session_id, t.inserted_at
+      FROM tasks t
+      INNER JOIN tasks_fts fts ON t.id = fts.rowid
+      WHERE t.session_id IN (SELECT id FROM sessions WHERE workspace_id = ?)
+      AND tasks_fts MATCH ?
+      ORDER BY rank
+      LIMIT ?
+      """
+
+    tasks =
+      Repo.query(tasks_query, [workspace_id, query, limit])
+      |> case do
+        {:ok, %{rows: rows}} when is_list(rows) ->
+          Enum.map(rows, fn row ->
+            [id, title, status, validation_gate, session_id, inserted_at] = Tuple.to_list(row)
+
+            %{
+              type: "task",
+              id: id,
+              title: title,
+              status: status,
+              validation_gate: validation_gate,
+              session_id: session_id,
+              inserted_at: inserted_at
+            }
+          end)
+
+        _ ->
+          []
+      end
+
+    # Combine and rank results
+    results =
+      (findings ++ tasks)
+      |> Enum.sort_by(&{&1.inserted_at, &1.type}, :desc)
+      |> Enum.take(limit)
+
+    {:ok,
+     %{
+       "query" => query,
+       "workspace_id" => workspace_id,
+       "total_results" => length(results),
+       "results" => Enum.map(results, &experience_search_result/1)
+     }}
+  end
+
+  defp experience_search_result(%{type: "finding"} = result) do
+    %{
+      "type" => "finding",
+      "id" => result.id,
+      "title" => result.title,
+      "severity" => result.severity,
+      "category" => result.category,
+      "plain_message" => result.plain_message,
+      "session_id" => result.session_id,
+      "inserted_at" => result.inserted_at
+    }
+  end
+
+  defp experience_search_result(%{type: "task"} = result) do
+    %{
+      "type" => "task",
+      "id" => result.id,
+      "title" => result.title,
+      "status" => result.status,
+      "validation_gate" => result.validation_gate,
+      "session_id" => result.session_id,
+      "inserted_at" => result.inserted_at
+    }
   end
 
   @doc """
@@ -2212,6 +2342,23 @@ defmodule ControlKeel.Mission do
           %{"artifact_type" => "audit_log", "source_session_id" => session.id}
         ] ++ experience_task_artifacts(latest_task)
     }
+  end
+
+  defp experience_query_match?(%Session{} = session, tokens) do
+    text =
+      [
+        session.title,
+        Enum.map(session.tasks || [], & &1.title),
+        Enum.map(session.findings || [], fn f ->
+          [f.title, f.category, Map.get(f.metadata || %{}, "plain_message")]
+        end)
+      ]
+      |> List.flatten()
+      |> Enum.reject(&is_nil/1)
+      |> Enum.join(" ")
+      |> String.downcase()
+
+    Enum.all?(tokens, &String.contains?(text, &1))
   end
 
   defp experience_task_artifacts(nil), do: []
