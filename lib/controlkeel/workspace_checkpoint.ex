@@ -91,7 +91,6 @@ defmodule ControlKeel.WorkspaceCheckpoint do
     end
   end
 
-
   def list(session_id, opts \\ []) do
     case Mission.list_task_checkpoints(session_id) do
       checkpoints when is_list(checkpoints) ->
@@ -176,5 +175,4 @@ defmodule ControlKeel.WorkspaceCheckpoint do
         :ok
     end
   end
-
 end
