@@ -14,9 +14,7 @@
 
 ## Why this exists
 
-If you're using an AI agent today, you probably have an `AGENTS.md` or a `.clauderc` telling it how to behave. But a rules file is just a promise made *to* the model. **ControlKeel enforces the output.** It uses a deterministic scanner to check what the model actually produced, blocking or flagging violations before they ever touch your main branch.
-
-Beyond just catching bugs, CK solves the "Unknown Unknowns" problem that makes working with AI miserable: having to re-explain your domain knowledge in every single session.
+If you're using an AI agent today, you probably have an `AGENTS.md` or a `.clauderc` telling it how to behave. But a rules file is just a promise made *to* the model. **ControlKeel enforces the output.** It uses a deterministic scanner to check what the model actually produced, blocking or flagging violations before they ever touch your main branch. Beyond just catching bugs, CK solves the "Unknown Unknowns" problem that makes working with AI miserable: having to re-explain your domain knowledge in every single session.
 
 - **Rules that actually work:** Deterministic enforcement, not just LLM suggestions.
 - **Portability:** Move between OpenCode, Claude Code, Cursor, or any supported host without losing your task state with task continuity and resume context.
