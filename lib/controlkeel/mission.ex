@@ -149,6 +149,33 @@ defmodule ControlKeel.Mission do
     end)
   end
 
+  # Task Checkpoint functions
+  def get_task_checkpoint(id), do: Repo.get(TaskCheckpoint, id)
+
+  def get_task_checkpoint!(id), do: Repo.get!(TaskCheckpoint, id)
+
+  def list_task_checkpoints(session_id) do
+    TaskCheckpoint
+    |> where([tc], tc.session_id == ^session_id)
+    |> order_by([tc], desc: tc.inserted_at)
+    |> Repo.all()
+  end
+
+  def list_task_checkpoints(session_id, task_id) do
+    TaskCheckpoint
+    |> where([tc], tc.session_id == ^session_id and tc.task_id == ^task_id)
+    |> order_by([tc], desc: tc.inserted_at)
+    |> Repo.all()
+  end
+
+  def update_task_checkpoint(%TaskCheckpoint{} = checkpoint, attrs) do
+    checkpoint
+    |> TaskCheckpoint.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_task_checkpoint(%TaskCheckpoint{} = checkpoint), do: Repo.delete(checkpoint)
+
   def update_task(%Task{} = task, attrs) do
     task
     |> Task.changeset(attrs)
