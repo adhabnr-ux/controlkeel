@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.12 — 2026-05-01
+
+### What's changed
+
+- fix: remove postinstall.js check from CI workflow
+- feat: implement lazy download model and enhance security measures for ControlKeel CLI
+- docs: streamline explanation in the "Why this exists" section of README
+- docs: update README to clarify ControlKeel's role and features
+
 ## v0.3.11 — 2026-05-01
 
 ### What's changed
