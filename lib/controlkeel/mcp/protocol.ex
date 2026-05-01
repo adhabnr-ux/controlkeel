@@ -36,6 +36,7 @@ defmodule ControlKeel.MCP.Protocol do
     CkTracePacket,
     CkSkillList,
     CkSkillLoad,
+    CkSkillValidate,
     CkValidate,
     CkCostOptimizer,
     CkDeploymentAdvisor,
@@ -233,10 +234,10 @@ defmodule ControlKeel.MCP.Protocol do
       ck_load_resources_tool()
     ]
 
-    # Always expose ck_skill_list / ck_skill_load. Do not call Registry here: a full
+    # Always expose ck_skill_list / ck_skill_load / ck_skill_validate. Do not call Registry here: a full
     # catalog walk (every agent skill dir under $HOME) can take 10–30s and blocks this
     # process while Cursor expects tools/list under a ~20s connect budget.
-    tools = base ++ [ck_skill_list_tool(), ck_skill_load_tool()]
+    tools = base ++ [ck_skill_list_tool(), ck_skill_load_tool(), ck_skill_validate_tool()]
 
     case Keyword.get(opts, :tool_names) do
       names when is_list(names) -> Enum.filter(tools, &(&1["name"] in names))
@@ -283,6 +284,7 @@ defmodule ControlKeel.MCP.Protocol do
   def dispatch_tool("ck_delegate", arguments), do: CkDelegate.call(arguments)
   def dispatch_tool("ck_skill_list", arguments), do: CkSkillList.call(arguments)
   def dispatch_tool("ck_skill_load", arguments), do: CkSkillLoad.call(arguments)
+  def dispatch_tool("ck_skill_validate", arguments), do: CkSkillValidate.call(arguments)
   def dispatch_tool("ck_load_resources", arguments), do: CkLoadResources.call(arguments)
   def dispatch_tool("ck_cost_optimizer", arguments), do: CkCostOptimizer.call(arguments)
   def dispatch_tool("ck_deployment_advisor", arguments), do: CkDeploymentAdvisor.call(arguments)
@@ -383,6 +385,12 @@ defmodule ControlKeel.MCP.Protocol do
           "network_allowlist" => %{
             "type" => "array",
             "items" => %{"type" => "string"}
+          },
+          "allowed_env_vars" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" =>
+              "List of environment variable names to expose from the host environment into the sandbox. Explicit env vars take precedence over host env vars. If empty, no host environment variables are exposed."
           },
           "session_id" => %{"type" => ["integer", "string"]},
           "task_id" => %{"type" => ["integer", "string"]}
@@ -1341,6 +1349,42 @@ defmodule ControlKeel.MCP.Protocol do
           },
           "session_id" => %{"type" => ["integer", "string"]},
           "task_id" => %{"type" => ["integer", "string"]}
+        }
+      }
+    }
+  end
+
+  defp ck_skill_validate_tool do
+    %{
+      "name" => "ck_skill_validate",
+      "description" =>
+        "Validate skill output against a JSON Schema defined in the skill's result-schema frontmatter field. " <>
+          "Skills can define a result_schema in their frontmatter; agents call this tool after running a skill to enforce typed, structured output. " <>
+          "Accepts output + schema directly, or output + skill_name to validate against the skill's built-in schema.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["output"],
+        "properties" => %{
+          "output" => %{
+            "type" => "string",
+            "description" =>
+              "The skill output to validate. Can be a JSON string or plain text, up to 100KB."
+          },
+          "schema" => %{
+            "type" => "string",
+            "description" =>
+              "JSON Schema as a string to validate against. Required if skill_name is not provided."
+          },
+          "skill_name" => %{
+            "type" => "string",
+            "description" =>
+              "Optional skill name to use the skill's built-in result_schema. If provided, schema is not required."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root. Only used when skill_name is provided."
+          }
         }
       }
     }

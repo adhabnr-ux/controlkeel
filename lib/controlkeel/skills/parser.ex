@@ -25,6 +25,7 @@ defmodule ControlKeel.Skills.Parser do
     name
     owner
     paths
+    result-schema
     shell
     user-invocable
     when_to_use
@@ -82,6 +83,8 @@ defmodule ControlKeel.Skills.Parser do
           normalize_nil(Map.get(meta, "owner")) ||
             normalize_nil(Map.get(metadata_map, "owner"))
 
+        result_schema = parse_result_schema(Map.get(meta, "result-schema"))
+
         content_hash = compute_skill_hash(skill_dir, content)
 
         {:ok,
@@ -109,7 +112,8 @@ defmodule ControlKeel.Skills.Parser do
            agent_metadata: agent_metadata,
            install_state: %{},
            owner: owner,
-           content_hash: content_hash
+           content_hash: content_hash,
+           result_schema: result_schema
          }}
       end
     end
@@ -711,4 +715,22 @@ defmodule ControlKeel.Skills.Parser do
 
   defp truthy?(value), do: value in [true, "true", "True", 1, "1", "yes"]
   defp falsey?(value), do: value in [false, "false", "False", 0, "0", "no"]
+
+  # Parses result_schema from frontmatter. Accepts either:
+  # - A JSON schema as a string (inline or multi-line)
+  # - A map/object already parsed from YAML
+  # Returns nil if not present or invalid
+  defp parse_result_schema(nil), do: nil
+
+  defp parse_result_schema(schema) when is_binary(schema) do
+    case Jason.decode(schema) do
+      {:ok, decoded} when is_map(decoded) -> decoded
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp parse_result_schema(schema) when is_map(schema), do: schema
+  defp parse_result_schema(_), do: nil
 end

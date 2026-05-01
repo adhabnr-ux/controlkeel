@@ -61,7 +61,8 @@ defmodule ControlKeel.MCP.Tools.CkSkillLoad do
            "diagnostics" => Enum.map(skill.diagnostics, &diagnostic_summary/1),
            "agent_metadata" => rendered.metadata,
            "content" => content,
-           "resources" => skill.resources
+           "resources" => skill.resources,
+           "result_schema" => skill.result_schema
          }}
     end
   end

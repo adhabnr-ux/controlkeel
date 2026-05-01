@@ -8,11 +8,14 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
   @impl true
   def run(command, args, opts) do
     env = Keyword.get(opts, :env, [])
+    allowed_env_vars = Keyword.get(opts, :allowed_env_vars, [])
     cwd = Keyword.get(opts, :cwd)
     image = Keyword.get(opts, :docker_image, config_image())
     timeout = Keyword.get(opts, :timeout, 600)
 
-    docker_args = build_docker_args(command, args, env, cwd, image, timeout)
+    env_vars = merge_env_vars(env, allowed_env_vars)
+
+    docker_args = build_docker_args(command, args, env_vars, cwd, image, timeout)
 
     try do
       {output, exit_status} = System.cmd("docker", docker_args, stderr_to_stdout: true)
@@ -114,4 +117,25 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
         %{}
     end
   end
+
+  defp merge_env_vars(explicit_env, allowed_env_vars)
+       when is_list(allowed_env_vars) and
+              length(allowed_env_vars) > 0 do
+    host_env_vars =
+      allowed_env_vars
+      |> Enum.map(fn var_name ->
+        case System.get_env(var_name) do
+          nil -> nil
+          value -> {var_name, value}
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
+
+    # Explicit env vars take precedence: merge host first, then explicit overwrites
+    Map.new(host_env_vars)
+    |> Map.merge(Enum.into(explicit_env, %{}))
+    |> Map.to_list()
+  end
+
+  defp merge_env_vars(explicit_env, _allowed_env_vars), do: explicit_env
 end

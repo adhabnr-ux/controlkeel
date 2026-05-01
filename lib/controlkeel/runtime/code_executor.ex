@@ -36,6 +36,8 @@ defmodule ControlKeel.Runtime.CodeExecutor do
     risk_tier = arguments |> Map.get("risk_tier", "medium") |> to_string()
     timeout_ms = normalize_int(Map.get(arguments, "timeout_ms"), 30_000)
     max_output_bytes = normalize_int(Map.get(arguments, "max_output_bytes"), @max_output_bytes)
+    allowed_env_vars = normalize_list(Map.get(arguments, "allowed_env_vars", []))
+
 
     cond do
       not is_binary(code) or String.trim(code) == "" ->
@@ -67,6 +69,7 @@ defmodule ControlKeel.Runtime.CodeExecutor do
            risk_tier: risk_tier,
            timeout_ms: timeout_ms,
            max_output_bytes: max_output_bytes,
+           allowed_env_vars: allowed_env_vars,
            session_id: Map.get(arguments, "session_id"),
            task_id: Map.get(arguments, "task_id")
          }}
@@ -163,7 +166,8 @@ defmodule ControlKeel.Runtime.CodeExecutor do
 
       case ExecutionSandbox.run(command, args,
              sandbox: "docker",
-             timeout: div(normalized.timeout_ms, 1000)
+             timeout: div(normalized.timeout_ms, 1000),
+             allowed_env_vars: normalized.allowed_env_vars
            ) do
         {:ok, %{output: output, exit_status: status}} ->
           {:ok,

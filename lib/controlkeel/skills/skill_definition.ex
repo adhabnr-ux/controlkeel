@@ -23,6 +23,7 @@ defmodule ControlKeel.Skills.SkillDefinition do
     :agent_metadata,
     :install_state,
     :owner,
-    :content_hash
+    :content_hash,
+    :result_schema
   ]
 end
