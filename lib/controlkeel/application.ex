@@ -84,6 +84,7 @@ defmodule ControlKeel.Application do
         {Phoenix.PubSub, name: ControlKeel.PubSub},
         ControlKeel.Skills.Activation,
         ControlKeel.Memory.Store.Sqlite,
+        ControlKeel.RemoteMonitoring,
         {DynamicSupervisor, strategy: :one_for_one, name: ControlKeel.MCP.Supervisor},
         ControlKeelWeb.Endpoint
       ]
@@ -110,7 +111,8 @@ defmodule ControlKeel.Application do
       [
         {Phoenix.PubSub, name: ControlKeel.PubSub},
         ControlKeel.Skills.Activation,
-        ControlKeel.Memory.Store.Sqlite
+        ControlKeel.Memory.Store.Sqlite,
+        ControlKeel.RemoteMonitoring
       ]
   end
 
