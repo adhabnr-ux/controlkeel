@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.9 — 2026-05-01
+
+### What's changed
+
+- fix: version guard only protects plugin bundle; AGENTS.md always written
+- fix: harden all host hooks with ck_run + version guard, add local build script
+- fix: stop hook sync no longer stomps AGENTS.md or .cursor-plugin hooks
+- fix: prevent installed binary from overwriting newer source-synced versions
+- perf(db): add composite indexes + SQL aggregate for hot query paths
+- feat: enhance README with local observability loop details and CLI commands
+
 ## v0.3.8 — 2026-04-30
 
 ### What's changed
