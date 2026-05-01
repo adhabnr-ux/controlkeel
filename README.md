@@ -20,6 +20,8 @@ Because a rules file is a promise made *to* the model. ControlKeel enforces the 
 
 Beyond the scanner, CK also provides what no single agent host gives you portably: task continuity and resume context, review gates and approval flows, proof bundle state plus typed memory, budget and cost control, reusable operational context, cross-host consistency — whether you are using OpenCode, move to Codex, switch to Claude Code, or use another supported host — and a local observability loop that turns governance evidence into human-gated regression testing and evidence-driven improvement without sending telemetry to a hosted service.
 
+This also solves the core domain knowledge persistence problem that makes working with AI agents miserable: having to re-explain domain knowledge in every session. AGENTS.md becomes shelfware, RAG fails because agents can't search for what they don't know they need, and maintaining hundreds of domain-specific skills is impractical. CK's layered knowledge system — typed memory with citations, proof bundles, resume packets, policy packs, findings as living knowledge, and workspace snapshots — transforms domain knowledge from something you repeatedly explain into something the system remembers and enforces.
+
 ---
 
 ## Quick start

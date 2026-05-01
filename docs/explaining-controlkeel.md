@@ -53,6 +53,48 @@ That is fine for toy work. It gets shaky fast for real repos, regulated work, sh
 
 ControlKeel exists because **agent capability is not the same thing as delivery safety**.
 
+### The "unknown unknowns" problem in domain knowledge persistence
+
+Industry practitioners have identified a specific pain point that makes working with AI agents miserable: **having to re-explain domain knowledge in every new session**.
+
+Consider a concrete example: suppose you have a rule that "using BigInt in this repo is bad for complex reasons." The explanation might be 1,000 tokens of technical detail about serialization, performance characteristics, or compatibility issues. Now multiply this by hundreds of similar domain-specific rules, and you have 500,000+ tokens of mandatory domain knowledge.
+
+You face two options:
+
+**Option 1: Make it directly visible (AGENTS.md)**
+This works if the agent is good enough, but the problem is scale. Accumulate enough of these complex explanations and including them in context will immediately downgrade model performance (effectively to GPT-2 level) and cost a fortune in tokens.
+
+**Option 2: Make it searchable (RAG, vector databases, etc.)**
+The problem is that the AI cannot magically guess when it needs that bit of knowledge. When writing a JavaScript function, it will not stop and think: "wait, perhaps there is some part of the domain that tells me BigInts are bad and I should start looking for it?" It will just use BigInts. It does not occur to the agent that there is something to search for.
+
+This manifests in three ways:
+
+- **AGENTS.md becomes shelfware**: Either agents ignore it, or it becomes too large to include without degrading model performance (500k+ tokens of mandatory domain knowledge is common in complex domains)
+- **RAG fails on unknown unknowns**: Agents cannot magically guess when they need to search for specific domain knowledge. They won't stop mid-task to think "perhaps there's a domain rule about BigInt being bad here" — they just use BigInt
+- **Skills are impractical to maintain**: You'd need hundreds or thousands of domain-specific skills to cover all possible knowledge subsets, which is unsustainable manual work
+
+The fundamental issue is that current approaches force a false choice:
+- **Make domain knowledge visible** (include it in context): Too large to fit without causing context rot and performance degradation
+- **Make domain knowledge searchable** (use RAG): Agents can't guess what they need to search for
+
+ControlKeel solves this through a **layered knowledge system**:
+
+- **Typed memory with citations** (`ck_memory_record`, `ck_memory_search`, `ck_memory_archive`): Structured, citable knowledge persistence. Future agents retrieve specific domain decisions without operator re-explanation
+- **Proof bundles**: Durable evidence of what worked, what failed, and why — capturing empirical domain knowledge that static documentation cannot contain without becoming unmanageable
+- **Resume packets**: Session handoff carries forward actual working state, not just static documentation. New sessions resume with context of what was being worked on
+- **Policy packs**: Domain-specific rules (HIPAA, OWASP, etc.) are enforced automatically — agents don't need to be told "don't do X" repeatedly because the governance layer prevents it
+- **Findings as living knowledge**: Every `ck_finding` becomes part of the permanent project knowledge base. When an agent discovers "BigInt is bad here for reasons Y," that finding persists and guides future sessions
+- **Context compaction with protected tail**: Intelligent compaction prevents context rot while maintaining decision traceability
+- **Workspace snapshots**: Actual codebase state is captured, not descriptions — eliminating "it worked on my machine" knowledge gaps
+
+The key insight: CK doesn't try to dump all domain knowledge into context (which fails) or expect agents to magically search for what they need (which also fails). Instead, it builds a system where:
+- High-frequency rules are enforced via policy packs
+- Decisions and findings are recorded in typed memory with citations
+- Session state is preserved via resume packets and proofs
+- Retrieval is explicit and ranked, not guesswork
+
+This transforms domain knowledge from something you must repeatedly explain into something the system remembers and enforces.
+
 ## The value proposition
 
 ControlKeel gives you a governed agent workflow without replacing the agent you already like.
