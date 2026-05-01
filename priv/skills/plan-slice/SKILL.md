@@ -92,17 +92,35 @@ Map each slice to a CK autonomy profile:
 
 Never label a slice AFK if it contains an unresolved unknown from the `align` step.
 
-### 7. Record the plan
-Call `ck_memory_record` (type: `decision`) with the full slice plan: slice titles, layer coverage, blocking relationships, and autonomy labels.
+### 7. Define success criteria for each slice
+
+For every slice, convert vague requirements into concrete, testable conditions:
+
+**Example:**
+```
+VAGUE: "Make the dashboard faster"
+REFRAMED SUCCESS CRITERIA:
+- Dashboard LCP < 2.5s on 4G connection
+- Initial data load completes in < 500ms
+- No layout shift during load (CLS < 0.1)
+```
+
+Each slice must have:
+- Observable success condition (what you can measure or verify)
+- Failure condition (what would indicate the slice is not done)
+- Edge case coverage (what breaks if inputs are invalid)
+
+### 8. Record the plan
+Call `ck_memory_record` (type: `decision`) with the full slice plan: slice titles, layer coverage, blocking relationships, autonomy labels, and success criteria.
 
 Update the `ck_goal` record (mode: `update_status`) with `active` and a progress note pointing to the slice plan.
 
-### 8. Submit for human approval
+### 9. Submit for human approval
 
 Call `ck_review_submit` with:
 - `review_type`: `plan`
 - `plan_phase`: `implementation_plan`
-- `implementation_steps`: the slice list with blocking relationships and autonomy labels
+- `implementation_steps`: the slice list with blocking relationships, autonomy labels, and success criteria
 - `validation_plan`: which tests or observables prove each slice is done
 - `alignment_context`: the accepted goal from the `align` step
 - `scope_estimate`: number of slices, estimated touch points per layer
@@ -121,7 +139,7 @@ Then call `ck_review_status` to check for `grill_questions`. Surface every grill
 
 At the end of this skill:
 - A reviewed and approved slice plan (via `ck_review_submit`).
-- A `ck_memory_record` containing the DAG: slice titles, layers, dependencies, autonomy labels.
+- A `ck_memory_record` containing the DAG: slice titles, layers, dependencies, autonomy labels, and success criteria.
 - A `ck_goal` update marking the plan as active.
 - A clear first slice ready for handoff to implementation (via `ck_delegate` or direct agent work under the governance skill).
 

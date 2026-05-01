@@ -53,7 +53,7 @@ You are operating inside a **ControlKeel-governed session**. Start here whenever
 
 ## Before new work
 
-For any new feature, fix, or project — before writing plans or code — use the `align` skill to reach shared understanding of the goal, layers, and acceptance criteria. Once aligned, use `plan-slice` to decompose the goal into vertical slices with explicit blocking relationships before any implementation begins. Planning is always human-in-the-loop; implementation of an approved slice can be AFK.
+For any new feature, fix, or project — before writing plans or code — use the `align` skill to reach shared understanding of the goal, layers, acceptance criteria, and **assumptions**. Surface assumptions explicitly before proceeding to prevent expensive misalignments caught after implementation. Once aligned, use `plan-slice` to decompose the goal into vertical slices with explicit blocking relationships and concrete success criteria before any implementation begins. Planning is always human-in-the-loop; implementation of an approved slice can be AFK.
 
 ## Core loop
 

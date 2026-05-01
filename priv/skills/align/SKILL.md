@@ -37,9 +37,10 @@ Reach a **shared design concept** with the user before any plan or code is writt
    **Why** — What problem does this solve? What is the success signal?
    **Who** — Who uses the result? Which roles, systems, or integrations are affected?
    **Layers** — Which system layers does this touch? (schema, services, APIs, UI, infra, third-party) Record each touched layer explicitly — this drives vertical slice decomposition later.
-   **Acceptance criteria** — What does "done" look like? What would a failing test catch?
+   **Acceptance criteria** — What does "done" look like? What would a failing test catch? Reframe vague requirements into concrete, testable conditions.
    **Edge cases** — What breaks if inputs are invalid, empty, or unexpected?
    **Constraints** — Budget, timeline, tech stack limits, compliance requirements, or must-not-change areas.
+   **Assumptions** — What are you assuming about the environment, tech stack, data sources, or integrations? Surface these explicitly before proceeding.
    **Unknowns** — What do you not know yet? What needs a spike or research before implementation starts?
 
 5. After each resolved decision, call `ck_memory_record` with type `decision` to persist it. Future agents resuming this work will recover these without asking again.
@@ -58,7 +59,7 @@ Reach a **shared design concept** with the user before any plan or code is writt
 ## What you produce
 
 At the end of this skill:
-- A `ck_goal` record with: objective, acceptance criteria, touched layers, known constraints, open unknowns.
+- A `ck_goal` record with: objective, acceptance criteria, touched layers, known constraints, explicit assumptions, open unknowns.
 - One or more `ck_memory_record` entries (type: `decision`) for each resolved design choice.
 - A clear recommendation on whether to proceed to `plan-slice` or directly to `ck_review_submit`.
 
