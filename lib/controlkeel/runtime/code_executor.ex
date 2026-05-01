@@ -38,7 +38,6 @@ defmodule ControlKeel.Runtime.CodeExecutor do
     max_output_bytes = normalize_int(Map.get(arguments, "max_output_bytes"), @max_output_bytes)
     allowed_env_vars = normalize_list(Map.get(arguments, "allowed_env_vars", []))
 
-
     cond do
       not is_binary(code) or String.trim(code) == "" ->
         {:error, {:invalid_arguments, "`code` is required and must be a non-empty string"}}
