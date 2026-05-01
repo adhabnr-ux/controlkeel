@@ -288,6 +288,87 @@ defmodule ControlKeel.Help do
       related: ["attach", "mcp", "providers", "getting-started"]
     },
     %{
+      id: "worktrees",
+      title: "Worktrees and parallel branches",
+      summary:
+        "Use git worktrees to run parallel governed slices without stomping your main working copy. CK can now surface and switch worktrees through MCP tools.",
+      keywords: [
+        "worktree",
+        "worktrees",
+        "parallel",
+        "branch",
+        "branches",
+        "git worktree",
+        "slice"
+      ],
+      phrases: ["use worktrees", "parallel work", "switch worktree"],
+      commands: [
+        "MCP: ck_worktree_list",
+        "MCP: ck_worktree_switch",
+        "controlkeel help mcp"
+      ],
+      next_steps: [
+        "Prefer git worktrees for parallel agent tasks so each slice has an isolated working directory.",
+        "Use `ck_worktree_list` to discover worktrees and `ck_worktree_switch` to update session metadata to the intended worktree.",
+        "If your host does not expose MCP tool calling directly, attach CK and use the host's MCP tool UI to invoke these tools."
+      ],
+      related: ["mcp", "attach", "review"]
+    },
+    %{
+      id: "checkpoints",
+      title: "Checkpoints and workspace restore",
+      summary:
+        "Checkpoints capture a governed snapshot of workspace context (git state, worktree metadata, hashes) so sessions can resume, migrate, or roll back intentionally.",
+      keywords: ["checkpoint", "checkpoints", "resume", "restore", "snapshot", "rollback"],
+      phrases: ["create checkpoint", "restore checkpoint", "resume session"],
+      commands: [
+        "MCP: ck_checkpoint_create",
+        "MCP: ck_checkpoint_restore",
+        "MCP: ck_checkpoint_list"
+      ],
+      next_steps: [
+        "Use `ck_checkpoint_create` before risky changes or before handing work off to another runtime.",
+        "Use `ck_checkpoint_list` to find the most recent checkpoint for a session.",
+        "Use `ck_checkpoint_restore` to annotate the session as restored-from-checkpoint (this is metadata-only unless you also apply repo changes separately)."
+      ],
+      related: ["mcp", "review", "findings"]
+    },
+    %{
+      id: "git",
+      title: "Governed git workflow",
+      summary:
+        "CK can now generate diffs and validate them, validate commit messages, and surface git status as MCP tools so git actions stay inside the governance loop.",
+      keywords: ["git", "diff", "commit", "status", "pr", "merge"],
+      phrases: ["validate diff", "commit with ck", "git status"],
+      commands: [
+        "MCP: ck_git_diff",
+        "MCP: ck_git_commit",
+        "MCP: ck_git_status",
+        "controlkeel review diff"
+      ],
+      next_steps: [
+        "Use `ck_git_diff` to get a diff + CK validation result as one governed artifact.",
+        "Use `ck_git_commit` to validate commit intent before running `git commit`.",
+        "If you want full PR workflows, keep using `controlkeel review diff` / `review pr` and your normal git tooling for push and PR creation."
+      ],
+      related: ["review", "findings", "mcp"]
+    },
+    %{
+      id: "monitoring",
+      title: "Remote monitoring subscriptions",
+      summary:
+        "Subscribe to session events via webhook for read-only remote monitoring. This is intended for lightweight observability, not remote control.",
+      keywords: ["monitor", "monitoring", "webhook", "subscribe", "events", "remote"],
+      phrases: ["subscribe to events", "webhook monitoring"],
+      commands: ["MCP: ck_monitor_subscribe"],
+      next_steps: [
+        "Use `ck_monitor_subscribe` to register a webhook URL for session event notifications.",
+        "Treat webhook endpoints as sensitive; they can leak project activity if shared.",
+        "If you need cross-device control, consider pairing CK governance with an external remote-control host (e.g., Omnara) rather than extending CK into a full remote UI."
+      ],
+      related: ["mcp", "observability"]
+    },
+    %{
       id: "mcp",
       title: "MCP, hosted access, and remote clients",
       summary:
@@ -325,7 +406,7 @@ defmodule ControlKeel.Help do
 
     Guided help:
       controlkeel help                     Show the overview and common entry points
-      controlkeel help <topic>             Show guided help for a topic such as attach, codex, review, findings, run, skills, providers, troubleshooting, or mcp
+      controlkeel help <topic>             Show guided help for a topic such as attach, codex, review, findings, run, skills, providers, troubleshooting, mcp, worktrees, checkpoints, git, or monitoring
       controlkeel help <question ...>      Route a free-form question such as:
                                           - controlkeel help how do i attach codex
                                           - controlkeel help why is my task blocked
