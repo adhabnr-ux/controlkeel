@@ -41,9 +41,6 @@
     "SECURITY.md",
     "server.json"
   ],
-  "scripts": {
-    "postinstall": "node lib/postinstall.js"
-  },
   "engines": {
     "node": ">=18"
   },

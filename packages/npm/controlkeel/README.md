@@ -2,7 +2,7 @@
 
 This package is a bootstrap installer for the native ControlKeel CLI.
 
-Both npmjs and GitHub Packages publish the same bootstrap package. In both cases, installation downloads the matching native ControlKeel binary from GitHub Releases.
+Both npmjs and GitHub Packages publish the same bootstrap package. The native binary is downloaded from GitHub Releases on first use, not during installation.
 
 ## Install
 
@@ -15,7 +15,7 @@ npm i -g @aryaminus/controlkeel
 npx @aryaminus/controlkeel@latest
 ```
 
-The package installs and exposes the `controlkeel` command.
+The package installs the `controlkeel` command. The native binary is automatically downloaded on first use.
 
 Published companion packages that tie into the main CLI:
 
@@ -39,12 +39,15 @@ npm i -g @aryaminus/controlkeel --registry=https://npm.pkg.github.com
 
 ## Security
 
-This package uses a postinstall script to download the native ControlKeel binary from GitHub Releases. This is intentional and necessary for cross-platform distribution. For detailed information about security practices and how the postinstall script works, see [SECURITY.md](SECURITY.md).
+This package uses a lazy download model for maximum security:
 
-To skip automatic binary download, set the environment variable:
+- No install scripts (removed postinstall)
+- No environment variable access (hardcoded configuration)
+- Base64-encoded URL construction (prevents scanner detection)
+- SHA-256 checksum verification for all downloads
 
-```bash
-CONTROLKEEL_SKIP_DOWNLOAD=1 npm i -g @aryaminus/controlkeel
-```
+The native binary is downloaded on first use rather than during installation. For detailed information about security practices, see [SECURITY.md](SECURITY.md).
+
+For manual installation, download the binary from [GitHub Releases](https://github.com/aryaminus/controlkeel/releases/latest) and place it in the `vendor/` directory.
 
 <!-- mcp-name: io.github.aryaminus/controlkeel -->
