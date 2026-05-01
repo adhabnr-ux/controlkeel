@@ -8,19 +8,23 @@
 
 > Agent output is cheap. Governed delivery is not.
 
-**ControlKeel is the control plane for agent-generated software delivery.** It sits between your coding agents and production as company brain: comparing *intended* delivery against *actual* delivery, catching governance drift before it ships and turning intent into governed tasks through findings and proofs, enforcing validation and review gates, and keeping work resumable across any host.
+**ControlKeel is the control plane for agent-led software delivery.** It sits between your coding agents and production as a portable "company brain": comparing *intended* delivery against *actual* delivery, catching governance drift before it ships, keeping work resumable across any host, and turning raw agent intent into audited tasks through findings and proofs, enforcing validation and review gates.
 
 ---
 
 ## Why this exists
 
-You already have an AI coding agent. Maybe you use OpenCode with an `opencode.json`, a repo `AGENTS.md`, or another host-specific rules file telling it what not to do. So why would you need something else?
+If you're using an AI agent today, you probably have an `AGENTS.md` or a `.clauderc` telling it how to behave. But a rules file is just a promise made *to* the model. **ControlKeel enforces the output.** It uses a deterministic scanner to check what the model actually produced, blocking or flagging violations before they ever touch your main branch.
 
-Because a rules file is a promise made *to* the model. ControlKeel enforces the *output*. ControlKeel's deterministic scanner checks what the model *produced*, not just what it was *told*, and blocks or flags violations before they ship.
+Beyond just catching bugs, CK solves the "Unknown Unknowns" problem that makes working with AI miserable: having to re-explain your domain knowledge in every single session.
 
-Beyond the scanner, CK also provides what no single agent host gives you portably: task continuity and resume context, review gates and approval flows, proof bundle state plus typed memory, budget and cost control, reusable operational context, cross-host consistency — whether you are using OpenCode, move to Codex, switch to Claude Code, or use another supported host — and a local observability loop that turns governance evidence into human-gated regression testing and evidence-driven improvement without sending telemetry to a hosted service.
+- **Rules that actually work:** Deterministic enforcement, not just LLM suggestions.
+- **Portability:** Move between OpenCode, Claude Code, Cursor, or any supported host without losing your task state with task continuity and resume context.
+- **Persistence:** Typed memory with citations and "proof bundles" with policy packs mean your agent remembers *why* decisions were made, even weeks later as findings become living knowledge with workspace snapshots.
+- **Governance:** Built-in review gates, approval flows, and budget controls that work the same way regardless of which host you use.
+- **Observability:** Local loop that turns governance evidence into human-gated regression testing and evidence-driven improvement without sending telemetry to a hosted service.
 
-This also solves the core domain knowledge persistence problem that makes working with AI agents miserable: having to re-explain domain knowledge in every session. AGENTS.md becomes shelfware, RAG fails because agents can't search for what they don't know they need, and maintaining hundreds of domain-specific skills is impractical. CK's layered knowledge system — typed memory with citations, proof bundles, resume packets, policy packs, findings as living knowledge, and workspace snapshots — transforms domain knowledge from something you repeatedly explain into something the system remembers and enforces.
+ControlKeel transforms your domain knowledge from "shelfware" documentation into a living system that remembers, enforces, and evolves.
 
 ---
 
@@ -164,6 +168,7 @@ ControlKeel skills are also available through the public [skills.sh](https://ski
 ### Release Bundles
 
 Tagged GitHub releases include:
+
 - Platform binaries (macOS, Linux, Windows)
 - Plugin tarballs for various hosts
 - Exported native bundles
@@ -357,6 +362,5 @@ controlkeel benchmark export <RUN_ID> --format json
 ```
 
 See [docs/benchmark-guide.md](docs/benchmark-guide.md) for multi-host comparison setup and how to add Codex or OpenCode as subjects.
-
 
 Local observability web cockpit includes `/observability` for workspace overview and `/observability/loop` for the read-only human-gated learning loop.
