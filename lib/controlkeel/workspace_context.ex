@@ -76,6 +76,7 @@ defmodule ControlKeel.WorkspaceContext do
         current_worktree = current_worktree_info(repo_root, worktrees)
         orientation = orientation_snapshot(repo_root, instruction_files, key_files)
         design_drift = design_drift_snapshot(repo_root, status_counts)
+        agent_frameworks = detect_agent_frameworks(repo_root)
 
         context = %{
           "available" => true,
@@ -92,7 +93,8 @@ defmodule ControlKeel.WorkspaceContext do
           "instruction_files" => instruction_files,
           "key_files" => key_files,
           "orientation" => orientation,
-          "design_drift" => design_drift
+          "design_drift" => design_drift,
+          "agent_frameworks" => agent_frameworks
         }
 
         summary = summary_text(context)
@@ -137,6 +139,7 @@ defmodule ControlKeel.WorkspaceContext do
         "complexity_budget" => complexity_budget([], [], []),
         "summary" => "Design drift unavailable."
       },
+      "agent_frameworks" => %{"detected" => false, "frameworks" => []},
       "summary_text" => "Workspace context unavailable.",
       "cache_key" => cache_key(%{"project_root" => project_root, "reason" => reason}),
       "reason" => reason
@@ -211,6 +214,116 @@ defmodule ControlKeel.WorkspaceContext do
     else
       _ -> []
     end
+  end
+
+  defp detect_agent_frameworks(repo_root) do
+    frameworks = []
+
+    frameworks =
+      if has_langgraph?(repo_root) do
+        frameworks ++ [%{"name" => "langgraph", "detected_via" => "import"}]
+      else
+        frameworks
+      end
+
+    frameworks =
+      if has_crewai?(repo_root) do
+        frameworks ++ [%{"name" => "crewai", "detected_via" => "import"}]
+      else
+        frameworks
+      end
+
+    frameworks =
+      if has_autogen?(repo_root) do
+        frameworks ++ [%{"name" => "autogen", "detected_via" => "import"}]
+      else
+        frameworks
+      end
+
+    frameworks =
+      if has_langchain?(repo_root) do
+        frameworks ++ [%{"name" => "langchain", "detected_via" => "import"}]
+      else
+        frameworks
+      end
+
+    frameworks =
+      if has_langgraph_config?(repo_root) do
+        frameworks ++ [%{"name" => "langgraph", "detected_via" => "config"}]
+      else
+        frameworks
+      end
+
+    frameworks =
+      if has_crew_config?(repo_root) do
+        frameworks ++ [%{"name" => "crewai", "detected_via" => "config"}]
+      else
+        frameworks
+      end
+
+    if frameworks == [] do
+      %{"detected" => false, "frameworks" => []}
+    else
+      %{
+        "detected" => true,
+        "frameworks" => Enum.uniq_by(frameworks, & &1["name"])
+      }
+    end
+  end
+
+  defp has_langgraph?(repo_root) do
+    case System.cmd(
+           "rg",
+           ["--files-with-matches", "from langgraph|import langgraph", repo_root],
+           stderr_to_stdout: true
+         ) do
+      {output, 0} -> String.trim(output) != ""
+      _ -> false
+    end
+  end
+
+  defp has_crewai?(repo_root) do
+    case System.cmd(
+           "rg",
+           ["--files-with-matches", "from crewai|import crewai", repo_root],
+           stderr_to_stdout: true
+         ) do
+      {output, 0} -> String.trim(output) != ""
+      _ -> false
+    end
+  end
+
+  defp has_autogen?(repo_root) do
+    case System.cmd(
+           "rg",
+           ["--files-with-matches", "from autogen|import autogen", repo_root],
+           stderr_to_stdout: true
+         ) do
+      {output, 0} -> String.trim(output) != ""
+      _ -> false
+    end
+  end
+
+  defp has_langchain?(repo_root) do
+    case System.cmd(
+           "rg",
+           ["--files-with-matches", "from langchain|import langchain", repo_root],
+           stderr_to_stdout: true
+         ) do
+      {output, 0} -> String.trim(output) != ""
+      _ -> false
+    end
+  end
+
+  defp has_langgraph_config?(repo_root) do
+    File.regular?(Path.join(repo_root, "langgraph.json")) ||
+      File.regular?(Path.join(repo_root, "langgraph.yml")) ||
+      File.regular?(Path.join(repo_root, "langgraph.yaml"))
+  end
+
+  defp has_crew_config?(repo_root) do
+    File.regular?(Path.join(repo_root, "crew.yaml")) ||
+      File.regular?(Path.join(repo_root, "crew.yml"))
   end
 
   defp orientation_snapshot(repo_root, instruction_files, key_files) do

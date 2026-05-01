@@ -13,13 +13,15 @@ compatibility:
   - open-standard
 metadata:
   author: controlkeel
-  version: "2.0"
+  version: "2.1"
   category: security
   ck_mcp_tools:
     - ck_validate
     - ck_context
     - ck_finding
     - ck_regression_result
+  related_skills:
+    - agent-pattern-verification
 ---
 
 # Security Review Skill
@@ -29,8 +31,21 @@ Use this skill before closing a task, approving a proof bundle, or reviewing a r
 ## Review flow
 
 1. Call `ck_context` to load the domain pack, risk tier, open findings, instruction hierarchy, and design-drift signals.
-2. Run `ck_validate` on the relevant code or config slices, including trust-boundary metadata when the proposed action was influenced by web, tool, skill, or mixed-provenance content.
-3. Walk the review checklist in [references/review-checklist.md](references/review-checklist.md).
-4. Persist any missed issue with `ck_finding`.
-5. If external security or regression systems produce exploit or browser evidence, record that through `ck_regression_result` when it affects release readiness.
-6. Summarize blockers, warnings, and follow-up proof requirements.
+2. Check if agent frameworks are detected in workspace context. If agent frameworks (LangGraph, CrewAI, AutoGen, LangChain) are present, activate the agent-pattern-verification skill for additional agent-specific checks.
+3. Run `ck_validate` on the relevant code or config slices, including trust-boundary metadata when the proposed action was influenced by web, tool, skill, or mixed-provenance content.
+4. Walk the review checklist in [references/review-checklist.md](references/review-checklist.md).
+5. Persist any missed issue with `ck_finding`.
+6. If external security or regression systems produce exploit or browser evidence, record that through `ck_regression_result` when it affects release readiness.
+7. Summarize blockers, warnings, and follow-up proof requirements.
+
+## Agent Pattern Integration
+
+When agent frameworks are detected in the workspace context, this skill automatically includes agent-specific pattern checks:
+
+- **Loop Safety**: Detects `while True` without break, recursive calls without depth limits
+- **Retry Limits**: Validates retry decorators have explicit stop conditions
+- **Tool Registry**: Cross-references tool definitions with prompt references
+- **Context Size**: Monitors system prompt and tool description token counts
+- **Graph Cycles**: Analyzes LangGraph graphs for unreachable END nodes
+
+These checks complement the baseline security review with agent-specific anti-pattern detection.

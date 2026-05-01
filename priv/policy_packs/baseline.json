@@ -171,5 +171,102 @@
         "(?is)permit\\s*\\([^\\)]*(?:user_id|role|admin|is_admin|status|discount_percent|refunded_amount)"
       ]
     }
+  },
+  {
+    "id": "quality.bare_except",
+    "category": "quality",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Bare except clauses catch all exceptions including system-exiting ones like KeyboardInterrupt. Use specific exception types.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "except\\s*:"
+      ]
+    }
+  },
+  {
+    "id": "quality.go_ignored_error",
+    "category": "quality",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Discarding a return value with _ in Go can silently hide errors. Check that the discarded value is not an error.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "_\\s*=\\s*\\w+\\(",
+        "[^,]+,\\s*_\\s*:?=\\s*\\w+\\("
+      ]
+    }
+  },
+  {
+    "id": "quality.python_unpinned_dependency",
+    "category": "quality",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Unpinned dependencies (>=, >, or no version) can cause unexpected breaking changes. Use exact version pinning (==) or compatible version ranges (~=) for stability.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)^[a-z][a-z0-9_-]+(\\[[^\\]]*\\])?\\s*(>=|>)",
+        "(?i)^[a-z][a-z0-9_-]+(\\[[^\\]]*\\])?\\s*$"
+      ]
+    }
+  },
+  {
+    "id": "quality.js_unpinned_dependency",
+    "category": "quality",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Unpinned JavaScript dependencies (* or latest) can cause unexpected breaking changes. Use exact versions or tight ranges for stability.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "\"[^\"]+\"\\s*:\\s*\"\\*\"",
+        "\"[^\"]+\"\\s*:\\s*\"latest\"",
+        "\"[^\"]+\"\\s*:\\s*\">[0-9]",
+        "\"[^\"]+\"\\s*:\\s*\">=[0-9]"
+      ]
+    }
+  },
+  {
+    "id": "quality.ts_no_strict_mode",
+    "category": "quality",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "TypeScript strict mode is disabled. Set strict: true in tsconfig.json to catch type errors early and improve code quality.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "\"strict\"\\s*:\\s*(false|null)"
+      ]
+    }
+  },
+  {
+    "id": "quality.ts_any_type",
+    "category": "quality",
+    "severity": "low",
+    "action": "warn",
+    "plain_message": "Using the 'any' type defeats TypeScript's type checking. Use specific types or 'unknown' with type guards for better type safety.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        ":\\s*any\\b"
+      ]
+    }
+  },
+  {
+    "id": "quality.retry_without_limit",
+    "category": "quality",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Retry decorator without an explicit stop condition may cause infinite retries. Add stop_after_attempt, max_tries, or equivalent.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "@retry\\((?!.*(stop|max|retries|attempts))",
+        "@backoff\\.(?!.*max)"
+      ]
+    }
   }
 ]

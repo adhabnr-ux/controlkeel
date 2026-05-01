@@ -141,5 +141,111 @@
         "(?is)Logger\\.(?:info|debug|warn|error)\\s*\\([^\\n]*(?:Request body|Headers|req_headers|remote_ip)"
       ]
     }
+  },
+  {
+    "id": "software.python_type_hints_missing",
+    "category": "quality",
+    "severity": "low",
+    "action": "warn",
+    "plain_message": "Public function missing return type annotation. Add -> ReturnType to improve code documentation and catch type errors early.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "^def\\s+[a-z_][a-z0-9_]*\\s*\\([^)]*\\)\\s*:(?!.*->)"
+      ]
+    }
+  },
+  {
+    "id": "software.python_non_idiomatic_length_check",
+    "category": "quality",
+    "severity": "low",
+    "action": "warn",
+    "plain_message": "Non-idiomatic Python: use 'if collection:' instead of 'if len(collection) > 0:' for checking if a collection is non-empty.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "if\\s+len\\(.+\\)\\s*[><=]+\\s*0"
+      ]
+    }
+  },
+  {
+    "id": "software.python_non_idiomatic_bool_check",
+    "category": "quality",
+    "severity": "low",
+    "action": "warn",
+    "plain_message": "Non-idiomatic Python: use 'if x:' instead of 'if x == True:' or 'if x == False:' for boolean checks.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "if\\s+\\w+\\s*==\\s*True\\b",
+        "if\\s+\\w+\\s*==\\s*False\\b"
+      ]
+    }
+  },
+  {
+    "id": "software.python_non_idiomatic_list_append",
+    "category": "quality",
+    "severity": "low",
+    "action": "warn",
+    "plain_message": "Non-idiomatic Python: use list.append(item) or list.extend([...]) instead of list = list + [...] for in-place growth.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(\\w+)\\s*=\\s*\\1\\s*\\+\\s*\\["
+      ]
+    }
+  },
+  {
+    "id": "software.python_non_idiomatic_range_iteration",
+    "category": "quality",
+    "severity": "low",
+    "action": "warn",
+    "plain_message": "Non-idiomatic Python: use 'for item in list:' or 'enumerate(list)' instead of 'for i in range(len(list)):'.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "for\\s+\\w+\\s+in\\s+range\\(len\\("
+      ]
+    }
+  },
+  {
+    "id": "software.typescript_unhandled_promise",
+    "category": "quality",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Promise chain without .catch(). Unhandled promise rejections can crash the process. Add .catch() or use try/catch with await.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "\\w+\\([^)]*\\)\\.then\\([^)]*\\)(?!.*\\.catch)"
+      ]
+    }
+  },
+  {
+    "id": "software.typescript_async_executor_pattern",
+    "category": "quality",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Async function passed to Promise constructor executor is an anti-pattern that swallows rejections. Use async/await directly instead.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "new\\s+Promise\\(\\s*async\\s*\\(",
+        "new\\s+Promise\\(\\s*async\\s+function\\s*\\("
+      ]
+    }
+  },
+  {
+    "id": "software.go_interface_overuse",
+    "category": "quality",
+    "severity": "low",
+    "action": "warn",
+    "plain_message": "Using interface{} (or 'any' in Go 1.18+) loses type safety. Consider using generics or a specific interface type.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "interface\\{\\}"
+      ]
+    }
   }
 ]
