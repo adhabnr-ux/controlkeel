@@ -42,6 +42,7 @@ defmodule ControlKeel.MCP.Protocol do
     CkCostOptimizer,
     CkDeploymentAdvisor,
     CkOutcomeTracker,
+    CkTokenAudit,
     CkToolHealth,
     CkWorktreeList,
     CkWorktreeSwitch,
@@ -190,6 +191,59 @@ defmodule ControlKeel.MCP.Protocol do
     error_response(nil, -32600, "Invalid Request")
   end
 
+  @tool_groups %{
+    "core" => [
+      "ck_validate",
+      "ck_context",
+      "ck_execute_code",
+      "ck_budget",
+      "ck_route"
+    ],
+    "governance" => [
+      "ck_review_submit",
+      "ck_review_status",
+      "ck_finding",
+      "ck_goal",
+      "ck_memory_record",
+      "ck_memory_search",
+      "ck_memory_archive",
+      "ck_delegate"
+    ],
+    "observability" => [
+      "ck_observability",
+      "ck_experience_index",
+      "ck_experience_read",
+      "ck_experience_search",
+      "ck_trace_packet",
+      "ck_failure_clusters"
+    ],
+    "skills" => [
+      "ck_skill_list",
+      "ck_skill_load",
+      "ck_skill_validate"
+    ],
+    "filesystem" => [
+      "ck_fs_ls",
+      "ck_fs_read",
+      "ck_fs_find",
+      "ck_fs_grep"
+    ],
+    "git" => [
+      "ck_git_status",
+      "ck_git_diff",
+      "ck_git_commit"
+    ],
+    "checkpoints" => [
+      "ck_checkpoint_create",
+      "ck_checkpoint_restore",
+      "ck_checkpoint_list"
+    ],
+    "worktrees" => [
+      "ck_worktree_list",
+      "ck_worktree_switch"
+    ]
+  }
+
   def tool_schemas(opts \\ []) do
     base = [
       ck_validate_tool(),
@@ -233,7 +287,8 @@ defmodule ControlKeel.MCP.Protocol do
       ck_deployment_advisor_tool(),
       ck_outcome_tracker_tool(),
       ck_load_resources_tool(),
-      ck_mcp_discover_tool()
+      ck_mcp_discover_tool(),
+      ck_token_audit_tool()
     ]
 
     # Always expose ck_skill_list / ck_skill_load / ck_skill_validate. Do not call Registry here: a full
@@ -241,6 +296,26 @@ defmodule ControlKeel.MCP.Protocol do
     # process while Cursor expects tools/list under a ~20s connect budget.
     tools = base ++ [ck_skill_list_tool(), ck_skill_load_tool(), ck_skill_validate_tool()]
 
+    # Apply tool group filtering if specified
+    tools =
+      case Keyword.get(opts, :tool_groups, :all) do
+        :all ->
+          tools
+
+        groups when is_list(groups) ->
+          # Collect all tool names from requested groups
+          allowed_tool_names =
+            groups
+            |> Enum.flat_map(fn group -> Map.get(@tool_groups, group, []) end)
+            |> MapSet.new()
+
+          Enum.filter(tools, &(&1["name"] in allowed_tool_names))
+
+        _ ->
+          tools
+      end
+
+    # Apply tool_names filtering (takes precedence over tool_groups)
     case Keyword.get(opts, :tool_names) do
       names when is_list(names) -> Enum.filter(tools, &(&1["name"] in names))
       _ -> tools
@@ -292,9 +367,12 @@ defmodule ControlKeel.MCP.Protocol do
   def dispatch_tool("ck_cost_optimizer", arguments), do: CkCostOptimizer.call(arguments)
   def dispatch_tool("ck_deployment_advisor", arguments), do: CkDeploymentAdvisor.call(arguments)
   def dispatch_tool("ck_outcome_tracker", arguments), do: CkOutcomeTracker.call(arguments)
+  def dispatch_tool("ck_token_audit", arguments), do: CkTokenAudit.call(arguments)
 
   def dispatch_tool(unknown, _arguments),
     do: {:error, {:invalid_arguments, "Unknown tool: #{unknown}"}}
+
+  def tool_groups, do: Map.keys(@tool_groups)
 
   def ck_validate_tool do
     %{
@@ -1284,6 +1362,31 @@ defmodule ControlKeel.MCP.Protocol do
           "workspace_id" => %{"type" => ["integer", "string"]},
           "limit" => %{"type" => "integer"},
           "window" => %{"type" => "integer"}
+        }
+      }
+    }
+  end
+
+  defp ck_token_audit_tool do
+    %{
+      "name" => "ck_token_audit",
+      "description" =>
+        "Audit project rule files (AGENTS.md, CLAUDE.md, etc.) and skills for token overhead. " <>
+          "Returns word counts, token estimates, duplicate detection, and optimization recommendations.",
+      "inputSchema" => %{
+        "type" => "object",
+        "properties" => %{
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root. Omit to use current working directory."
+          },
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["full", "skills", "rules", "tools"],
+            "description" =>
+              "Audit mode: 'full' (rules + skills), 'skills' (skills only), 'rules' (rules only), 'tools' (CK MCP tool schemas). Defaults to 'full'."
+          }
         }
       }
     }
