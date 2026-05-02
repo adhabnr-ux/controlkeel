@@ -10,7 +10,7 @@ defmodule ControlKeel.MCP.Tools.CkSkillValidate do
          {:ok, parsed_output} <- parse_output(normalized.output),
          {:ok, parsed_schema} <- parse_schema(normalized.schema),
          {:ok, validation} <- validate_against_schema(parsed_output, parsed_schema) do
-      {:ok, result(normalized, validation)}
+      {:ok, result(normalized, parsed_output, validation)}
     end
   end
 
@@ -52,7 +52,7 @@ defmodule ControlKeel.MCP.Tools.CkSkillValidate do
     skill_name = Map.get(arguments, "skill_name")
 
     cond do
-      is_nil(output) or output == "" ->
+      not is_binary(output) or output == "" ->
         {:error, {:invalid_arguments, "`output` is required and must be a non-empty string"}}
 
       byte_size(output) > @max_output_bytes ->
@@ -188,7 +188,7 @@ defmodule ControlKeel.MCP.Tools.CkSkillValidate do
       }}}
   end
 
-  defp validate_object(output, required, properties, additional_properties \\ nil) do
+  defp validate_object(output, required, properties, additional_properties) do
     # Check required fields
     missing = Enum.filter(required, fn field -> not Map.has_key?(output, field) end)
 
@@ -294,11 +294,11 @@ defmodule ControlKeel.MCP.Tools.CkSkillValidate do
       }}}
   end
 
-  defp result(normalized, validation) do
+  defp result(normalized, parsed_output, validation) do
     %{
       "valid" => true,
       "skill_name" => normalized.skill_name,
-      "output_type" => get_type(normalized.output),
+      "output_type" => get_type(parsed_output),
       "validation_details" => validation
     }
   end

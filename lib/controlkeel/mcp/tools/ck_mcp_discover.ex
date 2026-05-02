@@ -19,7 +19,7 @@ defmodule ControlKeel.MCP.Tools.CkMcpDiscover do
             {:ok,
              %{
                "server_url" => result.server_url,
-               "transport" => result.transport,
+               "transport" => Atom.to_string(result.transport),
                "tools" => result.tools,
                "total" => result.total,
                "usage_hint" =>
@@ -68,8 +68,11 @@ defmodule ControlKeel.MCP.Tools.CkMcpDiscover do
     opts =
       if Map.has_key?(arguments, "transport") do
         case Map.get(arguments, "transport") do
-          transport when transport in ["http", "stdio"] ->
-            [{:transport, String.to_atom(transport)} | opts]
+          "http" ->
+            [{:transport, :http} | opts]
+
+          "stdio" ->
+            [{:transport, :stdio} | opts]
 
           _ ->
             opts
@@ -79,6 +82,23 @@ defmodule ControlKeel.MCP.Tools.CkMcpDiscover do
       end
 
     opts
+  end
+
+  defp format_error({:blocked_target, host}) do
+    "Refusing to discover from private/loopback target: #{inspect(host)}. " <>
+      "Set :controlkeel, :mcp_discovery_allow_private to true to opt in."
+  end
+
+  defp format_error({:invalid_url, url}) do
+    "Invalid URL: #{inspect(url)}. Must include scheme and host."
+  end
+
+  defp format_error({:inets_unavailable, reason}) do
+    "Could not start :inets for HTTP discovery: #{inspect(reason)}"
+  end
+
+  defp format_error({:response_too_large, size}) do
+    "MCP server response exceeded size limit (got #{inspect(size)} bytes)"
   end
 
   defp format_error({:unsupported_transport, transport}) do
