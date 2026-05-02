@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.3.13 — 2026-05-02
+
+### What's changed
+
+- fix(ci): handle missing ripgrep in workspace context detection
+- fix(mcp): audit and harden discovery, ck_mcp_discover, and ck_skill_validate
+- feat(cli): add multica-cloud runtime export command feat(docker): extend sensitive env var checks with suffixes docs(help): update runtime export command documentation with new targets fix(protocol): clarify HTTP transport type description refactor(ck_skill_validate): enhance object validation with additional properties feat(skills): add compatibility for new native integrations across multiple SKILL files
+- Enhance documentation on evaluation, governance, and observability
+- feat(skills): surface export manifests in doctor output
+- feat(skills): write install manifest on export
+- feat(mcp): add ck_mcp_discover for MCP server auto-discovery
+- fix(security): filter sensitive env vars before forwarding to Docker sandbox
+- feat(skills): integrate agent-skills governance patterns into CK skills
+- feat(quality): integrate agent-verifier pattern detection into CK
+- feat(security): enhance vulnerability taxonomy and remove Strix integration
+- chore: remove trailing blank lines in workspace_checkpoint.ex
+- feat(skills): add result-schema validation and selective env var exposure
+- feat(omnara): add integration analysis and opportunities documentation for ControlKeel
+- docs(help): add help topics for worktrees, checkpoints, git workflow, and monitoring
+- feat(mcp): register 9 new tools in protocol — worktrees, checkpoints, git, monitoring
+- feat(monitoring): add RemoteMonitoring GenServer and ck_monitor_subscribe MCP tool
+- feat(git): add governed git workflow with diff/commit/status MCP tools
+- feat(worktrees): add ck_worktree_list and ck_worktree_switch MCP tools
+- feat(checkpoints): add WorkspaceCheckpoint with create/restore/list and MCP tools
+- feat(mission): add TaskCheckpoint CRUD functions
+- feat(workspace): add git worktree detection to WorkspaceContext
+
 ## v0.3.12 — 2026-05-01
 
 ### What's changed
