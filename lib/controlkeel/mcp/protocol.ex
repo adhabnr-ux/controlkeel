@@ -1415,6 +1415,11 @@ defmodule ControlKeel.MCP.Protocol do
             "enum" => ["json", "xml"],
             "description" =>
               "Response format. Use xml to receive an <available_skills> block for system prompt injection."
+          },
+          "include_duplicate_copies" => %{
+            "type" => "boolean",
+            "description" =>
+              "If true, surface diagnostics for identical duplicate skill copies that MCP hosts may load (token overhead). Defaults to false."
           }
         }
       }

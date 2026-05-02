@@ -67,6 +67,7 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
          {:ok, days} <- optional_integer(arguments, "days"),
          {:ok, stale_days} <- optional_integer(arguments, "stale_days"),
          {:ok, by} <- optional_string(arguments, "by"),
+         {:ok, project_root} <- optional_string(arguments, "project_root"),
          {:ok, persist} <- optional_boolean(arguments, "persist") do
       opts = []
       opts = if session_id, do: Keyword.put(opts, :session_id, session_id), else: opts
@@ -76,6 +77,7 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
       opts = if days, do: Keyword.put(opts, :days, days), else: opts
       opts = if stale_days, do: Keyword.put(opts, :stale_days, stale_days), else: opts
       opts = if by, do: Keyword.put(opts, :by, by), else: opts
+      opts = if project_root, do: Keyword.put(opts, :project_root, project_root), else: opts
       opts = if persist, do: Keyword.put(opts, :persist, persist), else: opts
 
       opts =
@@ -148,7 +150,33 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
   defp dispatch_report("memory", opts), do: session_report(opts, &Observability.memory_context/2)
   defp dispatch_report("memory_quality", opts), do: Observability.memory_quality(opts)
   defp dispatch_report("recommendations", opts), do: Observability.recommendations(opts)
-  defp dispatch_report("costs", opts), do: Observability.costs(opts)
+
+  defp dispatch_report("costs", opts) do
+    base = Observability.costs(opts)
+
+    case Keyword.get(opts, :project_root) do
+      nil ->
+        base
+
+      project_root ->
+        case ControlKeel.MCP.Tools.CkTokenAudit.call(%{
+               "project_root" => project_root,
+               "mode" => "rules"
+             }) do
+          {:ok, token_audit} ->
+            extra =
+              token_audit
+              |> Map.get("recommendations", [])
+              |> Enum.map(&"Token overhead: #{&1}")
+
+            Map.update(base, :recommendations, extra, fn recs -> recs ++ extra end)
+
+          _ ->
+            base
+        end
+    end
+  end
+
   defp dispatch_report("compare", opts), do: Observability.comparison(opts)
   defp dispatch_report("imports", opts), do: Observability.imports(opts)
   defp dispatch_report("trends", opts), do: Observability.trends(opts)

@@ -6,12 +6,9 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
   @allowed_modes ~w(estimate commit status)
 
   def call(arguments) when is_map(arguments) do
-    with {:ok, normalized} <- normalize(arguments) do
-      case normalized["mode"] do
-        "estimate" -> Budget.estimate(normalized)
-        "commit" -> Budget.commit(normalized)
-        "status" -> Budget.status(normalized)
-      end
+    with {:ok, normalized} <- normalize(arguments),
+         {:ok, result} <- dispatch(normalized) do
+      {:ok, maybe_attach_token_overhead(result, normalized)}
     end
   end
 
@@ -26,7 +23,8 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
          {:ok, input_tokens} <- optional_non_negative_integer(arguments, "input_tokens"),
          {:ok, cached_input_tokens} <-
            optional_non_negative_integer(arguments, "cached_input_tokens"),
-         {:ok, output_tokens} <- optional_non_negative_integer(arguments, "output_tokens") do
+         {:ok, output_tokens} <- optional_non_negative_integer(arguments, "output_tokens"),
+         {:ok, include_token_overhead} <- optional_boolean(arguments, "include_token_overhead") do
       {:ok,
        %{
          "session_id" => session_id,
@@ -40,10 +38,68 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
          "output_tokens" => output_tokens || 0,
          "source" => optional_binary(arguments, "source") || "mcp",
          "tool" => optional_binary(arguments, "tool") || "ck_budget",
-         "metadata" => Map.get(arguments, "metadata", %{})
+         "metadata" => Map.get(arguments, "metadata", %{}),
+         "project_root" => optional_binary(arguments, "project_root"),
+         "include_token_overhead" => include_token_overhead || false
        }}
     end
   end
+
+  defp dispatch(%{"mode" => "estimate"} = normalized), do: Budget.estimate(normalized)
+  defp dispatch(%{"mode" => "commit"} = normalized), do: Budget.commit(normalized)
+  defp dispatch(%{"mode" => "status"} = normalized), do: Budget.status(normalized)
+
+  defp maybe_attach_token_overhead(result, %{
+         "include_token_overhead" => true,
+         "project_root" => project_root
+       })
+       when is_binary(project_root) do
+    token_overhead = token_overhead_summary(project_root)
+
+    Map.put(result, "token_overhead", token_overhead)
+  end
+
+  defp maybe_attach_token_overhead(result, _normalized), do: result
+
+  defp token_overhead_summary(project_root) do
+    audit_rules =
+      ControlKeel.MCP.Tools.CkTokenAudit.call(%{
+        "project_root" => project_root,
+        "mode" => "rules"
+      })
+
+    audit_skills =
+      ControlKeel.MCP.Tools.CkTokenAudit.call(%{
+        "project_root" => project_root,
+        "mode" => "skills"
+      })
+
+    audit_tools =
+      ControlKeel.MCP.Tools.CkTokenAudit.call(%{
+        "project_root" => project_root,
+        "mode" => "tools"
+      })
+
+    %{
+      "rules" => audit_payload(audit_rules),
+      "skills" => audit_payload(audit_skills),
+      "tools" => audit_payload(audit_tools)
+    }
+  end
+
+  defp audit_payload({:ok, payload}) when is_map(payload) do
+    estimated_tokens =
+      Map.get(payload, "estimated_tokens") ||
+        Map.get(payload, "total_tokens") ||
+        Map.get(payload, "total_skill_tokens")
+
+    %{
+      "estimated_tokens" => estimated_tokens,
+      "recommendations" => Map.get(payload, "recommendations")
+    }
+  end
+
+  defp audit_payload(_), do: %{"estimated_tokens" => nil, "recommendations" => []}
 
   defp mode(arguments) do
     case Map.get(arguments, "mode", "estimate") do
@@ -56,6 +112,15 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
     case Map.get(arguments, key) do
       nil -> {:error, {:invalid_arguments, "`#{key}` is required"}}
       value -> normalize_integer(value, key)
+    end
+  end
+
+  defp optional_boolean(arguments, key) do
+    case Map.get(arguments, key) do
+      nil -> {:ok, nil}
+      value when is_boolean(value) -> {:ok, value}
+      value when is_binary(value) -> {:ok, String.downcase(value) in ["true", "1", "yes"]}
+      _ -> {:ok, nil}
     end
   end
 

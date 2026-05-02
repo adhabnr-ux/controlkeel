@@ -16,7 +16,12 @@ defmodule ControlKeel.MCP.Tools.CkSkillList do
     format = Map.get(arguments, "format", "json")
     target = TargetResolver.resolve(project_root, Map.get(arguments, "target"))
     target_family = TargetResolver.family(project_root, target)
-    analysis = Registry.analyze(project_root)
+    include_duplicates = Map.get(arguments, "include_duplicate_copies", false)
+
+    analysis =
+      Registry.analyze(project_root,
+        report_identical_duplicates: include_duplicates
+      )
 
     skills =
       Enum.filter(analysis.skills, fn skill ->

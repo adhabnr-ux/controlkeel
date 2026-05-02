@@ -39,7 +39,7 @@ defmodule ControlKeel.Skills.Registry do
         {skills ++ parsed, diagnostics ++ new_diagnostics}
       end)
 
-    {deduped_skills, dedupe_diagnostics} = deduplicate_by_name(skills)
+    {deduped_skills, dedupe_diagnostics} = deduplicate_by_name(skills, opts)
 
     diagnostics =
       diagnostics ++
@@ -169,11 +169,11 @@ defmodule ControlKeel.Skills.Registry do
 
   defp dir_entry(path, scope), do: %{path: path, scope: scope}
 
-  defp deduplicate_by_name(skills) do
+  defp deduplicate_by_name(skills, opts) do
     skills
     |> Enum.group_by(& &1.name)
     |> Enum.reduce({[], []}, fn {_name, group}, {kept, diagnostics} ->
-      {winner, new_diags} = resolve_duplicate_skill_group(group)
+      {winner, new_diags} = resolve_duplicate_skill_group(group, opts)
       {[winner | kept], diagnostics ++ new_diags}
     end)
     |> then(fn {kept, diagnostics} ->
@@ -181,16 +181,29 @@ defmodule ControlKeel.Skills.Registry do
     end)
   end
 
-  defp resolve_duplicate_skill_group([only]), do: {only, []}
+  defp resolve_duplicate_skill_group([only], _opts), do: {only, []}
 
-  defp resolve_duplicate_skill_group(group) do
+  defp resolve_duplicate_skill_group(group, opts) do
     preferred = preferred_skill_definition(group)
+    report_identical? = Keyword.get(opts, :report_identical_duplicates, false)
 
     new_diags =
       Enum.flat_map(group, fn skill ->
         cond do
           skill.path == preferred.path ->
             []
+
+          identical_skill_copy?(preferred, skill) and report_identical? ->
+            [
+              %SkillDiagnostic{
+                level: "info",
+                code: "duplicate_skill_copy",
+                message:
+                  "Duplicate identical skill copy detected. While CK will ignore this duplicate, MCP hosts may still load it and waste tokens.",
+                path: skill.path,
+                skill_name: skill.name
+              }
+            ]
 
           identical_skill_copy?(preferred, skill) ->
             []

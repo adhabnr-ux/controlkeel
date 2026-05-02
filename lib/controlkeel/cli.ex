@@ -3885,7 +3885,7 @@ defmodule ControlKeel.CLI do
 
   def run_command(%{command: :skills_doctor, options: options}, project_root) do
     root = options[:project_root] || project_root
-    analysis = Skills.analyze(root)
+    analysis = Skills.analyze(root, report_identical_duplicates: true)
     integrations = Skills.agent_integrations()
     provider_status = ProviderBroker.status(root)
 
@@ -3926,11 +3926,16 @@ defmodule ControlKeel.CLI do
             end)
       end
 
+    duplicate_copy_count =
+      Enum.count(analysis.diagnostics, &(&1.code == "duplicate_skill_copy"))
+
     {:ok,
      [
        "Project root: #{Path.expand(root)}",
        "Trusted project skills: #{if(analysis.trusted_project?, do: "yes", else: "no")}",
        "Catalog size: #{length(analysis.skills)}",
+       "Duplicate identical skill copies: #{duplicate_copy_count}",
+       "Hint: remove duplicate skill directories to reduce MCP host token overhead",
        "Provider source: #{provider_status["selected_source"]}",
        "Provider: #{provider_status["selected_provider"]}",
        "Auth mode: #{provider_status["selected_auth_mode"]}",

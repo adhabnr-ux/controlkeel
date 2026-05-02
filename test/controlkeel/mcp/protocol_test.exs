@@ -92,6 +92,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "ck_outcome_tracker",
              "ck_load_resources",
              "ck_mcp_discover",
+             "ck_token_audit",
              "ck_skill_list",
              "ck_skill_load",
              "ck_skill_validate"
