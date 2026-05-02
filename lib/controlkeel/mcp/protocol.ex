@@ -26,6 +26,7 @@ defmodule ControlKeel.MCP.Protocol do
     CkMemoryArchive,
     CkMemoryRecord,
     CkMemorySearch,
+    CkMcpDiscover,
     CkObservability,
     CkSkillEvolution,
     CkReviewFeedback,
@@ -231,7 +232,8 @@ defmodule ControlKeel.MCP.Protocol do
       ck_cost_optimizer_tool(),
       ck_deployment_advisor_tool(),
       ck_outcome_tracker_tool(),
-      ck_load_resources_tool()
+      ck_load_resources_tool(),
+      ck_mcp_discover_tool()
     ]
 
     # Always expose ck_skill_list / ck_skill_load / ck_skill_validate. Do not call Registry here: a full
@@ -286,6 +288,7 @@ defmodule ControlKeel.MCP.Protocol do
   def dispatch_tool("ck_skill_load", arguments), do: CkSkillLoad.call(arguments)
   def dispatch_tool("ck_skill_validate", arguments), do: CkSkillValidate.call(arguments)
   def dispatch_tool("ck_load_resources", arguments), do: CkLoadResources.call(arguments)
+  def dispatch_tool("ck_mcp_discover", arguments), do: CkMcpDiscover.call(arguments)
   def dispatch_tool("ck_cost_optimizer", arguments), do: CkCostOptimizer.call(arguments)
   def dispatch_tool("ck_deployment_advisor", arguments), do: CkDeploymentAdvisor.call(arguments)
   def dispatch_tool("ck_outcome_tracker", arguments), do: CkOutcomeTracker.call(arguments)
@@ -1407,6 +1410,36 @@ defmodule ControlKeel.MCP.Protocol do
           "project_root" => %{"type" => "string"},
           "target" => %{"type" => "string"},
           "session_id" => %{"type" => ["integer", "string"]}
+        }
+      }
+    }
+  end
+
+  defp ck_mcp_discover_tool do
+    %{
+      "name" => "ck_mcp_discover",
+      "description" =>
+        "Auto-discover tools from an external MCP server by querying its tools/list endpoint. " <>
+          "This enables progressive discovery of MCP capabilities without manual configuration.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["server_url"],
+        "properties" => %{
+          "server_url" => %{
+            "type" => "string",
+            "description" =>
+              "URL of the MCP server (e.g., 'http://localhost:3001/mcp' for HTTP, or a path for stdio)"
+          },
+          "timeout" => %{
+            "type" => "integer",
+            "description" => "Request timeout in milliseconds. Default: 10000"
+          },
+          "transport" => %{
+            "type" => "string",
+            "enum" => ["http", "stdio"],
+            "description" =>
+              "Transport type. Auto-detected from server_url if not specified. HTTP requires Finch."
+          }
         }
       }
     }

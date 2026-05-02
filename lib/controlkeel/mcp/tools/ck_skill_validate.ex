@@ -136,7 +136,14 @@ defmodule ControlKeel.MCP.Tools.CkSkillValidate do
         if is_boolean(output), do: {:ok, %{}}, else: type_error("boolean", output)
 
       type == "array" ->
-        if is_list(output), do: {:ok, %{}}, else: type_error("array", output)
+        if is_list(output) do
+          case Map.get(schema, "items") do
+            nil -> {:ok, %{}}
+            items_schema -> validate_array_items(output, items_schema)
+          end
+        else
+          type_error("array", output)
+        end
 
       type == "object" ->
         if is_map(output) do
@@ -208,19 +215,72 @@ defmodule ControlKeel.MCP.Tools.CkSkillValidate do
           end
         end)
 
-      if property_errors != [] do
+      # Validate additional properties if additionalProperties is a schema
+      known_keys = MapSet.new(Map.keys(properties))
+      additional_schema = Map.get(properties, "additionalProperties")
+
+      extra_errors =
+        if is_map(additional_schema) do
+          output
+          |> Map.keys()
+          |> Enum.reject(&MapSet.member?(known_keys, &1))
+          |> Enum.flat_map(fn key ->
+            case Map.fetch(output, key) do
+              {:ok, value} ->
+                case validate_type(value, additional_schema) do
+                  {:ok, _} -> []
+                  {:error, error} -> [{key, error}]
+                end
+
+              :error ->
+                []
+            end
+          end)
+        else
+          []
+        end
+
+      all_errors = property_errors ++ extra_errors
+
+      if all_errors != [] do
         {:error,
          {:validation_failed,
           %{
             reason: "property_validation_failed",
-            message: "Property validation failed for #{length(property_errors)} field(s)",
-            property_errors: property_errors
+            message: "Property validation failed for #{length(all_errors)} field(s)",
+            property_errors: all_errors
           }}}
       else
         {:ok, %{}}
       end
     end
   end
+
+  defp validate_array_items(array, items_schema) when is_list(array) and is_map(items_schema) do
+    item_errors =
+      array
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {item, index} ->
+        case validate_type(item, items_schema) do
+          {:ok, _} -> []
+          {:error, error} -> [{index, error}]
+        end
+      end)
+
+    if item_errors != [] do
+      {:error,
+       {:validation_failed,
+        %{
+          reason: "array_item_validation_failed",
+          message: "#{length(item_errors)} array item(s) failed validation",
+          item_errors: item_errors
+        }}}
+    else
+      {:ok, %{}}
+    end
+  end
+
+  defp validate_array_items(_array, _items_schema), do: {:ok, %{}}
 
   defp type_error(expected, actual) do
     {:error,

@@ -5,6 +5,7 @@ defmodule ControlKeel.GitWorkflow do
   """
 
   alias ControlKeel.MCP.Tools.CkValidate
+  alias ControlKeel.Mission
 
   def diff(project_root, base_ref, head_ref, opts \\ []) do
     # Generate diff
@@ -60,6 +61,9 @@ defmodule ControlKeel.GitWorkflow do
                  {:git_error,
                   "Git commit failed with exit code #{exit_code}: #{String.slice(error_output, 0, 500)}"}}
             end
+
+          {:error, reason} ->
+            {:error, reason}
         end
 
       {:error, reason} ->
@@ -151,8 +155,19 @@ defmodule ControlKeel.GitWorkflow do
 
   defp check_blocked_findings(_project_root, opts) do
     case Keyword.get(opts, :session_id) do
-      nil -> :ok
-      _session_id -> :ok
+      nil ->
+        :ok
+
+      session_id ->
+        counts = Mission.session_finding_counts(session_id)
+
+        if counts.blocked > 0 or counts.critical_active > 0 do
+          {:error,
+           {:blocked_findings,
+            "Cannot commit: session has #{counts.blocked} blocked and #{counts.critical_active} critical active findings"}}
+        else
+          :ok
+        end
     end
   end
 
@@ -197,11 +212,16 @@ defmodule ControlKeel.GitWorkflow do
   end
 
   defp correlate_findings(session_id, _project_root) do
+    counts = Mission.session_finding_counts(session_id)
+
     %{
       "available" => true,
       "session_id" => session_id,
-      "findings_count" => 0,
-      "blocked_count" => 0,
+      "findings_count" => counts.total,
+      "active_count" => counts.active,
+      "blocked_count" => counts.blocked,
+      "critical_active" => counts.critical_active,
+      "high_active" => counts.high_active,
       "message" => "Findings correlation available"
     }
   end

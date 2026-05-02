@@ -36,8 +36,11 @@ defmodule ControlKeel.RemoteMonitoring do
 
   @impl true
   def init(_) do
-    # Create ETS table for subscriptions
-    :ets.new(@table_name, [:named_table, :set, :protected])
+    # Create ETS table for subscriptions (idempotent on GenServer restart)
+    if :ets.info(@table_name) == :undefined do
+      :ets.new(@table_name, [:named_table, :set, :protected])
+    end
+
     {:ok, %{}}
   end
 
@@ -144,29 +147,44 @@ defmodule ControlKeel.RemoteMonitoring do
     end
   end
 
+  @max_error_count 5
+
   defp send_webhook(subscription, event_type, event_data) do
-    payload = %{
-      "subscription_id" => subscription.id,
-      "session_id" => subscription.session_id,
-      "event_type" => event_type,
-      "event_data" => event_data,
-      "timestamp" => DateTime.utc_now() |> DateTime.to_iso8601()
-    }
+    # Circuit breaker: skip delivery if error count exceeds threshold
+    if subscription.error_count >= @max_error_count do
+      Logger.warning(
+        "[RemoteMonitoring] Skipping webhook for #{subscription.id}: error count (#{subscription.error_count}) exceeds threshold (#{@max_error_count})"
+      )
 
-    case Req.post(subscription.subscriber_url, json: payload) do
-      {:ok, _response} ->
-        # Update last_activated_at
-        :ets.update_element(
-          @table_name,
-          subscription.id,
-          {3,
-           Map.put(subscription, :last_activated_at, DateTime.utc_now() |> DateTime.to_iso8601())}
-        )
+      :ok
+    else
+      payload = %{
+        "subscription_id" => subscription.id,
+        "session_id" => subscription.session_id,
+        "event_type" => event_type,
+        "event_data" => event_data,
+        "timestamp" => DateTime.utc_now() |> DateTime.to_iso8601()
+      }
 
-      {:error, _reason} ->
-        # Increment error count
-        updated_subscription = Map.update!(subscription, :error_count, &(&1 + 1))
-        :ets.update_element(@table_name, subscription.id, {3, updated_subscription})
+      case Req.post(subscription.subscriber_url, json: payload, receive_timeout: 5_000) do
+        {:ok, _response} ->
+          # Update last_activated_at and reset error count
+          updated =
+            subscription
+            |> Map.put(:last_activated_at, DateTime.utc_now() |> DateTime.to_iso8601())
+            |> Map.put(:error_count, 0)
+
+          :ets.update_element(@table_name, subscription.id, {3, updated})
+
+        {:error, reason} ->
+          # Increment error count (circuit breaker will trip at @max_error_count)
+          updated_subscription = Map.update!(subscription, :error_count, &(&1 + 1))
+          :ets.update_element(@table_name, subscription.id, {3, updated_subscription})
+
+          Logger.warning(
+            "[RemoteMonitoring] Webhook delivery failed for #{subscription.id}: #{inspect(reason)} (error_count: #{updated_subscription.error_count})"
+          )
+      end
     end
   end
 end

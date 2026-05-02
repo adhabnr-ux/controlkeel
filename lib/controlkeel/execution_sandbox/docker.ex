@@ -118,11 +118,19 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
     end
   end
 
+  # Well-known sensitive env var prefixes that must never be forwarded to sandboxes
+  @sensitive_env_prefixes ~w(AWS_SECRET AWS_ACCESS DATABASE_URL MONGODB REDIS_URL SECRET_KEY PRIVATE_KEY TOKEN PASSWORD CREDENTIAL AUTH_TOKEN)
+
   defp merge_env_vars(explicit_env, allowed_env_vars)
        when is_list(allowed_env_vars) and
               length(allowed_env_vars) > 0 do
-    host_env_vars =
+    # Filter out sensitive env var names before reading host values
+    sanitized_vars =
       allowed_env_vars
+      |> Enum.reject(&sensitive_env_var?/1)
+
+    host_env_vars =
+      sanitized_vars
       |> Enum.map(fn var_name ->
         case System.get_env(var_name) do
           nil -> nil
@@ -138,4 +146,12 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
   end
 
   defp merge_env_vars(explicit_env, _allowed_env_vars), do: explicit_env
+
+  defp sensitive_env_var?(var_name) do
+    upper = String.upcase(var_name)
+
+    Enum.any?(@sensitive_env_prefixes, fn prefix ->
+      String.starts_with?(upper, prefix)
+    end)
+  end
 end

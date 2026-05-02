@@ -139,12 +139,14 @@ defmodule ControlKeel.WorkspaceCheckpoint do
   end
 
   defp resolve_project_root(session) do
-    case Map.get(session.metadata, "runtime_context", %{}) do
+    metadata = session.metadata || %{}
+
+    case Map.get(metadata, "runtime_context", %{}) do
       %{"project_root" => root} when is_binary(root) and root != "" ->
         {:ok, Path.expand(root)}
 
       _ ->
-        case Map.get(session.metadata, "project_root") do
+        case Map.get(metadata, "project_root") do
           root when is_binary(root) and root != "" -> {:ok, Path.expand(root)}
           _ -> {:error, {:invalid_arguments, "Cannot determine project root from session"}}
         end
@@ -165,14 +167,34 @@ defmodule ControlKeel.WorkspaceCheckpoint do
     strict = Keyword.get(opts, :strict, false)
 
     cond do
-      workspace_state["project_root"] != project_root and strict ->
-        {:error, "Project root mismatch"}
-
       not File.dir?(project_root) ->
         {:error, "Project root not accessible"}
 
+      workspace_state["project_root"] != project_root and strict ->
+        {:error,
+         "Project root mismatch: checkpoint was created from #{workspace_state["project_root"]}"}
+
       true ->
-        :ok
+        # Verify workspace hash integrity when available
+        case workspace_state["workspace_hash"] do
+          nil ->
+            :ok
+
+          saved_hash ->
+            context = WorkspaceContext.build(project_root)
+            current_hash = compute_workspace_hash(context)
+
+            if saved_hash == current_hash do
+              :ok
+            else
+              {:warn,
+               %{
+                 message: "Workspace hash has changed since checkpoint was created",
+                 checkpoint_hash: saved_hash,
+                 current_hash: current_hash
+               }}
+            end
+        end
     end
   end
 end
