@@ -602,6 +602,7 @@ defmodule ControlKeel.SkillsTest do
   test "export writes codex and claude plugin bundles", %{tmp_dir: tmp_dir} do
     assert {:ok, codex_plan} = Skills.export("codex", tmp_dir, scope: "export")
     assert codex_plan.target == "codex"
+    assert File.exists?(Path.join(codex_plan.output_dir, ".controlkeel-manifest.json"))
 
     assert File.exists?(
              Path.join(codex_plan.output_dir, ".codex/agents/controlkeel-operator.toml")
@@ -660,6 +661,7 @@ defmodule ControlKeel.SkillsTest do
 
     assert File.exists?(Path.join(codex_plan.output_dir, "AGENTS.md"))
     assert File.exists?(Path.join(codex_plan.output_dir, "CONTROLKEEL_INSTALL.md"))
+    assert File.exists?(Path.join(codex_plan.output_dir, ".controlkeel-manifest.json"))
     assert File.exists?(Path.join(codex_plan.output_dir, ".mcp.hosted.json"))
     assert File.read!(Path.join(codex_plan.output_dir, "AGENTS.md")) =~ "Primary CK loop:"
 

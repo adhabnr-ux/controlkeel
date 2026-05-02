@@ -26,6 +26,14 @@ defmodule ControlKeel.Skills.Exporter do
         }
       )
 
+      manifest_path =
+        write_export_manifest(
+          root,
+          target.id,
+          Keyword.get(opts, :scope, target.default_scope),
+          writes
+        )
+
       {:ok,
        %SkillExportPlan{
          target: target.id,
@@ -33,12 +41,36 @@ defmodule ControlKeel.Skills.Exporter do
          scope: Keyword.get(opts, :scope, target.default_scope),
          writes: writes,
          instructions: instructions,
-         native_available: target.native
+         native_available: target.native,
+         manifest_path: manifest_path
        }}
     else
       nil -> {:error, :unknown_target}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp write_export_manifest(root, target_id, scope, writes) do
+    manifest_path = Path.join(root, ".controlkeel-manifest.json")
+
+    payload = %{
+      "schema_version" => 1,
+      "controlkeel_version" => to_string(Application.spec(:controlkeel, :vsn) || "unknown"),
+      "target" => target_id,
+      "scope" => scope,
+      "installed_at" => DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601(),
+      "output_dir" => root,
+      "writes" =>
+        Enum.map(writes || [], fn write ->
+          %{
+            "path" => Map.get(write, "path"),
+            "kind" => Map.get(write, "kind")
+          }
+        end)
+    }
+
+    File.write!(manifest_path, Jason.encode!(payload, pretty: true) <> "\n")
+    manifest_path
   end
 
   defp write_target(%SkillTarget{id: "open-standard"}, root, project_root, skills, opts) do
