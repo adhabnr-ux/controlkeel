@@ -18,6 +18,14 @@ That also makes it the right outer loop for GEPA-style optimization work:
 
 ## Console-first evaluation posture
 
+Evals often start as "a for-loop + a spreadsheet" and then grow into a bespoke UI. That is a useful on-ramp, but production-quality eval and observability becomes a **systems problem**:
+
+- production traces are high-velocity, text-heavy, and not cleanly structured
+- teams need both low-latency trace inspection and aggregate analytics
+- headless workflows emerge (agents and CI want to query, score, and promote without clicking a UI)
+
+CK's bias is to keep the evidence loop console-first and exportable so the maturity path stays grounded in verifiable artifacts (trace packets, failure clusters, benchmark suites, run exports) rather than only dashboards.
+
 For early agent and harness work, prefer a console-first loop before building product UI around it.
 
 - keep the benchmark, trace packet, and failure-cluster loop close to the real execution surface
@@ -67,6 +75,16 @@ This keeps the benchmark reproducible without requiring a deep native integratio
 - `manual_import` — placeholder run first, then import captured external output
 - `shell` — scriptable subject that writes stdout or files for rescoring
 
+## Multimodal and large artifacts
+
+Agent traces and eval evidence can include large or non-text artifacts (screenshots, audio, video, or other binary payloads). Treat these as **referenced artifacts**:
+
+- store the bytes in object storage or a file-backed proof bundle
+- keep pointers, metadata, and integrity digests in the trace/proof record
+- render or inspect them in a review surface when needed
+
+Do not try to stuff large binaries into single database rows or tool transcripts. The durable record should stay portable and reviewable, with binaries attached by reference.
+
 ## Split and tag discipline
 
 Benchmark scenarios already carry split-aware metadata:
@@ -83,6 +101,8 @@ Each scenario also carries structured metadata that acts like behavior tags, inc
 - `memory_sharing_strategy`
 - `compaction_strategy`
 - any explicit `behavior_tags`
+
+**Context pruning warning**: Aggressive context pruning can "lobotomize" models. Mario found that some harnesses prune tool output after a minimum token amount, removing crucial context that models need to reason effectively. CK's compaction strategies (llm_summary, attention_guided_kv_compaction) are designed to preserve decision traceability while managing context growth, not to silently lobotomize the model.
 
 ControlKeel now exposes split summaries and behavior-tag summaries in benchmark run metadata and exports so teams can see whether a result came from optimization-friendly coverage, held-out evidence, or both.
 
@@ -127,6 +147,18 @@ When you need to represent those cases in run metadata, useful tags include:
 - `behavior_tags: ["both_bad_possible"]`
 
 If a run uses a softer scorer for these scenarios, keep that explicit in metadata and export notes rather than pretending it is as deterministic as CK's normal scanner-based path.
+
+## Terminal Bench and minimal harnesses
+
+Terminal Bench is a coding agent benchmark that provides only two tools: send keystrokes to a tmux session, and read the output of that tmux session. No file tools, no sub-agents, none of the complexity found in modern harnesses. Despite this minimalism, Terminal Bench consistently scores higher than native harnesses across model families.
+
+This suggests we are still in the "yolo around and find out" phase of coding agents—their current form is not their final form. Simplicity can outperform complexity when the complexity is unnecessary or poorly designed. For CK, this reinforces the importance of:
+
+- Minimal, stable tool contracts over feature bloat
+- Progressive discovery over always-loaded context
+- Measuring what actually matters (task completion) over proxy metrics
+
+The lesson is not "remove all tools" but "add tools deliberately and measure their impact."
 
 For multi-agent memory experiments, use metadata to describe the strategy honestly rather than claiming native support CK does not implement itself. Examples:
 
@@ -222,6 +254,8 @@ When benchmarking skill routing, selection, and activation behavior, tag scenari
 - `token_snapshot: "tolerance_25pct"` — allow up to 25% token growth (useful for non-deterministic or multi-tool scenarios)
 
 Token snapshots catch context-bloat regressions: a skill that previously loaded in 400 tokens should not silently balloon to 4000 tokens after a body edit. Update snapshots explicitly (`--update-snapshots` equivalent in the benchmark runner) and treat unexplained growth as a finding, not a no-op.
+
+The same idea applies to harness constraints enforced through tests and lints about source shape (file size, layering boundaries, dependency edges). If those constraints exist to protect context windows and keep work local, treat unexplained growth and repeated violations as benchmarkable regressions, not as one-off review comments.
 
 **Ordering and sequence assertions:**
 

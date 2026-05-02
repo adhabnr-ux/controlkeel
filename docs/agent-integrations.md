@@ -172,6 +172,24 @@ dmux fits the same orchestration-adapter bucket, but with a repo-local tmux/work
 3. let dmux create worktrees that inherit those repo-local CK surfaces
 4. optionally use `.dmux-hooks/worktree_created` and `.dmux-hooks/pre_merge` to run governed setup, checks, or `mix precommit` before merge
 
+### Isolation and scaling (practical note)
+
+As you scale from "one agent" to "many agents", isolation stops being optional. Worktrees are a good default for preventing git conflicts, but they do not fully isolate side effects (databases, caches, dev servers, auth state). For higher parallelism you often want one of:
+
+- per-branch containers (Compose, devcontainers)
+- per-agent VMs (cloud or local workers)
+- dedicated ephemeral test environments
+
+CK is designed to remain useful across those setups: attach-first flows give you repo-local governance surfaces, and runtime exports cover headless or orchestrated environments where the agent runs outside your laptop.
+
+### Verifiable outcomes (UI-heavy work)
+
+For UI flows, unit tests alone often miss regressions. The most reliable pattern is to make the work verifiable:
+
+- add or extend E2E flows (Playwright-style) where possible
+- when using external computer-use runtimes, treat their recordings/screenshots as proof artifacts
+- import that evidence via CK proof and regression surfaces (for example `ck_regression_result`) so "it worked" stays auditable
+
 Pi subagent extensions such as `pi-subagents` fit a similar companion pattern inside the Pi host rather than a new CK dependency. The useful parts for CK are the delegation contracts they make visible: narrow child roles, chain or parallel runs, foreground/background status, recursion guards, fresh or forked context, clarification channels, and optional worktree isolation. Use `controlkeel attach pi` or the published `@aryaminus/controlkeel-pi-extension` so Pi parent and child sessions can reach the repo-local CK MCP, skills, and commands as appropriate; benchmark those runs with explicit delegation-surface evidence instead of a vague multi-agent label.
 
 ## Protocol interop
@@ -189,6 +207,8 @@ Hosted MCP uses:
 - `GET /.well-known/oauth-protected-resource`
 - `GET /.well-known/oauth-authorization-server`
 - `POST /oauth/token`
+
+In enterprise terms, hosted MCP functions like a gateway: a single blessed entrypoint where you centralize authn/authz (service accounts + scopes), observability (audit/proofs/findings), and policy gates, so downstream tool surfaces do not all have to reinvent those controls.
 
 Minimal A2A uses:
 
@@ -230,9 +250,28 @@ When a host also offers file-backed memory, CK should coexist with it rather tha
 
 The same separation applies to protocol adapters that rewrite how a model expresses tool use. A repo or host may experiment with text-native tool formats, XML-style acts, or model-scoped prompt artifacts that sit between the model and an existing runtime. CK should describe those as harness-layer companion experiments unless CK itself owns that adapter contract.
 
+### Handling "clankers" (automated agent contributions)
+
+As automated agents become more common, OSS projects face noise from "clankers"—automated PRs and issues posted by agents without human oversight. Mario's experience with OpenClaw showed that half of the noise on his project's tracker came from open-source instances posting garbage.
+
+CK-compatible strategies for handling clankers include:
+
+- **Vouch systems**: Require human-written issues before allowing PRs. When a human writes a good issue, whitelist their account for future PRs. Clankers don't read the "please write a human issue" comment, so this filters them effectively.
+- **Deprioritize known agent instances**: Label or tag issues/PRs from known agent instances and deprioritize them in triage workflows.
+- **Human-only gates**: For high-impact changes (schema migrations, security fixes, API contracts), require explicit human approval regardless of agent contribution.
+
+CK's governance layer can help by:
+- Recording which contributions came from agents vs humans in proof bundles
+- Providing structured review packets that make the origin of changes clear
+- Supporting vouch-like workflows through findings and approval states
+
+The goal is not to block all agent contributions—agents can help with reproduction cases, documentation, and non-critical code. The goal is to prevent agent slop from overwhelming human review capacity and destroying OSS project hygiene.
+
 ### Progressive discovery and composition
 
 CK is intentionally designed so MCP clients do not have to front-load the entire governed surface into context at once.
+
+When you need on-demand discovery of external MCP tool schemas, CK also exposes a small discovery helper (`ck_mcp_discover`) that queries an MCP server's `tools/list` endpoint so clients can load schemas only when needed.
 
 - `tools/list` stays lightweight and stable, even when the workspace has many skills or host-specific assets.
 - Hosted MCP narrows the visible tool set further through scoped filtering rather than exposing every local capability everywhere.
@@ -260,6 +299,7 @@ That same principle applies to repo-native host surfaces such as Codex and Claud
 - keep `AGENTS.md`, host-local instructions, and always-loaded repo guidance focused on durable behavior and governance, not extra tone prose
 - prefer skill headers/metadata plus on-demand skill loading over stuffing every workflow into always-present context
 - keep hooks event-driven and specific to approvals, validation, or lifecycle checkpoints instead of using them as a second always-on prompt channel
+- when useful, add an explicit end-of-run debrief hook that asks the agent what blocked it or what missing context/tooling would have helped; treat repeated answers as observability signals and fold them into reviewed skills/instructions
 
 In other words, CK's design bias is "small stable contract first, richer capability on demand" rather than "inject every possible reminder on every turn."
 

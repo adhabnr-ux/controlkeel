@@ -265,6 +265,12 @@ This is one of the most important parts of the system.
 
 CK does not primarily help agents by pasting more context into prompts. It gives them **governed tools and typed context surfaces**.
 
+A related practical point is tool scalability: large API surfaces do not fit as "one tool per endpoint" inside a context window. CK therefore biases toward **progressive discovery** instead of tool dumps. Three common strategies (which can be combined) are:
+
+- **CLI introspection**: the agent uses `--help` and subcommand discovery to find the right action (requires shell access).
+- **Tool search**: load only a small subset of tools by query or intent, rather than registering everything at once.
+- **Code-mode / typed runtime**: expose a compact typed interface (SDK/types), let the agent generate a small script for the specific action, and execute it inside a governed default-deny sandbox.
+
 The most important one is `ck_context`.
 
 `ck_context` returns session-bound context such as:
@@ -424,7 +430,23 @@ One of CK's design assumptions is that **some friction is good**.
 
 This is not accidental product roughness. It is part of the control-plane model.
 
-CK is not trying to optimize every session toward “ship without friction.” It is trying to keep the places where human judgment matters from disappearing behind fast agent output.
+CK is not trying to optimize every session toward "ship without friction." It is trying to keep the places where human judgment matters from disappearing behind fast agent output.
+
+A practical reason is review capacity. Agents can generate diffs faster than humans can safely review them, which creates pressure to rubber-stamp large changes. CK treats that as a failure mode of the delivery system, not as a personal discipline problem.
+
+### The psychology of speed addiction
+
+Armen and Christina describe a pattern many teams experience: AI tools start as fun and give engineers free time, but quickly become pressure to ship faster. The baseline expectation shifts from "agents are optional helpers" to "everyone must use agents to keep up."
+
+This creates a trap:
+- **Addictive loop**: You never know if the next prompt will make your product work or bring it crashing down, so you keep prompting
+- **False efficiency**: You produce output fast and feel productive, but lose time to actually think and design
+- **Review capacity mismatch**: Every engineer now has much more producing power than reviewing power, leading to skipped or rubber-stamped reviews
+- **Expanded participants**: Marketing people, former CEOs, and others ship code, but responsibility still rests with the engineering team
+
+CK's governance layer is designed to counteract this by making human judgment explicit and unavoidable at the right boundaries. The goal is not to eliminate speed—the goal is to keep speed from becoming a substitute for thinking.
+
+Friction is also steering. Without deliberate friction at the right boundaries (permissions, schema/migration changes, irreversible operations, release posture), teams lose the moments where experience should re-activate. As Armen puts it, "without friction there's no steering."
 
 That shows up in the current implementation in a few concrete ways:
 
@@ -440,9 +462,173 @@ The practical point is simple:
 
 That is also why CK begins critical work with architecture and policy constraints before code generation, and why higher-risk paths keep review and proof pressure close to the loop.
 
+### Human bottlenecks as a feature
+
+A counterintuitive insight from Mario's experience is that **human bottlenecks are a feature, not a bug**. Humans are slow, failible beings, but that slowness limits how many errors ("boooos") they can add to a codebase per day. Humans also feel pain—when code becomes too painful to work with, humans quit, blame others, or band together to refactor it.
+
+Agents don't feel pain. They will happily keep adding errors to a codebase indefinitely. This is why "100% built by agents" products often suck—the error compounding has no natural stopping point.
+
+CK's design accepts this reality:
+- Human review capacity is a constraint, not a problem to eliminate
+- The goal is to make human review effective, not to remove it
+- Scoped tasks and evaluation functions keep agent work reviewable
+- Critical code requires human line-by-line review; non-critical code can use agents
+
+### Specs as programs
+
+Mario's observation that "a sufficiently detailed spec is a program" is relevant to CK's alignment workflow. When you leave blanks in a spec, the model fills them with garbage learned from internet training data (90% of code on the internet is "our old garbage").
+
+CK's alignment workflow (`align` skill) is designed to avoid this by:
+- Reaching shared understanding of what, why, which layers, success criteria, and unknowns before any planning or code
+- Making blanks explicit rather than letting the model silently fill them
+- Feeding the aligned result into plan-slice or review workflows
+
+The point is not to write perfect specs. The point is to be honest about what's specified and what's being left to the model's internet-trained priors.
+
+### Scarce vs abundant resources
+
+Ryan Leopo's experience building software exclusively with agents for nine months reveals a shift in what's scarce and what's abundant:
+
+**Abundant:**
+- Code is free to produce, refactor, and delete
+- Implementation is no longer the scarce resource
+- Each engineer has access to 5, 50, or 5,000 engineers worth of capacity 24/7
+- Large-scale refactoring is free (fire off 15 agents to drive migrations to completion)
+
+**Scarce:**
+- Human time
+- Human and model attention
+- Model context window
+
+In a world where code is abundant, the stack ranking changes. Previously, things were P0 or P2, and P3s never got done. Now, all those P3s get kicked off immediately—maybe 4x in parallel—pick one that solves the problem, and ship it.
+
+CK's governance is designed around this reality:
+- Optimize for scarce human attention: make human judgment explicit and unavoidable at the right boundaries
+- Manage context efficiently: progressive discovery, compact repo-local instructions, event-driven hooks
+- Treat code as a means, not an end: the important thing is not the code but the prompt, guardrails, and process that got you there
+
 ## Agent-legible repos
 
 CK also assumes that the repository itself becomes part of the agent execution surface.
+
+### Model rot and reference shapes
+
+Frontier models are trained on a snapshot of the world. Fast-moving ecosystems can drift faster than training cycles, which shows up as "model rot": outdated APIs, invented patterns, and integrations that are technically plausible but wrong.
+
+CK does not try to solve this by assuming a bigger base model is always enough. The practical mitigation is to give agents **fresh, curated, repo-visible context**:
+
+- up-to-date markdown docs that the agent can load on demand
+- thin reference implementations that represent the *shape* of a correct integration without requiring a full production app
+
+Danilo's experience with the PostHog Wizard reinforces this pattern: with context windows being what they are, "you can't beat just shoving a bunch of markdown files into the context and patching the holes." The Wizard uses fresh hot markdown from posthog.com and lets the agent select what it needs based on the framework and language being integrated.
+
+Those reference implementations are especially useful when you want consistency at scale: they constrain improvisation by example without overconstraining the agent's search space.
+
+### Model airplanes
+
+Danilo calls these thin reference implementations "model airplanes" - projects that have the correct shape of an integration without being full production applications. For example, auth might work for anything (you can put whatever you want in the password field), but the UI is auth-shaped. This makes them:
+
+- **More token efficient**: Not a full production app, just the shape
+- **Consistent**: Agents learn the correct pattern once and apply it consistently
+- **Maintainable**: Easier to update than full reference apps when patterns change
+
+By providing model airplanes, the agent knows "oh cool, when auth shows up, this is a great place to put login and identity tracking" and can complete the integration consistently every time. This limits the "sorcerer's apprentice" problem where agents might find 15,000 different ways to do the same integration, creating an impossible support burden.
+
+### Breadcrumbing
+
+Danilo's Wizard uses a breadcrumbing pattern to limit improvisation and prevent agents from taking weird paths through the problem space. Instead of telling the agent upfront exactly what to do ("do a PostHog integration"), the Wizard:
+
+1. **Discovery phase**: "Where are the files with interesting business value? Find something that looks like a login or Stripe interface or churn indicator"
+2. **Event identification**: "What are the interesting events in those files? Don't write code yet, just think about what events we might want to track"
+3. **Implementation**: Only after events are identified and documented does it start implementing PostHog
+
+This works because "business stuff casts a huge shadow in code" - you can reliably detect files that would be responsive to business impact. By sequencing the information this way, the agent makes thoughtful decisions about what to track before writing any code.
+
+CK's planning and task decomposition already follows a similar pattern: understand the workspace and business context before prescribing implementation details.
+
+### Post-run agent interrogation
+
+A critical insight from Danilo's experience is that "human error is a big deal" and "you have to ask to find out." The Wizard runs post-run interrogation at the end of every run, asking the agent a simple question: "What could we have done better to set you up for success in this run?"
+
+This cheap inference-time interrogation revealed issues that would otherwise have gone unnoticed:
+- Contradictory tool instructions
+- Missing tools (MCP didn't have the tool the agent was told to use)
+- Wrong language instructions (giving JavaScript instructions for a Python project)
+
+CK's session and task state already captures what happened, but adding explicit post-run interrogation could surface configuration errors, missing capabilities, or contradictory directives that operators might miss.
+
+### Prose-first governance
+
+Danilo notes that the PostHog Wizard is "90% markdown files, 8% tools for delivering and processing markdown files, and the rest is agent harness stuff." This reflects a broader insight: plain text prose appreciates in value as models improve, while code depreciates.
+
+When you write great prose today and tomorrow a better model drops, it can take that prose and do even more with it. Code, by contrast, is a depreciating asset - the code you write today has the exact same value tomorrow, and might even decline as tech debt accumulates.
+
+CK's emphasis on plain text artifacts (briefs, plans, skills, checklists, runbooks) as first-class governance inputs aligns with this pattern. High-quality prose becomes more valuable as models improve because better models can apply the same durable guidance with less scaffolding.
+
+### Modularization of code flow
+
+Armen and Christina emphasize that agent-legible codebases require not just modular components, but also modularized code flow. Clearly defined main points between steps (e.g., "user message → agent loop → output") make it obvious where the agent should add logic and where it shouldn't.
+
+Between these clear boundaries, agents tend to add "fuzz"—parsing between types, adding things to state that shouldn't be there, creating behaviors you didn't intend. By making the code flow explicit and stepwise, you reduce the surface area where agents can introduce unexpected behavior.
+
+### Follow known patterns
+
+Christina's advice is to lean into reinforcement learning rather than fight it. Agents perform better when code follows established patterns:
+- Simple core with complexity pushed to abstraction layers
+- No hidden magic or implicit behavior
+- Consistent interfaces and patterns across the codebase
+
+This is especially important for libraries vs products. Agents excel at libraries (clearly defined problems, tight constraints, simple core) but struggle with products (intertwined concerns, can't fit global structure in context window).
+
+### Mechanical enforcement patterns
+
+To make agent-legible codebases work in practice, Armen and Christina recommend mechanical enforcement via linting rules:
+- **No bare catch blocks**: Force explicit error handling
+- **One SQL query interface**: Single place for SQL so agents don't miss breaking changes
+- **One primitive component library**: Consistent UI styling and behavior, no raw input boxes
+- **No dynamic imports**: Predictable dependency graph
+- **Unique function names**: Better token efficiency when agents grep for features
+- **Erasable syntax/TypeScript mode**: One source of truth between code and compiler, no transpilation confusion
+
+These patterns are not about style—they're about making the codebase predictable and legible for both humans and agents. When an agent can find what it needs with one grep result instead of ten, it's less likely to introduce bugs.
+
+### Lints as prompts
+
+Ryan emphasizes that lint error messages should provide actual remediation steps to the model, not just failures. A lint saying "awaiting in loop" or "unknown type here" is not enough. The lint should say: "no no no you shouldn't have an unknown here at all because we parse don't validate at the edge."
+
+This turns every lint or test failure into a prompt that guides the agent toward the correct behavior. The pattern is:
+- Lint detects a violation
+- Lint message explains why it's wrong and what to do instead
+- Agent self-heals based on that guidance
+- Next time, the agent learns the pattern
+
+This is particularly powerful for things that humans are unreliable at reviewing—like ensuring every network call has timeouts and retries. Write the lint once, let the agents migrate the entire codebase to comply, and the problem is solved durably.
+
+### Source code tests
+
+Ryan recommends writing tests about the source code itself, separate from lints, to adapt the codebase to the harness. Since context is limited, you can write a test that limits files to no longer than 350 lines. This is "engineering to be context efficient"—squeezing more juice out of the model capability by adapting the codebase to how the harness works.
+
+Other examples of source code tests:
+- Asserting package privacy and dependency edges between layers
+- Ensuring Zod schemas are deduplicated (single canonical implementation)
+- Verifying use of shared utilities instead of local duplicates
+- Checking that async helpers follow a single pattern
+
+These tests shake out bad behavior (agents optimizing for local coherence rather than using shared utilities) so humans don't get distracted paying attention to it in reviews.
+
+### Code as disposable artifact
+
+Ryan proposes a mental model: **LLM as fuzzy compiler**. Code is a compiled artifact of the spec, and all the context in the codebase (skills, docs, lints, tests) is effectively constraints and optimization passes on which code is acceptable to build.
+
+This is similar to how LLVM does static analysis and optimization passes when compiling Rust code. Swapping out one model for another is like changing your code generation backend from LLVM to Cranelift—you'd expect all the rules around what acceptable Rust code looks like to produce valid sound machine code, regardless of the generation process.
+
+The same applies to LLMs: the structure around the code should limit how it's written to things that are acceptable, regardless of which model generates it. This is why CK focuses on:
+- Stable context contracts
+- Versioned tool definitions
+- Durable governance (findings, proofs, reviews)
+- Provider portability
+
+The code itself is disposable; the governance layer is what matters.
 
 That does **not** mean CK currently enforces a single repo style. It means the product is built around the idea that agents do better when the repo stays reviewable, scoped, and legible.
 
@@ -453,6 +639,8 @@ Current CK behavior already nudges in that direction:
 - validation and findings preserve explicit boundary metadata rather than hiding risk inside natural-language prompts
 
 So for teams using CK seriously, “agent-legible” usually means:
+
+A practical harness trick is to treat guardrails as *just-in-time prompts* rather than always-loaded policy walls. Lints, tests (including tests about code shape), and reviewer agents can surface the right constraint at the moment the agent tries to finalize work. This keeps the initial context small, while still enforcing non-functional requirements consistently across the repo.
 
 - keep work in narrow slices the human can still review
 - keep architecture and release boundaries explicit

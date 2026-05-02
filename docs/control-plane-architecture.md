@@ -111,6 +111,67 @@ CK also already maintains a typed integration catalog and hosted protocol discov
 
 That is not the same thing as claiming a separate enterprise “MCP registry product.” The important current truth is narrower: CK already gives organizations one typed place to describe what host/runtime surfaces exist, how they are installed, how they are reviewed, and which discovery metadata can be enriched from external registries.
 
+### Gateway-like root of trust (hosted MCP)
+
+Enterprises usually need a single blessed "root of trust" in front of a fast-growing set of tools and MCP servers. CK's hosted protocol surfaces are designed to play that role without pretending to be every downstream tool:
+
+- **Hosted MCP** provides one network entrypoint (`POST /mcp`) plus standardized OAuth discovery and token exchange.
+- **Workspace service accounts + scopes** provide centralized, role-like authorization over what tools can be called.
+- **Governed findings, proofs, and audit** keep usage and risky behavior reviewable, instead of leaving MCP usage opaque.
+
+The practical point is the same one gateway advocates emphasize: centralize authentication/authorization and observability once, so teams can decentralize tool and workflow creation without every project reinventing the control layer.
+
+This also supports the separation-of-concerns that agent deployments need: the agent harness and its governance surface can stay stable, while the underlying data systems and tool backends evolve behind it.
+
+#### Gateway components
+
+A comprehensive MCP gateway typically includes these components:
+
+- **Authentication**: Centralized auth, often integrated with enterprise identity providers (Okta, Google Workspace, etc.)
+- **Access control**: Role-based permissions that scope which users/teams/agents can access which servers and tools
+- **Routing/proxy**: Any MCP client sees only the gateway; the gateway routes to individual MCP servers, which treat the gateway as their only trusted endpoint
+- **Tunnels**: Secured connections between gateway and internal MCP servers, protecting sensitive data from exfiltration
+- **Subregistry**: Internal catalog of approved MCP servers within the enterprise
+- **Tooling/CLI**: Easy tooling for teams to register new MCP servers with the gateway
+
+The key insight: once a team builds a gateway, any new MCP server only needs to care about business logic. The gateway handles auth, access control, observability, scalability, and security—allowing non-technical teams (legal, HR, marketing) to build their own MCP servers without reinventing infrastructure.
+
+#### Gateway benefits
+
+Investing in a gateway provides several "free lunches":
+
+- **Surface invariance**: New agent surfaces (Cloud Code, Cursor, Claude, etc.) can plug into the gateway once and access all MCP servers without reconfiguration
+- **Secured connections**: Gateways can invest in advanced security (encryption, credential management, data loss prevention) that individual servers shouldn't need to implement
+- **Fast iteration**: Teams can iterate on their MCP servers without repeated security reviews—governance lives in the gateway
+- **Standard primitives**: Enterprises can encode their operating procedures, required patterns, and forbidden patterns as gateway primitives
+- **Pluggable credentials**: Gateways can support multiple credential types (service accounts, team accounts, user accounts) and swap them intelligently
+- **Scalability**: The gateway handles load balancing and scaling across hundreds of MCP servers and thousands of agents
+
+#### Agent/data layer separation
+
+The gateway pattern enables a crucial architectural separation: the agent harness stays decoupled from the data layer. This matters because:
+
+- Agent surfaces (Cloud Code, Cursor, Claude, internal agents) will continue to proliferate
+- Data systems and tool backends will evolve independently
+- Enterprises need the flexibility to choose which agents to keep in-house vs. external
+
+The gateway is the investment that enables this flexibility. Whether you use Claude's managed agents, your own agent SDK, or a future surface, the gateway remains the stable interface to your data and tools. This is especially important as we move from coding agents (local, verifiable, compiler-backed) to general knowledge-worker agents that need connectivity to multiple SaaS applications and shared drives.
+
+#### 2026 connectivity: multi-modal agent tooling
+
+As agent capabilities expand beyond coding, the best agents will use multiple connectivity methods seamlessly together:
+
+- **Skills**: Domain knowledge capture in simple, reusable files
+- **MCP**: Rich protocol for when you need UI semantics, resources, authorization, governance policies, or platform independence
+- **CLI/computer use**: For local agents with sandbox assumptions, especially for tools in pre-training (GitHub, Git, etc.)
+
+Each method has distinct strengths:
+- Skills are reusable domain knowledge
+- CLI is ideal for local coding agents with sandbox assumptions
+- MCP excels when you need rich semantics, long-running task UIs, resources, decoupling, authorization, or governance
+
+The pattern for 2026 is not "pick one" but "use all of them together" with the right tool for the right job. CK's governance layer supports this multi-modal approach through its skills system, MCP integration, and code-mode execution surfaces.
+
 ### 3. Governed lineage and evidence layer
 
 CK also ties execution back to governed state instead of leaving every agent or tool as an isolated island.
@@ -130,6 +191,8 @@ ControlKeel already had most of these behaviors in practice, but they are now an
 
 - **Context ownership over hidden mutation**
   CK treats the operator-visible brief, workspace snapshot, recent events, proof state, and typed memory as the real working context. It avoids treating silent host-side prompt edits or provider memory as the system of record.
+
+  This principle comes from practice: when harnesses silently mutate context—changing system prompts on every release, removing or modifying tool definitions, inserting "system reminders" that may or may not be relevant—operators lose control over their own workflows. As Mario puts it in his critique of early cloud coding tools, "my context wasn't my context. Cloud code is the thing that controls my context. And behind my back, cloud code does things to the context." CK avoids this by making context explicit, versioned, and operator-visible.
 - **Minimal stable contracts**
   CK prefers a small stable control-plane contract: bounded context, typed tools, versioned schemas, and additive integration surfaces instead of constantly reshaping the basic loop underneath the agent.
 - **Lean harness over prompt bloat**
@@ -161,6 +224,8 @@ ControlKeel already had most of these behaviors in practice, but they are now an
   CK meets each host on the native surface it actually exposes: skills, hooks, plugins, commands, runtime bundles, or protocol tools. It does not pretend every host has the same extension depth.
 - **Portable provider choice**
   CK keeps provider selection, fallback chains, and budget pressure explicit so teams can move between hosts and providers without turning opaque host memory into a hidden dependency.
+- **Don't overconstrain agents**
+  Danilo's framing: "an agent is an octopus - it can wriggle, it can squeeze into tight corners, it can maneuver itself around problems." The goal is not to over-scaffold agent behavior (except for security/shenanigans). Instead, step back, give agents enough information, and sequence the information properly so they do what you want. CK's governance focuses on capability controls and boundary conditions, not micromanaging every agent decision.
 
 That is why the main surfaces stay grouped as:
 
