@@ -49,6 +49,8 @@ jobs:
       - run: sh scripts/verify_ci_workflow.sh
       - run: mix deps.get
       - run: mix compile --warnings-as-errors
+      - name: Install ripgrep
+        run: sudo apt-get install -y ripgrep
       - name: Run tests
         run: mix test
         timeout-minutes: 30

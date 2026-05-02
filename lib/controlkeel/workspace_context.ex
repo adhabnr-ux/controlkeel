@@ -272,46 +272,62 @@ defmodule ControlKeel.WorkspaceContext do
   end
 
   defp has_langgraph?(repo_root) do
-    case System.cmd(
-           "rg",
-           ["--files-with-matches", "from langgraph|import langgraph", repo_root],
-           stderr_to_stdout: true
-         ) do
-      {output, 0} -> String.trim(output) != ""
-      _ -> false
+    try do
+      case System.cmd(
+             "rg",
+             ["--files-with-matches", "from langgraph|import langgraph", repo_root],
+             stderr_to_stdout: true
+           ) do
+        {output, 0} -> String.trim(output) != ""
+        _ -> false
+      end
+    rescue
+      ErlangError -> false
     end
   end
 
   defp has_crewai?(repo_root) do
-    case System.cmd(
-           "rg",
-           ["--files-with-matches", "from crewai|import crewai", repo_root],
-           stderr_to_stdout: true
-         ) do
-      {output, 0} -> String.trim(output) != ""
-      _ -> false
+    try do
+      case System.cmd(
+             "rg",
+             ["--files-with-matches", "from crewai|import crewai", repo_root],
+             stderr_to_stdout: true
+           ) do
+        {output, 0} -> String.trim(output) != ""
+        _ -> false
+      end
+    rescue
+      ErlangError -> false
     end
   end
 
   defp has_autogen?(repo_root) do
-    case System.cmd(
-           "rg",
-           ["--files-with-matches", "from autogen|import autogen", repo_root],
-           stderr_to_stdout: true
-         ) do
-      {output, 0} -> String.trim(output) != ""
-      _ -> false
+    try do
+      case System.cmd(
+             "rg",
+             ["--files-with-matches", "from autogen|import autogen", repo_root],
+             stderr_to_stdout: true
+           ) do
+        {output, 0} -> String.trim(output) != ""
+        _ -> false
+      end
+    rescue
+      ErlangError -> false
     end
   end
 
   defp has_langchain?(repo_root) do
-    case System.cmd(
-           "rg",
-           ["--files-with-matches", "from langchain|import langchain", repo_root],
-           stderr_to_stdout: true
-         ) do
-      {output, 0} -> String.trim(output) != ""
-      _ -> false
+    try do
+      case System.cmd(
+             "rg",
+             ["--files-with-matches", "from langchain|import langchain", repo_root],
+             stderr_to_stdout: true
+           ) do
+        {output, 0} -> String.trim(output) != ""
+        _ -> false
+      end
+    rescue
+      ErlangError -> false
     end
   end
 
