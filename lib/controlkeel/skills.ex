@@ -6,6 +6,7 @@ defmodule ControlKeel.Skills do
   alias ControlKeel.Distribution
   alias ControlKeel.Skills.Exporter
   alias ControlKeel.Skills.Installer
+  alias ControlKeel.Skills.Manifest
   alias ControlKeel.Skills.Registry
   alias ControlKeel.Skills.SkillTarget
 
@@ -35,6 +36,10 @@ defmodule ControlKeel.Skills do
 
   def export(target, project_root \\ File.cwd!(), opts \\ []) do
     Exporter.export(target, project_root, opts)
+  end
+
+  def export_manifests(project_root \\ File.cwd!()) do
+    Manifest.list_export_manifests(project_root)
   end
 
   def install(target, project_root \\ File.cwd!(), opts \\ []) do

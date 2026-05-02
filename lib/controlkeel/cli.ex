@@ -3882,6 +3882,25 @@ defmodule ControlKeel.CLI do
       |> Enum.map(& &1.label)
       |> Enum.join(", ")
 
+    manifests = Skills.export_manifests(root)
+
+    manifest_lines =
+      case manifests do
+        [] ->
+          ["Export manifests: none (no controlkeel/dist/*/.controlkeel-manifest.json found)."]
+
+        list ->
+          ["Export manifests: #{length(list)}"] ++
+            Enum.map(Enum.take(list, 10), fn %{path: path, manifest: manifest} ->
+              target = Map.get(manifest, "target") || "unknown"
+              scope = Map.get(manifest, "scope") || "unknown"
+              ver = Map.get(manifest, "controlkeel_version") || "unknown"
+              at = Map.get(manifest, "installed_at") || "unknown"
+              rel = Path.relative_to(path, Path.expand(root))
+              "  - #{target} (scope=#{scope}, ck=#{ver}, at=#{at}) — #{rel}"
+            end)
+      end
+
     {:ok,
      [
        "Project root: #{Path.expand(root)}",
@@ -3896,6 +3915,7 @@ defmodule ControlKeel.CLI do
        "Headless runtimes: #{if(runtimes == "", do: "none", else: runtimes)}",
        "Framework adapters: #{if(frameworks == "", do: "none", else: frameworks)}"
      ] ++
+       manifest_lines ++
        Enum.map(analysis.diagnostics, fn diagnostic ->
          "  [#{diagnostic.level}] #{diagnostic.code} — #{diagnostic.message}"
        end)}
