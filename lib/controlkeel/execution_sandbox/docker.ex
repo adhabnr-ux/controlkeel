@@ -121,6 +121,9 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
   # Well-known sensitive env var prefixes that must never be forwarded to sandboxes
   @sensitive_env_prefixes ~w(AWS_SECRET AWS_ACCESS DATABASE_URL MONGODB REDIS_URL SECRET_KEY PRIVATE_KEY TOKEN PASSWORD CREDENTIAL AUTH_TOKEN)
 
+  # Well-known sensitive env var suffixes (e.g. GITHUB_TOKEN, OPENAI_API_KEY, STRIPE_SECRET_KEY)
+  @sensitive_env_suffixes ~w(_TOKEN _SECRET _API_KEY _PRIVATE_KEY _PASSWORD _CREDENTIAL)
+
   defp merge_env_vars(explicit_env, allowed_env_vars)
        when is_list(allowed_env_vars) and
               length(allowed_env_vars) > 0 do
@@ -150,8 +153,7 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
   defp sensitive_env_var?(var_name) do
     upper = String.upcase(var_name)
 
-    Enum.any?(@sensitive_env_prefixes, fn prefix ->
-      String.starts_with?(upper, prefix)
-    end)
+    Enum.any?(@sensitive_env_prefixes, &String.starts_with?(upper, &1)) or
+      Enum.any?(@sensitive_env_suffixes, &String.ends_with?(upper, &1))
   end
 end

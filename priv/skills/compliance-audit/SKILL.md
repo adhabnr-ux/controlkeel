@@ -11,6 +11,27 @@ compatibility:
   - copilot-plugin
   - github-repo
   - open-standard
+  - cline-native
+  - cursor-native
+  - windsurf-native
+  - continue-native
+  - letta-code-native
+  - pi-native
+  - roo-native
+  - goose-native
+  - opencode-native
+  - gemini-cli-native
+  - kiro-native
+  - kilo-native
+  - amp-native
+  - augment-native
+  - hermes-native
+  - multica-native
+  - openclaw-native
+  - devin-terminal-native
+  - warp-native
+  - droid-bundle
+  - forge-acp
 metadata:
   author: controlkeel
   version: "2.0"

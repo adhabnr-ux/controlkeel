@@ -147,7 +147,8 @@ defmodule ControlKeel.MCP.Tools.CkSkillValidate do
 
       type == "object" ->
         if is_map(output) do
-          validate_object(output, required, properties)
+          additional_properties = Map.get(schema, "additionalProperties")
+          validate_object(output, required, properties, additional_properties)
         else
           type_error("object", output)
         end
@@ -187,7 +188,7 @@ defmodule ControlKeel.MCP.Tools.CkSkillValidate do
       }}}
   end
 
-  defp validate_object(output, required, properties) do
+  defp validate_object(output, required, properties, additional_properties \\ nil) do
     # Check required fields
     missing = Enum.filter(required, fn field -> not Map.has_key?(output, field) end)
 
@@ -215,19 +216,18 @@ defmodule ControlKeel.MCP.Tools.CkSkillValidate do
           end
         end)
 
-      # Validate additional properties if additionalProperties is a schema
+      # Validate additional properties if additionalProperties is a schema (sibling of properties in JSON Schema)
       known_keys = MapSet.new(Map.keys(properties))
-      additional_schema = Map.get(properties, "additionalProperties")
 
       extra_errors =
-        if is_map(additional_schema) do
+        if is_map(additional_properties) do
           output
           |> Map.keys()
           |> Enum.reject(&MapSet.member?(known_keys, &1))
           |> Enum.flat_map(fn key ->
             case Map.fetch(output, key) do
               {:ok, value} ->
-                case validate_type(value, additional_schema) do
+                case validate_type(value, additional_properties) do
                   {:ok, _} -> []
                   {:error, error} -> [{key, error}]
                 end

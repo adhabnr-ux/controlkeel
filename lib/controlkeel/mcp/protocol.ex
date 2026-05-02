@@ -1438,7 +1438,7 @@ defmodule ControlKeel.MCP.Protocol do
             "type" => "string",
             "enum" => ["http", "stdio"],
             "description" =>
-              "Transport type. Auto-detected from server_url if not specified. HTTP requires Finch."
+              "Transport type. Auto-detected from server_url if not specified. HTTP uses Erlang's built-in :httpc (no extra dependencies)."
           }
         }
       }
