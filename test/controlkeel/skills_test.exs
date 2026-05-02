@@ -554,6 +554,7 @@ defmodule ControlKeel.SkillsTest do
 
     assert Enum.sort(names) == [
              "agent-integration",
+             "agent-pattern-verification",
              "align",
              "benchmark-operator",
              "cloudflare-agent",
