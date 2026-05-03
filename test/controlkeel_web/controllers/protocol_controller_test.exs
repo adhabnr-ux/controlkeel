@@ -123,7 +123,7 @@ defmodule ControlKeelWeb.ProtocolControllerTest do
       assert Enum.any?(tools, &(&1["name"] == "ck_validate"))
       assert Enum.any?(tools, &(&1["name"] == "ck_delegate"))
       assert Enum.any?(tools, &(&1["name"] == "ck_regression_result"))
-      refute Enum.any?(tools, &(&1["name"] == "ck_deployment_advisor"))
+      refute Enum.any?(tools, &(&1["name"] == "ck_fs_ls"))
     end
 
     test "returns 403 when the token lacks the tool scope", %{conn: conn} do

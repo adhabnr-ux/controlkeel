@@ -1,5 +1,8 @@
 defmodule ControlKeel.CLI do
   @moduledoc false
+  # Compiler note: run_command/2 clauses are intentionally organized by functionality
+  # (skills, deploy, observability, etc.) rather than grouped together for maintainability
+  # in this large module. This triggers a clause grouping warning which is acceptable.
 
   require Logger
 
@@ -125,6 +128,7 @@ defmodule ControlKeel.CLI do
   @skills_export_switches [project_root: :string, target: :string, scope: :string]
   @skills_install_switches [project_root: :string, target: :string, scope: :string]
   @skills_doctor_switches [project_root: :string]
+  @token_audit_switches [mode: :string, format: :string, project_root: :string]
   @benchmark_run_switches [
     suite: :string,
     subjects: :string,
@@ -529,6 +533,9 @@ defmodule ControlKeel.CLI do
 
       ["skills", "doctor" | rest] ->
         parse_with_switches(:skills_doctor, rest, @skills_doctor_switches)
+
+      ["token", "audit" | rest] ->
+        parse_with_switches(:token_audit, rest, @token_audit_switches)
 
       ["benchmark", "list" | rest] ->
         parse_with_switches(:benchmark_list, rest, @benchmark_list_switches)
@@ -3929,13 +3936,27 @@ defmodule ControlKeel.CLI do
     duplicate_copy_count =
       Enum.count(analysis.diagnostics, &(&1.code == "duplicate_skill_copy"))
 
+    token_hint =
+      if duplicate_copy_count > 0 do
+        [
+          "",
+          "⚠️  TOKEN OPTIMIZATION WARNING:",
+          "  Found #{duplicate_copy_count} duplicate skill copies wasting tokens.",
+          "  Run 'controlkeel token audit' for detailed analysis and recommendations.",
+          "  Run 'controlkeel token audit mode=skills' to see skill-specific optimization guidance."
+        ]
+      else
+        []
+      end
+
     {:ok,
      [
        "Project root: #{Path.expand(root)}",
        "Trusted project skills: #{if(analysis.trusted_project?, do: "yes", else: "no")}",
        "Catalog size: #{length(analysis.skills)}",
        "Duplicate identical skill copies: #{duplicate_copy_count}",
-       "Hint: remove duplicate skill directories to reduce MCP host token overhead",
+       "Hint: remove duplicate skill directories to reduce MCP host token overhead"
+     ] ++ token_hint ++ [
        "Provider source: #{provider_status["selected_source"]}",
        "Provider: #{provider_status["selected_provider"]}",
        "Auth mode: #{provider_status["selected_auth_mode"]}",
@@ -3949,6 +3970,121 @@ defmodule ControlKeel.CLI do
        Enum.map(analysis.diagnostics, fn diagnostic ->
          "  [#{diagnostic.level}] #{diagnostic.code} — #{diagnostic.message}"
        end)}
+  end
+
+  def run_command(%{command: :token_audit, options: options}, project_root) do
+    root = options[:project_root] || project_root
+    mode = options[:mode] || "full"
+    format = options[:format] || "text"
+
+    case mode do
+      mode when mode in ["full", "rules", "skills", "tools"] ->
+        audit_result = ControlKeel.MCP.Tools.CkTokenAudit.call(%{
+          "project_root" => root,
+          "mode" => mode
+        })
+
+        case audit_result do
+          {:ok, result} ->
+            output_lines = format_token_audit(result, mode, format)
+            {:ok, output_lines}
+
+          {:error, error} ->
+            {:error, ["Token audit failed: #{inspect(error)}"]}
+        end
+
+      _ ->
+        {:error, ["Invalid mode: #{mode}. Use: full, rules, skills, or tools"]}
+    end
+  end
+
+  defp format_token_audit(result, mode, "text") do
+    case mode do
+      "full" ->
+        rule_files = result["rule_files"] || []
+        skills = result["skills"] || []
+        duplicates = result["duplicates"] || []
+        recommendations = result["recommendations"] || []
+
+        [
+          "Token Audit Results",
+          "===================",
+          "",
+          "Project root: #{result["project_root"]}",
+          "Total estimated tokens: #{result["estimated_tokens"]}",
+          "Rule files: #{length(rule_files)}",
+          "Skills: #{length(skills)}",
+          "Duplicates: #{length(duplicates)}",
+          "",
+          "Rule files:"
+        ] ++
+          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{rf["tokens"]} tokens)" end) ++
+          [
+            "",
+            "Skills:"
+          ] ++
+          Enum.map(skills, fn s -> "  - #{s["name"]} (#{s["tokens"]} tokens)" end) ++
+          [
+            "",
+            "Duplicates:"
+          ] ++
+          Enum.map(duplicates, fn d -> "  - #{d["path"]} (duplicate of #{d["original"]})" end) ++
+          [
+            "",
+            "Recommendations:"
+          ] ++
+          Enum.map(recommendations, fn r -> "  - #{r}" end)
+
+      "rules" ->
+        rule_files = result["rule_files"] || []
+        [
+          "Token Audit - Rule Files",
+          "=========================",
+          "",
+          "Project root: #{result["project_root"]}",
+          "Total rule tokens: #{result["estimated_tokens"]}",
+          "Rule files: #{length(rule_files)}",
+          ""
+        ] ++
+          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{rf["tokens"]} tokens)" end)
+
+      "skills" ->
+        skills = result["skills"] || []
+        duplicates = result["duplicates"] || []
+        [
+          "Token Audit - Skills",
+          "====================",
+          "",
+          "Project root: #{result["project_root"]}",
+          "Total skill tokens: #{result["estimated_tokens"]}",
+          "Skills: #{length(skills)}",
+          "Duplicates: #{length(duplicates)}",
+          ""
+        ] ++
+          Enum.map(skills, fn s -> "  - #{s["name"]} (#{s["tokens"]} tokens)" end) ++
+          [
+            "",
+            "Duplicates:"
+          ] ++
+          Enum.map(duplicates, fn d -> "  - #{d["path"]} (duplicate of #{d["original"]})" end)
+
+      "tools" ->
+        tools = result["tools"] || []
+        [
+          "Token Audit - Tools",
+          "===================",
+          "",
+          "Project root: #{result["project_root"]}",
+          "Total tool tokens: #{result["estimated_tokens"]}",
+          "Tools: #{length(tools)}",
+          ""
+        ] ++
+          Enum.map(tools, fn t -> "  - #{t["name"]} (#{t["tokens"]} tokens)" end)
+    end
+  end
+
+  defp format_token_audit(result, _mode, "json") do
+    [Jason.encode!(result, pretty: true)]
   end
 
   def run_command(%{command: :watch, options: options}, project_root) do

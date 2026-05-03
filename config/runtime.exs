@@ -90,6 +90,18 @@ config :controlkeel,
   runtime_mode: runtime_mode,
   bus: bus_mode
 
+# Configure MCP tool groups for token optimization
+# Default to core + governance for most workflows (60% token reduction)
+# Can be overridden via CK_TOOL_GROUPS environment variable
+tool_groups =
+  case System.get_env("CK_TOOL_GROUPS") do
+    nil -> ["core", "governance"]
+    groups when is_binary(groups) -> String.split(groups, ",") |> Enum.map(&String.trim/1)
+    _ -> ["core", "governance"]
+  end
+
+config :controlkeel, :mcp, tool_groups: tool_groups
+
 retrieval_strategy =
   case System.get_env("CONTROLKEEL_MEMORY_RETRIEVAL_STRATEGY", "single_vector") do
     "late_interaction" -> :late_interaction

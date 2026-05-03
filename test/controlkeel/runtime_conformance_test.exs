@@ -183,13 +183,20 @@ defmodule ControlKeel.RuntimeConformanceTest do
   describe "observable contract parity" do
     test "hosted MCP scope map covers every hosted tool schema" do
       hosted_names = ProtocolInterop.hosted_tool_names()
-      schema_names = Protocol.tool_schemas(tool_names: hosted_names) |> Enum.map(& &1["name"])
+
+      schema_names =
+        Protocol.tool_schemas(tool_names: hosted_names, tool_groups: :all)
+        |> Enum.map(& &1["name"])
 
       assert Enum.sort(schema_names) == Enum.sort(hosted_names)
     end
 
     test "hosted MCP tool schemas keep object inputs and descriptions" do
-      for schema <- Protocol.tool_schemas(tool_names: ProtocolInterop.hosted_tool_names()) do
+      for schema <-
+            Protocol.tool_schemas(
+              tool_names: ProtocolInterop.hosted_tool_names(),
+              tool_groups: :all
+            ) do
         assert is_binary(schema["description"])
         assert get_in(schema, ["inputSchema", "type"]) == "object"
         assert is_map(get_in(schema, ["inputSchema", "properties"]))

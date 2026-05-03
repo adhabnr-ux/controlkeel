@@ -195,19 +195,27 @@ defmodule ControlKeel.MCP.Protocol do
     "core" => [
       "ck_validate",
       "ck_context",
+      "ck_context_pack",
       "ck_execute_code",
       "ck_budget",
-      "ck_route"
+      "ck_route",
+      "ck_mcp_discover",
+      "ck_token_audit"
     ],
     "governance" => [
       "ck_review_submit",
       "ck_review_status",
+      "ck_review_feedback",
+      "ck_regression_result",
       "ck_finding",
       "ck_goal",
       "ck_memory_record",
       "ck_memory_search",
       "ck_memory_archive",
-      "ck_delegate"
+      "ck_delegate",
+      "ck_cost_optimizer",
+      "ck_deployment_advisor",
+      "ck_outcome_tracker"
     ],
     "observability" => [
       "ck_observability",
@@ -215,12 +223,16 @@ defmodule ControlKeel.MCP.Protocol do
       "ck_experience_read",
       "ck_experience_search",
       "ck_trace_packet",
-      "ck_failure_clusters"
+      "ck_failure_clusters",
+      "ck_monitor_subscribe",
+      "ck_tool_health",
+      "ck_skill_evolution"
     ],
     "skills" => [
       "ck_skill_list",
       "ck_skill_load",
-      "ck_skill_validate"
+      "ck_skill_validate",
+      "ck_load_resources"
     ],
     "filesystem" => [
       "ck_fs_ls",

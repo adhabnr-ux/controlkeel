@@ -41,11 +41,14 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
   test "tools/list returns all controlkeel tools in stable order" do
     response =
-      Protocol.handle_request(%{
-        "jsonrpc" => "2.0",
-        "id" => 2,
-        "method" => "tools/list"
-      })
+      Protocol.handle_request(
+        %{
+          "jsonrpc" => "2.0",
+          "id" => 2,
+          "method" => "tools/list"
+        },
+        tool_groups: :all
+      )
 
     assert %{"result" => %{"tools" => tools}} = response
 
@@ -173,11 +176,14 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
   test "tools/list schemas allow bound-project continuation for context and memory tools" do
     response =
-      Protocol.handle_request(%{
-        "jsonrpc" => "2.0",
-        "id" => 2030,
-        "method" => "tools/list"
-      })
+      Protocol.handle_request(
+        %{
+          "jsonrpc" => "2.0",
+          "id" => 2030,
+          "method" => "tools/list"
+        },
+        tool_groups: :all
+      )
 
     tools = get_in(response, ["result", "tools"])
     by_name = Map.new(tools, &{&1["name"], &1})
@@ -531,11 +537,14 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
   test "tools/list exposes experience archive inputs" do
     response =
-      Protocol.handle_request(%{
-        "jsonrpc" => "2.0",
-        "id" => 2001,
-        "method" => "tools/list"
-      })
+      Protocol.handle_request(
+        %{
+          "jsonrpc" => "2.0",
+          "id" => 2001,
+          "method" => "tools/list"
+        },
+        tool_groups: :all
+      )
 
     index_tool =
       response
@@ -592,11 +601,14 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
   test "tools/list exposes virtual workspace inputs for ck_fs_grep" do
     response =
-      Protocol.handle_request(%{
-        "jsonrpc" => "2.0",
-        "id" => 202,
-        "method" => "tools/list"
-      })
+      Protocol.handle_request(
+        %{
+          "jsonrpc" => "2.0",
+          "id" => 202,
+          "method" => "tools/list"
+        },
+        tool_groups: :all
+      )
 
     tool =
       response
@@ -617,11 +629,14 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
   test "tools/list exposes trace packet inputs" do
     response =
-      Protocol.handle_request(%{
-        "jsonrpc" => "2.0",
-        "id" => 2022,
-        "method" => "tools/list"
-      })
+      Protocol.handle_request(
+        %{
+          "jsonrpc" => "2.0",
+          "id" => 2022,
+          "method" => "tools/list"
+        },
+        tool_groups: :all
+      )
 
     tool =
       response
@@ -638,11 +653,14 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
   test "tools/list exposes failure cluster inputs" do
     response =
-      Protocol.handle_request(%{
-        "jsonrpc" => "2.0",
-        "id" => 2024,
-        "method" => "tools/list"
-      })
+      Protocol.handle_request(
+        %{
+          "jsonrpc" => "2.0",
+          "id" => 2024,
+          "method" => "tools/list"
+        },
+        tool_groups: :all
+      )
 
     tool =
       response
@@ -689,11 +707,14 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
     response =
       File.cd!(tmp_dir, fn ->
-        Protocol.handle_request(%{
-          "jsonrpc" => "2.0",
-          "id" => 32,
-          "method" => "tools/list"
-        })
+        Protocol.handle_request(
+          %{
+            "jsonrpc" => "2.0",
+            "id" => 32,
+            "method" => "tools/list"
+          },
+          tool_groups: :all
+        )
       end)
 
     tool =
