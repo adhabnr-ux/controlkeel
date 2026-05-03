@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.3.14 — 2026-05-03
+
+### What's changed
+
+- fix: remove --warnings-as-errors from CI to match local precommit
+- feat: enhance documentation for adaptive tool groups and automatic optimization
+- feat: Implement adaptive tool group selection and tracking
+- feat(token-optimization): update tool groups for improved token savings and documentation
+- feat(token-optimization): implement default tool groups configuration and usage examples for token reduction
+- feat(mcp): configure tool groups for token optimization; update CLI and tests for new functionality
+- feat(token-optimization): complete token overhead audit, multi-host coverage, and config activation
+- feat(mcp): enhance skill analysis and token overhead reporting; add duplicate skill diagnostics
+- feat(token-audit): implement CK-side tool groups for lazy loading and token savings
+
 ## v0.3.13 — 2026-05-02
 
 ### What's changed
