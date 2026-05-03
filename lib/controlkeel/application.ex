@@ -86,6 +86,7 @@ defmodule ControlKeel.Application do
         ControlKeel.Memory.Store.Sqlite,
         ControlKeel.RemoteMonitoring,
         {DynamicSupervisor, strategy: :one_for_one, name: ControlKeel.MCP.Supervisor},
+        ControlKeel.MCP.ToolGroupTracker,
         ControlKeelWeb.Endpoint
       ]
   end

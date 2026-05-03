@@ -1,5 +1,6 @@
 defmodule ControlKeel.MCP.Protocol do
   @moduledoc false
+  require Logger
 
   alias ControlKeel.Intent.Domains
   alias ControlKeel.SecurityWorkflow
@@ -308,89 +309,134 @@ defmodule ControlKeel.MCP.Protocol do
     # process while Cursor expects tools/list under a ~20s connect budget.
     tools = base ++ [ck_skill_list_tool(), ck_skill_load_tool(), ck_skill_validate_tool()]
 
-    # Apply tool group filtering — opts take precedence over env var.
-    # :all in opts means "force all tools, bypass env var" (used by audit/measurement callers).
-    # When opts does not specify tool_groups, fall back to env var / app config.
-    effective_groups =
-      case Keyword.fetch(opts, :tool_groups) do
-        {:ok, :all} -> :all
-        {:ok, groups} -> groups
-        :error -> env_tool_groups()
-      end
-
-    tools =
-      case effective_groups do
-        :all ->
-          tools
-
-        groups when is_list(groups) ->
-          allowed_tool_names =
-            groups
-            |> Enum.flat_map(fn group -> Map.get(@tool_groups, group, []) end)
-            |> MapSet.new()
-
-          Enum.filter(tools, &(&1["name"] in allowed_tool_names))
+    # Apply tool_names filtering (takes precedence over tool_groups and adaptive mode)
+    # This is used by hosted mode for security - explicit tool whitelisting
+    filtered_tools =
+      case Keyword.get(opts, :tool_names) do
+        names when is_list(names) ->
+          Enum.filter(tools, &(&1["name"] in names))
 
         _ ->
-          tools
+          # Apply tool group filtering — opts take precedence over env var.
+          # :all in opts means "force all tools, bypass env var" (used by audit/measurement callers).
+          # When opts does not specify tool_groups, fall back to env var / app config.
+          # NEW: Check for per-project adaptive preferences and enable auto-expansion
+          project_root = Keyword.get(opts, :project_root)
+          adaptive_mode = Keyword.get(opts, :adaptive, true)
+
+          effective_groups =
+            case Keyword.fetch(opts, :tool_groups) do
+              {:ok, :all} ->
+                :all
+
+              {:ok, groups} ->
+                groups
+
+              :error ->
+                if adaptive_mode && project_root do
+                  adaptive_tool_groups(project_root)
+                else
+                  env_tool_groups() || :all
+                end
+            end
+
+          case effective_groups do
+            :all ->
+              tools
+
+            groups when is_list(groups) ->
+              allowed_tool_names =
+                groups
+                |> Enum.flat_map(fn group -> Map.get(@tool_groups, group, []) end)
+                |> MapSet.new()
+
+              filtered = Enum.filter(tools, &(&1["name"] in allowed_tool_names))
+
+              if adaptive_mode && project_root do
+                log_tool_group_decision(project_root, groups, length(tools), length(filtered))
+              end
+
+              filtered
+
+            _ ->
+              tools
+          end
       end
 
-    # Apply tool_names filtering (takes precedence over tool_groups)
-    case Keyword.get(opts, :tool_names) do
-      names when is_list(names) -> Enum.filter(tools, &(&1["name"] in names))
-      _ -> tools
-    end
+    filtered_tools
   end
 
-  def dispatch_tool("ck_validate", arguments), do: CkValidate.call(arguments)
-  def dispatch_tool("ck_execute_code", arguments), do: CkExecuteCode.call(arguments)
-  def dispatch_tool("ck_context", arguments), do: CkContext.call(arguments)
-  def dispatch_tool("ck_context_pack", arguments), do: CkContextPack.call(arguments)
-  def dispatch_tool("ck_observability", arguments), do: CkObservability.call(arguments)
-  def dispatch_tool("ck_experience_index", arguments), do: CkExperienceIndex.call(arguments)
-  def dispatch_tool("ck_experience_read", arguments), do: CkExperienceRead.call(arguments)
-  def dispatch_tool("ck_experience_search", arguments), do: CkExperienceSearch.call(arguments)
-  def dispatch_tool("ck_trace_packet", arguments), do: CkTracePacket.call(arguments)
-  def dispatch_tool("ck_failure_clusters", arguments), do: CkFailureClusters.call(arguments)
-  def dispatch_tool("ck_tool_health", arguments), do: CkToolHealth.call(arguments)
-  def dispatch_tool("ck_skill_evolution", arguments), do: CkSkillEvolution.call(arguments)
-  def dispatch_tool("ck_fs_ls", arguments), do: CkFsLs.call(arguments)
-  def dispatch_tool("ck_fs_read", arguments), do: CkFsRead.call(arguments)
-  def dispatch_tool("ck_fs_find", arguments), do: CkFsFind.call(arguments)
-  def dispatch_tool("ck_fs_grep", arguments), do: CkFsGrep.call(arguments)
-  def dispatch_tool("ck_worktree_list", arguments), do: CkWorktreeList.call(arguments)
-  def dispatch_tool("ck_worktree_switch", arguments), do: CkWorktreeSwitch.call(arguments)
-  def dispatch_tool("ck_checkpoint_create", arguments), do: CkCheckpointCreate.call(arguments)
-  def dispatch_tool("ck_checkpoint_restore", arguments), do: CkCheckpointRestore.call(arguments)
-  def dispatch_tool("ck_checkpoint_list", arguments), do: CkCheckpointList.call(arguments)
-  def dispatch_tool("ck_git_diff", arguments), do: CkGitDiff.call(arguments)
-  def dispatch_tool("ck_git_commit", arguments), do: CkGitCommit.call(arguments)
-  def dispatch_tool("ck_git_status", arguments), do: CkGitStatus.call(arguments)
-  def dispatch_tool("ck_monitor_subscribe", arguments), do: CkMonitorSubscribe.call(arguments)
-  def dispatch_tool("ck_finding", arguments), do: CkFinding.call(arguments)
-  def dispatch_tool("ck_review_submit", arguments), do: CkReviewSubmit.call(arguments)
-  def dispatch_tool("ck_review_status", arguments), do: CkReviewStatus.call(arguments)
-  def dispatch_tool("ck_review_feedback", arguments), do: CkReviewFeedback.call(arguments)
-  def dispatch_tool("ck_regression_result", arguments), do: CkRegressionResult.call(arguments)
-  def dispatch_tool("ck_memory_search", arguments), do: CkMemorySearch.call(arguments)
-  def dispatch_tool("ck_memory_record", arguments), do: CkMemoryRecord.call(arguments)
-  def dispatch_tool("ck_goal", arguments), do: CkGoal.call(arguments)
-  def dispatch_tool("ck_memory_archive", arguments), do: CkMemoryArchive.call(arguments)
-  def dispatch_tool("ck_budget", arguments), do: CkBudget.call(arguments)
-  def dispatch_tool("ck_route", arguments), do: CkRoute.call(arguments)
-  def dispatch_tool("ck_delegate", arguments), do: CkDelegate.call(arguments)
-  def dispatch_tool("ck_skill_list", arguments), do: CkSkillList.call(arguments)
-  def dispatch_tool("ck_skill_load", arguments), do: CkSkillLoad.call(arguments)
-  def dispatch_tool("ck_skill_validate", arguments), do: CkSkillValidate.call(arguments)
-  def dispatch_tool("ck_load_resources", arguments), do: CkLoadResources.call(arguments)
-  def dispatch_tool("ck_mcp_discover", arguments), do: CkMcpDiscover.call(arguments)
-  def dispatch_tool("ck_cost_optimizer", arguments), do: CkCostOptimizer.call(arguments)
-  def dispatch_tool("ck_deployment_advisor", arguments), do: CkDeploymentAdvisor.call(arguments)
-  def dispatch_tool("ck_outcome_tracker", arguments), do: CkOutcomeTracker.call(arguments)
-  def dispatch_tool("ck_token_audit", arguments), do: CkTokenAudit.call(arguments)
+  def dispatch_tool(tool_name, arguments) do
+    # Track usage for adaptive learning
+    project_root = stdio_project_root()
+    track_tool_usage(project_root, tool_name)
 
-  def dispatch_tool(unknown, _arguments),
+    # Call the actual tool implementation
+    do_dispatch_tool(tool_name, arguments)
+  end
+
+  defp do_dispatch_tool("ck_validate", arguments), do: CkValidate.call(arguments)
+  defp do_dispatch_tool("ck_execute_code", arguments), do: CkExecuteCode.call(arguments)
+  defp do_dispatch_tool("ck_context", arguments), do: CkContext.call(arguments)
+  defp do_dispatch_tool("ck_context_pack", arguments), do: CkContextPack.call(arguments)
+  defp do_dispatch_tool("ck_observability", arguments), do: CkObservability.call(arguments)
+  defp do_dispatch_tool("ck_experience_index", arguments), do: CkExperienceIndex.call(arguments)
+  defp do_dispatch_tool("ck_experience_read", arguments), do: CkExperienceRead.call(arguments)
+  defp do_dispatch_tool("ck_experience_search", arguments), do: CkExperienceSearch.call(arguments)
+  defp do_dispatch_tool("ck_trace_packet", arguments), do: CkTracePacket.call(arguments)
+  defp do_dispatch_tool("ck_failure_clusters", arguments), do: CkFailureClusters.call(arguments)
+  defp do_dispatch_tool("ck_tool_health", arguments), do: CkToolHealth.call(arguments)
+  defp do_dispatch_tool("ck_skill_evolution", arguments), do: CkSkillEvolution.call(arguments)
+  defp do_dispatch_tool("ck_fs_ls", arguments), do: CkFsLs.call(arguments)
+  defp do_dispatch_tool("ck_fs_read", arguments), do: CkFsRead.call(arguments)
+  defp do_dispatch_tool("ck_fs_find", arguments), do: CkFsFind.call(arguments)
+  defp do_dispatch_tool("ck_fs_grep", arguments), do: CkFsGrep.call(arguments)
+  defp do_dispatch_tool("ck_worktree_list", arguments), do: CkWorktreeList.call(arguments)
+  defp do_dispatch_tool("ck_worktree_switch", arguments), do: CkWorktreeSwitch.call(arguments)
+  defp do_dispatch_tool("ck_checkpoint_create", arguments), do: CkCheckpointCreate.call(arguments)
+
+  defp do_dispatch_tool("ck_checkpoint_restore", arguments),
+    do: CkCheckpointRestore.call(arguments)
+
+  defp do_dispatch_tool("ck_checkpoint_list", arguments), do: CkCheckpointList.call(arguments)
+  defp do_dispatch_tool("ck_git_diff", arguments), do: CkGitDiff.call(arguments)
+  defp do_dispatch_tool("ck_git_commit", arguments), do: CkGitCommit.call(arguments)
+  defp do_dispatch_tool("ck_git_status", arguments), do: CkGitStatus.call(arguments)
+  defp do_dispatch_tool("ck_monitor_subscribe", arguments), do: CkMonitorSubscribe.call(arguments)
+  defp do_dispatch_tool("ck_finding", arguments), do: CkFinding.call(arguments)
+  defp do_dispatch_tool("ck_review_submit", arguments), do: CkReviewSubmit.call(arguments)
+  defp do_dispatch_tool("ck_review_status", arguments), do: CkReviewStatus.call(arguments)
+  defp do_dispatch_tool("ck_review_feedback", arguments), do: CkReviewFeedback.call(arguments)
+  defp do_dispatch_tool("ck_regression_result", arguments), do: CkRegressionResult.call(arguments)
+  defp do_dispatch_tool("ck_memory_search", arguments), do: CkMemorySearch.call(arguments)
+  defp do_dispatch_tool("ck_memory_record", arguments), do: CkMemoryRecord.call(arguments)
+  defp do_dispatch_tool("ck_goal", arguments), do: CkGoal.call(arguments)
+  defp do_dispatch_tool("ck_memory_archive", arguments), do: CkMemoryArchive.call(arguments)
+  defp do_dispatch_tool("ck_budget", arguments), do: CkBudget.call(arguments)
+  defp do_dispatch_tool("ck_route", arguments), do: CkRoute.call(arguments)
+  defp do_dispatch_tool("ck_delegate", arguments), do: CkDelegate.call(arguments)
+  defp do_dispatch_tool("ck_skill_list", arguments), do: CkSkillList.call(arguments)
+  defp do_dispatch_tool("ck_skill_load", arguments), do: CkSkillLoad.call(arguments)
+  defp do_dispatch_tool("ck_skill_validate", arguments), do: CkSkillValidate.call(arguments)
+  defp do_dispatch_tool("ck_load_resources", arguments), do: CkLoadResources.call(arguments)
+  defp do_dispatch_tool("ck_mcp_discover", arguments), do: CkMcpDiscover.call(arguments)
+  defp do_dispatch_tool("ck_cost_optimizer", arguments), do: CkCostOptimizer.call(arguments)
+
+  defp do_dispatch_tool("ck_deployment_advisor", arguments),
+    do: CkDeploymentAdvisor.call(arguments)
+
+  defp do_dispatch_tool("ck_outcome_tracker", arguments), do: CkOutcomeTracker.call(arguments)
+  defp do_dispatch_tool("ck_token_audit", arguments), do: CkTokenAudit.call(arguments)
+
+  defp do_dispatch_tool(unknown, _arguments),
     do: {:error, {:invalid_arguments, "Unknown tool: #{unknown}"}}
+
+  defp track_tool_usage(project_root, tool_name) do
+    # Track usage asynchronously to avoid blocking tool calls
+    Task.start(fn ->
+      ControlKeel.MCP.ToolGroupTracker.track_tool_usage(project_root, tool_name)
+    end)
+  end
 
   def tool_groups, do: Map.keys(@tool_groups)
 
@@ -1648,8 +1694,76 @@ defmodule ControlKeel.MCP.Protocol do
   defp app_config_tool_groups do
     case Application.get_env(:controlkeel, :mcp, [])[:tool_groups] do
       groups when is_list(groups) and groups != [] -> groups
-      _ -> :all
+      # Return nil to let adaptive mode handle it
+      _ -> nil
     end
+  end
+
+  # Adaptive tool group selection based on project usage patterns
+  defp adaptive_tool_groups(project_root) do
+    # First, check if project has explicit tool group preferences
+    case ControlKeel.ProjectBinding.get_tool_groups(project_root) do
+      groups when is_list(groups) ->
+        # Use project's explicit preference
+        groups
+
+      _ ->
+        # No explicit preference, check usage data
+        case ControlKeel.MCP.ToolGroupTracker.suggest_groups(project_root) do
+          %{suggested: groups} when length(groups) > 2 ->
+            # We have meaningful usage data, use suggested groups
+            groups
+
+          _ ->
+            # No usage data yet, use smart defaults based on project type
+            smart_default_groups(project_root)
+        end
+    end
+  end
+
+  # Smart default groups based on project characteristics
+  defp smart_default_groups(project_root) do
+    # Detect project type and suggest appropriate groups
+    has_git = File.exists?(Path.join(project_root, ".git"))
+    has_tests = test_dir_exists?(project_root)
+    has_package_json = File.exists?(Path.join(project_root, "package.json"))
+    has_mix_exs = File.exists?(Path.join(project_root, "mix.exs"))
+    has_cargo_toml = File.exists?(Path.join(project_root, "Cargo.toml"))
+
+    base_groups = ["core", "governance"]
+
+    additional_groups =
+      cond do
+        # Elixir/Phoenix project - likely needs filesystem tools
+        has_mix_exs -> ["filesystem", "git"]
+        # Node.js project - likely needs filesystem tools
+        has_package_json -> ["filesystem", "git"]
+        # Rust project - likely needs filesystem tools
+        has_cargo_toml -> ["filesystem", "git"]
+        # Has tests - likely needs filesystem and git
+        has_tests and has_git -> ["filesystem", "git"]
+        # Git repo - add git tools
+        has_git -> ["git"]
+        # Default - add filesystem for general development
+        true -> ["filesystem"]
+      end
+
+    Enum.uniq(base_groups ++ additional_groups)
+  end
+
+  defp test_dir_exists?(project_root) do
+    ["test", "tests", "__tests__", "spec"]
+    |> Enum.any?(fn dir -> File.dir?(Path.join(project_root, dir)) end)
+  end
+
+  # Log tool group decisions for transparency and debugging
+  defp log_tool_group_decision(project_root, groups, total_tools, filtered_tools) do
+    excluded_count = total_tools - filtered_tools
+
+    Logger.info(
+      "Adaptive tool groups for #{Path.basename(project_root)}: #{inspect(groups)} " <>
+        "(#{filtered_tools}/#{total_tools} tools, #{excluded_count} excluded)"
+    )
   end
 
   defp skill_names_for_ck_skill_load_enum do

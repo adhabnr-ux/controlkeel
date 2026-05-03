@@ -5,6 +5,15 @@ This is a web application written using the Phoenix web framework.
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues
 - Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
 
+### Adaptive Tool Groups
+
+ControlKeel uses adaptive tool group selection that automatically learns which tools you use:
+- **Smart defaults**: Automatically detects project type (Elixir, Node.js, Rust, etc.) and selects appropriate tool groups
+- **Usage tracking**: Learns from your actual tool usage patterns over time
+- **No manual configuration needed**: Works out of the box, but can be customized via `controlkeel tool groups suggest --apply`
+- **Project preferences**: Saved in `controlkeel/project.json` for team consistency
+- **See `docs/ADAPTIVE_TOOL_GROUPS.md` for full documentation**
+
 ### Phoenix v1.8 guidelines
 
 - **Always** begin your LiveView templates with `<Layouts.app flash={@flash} ...>` which wraps all inner content

@@ -38,13 +38,18 @@ defmodule ControlKeel.MCP.Server do
 
   @impl true
   def handle_call({:dispatch, request}, _from, state) do
-    {:reply, Protocol.handle_request(request), state}
+    # Include project_root in opts for adaptive tool group behavior
+    opts = [project_root: stdio_project_root()]
+    {:reply, Protocol.handle_request(request, opts), state}
   end
 
   @impl true
   def handle_info({:mcp_payload, payload}, state) do
+    # Include project_root in opts for adaptive tool group behavior
+    opts = [project_root: stdio_project_root()]
+
     payload
-    |> Protocol.handle_json()
+    |> Protocol.handle_json(opts)
     |> maybe_write_frame(state.output)
 
     {:noreply, state}
@@ -207,6 +212,16 @@ defmodule ControlKeel.MCP.Server do
     case :file.write(device, data) do
       :ok -> :ok
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp stdio_project_root do
+    case System.get_env("CK_PROJECT_ROOT") do
+      v when is_binary(v) and v != "" ->
+        v |> String.trim() |> Path.expand()
+
+      _ ->
+        File.cwd!()
     end
   end
 end

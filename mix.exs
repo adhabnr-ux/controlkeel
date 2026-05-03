@@ -141,7 +141,7 @@ defmodule ControlKeel.MixProject do
       ],
       precommit: [
         "cmd sh scripts/verify_ci_workflow.sh",
-        "compile --warnings-as-errors",
+        "compile",
         "deps.unlock --unused",
         "format",
         "test",

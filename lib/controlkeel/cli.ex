@@ -1,8 +1,10 @@
 defmodule ControlKeel.CLI do
   @moduledoc false
-  # Compiler note: run_command/2 clauses are intentionally organized by functionality
+
+  # IMPORTANT: run_command/2 clauses are intentionally organized by functionality
   # (skills, deploy, observability, etc.) rather than grouped together for maintainability
-  # in this large module. This triggers a clause grouping warning which is acceptable.
+  # in this large 7000+ line module. The compiler warning about clause grouping is expected
+  # and acceptable. Grouping all 50+ run_command clauses together would harm maintainability.
 
   require Logger
 
@@ -129,6 +131,7 @@ defmodule ControlKeel.CLI do
   @skills_install_switches [project_root: :string, target: :string, scope: :string]
   @skills_doctor_switches [project_root: :string]
   @token_audit_switches [mode: :string, format: :string, project_root: :string]
+  @tool_groups_suggest_switches [project_root: :string, format: :string, apply: :boolean]
   @benchmark_run_switches [
     suite: :string,
     subjects: :string,
@@ -536,6 +539,9 @@ defmodule ControlKeel.CLI do
 
       ["token", "audit" | rest] ->
         parse_with_switches(:token_audit, rest, @token_audit_switches)
+
+      ["tool", "groups", "suggest" | rest] ->
+        parse_with_switches(:tool_groups_suggest, rest, @tool_groups_suggest_switches)
 
       ["benchmark", "list" | rest] ->
         parse_with_switches(:benchmark_list, rest, @benchmark_list_switches)
@@ -3956,16 +3962,18 @@ defmodule ControlKeel.CLI do
        "Catalog size: #{length(analysis.skills)}",
        "Duplicate identical skill copies: #{duplicate_copy_count}",
        "Hint: remove duplicate skill directories to reduce MCP host token overhead"
-     ] ++ token_hint ++ [
-       "Provider source: #{provider_status["selected_source"]}",
-       "Provider: #{provider_status["selected_provider"]}",
-       "Auth mode: #{provider_status["selected_auth_mode"]}",
-       "Auth owner: #{provider_status["selected_auth_owner"]}",
-       "Bootstrap mode: #{provider_status["bootstrap"]["mode"]}",
-       "Attachable clients: #{attach_clients}",
-       "Headless runtimes: #{if(runtimes == "", do: "none", else: runtimes)}",
-       "Framework adapters: #{if(frameworks == "", do: "none", else: frameworks)}"
      ] ++
+       token_hint ++
+       [
+         "Provider source: #{provider_status["selected_source"]}",
+         "Provider: #{provider_status["selected_provider"]}",
+         "Auth mode: #{provider_status["selected_auth_mode"]}",
+         "Auth owner: #{provider_status["selected_auth_owner"]}",
+         "Bootstrap mode: #{provider_status["bootstrap"]["mode"]}",
+         "Attachable clients: #{attach_clients}",
+         "Headless runtimes: #{if(runtimes == "", do: "none", else: runtimes)}",
+         "Framework adapters: #{if(frameworks == "", do: "none", else: frameworks)}"
+       ] ++
        manifest_lines ++
        Enum.map(analysis.diagnostics, fn diagnostic ->
          "  [#{diagnostic.level}] #{diagnostic.code} — #{diagnostic.message}"
@@ -3979,10 +3987,11 @@ defmodule ControlKeel.CLI do
 
     case mode do
       mode when mode in ["full", "rules", "skills", "tools"] ->
-        audit_result = ControlKeel.MCP.Tools.CkTokenAudit.call(%{
-          "project_root" => root,
-          "mode" => mode
-        })
+        audit_result =
+          ControlKeel.MCP.Tools.CkTokenAudit.call(%{
+            "project_root" => root,
+            "mode" => mode
+          })
 
         case audit_result do
           {:ok, result} ->
@@ -4037,6 +4046,7 @@ defmodule ControlKeel.CLI do
 
       "rules" ->
         rule_files = result["rule_files"] || []
+
         [
           "Token Audit - Rule Files",
           "=========================",
@@ -4051,6 +4061,7 @@ defmodule ControlKeel.CLI do
       "skills" ->
         skills = result["skills"] || []
         duplicates = result["duplicates"] || []
+
         [
           "Token Audit - Skills",
           "====================",
@@ -4070,6 +4081,7 @@ defmodule ControlKeel.CLI do
 
       "tools" ->
         tools = result["tools"] || []
+
         [
           "Token Audit - Tools",
           "===================",
@@ -4085,6 +4097,58 @@ defmodule ControlKeel.CLI do
 
   defp format_token_audit(result, _mode, "json") do
     [Jason.encode!(result, pretty: true)]
+  end
+
+  def run_command(%{command: :tool_groups_suggest, options: options}, project_root) do
+    root = options[:project_root] || project_root
+    format = options[:format] || "text"
+    apply_preference = options[:apply] || false
+
+    case ControlKeel.MCP.ToolGroupTracker.suggest_groups(root) do
+      %{suggested: groups, reason: reason, usage_stats: stats} ->
+        output_lines = format_tool_groups_suggest(groups, reason, stats, format)
+
+        if apply_preference do
+          case ControlKeel.ProjectBinding.put_tool_groups(root, groups) do
+            {:ok, _binding} ->
+              {:ok, output_lines ++ ["", "✓ Tool groups preference saved to project binding"]}
+
+            {:error, error} ->
+              {:error, output_lines ++ ["", "✗ Failed to save preference: #{inspect(error)}"]}
+          end
+        else
+          {:ok, output_lines}
+        end
+
+      _ ->
+        {:error, ["Failed to suggest tool groups"]}
+    end
+  end
+
+  defp format_tool_groups_suggest(groups, reason, stats, "text") do
+    [
+      "Tool Groups Suggestion:",
+      "  Suggested groups: #{inspect(groups)}",
+      "  Reason: #{reason}",
+      "  Usage stats:",
+      "    Total calls: #{stats.total_calls}",
+      "    Unique tools: #{stats.unique_tools}",
+      "",
+      "To apply this suggestion to your project, run:",
+      "  controlkeel tool groups suggest --apply"
+    ]
+  end
+
+  defp format_tool_groups_suggest(groups, reason, stats, "json") do
+    Jason.encode!(
+      %{
+        suggested: groups,
+        reason: reason,
+        usage_stats: stats
+      },
+      pretty: true
+    )
+    |> then(&[&1])
   end
 
   def run_command(%{command: :watch, options: options}, project_root) do

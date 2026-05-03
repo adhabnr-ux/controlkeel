@@ -55,6 +55,7 @@ defmodule ControlKeel.CLITasksTest do
              "project_root",
              "provider_override",
              "session_id",
+             "tool_groups",
              "version",
              "workspace_id"
            ]

@@ -91,16 +91,21 @@ config :controlkeel,
   bus: bus_mode
 
 # Configure MCP tool groups for token optimization
-# Default to core + governance for most workflows (60% token reduction)
+# Adaptive mode is now enabled by default and will automatically select tool groups
+# based on project type and usage patterns. This static config is only used as a fallback
+# when adaptive mode is disabled or project_root is not available.
 # Can be overridden via CK_TOOL_GROUPS environment variable
 tool_groups =
   case System.get_env("CK_TOOL_GROUPS") do
-    nil -> ["core", "governance"]
+    # Let adaptive mode handle it by default
+    nil -> nil
     groups when is_binary(groups) -> String.split(groups, ",") |> Enum.map(&String.trim/1)
-    _ -> ["core", "governance"]
+    _ -> nil
   end
 
-config :controlkeel, :mcp, tool_groups: tool_groups
+if tool_groups do
+  config :controlkeel, :mcp, tool_groups: tool_groups
+end
 
 retrieval_strategy =
   case System.get_env("CONTROLKEEL_MEMORY_RETRIEVAL_STRATEGY", "single_vector") do

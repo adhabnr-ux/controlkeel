@@ -150,6 +150,24 @@ defmodule ControlKeel.ProjectBinding do
     end
   end
 
+  def get_tool_groups(project_root \\ File.cwd!()) do
+    case read_effective(project_root) do
+      {:ok, binding, _mode} ->
+        binding["tool_groups"]
+
+      {:error, _reason} ->
+        nil
+    end
+  end
+
+  def put_tool_groups(project_root \\ File.cwd!(), groups) when is_list(groups) do
+    with {:ok, binding, mode} <- read_effective(project_root),
+         updated <- Map.put(binding, "tool_groups", groups),
+         {:ok, written} <- write_effective(updated, project_root, mode: mode) do
+      {:ok, written}
+    end
+  end
+
   def bootstrap_summary(project_root \\ File.cwd!()) do
     case read_effective(project_root) do
       {:ok, binding, mode} ->
@@ -199,7 +217,8 @@ defmodule ControlKeel.ProjectBinding do
         attrs["bootstrap"] ||
           attrs[:bootstrap] ||
           %{"mode" => "project", "auto_bootstrapped" => false},
-      "provider_override" => attrs["provider_override"] || attrs[:provider_override]
+      "provider_override" => attrs["provider_override"] || attrs[:provider_override],
+      "tool_groups" => attrs["tool_groups"] || attrs[:tool_groups] || nil
     }
   end
 
