@@ -40,36 +40,67 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
   end
 
   defp audit_full(project_root) do
-    rules_result = audit_rules_only(project_root)
-    skills_result = audit_skills(project_root)
-
-    {:ok, rules_data} = rules_result
-    {:ok, skills_data} = skills_result
-
-    # Merge the results
-    {:ok,
-     Map.merge(rules_data, %{
-       "skills" => skills_data["skills"],
-       "skill_duplicates" => skills_data["duplicates"],
-       "duplicate_token_count" => skills_data["duplicate_token_count"],
-       "duplicate_word_count" => skills_data["duplicate_word_count"],
-       "total_skill_tokens" => skills_data["total_skill_tokens"],
-       "total_skill_words" => skills_data["total_skill_words"],
-       "skill_recommendations" => skills_data["recommendations"]
-     })}
+    with {:ok, rules_data} <- audit_rules_only(project_root),
+         {:ok, skills_data} <- audit_skills(project_root) do
+      {:ok,
+       Map.merge(rules_data, %{
+         "skills" => skills_data["skills"],
+         "skill_duplicates" => skills_data["duplicates"],
+         "duplicate_token_count" => skills_data["duplicate_token_count"],
+         "duplicate_word_count" => skills_data["duplicate_word_count"],
+         "total_skill_tokens" => skills_data["total_skill_tokens"],
+         "total_skill_words" => skills_data["total_skill_words"],
+         "skill_recommendations" => skills_data["recommendations"]
+       })}
+    end
   end
 
+  @project_skill_subdirs [
+    ".agents/skills",
+    ".codex/skills",
+    ".claude/skills",
+    ".copilot/skills",
+    ".github/skills",
+    ".cline/skills",
+    ".roo/skills",
+    ".cursor/skills",
+    ".opencode/skills",
+    ".augment/skills",
+    ".continue/skills",
+    ".hermes/skills",
+    ".factory/skills",
+    "skills"
+  ]
+
+  @user_skill_subdirs [
+    ".agents/skills",
+    ".codex/skills",
+    ".claude/skills",
+    ".copilot/skills",
+    ".cline/skills",
+    ".roo/skills",
+    ".hermes/skills",
+    ".factory/skills",
+    ".openclaw/skills"
+  ]
+
   defp audit_skills(project_root) do
-    user_skills_dir = Path.expand("~/.claude/skills")
-    project_skills_dir = Path.join([project_root, ".claude", "skills"])
-    project_agents_dir = Path.join([project_root, ".agents", "skills"])
+    user_home =
+      System.get_env("CONTROLKEEL_HOME") || System.get_env("HOME") || System.user_home!()
 
-    # Collect skills from all locations
-    user_skills = list_skills(user_skills_dir, "user")
-    project_skills = list_skills(project_skills_dir, "project")
-    agents_skills = list_skills(project_agents_dir, "agents")
+    user_skills =
+      Enum.flat_map(@user_skill_subdirs, fn subdir ->
+        dir = Path.join(user_home, subdir)
+        list_skills(dir, "user:#{Path.dirname(subdir)}")
+      end)
 
-    all_skills = user_skills ++ project_skills ++ agents_skills
+    project_skills =
+      Enum.flat_map(@project_skill_subdirs, fn subdir ->
+        dir = Path.join(project_root, subdir)
+        list_skills(dir, "project:#{subdir}")
+      end)
+
+    all_skills = user_skills ++ project_skills
 
     # Find duplicates by skill name
     duplicates = find_duplicate_skills(all_skills)
@@ -97,7 +128,9 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
   defp audit_tools do
     alias ControlKeel.MCP.Protocol
 
-    tool_schemas = Protocol.tool_schemas()
+    # Always measure the full schema set so savings calculations are accurate regardless
+    # of which groups the user has currently active via CK_TOOL_GROUPS.
+    tool_schemas = Protocol.tool_schemas(tool_groups: :all)
     available_groups = Protocol.tool_groups()
 
     # Calculate size for each tool schema
@@ -184,23 +217,40 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
   end
 
   defp find_rule_files(project_root) do
+    # Covers all major host-specific instruction/rule file locations.
+    # Glob patterns (containing "*") are expanded; plain paths are checked directly.
     candidates = [
+      # Standard multi-agent convention files
       Path.join([project_root, "AGENTS.md"]),
       Path.join([project_root, "CLAUDE.md"]),
+      Path.join([project_root, "GEMINI.md"]),
+      Path.join([project_root, "AIDER.md"]),
+      # Claude
+      Path.join([project_root, ".claude", "CLAUDE.md"]),
+      # Cursor
       Path.join([project_root, ".cursor", "rules", "*.mdc"]),
-      Path.join([project_root, ".claude", "CLAUDE.md"])
+      # Windsurf
+      Path.join([project_root, ".windsurf", "rules", "*.md"]),
+      # Augment
+      Path.join([project_root, ".augment", "rules", "*.md"]),
+      # Cline
+      Path.join([project_root, ".clinerules"]),
+      Path.join([project_root, ".clinerules", "*.md"]),
+      # Roo
+      Path.join([project_root, ".roo", "rules", "*.md"]),
+      # GitHub Copilot
+      Path.join([project_root, ".github", "copilot-instructions.md"])
     ]
 
     candidates
-    |> Enum.filter(&File.exists?/1)
     |> Enum.flat_map(fn path ->
       if String.contains?(path, "*") do
-        # Handle glob patterns
         Path.wildcard(path)
       else
-        [path]
+        if File.exists?(path) and not File.dir?(path), do: [path], else: []
       end
     end)
+    |> Enum.uniq()
   end
 
   defp audit_rule_file(file_path) do
@@ -435,13 +485,14 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
         ]
       end)
 
-    # Tool group recommendations
+    # Tool group recommendations with actionable env var hint
     recommendations =
       if group_savings["core_governance"]["savings_tokens"] > 0 do
         savings_pct = group_savings["core_governance"]["savings_percent"]
+        savings_tok = group_savings["core_governance"]["savings_tokens"]
 
         [
-          "Use tool groups ['core', 'governance'] to save #{group_savings["core_governance"]["savings_tokens"]} tokens (#{savings_pct}% reduction)"
+          "Set CK_TOOL_GROUPS=core,governance in your MCP server env to save #{savings_tok} tokens (#{savings_pct}% reduction) per session"
           | recommendations
         ]
       else
@@ -452,7 +503,7 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
     recommendations =
       if tool_count > 40 do
         [
-          "High tool count (#{tool_count}). Consider using tool groups for selective loading."
+          "High tool count (#{tool_count}). Set CK_TOOL_GROUPS=core to load only essential tools and cut schema overhead by ~80%."
           | recommendations
         ]
       else

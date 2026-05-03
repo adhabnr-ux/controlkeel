@@ -296,14 +296,22 @@ defmodule ControlKeel.MCP.Protocol do
     # process while Cursor expects tools/list under a ~20s connect budget.
     tools = base ++ [ck_skill_list_tool(), ck_skill_load_tool(), ck_skill_validate_tool()]
 
-    # Apply tool group filtering if specified
+    # Apply tool group filtering — opts take precedence over env var.
+    # :all in opts means "force all tools, bypass env var" (used by audit/measurement callers).
+    # When opts does not specify tool_groups, fall back to env var / app config.
+    effective_groups =
+      case Keyword.fetch(opts, :tool_groups) do
+        {:ok, :all} -> :all
+        {:ok, groups} -> groups
+        :error -> env_tool_groups()
+      end
+
     tools =
-      case Keyword.get(opts, :tool_groups, :all) do
+      case effective_groups do
         :all ->
           tools
 
         groups when is_list(groups) ->
-          # Collect all tool names from requested groups
           allowed_tool_names =
             groups
             |> Enum.flat_map(fn group -> Map.get(@tool_groups, group, []) end)
@@ -1227,7 +1235,9 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_budget",
       "description" =>
-        "Estimate or record the cost of an agent operation against session and daily budgets.",
+        "Estimate or record the cost of an agent operation against session and daily budgets. " <>
+          "Pass include_token_overhead: true with project_root to attach a token overhead audit " <>
+          "(rule files, skill duplicates, tool schemas) to the budget response.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["session_id"],
@@ -1243,7 +1253,17 @@ defmodule ControlKeel.MCP.Protocol do
           "output_tokens" => %{"type" => ["integer", "string"]},
           "source" => %{"type" => "string"},
           "tool" => %{"type" => "string"},
-          "metadata" => %{"type" => "object"}
+          "metadata" => %{"type" => "object"},
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to project root. Required when include_token_overhead is true."
+          },
+          "include_token_overhead" => %{
+            "type" => "boolean",
+            "description" =>
+              "When true, attach a token overhead summary (rule files, skill duplicates, tool schemas) to the response."
+          }
         }
       }
     }
@@ -1591,6 +1611,33 @@ defmodule ControlKeel.MCP.Protocol do
 
   defp mcp_stdio_mode? do
     System.get_env("CK_MCP_MODE") in ~w(1 true TRUE yes YES)
+  end
+
+  # Determines active tool groups from env var or Application config.
+  # Priority: CK_TOOL_GROUPS env var > config :controlkeel, :mcp, tool_groups: > :all
+  # Example env var: CK_TOOL_GROUPS=core,governance
+  # Example config:  config :controlkeel, :mcp, tool_groups: ["core", "governance"]
+  defp env_tool_groups do
+    case System.get_env("CK_TOOL_GROUPS") do
+      v when is_binary(v) and v != "" ->
+        groups =
+          v
+          |> String.split(",", trim: true)
+          |> Enum.map(&String.trim/1)
+          |> Enum.reject(&(&1 == ""))
+
+        if groups == [], do: app_config_tool_groups(), else: groups
+
+      _ ->
+        app_config_tool_groups()
+    end
+  end
+
+  defp app_config_tool_groups do
+    case Application.get_env(:controlkeel, :mcp, [])[:tool_groups] do
+      groups when is_list(groups) and groups != [] -> groups
+      _ -> :all
+    end
   end
 
   defp skill_names_for_ck_skill_load_enum do

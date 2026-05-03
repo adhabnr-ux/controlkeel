@@ -10,6 +10,7 @@ defmodule ControlKeel.Observability do
   alias ControlKeel.Memory
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
+  alias ControlKeel.MCP.Tools.CkTokenAudit
   alias ControlKeel.Observability.{BenchmarkDraft, EvalCandidate, ImportedEnvelope}
   alias ControlKeel.Mission.{Finding, Invocation, Session}
   alias ControlKeel.Repo
@@ -489,12 +490,14 @@ defmodule ControlKeel.Observability do
     scoped_opts = if workspace_id, do: [workspace_id: workspace_id], else: []
     problems = problems(Keyword.put(scoped_opts, :limit, 5))
     costs = costs(scoped_opts)
+    project_root = Keyword.get(opts, :project_root, File.cwd!())
 
     actions =
       []
       |> add_health_actions(overview)
       |> add_problem_actions(problems)
       |> add_cost_actions(costs)
+      |> add_token_overhead_actions(project_root)
       |> Enum.sort_by(&{priority_rank(&1.priority), &1.id})
 
     %{
@@ -2562,6 +2565,54 @@ defmodule ControlKeel.Observability do
           }
         ]
     end)
+  end
+
+  defp add_token_overhead_actions(actions, project_root) do
+    audit_result = CkTokenAudit.call(%{"mode" => "full", "project_root" => project_root})
+
+    case audit_result do
+      {:ok, audit} ->
+        rule_recs = Map.get(audit, "recommendations", [])
+        skill_recs = Map.get(audit, "skill_recommendations", [])
+        duplicate_tokens = Map.get(audit, "duplicate_token_count", 0)
+        total_words = Map.get(audit, "total_words", 0)
+        status = Map.get(audit, "status", "optimal")
+
+        actions
+        |> maybe_action(
+          status == "oversized",
+          %{
+            id: "token-rule-files-oversized",
+            title: "Reduce rule file token overhead",
+            category: "token",
+            priority: "medium",
+            source: "token_audit",
+            evidence:
+              "Rule files total #{total_words} words (target: 1200). Excess adds ~#{total_words - 1200} words of context on every request.",
+            suggested_action: Enum.join(rule_recs, " "),
+            link: "/observability",
+            human_gate_required: false
+          }
+        )
+        |> maybe_action(
+          duplicate_tokens > 0,
+          %{
+            id: "token-skill-duplicates",
+            title: "Remove duplicate skill copies",
+            category: "token",
+            priority: "medium",
+            source: "token_audit",
+            evidence:
+              "#{duplicate_tokens} tokens wasted from duplicate skills across user/project/.agents locations. MCP hosts may load all copies.",
+            suggested_action: Enum.join(Enum.take(skill_recs, 3), " "),
+            link: "/observability",
+            human_gate_required: false
+          }
+        )
+
+      _ ->
+        actions
+    end
   end
 
   defp maybe_action(actions, true, action), do: actions ++ [action]

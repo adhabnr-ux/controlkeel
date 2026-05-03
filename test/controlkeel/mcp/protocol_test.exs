@@ -99,6 +99,78 @@ defmodule ControlKeel.MCP.ProtocolTest do
            ]
   end
 
+  test "tool_schemas/1 with tool_groups: :all returns all tools bypassing env var" do
+    # Simulate CK_TOOL_GROUPS=core being set
+    System.put_env("CK_TOOL_GROUPS", "core")
+
+    on_exit(fn -> System.delete_env("CK_TOOL_GROUPS") end)
+
+    all_tools = Protocol.tool_schemas(tool_groups: :all)
+    core_tools = Protocol.tool_schemas()
+
+    assert length(all_tools) > length(core_tools)
+    all_names = Enum.map(all_tools, & &1["name"])
+    assert "ck_token_audit" in all_names
+    assert "ck_observability" in all_names
+  end
+
+  test "tool_schemas/1 with CK_TOOL_GROUPS env var filters to requested groups" do
+    System.put_env("CK_TOOL_GROUPS", "core")
+    on_exit(fn -> System.delete_env("CK_TOOL_GROUPS") end)
+
+    tools = Protocol.tool_schemas()
+    names = Enum.map(tools, & &1["name"])
+
+    assert "ck_validate" in names
+    assert "ck_context" in names
+    assert "ck_budget" in names
+    refute "ck_observability" in names
+    refute "ck_finding" in names
+  end
+
+  test "tool_schemas/1 with explicit tool_groups option overrides env var" do
+    System.put_env("CK_TOOL_GROUPS", "core")
+    on_exit(fn -> System.delete_env("CK_TOOL_GROUPS") end)
+
+    tools = Protocol.tool_schemas(tool_groups: ["governance"])
+    names = Enum.map(tools, & &1["name"])
+
+    assert "ck_finding" in names
+    assert "ck_review_submit" in names
+    refute "ck_validate" in names
+  end
+
+  test "tool_schemas/1 with Application config tool_groups filters when env var is unset" do
+    System.delete_env("CK_TOOL_GROUPS")
+    Application.put_env(:controlkeel, :mcp, tool_groups: ["git"])
+    on_exit(fn -> Application.delete_env(:controlkeel, :mcp) end)
+
+    tools = Protocol.tool_schemas()
+    names = Enum.map(tools, & &1["name"])
+
+    assert "ck_git_status" in names
+    assert "ck_git_diff" in names
+    refute "ck_validate" in names
+  end
+
+  test "ck_budget schema exposes include_token_overhead and project_root parameters" do
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 2,
+        "method" => "tools/list"
+      })
+
+    assert %{"result" => %{"tools" => tools}} = response
+    budget_tool = Enum.find(tools, &(&1["name"] == "ck_budget"))
+    assert budget_tool != nil
+
+    props = get_in(budget_tool, ["inputSchema", "properties"])
+    assert Map.has_key?(props, "include_token_overhead")
+    assert Map.has_key?(props, "project_root")
+    assert props["include_token_overhead"]["type"] == "boolean"
+  end
+
   test "tools/list schemas allow bound-project continuation for context and memory tools" do
     response =
       Protocol.handle_request(%{

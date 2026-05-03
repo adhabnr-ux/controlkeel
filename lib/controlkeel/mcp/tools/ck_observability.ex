@@ -161,13 +161,21 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
       project_root ->
         case ControlKeel.MCP.Tools.CkTokenAudit.call(%{
                "project_root" => project_root,
-               "mode" => "rules"
+               "mode" => "full"
              }) do
           {:ok, token_audit} ->
-            extra =
+            rule_recs =
               token_audit
               |> Map.get("recommendations", [])
               |> Enum.map(&"Token overhead: #{&1}")
+
+            skill_recs =
+              token_audit
+              |> Map.get("skill_recommendations", [])
+              |> Enum.take(3)
+              |> Enum.map(&"Skill overhead: #{&1}")
+
+            extra = rule_recs ++ skill_recs
 
             Map.update(base, :recommendations, extra, fn recs -> recs ++ extra end)
 

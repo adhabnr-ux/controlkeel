@@ -305,6 +305,81 @@ defmodule ControlKeel.ObservabilityTest do
            )
   end
 
+  test "recommendations/1 includes token overhead actions when project_root has oversized rule files" do
+    session = session_fixture()
+    tmp = System.tmp_dir!() |> Path.join("obs_token_test_#{:rand.uniform(999_999)}")
+    File.mkdir_p!(tmp)
+
+    on_exit(fn -> File.rm_rf!(tmp) end)
+
+    # Write an oversized AGENTS.md (>1200 words)
+    File.write!(Path.join(tmp, "AGENTS.md"), String.duplicate("word ", 1500))
+
+    recommendations =
+      Observability.recommendations(
+        workspace_id: session.workspace_id,
+        project_root: tmp
+      )
+
+    assert "token" in recommendations.categories
+
+    assert Enum.any?(
+             recommendations.actions,
+             &(&1.id == "token-rule-files-oversized")
+           )
+
+    oversized_action =
+      Enum.find(recommendations.actions, &(&1.id == "token-rule-files-oversized"))
+
+    assert oversized_action.priority == "medium"
+    assert oversized_action.category == "token"
+    assert String.contains?(oversized_action.evidence, "words")
+  end
+
+  test "recommendations/1 includes skill duplicate action when duplicates exist" do
+    session = session_fixture()
+    tmp = System.tmp_dir!() |> Path.join("obs_dup_test_#{:rand.uniform(999_999)}")
+    File.mkdir_p!(tmp)
+    on_exit(fn -> File.rm_rf!(tmp) end)
+
+    for subdir <- [".claude/skills", ".agents/skills"] do
+      skill_dir = Path.join([tmp, subdir, "test-skill"])
+      File.mkdir_p!(skill_dir)
+      File.write!(Path.join(skill_dir, "SKILL.md"), String.duplicate("word ", 200))
+    end
+
+    recommendations =
+      Observability.recommendations(
+        workspace_id: session.workspace_id,
+        project_root: tmp
+      )
+
+    assert "token" in recommendations.categories
+
+    assert Enum.any?(
+             recommendations.actions,
+             &(&1.id == "token-skill-duplicates")
+           )
+  end
+
+  test "recommendations/1 does not add rule-file token action when AGENTS.md is small" do
+    session = session_fixture()
+    tmp = System.tmp_dir!() |> Path.join("obs_clean_test_#{:rand.uniform(999_999)}")
+    File.mkdir_p!(tmp)
+    on_exit(fn -> File.rm_rf!(tmp) end)
+
+    # Write a small AGENTS.md well under the 1200-word target
+    File.write!(Path.join(tmp, "AGENTS.md"), String.duplicate("word ", 100))
+
+    recommendations =
+      Observability.recommendations(
+        workspace_id: session.workspace_id,
+        project_root: tmp
+      )
+
+    refute Enum.any?(recommendations.actions, &(&1.id == "token-rule-files-oversized"))
+  end
+
   test "eval_candidates/1 turns grouped problems into advisory backlog items" do
     session = session_fixture()
 
