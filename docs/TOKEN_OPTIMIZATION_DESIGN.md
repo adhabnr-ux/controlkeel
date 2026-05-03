@@ -36,10 +36,11 @@
 5. Group recommendations in audit output
 
 **Implemented Tool Groups:**
-- **core** (5 tools): ck_validate, ck_context, ck_execute_code, ck_budget, ck_route
-- **governance** (8 tools): ck_review_submit, ck_review_status, ck_finding, ck_goal, ck_memory_record, ck_memory_search, ck_memory_archive, ck_delegate
-- **observability** (6 tools): ck_observability, ck_experience_index, ck_experience_read, ck_experience_search, ck_trace_packet, ck_failure_clusters
-- **skills** (3 tools): ck_skill_list, ck_skill_load, ck_skill_validate
+
+- **core** (8 tools): ck_validate, ck_context, ck_context_pack, ck_execute_code, ck_budget, ck_route, ck_mcp_discover, ck_token_audit
+- **governance** (13 tools): ck_review_submit, ck_review_status, ck_review_feedback, ck_regression_result, ck_finding, ck_goal, ck_memory_record, ck_memory_search, ck_memory_archive, ck_delegate, ck_cost_optimizer, ck_deployment_advisor, ck_outcome_tracker
+- **observability** (9 tools): ck_observability, ck_experience_index, ck_experience_read, ck_experience_search, ck_trace_packet, ck_failure_clusters, ck_monitor_subscribe, ck_tool_health, ck_skill_evolution
+- **skills** (4 tools): ck_skill_list, ck_skill_load, ck_skill_validate, ck_load_resources
 - **filesystem** (4 tools): ck_fs_ls, ck_fs_read, ck_fs_find, ck_fs_grep
 - **git** (3 tools): ck_git_status, ck_git_diff, ck_git_commit
 - **checkpoints** (3 tools): ck_checkpoint_create, ck_checkpoint_restore, ck_checkpoint_list
@@ -50,10 +51,11 @@
 **Current:** 7,220 tokens per session (46 tools)
 
 **With tool groups:**
-- **core only**: 1,357 tokens (81% reduction, 5 tools)
-- **governance only**: 1,498 tokens (79% reduction, 8 tools)
-- **core + governance**: 2,855 tokens (60% reduction, 13 tools)
-- **observability only**: 1,037 tokens (86% reduction, 6 tools)
+
+- **core only**: ~1,900 tokens (74% reduction, 8 tools)
+- **governance only**: ~2,500 tokens (65% reduction, 13 tools)
+- **core + governance**: ~4,400 tokens (39% reduction, 21 tools)
+- **observability only**: ~1,700 tokens (76% reduction, 9 tools)
 
 ## Usage
 
@@ -97,7 +99,7 @@ ControlKeel.MCP.Protocol.tool_schemas(tool_groups: :all)
 
 - [x] Tool group implementation completed
 - [x] Token savings measured and verified
-- [x] No breaking changes to existing CK integrations (defaults to all tools)
+- [x] No breaking changes to existing CK integrations (default: core+governance; override with CK_TOOL_GROUPS=all)
 - [x] Backward compatible
 - [x] `ck_token_audit` updated to report tool group usage
 - [x] Works with existing CK infrastructure
