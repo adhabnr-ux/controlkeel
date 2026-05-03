@@ -211,6 +211,8 @@ Validation is the most visible part. CK also provides:
 
 **Governance for company context graphs** — as the industry moves from retrieval-based agents to synthesized "company brains," ControlKeel provides the governance layer that makes context graphs trustworthy, auditable, and portable. CK validates synthesized context, tracks proof bundles for auditability, ensures cross-host portability, and provides typed memory that captures accumulated understanding. See [docs/explaining-controlkeel.md](docs/explaining-controlkeel.md) for details.
 
+**Adaptive tool groups** — automatic tool selection optimization that learns usage patterns over time and provides 40-60% token reduction without manual configuration. Smart defaults based on project type detection, per-project preference persistence, and seamless integration across all CK paths (MCP, CLI, skills, web, hooks, plugins). See [docs/ADAPTIVE_TOOL_GROUPS.md](docs/ADAPTIVE_TOOL_GROUPS.md) for details.
+
 ---
 
 ## Local observability feedback loop
@@ -285,6 +287,7 @@ controlkeel findings
 controlkeel proofs
 controlkeel update
 controlkeel skills list
+controlkeel tool groups suggest
 controlkeel plugin install codex
 controlkeel run task <id>
 controlkeel benchmark run --suite vibe_failures_v1 --subjects controlkeel_validate
@@ -322,6 +325,7 @@ Reference:
 - [docs/qa-validation-guide.md](docs/qa-validation-guide.md)
 - [docs/support-matrix.md](docs/support-matrix.md)
 - [docs/agent-integrations.md](docs/agent-integrations.md)
+- [docs/ADAPTIVE_TOOL_GROUPS.md](docs/ADAPTIVE_TOOL_GROUPS.md)
 - [docs/autonomy-and-findings.md](docs/autonomy-and-findings.md)
 - [docs/benchmarks.md](docs/benchmarks.md)
 - [docs/benchmark-guide.md](docs/benchmark-guide.md)
