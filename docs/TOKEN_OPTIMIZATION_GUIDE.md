@@ -6,6 +6,19 @@ This guide helps you optimize token usage when using ControlKeel with AI coding 
 
 Research shows that **73% of tokens in AI coding workflows are wasted**. ControlKeel provides built-in tools and configuration to help you identify and eliminate token waste in your projects.
 
+### Automatic Optimization: Adaptive Tool Groups
+
+**ControlKeel now includes adaptive tool groups that automatically optimize token usage without manual configuration:**
+
+- **Smart defaults**: Automatically detects your project type (Elixir, Node.js, Rust, etc.) and loads only the tools you're likely to need
+- **Usage tracking**: Learns from your actual tool usage patterns over time and optimizes accordingly
+- **Zero configuration**: Works out of the box - no need to manually set `CK_TOOL_GROUPS`
+- **Per-project preferences**: Remembers your optimal tool groups per project for team consistency
+
+This automatic optimization typically reduces tool schema tokens by 40-60% without any user intervention. The manual configuration options below are still available if you need fine-grained control.
+
+See [docs/ADAPTIVE_TOOL_GROUPS.md](ADAPTIVE_TOOL_GROUPS.md) for full details on adaptive behavior.
+
 ## Quick Start
 
 ```bash

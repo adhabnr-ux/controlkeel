@@ -100,6 +100,23 @@ Bootstrap or init writes:
 
 ControlKeel registers a local MCP server using the generated project-local wrapper so the attached client can call back into the governed runtime.
 
+### Adaptive Tool Groups
+
+ControlKeel automatically learns which tools you use and optimizes tool selection without manual configuration:
+
+- **Smart defaults**: Automatically detects project type (Elixir, Node.js, Rust, etc.) and selects appropriate tool groups
+- **Usage tracking**: Learns from your actual tool usage patterns over time
+- **No configuration needed**: Works out of the box
+- **Per-project preferences**: Saved in `controlkeel/project.json` for team consistency
+
+If you ever need to customize tool groups, run:
+```bash
+controlkeel tool groups suggest
+controlkeel tool groups suggest --apply  # Save to project binding
+```
+
+See [docs/ADAPTIVE_TOOL_GROUPS.md](ADAPTIVE_TOOL_GROUPS.md) for full details.
+
 Important setup rule:
 
 - agent install scope can be user/global for some clients
