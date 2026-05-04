@@ -113,7 +113,8 @@ defmodule ControlKeel.Application do
         {Phoenix.PubSub, name: ControlKeel.PubSub},
         ControlKeel.Skills.Activation,
         ControlKeel.Memory.Store.Sqlite,
-        ControlKeel.RemoteMonitoring
+        ControlKeel.RemoteMonitoring,
+        ControlKeel.MCP.ToolGroupTracker
       ]
   end
 

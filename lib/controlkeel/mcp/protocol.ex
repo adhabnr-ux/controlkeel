@@ -1699,17 +1699,21 @@ defmodule ControlKeel.MCP.Protocol do
     end
   end
 
-  # Adaptive tool group selection based on project usage patterns
+  # Adaptive tool group selection based on project usage patterns.
+  # Wrapped in safe calls because the MCP server starts before the deferred
+  # boot task finishes starting Repo, ToolGroupTracker, etc.  A tools/list
+  # request that arrives during that window must fall through to
+  # smart_default_groups/1 instead of crashing the GenServer.
   defp adaptive_tool_groups(project_root) do
     # First, check if project has explicit tool group preferences
-    case ControlKeel.ProjectBinding.get_tool_groups(project_root) do
+    case safe_get_project_tool_groups(project_root) do
       groups when is_list(groups) ->
         # Use project's explicit preference
         groups
 
       _ ->
         # No explicit preference, check usage data
-        case ControlKeel.MCP.ToolGroupTracker.suggest_groups(project_root) do
+        case safe_suggest_groups(project_root) do
           %{suggested: groups} when length(groups) > 2 ->
             # We have meaningful usage data, use suggested groups
             groups
@@ -1719,6 +1723,18 @@ defmodule ControlKeel.MCP.Protocol do
             smart_default_groups(project_root)
         end
     end
+  end
+
+  defp safe_get_project_tool_groups(project_root) do
+    ControlKeel.ProjectBinding.get_tool_groups(project_root)
+  catch
+    :exit, _ -> nil
+  end
+
+  defp safe_suggest_groups(project_root) do
+    ControlKeel.MCP.ToolGroupTracker.suggest_groups(project_root)
+  catch
+    :exit, _ -> nil
   end
 
   # Smart default groups based on project characteristics
