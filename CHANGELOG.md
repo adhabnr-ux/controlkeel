@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.16 — 2026-05-04
+
+### What's changed
+
+- feat(mcp): enrich tool and property descriptions for Glama TDQS score
+- docs: add controlkeel MCP server badge to README
+
 ## v0.3.15 — 2026-05-04
 
 ### What's changed
