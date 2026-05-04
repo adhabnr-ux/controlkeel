@@ -444,20 +444,56 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_validate",
       "description" =>
-        "Validate proposed code, config, shell, or text content before execution, including trust-boundary checks for untrusted instructions and high-impact actions.",
+        "Validate proposed code, config, shell commands, or text against CK policy before execution. Read-only — no changes are applied to the project. Returns a validation result with any policy violations as findings. " <>
+          "content is required. kind classifies the artifact (code/config/shell/text) for policy routing. " <>
+          "source_type identifies the content's origin (developer, tool_output, human_review, issue, pull_request, web) for trust-boundary checks; untrusted sources receive stricter scrutiny. " <>
+          "domain_pack applies a domain-specific policy pack (e.g., hipaa, owasp). " <>
+          "requested_capabilities declares what the content needs (network, filesystem, shell, deploy) so the trust boundary can evaluate the request. " <>
+          "Call ck_validate before writing files, running shell commands, or executing generated code. If validation returns blocked findings, do not proceed — use ck_finding to record them.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["content"],
         "properties" => %{
-          "content" => %{"type" => "string", "description" => "The content to validate or process: source code, config text, shell command, or freeform text."},
-          "path" => %{"type" => "string", "description" => "File or directory path relative to the project root."},
-          "kind" => %{"type" => "string", "enum" => ["code", "config", "shell", "text"], "description" => "Artifact kind classification for validation routing."},
-          "domain_pack" => %{"type" => "string", "enum" => Domains.supported_packs(), "description" => "Domain-specific policy pack to apply during validation."},
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
-          "source_type" => %{"type" => "string", "enum" => TrustBoundary.source_types(), "description" => "Origin category of the record (e.g., developer, tool_output, human_review)."},
+          "content" => %{
+            "type" => "string",
+            "description" =>
+              "The content to validate or process: source code, config text, shell command, or freeform text."
+          },
+          "path" => %{
+            "type" => "string",
+            "description" => "File or directory path relative to the project root."
+          },
+          "kind" => %{
+            "type" => "string",
+            "enum" => ["code", "config", "shell", "text"],
+            "description" => "Artifact kind classification for validation routing."
+          },
+          "domain_pack" => %{
+            "type" => "string",
+            "enum" => Domains.supported_packs(),
+            "description" => "Domain-specific policy pack to apply during validation."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
+          "source_type" => %{
+            "type" => "string",
+            "enum" => TrustBoundary.source_types(),
+            "description" =>
+              "Origin category of the record (e.g., developer, tool_output, human_review)."
+          },
           "trust_level" => %{"type" => "string", "enum" => TrustBoundary.trust_levels()},
-          "intended_use" => %{"type" => "string", "enum" => TrustBoundary.intended_uses(), "description" => "How the validated content will be used after validation."},
+          "intended_use" => %{
+            "type" => "string",
+            "enum" => TrustBoundary.intended_uses(),
+            "description" => "How the validated content will be used after validation."
+          },
           "security_workflow_phase" => %{
             "type" => "string",
             "enum" => CkValidate.workflow_phase_values(),
@@ -472,12 +508,17 @@ defmodule ControlKeel.MCP.Protocol do
           },
           "target_scope" => %{
             "type" => "string",
-            "enum" => SecurityWorkflow.target_scopes(), "description" => "Deployment scope of the artifact being validated."},
+            "enum" => SecurityWorkflow.target_scopes(),
+            "description" => "Deployment scope of the artifact being validated."
+          },
           "requested_capabilities" => %{
             "type" => "array",
-            "items" => %{"type" => "string", "enum" => TrustBoundary.capabilities(),
-  "description" => "Capabilities the content intends to exercise, used for trust-boundary checks."
-}
+            "items" => %{
+              "type" => "string",
+              "enum" => TrustBoundary.capabilities(),
+              "description" =>
+                "Capabilities the content intends to exercise, used for trust-boundary checks."
+            }
           }
         }
       }
@@ -508,12 +549,24 @@ defmodule ControlKeel.MCP.Protocol do
             "description" =>
               "Execution sandbox. Local host execution is intentionally unsupported."
           },
-          "dry_run" => %{"type" => "boolean", "description" => "When true, validate and plan without executing the actual operation."},
-          "timeout_ms" => %{"type" => ["integer", "string"], "description" => "Timeout in milliseconds."},
-          "max_output_bytes" => %{"type" => ["integer", "string"], "description" => "Maximum size in bytes for captured output."},
+          "dry_run" => %{
+            "type" => "boolean",
+            "description" =>
+              "When true, validate and plan without executing the actual operation."
+          },
+          "timeout_ms" => %{
+            "type" => ["integer", "string"],
+            "description" => "Timeout in milliseconds."
+          },
+          "max_output_bytes" => %{
+            "type" => ["integer", "string"],
+            "description" => "Maximum size in bytes for captured output."
+          },
           "risk_tier" => %{
             "type" => "string",
-            "enum" => ["low", "medium", "moderate", "high", "critical"], "description" => "Security sensitivity of the task. Default: medium."},
+            "enum" => ["low", "medium", "moderate", "high", "critical"],
+            "description" => "Security sensitivity of the task. Default: medium."
+          },
           "requested_capabilities" => %{
             "type" => "array",
             "items" => %{
@@ -531,17 +584,25 @@ defmodule ControlKeel.MCP.Protocol do
           },
           "network_allowlist" => %{
             "type" => "array",
-            "items" => %{"type" => "string",
-  "description" => "List of hostnames or URLs the sandbox is permitted to access."
-}
+            "items" => %{
+              "type" => "string",
+              "description" => "List of hostnames or URLs the sandbox is permitted to access."
+            }
           },
           "allowed_env_vars" => %{
             "type" => "array",
-            "items" => %{"type" => "string", "description" => "Host environment variable names to expose inside the sandbox."},
+            "items" => %{
+              "type" => "string",
+              "description" => "Host environment variable names to expose inside the sandbox."
+            },
             "description" =>
               "List of environment variable names to expose from the host environment into the sandbox. Explicit env vars take precedence over host env vars. If empty, no host environment variables are exposed."
           },
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
           "task_id" => %{"type" => ["integer", "string"]}
         }
       }
@@ -552,14 +613,29 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_context",
       "description" =>
-        "Fetch current mission state, governed findings, budget, proof summary, planning context, workspace snapshot, reacquisition/drift signals, recent transcript events, resume context, and ControlKeel instruction hierarchy for a session.",
+        "Fetch the full governed session state: mission, budget, active findings, proof summary, planning context, workspace snapshot, drift signals, recent transcript events, resume packet, and ControlKeel instruction hierarchy. Read-only. " <>
+          "detail_level compact (default) returns a token-efficient summary; use full only when raw workspace, resume, or transcript payloads are required. " <>
+          "session_id defaults to the active bound session; pass project_root to resolve it automatically. " <>
+          "Call ck_context at the start of every task to reacquire state. " <>
+          "Prefer ck_context_pack when you need a focused, citation-enriched bundle for a specific retrieval query rather than the full session snapshot.",
       "inputSchema" => %{
         "type" => "object",
         "required" => [],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
           "detail_level" => %{
             "type" => "string",
             "enum" => ["compact", "full"],
@@ -575,20 +651,38 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_context_pack",
       "description" =>
-        "Build a compact factual context bundle for the current session/task by combining task facts, proof state, resume highlights, memory excerpts, and citations into one agent-ready pack.",
+        "Build a compact, citation-enriched context bundle for the current session and task by combining task facts, proof state, resume highlights, and ranked memory excerpts. Read-only. " <>
+          "query is an optional retrieval query; when omitted, ControlKeel synthesizes one from the current task title and session context. " <>
+          "top_k controls how many memory hits to include (default 5). detail_level compact (default) keeps the bundle token-efficient. " <>
+          "Prefer ck_context_pack over ck_context when you need a focused, query-driven bundle for a specific sub-task rather than the full session snapshot. " <>
+          "Use ck_context at the start of a session for full mission state; use ck_context_pack mid-task to fetch targeted prior knowledge.",
       "inputSchema" => %{
         "type" => "object",
         "required" => [],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
           "query" => %{
             "type" => "string",
             "description" =>
               "Optional explicit retrieval query. When omitted, ControlKeel synthesizes one from the current task and session."
           },
-          "top_k" => %{"type" => ["integer", "string"], "description" => "Maximum number of top-ranked results to return."},
+          "top_k" => %{
+            "type" => ["integer", "string"],
+            "description" => "Maximum number of top-ranked results to return."
+          },
           "detail_level" => %{"type" => "string", "enum" => ["compact", "full"]}
         }
       }
@@ -614,12 +708,32 @@ defmodule ControlKeel.MCP.Protocol do
             "enum" => CkObservability.reports(),
             "description" => "Compatibility alias for report."
           },
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "workspace_id" => %{"type" => ["integer", "string"], "description" => "Workspace identifier for cross-session scope."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "limit" => %{"type" => ["integer", "string"], "description" => "Maximum number of results to return."},
-          "days" => %{"type" => ["integer", "string"], "description" => "Number of days to look back for trend analysis."},
-          "stale_days" => %{"type" => ["integer", "string"], "description" => "Threshold in days for marking entries as stale."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "workspace_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Workspace identifier for cross-session scope."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Maximum number of results to return."
+          },
+          "days" => %{
+            "type" => ["integer", "string"],
+            "description" => "Number of days to look back for trend analysis."
+          },
+          "stale_days" => %{
+            "type" => ["integer", "string"],
+            "description" => "Threshold in days for marking entries as stale."
+          },
           "by" => %{"type" => "string", "enum" => ["model", "tool", "source", "provider"]}
         }
       }
@@ -637,10 +751,24 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => [],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "session_limit" => %{"type" => ["integer", "string"], "description" => "Maximum number of sessions to analyze."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "same_domain_only" => %{"type" => "boolean", "description" => "When true, restrict results to sessions in the same domain."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "session_limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Maximum number of sessions to analyze."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "same_domain_only" => %{
+            "type" => "boolean",
+            "description" => "When true, restrict results to sessions in the same domain."
+          },
           "query" => %{
             "type" => "string",
             "description" =>
@@ -661,10 +789,24 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => ["artifact_type"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "source_session_id" => %{"type" => ["integer", "string"], "description" => "Session ID of the prior run to read artifacts from."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "source_session_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Session ID of the prior run to read artifacts from."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
           "artifact_type" => %{
             "type" => "string",
             "enum" => ["session_summary", "audit_log", "trace_packet", "proof_summary"]
@@ -683,8 +825,16 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => ["query"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
           "query" => %{
             "type" => "string",
             "description" =>
@@ -702,21 +852,52 @@ defmodule ControlKeel.MCP.Protocol do
   def ck_finding_tool do
     %{
       "name" => "ck_finding",
-      "description" => "Persist a governed finding with a ruling decision (allow, warn, block, escalate_to_human). Findings are the core audit trail in ControlKeel: every validation, policy check, or human review produces a finding. Returns the finding ID and ruling state. Use ck_finding to record security issues, compliance violations, or policy breaches during agent sessions. Write-only and idempotent for the same rule_id within a session.",
+      "description" =>
+        "Persist a governed finding with a ruling decision (allow, warn, block, escalate_to_human). " <>
+          "Findings are the durable audit trail in ControlKeel: every policy check, validation failure, or human review should produce a finding. " <>
+          "Write operation — creates or updates a DB record. Idempotent for the same rule_id within a session. " <>
+          "Returns the finding ID, status, and ruling state. " <>
+          "Required fields: session_id, category (e.g., security/compliance/performance), severity (critical/high/medium/low), rule_id (dotted policy identifier such as CK-SEC-001), and plain_message. " <>
+          "decision defaults to block; use allow for approved exceptions. " <>
+          "Use ck_finding to record issues discovered during agent work; use ck_memory_record for general knowledge or decisions not tied to a policy rule.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["session_id", "category", "severity", "rule_id", "plain_message"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
-          "category" => %{"type" => "string", "description" => "Finding category (e.g., security, compliance, performance)."},
-          "severity" => %{"type" => "string", "description" => "Severity level (e.g., critical, high, medium, low)."},
-          "rule_id" => %{"type" => "string", "description" => "Policy rule identifier that triggered this finding."},
-          "plain_message" => %{"type" => "string", "description" => "Human-readable finding description."},
-          "title" => %{"type" => "string", "description" => "Human-readable title for display and search."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
+          "category" => %{
+            "type" => "string",
+            "description" => "Finding category (e.g., security, compliance, performance)."
+          },
+          "severity" => %{
+            "type" => "string",
+            "description" => "Severity level (e.g., critical, high, medium, low)."
+          },
+          "rule_id" => %{
+            "type" => "string",
+            "description" => "Policy rule identifier that triggered this finding."
+          },
+          "plain_message" => %{
+            "type" => "string",
+            "description" => "Human-readable finding description."
+          },
+          "title" => %{
+            "type" => "string",
+            "description" => "Human-readable title for display and search."
+          },
           "decision" => %{
             "type" => "string",
-            "enum" => ["allow", "warn", "block", "escalate_to_human"], "description" => "Governance decision: allow, warn, block, or escalate to human."},
+            "enum" => ["allow", "warn", "block", "escalate_to_human"],
+            "description" => "Governance decision: allow, warn, block, or escalate to human."
+          },
           "metadata" => %{"type" => "object"}
         }
       }
@@ -732,9 +913,20 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => [],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
           "events_limit" => %{"type" => ["integer", "string"]}
         }
       }
@@ -750,9 +942,20 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => [],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "session_limit" => %{"type" => ["integer", "string"], "description" => "Maximum number of sessions to analyze."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "session_limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Maximum number of sessions to analyze."
+          },
           "same_domain_only" => %{"type" => "boolean"}
         }
       }
@@ -768,8 +971,16 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => [],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
           "session_limit" => %{
             "type" => ["integer", "string"],
             "description" => "Number of recent sessions to analyze. Defaults to 10."
@@ -788,11 +999,28 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => [],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "session_limit" => %{"type" => ["integer", "string"], "description" => "Maximum number of sessions to analyze."},
-          "same_domain_only" => %{"type" => "boolean", "description" => "When true, restrict results to sessions in the same domain."},
-          "current_skill_name" => %{"type" => "string", "description" => "Name of the existing skill to compare against for evolution."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "session_limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Maximum number of sessions to analyze."
+          },
+          "same_domain_only" => %{
+            "type" => "boolean",
+            "description" => "When true, restrict results to sessions in the same domain."
+          },
+          "current_skill_name" => %{
+            "type" => "string",
+            "description" => "Name of the existing skill to compare against for evolution."
+          },
           "current_skill_content" => %{"type" => "string"}
         }
       }
@@ -803,13 +1031,23 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_fs_ls",
       "description" =>
-        "List files and directories inside the bound project root through a read-only virtual workspace surface.",
+        "List files and directories inside the bound project root. Read-only — no files are modified. " <>
+          "path is a relative directory path to list; omit to list the project root. " <>
+          "Use ck_fs_ls to browse directory structure. Use ck_fs_find to locate files by name fragment. Use ck_fs_read to read a specific file. Use ck_fs_grep to search file contents.",
       "inputSchema" => %{
         "type" => "object",
         "required" => [],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
           "path" => %{"type" => "string"}
         }
       }
@@ -820,15 +1058,32 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_fs_read",
       "description" =>
-        "Read a file from the bound project root through the read-only virtual workspace without using a sandbox.",
+        "Read a file from the bound project root. Read-only — no files are modified or created. " <>
+          "path is required and must be relative to the project root (e.g., lib/my_module.ex). " <>
+          "start_line (1-indexed) and max_lines enable windowed reads for large files. Omit both to read the entire file. " <>
+          "Use ck_fs_read to inspect a file at a known path. Use ck_fs_find to locate a file by name fragment. Use ck_fs_grep to search inside files by content pattern. Use ck_fs_ls to list directory contents.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["path"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "path" => %{"type" => "string", "description" => "File or directory path relative to the project root."},
-          "start_line" => %{"type" => ["integer", "string"], "description" => "1-indexed starting line number for partial file reads."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "path" => %{
+            "type" => "string",
+            "description" => "File or directory path relative to the project root."
+          },
+          "start_line" => %{
+            "type" => ["integer", "string"],
+            "description" => "1-indexed starting line number for partial file reads."
+          },
           "max_lines" => %{"type" => ["integer", "string"]}
         }
       }
@@ -839,15 +1094,33 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_fs_find",
       "description" =>
-        "Find files or directories by path fragment inside the bound project root through the read-only virtual workspace.",
+        "Find files or directories whose path contains a given fragment, searching within the bound project root. Read-only — no files are modified. " <>
+          "query is the path fragment or glob pattern to match against file and directory names. " <>
+          "path scopes the search to a subdirectory (relative to project root); omit to search the entire project. " <>
+          "limit caps the number of results (default 50). " <>
+          "Use ck_fs_find to locate files by name or path. Use ck_fs_grep to search by file content. Use ck_fs_read to read a file at a known path.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["query"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "path" => %{"type" => "string", "description" => "File or directory path relative to the project root."},
-          "query" => %{"type" => "string", "description" => "Search query string for filtering or full-text search."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "path" => %{
+            "type" => "string",
+            "description" => "File or directory path relative to the project root."
+          },
+          "query" => %{
+            "type" => "string",
+            "description" => "Search query string for filtering or full-text search."
+          },
           "limit" => %{"type" => ["integer", "string"]}
         }
       }
@@ -858,17 +1131,41 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_fs_grep",
       "description" =>
-        "Search file contents inside the bound project root through the read-only virtual workspace using grep-style semantics.",
+        "Search file contents inside the bound project root using grep-style pattern matching. Read-only — no files are modified. " <>
+          "query is a regex pattern by default; set fixed_strings: true to match literal text without regex. " <>
+          "Scope the search with path (a relative directory or glob); omit to search the entire project. " <>
+          "Returns matching lines with file path and line numbers. limit caps results (default 50). " <>
+          "Use ck_fs_grep to find code patterns or strings inside files. Use ck_fs_find to locate files by name fragment. Use ck_fs_read to read a specific file by path.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["query"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "path" => %{"type" => "string", "description" => "File or directory path relative to the project root."},
-          "query" => %{"type" => "string", "description" => "Search query string for filtering or full-text search."},
-          "limit" => %{"type" => ["integer", "string"], "description" => "Maximum number of results to return."},
-          "ignore_case" => %{"type" => "boolean", "description" => "When true, perform case-insensitive matching."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "path" => %{
+            "type" => "string",
+            "description" => "File or directory path relative to the project root."
+          },
+          "query" => %{
+            "type" => "string",
+            "description" => "Search query string for filtering or full-text search."
+          },
+          "limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Maximum number of results to return."
+          },
+          "ignore_case" => %{
+            "type" => "boolean",
+            "description" => "When true, perform case-insensitive matching."
+          },
           "fixed_strings" => %{"type" => "boolean"}
         }
       }
@@ -899,7 +1196,11 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => ["worktree_path"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
           "worktree_path" => %{"type" => "string"}
         }
       }
@@ -915,12 +1216,24 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => ["task_id"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
           "type" => %{
             "type" => "string",
-            "enum" => ["workspace_snapshot", "git_state", "dependency_state", "task_milestone"], "description" => "Type classification for the operation."},
-          "summary" => %{"type" => "string", "description" => "Brief human-readable summary of the record."},
+            "enum" => ["workspace_snapshot", "git_state", "dependency_state", "task_milestone"],
+            "description" => "Type classification for the operation."
+          },
+          "summary" => %{
+            "type" => "string",
+            "description" => "Brief human-readable summary of the record."
+          },
           "created_by" => %{"type" => "string"}
         }
       }
@@ -936,8 +1249,15 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => ["checkpoint_id"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "checkpoint_id" => %{"type" => ["integer", "string"], "description" => "Unique identifier of the checkpoint to restore."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "checkpoint_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Unique identifier of the checkpoint to restore."
+          },
           "strict" => %{"type" => "boolean"}
         }
       }
@@ -952,10 +1272,16 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => [],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
           "type" => %{
             "type" => "string",
-            "enum" => ["workspace_snapshot", "git_state", "dependency_state", "task_milestone"], "description" => "Type classification for the operation."},
+            "enum" => ["workspace_snapshot", "git_state", "dependency_state", "task_milestone"],
+            "description" => "Type classification for the operation."
+          },
           "limit" => %{"type" => ["integer", "string"]}
         }
       }
@@ -966,14 +1292,27 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_git_diff",
       "description" =>
-        "Generate a git diff between two refs and run CK validation on the diff for governed review.",
+        "Generate a git diff between two refs and run CK validation on the resulting diff. Read-only — no commits are created. " <>
+          "base_ref and head_ref are git refs (branch names, commit SHAs, or tags); omit both to diff staged changes against HEAD. " <>
+          "Returns the diff text and any CK validation findings raised against it. " <>
+          "Use ck_git_diff to review changes before committing or submitting a review. Use ck_git_status for a summary without the full diff. Use ck_git_commit to create the commit after reviewing.",
       "inputSchema" => %{
         "type" => "object",
         "required" => [],
         "properties" => %{
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "base_ref" => %{"type" => "string", "description" => "Base git ref (commit, branch, or tag) for the diff."},
-          "head_ref" => %{"type" => "string", "description" => "Head git ref (commit, branch, or tag) for the diff."},
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "base_ref" => %{
+            "type" => "string",
+            "description" => "Base git ref (commit, branch, or tag) for the diff."
+          },
+          "head_ref" => %{
+            "type" => "string",
+            "description" => "Head git ref (commit, branch, or tag) for the diff."
+          },
           "session_id" => %{"type" => ["integer", "string"]}
         }
       }
@@ -984,12 +1323,21 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_git_commit",
       "description" =>
-        "Validate a commit message through CK and execute git commit if validation passes and no findings are blocked.",
+        "Validate a commit message against CK governance policy and execute git commit if validation passes and no findings are blocked. " <>
+          "Write operation — creates a git commit in the repository when validation succeeds. " <>
+          "Returns validation result, any blocked findings, and the commit SHA on success. " <>
+          "If blocked findings exist, the commit is not created and the findings are returned for remediation. " <>
+          "Use ck_git_status first to confirm governance state, then ck_git_commit to create the commit. " <>
+          "Does not push to remote — use git push separately after commit.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["message"],
         "properties" => %{
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
           "message" => %{"type" => "string", "description" => "Commit message text."},
           "session_id" => %{"type" => ["integer", "string"]}
         }
@@ -1001,12 +1349,16 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_git_status",
       "description" =>
-        "Get git working tree status correlated with CK governance findings for the current session. Returns staged, unstaged, and untracked files alongside any related findings from ck_validate or ck_review_submit. Use before commits to verify governance state. Read-only and side-effect free.",
+        "Get git working tree status correlated with CK governance findings for the current session. Returns staged, unstaged, and untracked files alongside any blocked or open findings from ck_validate or ck_review_submit. Read-only and side-effect free — no findings are created or modified. Use before ck_git_commit to verify governance state. Prefer ck_git_diff when you need the actual diff content; prefer ck_git_commit when ready to commit.",
       "inputSchema" => %{
         "type" => "object",
         "required" => [],
         "properties" => %{
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
           "session_id" => %{"type" => ["integer", "string"]}
         }
       }
@@ -1022,11 +1374,21 @@ defmodule ControlKeel.MCP.Protocol do
         "type" => "object",
         "required" => ["subscriber_url"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "subscriber_url" => %{"type" => "string", "description" => "Webhook URL that will receive session event notifications."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "subscriber_url" => %{
+            "type" => "string",
+            "description" => "Webhook URL that will receive session event notifications."
+          },
           "event_types" => %{
             "type" => "array",
-            "items" => %{"type" => "string", "description" => "Event type filters for the subscription."},
+            "items" => %{
+              "type" => "string",
+              "description" => "Event type filters for the subscription."
+            },
             "description" =>
               "Array of event types to subscribe to. Omit for all events. Examples: task_started, task_completed, finding_created"
           }
@@ -1039,21 +1401,61 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_review_submit",
       "description" =>
-        "Submit a governed plan, diff, or completion packet for browser review and execution gating, including recursive plan-refinement metadata for larger tasks.",
+        "Submit a governed plan, diff, or completion packet for human review and execution gating. Write operation — creates a review record and returns a review_id and browser URL. " <>
+          "review_type controls what is being submitted: plan (before implementation), diff (before merging), or completion (task done). " <>
+          "submission_body is the full content: plan text, diff, or completion description. " <>
+          "For iterative plan refinement, pass previous_review_id and plan_phase (ticket → research_packet → design_options → narrowed_decision → implementation_plan → code_backed_plan). " <>
+          "Returns review_id, status (pending), and a URL where the human reviewer can approve or deny. " <>
+          "After submission, poll ck_review_status until the decision is approved or denied before proceeding. " <>
+          "Use ck_review_feedback (human-facing) to record a decision on an existing review.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["submission_body"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
-          "title" => %{"type" => "string", "description" => "Human-readable title for display and search."},
-          "review_type" => %{"type" => "string", "enum" => ["plan", "diff", "completion"], "description" => "Type of review being submitted or queried (plan, diff, or completion)."},
-          "submission_body" => %{"type" => "string", "description" => "Full submission content: plan text, diff, or completion description."},
-          "annotations" => %{"type" => "object", "description" => "Structured key-value annotations for machine-readable metadata."},
-          "feedback_notes" => %{"type" => "string", "description" => "Freeform feedback notes from the reviewer."},
-          "submitted_by" => %{"type" => "string", "description" => "Identity of the submitter for audit trail."},
-          "metadata" => %{"type" => "object", "description" => "Arbitrary key-value metadata for extensibility and audit context."},
-          "previous_review_id" => %{"type" => ["integer", "string"], "description" => "Reference to a prior review for iterative refinement."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
+          "title" => %{
+            "type" => "string",
+            "description" => "Human-readable title for display and search."
+          },
+          "review_type" => %{
+            "type" => "string",
+            "enum" => ["plan", "diff", "completion"],
+            "description" =>
+              "Type of review being submitted or queried (plan, diff, or completion)."
+          },
+          "submission_body" => %{
+            "type" => "string",
+            "description" =>
+              "Full submission content: plan text, diff, or completion description."
+          },
+          "annotations" => %{
+            "type" => "object",
+            "description" => "Structured key-value annotations for machine-readable metadata."
+          },
+          "feedback_notes" => %{
+            "type" => "string",
+            "description" => "Freeform feedback notes from the reviewer."
+          },
+          "submitted_by" => %{
+            "type" => "string",
+            "description" => "Identity of the submitter for audit trail."
+          },
+          "metadata" => %{
+            "type" => "object",
+            "description" => "Arbitrary key-value metadata for extensibility and audit context."
+          },
+          "previous_review_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Reference to a prior review for iterative refinement."
+          },
           "plan_phase" => %{
             "type" => "string",
             "enum" => [
@@ -1063,14 +1465,25 @@ defmodule ControlKeel.MCP.Protocol do
               "narrowed_decision",
               "implementation_plan",
               "code_backed_plan"
-            ], "description" => "Current phase of plan refinement."},
-          "research_summary" => %{"type" => "string", "description" => "Summary of research performed before this submission."},
+            ],
+            "description" => "Current phase of plan refinement."
+          },
+          "research_summary" => %{
+            "type" => "string",
+            "description" => "Summary of research performed before this submission."
+          },
           "codebase_findings" => %{"type" => "array", "items" => %{"type" => "string"}},
-          "prior_art_summary" => %{"type" => "string", "description" => "Summary of prior attempts or related work."},
+          "prior_art_summary" => %{
+            "type" => "string",
+            "description" => "Summary of prior attempts or related work."
+          },
           "alignment_context" => %{"type" => "array", "items" => %{"type" => "string"}},
           "consulted_roles" => %{"type" => "array", "items" => %{"type" => "string"}},
           "options_considered" => %{"type" => "array", "items" => %{"type" => "string"}},
-          "selected_option" => %{"type" => "string", "description" => "The chosen approach with rationale."},
+          "selected_option" => %{
+            "type" => "string",
+            "description" => "The chosen approach with rationale."
+          },
           "rejected_options" => %{"type" => "array", "items" => %{"type" => "string"}},
           "implementation_steps" => %{"type" => "array", "items" => %{"type" => "string"}},
           "validation_plan" => %{"type" => "array", "items" => %{"type" => "string"}},
@@ -1078,7 +1491,10 @@ defmodule ControlKeel.MCP.Protocol do
           "scope_estimate" => %{
             "type" => "object",
             "properties" => %{
-              "files_touched_estimate" => %{"type" => ["integer", "string"], "description" => "Estimated scope of the change."},
+              "files_touched_estimate" => %{
+                "type" => ["integer", "string"],
+                "description" => "Estimated scope of the change."
+              },
               "diff_size_estimate" => %{"type" => ["integer", "string"]},
               "architectural_scope" => %{"type" => "boolean"}
             }
@@ -1091,12 +1507,22 @@ defmodule ControlKeel.MCP.Protocol do
   def ck_review_status_tool do
     %{
       "name" => "ck_review_status",
-      "description" => "Fetch the latest status, notes, and browser URL for a submitted review.",
+      "description" =>
+        "Fetch the latest decision status (pending/approved/denied), reviewer notes, and browser review URL for a previously submitted review. Read-only. " <>
+          "Provide review_id (returned by ck_review_submit) for a specific review, or task_id to get the latest review for that task. " <>
+          "review_type (plan/diff/completion) filters when task_id is used without review_id. " <>
+          "Poll this after ck_review_submit to check whether a human has approved or denied the submission before proceeding with execution.",
       "inputSchema" => %{
         "type" => "object",
         "properties" => %{
-          "review_id" => %{"type" => ["integer", "string"], "description" => "Unique identifier of the review to query or act on."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
+          "review_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Unique identifier of the review to query or act on."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
           "review_type" => %{"type" => "string", "enum" => ["plan", "diff", "completion"]}
         }
       }
@@ -1106,15 +1532,33 @@ defmodule ControlKeel.MCP.Protocol do
   def ck_review_feedback_tool do
     %{
       "name" => "ck_review_feedback",
-      "description" => "Approve or deny a submitted review and attach feedback or annotations.",
+      "description" =>
+        "Approve or deny a submitted review and attach feedback notes or structured annotations. Write operation — updates the review record and unblocks or halts the execution gate. " <>
+          "review_id (required) is the ID returned by ck_review_submit. decision must be approved or denied. " <>
+          "feedback_notes is freeform text for the reviewer's rationale. annotations is a key-value object for machine-readable metadata. " <>
+          "This tool is human-facing: agents call ck_review_submit to create a review, then a human (or authorized agent) calls ck_review_feedback to record the decision. " <>
+          "After approval, the submitting agent can proceed with execution; after denial, the plan should be revised and resubmitted.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["review_id", "decision"],
         "properties" => %{
-          "review_id" => %{"type" => ["integer", "string"], "description" => "Unique identifier of the review to query or act on."},
-          "decision" => %{"type" => "string", "enum" => ["approved", "denied"], "description" => "Governance decision: allow, warn, block, or escalate to human."},
-          "feedback_notes" => %{"type" => "string", "description" => "Freeform feedback notes from the reviewer."},
-          "annotations" => %{"type" => "object", "description" => "Structured key-value annotations for machine-readable metadata."},
+          "review_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Unique identifier of the review to query or act on."
+          },
+          "decision" => %{
+            "type" => "string",
+            "enum" => ["approved", "denied"],
+            "description" => "Governance decision: allow, warn, block, or escalate to human."
+          },
+          "feedback_notes" => %{
+            "type" => "string",
+            "description" => "Freeform feedback notes from the reviewer."
+          },
+          "annotations" => %{
+            "type" => "object",
+            "description" => "Structured key-value annotations for machine-readable metadata."
+          },
           "reviewed_by" => %{"type" => "string"}
         }
       }
@@ -1125,23 +1569,58 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_regression_result",
       "description" =>
-        "Record external regression-test evidence from CI/CD systems such as Bug0, Passmark, or custom test runners so proof bundles and release readiness can account for external validation. Requires the test engine name, flow identifier, and outcome. Returns the recorded result ID. Write-only; use ck_memory_search to retrieve past results.",
+        "Record external regression-test evidence from CI/CD systems (Bug0, Passmark, custom runners) so proof bundles and release-readiness checks account for external validation. " <>
+          "Write operation — creates a DB record. Returns the recorded result ID. " <>
+          "Required: session_id, engine (name of the test system), flow_name (test suite or flow identifier), outcome (passed/failed/flaky/skipped). " <>
+          "Optional: commit_sha to link results to a specific revision, environment (ci/staging/production), external_run_id for cross-referencing the originating system, evidence for a structured payload. " <>
+          "Use after an external test run to close the proof loop before calling ck_review_submit for a completion review. " <>
+          "Retrieve past results with ck_memory_search using record_type: regression.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["session_id", "engine", "flow_name", "outcome"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
-          "engine" => %{"type" => "string", "description" => "Name of the external regression test engine (e.g., Bug0, Passmark)."},
-          "flow_name" => %{"type" => "string", "description" => "Name of the regression test flow or test suite."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
+          "engine" => %{
+            "type" => "string",
+            "description" => "Name of the external regression test engine (e.g., Bug0, Passmark)."
+          },
+          "flow_name" => %{
+            "type" => "string",
+            "description" => "Name of the regression test flow or test suite."
+          },
           "outcome" => %{
             "type" => "string",
-            "enum" => ["passed", "failed", "flaky", "skipped"], "description" => "Result classification of the operation."},
-          "summary" => %{"type" => "string", "description" => "Brief human-readable summary of the record."},
-          "environment" => %{"type" => "string", "description" => "Execution environment label (e.g., production, staging, ci)."},
-          "commit_sha" => %{"type" => "string", "description" => "Git commit SHA associated with the test run."},
-          "external_run_id" => %{"type" => "string", "description" => "External system run identifier for cross-referencing."},
-          "evidence" => %{"type" => "object", "description" => "Structured evidence payload from the external system."},
+            "enum" => ["passed", "failed", "flaky", "skipped"],
+            "description" => "Result classification of the operation."
+          },
+          "summary" => %{
+            "type" => "string",
+            "description" => "Brief human-readable summary of the record."
+          },
+          "environment" => %{
+            "type" => "string",
+            "description" => "Execution environment label (e.g., production, staging, ci)."
+          },
+          "commit_sha" => %{
+            "type" => "string",
+            "description" => "Git commit SHA associated with the test run."
+          },
+          "external_run_id" => %{
+            "type" => "string",
+            "description" => "External system run identifier for cross-referencing."
+          },
+          "evidence" => %{
+            "type" => "object",
+            "description" => "Structured evidence payload from the external system."
+          },
           "metadata" => %{"type" => "object"}
         }
       }
@@ -1152,18 +1631,48 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_memory_search",
       "description" =>
-        "Search governed typed memory for the current session so agents can recover prior decisions, findings, and proof context explicitly.",
+        "Search governed typed memory for the current session to recover prior decisions, findings, proofs, and domain knowledge. Read-only. " <>
+          "query is a freeform text search applied across record titles, bodies, and tags. " <>
+          "record_type filters by type (decision, finding, proof, goal, brief, checkpoint); omit to search all types. " <>
+          "top_k limits the number of ranked results (default 10). source_type and source_id filter by origin. " <>
+          "Returns ranked records with citations and scores. " <>
+          "Use ck_memory_search to retrieve what was recorded in prior steps or sessions. Use ck_memory_record to write new records. Use ck_experience_search for full-text search across findings and tasks workspace-wide.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["query"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
-          "query" => %{"type" => "string", "description" => "Search query string for filtering or full-text search."},
-          "record_type" => %{"type" => "string", "enum" => ControlKeel.Memory.record_types(), "description" => "Record type classification."},
-          "top_k" => %{"type" => ["integer", "string"], "description" => "Maximum number of top-ranked results to return."},
-          "source_type" => %{"type" => "string", "description" => "Origin category of the record (e.g., developer, tool_output, human_review)."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
+          "query" => %{
+            "type" => "string",
+            "description" => "Search query string for filtering or full-text search."
+          },
+          "record_type" => %{
+            "type" => "string",
+            "enum" => ControlKeel.Memory.record_types(),
+            "description" => "Record type classification."
+          },
+          "top_k" => %{
+            "type" => ["integer", "string"],
+            "description" => "Maximum number of top-ranked results to return."
+          },
+          "source_type" => %{
+            "type" => "string",
+            "description" =>
+              "Origin category of the record (e.g., developer, tool_output, human_review)."
+          },
           "source_id" => %{"type" => "string"}
         }
       }
@@ -1174,55 +1683,123 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_memory_record",
       "description" =>
-        "Record a governed memory note, decision, or context for the current session so future agents can explicitly retrieve it via ck_memory_search. Supports typed records (finding, proof, decision, checkpoint, brief, goal) with optional tags and citations. Use to persist domain knowledge, architectural decisions, or task outcomes that should survive session boundaries. Write operation; idempotent for the same source_id.",
+        "Write a governed memory record so future agents can explicitly retrieve it via ck_memory_search. " <>
+          "Write operation — persists to the database. Idempotent: re-submitting the same source_id updates the existing record rather than duplicating it. " <>
+          "Pass memory as a plain string for quick notes, or as an object with body, title, summary, record_type, and tags for structured records. " <>
+          "record_type controls retrieval filtering: use decision for architectural choices, finding for issues, proof for evidence, goal for intent, brief for task context. " <>
+          "tags is a string or array of strings for categorization. source_id links the record to an external artifact (e.g., a review ID or commit SHA). " <>
+          "Use ck_memory_record to persist knowledge that should survive session boundaries. Use ck_finding for policy violations with a ruling decision. Use ck_goal for durable multi-session intent.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["memory"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
           "memory" => %{
             "oneOf" => [
-              %{"type" => "string", "description" => "The memory content: a plain string or a structured object with body and optional title."},
+              %{
+                "type" => "string",
+                "description" =>
+                  "The memory content: a plain string or a structured object with body and optional title."
+              },
               %{
                 "type" => "object",
                 "properties" => %{
-                  "content" => %{"type" => "string", "description" => "The content to validate or process: source code, config text, shell command, or freeform text."},
-                  "memory" => %{"type" => "string", "description" => "The memory content: a plain string or a structured object with body and optional title."},
-                  "body" => %{"type" => "string", "description" => "Full content body with detailed information."},
-                  "title" => %{"type" => "string", "description" => "Human-readable title for display and search."},
-                  "summary" => %{"type" => "string", "description" => "Brief human-readable summary of the record."},
+                  "content" => %{
+                    "type" => "string",
+                    "description" =>
+                      "The content to validate or process: source code, config text, shell command, or freeform text."
+                  },
+                  "memory" => %{
+                    "type" => "string",
+                    "description" =>
+                      "The memory content: a plain string or a structured object with body and optional title."
+                  },
+                  "body" => %{
+                    "type" => "string",
+                    "description" => "Full content body with detailed information."
+                  },
+                  "title" => %{
+                    "type" => "string",
+                    "description" => "Human-readable title for display and search."
+                  },
+                  "summary" => %{
+                    "type" => "string",
+                    "description" => "Brief human-readable summary of the record."
+                  },
                   "record_type" => %{
                     "type" => "string",
-                    "enum" => ControlKeel.Memory.record_types(), "description" => "Record type classification."},
+                    "enum" => ControlKeel.Memory.record_types(),
+                    "description" => "Record type classification."
+                  },
                   "tags" => %{
                     "oneOf" => [
-                      %{"type" => "array", "items" => %{"type" => "string"},
-  "description" => "Tags for categorization and retrieval."
-},
+                      %{
+                        "type" => "array",
+                        "items" => %{"type" => "string"},
+                        "description" => "Tags for categorization and retrieval."
+                      },
                       %{"type" => "string"}
                     ]
                   },
-                  "source_type" => %{"type" => "string", "description" => "Origin category of the record (e.g., developer, tool_output, human_review)."},
-                  "source_id" => %{"type" => "string", "description" => "Unique identifier of the source system or record."},
+                  "source_type" => %{
+                    "type" => "string",
+                    "description" =>
+                      "Origin category of the record (e.g., developer, tool_output, human_review)."
+                  },
+                  "source_id" => %{
+                    "type" => "string",
+                    "description" => "Unique identifier of the source system or record."
+                  },
                   "metadata" => %{"type" => "object"}
                 }
               }
             ]
           },
-          "title" => %{"type" => "string", "description" => "Human-readable title for display and search."},
-          "summary" => %{"type" => "string", "description" => "Brief human-readable summary of the record."},
-          "body" => %{"type" => "string", "description" => "Full content body with detailed information."},
-          "record_type" => %{"type" => "string", "enum" => ControlKeel.Memory.record_types(), "description" => "Record type classification."},
+          "title" => %{
+            "type" => "string",
+            "description" => "Human-readable title for display and search."
+          },
+          "summary" => %{
+            "type" => "string",
+            "description" => "Brief human-readable summary of the record."
+          },
+          "body" => %{
+            "type" => "string",
+            "description" => "Full content body with detailed information."
+          },
+          "record_type" => %{
+            "type" => "string",
+            "enum" => ControlKeel.Memory.record_types(),
+            "description" => "Record type classification."
+          },
           "tags" => %{
             "oneOf" => [
               %{"type" => "array", "items" => %{"type" => "string"}},
               %{"type" => "string"}
             ]
           },
-          "source_type" => %{"type" => "string", "description" => "Origin category of the record (e.g., developer, tool_output, human_review)."},
-          "source_id" => %{"type" => "string", "description" => "Unique identifier of the source system or record."},
+          "source_type" => %{
+            "type" => "string",
+            "description" =>
+              "Origin category of the record (e.g., developer, tool_output, human_review)."
+          },
+          "source_id" => %{
+            "type" => "string",
+            "description" => "Unique identifier of the source system or record."
+          },
           "metadata" => %{"type" => "object"}
         }
       }
@@ -1233,35 +1810,79 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_goal",
       "description" =>
-        "Record, list, and update durable governed goals so long-running intent stays explicit, citable, and reviewable across sessions.",
+        "Record, list, or update durable governed goals so long-running intent stays explicit, citable, and reviewable across sessions. " <>
+          "Three modes: record (write — creates a new goal); list (read-only — returns goals filtered by status and horizon); update_status (write — updates an existing goal's status or progress). " <>
+          "Required: session_id and mode. For record: provide goal (the statement text) and optionally title, horizon (task/session/workspace), and tags. For update_status: provide goal_id and the new status. " <>
+          "horizon controls scope: task for short-lived intent, session for the current session, workspace for persistent cross-session goals. " <>
+          "Use ck_goal for structured multi-session intent that should be explicitly tracked and reviewed. Use ck_memory_record for general decisions or notes not requiring status tracking.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["session_id", "mode"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
-          "mode" => %{"type" => "string", "enum" => ["record", "list", "update_status"], "description" => "Operation mode that determines the tool behavior and return shape."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["record", "list", "update_status"],
+            "description" => "Operation mode that determines the tool behavior and return shape."
+          },
           "goal" => %{"type" => "string", "description" => "The goal statement text."},
-          "goal_id" => %{"type" => ["integer", "string"], "description" => "Unique identifier of an existing goal to update."},
-          "title" => %{"type" => "string", "description" => "Human-readable title for display and search."},
-          "summary" => %{"type" => "string", "description" => "Brief human-readable summary of the record."},
-          "body" => %{"type" => "string", "description" => "Full content body with detailed information."},
+          "goal_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Unique identifier of an existing goal to update."
+          },
+          "title" => %{
+            "type" => "string",
+            "description" => "Human-readable title for display and search."
+          },
+          "summary" => %{
+            "type" => "string",
+            "description" => "Brief human-readable summary of the record."
+          },
+          "body" => %{
+            "type" => "string",
+            "description" => "Full content body with detailed information."
+          },
           "status" => %{
             "type" => "string",
-            "enum" => ControlKeel.MCP.Tools.CkGoal.statuses() ++ ["all"], "description" => "Current status for filtering or updating."},
+            "enum" => ControlKeel.MCP.Tools.CkGoal.statuses() ++ ["all"],
+            "description" => "Current status for filtering or updating."
+          },
           "horizon" => %{
             "type" => "string",
-            "enum" => ControlKeel.MCP.Tools.CkGoal.horizons(), "description" => "Temporal scope of the goal: task, session, or workspace."},
-          "progress_note" => %{"type" => "string", "description" => "Note about progress toward the goal."},
-          "limit" => %{"type" => ["integer", "string"], "description" => "Maximum number of results to return."},
+            "enum" => ControlKeel.MCP.Tools.CkGoal.horizons(),
+            "description" => "Temporal scope of the goal: task, session, or workspace."
+          },
+          "progress_note" => %{
+            "type" => "string",
+            "description" => "Note about progress toward the goal."
+          },
+          "limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Maximum number of results to return."
+          },
           "tags" => %{
             "oneOf" => [
               %{"type" => "array", "items" => %{"type" => "string"}},
               %{"type" => "string"}
             ]
           },
-          "source_type" => %{"type" => "string", "description" => "Origin category of the record (e.g., developer, tool_output, human_review)."},
-          "source_id" => %{"type" => "string", "description" => "Unique identifier of the source system or record."},
+          "source_type" => %{
+            "type" => "string",
+            "description" =>
+              "Origin category of the record (e.g., developer, tool_output, human_review)."
+          },
+          "source_id" => %{
+            "type" => "string",
+            "description" => "Unique identifier of the source system or record."
+          },
           "metadata" => %{"type" => "object"}
         }
       }
@@ -1272,13 +1893,24 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_memory_archive",
       "description" =>
-        "Archive a memory record when it is stale, superseded, or no longer safe to surface to future agents.",
+        "Archive a memory record so it is excluded from future ck_memory_search results. Write operation — marks the record as archived in the database; it is not deleted. " <>
+          "memory_id is the integer ID returned by ck_memory_record or ck_memory_search. " <>
+          "Use when a record is stale, superseded by a newer decision, or contains information that should no longer guide future agents. " <>
+          "To update a record's content instead of archiving it, call ck_memory_record again with the same source_id.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["memory_id"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
           "memory_id" => %{"type" => ["integer", "string"]}
         }
       }
@@ -1289,25 +1921,65 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_budget",
       "description" =>
-        "Estimate or record the cost of an agent operation against session and daily budgets. " <>
-          "Pass include_token_overhead: true with project_root to attach a token overhead audit " <>
-          "(rule files, skill duplicates, tool schemas) to the budget response.",
+        "Estimate, record, or check the cost of an agent operation against session and daily spend budgets. " <>
+          "Three modes: estimate (read-only, returns headroom and projected cost); commit (write — deducts estimated_cost_cents from the session budget); status (read-only, returns remaining budget). " <>
+          "For commit mode: pass session_id, estimated_cost_cents, provider, model, input_tokens, and output_tokens. " <>
+          "Pass include_token_overhead: true with project_root to attach a token overhead audit (rule files, skill duplicates, tool schemas) to the response. " <>
+          "Check ck_budget before expensive multi-agent work or large model calls. Use ck_cost_optimizer for model price comparisons without recording spend.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["session_id"],
         "properties" => %{
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
-          "mode" => %{"type" => "string", "enum" => ["estimate", "commit", "status"], "description" => "Operation mode that determines the tool behavior and return shape."},
-          "estimated_cost_cents" => %{"type" => ["integer", "string"], "description" => "Estimated cost of the operation in US cents."},
-          "provider" => %{"type" => "string", "description" => "AI provider name (e.g., openai, anthropic, ollama)."},
-          "model" => %{"type" => "string", "description" => "AI model identifier (e.g., gpt-4, claude-sonnet-4.6)."},
-          "input_tokens" => %{"type" => ["integer", "string"], "description" => "Number of input (prompt) tokens consumed."},
-          "cached_input_tokens" => %{"type" => ["integer", "string"], "description" => "Number of tokens served from cache."},
-          "output_tokens" => %{"type" => ["integer", "string"], "description" => "Number of output (completion) tokens generated."},
-          "source" => %{"type" => "string", "description" => "Source system or component that triggered the cost."},
-          "tool" => %{"type" => "string", "description" => "Specific tool or operation that incurred the cost."},
-          "metadata" => %{"type" => "object", "description" => "Arbitrary key-value metadata for extensibility and audit context."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["estimate", "commit", "status"],
+            "description" => "Operation mode that determines the tool behavior and return shape."
+          },
+          "estimated_cost_cents" => %{
+            "type" => ["integer", "string"],
+            "description" => "Estimated cost of the operation in US cents."
+          },
+          "provider" => %{
+            "type" => "string",
+            "description" => "AI provider name (e.g., openai, anthropic, ollama)."
+          },
+          "model" => %{
+            "type" => "string",
+            "description" => "AI model identifier (e.g., gpt-4, claude-sonnet-4.6)."
+          },
+          "input_tokens" => %{
+            "type" => ["integer", "string"],
+            "description" => "Number of input (prompt) tokens consumed."
+          },
+          "cached_input_tokens" => %{
+            "type" => ["integer", "string"],
+            "description" => "Number of tokens served from cache."
+          },
+          "output_tokens" => %{
+            "type" => ["integer", "string"],
+            "description" => "Number of output (completion) tokens generated."
+          },
+          "source" => %{
+            "type" => "string",
+            "description" => "Source system or component that triggered the cost."
+          },
+          "tool" => %{
+            "type" => "string",
+            "description" => "Specific tool or operation that incurred the cost."
+          },
+          "metadata" => %{
+            "type" => "object",
+            "description" => "Arbitrary key-value metadata for extensibility and audit context."
+          },
           "project_root" => %{
             "type" => "string",
             "description" =>
@@ -1335,7 +2007,12 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_route",
       "description" =>
-        "Recommend the best AI agent for a given task, considering security tier, remaining budget, and task type.",
+        "Recommend the best available AI agent for a given task based on security tier, remaining budget, task type, and past performance data. Read-only — no session state is changed. " <>
+          "task is a plain-language description of what needs to be done. " <>
+          "risk_tier (low/medium/high/critical) filters out agents that are not cleared for the security level; defaults to medium. " <>
+          "allowed_agents restricts routing to a specific subset of agent IDs; omit to allow all. " <>
+          "Returns a ranked list of agent recommendations with rationale. " <>
+          "Use ck_route to pick an agent, then ck_delegate to transfer the task. Use ck_cost_optimizer for a price-focused comparison without routing.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["task"],
@@ -1355,7 +2032,10 @@ defmodule ControlKeel.MCP.Protocol do
           },
           "allowed_agents" => %{
             "type" => "array",
-            "items" => %{"type" => "string", "description" => "Restrict routing to these agent IDs. Omit to allow all."},
+            "items" => %{
+              "type" => "string",
+              "description" => "Restrict routing to these agent IDs. Omit to allow all."
+            },
             "description" =>
               "Restrict routing to these agent IDs. Omit to allow all supported agents."
           }
@@ -1368,14 +2048,33 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_delegate",
       "description" =>
-        "Hand off a governed task or session to another AI agent. Supports four modes: auto lets ControlKeel choose the best agent, embedded runs inline, handoff transfers the session, and runtime delegates to a runtime agent. The delegated agent inherits governance context (findings, budget, proofs). Use ck_route first to determine the best agent, then ck_delegate to transfer.",
+        "Hand off a governed task or session to another AI agent, transferring governance context (findings, budget, proofs) to the target. " <>
+          "Mutates session state to reflect the delegation. " <>
+          "Four modes: auto (ControlKeel picks the best agent), embedded (inline sub-agent), handoff (transfer session ownership), runtime (delegate to a pre-configured runtime agent). " <>
+          "agent is the target agent ID (e.g., claude, opencode, cursor). " <>
+          "Call ck_route first to identify the best agent, then ck_delegate to transfer. " <>
+          "Prefer ck_route when you only need a recommendation without transferring; prefer ck_delegate when you are ready to hand off execution.",
       "inputSchema" => %{
         "type" => "object",
         "properties" => %{
-          "task_id" => %{"type" => ["integer", "string"], "description" => "Task identifier within the session for scoped operations."},
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "agent" => %{"type" => "string", "description" => "Target agent identifier for delegation (e.g., claude, opencode)."},
-          "mode" => %{"type" => "string", "enum" => ["auto", "embedded", "handoff", "runtime"], "description" => "Operation mode that determines the tool behavior and return shape."},
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "agent" => %{
+            "type" => "string",
+            "description" => "Target agent identifier for delegation (e.g., claude, opencode)."
+          },
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["auto", "embedded", "handoff", "runtime"],
+            "description" => "Operation mode that determines the tool behavior and return shape."
+          },
           "project_root" => %{"type" => "string"}
         }
       }
@@ -1385,17 +2084,38 @@ defmodule ControlKeel.MCP.Protocol do
   defp ck_cost_optimizer_tool do
     %{
       "name" => "ck_cost_optimizer",
-      "description" => "Get cost optimization suggestions or compare agent prices for a task.",
+      "description" =>
+        "Get cost optimization suggestions or compare AI provider/model prices for a task. Read-only — no budget records are written (use ck_budget to record actual spend). " <>
+          "Two modes: suggest returns optimization tips based on recent session spending patterns; compare returns a side-by-side price breakdown for the given task. " <>
+          "For suggest mode, pass session_id. For compare mode, pass task_description and estimated_tokens along with top_provider and top_model as the baseline. " <>
+          "Use ck_cost_optimizer before choosing a model for expensive multi-agent work; use ck_budget to record and enforce spend limits.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["mode"],
         "properties" => %{
-          "mode" => %{"type" => "string", "enum" => ["suggest", "compare"], "description" => "Operation mode that determines the tool behavior and return shape."},
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["suggest", "compare"],
+            "description" => "Operation mode that determines the tool behavior and return shape."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
           "spending" => %{"type" => "array", "items" => %{"type" => "object"}},
-          "top_provider" => %{"type" => "string", "description" => "Primary provider for cost comparison."},
-          "top_model" => %{"type" => "string", "description" => "Primary model for cost comparison."},
-          "task_description" => %{"type" => "string", "description" => "Task description for cost estimation."},
+          "top_provider" => %{
+            "type" => "string",
+            "description" => "Primary provider for cost comparison."
+          },
+          "top_model" => %{
+            "type" => "string",
+            "description" => "Primary model for cost comparison."
+          },
+          "task_description" => %{
+            "type" => "string",
+            "description" => "Task description for cost estimation."
+          },
           "estimated_tokens" => %{"type" => "integer"}
         }
       }
@@ -1406,13 +2126,24 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_deployment_advisor",
       "description" =>
-        "Analyze project stack, suggest deployment platforms, and generate CI/CD/Docker files.",
+        "Analyze the project stack and suggest deployment platforms, or generate CI/CD and Docker configuration files. " <>
+          "Three modes: analyze (read-only, returns platform recommendations based on detected stack); generate_files (write operation, creates Dockerfile and CI/CD configs in the project); dns_guide (read-only, returns DNS setup instructions for the recommended platform). " <>
+          "project_root is required. Set dry_run: true with generate_files to preview what would be created without writing files. " <>
+          "Use ck_deployment_advisor before deploying a new project or when setting up CI/CD for the first time. For budget and cost checks before deployment, use ck_budget.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["mode", "project_root"],
         "properties" => %{
-          "mode" => %{"type" => "string", "enum" => ["analyze", "generate_files", "dns_guide"], "description" => "Operation mode that determines the tool behavior and return shape."},
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["analyze", "generate_files", "dns_guide"],
+            "description" => "Operation mode that determines the tool behavior and return shape."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
           "dry_run" => %{"type" => "boolean"}
         }
       }
@@ -1423,18 +2154,39 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_outcome_tracker",
       "description" =>
-        "Record session outcomes or retrieve agent leaderboards for reinforcement learning. Supports three modes: record to persist a session outcome, get_session to read a specific outcome, and get_leaderboard to compare agent performance. Use after task completion to close the feedback loop and improve future routing decisions.",
+        "Record session outcomes or retrieve agent performance leaderboards to close the reinforcement-learning feedback loop. " <>
+          "Three modes: record persists a session outcome (write operation); get_session reads a specific outcome by session_id (read-only); get_leaderboard returns ranked agent performance (read-only). " <>
+          "For record mode: pass session_id, outcome (success/partial/failure), agent_id, and task_type. " <>
+          "For get_leaderboard: pass workspace_id and optional window (days) and limit. " <>
+          "Call after task completion before ending the session so ck_route and ck_cost_optimizer have fresh performance data for future routing decisions.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["mode"],
         "properties" => %{
-          "mode" => %{"type" => "string", "enum" => ["record", "get_session", "get_leaderboard"], "description" => "Operation mode that determines the tool behavior and return shape."},
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
-          "outcome" => %{"type" => "string", "description" => "Result classification of the operation."},
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["record", "get_session", "get_leaderboard"],
+            "description" => "Operation mode that determines the tool behavior and return shape."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "outcome" => %{
+            "type" => "string",
+            "description" => "Result classification of the operation."
+          },
           "agent_id" => %{"type" => "string"},
           "task_type" => %{"type" => "string"},
-          "workspace_id" => %{"type" => ["integer", "string"], "description" => "Workspace identifier for cross-session scope."},
-          "limit" => %{"type" => "integer", "description" => "Maximum number of results to return."},
+          "workspace_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Workspace identifier for cross-session scope."
+          },
+          "limit" => %{
+            "type" => "integer",
+            "description" => "Maximum number of results to return."
+          },
           "window" => %{"type" => "integer"}
         }
       }
@@ -1532,7 +2284,11 @@ defmodule ControlKeel.MCP.Protocol do
             "type" => "string",
             "description" => "Optional render target such as codex, claude, copilot, or cursor."
           },
-          "session_id" => %{"type" => ["integer", "string"], "description" => "Unique session identifier for correlating findings, proofs, budget, and audit trail."},
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
           "task_id" => %{"type" => ["integer", "string"]}
         }
       }
@@ -1586,11 +2342,21 @@ defmodule ControlKeel.MCP.Protocol do
         "properties" => %{
           "uris" => %{
             "type" => "array",
-            "items" => %{"type" => "string", "description" => "List of CK resource URIs to load (e.g., skills://my-skill)."},
+            "items" => %{
+              "type" => "string",
+              "description" => "List of CK resource URIs to load (e.g., skills://my-skill)."
+            },
             "description" => "Resource URIs to load, for example skills://controlkeel-governance"
           },
-          "project_root" => %{"type" => "string", "description" => "Absolute path to the project root directory on the local filesystem."},
-          "target" => %{"type" => "string", "description" => "Distribution target (e.g., opencode, cursor, claude)."},
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root directory on the local filesystem."
+          },
+          "target" => %{
+            "type" => "string",
+            "description" => "Distribution target (e.g., opencode, cursor, claude)."
+          },
           "session_id" => %{"type" => ["integer", "string"]}
         }
       }
