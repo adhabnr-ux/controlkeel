@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.15 — 2026-05-04
+
+### What's changed
+
+- feat: add ToolGroupTracker to application and implement safe calls for adaptive tool group selection
+- fix: add standard Apache 2.0 SPDX header to LICENSE for GitHub detection
+- docs: update README with adaptive tool groups feature
+
 ## v0.3.14 — 2026-05-03
 
 ### What's changed
