@@ -5,6 +5,7 @@
 [![Latest Release](https://img.shields.io/github/v/release/aryaminus/controlkeel.svg)](https://github.com/aryaminus/controlkeel/releases/latest)
 [![npm bootstrap](https://img.shields.io/npm/v/%40aryaminus/controlkeel.svg)](https://www.npmjs.com/package/@aryaminus/controlkeel)
 [![Socket Badge](https://badge.socket.dev/npm/package/@aryaminus/controlkeel)](https://socket.dev/npm/package/@aryaminus/controlkeel/overview)
+[![controlkeel MCP server](https://glama.ai/mcp/servers/aryaminus/controlkeel/badges/score.svg)](https://glama.ai/mcp/servers/aryaminus/controlkeel)
 
 > Agent output is cheap. Governed delivery is not.
 
