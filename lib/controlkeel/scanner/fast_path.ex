@@ -2,6 +2,7 @@ defmodule ControlKeel.Scanner.FastPath do
   @moduledoc false
 
   alias ControlKeel.Intent.Domains
+  alias ControlKeel.Integrations.Deepsec
   alias ControlKeel.Mission
   alias ControlKeel.Platform
   alias ControlKeel.Policy.PackLoader
@@ -10,6 +11,7 @@ defmodule ControlKeel.Scanner.FastPath do
   alias ControlKeel.Scanner.{Advisory, Entropy, Patterns, Semgrep}
   alias ControlKeel.SecurityWorkflow
   alias ControlKeel.TrustBoundary
+  alias ControlKeel.Validation.Matchers.Scanner, as: MatcherScanner
 
   @type input :: map()
   @destructive_shell_patterns [
@@ -84,13 +86,49 @@ defmodule ControlKeel.Scanner.FastPath do
         []
       end
 
-    combined = uniq_findings(layer1 ++ layer2)
+    layer3 =
+      if matcher_system_enabled?() and code_content?(normalized) do
+        MatcherScanner.scan(
+          normalized["content"],
+          normalized["path"] || "unknown",
+          session_id: normalized["session_id"],
+          task_id: normalized["task_id"]
+        )
+      else
+        []
+      end
 
-    layer3 = Advisory.scan(normalized, combined)
-    merged = uniq_findings(combined ++ layer3)
-    advisory = Advisory.advisory_status(normalized, layer3)
+    combined = uniq_findings(layer1 ++ layer2 ++ layer3)
 
-    build_result(merged, advisory)
+    layer4 = Advisory.scan(normalized, combined)
+    merged = uniq_findings(combined ++ layer4)
+    advisory = Advisory.advisory_status(normalized, layer4)
+
+    layer5 =
+      if deepsec_enabled?() and security_domain?(normalized) and code_content?(normalized) do
+        case Deepsec.should_trigger_deepsec?(normalized["session_id"], :high) do
+          {:ok, true} ->
+            # Run deepsec scan (this is expensive, so only for security domain)
+            case MatcherScanner.deepsec_scan(
+                   workspace_path:
+                     Application.get_env(:controlkeel, :deepsec, [])
+                     |> Keyword.get(:workspace_path),
+                   session_id: normalized["session_id"],
+                   task_id: normalized["task_id"]
+                 ) do
+              {:ok, findings} -> findings
+              {:error, _} -> []
+            end
+
+          _ ->
+            []
+        end
+      else
+        []
+      end
+
+    final_merged = uniq_findings(merged ++ layer5)
+    build_result(final_merged, advisory)
   end
 
   defp normalize_input(input) do
@@ -501,6 +539,26 @@ defmodule ControlKeel.Scanner.FastPath do
   defp shell_fingerprint(rule_id, path, matched_command) do
     seed = "#{rule_id}:#{path}:#{matched_command}"
     "fp_" <> (:crypto.hash(:sha256, seed) |> Base.encode16(case: :lower) |> binary_part(0, 12))
+  end
+
+  defp matcher_system_enabled? do
+    Application.get_env(:controlkeel, :matcher_system, [])
+    |> Keyword.get(:enabled, false)
+  end
+
+  defp deepsec_enabled? do
+    Application.get_env(:controlkeel, :deepsec, [])
+    |> Keyword.get(:enabled, false)
+  end
+
+  defp security_domain?(normalized) do
+    domain_pack = normalized["domain_pack"]
+    domain_pack in ["security", nil]
+  end
+
+  defp code_content?(normalized) do
+    kind = normalized["kind"] || "code"
+    kind in ["code", "source", "config"]
   end
 
   defp evidence_type_for_artifact("binary_report"), do: "binary_report"
