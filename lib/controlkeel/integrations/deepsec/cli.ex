@@ -28,7 +28,7 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
 
       false ->
         # Run npx deepsec init
-        case System.cmd("npx", ["deepsec", "init"], cd: workspace_path, stderr_to_stdout: true) do
+        case safe_cmd("npx", ["deepsec", "init"], cd: workspace_path) do
           {output, 0} -> {:ok, output}
           {output, _} -> {:error, output}
         end
@@ -50,10 +50,7 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
     workspace_path = Keyword.get(opts, :workspace_path) || Config.workspace_path()
 
     if File.exists?(workspace_path) do
-      case System.cmd("pnpm", ["deepsec", "scan"],
-             cd: workspace_path,
-             stderr_to_stdout: true
-           ) do
+      case safe_cmd("pnpm", ["deepsec", "scan"], cd: workspace_path) do
         {output, 0} -> {:ok, output}
         {output, _} -> {:error, output}
       end
@@ -77,10 +74,7 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
     workspace_path = Keyword.get(opts, :workspace_path) || Config.workspace_path()
 
     if File.exists?(workspace_path) do
-      case System.cmd("pnpm", ["deepsec", "process"],
-             cd: workspace_path,
-             stderr_to_stdout: true
-           ) do
+      case safe_cmd("pnpm", ["deepsec", "process"], cd: workspace_path) do
         {output, 0} -> {:ok, output}
         {output, _} -> {:error, output}
       end
@@ -104,10 +98,7 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
     workspace_path = Keyword.get(opts, :workspace_path) || Config.workspace_path()
 
     if File.exists?(workspace_path) do
-      case System.cmd("pnpm", ["deepsec", "revalidate"],
-             cd: workspace_path,
-             stderr_to_stdout: true
-           ) do
+      case safe_cmd("pnpm", ["deepsec", "revalidate"], cd: workspace_path) do
         {output, 0} -> {:ok, output}
         {output, _} -> {:error, output}
       end
@@ -141,9 +132,8 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
           _ -> "md-dir"
         end
 
-      case System.cmd("pnpm", ["deepsec", "export", "--format", format_str, "--out", output_path],
-             cd: workspace_path,
-             stderr_to_stdout: true
+      case safe_cmd("pnpm", ["deepsec", "export", "--format", format_str, "--out", output_path],
+             cd: workspace_path
            ) do
         {output, 0} -> {:ok, output}
         {output, _} -> {:error, output}
@@ -207,7 +197,7 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
   true if deepsec CLI is available, false otherwise
   """
   def available? do
-    case System.cmd("npx", ["--yes", "deepsec", "--help"], stderr_to_stdout: true) do
+    case safe_cmd("npx", ["--yes", "deepsec", "--help"]) do
       {_output, 0} -> true
       _ -> false
     end
@@ -221,7 +211,7 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
   {:error, reason} on failure
   """
   def version do
-    case System.cmd("npx", ["--yes", "deepsec", "--version"], stderr_to_stdout: true) do
+    case safe_cmd("npx", ["--yes", "deepsec", "--version"]) do
       {output, 0} -> {:ok, String.trim(output)}
       {output, _} -> {:error, output}
     end
@@ -313,6 +303,18 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
       String.contains?(text_lower, "high") -> "HIGH"
       String.contains?(text_lower, "medium") -> "MEDIUM"
       true -> "LOW"
+    end
+  end
+
+  # Safely execute System.cmd, catching :enoent errors when command is not found
+  defp safe_cmd(command, args, opts \\ []) do
+    opts = Keyword.put(opts, :stderr_to_stdout, true)
+
+    try do
+      System.cmd(command, args, opts)
+    rescue
+      _e in [ErlangError] ->
+        {"Command not found: #{command}", 127}
     end
   end
 end
