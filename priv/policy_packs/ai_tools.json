@@ -1,0 +1,96 @@
+[
+  {
+    "id": "security.ai_tool_config_plain_text_keys",
+    "category": "security",
+    "severity": "high",
+    "action": "warn",
+    "plain_message": "AI tool configuration file may contain plain-text API keys. Use environment variables or secret managers instead. Tools affected: Factory Droid, Cursor, VS Code, Warp, and other AI developer tools.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)~/(\\.factory|\\.cursor|\\.warp|\\.vscode|\\.codeium|\\.copilot)/settings\\.json",
+        "(?i)~/(\\.factory|\\.cursor|\\.warp)/config\\.json",
+        "(?i)api_key.*[:=].*[\"']([^\"'\\$\\{\\}]{20,})[\"']",
+        "(?i)apikey.*[:=].*[\"']([^\"'\\$\\{\\}]{20,})[\"']"
+      ]
+    }
+  },
+  {
+    "id": "security.ai_tool_config_high_entropy_tokens",
+    "category": "security",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "High-entropy token detected in AI tool configuration. This may be a secret or API key. Consider using environment variables or secret managers.",
+    "matcher": {
+      "type": "entropy",
+      "candidate_pattern": "[A-Za-z0-9_\\-=/+]{20,}",
+      "min_length": 20,
+      "threshold": 3.5
+    }
+  },
+  {
+    "id": "security.subscription_proxy_routing",
+    "category": "security",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Proxy-based subscription routing detected (VibeProxy, CLIProxyAPI, etc.). This may violate provider Terms of Service. Verify compliance with Anthropic, OpenAI, GitHub Copilot, or other provider agreements.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(vibeproxy|cliproxyapi|localhost:8317|localhost:8080)",
+        "(?i)proxy.*subscription.*route",
+        "(?i)oauth.*catch.*key",
+        "(?i)github.*copilot.*proxy",
+        "(?i)anthropic.*proxy"
+      ]
+    }
+  },
+  {
+    "id": "security.unauthorized_provider_access",
+    "category": "security",
+    "severity": "low",
+    "action": "warn",
+    "plain_message": "Configuration pattern suggests accessing AI providers through non-standard endpoints. Verify this complies with provider ToS and your organization's AI usage policy.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)baseUrl.*localhost",
+        "(?i)custom.*endpoint.*anthropic",
+        "(?i)custom.*endpoint.*openai",
+        "(?i)bring.*your.*own.*key"
+      ]
+    }
+  },
+  {
+    "id": "security.ai_agent_tool_escalation",
+    "category": "security",
+    "severity": "high",
+    "action": "block",
+    "plain_message": "AI agent tool configuration allows unrestricted access (wildcard permissions, no allowlists). This violates OWASP AI Agent Security principles. Implement scoped tool permissions with explicit allowlists.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)allowed_commands.*[\"']\\*[\"']",
+        "(?i)allowed_paths.*[\"']\\*[\"']",
+        "(?i)allowed_operations.*[\"']\\*[\"']",
+        "(?i)permission.*unrestricted",
+        "(?i)tool.*wildcard"
+      ]
+    }
+  },
+  {
+    "id": "security.ai_agent_memory_poisoning",
+    "category": "security",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "AI agent memory configuration lacks validation or isolation. Unvalidated memory storage can lead to memory poisoning attacks (OWASP AI Agent Security). Implement memory validation and user/session isolation.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)memory.*store.*without.*validation",
+        "(?i)memory.*no.*isolation",
+        "(?i)context.*persistence.*unvalidated"
+      ]
+    }
+  }
+]

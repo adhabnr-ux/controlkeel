@@ -268,5 +268,19 @@
         "@backoff\\.(?!.*max)"
       ]
     }
+  },
+  {
+    "id": "secret.ai_tool_config_key",
+    "category": "security",
+    "severity": "high",
+    "action": "block",
+    "plain_message": "AI tool configuration contains hardcoded credentials. Move to environment variables or secret managers.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(factory|cursor|warp|copilot|codeium|droid)_api_key\\s*[:=]\\s*[\"'][^\"']{20,}[\"']",
+        "(?i)(factory|cursor|warp|copilot|codeium|droid)_secret\\s*[:=]\\s*[\"'][^\"']{20,}[\"']"
+      ]
+    }
   }
 ]
