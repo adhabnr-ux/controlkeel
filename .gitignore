@@ -144,3 +144,15 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Governance development tooling and records (internal use only)
+.githooks/
+.governance-check.sh
+.governance-init.sh
+.session-start-checklist.md
+.governance-finding-record.txt
+.governance-log.txt
+.ck-session-governed
+
+# Internal governance documentation (not for distribution)
+docs/governance-failure-*.md
