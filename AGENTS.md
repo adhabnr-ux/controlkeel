@@ -48,19 +48,16 @@ When resuming work from a conversation summary or previous session:
 
 If MCP tools are unavailable, you MUST complete this checklist before making changes:
 
-- [ ] Read docs/governance-failure-deepsec-integration.md for lessons learned
 - [ ] Check if session is critical-risk (HIPAA, HITECH, OWASP compliance)
-- [ ] Review active findings in the project
+- [ ] Review active findings in the project (check CK dashboard or prior session notes)
 - [ ] Check budget before starting work
 - [ ] Validate all code changes manually against security best practices
 - [ ] Document all decisions in a session notes file
-- [ ] Create .ck-session-governed file after completing governance setup
 
 ### Enforcement Mechanisms
 
-1. **Git Pre-Commit Hook**: .git/hooks/pre-commit enforces governance state check
-2. **Governance Check Script**: .governance-check.sh provides standalone validation
-3. **Governance Log**: .governance-log.txt tracks governance checks and violations
+1. **CLAUDE.md / AGENTS.md**: This file — read at session start by all hosts
+2. **ck_context**: Primary governance state check via MCP
 
 ### Consequences of Governance Violations
 
