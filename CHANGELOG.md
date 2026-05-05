@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.3.17 — 2026-05-05
+
+### What's changed
+
+- docs: update governance checklist and enforcement mechanisms in AGENTS.md
+- fix(integrations): handle missing deepsec CLI gracefully in tests
+- docs: add manual record for governance finding and memory entry
+- feat(governance): implement multi-layer safeguards to prevent governance failures
+- docs: update governance retrospective with post-implementation actions
+- feat(integrations): add deepsec security scanner integration (with governance retrospective)
+- Implement feature X to enhance user experience and optimize performance
+
 ## v0.3.16 — 2026-05-04
 
 ### What's changed
