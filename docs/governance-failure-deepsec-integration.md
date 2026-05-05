@@ -242,4 +242,128 @@ This governance failure occurred because the work was treated as continuation of
 
 **Key Takeaway**: In governed sessions, the governance protocols are not optional workflow steps - they are essential safety rails that must be invoked for EVERY session, regardless of whether work is being started or continued.
 
-**Mitigation**: While the governance process was bypassed, the technical quality of the implementation is high (all tests passing, post-hoc validation passed, comprehensive documentation). The governance failure has been fully documented in this retrospective, and appropriate process improvements should be implemented to prevent recurrence.
+**Mitigation**: While the governance process was bypassed, the technical quality of the implementation is high (all tests passing, post-hoc validation passed, comprehensive documentation). The governance failure has been fully documented in this retrospective, and comprehensive safeguards have been implemented to prevent recurrence across all hosts.
+
+## Safeguards Implemented
+
+To prevent this governance failure from recurring in any host, the following multi-layered safeguards have been implemented:
+
+### 1. AGENTS.md Governance Requirements (All Hosts)
+- Added mandatory governance requirements section at the top of AGENTS.md
+- Explicit session resumption protocol (every session = fresh governance)
+- Host-specific notes for Claude Code, Cursor, OpenCode, Devin Terminal, etc.
+- Manual governance checklist for when MCP tools are unavailable
+- Enforcement mechanisms and consequences documented
+- **Location**: AGENTS.md (lines 3-71)
+
+### 2. Git Pre-Commit Hook
+- Created .githooks/pre-commit to enforce governance state check
+- Blocks commits if .ck-session-governed file doesn't exist
+- Provides clear error messages with next steps
+- Works across all git-based workflows
+- **Location**: .githooks/pre-commit (install with .githooks/install.sh)
+- **Installation**: Run `./.githooks/install.sh` to install the hook
+
+### 3. Governance Check Script
+- Created .governance-check.sh for standalone validation
+- Checks for governance state file
+- Detects critical-risk sessions
+- Logs all checks to .governance-log.txt
+- Can be called independently or by hooks
+- **Location**: .governance-check.sh
+
+### 4. Session Start Checklist
+- Created .session-start-checklist.md with comprehensive checklist
+- Step-by-step guide for session initialization
+- Host-specific quick reference
+- Common pitfalls to avoid
+- Emergency bypass procedure (with audit requirements)
+- **Location**: .session-start-checklist.md
+
+### 5. Governance Initialization Script
+- Created .governance-init.sh for automated session setup
+- Checks MCP tool availability
+- Detects risk tier and findings count
+- Creates .ck-session-governed file with metadata
+- Provides next steps guidance
+- **Location**: .governance-init.sh
+
+### 6. Governance Log File
+- .governance-log.txt tracks all governance checks and violations
+- Timestamped entries for audit trail
+- Used by scripts to track compliance
+- **Location**: .governance-log.txt (auto-created)
+
+### 7. Session State File
+- .ck-session-governed file indicates governance was completed
+- Contains metadata: timestamp, session_id, host, user, risk_tier, mcp_available
+- Required by git pre-commit hook
+- Created by .governance-init.sh or manually
+- **Location**: .ck-session-governed (auto-created)
+
+### Multi-Layer Defense Strategy
+
+The safeguards work in layers:
+
+1. **Documentation Layer** (AGENTS.md, checklist)
+   - Educates hosts about requirements
+   - Provides clear protocols
+   - Works even when automated tools fail
+
+2. **Script Layer** (.governance-check.sh, .governance-init.sh)
+   - Automated validation
+   - Can be called independently
+   - Provides detailed logging
+
+3. **Git Hook Layer** (.git/hooks/pre-commit)
+   - Enforces governance at commit time
+   - Cannot be bypassed without explicit action
+   - Works across all git workflows
+
+4. **MCP Tool Layer** (ck_context, ck_validate, etc.)
+   - Primary governance mechanism
+   - Works when MCP server is stable
+   - Provides rich governed state
+
+This defense-in-depth approach ensures that even if one layer fails (e.g., MCP server issues), other layers continue to enforce governance.
+
+### Host Coverage
+
+These safeguards work across ALL hosts:
+
+- **Claude Code**: MCP tools + scripts + hooks
+- **Cursor**: MCP tools + scripts + hooks
+- **OpenCode**: MCP tools + scripts + hooks
+- **Devin Terminal**: MCP tools + scripts + hooks
+- **Any CLI-based host**: Scripts + hooks + manual checklist
+- **Any GUI-based host**: Manual checklist + documentation
+
+### Testing the Safeguards
+
+To test the safeguards:
+
+```bash
+# 1. Try to commit without governance state (should fail)
+git add test.txt
+git commit -m "test"  # Should fail with governance error
+
+# 2. Run governance initialization
+./.governance-init.sh
+
+# 3. Try to commit again (should succeed)
+git commit -m "test"  # Should succeed
+
+# 4. Check governance log
+cat .governance-log.txt
+```
+
+### Maintenance
+
+The safeguards require minimal maintenance:
+
+- **AGENTS.md**: Update if governance protocols change
+- **Scripts**: No regular maintenance needed
+- **Hooks**: No regular maintenance needed
+- **Checklist**: Update if new hosts are added
+
+All safeguards are version-controlled and will be available to all developers via git.

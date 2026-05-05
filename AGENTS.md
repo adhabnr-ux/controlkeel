@@ -1,5 +1,75 @@
 This is a web application written using the Phoenix web framework.
 
+## ⚠️ CRITICAL: ControlKeel Governance Requirements (ALL HOSTS)
+
+This project is governed by ControlKeel. **ALL hosts must follow these governance protocols** before making any changes:
+
+### Mandatory First Steps for EVERY Session (No Exceptions)
+
+1. **Call ck_context** - Load mission, budget, findings, proof, workspace context
+   - Required at session start, even when resuming from conversation summaries
+   - Conversation summaries are NOT substitutes for governed state
+
+2. **Invoke controlkeel-governance skill** - Activate governance framework
+   - Required before any code edits, shell execution, or implementation work
+   - Works across all hosts (Claude Code, Cursor, OpenCode, etc.)
+
+3. **Check budget** - Call ck_budget before expensive work
+   - Required for multi-phase implementations or expensive operations
+
+4. **Validate before writing** - Call ck_validate before code/config/shell/deploy
+   - Required for ALL code changes, configuration updates, shell commands
+   - Pass appropriate domain_pack (e.g., security, hipaa) and capabilities
+
+5. **Record decisions** - Use ck_memory_record for important decisions
+   - Required for architecture decisions, assumptions, operator guidance
+
+6. **Record findings** - Use ck_finding for any issues discovered
+   - Required for security issues, compliance violations, governance gaps
+
+### Session Resumption Protocol
+
+When resuming work from a conversation summary or previous session:
+
+❌ **DO NOT** treat it as continuation without governance
+✅ **DO** invoke fresh governance protocols (ck_context + controlkeel-governance skill)
+
+**Rule**: Every session is a new session from a governance perspective.
+
+### Host-Specific Notes
+
+- **Claude Code**: Use MCP tools (ck_context, ck_validate, etc.)
+- **Cursor**: Use MCP tools (ck_context, ck_validate, etc.)
+- **OpenCode**: Use MCP tools (ck_context, ck_validate, etc.)
+- **Devin Terminal**: Use MCP tools (ck_context, ck_validate, etc.)
+- **Any other host**: Use MCP tools if available, otherwise follow manual checklist
+
+### Manual Governance Checklist (If MCP Unavailable)
+
+If MCP tools are unavailable, you MUST complete this checklist before making changes:
+
+- [ ] Read docs/governance-failure-deepsec-integration.md for lessons learned
+- [ ] Check if session is critical-risk (HIPAA, HITECH, OWASP compliance)
+- [ ] Review active findings in the project
+- [ ] Check budget before starting work
+- [ ] Validate all code changes manually against security best practices
+- [ ] Document all decisions in a session notes file
+- [ ] Create .ck-session-governed file after completing governance setup
+
+### Enforcement Mechanisms
+
+1. **Git Pre-Commit Hook**: .git/hooks/pre-commit enforces governance state check
+2. **Governance Check Script**: .governance-check.sh provides standalone validation
+3. **Governance Log**: .governance-log.txt tracks governance checks and violations
+
+### Consequences of Governance Violations
+
+- Critical-risk sessions: Immediate escalation, potential rollback
+- Non-critical sessions: Warning, retrospective required
+- Repeated violations: Access restrictions, mandatory training
+
+**Remember**: In governed sessions, governance protocols are NOT optional workflow steps - they are essential safety rails.
+
 ## Project guidelines
 
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues
