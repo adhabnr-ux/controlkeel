@@ -233,10 +233,6 @@ custom classes must fully style the input
 
     
 
-
-
-
-
     <.form for={@form} id="todo-form" phx-change="validate" phx-submit="save">
       <.input field={@form[:field]} type="text" />
     </.form>
@@ -250,6 +246,7 @@ Always give the form an explicit, unique DOM ID, like `id="todo-form"`.
 <!-- phoenix:liveview-end -->
 
 <!-- usage-rules-end -->
+
 <!-- controlkeel:start -->
 # ControlKeel Companion Instructions
 
