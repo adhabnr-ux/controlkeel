@@ -277,8 +277,18 @@ defmodule ControlKeel.AgentExecution do
     else
       review = Mission.latest_review_for_task(task_id, "plan")
 
+      # Distinguish between a genuinely pending review and a plan that isn't
+      # execution-ready despite having an approved review.  Previously this
+      # branch always returned :review_pending, which produced confusing
+      # error messages like "review_pending, status: approved".
+      error_type =
+        case review && review.status do
+          "approved" -> :execution_not_ready
+          _ -> :review_pending
+        end
+
       {:error,
-       {:review_pending,
+       {error_type,
         %{
           task_id: task_id,
           review_id: review && review.id,

@@ -11,7 +11,7 @@ defmodule ControlKeel.MCP.Tools.CkSkillList do
   alias ControlKeel.Skills.TargetFamily
   alias ControlKeel.Skills.TargetResolver
 
-  def call(arguments) do
+  def call(arguments) when is_map(arguments) do
     project_root = Map.get(arguments, "project_root")
     format = Map.get(arguments, "format", "json")
     target = TargetResolver.resolve(project_root, Map.get(arguments, "target"))
@@ -67,6 +67,8 @@ defmodule ControlKeel.MCP.Tools.CkSkillList do
 
     {:ok, result}
   end
+
+  def call(_arguments), do: {:error, {:invalid_arguments, "arguments must be a map"}}
 
   defp diagnostic_summary(diagnostic) do
     %{

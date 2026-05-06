@@ -6396,6 +6396,10 @@ defmodule ControlKeel.CLI do
     do:
       "Task is waiting on plan approval (review ##{details[:review_id] || "unknown"}, status #{details[:review_status] || "pending"})."
 
+  defp format_cli_error({:execution_not_ready, details}),
+    do:
+      "Plan is approved (review ##{details[:review_id] || "unknown"}) but execution is not ready. Refine the plan to reach execution-ready phase, or approve a deeper plan phase."
+
   defp format_cli_error({:timeout, review}),
     do: "Timed out waiting for plan review ##{review.id}." <> format_review_feedback_error(review)
 

@@ -1873,6 +1873,28 @@ defmodule ControlKeel.SkillsTest do
     assert output =~ "blocked findings"
   end
 
+  test "installer removes broken ControlKeel comment fragments", %{tmp_dir: tmp_dir} do
+    repo_instructions = """
+    # Repo Instructions
+
+    Keep Phoenix guidance here.
+
+    <!-- controlkee
+    """
+
+    File.write!(Path.join(tmp_dir, "AGENTS.md"), repo_instructions)
+
+    assert {:ok, _install} = Skills.install("codex", tmp_dir, scope: "project")
+
+    agents_contents = File.read!(Path.join(tmp_dir, "AGENTS.md"))
+
+    refute agents_contents =~ ~r/<!--\s*controlkee(?!l:(?:start|end))/i
+    assert agents_contents =~ "<!-- controlkeel:start -->"
+    assert agents_contents =~ "<!-- controlkeel:end -->"
+    assert String.split(agents_contents, "<!-- controlkeel:start -->") |> length() == 2
+    assert String.split(agents_contents, "<!-- controlkeel:end -->") |> length() == 2
+  end
+
   test "installer preserves existing AGENTS instructions and manages the CK block", %{
     tmp_dir: tmp_dir
   } do

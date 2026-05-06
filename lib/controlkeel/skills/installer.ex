@@ -1103,6 +1103,11 @@ defmodule ControlKeel.Skills.Installer do
     |> String.replace(~r/(?:\n[ \t]*<![ \t]*)+(?=\n[ \t]*<!-- controlkeel:start -->)/m, "\n")
     # Strip a lone "<!" line before the managed block (do not use \s* here — it would eat newlines).
     |> String.replace(~r/\n<!\n+(?=<!-- controlkeel:start -->)/, "\n")
+    # Strip broken ControlKeel comment lines WITHOUT closing --> (e.g. "<!-- controlkee" alone on a line).
+    |> String.replace(~r/\n[ \t]*<!--\s*controlkee(?!l:(?:start|end))[^>\n]*\n/i, "\n")
+    # Strip orphaned well-formed ControlKeel comment fragments (with closing -->, but not start/end markers).
+    |> String.replace(~r/\n[ \t]*<!--\s*controlkee(?!l:(?:start|end))[^>]*-->\s*\n/i, "\n")
+    |> String.replace(~r/\n[ \t]*<!--\s*controlkeel(?!:(?:start|end))\s*-->\s*\n/i, "\n")
     |> String.replace(~r/\n{3,}/, "\n\n")
   end
 
