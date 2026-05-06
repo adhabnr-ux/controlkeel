@@ -1953,9 +1953,9 @@ defmodule ControlKeel.Skills.Exporter do
         %{"path" => agents_path, "kind" => "instructions"}
       ],
       [
-        "Copy `.amp/plugins/` and `.amp/commands/` into your project root (requires `PLUGINS=all` env var to activate).",
-        "Prefer the native skill path when possible: `amp skill add ./controlkeel/dist/amp-native/.agents/skills/controlkeel-governance`.",
-        "Merge `.mcp.json` into your project's MCP config."
+        "Copy `.amp/plugins/` and `.amp/commands/` into your project root for Amp Neo Plugin API governance.",
+        "Install or sync the bundled `.agents/skills/controlkeel-governance` with your preferred Agent Skills package manager when skills are enabled.",
+        "Merge `.mcp.json` into your project's MCP config; CK policy gates remain required even if Amp runs without default prompts."
       ]
     )
   end
@@ -8654,67 +8654,188 @@ defmodule ControlKeel.Skills.Exporter do
   defp amp_plugin_contents do
     ~S"""
     /**
-     * ControlKeel Governance Plugin for Amp
+     * ControlKeel Governance Plugin for Amp Neo
      *
-     * Provides:
-     * - Event hooks on tool calls for governance logging
-     * - Custom ck-validate tool for on-demand governance checks
-     * - /controlkeel-review command for full project review
-     * - submit-plan tool for ControlKeel browser review gating
+     * Uses the documented @ampcode/plugin API:
+     * - tool.call hooks for policy/permission gating
+     * - tool.result hooks for proof breadcrumbs
+     * - custom tools for CK validation and plan submission
+     * - command palette actions for review helpers
      *
-     * Requires: PLUGINS=all environment variable to activate
+     * CK does not adopt Amp's no-permission default as policy. High-risk shell
+     * and file-mutating tool calls are checked with ControlKeel before execution.
      */
+    import type { PluginAPI } from '@ampcode/plugin'
 
-    // Hook into tool call events for governance logging
-    amp.on("tool.call", async (ctx) => {
-      if (ctx.tool === "bash" || ctx.tool === "shell") {
-        ctx.ui.notify(`[CK] Tool execution: ${ctx.tool}`)
-      }
-    })
+    type ValidationResult = {
+      allowed?: boolean
+      decision?: string
+      findings?: Array<{ severity?: string; rule_id?: string; plain_message?: string }>
+      summary?: string
+    }
 
-    // Register custom governance validation tool
-    amp.registerTool("ck-validate", {
-      description:
-        "Run ControlKeel governance validation on the current project. " +
-        "Returns findings, budget status, and proof readiness.",
-      parameters: {
-        scope: {
-          type: "string",
-          enum: ["full", "quick"],
-          default: "quick",
-          description: "Validation scope: 'full' for complete review, 'quick' for summary",
+    const riskyShell = /\b(rm\s+-rf|sudo\b|chmod\s+777|chown\b|curl\b.*\|\s*(sh|bash)|wget\b.*\|\s*(sh|bash)|ssh\b|scp\b|rsync\b|docker\b|kubectl\b|terraform\b|flyctl\b|vercel\b|netlify\b|deploy\b|mix\s+ecto\.(drop|reset)|git\s+push\s+--force)\b/i
+
+    export default function (amp: PluginAPI) {
+      amp.on('session.start', async (event, ctx) => {
+        const thread = event.thread?.id ?? ctx.thread?.id ?? 'unknown-thread'
+        ctx.logger.log(`[CK] Amp Neo session started: ${thread}`)
+      })
+
+      amp.on('tool.call', async (event, ctx) => {
+        const shell = amp.helpers.shellCommandFromToolCall(event)
+        const files = amp.helpers.filesModifiedByToolCall(event)
+        const fileList = files?.map((file) => amp.helpers.filePathFromURI(file)) ?? []
+
+        const shellNeedsGate = Boolean(shell && riskyShell.test(shell.command))
+        const fileNeedsGate = fileList.length > 0
+
+        if (!shellNeedsGate && !fileNeedsGate) {
+          return { action: 'allow' }
+        }
+
+        try {
+          const content = shell?.command ?? `Files modified by ${event.tool}:\n${fileList.join('\n')}`
+          const kind = shell ? 'shell' : 'text'
+          const result = await runControlKeelValidation(ctx, content, kind)
+
+          if (isBlocked(result)) {
+            const message = formatBlockedMessage(result)
+            await ctx.ui.notify(message)
+            return { action: 'reject-and-continue', message }
+          }
+
+          ctx.logger.log(`[CK] allowed ${event.tool} after validation: ${result.summary ?? result.decision ?? 'ok'}`)
+          return { action: 'allow' }
+        } catch (error) {
+          const message = `[CK] validation unavailable for ${event.tool}; allowing but recording warning: ${String(error)}`
+          ctx.logger.log(message)
+          await safeNotify(ctx, message)
+          return { action: 'allow' }
+        }
+      })
+
+      amp.on('tool.result', async (event, ctx) => {
+        if (event.status === 'error') {
+          ctx.logger.log(`[CK] tool failed: ${event.tool} ${event.error ?? ''}`)
+        }
+      })
+
+      amp.on('agent.start', async (event) => {
+        if (!/controlkeel|ck_|governance|review|approval/i.test(event.message)) {
+          return
+        }
+
+        return {
+          message: {
+            content:
+              '[CK] Governed reminder: call ck_context at task start, ck_validate before risky shell/file/deploy actions, and submit plans for human approval when policy requires it.',
+            display: true,
+          },
+        }
+      })
+
+      amp.registerTool({
+        name: 'ck_validate',
+        description:
+          'Run ControlKeel validation or status checks for the current Amp Neo thread. Use before risky code, config, shell, or deploy work.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            content: { type: 'string', description: 'Content, command, plan, or diff to validate' },
+            kind: {
+              type: 'string',
+              enum: ['text', 'code', 'config', 'shell'],
+              description: 'Artifact kind to route through CK policy',
+            },
+          },
+          required: ['content'],
         },
-      },
-      async execute(args: { scope: string }) {
-        const { stdout } = await amp.shell(
-          `controlkeel findings --format json${args.scope === "full" ? " --full" : ""}`,
-        )
-        return stdout
-      },
-    })
+        async execute(input, ctx) {
+          const content = typeof input.content === 'string' ? input.content : ''
+          const kind = typeof input.kind === 'string' ? input.kind : 'text'
+          const result = await runControlKeelValidation(amp, content, kind)
+          return JSON.stringify(result, null, 2)
+        },
+      })
 
-    amp.registerTool("submit-plan", {
-      description: "Submit a plan to ControlKeel and wait for approval.",
-      parameters: {
-        plan: { type: "string", description: "Markdown plan body" },
-      },
-      async execute(args: { plan: string }) {
-        const { stdout } = await amp.shell(
-          "controlkeel review plan submit --stdin --submitted-by amp --json",
-          { stdin: args.plan },
-        )
-        return stdout
-      },
-    })
+      amp.registerTool({
+        name: 'submit_plan',
+        description: 'Submit a plan to ControlKeel for human review before risky implementation.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            plan: { type: 'string', description: 'Markdown plan body' },
+            title: { type: 'string', description: 'Short review title' },
+          },
+          required: ['plan'],
+        },
+        async execute(input, ctx) {
+          const plan = typeof input.plan === 'string' ? input.plan : ''
+          const title = typeof input.title === 'string' ? input.title : 'Amp plan review'
+          const planPath = '.amp/controlkeel-plan.md'
+          await amp.$`mkdir -p .amp`
+          await Bun.write(planPath, plan)
+          const { stdout, stderr, exitCode } = await amp.$`controlkeel review plan submit --title ${title} --body-file ${planPath} --submitted-by amp --json`
+          if (exitCode !== 0) return `ControlKeel plan submission failed: ${stderr}`
+          return stdout
+        },
+      })
 
-    // Register governance review command
-    amp.registerCommand("controlkeel-review", {
-      description: "Run a full ControlKeel governance review on the current project",
-      async execute(ctx) {
-        const result = await ctx.tool("ck-validate", { scope: "full" })
-        return `Review the following governance results and provide a summary:\n\n${result}`
-      },
-    })
+      amp.registerCommand(
+        'controlkeel-review',
+        {
+          title: 'Review current project',
+          category: 'ControlKeel',
+          description: 'Show ControlKeel findings, proof, and budget status.',
+        },
+        async (ctx) => {
+          const { stdout, stderr, exitCode } = await ctx.$`controlkeel status --json`
+          await ctx.ui.notify(exitCode === 0 ? stdout : `ControlKeel status failed: ${stderr}`)
+        },
+      )
+
+      amp.registerCommand(
+        'controlkeel-last',
+        {
+          title: 'Open latest review',
+          category: 'ControlKeel',
+          description: 'Open the latest active ControlKeel review if available.',
+        },
+        async (ctx) => {
+          const { stdout, stderr, exitCode } = await ctx.$`controlkeel review last --json`
+          await ctx.ui.notify(exitCode === 0 ? stdout : `ControlKeel last review failed: ${stderr}`)
+        },
+      )
+    }
+
+    async function runControlKeelValidation(ctx: { $: PluginAPI['$'] }, content: string, kind: string): Promise<ValidationResult> {
+      const { stdout, stderr, exitCode } = await ctx.$`controlkeel validate --kind ${kind} --content ${content} --json`
+      if (exitCode !== 0) {
+        throw new Error(stderr || stdout || `controlkeel validate exited ${exitCode}`)
+      }
+      return JSON.parse(stdout) as ValidationResult
+    }
+
+    function isBlocked(result: ValidationResult): boolean {
+      return result.allowed === false || result.decision === 'block' || result.findings?.some((finding) => ['critical', 'high'].includes(String(finding.severity))) === true
+    }
+
+    function formatBlockedMessage(result: ValidationResult): string {
+      const finding = result.findings?.find((item) => ['critical', 'high'].includes(String(item.severity)))
+      if (finding) {
+        return `[CK] blocked by ${finding.rule_id ?? 'policy'} (${finding.severity}): ${finding.plain_message ?? result.summary ?? 'validation failed'}`
+      }
+      return `[CK] blocked: ${result.summary ?? result.decision ?? 'validation failed'}`
+    }
+
+    async function safeNotify(ctx: { ui: { notify(message: string): Promise<void> } }, message: string): Promise<void> {
+      try {
+        await ctx.ui.notify(message)
+      } catch {
+        // UI is optional in remote/headless Amp contexts.
+      }
+    }
     """
   end
 

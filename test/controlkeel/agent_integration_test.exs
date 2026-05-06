@@ -247,13 +247,17 @@ defmodule ControlKeel.AgentIntegrationTest do
     assert amp.review_experience == "native_review"
     assert amp.submission_mode == "tool_call"
     assert "native_skills" in amp.agent_uses_ck_via
+    assert "remote_control" in amp.agent_uses_ck_via
+    assert "queue_steer" in amp.agent_uses_ck_via
+    assert "auto_compaction" in amp.agent_uses_ck_via
+    assert amp.upstream_docs_url == "https://ampcode.com/manual/plugin-api"
     assert ".agents/skills/controlkeel-governance" in amp.artifact_surfaces
     assert ".amp/commands" in amp.artifact_surfaces
+    assert "Amp Neo remote control" in amp.artifact_surfaces
 
     assert Enum.any?(
              amp.direct_install_methods,
-             &(&1["command"] ==
-                 "amp skill add ./controlkeel/dist/amp-native/.agents/skills/controlkeel-governance")
+             &(&1["command"] == "cp -R ./controlkeel/dist/amp-native/.amp ./")
            )
 
     assert augment.label == "Augment / Auggie CLI"

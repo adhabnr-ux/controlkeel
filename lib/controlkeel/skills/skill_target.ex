@@ -171,7 +171,7 @@ defmodule ControlKeel.Skills.SkillTarget do
       target(
         "amp-native",
         "Amp native bundle",
-        "Amp TypeScript plugin with event hooks, custom tools, commands, and governance instructions.",
+        "Amp Neo TypeScript Plugin API bundle with permission hooks, custom tools, commands, MCP config, and governance instructions.",
         true,
         "project",
         ["project", "export"],

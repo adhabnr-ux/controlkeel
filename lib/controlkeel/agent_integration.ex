@@ -288,11 +288,12 @@ defmodule ControlKeel.AgentIntegration do
         label: "Amp",
         category: "native-first",
         description:
-          "Attaches MCP server and delivers native governance via Amp TypeScript plugins, a native skill bundle, custom tools, and commands.",
+          "Attaches MCP server and delivers native governance for Amp Neo via TypeScript Plugin API hooks, MCP, custom tools, commands, and a portable skill bundle.",
         attach_command: "controlkeel attach amp",
-        config_location: "Amp MCP config and `.amp/plugins/`.",
+        config_location:
+          "Amp MCP config plus project `.amp/plugins/` and `.amp/commands/` for Neo plugin-powered governance.",
         companion_delivery:
-          "Exports a governance TypeScript plugin with `amp.on` hooks, `ck-validate` tool, a native `controlkeel-governance` skill bundle, review commands, package scaffold, and `AGENTS.md` instructions.",
+          "Exports a Neo-compatible governance TypeScript plugin with `amp.on` permission hooks, CK validation tools, commands, a native `controlkeel-governance` skill bundle, package scaffold, and `AGENTS.md` instructions.",
         preferred_target: "amp-native",
         default_scope: "project",
         router_agent_id: "amp",
@@ -300,7 +301,7 @@ defmodule ControlKeel.AgentIntegration do
         mcp_mode: "native",
         skills_mode: "native",
         upstream_slug: "sourcegraph/amp",
-        upstream_docs_url: "https://ampcode.com",
+        upstream_docs_url: "https://ampcode.com/manual/plugin-api",
         provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
         supported_scopes: ["project", "export"],
         export_targets: ["amp-native", "instructions-only"]
@@ -2042,7 +2043,16 @@ defmodule ControlKeel.AgentIntegration do
         ["local_mcp", "native_skills", "hooks", "rules", "commands"]
 
       "amp" ->
-        ["local_mcp", "plugin", "native_skills", "commands", "tool_call"]
+        [
+          "local_mcp",
+          "plugin",
+          "native_skills",
+          "commands",
+          "tool_call",
+          "remote_control",
+          "queue_steer",
+          "auto_compaction"
+        ]
 
       "augment" ->
         ["local_mcp", "plugin", "native_skills", "rules", "commands", "hooks"]
@@ -2407,9 +2417,9 @@ defmodule ControlKeel.AgentIntegration do
     [
       direct_install("ck_attach", "CK attach", "controlkeel attach amp"),
       direct_install(
-        "local_skill",
-        "Amp skill",
-        "amp skill add ./controlkeel/dist/amp-native/.agents/skills/controlkeel-governance"
+        "local_plugin",
+        "Amp Neo plugin",
+        "cp -R ./controlkeel/dist/amp-native/.amp ./"
       )
     ]
   end
@@ -2644,6 +2654,9 @@ defmodule ControlKeel.AgentIntegration do
       ".amp/commands",
       ".amp/package.json",
       ".mcp.json",
+      "Amp Neo remote control",
+      "Amp Neo queue/steer",
+      "Amp Neo auto-compaction",
       "AGENTS.md"
     ]
 

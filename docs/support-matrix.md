@@ -117,7 +117,7 @@ The broader native matrix now also tracks the strongest official surfaces CK exp
 | `goose` | repo hints, workflow recipes, commands, and Goose extension YAML |
 | `kiro` | hooks, steering, tool-policy settings, commands, and MCP config |
 | `kilo` | Agent Skills, slash-command workflows, `.kilo/kilo.json`, and `AGENTS.md` |
-| `amp` | TypeScript plugin, native skill bundle, custom tool/command surface, and package scaffold |
+| `amp` | Amp Neo TypeScript Plugin API permission hooks, native skill bundle, custom tool/command surface, queue/steer-aware commands, and package scaffold |
 | `augment` | workspace commands, subagents, rules, MCP config, local plugin hooks, and ACP-compatible runtime metadata |
 | `warp` | `.warp/skills`, `.agents/skills`, `.warp/controlkeel-mcp.json`, `.warp/README.md`, and `AGENTS.md` |
 | `devin-terminal` | `.devin/config.json`, `.devin/hooks.v1.json`, `.devin/hooks`, `.devin/skills`, `.devin/agents`, `.agents/skills`, and `AGENTS.md` |
@@ -136,7 +136,8 @@ For command-capable hosts, CK now standardizes the agent-facing governance loop 
 For hosts with a stronger native capability container, CK now prefers that too instead of forcing humans to reconstruct the flow:
 
 - Windsurf ships a canonical `.windsurf/hooks.json` workspace hook config in addition to the portable hook assets.
-- Amp ships a native `controlkeel-governance` skill bundle with MCP wiring in addition to the plugin and command layer.
+- Amp Neo is remote-controllable from ampcode.com, auto-compacts long threads, and queues/steers operator messages; CK models those as host capabilities while keeping durable proof/memory in CK.
+- Amp ships a native `controlkeel-governance` skill bundle with MCP wiring in addition to the Plugin API permission hook and command layer. CK does not treat Amp's no-prompt default as a governed permission policy; CK validation and findings remain the policy gate.
 - Augment ships a repo-native `.augment/` workspace bundle plus a local `.augment-plugin` hook bundle, so CK can be used by the agent through either workspace commands or hook-native interception.
 
 This keeps the product aligned with CK’s intent: agents should be able to invoke ControlKeel directly during autonomous work, rather than depending on the human operator to manually drive review state transitions.
@@ -175,7 +176,7 @@ Runtime transport truth for those first-class hosts:
 | `cursor` | attach_client | `controlkeel attach cursor` | `local_mcp`, `native_skills`, `rules`, `commands`, `workflows`, `hooks`, `plugin` | `handoff` | `handoff` | `ck_owned` / `native` | `cursor-native` |
 | `windsurf` | attach_client | `controlkeel attach windsurf` | `local_mcp`, `native_skills`, `rules`, `hooks`, `workflows`, `commands` | `handoff` | `handoff` | `ck_owned` / `native` | `windsurf-native` |
 | `kiro` | attach_client | `controlkeel attach kiro` | `local_mcp`, `native_skills`, `hooks`, `rules`, `commands` | `handoff` | `handoff` | `ck_owned` / `native` | `kiro-native` |
-| `amp` | attach_client | `controlkeel attach amp` | `local_mcp`, `plugin`, `native_skills`, `commands`, `tool_call` | `handoff` | `handoff` | `ck_owned` / `native` | `amp-native` |
+| `amp` | attach_client | `controlkeel attach amp` | `local_mcp`, `plugin`, `native_skills`, `commands`, `tool_call`, `remote_control`, `queue_steer`, `auto_compaction` | `handoff` | `handoff` | `ck_owned` / `native` | `amp-native` |
 | `augment` | attach_client | `controlkeel attach augment` | `local_mcp`, `plugin`, `native_skills`, `rules`, `commands`, `hooks` | `embedded` | `direct` | `agent_runtime` / `native` | `augment-native` |
 | `opencode` | attach_client | `controlkeel attach opencode` | `local_mcp`, `plugin`, `native_skills`, `rules`, `commands` | `embedded` | `direct` | `agent_runtime` / `native` | `opencode-native` |
 | `gemini-cli` | attach_client | `controlkeel attach gemini-cli` | `local_mcp`, `native_skills`, `rules`, `commands` | `embedded` | `direct` | `ck_owned` / `native` | `gemini-cli-native` |

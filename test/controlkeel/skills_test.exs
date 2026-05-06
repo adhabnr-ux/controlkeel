@@ -1307,7 +1307,15 @@ defmodule ControlKeel.SkillsTest do
 
     assert {:ok, amp_plan} = Skills.export("amp-native", tmp_dir, scope: "export")
 
-    assert File.exists?(Path.join(amp_plan.output_dir, ".amp/plugins/controlkeel-governance.ts"))
+    amp_plugin_path = Path.join(amp_plan.output_dir, ".amp/plugins/controlkeel-governance.ts")
+    assert File.exists?(amp_plugin_path)
+    amp_plugin = File.read!(amp_plugin_path)
+    assert amp_plugin =~ "import type { PluginAPI } from '@ampcode/plugin'"
+    assert amp_plugin =~ "export default function (amp: PluginAPI)"
+    assert amp_plugin =~ "amp.on('tool.call', async (event, ctx)"
+    assert amp_plugin =~ "amp.registerTool({"
+    assert amp_plugin =~ "name: 'ck_validate'"
+    assert amp_plugin =~ "reject-and-continue"
 
     assert File.exists?(
              Path.join(amp_plan.output_dir, ".agents/skills/controlkeel-governance/SKILL.md")
