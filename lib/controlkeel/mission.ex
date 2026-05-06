@@ -3209,6 +3209,10 @@ defmodule ControlKeel.Mission do
     compaction_events =
       runtime["compaction_events"] || runtime["context_compactions"] || []
 
+    compaction_source =
+      runtime["compaction_source"] ||
+        infer_compaction_source(runtime, compaction_events)
+
     partial_read_count =
       runtime["partial_read_count"] || runtime["truncated_read_count"] ||
         length(List.wrap(partial_reads))
@@ -3228,7 +3232,8 @@ defmodule ControlKeel.Mission do
       "partial_read_count" => partial_read_count,
       "compaction_count" => compaction_count,
       "latest_partial_read_path" => latest_runtime_path(partial_reads),
-      "latest_compaction_reason" => latest_runtime_reason(compaction_events)
+      "latest_compaction_reason" => latest_runtime_reason(compaction_events),
+      "compaction_source" => compaction_source
     }
   end
 
@@ -3241,6 +3246,22 @@ defmodule ControlKeel.Mission do
   defp latest_runtime_reason([%{"reason" => reason} | _rest]) when is_binary(reason), do: reason
   defp latest_runtime_reason([%{reason: reason} | _rest]) when is_binary(reason), do: reason
   defp latest_runtime_reason(_other), do: nil
+
+  defp infer_compaction_source(runtime, compaction_events) do
+    cond do
+      runtime["host_compaction"] == true ->
+        "host_harness"
+
+      runtime["provider_compaction"] == true ->
+        "provider_native"
+
+      length(List.wrap(compaction_events)) > 0 ->
+        "host_harness"
+
+      true ->
+        nil
+    end
+  end
 
   defp maybe_add_verification_signal(signals, true, message), do: signals ++ [message]
   defp maybe_add_verification_signal(signals, false, _message), do: signals

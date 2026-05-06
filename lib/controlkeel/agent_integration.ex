@@ -2657,6 +2657,8 @@ defmodule ControlKeel.AgentIntegration do
       "Amp Neo remote control",
       "Amp Neo queue/steer",
       "Amp Neo auto-compaction",
+      "Amp Neo compaction provenance tracking",
+      "Amp Neo CK-gated remote-control commands",
       "AGENTS.md"
     ]
 

@@ -55,6 +55,8 @@ defmodule ControlKeel.Intent.HarnessPolicy do
       "order" => ["result_budget", "tail_preserving_snip", "summary_compact", "context_collapse"],
       "protected_tail" => true,
       "cheapest_first" => true,
+      "provenance" => ["host_harness", "provider_native", "ck_resume_packet"],
+      "provenance_note" => "Track which system performed compaction for proof/memory trust and audit trails. host_harness: host runtime (e.g. Amp Neo auto-compaction); provider_native: model provider built-in context management; ck_resume_packet: CK resume/packet mechanism.",
       "rationale" =>
         "Compact the cheapest artifacts first, preserve the active tail of the session, and only pay for expensive summarization or collapse when lighter strategies fail."
     },
@@ -173,6 +175,7 @@ defmodule ControlKeel.Intent.HarnessPolicy do
       "order" => ["result_budget", "tail_preserving_snip", "summary_compact", "context_collapse"],
       "protected_tail" => true,
       "cheapest_first" => true,
+      "provenance" => ["host_harness", "provider_native", "ck_resume_packet"],
       "rationale" =>
         "High-risk work should preserve the recent evidence tail while compacting older tool output, then escalate to summaries or collapse only when necessary."
     }

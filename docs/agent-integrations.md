@@ -143,7 +143,7 @@ Current examples:
 - Goose: hints, workflow recipes, commands, and extension YAML
 - Kiro: hooks, steering, tool policy settings, and commands
 - Kilo Code: Agent Skills, slash-command workflows, MCP config, and `AGENTS.md`
-- Amp: TypeScript plugin scaffold, native skill bundle, commands, and MCP wiring
+- Amp: TypeScript plugin scaffold, native skill bundle, commands, MCP wiring, queue/steer semantics, compaction provenance, and CK-gated remote-control stance (see Amp Neo integration notes below)
 - Gemini CLI: extension manifest, commands, skills, and `GEMINI.md`
 - Devin for Terminal: `.devin/config.json`, `.devin/hooks.v1.json`, `.devin/hooks/`, `.devin/skills/`, `.devin/agents/`, and repo `AGENTS.md`
 - Cursor: rules, Agent Skills (`.cursor/skills`), commands, governed agent prompts (`.cursor/agents`), background-agent guidance, repo hooks (`hooks.json` + scripts), MCP config, and `.cursor-plugin/` bundle
@@ -151,6 +151,46 @@ Current examples:
 - Aider: command-driven review snippets and `.aider.conf.yml`
 
 These are real shipped surfaces, but they are not all published marketplaces or npm packages. That distinction is why [direct-host-installs.md](direct-host-installs.md) exists separately.
+
+### Amp Neo integration notes
+
+Amp Neo ("rebuilt" CLI, 2026) introduced several architectural changes that affect how CK models the integration:
+
+**Queue vs steer semantics**
+
+Amp Neo defaults to queued operator messages. CK models three tiers:
+
+1. **Queued (default)**: Messages wait until the agent becomes idle. Predictable and non-interruptive. CK treats this as the preferred mode for governed work because it does not surprise the agent mid-tool-call or mid-reasoning step.
+2. **Steer (operator intervention)**: Fast-tracks a queued message to the next tool-result boundary. This is a stronger operator signal — CK models it as an intervention that should carry audit metadata (who steered, when, what message, what was the agent doing). It is not a full interrupt, but it is more authoritative than a passive queue entry.
+3. **Interrupt (explicit override)**: Esc Esc sends immediately and stops current agent work. This is the highest-authority operator event in the Amp messaging model. CK treats it as a governance checkpoint comparable to a human stopping a running task.
+
+**Compaction provenance**
+
+Amp Neo auto-compacts at 90% context fill using its own harness. This is distinct from model-provider-native context management and distinct from CK's resume-packet mechanism. CK tracks compaction source with three provenance labels:
+
+- `host_harness`: compaction performed by the host runtime (e.g., Amp Neo auto-compaction). Visible to the host but opaque to CK's typed storage.
+- `provider_native`: compaction performed by the model provider's built-in context management.
+- `ck_resume_packet`: compaction via CK's own resume/packet mechanism, which preserves full provenance.
+
+This distinction matters for proof/memory trust and audit trails: host-harness compaction may summarize away tool outputs or decisions that CK's evidence tail depends on, while ck_resume_packet preserves explicit references.
+
+**Remote control and manual bash stance**
+
+Amp removed manual bash invocation ($/$$) partly due to destructive-command risk. CK's stance is reinforced:
+
+- No manual remote bash affordance by default
+- If remote-control commands need shell execution, they must go through CK-gated tool calls (`ck_validate`, `ck_review_submit`), not raw remote shell
+- Remote-control messages are treated as operator inputs with the same governance semantics as any other human intervention
+- Remote-control should be modeled as a plugin/tool-call surface rather than a raw shell surface
+
+**Handoff vs compaction**
+
+CK's handoff and Amp's compaction solve different problems and should not be conflated:
+
+- CK **handoff** = cross-agent/cross-runtime transfer, authority boundary change, long-running delegation. The baton moves between planner, worker, validator, and reviewer roles. CK does not reverse its handoff support.
+- Amp **compaction** = same-agent context overflow relief within a single thread. The agent continues working; only the context window is refreshed.
+
+CK models its own handoff as a stronger authority boundary than host-managed compaction. When CK hands off, the receiving agent gets a governed bundle with findings, proofs, and explicit next-step state. When Amp compacts, the thread continues but CK's evidence tail may have been summarized away by the host harness.
 
 The same distinction applies to the broader `skills.sh` ecosystem. Some names there map directly to shipped CK targets such as `codex` -> `codex-cli`, `gemini` -> `gemini-cli`, `kiro-cli` -> `kiro`, `kilo` -> `kilo`, and `roo` -> `roo-code`. Other names such as `antigravity`, `clawdbot`, `nous-research`, and `trae` are currently skills-compatible only through open-standard AgentSkills installs, not through a native CK attach/runtime contract.
 
