@@ -128,7 +128,7 @@ function sha256File(filePath) {
 }
 
 async function verifyChecksum(filePath, asset) {
-  const checksumUrl = `${releaseBaseUrl()}/SHASUMS256.txt`;
+  const checksumUrl = `${releaseBaseUrl()}/controlkeel-checksums.txt`;
 
   let checksumText;
   try {
