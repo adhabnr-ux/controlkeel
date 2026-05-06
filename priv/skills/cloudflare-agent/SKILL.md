@@ -225,6 +225,11 @@ export class DBEnabledAgent extends Agent {
 
 ## Tools Reference
 
+> **Note:** The tool names below are the Cloudflare agent's *local* abstractions,
+> not direct CK MCP dispatch tool names. The agent maps these to CK MCP calls
+> internally (e.g., `ck_budget_check` wraps `ck_budget`, `ck_validate` maps directly).
+> Do not call these names against the CK MCP server directly.
+
 ### MCP Tools (serve to agents)
 
 | Tool | Description | Parameters |
@@ -236,7 +241,7 @@ export class DBEnabledAgent extends Agent {
 | `ck_context` | Get governance context | - |
 | `ck_delegate` | Delegate to sub-agent | `agent`, `task` |
 
-### CK to Agent Tools
+### CK to Agent Tools (agent-local, not CK MCP dispatch)
 
 | Tool | Description |
 |------|-------------|

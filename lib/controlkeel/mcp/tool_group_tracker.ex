@@ -47,7 +47,15 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
     key = usage_key(project_root, tool_name)
     now = System.system_time(:second)
 
-    :ets.insert(@table_name, {key, now, 1})
+    # Increment count if key exists, otherwise insert with count 1
+    case :ets.lookup(@table_name, key) do
+      [{^key, _ts, count}] ->
+        :ets.insert(@table_name, {key, now, count + 1})
+
+      [] ->
+        :ets.insert(@table_name, {key, now, 1})
+    end
+
     {:noreply, state}
   end
 
@@ -87,18 +95,19 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
   defp collect_usage_stats(project_root) do
     pattern = project_root <> ":*"
 
+    # Select returns the full {key, timestamp, count} records
     entries =
       :ets.select(@table_name, [
-        {{pattern, :"$1", :"$2"}, [], [{{:"$1", :"$2"}}]}
+        {{pattern, :_, :_}, [], [:"$_"]}
       ])
 
     if entries == [] do
       %{total_calls: 0, unique_tools: 0}
     else
-      total_calls = length(entries)
+      total_calls = entries |> Enum.map(fn {_key, _ts, count} -> count end) |> Enum.sum()
 
       unique_tools =
-        entries |> Enum.map(fn {_timestamp, _count} -> true end) |> Enum.uniq() |> length()
+        entries |> Enum.map(fn {key, _ts, _count} -> key end) |> Enum.uniq() |> length()
 
       %{total_calls: total_calls, unique_tools: unique_tools}
     end
@@ -107,9 +116,10 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
   defp suggest_optimal_groups(project_root) do
     pattern = project_root <> ":*"
 
+    # Select returns the full {key, timestamp, count} records
     used_tools =
       :ets.select(@table_name, [
-        {{pattern, :"$1", :"$2"}, [], [{{:"$1", :"$2"}}]}
+        {{pattern, :_, :_}, [], [:"$_"]}
       ])
       |> Enum.map(fn {key, _timestamp, _count} ->
         # Extract tool name from "project_root:tool_name" key
