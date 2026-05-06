@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.19 — 2026-05-06
+
+### What's changed
+
+- fix: enhance Zig installation script with caching and retry logic
+
 ## v0.3.18 — 2026-05-06
 
 ### What's changed
