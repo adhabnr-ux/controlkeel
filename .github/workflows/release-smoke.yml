@@ -41,10 +41,16 @@ jobs:
             ~/.mix
           key: ${{ runner.os }}-release-smoke-${{ hashFiles('mix.lock') }}
           restore-keys: ${{ runner.os }}-release-smoke-
+      - name: Cache Zig installation
+        uses: actions/cache@v5
+        with:
+          path: /usr/local/zig
+          key: zig-0.15.2-${{ runner.os }}-${{ runner.arch }}
       - name: Install Zig 0.15.2
+        timeout-minutes: 3
         run: |
           chmod +x scripts/install_zig.sh
-          scripts/install_zig.sh 0.15.2 >/dev/null
+          scripts/install_zig.sh 0.15.2
           echo "/usr/local/zig" >> "$GITHUB_PATH"
       - run: sudo apt-get update && sudo apt-get install -y xz-utils p7zip-full
       - run: mix deps.get
@@ -93,10 +99,16 @@ jobs:
             ~/.mix
           key: ${{ runner.os }}-release-smoke-${{ hashFiles('mix.lock') }}
           restore-keys: ${{ runner.os }}-release-smoke-
+      - name: Cache Zig installation
+        uses: actions/cache@v5
+        with:
+          path: /usr/local/zig
+          key: zig-0.15.2-${{ runner.os }}-${{ runner.arch }}
       - name: Install Zig 0.15.2
+        timeout-minutes: 3
         run: |
           chmod +x scripts/install_zig.sh
-          scripts/install_zig.sh 0.15.2 >/dev/null
+          scripts/install_zig.sh 0.15.2
           echo "/usr/local/zig" >> "$GITHUB_PATH"
       - run: sudo apt-get update && sudo apt-get install -y xz-utils p7zip-full
       - run: mix deps.get
@@ -134,10 +146,16 @@ jobs:
             ~/.mix
           key: ${{ runner.os }}-release-smoke-${{ hashFiles('mix.lock') }}
           restore-keys: ${{ runner.os }}-release-smoke-
+      - name: Cache Zig installation
+        uses: actions/cache@v5
+        with:
+          path: /usr/local/zig
+          key: zig-0.15.2-${{ runner.os }}-${{ runner.arch }}
       - name: Install Zig 0.15.2
+        timeout-minutes: 3
         run: |
           chmod +x scripts/install_zig.sh
-          scripts/install_zig.sh 0.15.2 >/dev/null
+          scripts/install_zig.sh 0.15.2
           echo "/usr/local/zig" >> "$GITHUB_PATH"
       - run: |
           brew list xz >/dev/null 2>&1 || brew install xz
