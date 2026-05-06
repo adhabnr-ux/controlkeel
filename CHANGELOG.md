@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.18 — 2026-05-06
+
+### What's changed
+
+- fix(mcp): fix ToolGroupTracker crash, usage accumulation, and clarify skill references
+- chore: re-attach opencode, verify clean AGENTS.md output
+- fix(distribution): align Dockerfile with CI, fix npm checksum URL, add Glama docs
+- fix(installer): strip broken comment markers without closing --> in sanitize_agents_md
+- fix(mcp): harden argument handling and update sync guidance
+- feat(amp): enhance Amp Neo integration with updated governance features and documentation
+- feat(cli): enhance skills list command to support JSON output format feat(host_audit): implement fallback to GET request for URL checks fix(cli): adjust status command to handle JSON format correctly
+- feat(security): add AI tool configuration checks for hardcoded credentials
+
 ## v0.3.17 — 2026-05-05
 
 ### What's changed
