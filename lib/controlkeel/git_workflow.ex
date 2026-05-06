@@ -8,10 +8,12 @@ defmodule ControlKeel.GitWorkflow do
   alias ControlKeel.Mission
 
   def diff(project_root, base_ref, head_ref, opts \\ []) do
+    diff_args = diff_args(base_ref, head_ref)
+
     # Generate diff
     case System.cmd(
            "git",
-           ["diff", base_ref, head_ref],
+           diff_args,
            cd: project_root,
            stderr_to_stdout: true
          ) do
@@ -105,6 +107,11 @@ defmodule ControlKeel.GitWorkflow do
   end
 
   # Private functions
+
+  defp diff_args(nil, nil), do: ["diff", "HEAD"]
+  defp diff_args(base_ref, nil), do: ["diff", base_ref]
+  defp diff_args(nil, head_ref), do: ["diff", head_ref]
+  defp diff_args(base_ref, head_ref), do: ["diff", base_ref, head_ref]
 
   defp validate_diff(diff_output, project_root, opts) do
     # Use ck_validate to check the diff

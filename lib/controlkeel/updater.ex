@@ -204,8 +204,8 @@ defmodule ControlKeel.Updater do
   end
 
   defp sync_attached(project_root, report) do
-    case get_in(report, ["apply_result", "status"]) do
-      "applied" ->
+    case {get_in(report, ["apply_result", "status"]), report["update_available"]} do
+      {"applied", _} ->
         %{
           "status" => "skipped",
           "reason" => "rerun_after_self_update",
@@ -213,27 +213,39 @@ defmodule ControlKeel.Updater do
             "Rerun `controlkeel update --sync-attached` after the new ControlKeel binary is active."
         }
 
+      {_, true} ->
+        %{
+          "status" => "skipped",
+          "reason" => "self_update_required",
+          "message" =>
+            "A newer ControlKeel release is available. Update ControlKeel first, then rerun `controlkeel update --sync-attached` so attached surfaces are refreshed with the new binary."
+        }
+
       _ ->
-        case ProjectBinding.read_effective(project_root) do
-          {:ok, binding, mode} ->
-            case AttachedAgentSync.sync(binding, project_root, mode: mode) do
-              {:ok, _binding, changes} ->
-                %{
-                  "status" => "applied",
-                  "changes" => changes,
-                  "synced_count" => Enum.count(changes, &(&1["status"] == "synced"))
-                }
+        sync_current_attached(project_root)
+    end
+  end
 
-              {:error, reason} ->
-                %{"status" => "error", "message" => format_reason(reason)}
-            end
-
-          {:error, :not_found} ->
-            %{"status" => "noop", "message" => "No governed project binding found."}
+  defp sync_current_attached(project_root) do
+    case ProjectBinding.read_effective(project_root) do
+      {:ok, binding, mode} ->
+        case AttachedAgentSync.sync(binding, project_root, mode: mode) do
+          {:ok, _binding, changes} ->
+            %{
+              "status" => "applied",
+              "changes" => changes,
+              "synced_count" => Enum.count(changes, &(&1["status"] == "synced"))
+            }
 
           {:error, reason} ->
             %{"status" => "error", "message" => format_reason(reason)}
         end
+
+      {:error, :not_found} ->
+        %{"status" => "noop", "message" => "No governed project binding found."}
+
+      {:error, reason} ->
+        %{"status" => "error", "message" => format_reason(reason)}
     end
   end
 

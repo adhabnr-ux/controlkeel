@@ -76,6 +76,36 @@ defmodule ControlKeel.MCP.Tools.CkContextTest do
     assert result["session_id"] == session.id
   end
 
+  test "accepts session_id alias active in bound project" do
+    tmp_dir =
+      Path.join(System.tmp_dir!(), "ck-context-active-#{System.unique_integer([:positive])}")
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    session = session_fixture()
+
+    assert {:ok, _binding} =
+             ControlKeel.ProjectBinding.write(
+               %{
+                 "workspace_id" => session.workspace_id,
+                 "session_id" => session.id,
+                 "agent" => "opencode"
+               },
+               tmp_dir
+             )
+
+    assert {:ok, result} =
+             CkContext.call(%{
+               "session_id" => "active",
+               "task_id" => "",
+               "project_root" => tmp_dir
+             })
+
+    assert result["session_id"] == session.id
+  end
+
   test "falls back to the active bound session when session_id is omitted" do
     tmp_dir =
       Path.join(
@@ -237,10 +267,12 @@ defmodule ControlKeel.MCP.Tools.CkContextTest do
     assert message =~ "session_id"
     assert message =~ "integer"
 
+    session = session_fixture()
+
     assert {:error, {:invalid_arguments, message}} =
-             CkContextPack.call(%{"session_id" => "current", "task_id" => "not-a-number"})
+             CkContextPack.call(%{"session_id" => session.id, "task_id" => "999999999"})
 
     assert message =~ "task_id"
-    assert message =~ "integer"
+    assert message =~ "current session"
   end
 end

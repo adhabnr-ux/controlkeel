@@ -2,6 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
   @moduledoc false
 
   alias ControlKeel.Budget
+  alias ControlKeel.MCP.Arguments
 
   @allowed_modes ~w(estimate commit status)
 
@@ -15,8 +16,8 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
 
   defp normalize(arguments) do
-    with {:ok, session_id} <- required_integer(arguments, "session_id"),
-         {:ok, task_id} <- optional_integer(arguments, "task_id"),
+    with {:ok, session_id} <- Arguments.resolve_session_id(arguments),
+         {:ok, task_id} <- Arguments.optional_integer(arguments, "task_id"),
          {:ok, mode} <- mode(arguments),
          {:ok, estimated_cost_cents} <-
            optional_non_negative_integer(arguments, "estimated_cost_cents"),
@@ -108,26 +109,12 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
     end
   end
 
-  defp required_integer(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-      value -> normalize_integer(value, key)
-    end
-  end
-
   defp optional_boolean(arguments, key) do
     case Map.get(arguments, key) do
       nil -> {:ok, nil}
       value when is_boolean(value) -> {:ok, value}
       value when is_binary(value) -> {:ok, String.downcase(value) in ["true", "1", "yes"]}
       _ -> {:ok, nil}
-    end
-  end
-
-  defp optional_integer(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:ok, nil}
-      value -> normalize_integer(value, key)
     end
   end
 

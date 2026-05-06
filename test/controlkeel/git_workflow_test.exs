@@ -2,6 +2,7 @@ defmodule ControlKeel.GitWorkflowTest do
   use ControlKeel.DataCase, async: false
 
   alias ControlKeel.GitWorkflow
+  alias ControlKeel.MCP.Tools.CkGitDiff
 
   import ControlKeel.MissionFixtures
 
@@ -72,6 +73,22 @@ defmodule ControlKeel.GitWorkflowTest do
       assert is_binary(result["diff"])
       assert result["files_changed"] >= 1
       assert is_map(result["validation"])
+    end
+
+    test "ck_git_diff treats empty refs as omitted working tree diff", %{tmp_dir: tmp_dir} do
+      File.write!(Path.join(tmp_dir, "README.md"), "# Initial\nchanged\n")
+
+      assert {:ok, result} =
+               CkGitDiff.call(%{
+                 "project_root" => tmp_dir,
+                 "base_ref" => "",
+                 "head_ref" => ""
+               })
+
+      assert result["base_ref"] == nil
+      assert result["head_ref"] == nil
+      assert result["diff"] =~ "changed"
+      assert result["files_changed"] >= 1
     end
   end
 

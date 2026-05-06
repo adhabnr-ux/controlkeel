@@ -1292,8 +1292,8 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_git_diff",
       "description" =>
-        "Generate a git diff between two refs and run CK validation on the resulting diff. Read-only — no commits are created. " <>
-          "base_ref and head_ref are git refs (branch names, commit SHAs, or tags); omit both to diff staged changes against HEAD. " <>
+        "Generate a git diff and run CK validation on the resulting diff. Read-only — no commits are created. " <>
+          "base_ref and head_ref are git refs (branch names, commit SHAs, or tags); omit both or pass empty strings to diff the working tree against HEAD. " <>
           "Returns the diff text and any CK validation findings raised against it. " <>
           "Use ck_git_diff to review changes before committing or submitting a review. Use ck_git_status for a summary without the full diff. Use ck_git_commit to create the commit after reviewing.",
       "inputSchema" => %{

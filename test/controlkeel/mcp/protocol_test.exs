@@ -936,6 +936,50 @@ defmodule ControlKeel.MCP.ProtocolTest do
            )
   end
 
+  test "tools/call ck_context ignores non-numeric task slugs" do
+    session = session_fixture()
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 404,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_context",
+          "arguments" => %{
+            "session_id" => session.id,
+            "task_id" => "amp-neo-integration"
+          }
+        }
+      })
+
+    assert get_in(response, ["result", "structuredContent", "session_id"]) == session.id
+    refute Map.has_key?(response, "error")
+  end
+
+  test "tools/call ck_context_pack ignores non-numeric task slugs" do
+    session = session_fixture()
+    _task = task_fixture(%{session: session, status: "in_progress", title: "Active work"})
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 405,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_context_pack",
+          "arguments" => %{
+            "session_id" => session.id,
+            "task_id" => "amp-neo-integration",
+            "top_k" => 1
+          }
+        }
+      })
+
+    assert get_in(response, ["result", "structuredContent", "session_id"]) == session.id
+    refute Map.has_key?(response, "error")
+  end
+
   test "tools/call ck_context returns mission context" do
     session =
       session_fixture(%{

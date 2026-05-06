@@ -2,6 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkBudgetTokenTest do
   use ControlKeel.DataCase
 
   alias ControlKeel.MCP.Tools.CkBudget
+  alias ControlKeel.ProjectBinding
 
   import ControlKeel.MissionFixtures
 
@@ -64,5 +65,54 @@ defmodule ControlKeel.MCP.Tools.CkBudgetTokenTest do
              })
 
     refute Map.has_key?(result, "token_overhead")
+  end
+
+  test "resolves active and current session aliases from project binding", %{tmp: tmp} do
+    session = session_fixture()
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => session.workspace_id,
+                 "session_id" => session.id,
+                 "agent" => "opencode"
+               },
+               tmp
+             )
+
+    for alias_value <- ["active", "current"] do
+      assert {:ok, result} =
+               CkBudget.call(%{
+                 "session_id" => alias_value,
+                 "mode" => "status",
+                 "project_root" => tmp
+               })
+
+      assert result["session_budget_cents"] == session.budget_cents
+    end
+  end
+
+  test "treats optional task slug as unscoped for budget status", %{tmp: tmp} do
+    session = session_fixture()
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => session.workspace_id,
+                 "session_id" => session.id,
+                 "agent" => "opencode"
+               },
+               tmp
+             )
+
+    assert {:ok, result} =
+             CkBudget.call(%{
+               "session_id" => "active",
+               "task_id" => "amp-neo-integration",
+               "mode" => "status",
+               "project_root" => tmp
+             })
+
+    assert result["session_budget_cents"] == session.budget_cents
   end
 end

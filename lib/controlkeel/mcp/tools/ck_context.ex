@@ -389,7 +389,17 @@ defmodule ControlKeel.MCP.Tools.CkContext do
   defp optional_integer(arguments, key) do
     case Map.get(arguments, key) do
       nil -> {:ok, nil}
+      "" -> {:ok, nil}
+      value when is_binary(value) -> normalize_optional_integer_string(value, key)
       value -> normalize_integer(value, key)
+    end
+  end
+
+  defp normalize_optional_integer_string(value, key) do
+    case Integer.parse(value) do
+      {parsed, ""} -> {:ok, parsed}
+      _ when key == "task_id" -> {:ok, nil}
+      _ -> {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
     end
   end
 
