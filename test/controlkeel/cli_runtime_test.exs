@@ -104,6 +104,26 @@ defmodule ControlKeel.CLIRuntimeTest do
     assert message =~ "controlkeel help codx attach"
   end
 
+  test "skills list supports json output", %{tmp_dir: tmp_dir} do
+    assert {:ok, skills_list} = CLI.parse(["skills", "list", "--json"])
+
+    output =
+      capture_io(fn ->
+        assert 0 == CLI.execute(skills_list, project_root: tmp_dir)
+      end)
+
+    payload = Jason.decode!(output)
+
+    assert payload["project_root"] == ProjectRoot.resolve(tmp_dir)
+    assert is_list(payload["skills"])
+
+    assert Enum.any?(payload["skills"], fn skill ->
+             skill["name"] == "controlkeel-governance" and
+               is_list(skill["compatibility_targets"]) and
+               is_list(skill["required_mcp_tools"])
+           end)
+  end
+
   test "runtime init and status use the packaged CLI path", %{tmp_dir: tmp_dir} do
     assert {:ok, init} = CLI.parse(["init"])
     init_output = capture_io(fn -> assert 0 == CLI.execute(init, project_root: tmp_dir) end)
@@ -163,7 +183,7 @@ defmodule ControlKeel.CLIRuntimeTest do
     assert status_output =~ "Suggested next steps:"
     assert status_output =~ "controlkeel proofs --task-id #{task.id}"
 
-    assert {:ok, status_json} = CLI.parse(["status", "--format", "json"])
+    assert {:ok, status_json} = CLI.parse(["status", "--json"])
 
     status_json_output =
       capture_io(fn ->

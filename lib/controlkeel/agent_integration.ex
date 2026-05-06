@@ -1372,8 +1372,7 @@ defmodule ControlKeel.AgentIntegration do
         alias_of: "codex-cli",
         auth_mode: "agent_runtime",
         upstream_slug: "MoonshotAI/kimi-cli",
-        upstream_docs_url:
-          "https://www.kimi.com/code/docs/en/kimi-cli/guides/getting-started.html",
+        upstream_docs_url: "https://moonshotai.github.io/kimi-cli/en/",
         supported_scopes: ["user", "project"],
         preferred_target: "codex",
         export_targets: ["codex", "codex-plugin", "open-standard"]

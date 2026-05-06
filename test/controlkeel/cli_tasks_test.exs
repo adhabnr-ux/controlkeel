@@ -218,6 +218,17 @@ defmodule ControlKeel.CLITasksTest do
     assert status_output =~ "Total findings:"
     assert status_output =~ "Blocked findings:"
 
+    status_json_output =
+      with_project(tmp_dir, fn ->
+        rerun_task("ck.status")
+        capture_io(fn -> Mix.Tasks.Ck.Status.run(["--format", "json"]) end)
+      end)
+
+    assert String.starts_with?(status_json_output, "{")
+    status_json = Jason.decode!(status_json_output)
+    assert get_in(status_json, ["session", "id"]) == session.id
+    assert get_in(status_json, ["session", "title"]) == session.title
+
     findings_output =
       with_project(tmp_dir, fn ->
         rerun_task("ck.findings")

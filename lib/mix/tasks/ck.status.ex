@@ -6,18 +6,33 @@ defmodule Mix.Tasks.Ck.Status do
   @shortdoc "Shows the current governed session status"
 
   @impl true
-  def run(_args) do
-    Mix.Task.run("app.start")
+  def run(args) do
+    previous_level = Logger.level()
+    quiet_json? = json_args?(args)
 
-    parsed = parse!(["status"])
+    try do
+      if quiet_json?, do: Logger.configure(level: :warning)
 
-    case CLI.run_command(parsed, File.cwd!()) do
-      {:ok, lines} ->
-        Enum.each(lines, fn line -> Mix.shell().info(line) end)
+      Mix.Task.run("app.start")
+      if quiet_json?, do: Logger.configure(level: :warning)
 
-      {:error, message} ->
-        Mix.raise(message)
+      parsed = parse!(["status" | args])
+
+      case CLI.run_command(parsed, File.cwd!()) do
+        {:ok, lines} ->
+          Enum.each(lines, fn line -> Mix.shell().info(line) end)
+
+        {:error, message} ->
+          Mix.raise(message)
+      end
+    after
+      if quiet_json?, do: Logger.configure(level: previous_level)
     end
+  end
+
+  defp json_args?(args) do
+    "--json" in args or
+      Enum.chunk_every(args, 2, 1, :discard) |> Enum.any?(&(&1 == ["--format", "json"]))
   end
 
   defp parse!(argv) do

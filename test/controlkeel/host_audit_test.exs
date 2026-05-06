@@ -1,6 +1,8 @@
 defmodule ControlKeel.HostAuditTest do
   use ExUnit.Case, async: true
 
+  import Plug.Conn
+
   alias ControlKeel.HostAudit
 
   test "reports ok, warn, and error counts from the injected fetcher" do
@@ -33,5 +35,22 @@ defmodule ControlKeel.HostAuditTest do
     assert Enum.any?(report.checks, fn check ->
              check.type == :repo_slug and check.url == "https://github.com/openai/codex"
            end)
+  end
+
+  test "URL checks fall back to GET when HEAD returns a false error" do
+    bypass = Bypass.open()
+
+    Bypass.expect_once(bypass, "HEAD", "/docs", fn conn ->
+      send_resp(conn, 404, "")
+    end)
+
+    Bypass.expect_once(bypass, "GET", "/docs", fn conn ->
+      send_resp(conn, 200, "ok")
+    end)
+
+    assert HostAudit.public_url_result("http://127.0.0.1:#{bypass.port}/docs") == %{
+             status: :ok,
+             detail: "HTTP 200 (GET fallback after HEAD HTTP 404)"
+           }
   end
 end

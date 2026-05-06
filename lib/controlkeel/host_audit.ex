@@ -88,6 +88,22 @@ defmodule ControlKeel.HostAudit do
       end)
   end
 
+  def public_url_result(url) when is_binary(url) do
+    case request_url(url, :head) do
+      %{status: :ok} = result ->
+        result
+
+      head_result ->
+        case request_url(url, :get) do
+          %{status: :ok, detail: detail} ->
+            %{status: :ok, detail: "#{detail} (GET fallback after HEAD #{head_result.detail})"}
+
+          _get_result ->
+            head_result
+        end
+    end
+  end
+
   defp summarize(checks) do
     Enum.reduce(checks, %{ok: 0, warn: 0, error: 0}, fn check, acc ->
       Map.update!(acc, check.result.status, &(&1 + 1))
@@ -95,24 +111,7 @@ defmodule ControlKeel.HostAudit do
   end
 
   defp default_fetch({:url, url}) do
-    req =
-      Req.new(
-        url: url,
-        method: :head,
-        headers: [{"user-agent", "controlkeel-host-audit"}],
-        receive_timeout: 15_000
-      )
-
-    case Req.request(req) do
-      {:ok, %Req.Response{status: status}} when status in 200..399 ->
-        %{status: :ok, detail: "HTTP #{status}"}
-
-      {:ok, %Req.Response{status: status}} ->
-        %{status: classify_http(status), detail: "HTTP #{status}"}
-
-      {:error, exception} ->
-        %{status: :error, detail: Exception.message(exception)}
-    end
+    public_url_result(url)
   end
 
   defp default_fetch({:repo_slug, slug}) do
@@ -139,6 +138,27 @@ defmodule ControlKeel.HostAudit do
         else
           %{status: :warn, detail: "missing dist-tags.latest"}
         end
+
+      {:ok, %Req.Response{status: status}} ->
+        %{status: classify_http(status), detail: "HTTP #{status}"}
+
+      {:error, exception} ->
+        %{status: :error, detail: Exception.message(exception)}
+    end
+  end
+
+  defp request_url(url, method) do
+    req =
+      Req.new(
+        url: url,
+        method: method,
+        headers: [{"user-agent", "controlkeel-host-audit"}],
+        receive_timeout: 15_000
+      )
+
+    case Req.request(req) do
+      {:ok, %Req.Response{status: status}} when status in 200..399 ->
+        %{status: :ok, detail: "HTTP #{status}"}
 
       {:ok, %Req.Response{status: status}} ->
         %{status: classify_http(status), detail: "HTTP #{status}"}

@@ -75,7 +75,7 @@ defmodule ControlKeel.CLI do
     with_skills: :boolean,
     scope: :string
   ]
-  @status_switches [format: :string]
+  @status_switches [format: :string, json: :boolean]
   @update_switches [
     apply: :boolean,
     sync_attached: :boolean,
@@ -125,7 +125,7 @@ defmodule ControlKeel.CLI do
   @precommit_check_switches [project_root: :string, domain_pack: :string, enforce: :boolean]
   @progress_switches [session_id: :integer, format: :string]
   @circuit_breaker_switches [agent_id: :string]
-  @skills_list_switches [project_root: :string, target: :string]
+  @skills_list_switches [project_root: :string, target: :string, format: :string, json: :boolean]
   @skills_validate_switches [project_root: :string]
   @skills_export_switches [project_root: :string, target: :string, scope: :string]
   @skills_install_switches [project_root: :string, target: :string, scope: :string]
@@ -2045,7 +2045,7 @@ defmodule ControlKeel.CLI do
   end
 
   def run_command(%{command: :status, options: options}, project_root) do
-    with {:ok, format} <- cli_output_format(options),
+    with {:ok, format} <- effective_cli_format(options),
          {:ok, binding, session, _mode} <- ensure_local_project(project_root) do
       metrics = Analytics.session_metrics(session.id) || %{}
       rolling_24h = Budget.rolling_24h_spend_cents(session.id)
@@ -3788,41 +3788,22 @@ defmodule ControlKeel.CLI do
         analysis.skills
       end
 
-    lines =
-      if skills == [] do
-        ["No skills available for the selected scope or target."]
-      else
-        Enum.flat_map(skills, fn skill ->
-          targets =
-            if skill.compatibility_targets == [],
-              do: "mcp",
-              else: Enum.join(skill.compatibility_targets, ", ")
+    with {:ok, format} <- effective_cli_format(options) do
+      case format do
+        "json" ->
+          {:ok,
+           [
+             Jason.encode!(
+               skills_list_payload(root, selected_target, skills, analysis.diagnostics)
+             )
+           ]}
 
-          tools =
-            if skill.required_mcp_tools == [],
-              do: "none",
-              else: Enum.join(skill.required_mcp_tools, ", ")
-
-          [
-            "#{skill.name} [#{skill.scope}]",
-            "  #{skill.description}",
-            "  targets: #{targets}",
-            "  CK tools: #{tools}"
-          ]
-        end)
+        _text ->
+          {:ok, format_skills_list(skills, analysis.diagnostics)}
       end
-
-    diagnostic_lines =
-      if analysis.diagnostics == [] do
-        []
-      else
-        ["", "Diagnostics:"] ++
-          Enum.map(analysis.diagnostics, fn diagnostic ->
-            "  [#{diagnostic.level}] #{diagnostic.code} — #{diagnostic.message}"
-          end)
-      end
-
-    {:ok, lines ++ diagnostic_lines}
+    else
+      {:error, reason} -> {:error, format_cli_error(reason)}
+    end
   end
 
   def run_command(%{command: :skills_validate, options: options}, project_root) do
@@ -4007,98 +3988,6 @@ defmodule ControlKeel.CLI do
     end
   end
 
-  defp format_token_audit(result, mode, "text") do
-    case mode do
-      "full" ->
-        rule_files = result["rule_files"] || []
-        skills = result["skills"] || []
-        duplicates = result["duplicates"] || []
-        recommendations = result["recommendations"] || []
-
-        [
-          "Token Audit Results",
-          "===================",
-          "",
-          "Project root: #{result["project_root"]}",
-          "Total estimated tokens: #{result["estimated_tokens"]}",
-          "Rule files: #{length(rule_files)}",
-          "Skills: #{length(skills)}",
-          "Duplicates: #{length(duplicates)}",
-          "",
-          "Rule files:"
-        ] ++
-          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{rf["tokens"]} tokens)" end) ++
-          [
-            "",
-            "Skills:"
-          ] ++
-          Enum.map(skills, fn s -> "  - #{s["name"]} (#{s["tokens"]} tokens)" end) ++
-          [
-            "",
-            "Duplicates:"
-          ] ++
-          Enum.map(duplicates, fn d -> "  - #{d["path"]} (duplicate of #{d["original"]})" end) ++
-          [
-            "",
-            "Recommendations:"
-          ] ++
-          Enum.map(recommendations, fn r -> "  - #{r}" end)
-
-      "rules" ->
-        rule_files = result["rule_files"] || []
-
-        [
-          "Token Audit - Rule Files",
-          "=========================",
-          "",
-          "Project root: #{result["project_root"]}",
-          "Total rule tokens: #{result["estimated_tokens"]}",
-          "Rule files: #{length(rule_files)}",
-          ""
-        ] ++
-          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{rf["tokens"]} tokens)" end)
-
-      "skills" ->
-        skills = result["skills"] || []
-        duplicates = result["duplicates"] || []
-
-        [
-          "Token Audit - Skills",
-          "====================",
-          "",
-          "Project root: #{result["project_root"]}",
-          "Total skill tokens: #{result["estimated_tokens"]}",
-          "Skills: #{length(skills)}",
-          "Duplicates: #{length(duplicates)}",
-          ""
-        ] ++
-          Enum.map(skills, fn s -> "  - #{s["name"]} (#{s["tokens"]} tokens)" end) ++
-          [
-            "",
-            "Duplicates:"
-          ] ++
-          Enum.map(duplicates, fn d -> "  - #{d["path"]} (duplicate of #{d["original"]})" end)
-
-      "tools" ->
-        tools = result["tools"] || []
-
-        [
-          "Token Audit - Tools",
-          "===================",
-          "",
-          "Project root: #{result["project_root"]}",
-          "Total tool tokens: #{result["estimated_tokens"]}",
-          "Tools: #{length(tools)}",
-          ""
-        ] ++
-          Enum.map(tools, fn t -> "  - #{t["name"]} (#{t["tokens"]} tokens)" end)
-    end
-  end
-
-  defp format_token_audit(result, _mode, "json") do
-    [Jason.encode!(result, pretty: true)]
-  end
-
   def run_command(%{command: :tool_groups_suggest, options: options}, project_root) do
     root = options[:project_root] || project_root
     format = options[:format] || "text"
@@ -4123,32 +4012,6 @@ defmodule ControlKeel.CLI do
       _ ->
         {:error, ["Failed to suggest tool groups"]}
     end
-  end
-
-  defp format_tool_groups_suggest(groups, reason, stats, "text") do
-    [
-      "Tool Groups Suggestion:",
-      "  Suggested groups: #{inspect(groups)}",
-      "  Reason: #{reason}",
-      "  Usage stats:",
-      "    Total calls: #{stats.total_calls}",
-      "    Unique tools: #{stats.unique_tools}",
-      "",
-      "To apply this suggestion to your project, run:",
-      "  controlkeel tool groups suggest --apply"
-    ]
-  end
-
-  defp format_tool_groups_suggest(groups, reason, stats, "json") do
-    Jason.encode!(
-      %{
-        suggested: groups,
-        reason: reason,
-        usage_stats: stats
-      },
-      pretty: true
-    )
-    |> then(&[&1])
   end
 
   def run_command(%{command: :watch, options: options}, project_root) do
@@ -4716,6 +4579,192 @@ defmodule ControlKeel.CLI do
 
         {:ok, ["Agent Leaderboard:", "" | lines]}
     end
+  end
+
+  defp skills_list_payload(root, selected_target, skills, diagnostics) do
+    %{
+      "project_root" => Path.expand(root),
+      "target" => selected_target,
+      "skills" => Enum.map(skills, &skill_payload/1),
+      "diagnostics" => Enum.map(diagnostics, &skill_diagnostic_payload/1)
+    }
+  end
+
+  defp skill_payload(skill) do
+    %{
+      "name" => skill.name,
+      "description" => skill.description,
+      "path" => skill.path,
+      "scope" => skill.scope,
+      "compatibility_targets" => skill.compatibility_targets || [],
+      "required_mcp_tools" => skill.required_mcp_tools || []
+    }
+  end
+
+  defp skill_diagnostic_payload(diagnostic) do
+    %{
+      "level" => diagnostic.level,
+      "code" => diagnostic.code,
+      "message" => diagnostic.message,
+      "path" => diagnostic.path,
+      "skill_name" => diagnostic.skill_name
+    }
+  end
+
+  defp format_skills_list(skills, diagnostics) do
+    lines =
+      if skills == [] do
+        ["No skills available for the selected scope or target."]
+      else
+        Enum.flat_map(skills, fn skill ->
+          targets =
+            if skill.compatibility_targets == [],
+              do: "mcp",
+              else: Enum.join(skill.compatibility_targets, ", ")
+
+          tools =
+            if skill.required_mcp_tools == [],
+              do: "none",
+              else: Enum.join(skill.required_mcp_tools, ", ")
+
+          [
+            "#{skill.name} [#{skill.scope}]",
+            "  #{skill.description}",
+            "  targets: #{targets}",
+            "  CK tools: #{tools}"
+          ]
+        end)
+      end
+
+    diagnostic_lines =
+      if diagnostics == [] do
+        []
+      else
+        ["", "Diagnostics:"] ++
+          Enum.map(diagnostics, fn diagnostic ->
+            "  [#{diagnostic.level}] #{diagnostic.code} — #{diagnostic.message}"
+          end)
+      end
+
+    lines ++ diagnostic_lines
+  end
+
+  defp format_token_audit(result, mode, "text") do
+    case mode do
+      "full" ->
+        rule_files = result["rule_files"] || []
+        skills = result["skills"] || []
+        duplicates = result["duplicates"] || []
+        recommendations = result["recommendations"] || []
+
+        [
+          "Token Audit Results",
+          "===================",
+          "",
+          "Project root: #{result["project_root"]}",
+          "Total estimated tokens: #{result["estimated_tokens"]}",
+          "Rule files: #{length(rule_files)}",
+          "Skills: #{length(skills)}",
+          "Duplicates: #{length(duplicates)}",
+          "",
+          "Rule files:"
+        ] ++
+          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{rf["tokens"]} tokens)" end) ++
+          [
+            "",
+            "Skills:"
+          ] ++
+          Enum.map(skills, fn s -> "  - #{s["name"]} (#{s["tokens"]} tokens)" end) ++
+          [
+            "",
+            "Duplicates:"
+          ] ++
+          Enum.map(duplicates, fn d -> "  - #{d["path"]} (duplicate of #{d["original"]})" end) ++
+          [
+            "",
+            "Recommendations:"
+          ] ++
+          Enum.map(recommendations, fn r -> "  - #{r}" end)
+
+      "rules" ->
+        rule_files = result["rule_files"] || []
+
+        [
+          "Token Audit - Rule Files",
+          "=========================",
+          "",
+          "Project root: #{result["project_root"]}",
+          "Total rule tokens: #{result["estimated_tokens"]}",
+          "Rule files: #{length(rule_files)}",
+          ""
+        ] ++
+          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{rf["tokens"]} tokens)" end)
+
+      "skills" ->
+        skills = result["skills"] || []
+        duplicates = result["duplicates"] || []
+
+        [
+          "Token Audit - Skills",
+          "====================",
+          "",
+          "Project root: #{result["project_root"]}",
+          "Total skill tokens: #{result["estimated_tokens"]}",
+          "Skills: #{length(skills)}",
+          "Duplicates: #{length(duplicates)}",
+          ""
+        ] ++
+          Enum.map(skills, fn s -> "  - #{s["name"]} (#{s["tokens"]} tokens)" end) ++
+          [
+            "",
+            "Duplicates:"
+          ] ++
+          Enum.map(duplicates, fn d -> "  - #{d["path"]} (duplicate of #{d["original"]})" end)
+
+      "tools" ->
+        tools = result["tools"] || []
+
+        [
+          "Token Audit - Tools",
+          "===================",
+          "",
+          "Project root: #{result["project_root"]}",
+          "Total tool tokens: #{result["estimated_tokens"]}",
+          "Tools: #{length(tools)}",
+          ""
+        ] ++
+          Enum.map(tools, fn t -> "  - #{t["name"]} (#{t["tokens"]} tokens)" end)
+    end
+  end
+
+  defp format_token_audit(result, _mode, "json") do
+    [Jason.encode!(result, pretty: true)]
+  end
+
+  defp format_tool_groups_suggest(groups, reason, stats, "text") do
+    [
+      "Tool Groups Suggestion:",
+      "  Suggested groups: #{inspect(groups)}",
+      "  Reason: #{reason}",
+      "  Usage stats:",
+      "    Total calls: #{stats.total_calls}",
+      "    Unique tools: #{stats.unique_tools}",
+      "",
+      "To apply this suggestion to your project, run:",
+      "  controlkeel tool groups suggest --apply"
+    ]
+  end
+
+  defp format_tool_groups_suggest(groups, reason, stats, "json") do
+    Jason.encode!(
+      %{
+        suggested: groups,
+        reason: reason,
+        usage_stats: stats
+      },
+      pretty: true
+    )
+    |> then(&[&1])
   end
 
   defp deployment_stacks, do: [:phoenix, :react, :rails, :node, :python, :static]
