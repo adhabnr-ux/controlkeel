@@ -42,7 +42,10 @@ defmodule ControlKeel.Deployment.AdvisorTest do
     assert ci.filename == ".github/workflows/ci.yml"
     assert env.filename == ".env.example"
 
-    assert dockerfile.content =~ "hexpm/elixir"
+    assert dockerfile.content =~ "debian:bookworm-slim"
+    assert dockerfile.content =~ "kerl build"
+    assert dockerfile.content =~ "/app/_build/prod/rel/"
+    refute dockerfile.content =~ "_release.tar.gz"
     assert compose.content =~ "postgres"
     assert ci.content =~ "setup-beam"
     assert ci.content =~ "mix format --check-formatted"
@@ -51,15 +54,58 @@ defmodule ControlKeel.Deployment.AdvisorTest do
     assert env.content =~ "SECRET_KEY_BASE"
   end
 
-  test "analyzes a React project", %{tmp_dir: tmp_dir} do
+  test "generates SQLite-aware Phoenix templates", %{tmp_dir: tmp_dir} do
+    File.write!(Path.join(tmp_dir, "mix.exs"), """
+    defmodule ControlKeel.MixProject do
+      use Mix.Project
+      def project, do: [app: :controlkeel, deps: deps()]
+      defp deps, do: [{:phoenix, "~> 1.8"}, {:ecto_sqlite3, ">= 0.0.0"}]
+    end
+    """)
+
+    File.mkdir_p!(Path.join(tmp_dir, "config"))
+    File.write!(Path.join(tmp_dir, "config/config.exs"), "import Config")
+
+    assert {:ok, result} = Advisor.analyze(tmp_dir)
+    [dockerfile, compose, _ci, env] = result.generators
+
+    assert dockerfile.content =~ "/app/_build/prod/rel/controlkeel"
+    assert dockerfile.content =~ ~s(CMD ["/app/bin/controlkeel", "start"])
+    assert compose.content =~ "DATABASE_PATH"
+    refute compose.content =~ "postgres:16-alpine"
+    assert env.content =~ "DATABASE_PATH=./controlkeel_dev.db"
+    refute env.content =~ "POSTGRES_DB"
+  end
+
+  test "analyzes a generic React project", %{tmp_dir: tmp_dir} do
     File.write!(Path.join(tmp_dir, "package.json"), ~s({"dependencies": {"react": "^18"}}))
 
     assert {:ok, result} = Advisor.analyze(tmp_dir)
     assert result.stack == :react
     assert result.monthly_cost_range.high == 20
 
-    [dockerfile | _] = result.generators
+    [dockerfile, compose | _] = result.generators
     assert dockerfile.content =~ "node:20"
+    assert dockerfile.content =~ "nginx:alpine"
+    assert dockerfile.content =~ "/app/dist"
+    refute dockerfile.content =~ ".next/standalone"
+    assert compose.content =~ ~s("80:80")
+    refute compose.content =~ "NEXT_PUBLIC_API_URL"
+  end
+
+  test "generates Next.js-specific React Dockerfile", %{tmp_dir: tmp_dir} do
+    File.write!(
+      Path.join(tmp_dir, "package.json"),
+      ~s({"dependencies": {"react": "^18", "next": "^15"}})
+    )
+
+    assert {:ok, result} = Advisor.analyze(tmp_dir)
+    [dockerfile, compose | _] = result.generators
+
+    assert dockerfile.content =~ ".next/standalone"
+    assert dockerfile.content =~ ~s(CMD ["node", "server.js"])
+    assert compose.content =~ ~s("3000:3000")
+    assert compose.content =~ "NEXT_PUBLIC_API_URL"
   end
 
   test "analyzes a Rails project", %{tmp_dir: tmp_dir} do
@@ -78,6 +124,12 @@ defmodule ControlKeel.Deployment.AdvisorTest do
 
     assert {:ok, result} = Advisor.analyze(tmp_dir)
     assert result.stack == :node
+
+    [dockerfile | _] = result.generators
+    assert dockerfile.content =~ "RUN npm ci"
+    assert dockerfile.content =~ "RUN npm run build"
+    assert dockerfile.content =~ "RUN npm prune --omit=dev"
+    refute dockerfile.content =~ "npm ci --only=production"
   end
 
   test "analyzes a Python project", %{tmp_dir: tmp_dir} do
@@ -85,6 +137,10 @@ defmodule ControlKeel.Deployment.AdvisorTest do
 
     assert {:ok, result} = Advisor.analyze(tmp_dir)
     assert result.stack == :python
+
+    [dockerfile | _] = result.generators
+    assert dockerfile.content =~ "pip install --no-cache-dir -r requirements.txt gunicorn"
+    assert dockerfile.content =~ ~s(CMD ["gunicorn")
   end
 
   test "falls back to static for unknown projects", %{tmp_dir: tmp_dir} do

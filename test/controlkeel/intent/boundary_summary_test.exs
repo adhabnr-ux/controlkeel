@@ -186,6 +186,9 @@ defmodule ControlKeel.Intent.BoundarySummaryTest do
                  ],
                  "protected_tail" => true,
                  "cheapest_first" => true,
+                 "provenance" => ["host_harness", "provider_native", "ck_resume_packet"],
+                 "provenance_note" =>
+                   "Track which system performed compaction for proof/memory trust and audit trails. host_harness: host runtime (e.g. Amp Neo auto-compaction); provider_native: model provider built-in context management; ck_resume_packet: CK resume/packet mechanism.",
                  "rationale" =>
                    "Compact the cheapest artifacts first, preserve the active tail of the session, and only pay for expensive summarization or collapse when lighter strategies fail."
                },
