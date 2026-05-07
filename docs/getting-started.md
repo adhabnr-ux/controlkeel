@@ -15,6 +15,8 @@ It is not another IDE, another coding model, a prompt marketplace, or post-hoc c
 - Ship Dashboard for governed outcome metrics
 - Benchmarks for comparative evidence
 
+A good first run should feel less like babysitting an unreliable intern and more like setting up an engineering game loop: you define the mission, boundaries, taste, budget, and stopping rules; the agent makes bounded attempts; CK turns the run into findings, proofs, approvals, and cost signals. The goal is not blind delegation. The goal is to make engineering judgment more visible and valuable while the agent handles scoped work.
+
 The onboarding model is deliberately **occupation-first**. Users describe what kind of work they do, not which compliance framework they think applies. ControlKeel uses that answer to pick the domain pack, interview language, and governance posture behind the scenes.
 
 The governed delivery lifecycle is:

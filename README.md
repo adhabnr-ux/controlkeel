@@ -7,7 +7,7 @@
 [![Socket Badge](https://badge.socket.dev/npm/package/@aryaminus/controlkeel)](https://socket.dev/npm/package/@aryaminus/controlkeel/overview)
 [![controlkeel MCP server](https://glama.ai/mcp/servers/aryaminus/controlkeel/badges/score.svg)](https://glama.ai/mcp/servers/aryaminus/controlkeel)
 
-> Agent output is cheap. Governed delivery is not.
+> Agent output is cheap. Governed delivery is not. Keep engineers at the helm.
 
 **ControlKeel is the control plane for agent-led software delivery.** It sits between your coding agents and production as a portable "company brain": comparing *intended* delivery against *actual* delivery, catching governance drift before it ships, keeping work resumable across any host, and turning raw agent intent into audited tasks through findings and proofs, enforcing validation and review gates.
 

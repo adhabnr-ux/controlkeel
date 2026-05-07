@@ -2,6 +2,8 @@
 
 This is the reproducible walkthrough for the first 3-minute product recording and for manual smoke checks.
 
+The story to tell is not "the agent failed and CK caught it." The sharper story is that the engineer sets the quest, applies boundaries, lets the agent play inside the arena, and gets a proof-backed scoreboard instead of a pile of unreviewable output.
+
 ## Setup
 
 1. Start ControlKeel:
@@ -16,6 +18,19 @@ controlkeel
 controlkeel init --project-name "Demo app" --idea "Build a small governed demo app"
 controlkeel attach opencode
 ```
+
+## Frame the mission and boundaries
+
+For the recording, narrate the mission like an engineering quest:
+
+> Ship a tiny user lookup helper safely, keep the run under a small budget, avoid unsafe data access, and require human review before anything risky lands.
+
+Then call out the boundary cards CK is enforcing or surfacing:
+
+- no blind production changes
+- risky code must become a finding
+- proof and cost signals matter more than raw code volume
+- the human comes back for judgment, not every mechanical step
 
 ## Trigger a finding
 
@@ -41,6 +56,18 @@ ControlKeel should block or persist a finding with:
 - rule id `security.sql_injection`
 - status `blocked` or `open` depending on execution path
 - a plain-language explanation about unsafe SQL concatenation
+
+## Post-run scoreboard
+
+Close the demo by showing that CK made the run reviewable:
+
+- cost or token budget posture
+- finding caught and severity
+- proof or validation status
+- whether a human approval is required
+- whether the next action is safe, blocked, or needs redesign
+
+That scoreboard is the point: ControlKeel makes agentic engineering feel like engineering again, not blind delegation or endless babysitting.
 
 ## Verify
 

@@ -41,6 +41,31 @@ Its job is to provide the missing control layer around agent work:
 - preserve continuity across long-running work
 - attach immutable evidence to delivery decisions
 
+## Market critique: agentic work needs an engineering game loop
+
+Current market signals point in the same direction: coding agents are widely adopted, but developer trust is fragile because outputs are often "almost right," expensive to verify, and prone to runaway context, tool, or budget loops. The pain is not only that agents fail. The pain is that engineers are forced into low-agency babysitting instead of high-agency engineering judgment.
+
+ControlKeel's product opportunity is to make agentic work feel like engineering again:
+
+- humans define the mission, constraints, taste, and stop conditions
+- agents make bounded attempts inside explicit capability and budget limits
+- CK turns those attempts into findings, proofs, cost signals, and reviewable state
+- humans return for judgment calls, not every mechanical step
+
+That is a governed engineering game loop, not a promise of black-box autonomy. The "game" should create clear goals, immediate feedback, and growing mastery around better specs, better boundaries, better review packets, and better recovery behavior.
+
+### Product mechanics to explore
+
+The near-term mechanics should stay tied to evidence CK already records:
+
+- **Mission mode**: a user-visible objective with success criteria, risk tier, and finish/stop rules.
+- **Boundary cards**: explicit limits such as read-only discovery, max files, no network, no deploy, human approval before migration, or budget ceiling.
+- **Bounded attempts**: agents get a defined slice, context budget, and retry/cycle limit instead of open-ended wandering.
+- **Score and proof**: progress is scored by proof-backed task coverage, deploy readiness, findings resolved, budget discipline, and review quality.
+- **Human wake-up moments**: CK pulls humans back for architecture, permissions, dependencies, migrations, security, release, and other judgment-heavy calls.
+
+The anti-pattern is leaderboard theater. Do not reward code volume, PR count, autonomous churn, or "agent did a lot" metrics. Reward lower waste, smaller reviewable diffs, stronger proof, cheaper successful runs, and cleaner human decisions.
+
 ## RFS Alignment
 
 The strongest YC Summer 2026 Requests for Startups alignment is not "AI feature inside software." It is infrastructure for agent-native work.

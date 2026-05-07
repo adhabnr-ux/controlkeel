@@ -115,6 +115,7 @@ The main value is:
 - **Observable agent work**: CK keeps recent events, runtime context integrity, findings, review packets, and proofs visible so compaction and high-impact actions do not disappear into a black box.
 - **Truthful extensibility**: CK favors real host-native surfaces such as skills, plugins, hooks, commands, and runtime bundles over shallow “universal” claims.
 - **Portable provider choice**: CK keeps provider and fallback behavior explicit so teams are not trapped inside a single host-managed runtime.
+- **Human judgment stays central**: CK makes agent work feel like engineering again by turning vague delegation into a bounded loop: humans set the mission, constraints, taste, budget, and stop rules; agents make scoped attempts; CK records the score through findings, proofs, approvals, and cost signals.
 
 For defensive security teams, the same value proposition becomes:
 
@@ -141,7 +142,7 @@ It is specifically the **governance and delivery layer above generators**.
 
 You can say:
 
-> ControlKeel is the layer that sits between coding agents and production work. It does not replace Claude Code, Codex, OpenCode, or Copilot. It governs them. It gives agents bounded context, validates risky work, records findings, drives approvals, stores proof bundles, tracks budgets and providers, and keeps work reviewable across hosts. The point is not “more AI.” The point is making agent work safe enough, traceable enough, and structured enough to actually ship.
+> ControlKeel is the layer that sits between coding agents and production work. It does not replace Claude Code, Codex, OpenCode, or Copilot. It governs them. It gives agents bounded context, validates risky work, records findings, drives approvals, stores proof bundles, tracks budgets and providers, and keeps work reviewable across hosts. The point is not “more AI.” The point is making agent work safe enough, traceable enough, and structured enough to actually ship — while preserving the human judgment that makes software engineering software engineering.
 
 That also means CK is intentionally skeptical of hype around unsupervised multi-agent product delivery. It is much better at making narrow, reviewable overnight slices credible than at pretending a pile of loosely directed agents can autonomously build robust user-facing software from scratch.
 

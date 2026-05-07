@@ -446,6 +446,8 @@ This creates a trap:
 
 CK's governance layer is designed to counteract this by making human judgment explicit and unavoidable at the right boundaries. The goal is not to eliminate speed—the goal is to keep speed from becoming a substitute for thinking.
 
+This is the steering layer of the governed engineering game loop: humans design the mission, constraints, taste, budget, and stopping rules; agents get bounded attempts; CK turns the run into risk, cost, drift, proof, and approval signals.
+
 Friction is also steering. Without deliberate friction at the right boundaries (permissions, schema/migration changes, irreversible operations, release posture), teams lose the moments where experience should re-activate. As Armen puts it, "without friction there's no steering."
 
 That shows up in the current implementation in a few concrete ways:

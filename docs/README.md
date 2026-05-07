@@ -42,3 +42,5 @@ Use this page to decide where to read next.
 ## Internal planning
 
 The `docs/idea/` directory contains working product and research notes. Those files are useful for maintainers, but they are not the primary user docs and should not be treated as the shipped support contract.
+
+Start with [idea/controlkeel-product-strategy-plan.md](idea/controlkeel-product-strategy-plan.md) when you need the current product thesis, including the governed engineering game-loop framing for mission, boundaries, bounded agent attempts, proof/score, and human judgment gates.
