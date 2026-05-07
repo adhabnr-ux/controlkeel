@@ -54,6 +54,10 @@ ControlKeel's product opportunity is to make agentic work feel like engineering 
 
 That is a governed engineering game loop, not a promise of black-box autonomy. The "game" should create clear goals, immediate feedback, and growing mastery around better specs, better boundaries, better review packets, and better recovery behavior.
 
+Plans in this loop are checkpoints, not the product. CK should keep planning small enough that a human can test, review, abandon, or reroute the next bounded attempt quickly instead of turning agent work into a hyper-waterfall factory.
+
+Agentic search belongs in the same loop. The useful target is not merely faster grep; it is faster first orientation: ranked, path-aware, code-aware retrieval that helps agents choose the right file to read sooner, with changes measured against end-to-end task outcomes, cost, and proof quality.
+
 ### Product mechanics to explore
 
 The near-term mechanics should stay tied to evidence CK already records:

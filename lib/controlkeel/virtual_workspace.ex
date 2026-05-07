@@ -94,15 +94,12 @@ defmodule ControlKeel.VirtualWorkspace do
         |> Stream.map(&Path.relative_to(&1, root))
         |> Stream.reject(&(&1 == "."))
         |> Stream.filter(&String.contains?(String.downcase(&1), normalized_query))
+        |> Enum.map(&find_candidate(root, &1, normalized_query))
+        |> Enum.sort_by(fn {sort_key, _result} -> sort_key end)
         |> Enum.take(min(limit, @max_find_results))
-        |> Enum.map(fn relative ->
-          absolute = Path.join(root, relative)
-
-          %{
-            "path" => relative,
-            "type" => file_type(absolute)
-          }
-        end)
+        |> Enum.map(fn {_sort_key, result} -> result end)
+        |> Enum.with_index(1)
+        |> Enum.map(fn {result, rank} -> Map.put(result, "rank", rank) end)
 
       {:ok,
        %{
@@ -126,20 +123,142 @@ defmodule ControlKeel.VirtualWorkspace do
       max_matches = min(limit, @max_grep_matches)
 
       with {:ok, matches} <- grep_matches(root, scope_path, query, opts, max_matches) do
+        {annotated_matches, file_summaries} = annotate_grep_results(matches)
+
         {:ok,
          %{
            "project_root" => root,
            "path" => scope_relative_path,
            "query" => query,
-           "matches" => matches,
-           "count" => length(matches),
-           "limited" => length(matches) == max_matches,
+           "matches" => annotated_matches,
+           "files" => file_summaries,
+           "file_count" => length(file_summaries),
+           "count" => length(annotated_matches),
+           "limited" => length(annotated_matches) == max_matches,
            "read_only" => true,
            "virtual_filesystem" => true,
            "tool" => "grep"
          }}
       end
     end
+  end
+
+  defp find_candidate(root, relative, normalized_query) do
+    absolute = Path.join(root, relative)
+    basename = relative |> Path.basename() |> String.downcase()
+    path = String.downcase(relative)
+
+    match_quality = match_quality(path, basename, normalized_query)
+    path_depth = path_depth(relative)
+    orientation_hint = orientation_hint(relative)
+    orientation_penalty = orientation_penalty(orientation_hint)
+
+    sort_key =
+      {orientation_penalty + match_quality, path_depth, String.length(relative), relative}
+
+    result = %{
+      "path" => relative,
+      "type" => file_type(absolute),
+      "matched_on" => matched_on(path, basename, normalized_query),
+      "path_depth" => path_depth,
+      "orientation_hint" => orientation_hint,
+      "orientation_score" =>
+        orientation_score(orientation_penalty, match_quality, path_depth, relative)
+    }
+
+    {sort_key, result}
+  end
+
+  defp annotate_grep_results(matches) do
+    counts = Enum.frequencies_by(matches, & &1["path"])
+
+    annotated_matches =
+      matches
+      |> Enum.with_index(1)
+      |> Enum.map(fn {match, rank} ->
+        path = match["path"] || ""
+
+        match
+        |> Map.put("rank", rank)
+        |> Map.put("file_match_count", Map.get(counts, path, 1))
+        |> Map.put("path_depth", path_depth(path))
+        |> Map.put("orientation_hint", orientation_hint(path))
+      end)
+
+    file_summaries =
+      annotated_matches
+      |> Enum.group_by(& &1["path"])
+      |> Enum.map(fn {path, file_matches} ->
+        %{
+          "path" => path,
+          "match_count" => length(file_matches),
+          "first_line_number" => file_matches |> Enum.map(& &1["line_number"]) |> Enum.min(),
+          "path_depth" => path_depth(path),
+          "orientation_hint" => orientation_hint(path)
+        }
+      end)
+      |> Enum.sort_by(fn summary ->
+        {
+          orientation_penalty(summary["orientation_hint"]),
+          summary["path_depth"],
+          summary["first_line_number"],
+          summary["path"]
+        }
+      end)
+      |> Enum.with_index(1)
+      |> Enum.map(fn {summary, rank} -> Map.put(summary, "rank", rank) end)
+
+    {annotated_matches, file_summaries}
+  end
+
+  defp match_quality(_path, basename, query) when basename == query, do: 0
+
+  defp match_quality(_path, basename, query) do
+    stem = basename |> Path.rootname() |> String.downcase()
+
+    cond do
+      stem == query -> 0
+      String.starts_with?(basename, query) -> 10
+      String.contains?(basename, query) -> 20
+      true -> 40
+    end
+  end
+
+  defp matched_on(path, basename, query) do
+    []
+    |> maybe_add_match_basis(String.contains?(path, query), "path")
+    |> maybe_add_match_basis(String.contains?(basename, query), "basename")
+    |> Enum.reverse()
+  end
+
+  defp maybe_add_match_basis(bases, true, basis), do: [basis | bases]
+  defp maybe_add_match_basis(bases, false, _basis), do: bases
+
+  defp path_depth(""), do: 0
+  defp path_depth(path), do: path |> Path.split() |> length()
+
+  defp orientation_hint(path) do
+    parts = path |> String.downcase() |> Path.split()
+
+    cond do
+      Enum.any?(parts, &(&1 in ["deps", "vendor", "node_modules", ".git"])) -> "vendor"
+      Enum.any?(parts, &(&1 in ["_build", "priv", "tmp", "dist", "build"])) -> "build"
+      Enum.any?(parts, &(&1 in ["test", "tests", "spec", "specs"])) -> "test"
+      true -> "source"
+    end
+  end
+
+  defp orientation_penalty("source"), do: 0
+  defp orientation_penalty("test"), do: 100
+  defp orientation_penalty("build"), do: 150
+  defp orientation_penalty("vendor"), do: 200
+  defp orientation_penalty(_hint), do: 250
+
+  defp orientation_score(orientation_penalty, match_quality, path_depth, relative) do
+    penalty =
+      orientation_penalty + match_quality + path_depth * 3 + div(String.length(relative), 20)
+
+    max(0, 1_000 - penalty)
   end
 
   defp grep_matches(root, scope_path, query, opts, max_matches) do

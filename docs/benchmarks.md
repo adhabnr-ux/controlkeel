@@ -102,6 +102,15 @@ Each scenario also carries structured metadata that acts like behavior tags, inc
 - `compaction_strategy`
 - any explicit `behavior_tags`
 
+For search-sensitive agent workflows, add retrieval-specific metadata instead of relying only on aggregate wall-clock or tool-call counts:
+
+- `search_task_type`: for example `workspace_orientation`, `symbol_lookup`, `call_site_discovery`, or `implementation_entrypoint`
+- `retrieval_strategy`: for example `filesystem_find`, `filesystem_grep`, `hybrid_memory`, `ranked_code_search`, or `late_interaction_rerank`
+- `orientation_metric`: for example `target_file_rank`, `hit_at_1`, `hit_at_3`, `files_read_before_target`, or `searches_before_first_read`
+- `result_presentation`: for example `raw_matches`, `ranked_paths`, `grouped_files`, or `trimmed_context`
+
+The goal is to measure whether a retrieval surface helps the agent choose the right file sooner. Faster search calls are useful, but promotion should depend on retrieval quality and held-out end-to-end outcomes, not latency alone.
+
 **Context pruning warning**: Aggressive context pruning can "lobotomize" models. Mario found that some harnesses prune tool output after a minimum token amount, removing crucial context that models need to reason effectively. CK's compaction strategies (llm_summary, attention_guided_kv_compaction) are designed to preserve decision traceability while managing context growth, not to silently lobotomize the model.
 
 ControlKeel now exposes split summaries and behavior-tag summaries in benchmark run metadata and exports so teams can see whether a result came from optimization-friendly coverage, held-out evidence, or both.

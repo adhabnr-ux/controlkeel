@@ -310,6 +310,19 @@ CK now also derives a **task augmentation** artifact inside `ck_context`. It is 
 
 The point is to make vague work more executable before the main run loop starts, without stuffing the entire repo into model context.
 
+### First-orientation search loop
+
+Agentic search should optimize the first useful read, not just raw search latency. CK's default discovery loop should stay explicit and bounded:
+
+1. call `ck_context` to recover the task boundary, findings, budget, and `task_augmentation` hints
+2. inspect likely paths and high-signal search terms before broad exploration
+3. use `ck_fs_find` for path candidates and `ck_fs_grep` for content candidates
+4. prefer source-ish, shallow, high-signal results before tests, vendor, or build artifacts
+5. read only the top candidates with `ck_fs_read`, then widen deliberately if the first orientation was wrong
+6. use `ck_context_pack` when prior memory, proof, or review history may change the next step
+
+This keeps retrieval as an attributed evidence surface. CK can rank and summarize candidates, but the agent still has to reconcile those candidates with the active task, findings, and proof state.
+
 ## How CK keeps context grounded
 
 CK resolves workspace context from governed state, not only from process-local assumptions.
