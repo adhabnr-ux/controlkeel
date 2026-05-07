@@ -141,6 +141,7 @@ defmodule ControlKeel.Deployment.AdvisorTest do
     [dockerfile | _] = result.generators
     assert dockerfile.content =~ "pip install --no-cache-dir -r requirements.txt gunicorn"
     assert dockerfile.content =~ ~s(CMD ["gunicorn")
+    assert dockerfile.content =~ "COPY --from=build /usr/local/bin /usr/local/bin"
   end
 
   test "falls back to static for unknown projects", %{tmp_dir: tmp_dir} do
