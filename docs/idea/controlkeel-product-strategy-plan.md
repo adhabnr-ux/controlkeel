@@ -166,7 +166,7 @@ The repo now has three explicit roadmap buckets:
    - compliance-guarantee claims
    - universal native support for every external tool
 
-The remaining-work bucket lives in `controlkeel-final-build-plan.md`. Everything else in `idea/archive/` is historical source material, not live roadmap.
+The remaining-work bucket lives in `controlkeel-final-build-plan.md`. Historical archive material has been removed from the active docs surface so this directory stays focused on current strategy.
 
 ## Recent Control-Plane Hardening
 
