@@ -109,24 +109,94 @@ defmodule ControlKeel.MCP.Protocol do
   def handle_request(request, opts \\ [])
 
   def handle_request(%{"jsonrpc" => "2.0", "method" => "initialize", "id" => id} = req, _opts) do
-    requested = get_in(req, ["params", "protocolVersion"])
-    negotiated = negotiate_mcp_protocol_version(requested)
+    try do
+      requested = get_in(req, ["params", "protocolVersion"])
+      negotiated = negotiate_mcp_protocol_version(requested)
 
-    ok_response(id, %{
-      "protocolVersion" => negotiated,
-      "capabilities" => %{
-        "tools" => %{"listChanged" => false},
-        "resources" => %{"subscribe" => false, "listChanged" => false}
-      },
-      "serverInfo" => @server_info
-    })
+      ok_response(id, %{
+        "protocolVersion" => negotiated,
+        "capabilities" => %{
+          "tools" => %{"listChanged" => false},
+          "resources" => %{"subscribe" => false, "listChanged" => false}
+        },
+        "serverInfo" => @server_info
+      })
+    rescue
+      e ->
+        Logger.error("MCP initialize failed: #{Exception.message(e)}")
+        # Return a basic successful response even if something fails
+        ok_response(id, %{
+          "protocolVersion" => default_mcp_protocol_version(),
+          "capabilities" => %{
+            "tools" => %{"listChanged" => false},
+            "resources" => %{"subscribe" => false, "listChanged" => false}
+          },
+          "serverInfo" => @server_info
+        })
+    catch
+      :exit, e ->
+        Logger.error("MCP initialize exited: #{inspect(e)}")
+        ok_response(id, %{
+          "protocolVersion" => default_mcp_protocol_version(),
+          "capabilities" => %{
+            "tools" => %{"listChanged" => false},
+            "resources" => %{"subscribe" => false, "listChanged" => false}
+          },
+          "serverInfo" => @server_info
+        })
+      :throw, e ->
+        Logger.error("MCP initialize threw: #{inspect(e)}")
+        ok_response(id, %{
+          "protocolVersion" => default_mcp_protocol_version(),
+          "capabilities" => %{
+            "tools" => %{"listChanged" => false},
+            "resources" => %{"subscribe" => false, "listChanged" => false}
+          },
+          "serverInfo" => @server_info
+        })
+    end
   end
 
   def handle_request(%{"jsonrpc" => "2.0", "method" => "notifications/initialized"}, _opts),
     do: :no_response
 
   def handle_request(%{"jsonrpc" => "2.0", "method" => "tools/list", "id" => id}, opts) do
-    ok_response(id, %{"tools" => tool_schemas(opts)})
+    try do
+      ok_response(id, %{"tools" => tool_schemas(opts)})
+    rescue
+      e ->
+        Logger.error("MCP tools/list failed: #{Exception.message(e)}")
+        # Return core tools as a safe fallback
+        ok_response(id, %{"tools" => [
+          ck_validate_tool(),
+          ck_context_tool(),
+          ck_finding_tool(),
+          ck_memory_search_tool(),
+          ck_memory_record_tool(),
+          ck_budget_tool()
+        ]})
+    catch
+      :exit, e ->
+        Logger.error("MCP tools/list exited: #{inspect(e)}")
+        ok_response(id, %{"tools" => [
+          ck_validate_tool(),
+          ck_context_tool(),
+          ck_finding_tool(),
+          ck_memory_search_tool(),
+          ck_memory_record_tool(),
+          ck_budget_tool()
+        ]})
+      :throw, e ->
+        Logger.error("MCP tools/list threw: #{inspect(e)}")
+        ok_response(id, %{"tools" => [
+          ck_validate_tool(),
+          ck_context_tool(),
+          ck_finding_tool(),
+          ck_memory_search_tool(),
+          ck_memory_record_tool(),
+          ck_budget_tool()
+        ]})
+    end
   end
 
   def handle_request(%{"jsonrpc" => "2.0", "method" => "resources/list", "id" => id}, opts) do
@@ -258,112 +328,148 @@ defmodule ControlKeel.MCP.Protocol do
   }
 
   def tool_schemas(opts \\ []) do
-    base = [
-      ck_validate_tool(),
-      ck_execute_code_tool(),
-      ck_context_tool(),
-      ck_context_pack_tool(),
-      ck_observability_tool(),
-      ck_experience_index_tool(),
-      ck_experience_read_tool(),
-      ck_experience_search_tool(),
-      ck_trace_packet_tool(),
-      ck_failure_clusters_tool(),
-      ck_tool_health_tool(),
-      ck_skill_evolution_tool(),
-      ck_fs_ls_tool(),
-      ck_fs_read_tool(),
-      ck_fs_find_tool(),
-      ck_fs_grep_tool(),
-      ck_worktree_list_tool(),
-      ck_worktree_switch_tool(),
-      ck_checkpoint_create_tool(),
-      ck_checkpoint_restore_tool(),
-      ck_checkpoint_list_tool(),
-      ck_git_diff_tool(),
-      ck_git_commit_tool(),
-      ck_git_status_tool(),
-      ck_monitor_subscribe_tool(),
-      ck_finding_tool(),
-      ck_review_submit_tool(),
-      ck_review_status_tool(),
-      ck_review_feedback_tool(),
-      ck_regression_result_tool(),
-      ck_memory_search_tool(),
-      ck_memory_record_tool(),
-      ck_goal_tool(),
-      ck_memory_archive_tool(),
-      ck_budget_tool(),
-      ck_route_tool(),
-      ck_delegate_tool(),
-      ck_cost_optimizer_tool(),
-      ck_deployment_advisor_tool(),
-      ck_outcome_tracker_tool(),
-      ck_load_resources_tool(),
-      ck_mcp_discover_tool(),
-      ck_token_audit_tool()
-    ]
+    try do
+      base = [
+        ck_validate_tool(),
+        ck_execute_code_tool(),
+        ck_context_tool(),
+        ck_context_pack_tool(),
+        ck_observability_tool(),
+        ck_experience_index_tool(),
+        ck_experience_read_tool(),
+        ck_experience_search_tool(),
+        ck_trace_packet_tool(),
+        ck_failure_clusters_tool(),
+        ck_tool_health_tool(),
+        ck_skill_evolution_tool(),
+        ck_fs_ls_tool(),
+        ck_fs_read_tool(),
+        ck_fs_find_tool(),
+        ck_fs_grep_tool(),
+        ck_worktree_list_tool(),
+        ck_worktree_switch_tool(),
+        ck_checkpoint_create_tool(),
+        ck_checkpoint_restore_tool(),
+        ck_checkpoint_list_tool(),
+        ck_git_diff_tool(),
+        ck_git_commit_tool(),
+        ck_git_status_tool(),
+        ck_monitor_subscribe_tool(),
+        ck_finding_tool(),
+        ck_review_submit_tool(),
+        ck_review_status_tool(),
+        ck_review_feedback_tool(),
+        ck_regression_result_tool(),
+        ck_memory_search_tool(),
+        ck_memory_record_tool(),
+        ck_goal_tool(),
+        ck_memory_archive_tool(),
+        ck_budget_tool(),
+        ck_route_tool(),
+        ck_delegate_tool(),
+        ck_cost_optimizer_tool(),
+        ck_deployment_advisor_tool(),
+        ck_outcome_tracker_tool(),
+        ck_load_resources_tool(),
+        ck_mcp_discover_tool(),
+        ck_token_audit_tool()
+      ]
 
-    # Always expose ck_skill_list / ck_skill_load / ck_skill_validate. Do not call Registry here: a full
-    # catalog walk (every agent skill dir under $HOME) can take 10–30s and blocks this
-    # process while Cursor expects tools/list under a ~20s connect budget.
-    tools = base ++ [ck_skill_list_tool(), ck_skill_load_tool(), ck_skill_validate_tool()]
+      # Always expose ck_skill_list / ck_skill_load / ck_skill_validate. Do not call Registry here: a full
+      # catalog walk (every agent skill dir under $HOME) can take 10–30s and blocks this
+      # process while Cursor expects tools/list under a ~20s connect budget.
+      tools = base ++ [ck_skill_list_tool(), ck_skill_load_tool(), ck_skill_validate_tool()]
 
-    # Apply tool_names filtering (takes precedence over tool_groups and adaptive mode)
-    # This is used by hosted mode for security - explicit tool whitelisting
-    filtered_tools =
-      case Keyword.get(opts, :tool_names) do
-        names when is_list(names) ->
-          Enum.filter(tools, &(&1["name"] in names))
+      # Apply tool_names filtering (takes precedence over tool_groups and adaptive mode)
+      # This is used by hosted mode for security - explicit tool whitelisting
+      filtered_tools =
+        case Keyword.get(opts, :tool_names) do
+          names when is_list(names) ->
+            Enum.filter(tools, &(&1["name"] in names))
 
-        _ ->
-          # Apply tool group filtering — opts take precedence over env var.
-          # :all in opts means "force all tools, bypass env var" (used by audit/measurement callers).
-          # When opts does not specify tool_groups, fall back to env var / app config.
-          # NEW: Check for per-project adaptive preferences and enable auto-expansion
-          project_root = Keyword.get(opts, :project_root)
-          adaptive_mode = Keyword.get(opts, :adaptive, true)
+          _ ->
+            # Apply tool group filtering — opts take precedence over env var.
+            # :all in opts means "force all tools, bypass env var" (used by audit/measurement callers).
+            # When opts does not specify tool_groups, fall back to env var / app config.
+            # NEW: Check for per-project adaptive preferences and enable auto-expansion
+            project_root = Keyword.get(opts, :project_root)
+            adaptive_mode = Keyword.get(opts, :adaptive, true)
 
-          effective_groups =
-            case Keyword.fetch(opts, :tool_groups) do
-              {:ok, :all} ->
-                :all
+            effective_groups =
+              case Keyword.fetch(opts, :tool_groups) do
+                {:ok, :all} ->
+                  :all
 
-              {:ok, groups} ->
-                groups
+                {:ok, groups} ->
+                  groups
 
-              :error ->
-                if adaptive_mode && project_root do
-                  adaptive_tool_groups(project_root)
-                else
-                  env_tool_groups() || :all
-                end
-            end
-
-          case effective_groups do
-            :all ->
-              tools
-
-            groups when is_list(groups) ->
-              allowed_tool_names =
-                groups
-                |> Enum.flat_map(fn group -> Map.get(@tool_groups, group, []) end)
-                |> MapSet.new()
-
-              filtered = Enum.filter(tools, &(&1["name"] in allowed_tool_names))
-
-              if adaptive_mode && project_root do
-                log_tool_group_decision(project_root, groups, length(tools), length(filtered))
+                :error ->
+                  if adaptive_mode && project_root do
+                    adaptive_tool_groups(project_root)
+                  else
+                    env_tool_groups() || :all
+                  end
               end
 
-              filtered
+            case effective_groups do
+              :all ->
+                tools
 
-            _ ->
-              tools
-          end
-      end
+              groups when is_list(groups) ->
+                allowed_tool_names =
+                  groups
+                  |> Enum.flat_map(fn group -> Map.get(@tool_groups, group, []) end)
+                  |> MapSet.new()
 
-    filtered_tools
+                filtered = Enum.filter(tools, &(&1["name"] in allowed_tool_names))
+
+                if adaptive_mode && project_root do
+                  log_tool_group_decision(project_root, groups, length(tools), length(filtered))
+                end
+
+                filtered
+
+              _ ->
+                tools
+            end
+        end
+
+      filtered_tools
+    rescue
+      e ->
+        # If anything fails during tool schema generation, log it and return a safe fallback
+        Logger.error("MCP tool schema generation failed: #{Exception.message(e)}")
+        # Return core tools as a safe fallback
+        [
+          ck_validate_tool(),
+          ck_context_tool(),
+          ck_finding_tool(),
+          ck_memory_search_tool(),
+          ck_memory_record_tool(),
+          ck_budget_tool()
+        ]
+    catch
+      :exit, e ->
+        Logger.error("MCP tool schema generation exited: #{inspect(e)}")
+        [
+          ck_validate_tool(),
+          ck_context_tool(),
+          ck_finding_tool(),
+          ck_memory_search_tool(),
+          ck_memory_record_tool(),
+          ck_budget_tool()
+        ]
+      :throw, e ->
+        Logger.error("MCP tool schema generation threw: #{inspect(e)}")
+        [
+          ck_validate_tool(),
+          ck_context_tool(),
+          ck_finding_tool(),
+          ck_memory_search_tool(),
+          ck_memory_record_tool(),
+          ck_budget_tool()
+        ]
+    end
   end
 
   def dispatch_tool(tool_name, arguments) do
@@ -2488,50 +2594,74 @@ defmodule ControlKeel.MCP.Protocol do
   end
 
   defp safe_get_project_tool_groups(project_root) do
-    ControlKeel.ProjectBinding.get_tool_groups(project_root)
-  catch
-    :exit, _ -> nil
+    try do
+      ControlKeel.ProjectBinding.get_tool_groups(project_root)
+    rescue
+      _ -> nil
+    catch
+      :exit, _ -> nil
+      :throw, _ -> nil
+    end
   end
 
   defp safe_suggest_groups(project_root) do
-    ControlKeel.MCP.ToolGroupTracker.suggest_groups(project_root)
-  catch
-    :exit, _ -> nil
+    try do
+      ControlKeel.MCP.ToolGroupTracker.suggest_groups(project_root)
+    rescue
+      _ -> nil
+    catch
+      :exit, _ -> nil
+      :throw, _ -> nil
+    end
   end
 
   # Smart default groups based on project characteristics
   defp smart_default_groups(project_root) do
-    # Detect project type and suggest appropriate groups
-    has_git = File.exists?(Path.join(project_root, ".git"))
-    has_tests = test_dir_exists?(project_root)
-    has_package_json = File.exists?(Path.join(project_root, "package.json"))
-    has_mix_exs = File.exists?(Path.join(project_root, "mix.exs"))
-    has_cargo_toml = File.exists?(Path.join(project_root, "Cargo.toml"))
+    try do
+      # Detect project type and suggest appropriate groups
+      has_git = File.exists?(Path.join(project_root, ".git"))
+      has_tests = test_dir_exists?(project_root)
+      has_package_json = File.exists?(Path.join(project_root, "package.json"))
+      has_mix_exs = File.exists?(Path.join(project_root, "mix.exs"))
+      has_cargo_toml = File.exists?(Path.join(project_root, "Cargo.toml"))
 
-    base_groups = ["core", "governance"]
+      base_groups = ["core", "governance"]
 
-    additional_groups =
-      cond do
-        # Elixir/Phoenix project - likely needs filesystem tools
-        has_mix_exs -> ["filesystem", "git"]
-        # Node.js project - likely needs filesystem tools
-        has_package_json -> ["filesystem", "git"]
-        # Rust project - likely needs filesystem tools
-        has_cargo_toml -> ["filesystem", "git"]
-        # Has tests - likely needs filesystem and git
-        has_tests and has_git -> ["filesystem", "git"]
-        # Git repo - add git tools
-        has_git -> ["git"]
-        # Default - add filesystem for general development
-        true -> ["filesystem"]
-      end
+      additional_groups =
+        cond do
+          # Elixir/Phoenix project - likely needs filesystem tools
+          has_mix_exs -> ["filesystem", "git"]
+          # Node.js project - likely needs filesystem tools
+          has_package_json -> ["filesystem", "git"]
+          # Rust project - likely needs filesystem tools
+          has_cargo_toml -> ["filesystem", "git"]
+          # Has tests - likely needs filesystem and git
+          has_tests and has_git -> ["filesystem", "git"]
+          # Git repo - add git tools
+          has_git -> ["git"]
+          # Default - add filesystem for general development
+          true -> ["filesystem"]
+        end
 
-    Enum.uniq(base_groups ++ additional_groups)
+      Enum.uniq(base_groups ++ additional_groups)
+    rescue
+      _ -> ["core", "governance"]
+    catch
+      :exit, _ -> ["core", "governance"]
+      :throw, _ -> ["core", "governance"]
+    end
   end
 
   defp test_dir_exists?(project_root) do
-    ["test", "tests", "__tests__", "spec"]
-    |> Enum.any?(fn dir -> File.dir?(Path.join(project_root, dir)) end)
+    try do
+      ["test", "tests", "__tests__", "spec"]
+      |> Enum.any?(fn dir -> File.dir?(Path.join(project_root, dir)) end)
+    rescue
+      _ -> false
+    catch
+      :exit, _ -> false
+      :throw, _ -> false
+    end
   end
 
   # Log tool group decisions for transparency and debugging

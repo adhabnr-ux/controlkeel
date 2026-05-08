@@ -38,21 +38,53 @@ defmodule ControlKeel.MCP.Server do
 
   @impl true
   def handle_call({:dispatch, request}, _from, state) do
-    # Include project_root in opts for adaptive tool group behavior
-    opts = [project_root: stdio_project_root()]
-    {:reply, Protocol.handle_request(request, opts), state}
+    try do
+      # Include project_root in opts for adaptive tool group behavior
+      opts = [project_root: stdio_project_root()]
+      {:reply, Protocol.handle_request(request, opts), state}
+    rescue
+      e ->
+        require Logger
+        Logger.error("MCP dispatch failed: #{Exception.message(e)}")
+        {:reply, {:error, "Internal server error"}, state}
+    catch
+      :exit, e ->
+        require Logger
+        Logger.error("MCP dispatch exited: #{inspect(e)}")
+        {:reply, {:error, "Internal server error"}, state}
+      :throw, e ->
+        require Logger
+        Logger.error("MCP dispatch threw: #{inspect(e)}")
+        {:reply, {:error, "Internal server error"}, state}
+    end
   end
 
   @impl true
   def handle_info({:mcp_payload, payload}, state) do
-    # Include project_root in opts for adaptive tool group behavior
-    opts = [project_root: stdio_project_root()]
+    try do
+      # Include project_root in opts for adaptive tool group behavior
+      opts = [project_root: stdio_project_root()]
 
-    payload
-    |> Protocol.handle_json(opts)
-    |> maybe_write_frame(state.output)
+      payload
+      |> Protocol.handle_json(opts)
+      |> maybe_write_frame(state.output)
 
-    {:noreply, state}
+      {:noreply, state}
+    rescue
+      e ->
+        require Logger
+        Logger.error("MCP payload handling failed: #{Exception.message(e)}")
+        {:noreply, state}
+    catch
+      :exit, e ->
+        require Logger
+        Logger.error("MCP payload handling exited: #{inspect(e)}")
+        {:noreply, state}
+      :throw, e ->
+        require Logger
+        Logger.error("MCP payload handling threw: #{inspect(e)}")
+        {:noreply, state}
+    end
   end
 
   def handle_info(:mcp_eof, state) do
@@ -216,12 +248,19 @@ defmodule ControlKeel.MCP.Server do
   end
 
   defp stdio_project_root do
-    case System.get_env("CK_PROJECT_ROOT") do
-      v when is_binary(v) and v != "" ->
-        v |> String.trim() |> Path.expand()
+    try do
+      case System.get_env("CK_PROJECT_ROOT") do
+        v when is_binary(v) and v != "" ->
+          v |> String.trim() |> Path.expand()
 
-      _ ->
-        File.cwd!()
+        _ ->
+          File.cwd!()
+      end
+    rescue
+      _ -> System.tmp_dir!()
+    catch
+      :exit, _ -> System.tmp_dir!()
+      :throw, _ -> System.tmp_dir!()
     end
   end
 end
