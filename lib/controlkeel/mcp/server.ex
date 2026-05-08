@@ -52,6 +52,7 @@ defmodule ControlKeel.MCP.Server do
         require Logger
         Logger.error("MCP dispatch exited: #{inspect(e)}")
         {:reply, {:error, "Internal server error"}, state}
+
       :throw, e ->
         require Logger
         Logger.error("MCP dispatch threw: #{inspect(e)}")
@@ -80,6 +81,7 @@ defmodule ControlKeel.MCP.Server do
         require Logger
         Logger.error("MCP payload handling exited: #{inspect(e)}")
         {:noreply, state}
+
       :throw, e ->
         require Logger
         Logger.error("MCP payload handling threw: #{inspect(e)}")

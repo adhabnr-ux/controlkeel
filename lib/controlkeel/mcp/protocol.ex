@@ -136,6 +136,7 @@ defmodule ControlKeel.MCP.Protocol do
     catch
       :exit, e ->
         Logger.error("MCP initialize exited: #{inspect(e)}")
+
         ok_response(id, %{
           "protocolVersion" => default_mcp_protocol_version(),
           "capabilities" => %{
@@ -144,8 +145,10 @@ defmodule ControlKeel.MCP.Protocol do
           },
           "serverInfo" => @server_info
         })
+
       :throw, e ->
         Logger.error("MCP initialize threw: #{inspect(e)}")
+
         ok_response(id, %{
           "protocolVersion" => default_mcp_protocol_version(),
           "capabilities" => %{
@@ -167,35 +170,44 @@ defmodule ControlKeel.MCP.Protocol do
       e ->
         Logger.error("MCP tools/list failed: #{Exception.message(e)}")
         # Return core tools as a safe fallback
-        ok_response(id, %{"tools" => [
-          ck_validate_tool(),
-          ck_context_tool(),
-          ck_finding_tool(),
-          ck_memory_search_tool(),
-          ck_memory_record_tool(),
-          ck_budget_tool()
-        ]})
+        ok_response(id, %{
+          "tools" => [
+            ck_validate_tool(),
+            ck_context_tool(),
+            ck_finding_tool(),
+            ck_memory_search_tool(),
+            ck_memory_record_tool(),
+            ck_budget_tool()
+          ]
+        })
     catch
       :exit, e ->
         Logger.error("MCP tools/list exited: #{inspect(e)}")
-        ok_response(id, %{"tools" => [
-          ck_validate_tool(),
-          ck_context_tool(),
-          ck_finding_tool(),
-          ck_memory_search_tool(),
-          ck_memory_record_tool(),
-          ck_budget_tool()
-        ]})
+
+        ok_response(id, %{
+          "tools" => [
+            ck_validate_tool(),
+            ck_context_tool(),
+            ck_finding_tool(),
+            ck_memory_search_tool(),
+            ck_memory_record_tool(),
+            ck_budget_tool()
+          ]
+        })
+
       :throw, e ->
         Logger.error("MCP tools/list threw: #{inspect(e)}")
-        ok_response(id, %{"tools" => [
-          ck_validate_tool(),
-          ck_context_tool(),
-          ck_finding_tool(),
-          ck_memory_search_tool(),
-          ck_memory_record_tool(),
-          ck_budget_tool()
-        ]})
+
+        ok_response(id, %{
+          "tools" => [
+            ck_validate_tool(),
+            ck_context_tool(),
+            ck_finding_tool(),
+            ck_memory_search_tool(),
+            ck_memory_record_tool(),
+            ck_budget_tool()
+          ]
+        })
     end
   end
 
@@ -451,6 +463,7 @@ defmodule ControlKeel.MCP.Protocol do
     catch
       :exit, e ->
         Logger.error("MCP tool schema generation exited: #{inspect(e)}")
+
         [
           ck_validate_tool(),
           ck_context_tool(),
@@ -459,8 +472,10 @@ defmodule ControlKeel.MCP.Protocol do
           ck_memory_record_tool(),
           ck_budget_tool()
         ]
+
       :throw, e ->
         Logger.error("MCP tool schema generation threw: #{inspect(e)}")
+
         [
           ck_validate_tool(),
           ck_context_tool(),
