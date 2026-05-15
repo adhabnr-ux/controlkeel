@@ -211,10 +211,13 @@ Agent effectiveness in large codebases is bounded by ability to find right conte
 
 #### Pattern 4: Use .ignore files for generated files and build artifacts
 
-**Implementation:**
-- Commit permissions.deny rules in .claude/settings.json for version control
+**Implementation:** This is a Claude Code native feature, not a CK feature.
+
+- Commit `.claude/settings.json` exclusion rules in version control
 - Exclude generated files, build artifacts, third-party code
 - Every developer gets same noise reduction without individual configuration
+
+CK manages only its own `.gitignore` entry (`/controlkeel`) to exclude its data directory from version control. For broader file exclusions affecting agent exploration, configure Claude Code's `settings.json` directly.
 
 **Edge cases:**
 - In some codebases, generated files are subject of development work
@@ -250,7 +253,7 @@ Agent effectiveness in large codebases is bounded by ability to find right conte
 - LSP returns only references pointing to same symbol
 - Filtering happens before agent reads anything
 
-**ControlKeel alignment:** CK's virtual workspace can integrate with LSP servers for symbol-level exploration while maintaining governance.
+**ControlKeel alignment:** CK's virtual workspace performs filesystem-level exploration (grep, find, read). LSP integration is a Claude Code and IDE-native capability; configure language servers through your IDE or Claude Code extension, not through CK.
 
 ### Active CLAUDE.md maintenance
 

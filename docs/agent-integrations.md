@@ -297,7 +297,7 @@ Based on Anthropic's "Claude Code at scale" research, the ecosystem built around
 - **Purpose:** Real-time code intelligence via language-specific servers
 - **Load pattern:** Always available once configured
 - **Best for:** Symbol-level navigation, automatic error detection in typed languages
-- **CK alignment:** CK's virtual workspace can integrate with LSP servers
+- **CK alignment:** LSP is a Claude Code and IDE-native capability. CK's virtual workspace performs filesystem-level exploration (grep, find, read). Configure LSP through your IDE or Claude Code extension, not through CK.
 
 **Benefits:**
 - Symbol-level precision: follow function calls to definitions
@@ -335,7 +335,7 @@ Based on Anthropic's "Claude Code at scale" research, the ecosystem built around
 | Hooks | Scripts at key moments | Triggered by events | Automated behavior, session learnings | Using prompts for automatic things |
 | Skills | Packaged task instructions | On-demand when relevant | Reusable expertise across sessions | Loading everything into context files |
 | Plugins | Bundled skills/hooks/MCP | Always available once configured | Distributing setups across org | Letting good setups stay tribal |
-| LSP | Real-time code intelligence | Always available once configured | Symbol-level navigation in typed languages | Assuming it's automatic |
+| LSP | Real-time code intelligence (IDE/agent-host native) | Always available once configured | Symbol-level navigation in typed languages | Treating it as a CK feature — configure via IDE or Claude Code |
 | MCP servers | External tool/data connections | Always available once configured | Internal tool access | Building before basics work |
 | Subagents | Separate agent instances | When invoked | Split exploration from editing | Running exploration/editing together |
 
@@ -350,7 +350,7 @@ ControlKeel implements this extension hierarchy through:
 - **Plugin architecture** for distributing governed configurations
 - **MCP protocol** as the primary extension mechanism for external connectivity
 - **Subagent routing** for splitting exploration from execution
-- **Virtual workspace** that can integrate with LSP servers for symbol-level navigation
+- **Virtual workspace** for filesystem-level exploration (grep, find, read) — LSP is configured through the agent host or IDE, not CK
 - **Governance framework** that validates all extension loading and execution
 
 This alignment ensures that CK not only governs agent output but also follows best practices for large-scale agent deployment itself.

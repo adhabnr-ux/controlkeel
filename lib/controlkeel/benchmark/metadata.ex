@@ -3,21 +3,34 @@ defmodule ControlKeel.Benchmark.Metadata do
 
   alias ControlKeel.Intent.Domains
 
+  # Documented eval_source values for scenario metadata
+  @valid_eval_sources ~w(production_trace synthetic review_feedback operator_debrief red_team)
+
+  # Documented eval_mode values
+  @valid_eval_modes ~w(deterministic llm_judge human_golden)
+
+  # Documented failure_dimension values
+  @valid_failure_dimensions ~w(correctness faithfulness safety schema groundedness task_completion)
+
+  # Documented signal_source values (production signal eval seeds)
+  @valid_signal_sources ~w(explicit implicit trajectory self_diagnostic)
+
   def normalize_scenario_metadata(payload) when is_map(payload) do
     metadata =
       payload
       |> Map.get("metadata", %{})
       |> stringify_keys()
 
-    Map.merge(
-      %{
-        "task_type" => infer_task_type(payload, metadata),
-        "risk_tier" => infer_risk_tier(payload, metadata),
-        "domain_pack" => infer_domain_pack(payload, metadata),
-        "budget_tier" => infer_budget_tier(payload, metadata)
-      },
-      metadata
-    )
+    base = %{
+      "task_type" => infer_task_type(payload, metadata),
+      "risk_tier" => infer_risk_tier(payload, metadata),
+      "domain_pack" => infer_domain_pack(payload, metadata),
+      "budget_tier" => infer_budget_tier(payload, metadata)
+    }
+
+    base
+    |> Map.merge(metadata)
+    |> normalize_eval_fields()
   end
 
   def normalize_scenario_metadata(_payload), do: default_metadata()
@@ -32,6 +45,39 @@ defmodule ControlKeel.Benchmark.Metadata do
 
   def suite_internal?(_payload), do: false
 
+  @doc """
+  Normalizes run-level metadata, validating versioning and comparison fields
+  documented for regression comparisons, red-team evidence, and experiment tracking.
+  """
+  def normalize_run_metadata(metadata) when is_map(metadata) do
+    metadata
+    |> stringify_keys()
+    |> normalize_eval_fields()
+  end
+
+  def normalize_run_metadata(_), do: %{}
+
+  @doc """
+  Returns the set of valid eval_source values for scenario metadata.
+  Used by importers and validators to check provenance labels.
+  """
+  def valid_eval_sources, do: @valid_eval_sources
+
+  @doc """
+  Returns the set of valid eval_mode values.
+  """
+  def valid_eval_modes, do: @valid_eval_modes
+
+  @doc """
+  Returns the set of valid failure_dimension values.
+  """
+  def valid_failure_dimensions, do: @valid_failure_dimensions
+
+  @doc """
+  Returns the set of valid signal_source values for production-signal-derived evals.
+  """
+  def valid_signal_sources, do: @valid_signal_sources
+
   def default_metadata do
     %{
       "task_type" => "backend",
@@ -39,6 +85,25 @@ defmodule ControlKeel.Benchmark.Metadata do
       "domain_pack" => "software",
       "budget_tier" => "medium"
     }
+  end
+
+  # Validates and coerces the documented eval/signal metadata fields.
+  # Unknown values are kept as-is (open map); known fields are validated.
+  defp normalize_eval_fields(metadata) do
+    metadata
+    |> coerce_enum("eval_source", @valid_eval_sources)
+    |> coerce_enum("eval_mode", @valid_eval_modes)
+    |> coerce_enum("failure_dimension", @valid_failure_dimensions)
+    |> coerce_enum("signal_source", @valid_signal_sources)
+  end
+
+  defp coerce_enum(metadata, key, valid_values) do
+    case Map.get(metadata, key) do
+      nil -> metadata
+      value when is_binary(value) ->
+        if value in valid_values, do: metadata, else: Map.delete(metadata, key)
+      _ -> Map.delete(metadata, key)
+    end
   end
 
   defp infer_task_type(payload, metadata) do

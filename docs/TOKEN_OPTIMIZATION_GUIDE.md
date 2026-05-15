@@ -139,7 +139,16 @@ See [docs/code-mode-governance.md](code-mode-governance.md) for detailed case st
 - Context window bloat from progressive discovery failures
 - Upstream tool or search regressions after provider updates
 
-These signals should feed into CK observability artifacts (`obs problems`, failure clusters) and potentially become benchmark candidates for regression protection. See [docs/benchmarks.md](benchmarks.md) for production signal integration.
+**Implementation**: `ControlKeel.Budget.SpendAlerts.check_interaction_spike/4` detects when a single interaction cost exceeds a session baseline by a configurable multiplier (default 3×). Call it after each invocation with the interaction cost and your expected baseline cost per interaction. Spike alerts fire callbacks and are retrievable via `get_alerts/2`.
+
+```elixir
+case SpendAlerts.check_interaction_spike(session_id, cost_cents, baseline_cents) do
+  {:spike, alert} -> # alert has :type, :severity, :ratio, :message
+  {:ok, :normal} -> :ok
+end
+```
+
+These signals also feed into CK observability artifacts (`obs problems`, failure clusters) and can become benchmark candidates for regression protection. See [docs/benchmarks.md](benchmarks.md) for production signal integration.
 
 ## Configuration
 

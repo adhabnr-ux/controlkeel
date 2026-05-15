@@ -23,6 +23,72 @@ defmodule ControlKeel.Budget.SpendAlerts do
     GenServer.call(__MODULE__, {:get_alerts, session_id, opts})
   end
 
+  @doc """
+  Checks whether a single interaction cost is a spike relative to a session baseline.
+
+  Returns `{:spike, alert}` when the interaction cost exceeds the spike threshold,
+  `{:ok, :normal}` otherwise. This implements the per-interaction cost spike detection
+  described in docs/observability-feedback-loop.md and docs/TOKEN_OPTIMIZATION_GUIDE.md.
+
+  The `baseline_cents` is the expected cost per interaction for this session/workflow,
+  typically derived from recent history. `spike_multiplier` defaults to 3.0, meaning
+  an interaction costing more than 3× the baseline triggers a spike alert.
+  """
+  def check_interaction_spike(session_id, interaction_cost_cents, baseline_cents, opts \\ [])
+
+  def check_interaction_spike(_session_id, _cost, baseline, _opts) when baseline <= 0,
+    do: {:ok, :normal}
+
+  def check_interaction_spike(session_id, cost_cents, baseline_cents, opts) do
+    multiplier = Keyword.get(opts, :spike_multiplier, 3.0)
+    ratio = cost_cents / baseline_cents
+
+    if ratio >= multiplier do
+      alert = %{
+        type: :interaction_cost_spike,
+        severity: cost_spike_severity(ratio, multiplier),
+        message:
+          "Interaction cost #{Float.round(ratio, 1)}× above baseline " <>
+            "($#{cost_cents / 100} vs expected $#{baseline_cents / 100}). " <>
+            "Check for context bloat, MCP tool definition overhead, or upstream regressions.",
+        ratio: ratio,
+        session_id: session_id,
+        interaction_cost_cents: cost_cents,
+        baseline_cents: baseline_cents,
+        timestamp: DateTime.utc_now()
+      }
+
+      GenServer.cast(__MODULE__, {:record_spike_alert, alert})
+      {:spike, alert}
+    else
+      {:ok, :normal}
+    end
+  end
+
+  @impl true
+  def handle_cast({:record_spike_alert, alert}, state) do
+    Enum.each(state.callbacks, fn cb ->
+      Task.start(fn ->
+        try do
+          cb.(alert)
+        rescue
+          _ -> :ok
+        end
+      end)
+    end)
+
+    {:noreply, %{state | alerts: [alert | state.alerts]}}
+  end
+
+  defp cost_spike_severity(ratio, multiplier) do
+    cond do
+      ratio >= multiplier * 3 -> :critical
+      ratio >= multiplier * 2 -> :high
+      ratio >= multiplier * 1.5 -> :medium
+      true -> :low
+    end
+  end
+
   @impl true
   def init(opts) do
     if Keyword.get(opts, :auto_check, true) do

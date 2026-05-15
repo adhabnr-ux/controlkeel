@@ -95,7 +95,7 @@ The point of the UI is not to centralize everything; it is to make the evidence 
 
 ### Self-diagnostics as evidence
 
-A self-diagnostic `report` tool can let an agent surface repeated tool failures, missing capabilities, user frustration, or unusual self-correction behavior. Treat these reports as useful evidence from the agent, not as authoritative truth.
+A self-diagnostic `report` tool — a custom MCP tool you add to your agent's tool list — can let an agent surface repeated tool failures, missing capabilities, user frustration, or unusual self-correction behavior. This is a design pattern for your agent, not a built-in CK feature. Treat these reports as useful evidence from the agent, not as authoritative truth.
 
 Safe self-diagnostic design:
 

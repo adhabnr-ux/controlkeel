@@ -409,10 +409,12 @@ For organizations deploying ControlKeel in large codebases (multi-million-line m
 - Avoid running full suite when agent changed one service
 - Works well for service-oriented codebases
 
-**Noise reduction:**
-- Use `.ignore` patterns to exclude generated files, build artifacts, third-party code
+**Noise reduction (Claude Code native):**
+
+- Use `.claude/settings.json` to exclude generated files, build artifacts, third-party code from agent exploration
 - Commit exclusion rules in version control for team consistency
 - Override project-level exclusions locally when needed for specialized work
+- CK manages only its own `/controlkeel` gitignore entry; broader exclusions are configured in Claude Code directly
 
 ### Codebase maps for non-standard structures
 
@@ -423,9 +425,10 @@ For codebases with non-standard directory structures:
 
 ### LSP integration for symbol-level navigation
 
-For multi-language codebases and compiled languages (C, C++, C#, Java):
+LSP is a Claude Code and IDE-native capability, not a CK feature. CK's virtual workspace performs filesystem-level exploration (grep, find, read). For symbol-level navigation in multi-language codebases and compiled languages (C, C++, C#, Java):
+
 - Install language server binaries for your languages
-- Configure CK's virtual workspace to use LSP for symbol-level search
+- Configure LSP through your IDE or Claude Code extension
 - Provides function definition tracing, reference finding, distinguishes identically named symbols
 - Critical for large codebases where text-based search returns thousands of matches
 
