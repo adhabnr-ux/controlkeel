@@ -20,6 +20,24 @@ From these, CK computes:
 - **Youden's J**: TPR − FPR — single-number quality metric (1.0 = perfect)
 
 
+
+### Version and rollback evidence
+
+When an eval-driven optimization changes an agent, publish enough evidence for rollback decisions:
+
+- baseline and candidate run identifiers
+- model, prompt, tool, policy, workflow, and evaluator versions
+- metric deltas for quality, safety, task adherence, latency, and cost
+- trace links or redacted trace summaries for failed rows
+- the selected rollback target when later attempts regress
+- human approval or rejection notes for promotion
+
+This makes “optimize” a governed loop rather than an opaque prompt-tuning session. Failed attempts are useful evidence: they show which changes were tried, why they were rejected, and which stable version should remain active.
+
+### Fleet-wide observability claims
+
+Fleet-wide observability should aggregate posture without centralizing unnecessary raw payloads. Prefer reporting counts, rates, versions, hashes, drift signals, finding categories, cost groups, and proof references. Raw prompts, secrets, personal data, and customer payloads should stay redacted, scoped, or referenced by proof artifact rather than copied into broad dashboards.
+
 ### Sample size and cost-aware confidence
 
 Not every eval run needs the same sample size. Use small samples for directional learning and larger samples for release-confidence or external claims.

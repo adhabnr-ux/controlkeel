@@ -219,6 +219,34 @@ Useful metadata for those runs includes:
 This lets CK compare "same runtime, different protocol layer" experiments fairly instead of mixing them together with loop, host, or execution-sandbox changes.
 
 
+
+### Trace-linked diagnosis workflow
+
+When a benchmark row regresses, keep the diagnosis tied to trace evidence:
+
+1. Identify the failed metric and failure dimension.
+2. Open the corresponding trace or imported trace summary.
+3. Compare the baseline and candidate versions at the same checkpoint: intent, tool choice, tool result handling, task adherence, final answer, safety, latency, and cost.
+4. Record the suspected root cause in run metadata or a CK finding.
+5. Rerun the same slice after the fix before expanding the suite.
+
+This prevents “score chasing” where a prompt or model improves one visible number while breaking a different part of the agent path.
+
+### Human-in-loop observe loops
+
+Coding-agent observe loops can accelerate diagnosis by drafting eval datasets, summarizing failures, trying prompt variants, and comparing versions. In CK, those loops remain advisory unless a trusted review gate approves the mutation.
+
+A safe observe loop should record:
+
+- the baseline version and candidate version
+- generated dataset provenance
+- evaluator/rubric versions
+- quality, safety, task, latency, and cost deltas
+- failed attempts and rollback target
+- human approval before promotion
+
+Do not let an observe loop automatically promote prompts, policies, skills, routers, or tool permissions just because one batch eval improved.
+
 ### Capability evals become regression evals
 
 For agent and governance workflows, separate two lifecycle stages:

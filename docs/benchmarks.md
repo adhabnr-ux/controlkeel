@@ -35,6 +35,48 @@ For early agent and harness work, prefer a console-first loop before building pr
 This is especially important when trying new prompting schemes, tool-call formats, recursive workflows, or optimizer loops. If the behavior is not legible in a small console-first path, UI polish will usually hide the problem rather than solve it.
 
 
+
+## Regression comparisons after every change
+
+Any change that can alter agent behavior should be treated as an experiment:
+
+- model or deployment version
+- prompt/instruction version
+- tool set, tool implementation, or retrieval corpus
+- router, policy, guardrail, or evaluator version
+- workflow/subagent orchestration shape
+
+Run the same eval slice before and after the change, then compare quality, safety, task adherence, latency, and cost. A cheaper model is not an improvement if it silently regresses tool choice or groundedness; a better final answer is not enough if safety or cost breaks the operating envelope.
+
+Recommended metadata:
+
+- `model_version`
+- `prompt_version`
+- `tool_version`
+- `workflow_version`
+- `policy_version`
+- `evaluator_version`
+- `rubric_version`
+- `baseline_run_id`
+- `candidate_run_id`
+- `rollback_target_version`
+
+This keeps optimize loops reproducible and lets CK explain why a candidate was promoted, rejected, or rolled back.
+
+## Red-team evidence in benchmark workflows
+
+Adversarial tests are benchmark evidence, but they are also security artifacts. Treat attack prompts as hostile test inputs, never as instructions for the agent or operator.
+
+Useful red-team scenario metadata includes:
+
+- `eval_source: "red_team"`
+- `attack_strategy: "leetspeak"`, `"crescendo"`, `"indirect_prompt_injection"`, or another reviewed label
+- `risk_category: "sensitive_data_leakage"`, `"prohibited_action"`, `"violence"`, `"tool_misuse"`, or another policy category
+- `allowed_actions` and `prohibited_actions` when an agent can call tools
+- `safety_gate_version`
+
+Red-team findings should become reviewable findings, regression scenarios, or security proof records. They should not directly tune prompts, weaken guardrails, or promote policy changes without review.
+
 ## Trace-derived eval design
 
 When converting traces into benchmark scenarios, classify the failure before choosing the scorer. A correctness eval is useless for a faithfulness failure, and a broad semantic judge can hide the exact behavior CK needs to prevent.

@@ -65,6 +65,42 @@ CK's observability loop is designed around that same idea: it is not only "logs"
    ```
 
 
+
+## Minding the observability gap
+
+A useful way to frame agent observability is the gap between **requirements** and **observed behavior**. That gap changes over time as models, prompts, tools, data, users, and operating conditions change. CK should make that drift visible early instead of waiting for production incidents.
+
+Use the loop as a standing lifecycle, not a one-time launch checklist:
+
+- **Evaluate** during build and before every meaningful model, prompt, tool, policy, or harness change.
+- **Monitor** live and imported evidence for drift, cost changes, safety signals, and recurring task failures.
+- **Optimize** only from reviewed evidence, then rerun the same evals to compare quality, safety, and cost before promotion.
+
+Trace-linked evaluations shorten the detect-to-diagnose path. A score alone says something changed; a score attached to the exact trace, tool call, model response, review, and cost evidence helps explain why it changed.
+
+### Agentic eval checkpoints
+
+For agent workflows, avoid evaluating only the final answer. Split the trace into checkpoints so failures are localizable:
+
+- **Intent resolution**: did the agent understand what the user was trying to accomplish?
+- **Tool selection**: did it choose the expected tool, subagent, retrieval path, or refusal/pushback behavior?
+- **Tool result handling**: did it ground the next step in the returned evidence rather than inventing missing facts?
+- **Task adherence**: did the whole run complete the bounded task without wandering into unrelated work?
+- **Final response**: was the answer useful, grounded, safe, and appropriately scoped?
+
+This is especially important for multi-agent or workflow-agent systems. Fleet and workflow traces should let operators compare which subagent, tool, model, prompt version, or policy gate caused the regression without copying raw sensitive payloads into every downstream record.
+
+### Trace metadata boundaries
+
+Custom trace attributes are useful when they make diagnosis faster, but they must stay governed metadata:
+
+- prefer identifiers, versions, counts, hashes, durations, and coarse labels over raw prompts or secrets
+- include model, prompt, tool, policy, evaluator, and rubric versions when they affect behavior
+- record integrity/provenance for imported trace snapshots
+- keep raw payloads in redacted proof artifacts or local trace viewers when possible
+
+CK can interoperate with OpenTelemetry-shaped evidence at the boundary, but CK should not require a particular cloud control plane. The durable CK record is the redacted finding, review, proof, eval candidate, benchmark result, and promotion decision.
+
 ## Trace-first eval design
 
 The Arize/Phoenix-style eval workflow reinforces a core CK posture: evals should start from traces, not from guesses about what might fail.
