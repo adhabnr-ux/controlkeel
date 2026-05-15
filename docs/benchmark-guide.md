@@ -220,6 +220,29 @@ This lets CK compare "same runtime, different protocol layer" experiments fairly
 
 
 
+
+### Experiment and feature-flag signal comparisons
+
+When teams ship fast with many feature flags, compare variants by signal rates as well as offline eval scores. Attach experiment metadata to traces so CK can group runs by model, prompt, tool set, feature flag, cohort, and deployment window.
+
+A minimal comparison should answer:
+
+- Did explicit failures change: tool errors, retries, latency, cost, timeouts?
+- Did implicit failures change: frustration, refusals, task failures, jailbreak pressure, capability gaps?
+- Did the trajectory shape change: more tools, repeated failures, loops, bypasses, or different subagent paths?
+- Did wins regress: fewer successful completions or fewer desired user outcomes?
+
+Small samples can reveal obvious regressions, but do not overclaim precision. If the sample is directional, label it as directional. If the result will gate a broad rollout, require stronger coverage or production-monitoring follow-up.
+
+### Triage-agent boundaries
+
+A triage agent can inspect signal spikes, summarize representative traces, and propose root-cause clusters. In CK, that output is advisory evidence:
+
+- it can open a finding, draft an eval candidate, or prepare a review packet
+- it should cite signal windows, cohorts, versions, and trace identifiers
+- it must not directly change production prompts, tools, policies, or feature flags
+- it should record uncertainty when clusters are weak or samples are small
+
 ### Trace-linked diagnosis workflow
 
 When a benchmark row regresses, keep the diagnosis tied to trace evidence:

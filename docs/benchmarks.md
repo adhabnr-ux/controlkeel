@@ -36,6 +36,38 @@ This is especially important when trying new prompting schemes, tool-call format
 
 
 
+
+## Production signals as eval seeds
+
+Production monitoring should feed benchmark design when signals show recurring or high-impact failure modes. A signal is not automatically a benchmark; first cluster the examples and identify the failure dimension.
+
+Good candidates include:
+
+- rising tool error or timeout rates
+- repeated retries or regenerations
+- user frustration spikes
+- refusal-rate changes
+- capability-gap reports
+- jailbreak or content-moderation pressure
+- repeated self-correction or bypass patterns
+- positive “win” patterns worth preserving
+
+When converting a production signal into an eval, keep both the aggregate metric and representative trace examples. The benchmark should explain what changed, who was affected, and which version or feature flag was active.
+
+Recommended metadata:
+
+- `signal_source: "explicit"`, `"implicit"`, `"trajectory"`, or `"self_diagnostic"`
+- `signal_name`
+- `signal_rate_baseline`
+- `signal_rate_candidate`
+- `feature_flag`
+- `experiment_id`
+- `cohort_id`
+- `trajectory_shape`
+- `representative_trace_ids`
+
+This makes production-derived evals auditable and avoids turning one noisy anecdote into a permanent benchmark.
+
 ## Regression comparisons after every change
 
 Any change that can alter agent behavior should be treated as an experiment:

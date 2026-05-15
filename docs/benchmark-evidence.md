@@ -21,6 +21,20 @@ From these, CK computes:
 
 
 
+
+### Signal export and warehouse boundaries
+
+Production signal exports should preserve labels and provenance without centralizing unnecessary raw payloads. When exporting to analytics warehouses or external systems, prefer:
+
+- event ids, trace ids, run ids, and timestamps
+- signal labels and confidence where applicable
+- cohort, feature flag, model, prompt, tool, and policy versions
+- aggregate counts and rates
+- redaction status and integrity hashes
+- proof or trace references for authorized drill-down
+
+Avoid exporting raw prompts, secrets, personal data, or full tool payloads unless a reviewed proof/export policy explicitly allows it. Classified signals are evidence for monitoring and experiments; they are not a substitute for governed findings, proof bundles, or promotion review.
+
 ### Version and rollback evidence
 
 When an eval-driven optimization changes an agent, publish enough evidence for rollback decisions:

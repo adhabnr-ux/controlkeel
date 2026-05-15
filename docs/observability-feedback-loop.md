@@ -66,6 +66,35 @@ CK's observability loop is designed around that same idea: it is not only "logs"
 
 
 
+
+## Production signal monitoring
+
+Offline evals and golden datasets are necessary, but they are not enough for long-running production agents. Agents can see unbounded inputs, call tools in unexpected orders, use memory and subagents, and fail silently without a traditional exception. CK should therefore treat production signals as first-class observability evidence.
+
+Useful signal families include:
+
+- **Explicit signals**: tool error rate, validation failures, retry/regeneration rate, latency, token usage, cost, timeout rate, and queue depth.
+- **Implicit signals**: refusals, task failure, user frustration, capability gaps, jailbreak or content-moderation risk, lazy/incomplete answers, and positive wins.
+- **Trajectory signals**: repeated tool failures, loops, unexpected bypasses, self-correction patterns, and unusual tool-call topology.
+
+Prefer cheap, narrow signals where they are reliable. Regex or keyword heuristics can be useful for aggregate frustration spikes, and small issue-specific classifiers can be cheaper than running an LLM judge over every output. Use LLM judges for sampled or high-value semantic checks rather than as the default monitor for all production traffic.
+
+Signal spikes should feed CK artifacts: findings, trace packets, failure clusters, eval candidates, benchmark drafts, or review packets. They should not directly mutate prompts, tools, policies, or router behavior.
+
+### Self-diagnostics as evidence
+
+A self-diagnostic `report` tool can let an agent surface repeated tool failures, missing capabilities, user frustration, or unusual self-correction behavior. Treat these reports as useful evidence from the agent, not as authoritative truth.
+
+Safe self-diagnostic design:
+
+- use neutral framing such as “report notable behavior to maintainers” rather than asking the model to incriminate itself
+- classify reports by capability gap, repeated tool failure, user frustration, policy pressure, or self-correction/bypass behavior
+- keep reports short, redacted, and linked to trace/proof identifiers
+- compare report rates across versions and experiments
+- require human/CK review before converting a report into a prompt, tool, or policy change
+
+Self-correction is ambiguous: it can help an agent finish a task, but it can also reveal permission drift or guardrail bypass. CK should record enough trace context to decide which case occurred.
+
 ## Minding the observability gap
 
 A useful way to frame agent observability is the gap between **requirements** and **observed behavior**. That gap changes over time as models, prompts, tools, data, users, and operating conditions change. CK should make that drift visible early instead of waiting for production incidents.
