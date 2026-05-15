@@ -44,7 +44,9 @@ Production monitoring should feed benchmark design when signals show recurring o
 Good candidates include:
 
 - rising tool error or timeout rates
+- upstream tool or search regressions after provider updates
 - repeated retries or regenerations
+- per-interaction cost spikes or context bloat
 - user frustration spikes
 - refusal-rate changes
 - capability-gap reports
@@ -67,6 +69,18 @@ Recommended metadata:
 - `representative_trace_ids`
 
 This makes production-derived evals auditable and avoids turning one noisy anecdote into a permanent benchmark.
+
+## Persona-specific output benchmarks
+
+For user-facing summaries or copilots, one prompt rarely serves every role. Benchmark suites should tag persona-specific expectations instead of averaging them away.
+
+Suggested metadata:
+- `persona_role` (sales, engineering, HR, executive, support)
+- `output_focus` (deal risk, action items, blockers, compliance, next steps)
+- `format_profile` (bullets, narrative, ticket list, follow-up draft)
+- `tone_profile` (concise, executive, technical, empathetic)
+
+Prefer small per-persona eval slices, then compare deltas across personas rather than chasing one global score.
 
 ## Regression comparisons after every change
 
@@ -181,6 +195,8 @@ Agent traces and eval evidence can include large or non-text artifacts (screensh
 - store the bytes in object storage or a file-backed proof bundle
 - keep pointers, metadata, and integrity digests in the trace/proof record
 - render or inspect them in a review surface when needed
+
+Trace UI snapshots, PR preview screenshots, and UI diffs are evidence artifacts; store them by reference with integrity hashes and reviewer metadata.
 
 Do not try to stuff large binaries into single database rows or tool transcripts. The durable record should stay portable and reviewable, with binaries attached by reference.
 

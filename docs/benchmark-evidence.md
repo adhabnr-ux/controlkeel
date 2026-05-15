@@ -35,6 +35,16 @@ Production signal exports should preserve labels and provenance without centrali
 
 Avoid exporting raw prompts, secrets, personal data, or full tool payloads unless a reviewed proof/export policy explicitly allows it. Classified signals are evidence for monitoring and experiments; they are not a substitute for governed findings, proof bundles, or promotion review.
 
+### Trace and preview evidence
+
+Trace UX artifacts are valid evidence when they stay governed:
+- trace UI snapshots or tool-call timelines (redacted)
+- cost/latency breakdowns per step
+- PR preview screenshots or UI diffs linked to run IDs
+- reviewer metadata (who reviewed, when, what decision)
+
+Store these as referenced artifacts with integrity hashes. They support human review but should not auto-promote changes.
+
 ### Version and rollback evidence
 
 When an eval-driven optimization changes an agent, publish enough evidence for rollback decisions:

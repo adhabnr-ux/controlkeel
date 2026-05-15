@@ -155,6 +155,19 @@ To inventory host-agent surfaces (CLI, MCP, skills, hooks/plugins/extensions, at
 scripts/evaluate-agent-surfaces.py --output-dir tmp/benchmark-evidence/full-suite/surfaces
 ```
 
+## Preview environments for desktop apps
+
+Desktop apps are hard to test in parallel. If the renderer can run as a web shell, teams can ship PR previews and validate multiple variants without installing local dependencies.
+
+Recommended pattern:
+- abstract IPC/system APIs behind web-standards fallbacks for browser previews
+- route session, router, and query layers to web equivalents for preview builds
+- generate PR preview links for rapid variant testing
+- capture UI diffs or screenshots as referenced evidence, not authority
+- keep human review in the loop before promotion
+
+Automated screenshot checks can preflight regressions, but they remain advisory evidence.
+
 ## Interpreting results
 
 ### Classification metrics

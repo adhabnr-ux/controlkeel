@@ -222,6 +222,21 @@ There are three main approaches to avoiding context window explosion when dealin
 
 CK's stance is that code mode is the most scalable approach for large API surfaces, while CLI introspection works well for local coding agents with shell access. Tool search is a useful intermediate pattern but doesn't fully solve the scalability problem.
 
+### Empirical evidence: SDK vs MCP for code generation
+
+Concrete data from monday.com's Vibe agent demonstrates the cost impact of this choice:
+
+**Cost comparison (per task against monday's GraphQL API):**
+- SDK approach: 15,626 input tokens (mean), 1.0 model steps, ~9.5s wall-clock, $0.025/task
+- MCP approach: ~158,000 input tokens (mean), 4.0 model steps, ~26s wall-clock, $0.210/task
+- **Result: 8.4× higher inference cost for MCP with identical outcomes**
+
+**The mechanism:** MCP servers ship full tool definitions (~34k tokens for monday's server) on every model step. Agents average 4 steps per task (discover schema → write code → validate → retry), accumulating 150–200k input tokens before solution submission. SDK prompts are heavy (~12k tokens) but read once and stable across tasks — easily cached.
+
+**Code quality impact:** For a bulk multi-update task, the SDK version was 24 lines/680 chars (clean, domain-readable) while the MCP version was 80 lines/2,502 chars (verbose, filled with opaque IDs and JSON plumbing).
+
+This reinforces CK's position: for coding agents that generate code against complex APIs, prefer typed SDKs. MCP remains appropriate for agent-time operations (interactive agents, summarization, triage) without code generation.
+
 ### Structured outputs (`structuredContent`)
 
 When CK responds to tool calls, it returns both:

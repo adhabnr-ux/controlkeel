@@ -81,6 +81,18 @@ Prefer cheap, narrow signals where they are reliable. Regex or keyword heuristic
 
 Signal spikes should feed CK artifacts: findings, trace packets, failure clusters, eval candidates, benchmark drafts, or review packets. They should not directly mutate prompts, tools, policies, or router behavior.
 
+### Trace UX for cross-functional debugging
+
+A usable trace UI is part of the observability loop, not a luxury. It should let engineering, product, data, and CX teams answer "what just happened?" without raw log spelunking:
+
+- show a tool-call timeline with inputs/outputs, errors, retries, and decision checkpoints
+- expose cost, latency, and token usage per step so regressions are visible immediately
+- filter by cohort, experiment, feature flag, model, prompt, or tool version
+- link each trace to the derived finding, failure cluster, eval candidate, or benchmark row
+- keep raw payloads redacted and treat the UI as evidence, not authority
+
+The point of the UI is not to centralize everything; it is to make the evidence legible enough that the next iteration is grounded in what actually happened.
+
 ### Self-diagnostics as evidence
 
 A self-diagnostic `report` tool can let an agent surface repeated tool failures, missing capabilities, user frustration, or unusual self-correction behavior. Treat these reports as useful evidence from the agent, not as authoritative truth.
