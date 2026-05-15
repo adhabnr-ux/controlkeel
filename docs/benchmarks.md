@@ -34,6 +34,31 @@ For early agent and harness work, prefer a console-first loop before building pr
 
 This is especially important when trying new prompting schemes, tool-call formats, recursive workflows, or optimizer loops. If the behavior is not legible in a small console-first path, UI polish will usually hide the problem rather than solve it.
 
+
+## Trace-derived eval design
+
+When converting traces into benchmark scenarios, classify the failure before choosing the scorer. A correctness eval is useless for a faithfulness failure, and a broad semantic judge can hide the exact behavior CK needs to prevent.
+
+Recommended scenario design:
+
+- Start with a real trace, span, finding, review comment, or debrief that shows the behavior.
+- Name the failure dimension before writing the test.
+- Prefer deterministic checks for policy, schema, exact-match, capability, and regression assertions.
+- Use judge-based scoring only for narrow semantic dimensions with rubrics, examples, constrained labels, and meta-evaluation against human/golden labels.
+- Keep capability evals separate from regression evals: a capability eval is a hill to climb; once CK or a host reliably passes it, promote it into a regression suite.
+- Compare experiments with one changed variable at a time: prompt, model, policy artifact, router rule, retrieval strategy, or harness setting.
+
+Useful metadata for trace-derived evals includes:
+
+- `eval_source: "production_trace"`, `"synthetic"`, `"review_feedback"`, or `"operator_debrief"`
+- `eval_mode: "deterministic"`, `"llm_judge"`, or `"human_golden"`
+- `failure_dimension: "correctness"`, `"faithfulness"`, `"safety"`, `"schema"`, `"groundedness"`, or `"task_completion"`
+- `judge_rubric_version` when an LLM judge is involved
+- `golden_dataset_id` when human labels are used
+- `experiment_variable` for one-variable-at-a-time comparisons
+
+Cost discipline matters: keep regression suites compact and high-signal, and spend larger eval budgets on unresolved capability hills or release-confidence runs.
+
 ## External signal: GEPA holdout transfer (single external study)
 
 An external write-up by Tim Waldin (Apr 2026) reported that GEPA-driven prompt evolution improved a Claude Haiku bug-fix benchmark from **0.6496 to 0.8462 on an unseen holdout** (**+0.1966**, 9 unseen bugs, 3 samples per prompt), with no train/holdout overlap in that setup. Source: Tim Waldin, "Using GEPA to hone Claude Haiku on GitHub bug fixes (+20% solve on untrained bugs)" (tim.waldin.net, 2026-04-19).

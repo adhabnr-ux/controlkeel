@@ -64,6 +64,36 @@ CK's observability loop is designed around that same idea: it is not only "logs"
    controlkeel obs promotions
    ```
 
+
+## Trace-first eval design
+
+The Arize/Phoenix-style eval workflow reinforces a core CK posture: evals should start from traces, not from guesses about what might fail.
+
+Use this order when turning agent behavior into CK evals:
+
+1. Read representative traces and spans first.
+2. Categorize visible failures and near-misses by root cause.
+3. Choose the smallest eval that measures the specific failure dimension.
+4. Promote recurring failures into benchmark candidates or regression checks.
+5. Keep production monitoring active for drift, adversarial inputs, and model-quality changes.
+
+In CK terms, a trace is evidence, not authority. Production traces, local snapshots, debriefs, review comments, and imported envelopes can all seed `obs problems`, failure clusters, eval candidates, and benchmark drafts. They should not directly rewrite policy, router, prompt, or skill artifacts.
+
+Prefer production traces when they exist because they reflect real user behavior. Use synthetic data only to fill gaps, cover rare safety cases, or bootstrap a new workflow before production evidence is available.
+
+## Choosing the right eval shape
+
+Different failures need different evals:
+
+- Use deterministic code evals for objective checks: exact labels, schema conformance, known policy violations, required citations, expected files, or blocked capabilities.
+- Use LLM-as-judge only for semantic dimensions that deterministic checks cannot cover, such as answer usefulness, groundedness, or tone.
+- Use human review to create or audit golden data, not as the only scalable production gate.
+- Split broad quality questions into narrow dimensions. Avoid one "god evaluator" that tries to score correctness, faithfulness, safety, tone, and completeness at once.
+
+For judge-based evals, require a narrow rubric, examples, constrained output labels, and meta-evaluation against human or golden labels before treating the judge as decision-useful. If the evaluator cannot distinguish the failure mode in historical traces, it should not gate promotion.
+
+Agent workflows should be evaluated by outcome and safety properties, not by requiring one exact trajectory. Agents may solve a task through unexpected but acceptable paths; CK should care whether the bounded slice was completed, evidence remained reviewable, and governance constraints held.
+
 ## Safety boundaries
 
 - `obs evals save` stores local advisory eval candidate records only.

@@ -218,6 +218,29 @@ Useful metadata for those runs includes:
 
 This lets CK compare "same runtime, different protocol layer" experiments fairly instead of mixing them together with loop, host, or execution-sandbox changes.
 
+
+### Capability evals become regression evals
+
+For agent and governance workflows, separate two lifecycle stages:
+
+- **Capability evals**: exploratory hills to climb while developing a prompt, policy, router behavior, or harness path.
+- **Regression evals**: compact, repeatable checks that protect behavior after the capability is solved.
+
+Do not let capability suites grow forever. Once a failure class is solved repeatedly, distill it into a smaller regression scenario with clear expected behavior and move the larger exploratory set back to diagnosis or holdout use.
+
+### Judge-based eval guardrails
+
+If a benchmark uses LLM-as-judge scoring, record it separately from deterministic scanner evidence and require:
+
+- a narrow dimension being judged
+- a rubric version
+- examples or anchors for each allowed label
+- constrained judge output labels
+- meta-evaluation against human or golden labels
+- notes on sample size and cost
+
+Directional experiments can start with a small sample, but release-confidence claims need larger, more representative coverage. Keep the exact sample size and sampling method in exported metadata rather than turning judge scores into unqualified marketing claims.
+
 ### Add pushback cases, not just exploit cases
 
 If you want benchmark results that feel closer to real expert use, do not limit suites to "does the model emit unsafe code." Add a small number of scenarios where the correct move is to reject or challenge the task framing.

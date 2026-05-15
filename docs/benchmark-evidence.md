@@ -19,6 +19,27 @@ From these, CK computes:
 - **FPR (False Positive Rate)**: FP / (FP + TN) — false alarm rate
 - **Youden's J**: TPR − FPR — single-number quality metric (1.0 = perfect)
 
+
+### Sample size and cost-aware confidence
+
+Not every eval run needs the same sample size. Use small samples for directional learning and larger samples for release-confidence or external claims.
+
+A practical rule of thumb:
+
+- 12-20 representative cases can reveal whether a change is promising or obviously wrong.
+- 200-400 cases are more appropriate when claiming shipping confidence, especially for noisy judge-based or production-monitoring signals.
+
+Always report the sampling method, suite split, scorer type, and cost notes. CK's deterministic scanners remain the preferred evidence for policy-gate claims; judge-based, human-golden, and sampled production-monitoring evidence should be labeled as observational or gating support unless they have been separately validated.
+
+When optimizing a system, prioritize evidence in this order before spending heavily on model swaps or hyperparameter sweeps:
+
+1. data and trace quality
+2. prompt or instruction quality
+3. model choice
+4. hyperparameters and minor runtime tuning
+
+This keeps benchmark work cost-aware: compact regressions protect known behavior, while larger capability and monitoring runs are reserved for uncertain or high-impact decisions.
+
 ### Paired positive/negative suites
 
 CK ships paired suites for balanced evaluation:
