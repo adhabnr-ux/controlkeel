@@ -98,6 +98,19 @@ Use `controlkeel obs workshop <snapshot.json> --dry-run` to preview a local Work
 
 Build-vs-integrate stance: CK should build the durable governance loop itself and integrate with Workshop only at the evidence boundary. That keeps CK portable across hosts while still benefiting from Workshop's local trace UI when operators choose to run it.
 
+## Event-sourced harness lessons
+
+The event-sourced agent-harness pattern is a good fit for CK when it is applied as a governance discipline rather than as an unbounded execution substrate:
+
+- Keep the raw trajectory append-only: user inputs, model deltas, tool calls, validation results, reviews, and operator interventions should be durable facts.
+- Derive state through projections: dashboards, loop status, failure clusters, benchmark candidates, and readiness summaries should be rebuildable from recorded evidence.
+- Separate projections from effects: reducers should summarize state; side-effect processors should be explicit, rate-limited, and reviewable.
+- Prefer after-append processors over before hooks: before hooks can silently perturb context, break caching, or add latency; CK should model checks as visible events and bounded gates.
+- Treat loop prevention as product behavior: idempotency keys, event-rate circuit breakers, pause/resume events, and budget limits are required for distributed agent work.
+- Treat processor code as supply-chain input: dynamic workers, generated plugins, skills, or prompt patches need provenance and human/CK review before they affect execution.
+
+This maps to the existing CK loop: trace packets and imported snapshots feed `obs problems`, failure clusters, eval candidates, and benchmark drafts. They do not directly mutate policies, router behavior, prompts, or skills.
+
 ## Trace reality check
 
 Phil from BrainTrust emphasizes that agent traces are fundamentally different from normal application traces. They are "nasty" - semi-structured, unstructured, and massive. Traditional spans might be a couple kilobytes, but agent spans can be 10-20 megabytes because they contain so much context.

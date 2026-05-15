@@ -211,6 +211,21 @@ That policy makes the control-plane assumptions explicit:
 - delegated mutation should prefer isolated worktrees or equivalent governed runtimes
 - network and other high-impact egress should default to deny and open only through explicit task-scoped reviewed allowlists
 
+### Event-sourced harness posture
+
+A useful agent harness lesson is that the durable record should look like an append-only event log, while stateful views are derived from that log. CK already stores governed session events, findings, reviews, proofs, invocations, memory, and outcomes as typed records; the design principle is to make those records the source of audit truth instead of relying on opaque host state.
+
+For CK, the practical pattern is:
+
+- **append first, project second**: capture facts as typed events or records, then derive dashboards, loop status, failure clusters, and readiness views from them
+- **reducers are pure projections**: summaries such as loop health, memory quality, or release readiness should be recomputable from stored records where possible
+- **side effects happen after reviewable facts**: expensive or high-impact work should be triggered by governed state transitions, not by hidden callbacks that leave no durable trace
+- **idempotency and circuit breakers are first-class**: repeated tool calls, retries, and fast event loops need dedupe keys, rate budgets, and explicit pause/reset paths
+- **provenance travels with the event**: actor, source type, trust level, capability grant, workspace, and task scope should stay attached to evidence
+- **dynamic code is extension material, not authority**: an event or trace that contains processor source should be reviewed like a plugin/skill bundle before it can change behavior
+
+This keeps CK compatible with event-stream-style agent systems without turning CK itself into an unauthenticated public event bus. External streams can be imported as evidence, but the governed control plane still decides what may execute, persist, or promote.
+
 This is important because “posture” and “policy” are different things.
 
 Posture answers:
