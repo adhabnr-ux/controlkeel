@@ -59,6 +59,89 @@ If MCP tools are unavailable, you MUST complete this checklist before making cha
 1. **CLAUDE.md / AGENTS.md**: This file — read at session start by all hosts
 2. **ck_context**: Primary governance state check via MCP
 
+## CLAUDE.md and AGENTS.md Best Practices
+
+Based on Anthropic's "Claude Code at scale" research, context files like CLAUDE.md and AGENTS.md are foundational to agent effectiveness in large codebases.
+
+### Purpose and scope
+
+**What context files should contain:**
+- Project-specific conventions and patterns
+- Critical gotchas and common pitfalls
+- Framework-specific guidelines
+- Build, test, and deployment commands
+- Architectural decisions and rationale
+
+**What context files should NOT contain:**
+- Reusable expertise that belongs in skills
+- Generic programming best practices
+- Overly verbose explanations that drift into noise
+- Instructions that become obsolete as models improve
+
+### Hierarchical structure
+
+**Root file (AGENTS.md for this project):**
+- Keep lean: pointers and critical gotchas only
+- High-level project structure and governance requirements
+- Links to more detailed documentation
+- Critical security and compliance requirements
+
+**Subdirectory files:**
+- Local conventions specific to that module/service
+- Module-specific build and test commands
+- Local architectural decisions
+- Team-specific workflows
+
+**Load pattern:**
+- Agents load context files additively as they move through directory tree
+- Root context is never lost when working in subdirectories
+- Enables scoping to relevant code sections
+
+### Maintenance cadence
+
+**As models evolve, instructions written for current models can work against future ones:**
+- CLAUDE.md rules that guided earlier models may become unnecessary
+- Constraints preventing newer model capabilities can actively harm performance
+- Example: instruction to break refactors into single-file changes may have helped earlier models but prevents newer ones from making coordinated cross-file edits
+
+**Skills and hooks evolution:**
+- Built to compensate for specific model limitations
+- Become overhead once limitations no longer exist
+- Example: hooks for manual file operations become redundant when agents learn to use proper tools
+
+**Recommended maintenance:**
+- Review context files every 3-6 months
+- Additional review when performance plateaus after major model releases
+- Remove constraints that newer models handle well
+- Add guidance for emerging failure patterns
+- Update to reflect architectural changes
+
+### Large codebase patterns
+
+For large codebases (multi-million-line monorepos, distributed systems):
+
+**Start in subdirectories, not repo root:**
+- Initialize agent work in specific subdirectories relevant to task
+- Agent automatically loads hierarchical context files
+- Scopes work to relevant code sections, reducing context bloat
+
+**Layered context:**
+- Root file: high-level structure and critical governance
+- Subdirectory files: local conventions and module-specific guidance
+- Avoid loading entire codebase context into every session
+
+**Scoped commands:**
+- Configure test/lint/build commands per subdirectory
+- Avoid running full suite when agent changed one service
+- Works well for service-oriented codebases
+
+**Codebase maps:**
+- For non-standard directory structures, create lightweight markdown maps
+- List top-level folders with descriptions
+- Gives agent table of contents before file exploration
+
+See [docs/large-codebase-patterns.md](docs/large-codebase-patterns.md) for comprehensive large codebase guidance.
+
 ### Consequences of Governance Violations
 
 - Critical-risk sessions: Immediate escalation, potential rollback

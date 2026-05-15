@@ -387,3 +387,65 @@ How severity maps to human gates (and why full “zero human” operation is not
 - You can override the binary path with `CONTROLKEEL_BIN=/absolute/path/to/controlkeel`.
 - Packaged local mode creates its own database and secret key automatically when the usual env vars are not set.
 - Packaged local mode is a real product lane. Cloud/headless mode exists partially today, and broader team / enterprise platform work remains a later branch.
+
+## Large Codebase Configuration
+
+For organizations deploying ControlKeel in large codebases (multi-million-line monorepos, legacy systems, distributed microservices), additional configuration patterns improve effectiveness.
+
+### Codebase navigation patterns
+
+**Start in subdirectories, not repo root:**
+- Initialize CK work in specific subdirectories relevant to the task
+- CK automatically loads context files hierarchically (root → subdirectories)
+- Scopes agent work to relevant code sections, reducing unnecessary context loading
+
+**Layered context files:**
+- Keep root context files lean: pointers and critical gotchas only
+- Use subdirectory context files for local conventions
+- Update every 3-6 months as model intelligence evolves
+
+**Scoped test and build commands:**
+- Configure test/lint commands per subdirectory in context files
+- Avoid running full suite when agent changed one service
+- Works well for service-oriented codebases
+
+**Noise reduction:**
+- Use `.ignore` patterns to exclude generated files, build artifacts, third-party code
+- Commit exclusion rules in version control for team consistency
+- Override project-level exclusions locally when needed for specialized work
+
+### Codebase maps for non-standard structures
+
+For codebases with non-standard directory structures:
+- Create lightweight markdown at repo root listing top-level folders with descriptions
+- Gives agents table of contents to scan before opening files
+- For very large codebases, use layered approach: root describes high-level structure, subdirectory files provide detail
+
+### LSP integration for symbol-level navigation
+
+For multi-language codebases and compiled languages (C, C++, C#, Java):
+- Install language server binaries for your languages
+- Configure CK's virtual workspace to use LSP for symbol-level search
+- Provides function definition tracing, reference finding, distinguishes identically named symbols
+- Critical for large codebases where text-based search returns thousands of matches
+
+### Extension hierarchy
+
+CK's extension system follows the harness pattern:
+- **Context files:** Foundation for project-specific conventions
+- **Skills:** On-demand expertise for specialized tasks
+- **Plugins:** Distribution mechanism for organizational consistency
+- **MCP servers:** External tool and data connectivity
+- **Subagents:** Split exploration from editing for complex tasks
+
+See [docs/agent-integrations.md](agent-integrations.md) for detailed extension patterns and [docs/large-codebase-patterns.md](large-codebase-patterns.md) for comprehensive guidance.
+
+### Organizational adoption
+
+For enterprise deployments:
+- Establish dedicated infrastructure investment before broad rollout
+- Assign ownership for CK configuration and governance
+- Create cross-functional working groups (engineering, security, governance)
+- Start with defined approved skills and limited access, expand as confidence builds
+
+See [docs/large-codebase-patterns.md](large-codebase-patterns.md) for detailed organizational patterns.

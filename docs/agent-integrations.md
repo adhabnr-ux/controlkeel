@@ -242,6 +242,120 @@ ControlKeel exposes three protocol surfaces around the integration catalog:
 
 Hosted MCP uses:
 
+## Extension hierarchy and the harness pattern
+
+Based on Anthropic's "Claude Code at scale" research, the ecosystem built around the model—the harness—determines actual performance more than the model alone. The harness is built from layered extension points, each serving distinct functions.
+
+### The extension layers
+
+#### 1. Context files (CLAUDE.md/AGENTS.md)
+- **Purpose:** Foundation context that agents read automatically at session start
+- **Load pattern:** Additive as agent moves through directory tree (root → subdirectories)
+- **Best for:** Project-specific conventions, codebase knowledge, critical gotchas
+- **CK alignment:** AGENTS.md serves this role for ControlKeel project itself
+
+**Best practices:**
+- Keep root context files lean: pointers and critical gotchas only
+- Use subdirectory files for local conventions
+- Update every 3-6 months as model intelligence evolves
+- Avoid using for reusable expertise that belongs in skills
+
+#### 2. Hooks (continuous improvement)
+- **Purpose:** Scripts that run at key moments (start, stop, pre-edit, post-edit)
+- **Load pattern:** Triggered by specific events
+- **Best for:** Automating consistent behavior, capturing session learnings
+- **CK alignment:** CK supports hooks through its governance framework
+
+**Valuable patterns:**
+- **Stop hooks:** Reflect on session, propose context file updates while fresh
+- **Start hooks:** Load team-specific context dynamically for module setups
+- **Automated checks:** Enforce linting, formatting, validation deterministically
+
+#### 3. Skills (on-demand expertise)
+- **Purpose:** Packaged instructions for specific task types or workflows
+- **Load pattern:** Progressive disclosure—only load when task calls for it
+- **Best for:** Reusable expertise across sessions and projects
+- **CK alignment:** CK's skill system implements this pattern directly
+
+**Capabilities:**
+- Path scoping: Bind skills to specific directories
+- Domain specialization: Security review, document processing, etc.
+- Workflow encapsulation: Complex multi-step processes
+
+#### 4. Plugins (distribution mechanism)
+- **Purpose:** Bundled skills, hooks, and MCP configurations in installable packages
+- **Load pattern:** Always available once configured
+- **Best for:** Distributing working setups across organization
+- **CK alignment:** CK's plugin system supports organizational distribution
+
+**Benefits:**
+- New engineers immediately have same context as experienced team members
+- Updates distributed through managed marketplaces
+- Enables organizational consistency
+
+#### 5. Language Server Protocol (LSP) integrations
+- **Purpose:** Real-time code intelligence via language-specific servers
+- **Load pattern:** Always available once configured
+- **Best for:** Symbol-level navigation, automatic error detection in typed languages
+- **CK alignment:** CK's virtual workspace can integrate with LSP servers
+
+**Benefits:**
+- Symbol-level precision: follow function calls to definitions
+- Distinguish between identically named functions in different languages
+- Critical for multi-language codebases and C/C++ navigation
+
+#### 6. MCP servers (external connectivity)
+- **Purpose:** Connections to external tools, data sources, and APIs
+- **Load pattern:** Always available once configured
+- **Best for:** Giving agents access to internal tools they can't otherwise reach
+- **CK alignment:** CK's MCP integration is foundational to its architecture
+
+**Patterns:**
+- Structured search as direct tool call
+- Internal documentation integration
+- Ticketing system connections
+- Analytics platform access
+
+#### 7. Subagents (exploration/editing separation)
+- **Purpose:** Separate agent instances with own context windows for specific tasks
+- **Load pattern:** When invoked
+- **Best for:** Splitting exploration from editing, parallel work
+- **CK alignment:** CK supports subagent delegation through its routing system
+
+**Patterns:**
+- Read-only subagent maps subsystem, writes findings
+- Main agent edits with full picture from findings
+- Parallel subagents for independent exploration
+
+### Extension layer summary
+
+| Component | What it is | When it loads | Best for | Common confusion |
+|-----------|-------------|--------------|----------|------------------|
+| Context files | Auto-read context files | Every session | Project conventions, codebase knowledge | Using for reusable expertise (belongs in skills) |
+| Hooks | Scripts at key moments | Triggered by events | Automated behavior, session learnings | Using prompts for automatic things |
+| Skills | Packaged task instructions | On-demand when relevant | Reusable expertise across sessions | Loading everything into context files |
+| Plugins | Bundled skills/hooks/MCP | Always available once configured | Distributing setups across org | Letting good setups stay tribal |
+| LSP | Real-time code intelligence | Always available once configured | Symbol-level navigation in typed languages | Assuming it's automatic |
+| MCP servers | External tool/data connections | Always available once configured | Internal tool access | Building before basics work |
+| Subagents | Separate agent instances | When invoked | Split exploration from editing | Running exploration/editing together |
+
+*LSP accessed through plugin layer. Subagents are delegation capability, not configured extension point.*
+
+### CK's implementation of the harness pattern
+
+ControlKeel implements this extension hierarchy through:
+
+- **AGENTS.md** as the foundational context file for the CK project itself
+- **Skills system** for on-demand expertise with path scoping
+- **Plugin architecture** for distributing governed configurations
+- **MCP protocol** as the primary extension mechanism for external connectivity
+- **Subagent routing** for splitting exploration from execution
+- **Virtual workspace** that can integrate with LSP servers for symbol-level navigation
+- **Governance framework** that validates all extension loading and execution
+
+This alignment ensures that CK not only governs agent output but also follows best practices for large-scale agent deployment itself.
+
+Hosted MCP uses:
 - `POST /mcp`
 - `GET /.well-known/oauth-protected-resource/mcp`
 - `GET /.well-known/oauth-protected-resource`

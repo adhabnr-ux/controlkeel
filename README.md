@@ -81,7 +81,7 @@ controlkeel help opencode
 controlkeel help "how do i attach codex"
 ```
 
-For a full first-run walkthrough, see [docs/getting-started.md](docs/getting-started.md).
+For a full first-run walkthrough, see [docs/getting-started.md](docs/getting-started.md). For large codebase deployment patterns, see [docs/large-codebase-patterns.md](docs/large-codebase-patterns.md).
 
 ---
 
@@ -323,6 +323,7 @@ Start here:
 
 Reference:
 
+- [docs/large-codebase-patterns.md](docs/large-codebase-patterns.md)
 - [docs/qa-validation-guide.md](docs/qa-validation-guide.md)
 - [docs/support-matrix.md](docs/support-matrix.md)
 - [docs/agent-integrations.md](docs/agent-integrations.md)

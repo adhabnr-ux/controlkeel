@@ -6,6 +6,58 @@ Large API surfaces should not become hundreds or thousands of always-loaded MCP 
 
 ### Why code-mode exists
 
+### Agentic search vs RAG-powered code understanding
+
+A critical distinction in how AI coding agents navigate and understand codebases is between **agentic search** and **RAG-powered** approaches.
+
+#### The RAG approach and its limitations
+
+Traditional RAG-powered AI coding tools work by:
+- Embedding the entire codebase into vector representations
+- Retrieving relevant chunks at query time
+- Maintaining a centralized index that must be kept up-to-date
+
+**At large scale, RAG systems face critical failure modes:**
+- Embedding pipelines cannot keep pace with active engineering teams
+- By the time a developer queries the index, it reflects the codebase as it existed weeks, days, or hours prior
+- Retrieval returns functions that were renamed, modules that were deleted, or patterns that have evolved
+- No indication that retrieved content is stale or out-of-date
+
+#### The agentic search advantage
+
+Claude Code (and similar agentic systems) navigate codebases the way a software engineer would:
+- Traverse the file system directly
+- Read files on-demand
+- Use grep/find to locate exactly what's needed
+- Follow references across the codebase
+- Operate locally on the developer's machine with live codebase access
+
+**Key benefits:**
+- No embedding pipeline to maintain
+- No centralized index that becomes stale
+- Each developer's instance works from the current codebase state
+- No delay between code changes and search availability
+
+#### The tradeoff and CK's approach
+
+Agentic search works best when the agent has enough starting context to know where to look. This means:
+- Quality of navigation is shaped by codebase setup
+- Layering context with context files and skills is essential
+- Asking an agent to find vague patterns across a billion-line codebase will hit context limits
+- Teams that invest in codebase setup see significantly better results
+
+**CK's alignment with agentic search:**
+- CK's virtual workspace supports live codebase exploration
+- Progressive discovery avoids stale embedding pipelines
+- Governed exploration maintains security boundaries
+- Context file hierarchy (AGENTS.md, subdirectory files) provides starting context
+- Skills enable on-demand expertise for specialized navigation patterns
+
+**Code-mode complement to agentic search:**
+When agentic search needs to understand complex API surfaces or orchestrate many operations, code-mode provides a compact execution format. Instead of making hundreds of tool calls to explore an API, the agent writes code against a typed SDK that encapsulates the API surface, then executes that code in a governed sandbox.
+
+This combination—agentic search for exploration and navigation, code-mode for complex API interaction—provides the most effective approach for large-scale codebase work while maintaining CK's governance boundaries.
+
 Large API surfaces do not translate cleanly into "one tool per endpoint" without blowing up context. Even if the protocol supports it, dumping thousands of tools into an agent's context produces tool-definition bloat: most tokens are spent on schemas that are never invoked.
 
 Matt from Cloudflare encountered this directly when trying to expose their entire API (2,600 endpoints, OpenAPI spec 2.3M tokens) to agents. Converting to naive tools would result in 1.1M tokens - completely annihilating the context window even with the largest foundational models. This is not an MCP problem; it's a fundamental scalability issue with the "one tool per endpoint" pattern.
