@@ -85,6 +85,16 @@ Agent traces and eval evidence can include large or non-text artifacts (screensh
 
 Do not try to stuff large binaries into single database rows or tool transcripts. The durable record should stay portable and reviewable, with binaries attached by reference.
 
+## Optional Workshop trace inputs
+
+Raindrop Workshop snapshots can seed CK benchmark work when they are kept at the evidence boundary. Prefer importing redacted summaries or referenced artifacts rather than copying raw span payloads into benchmark metadata. Useful Workshop-derived metadata includes:
+
+- `external_trace_source: "raindrop_workshop"`
+- `trace_viewer: "local_workshop"`
+- `workshop_run_count`, `workshop_span_count`, and `workshop_error_span_count`
+
+Promotion discipline stays unchanged: Workshop traces can suggest eval candidates, but CK benchmarks and held-out evidence decide whether a policy, router, prompt, or skill change is safe to promote.
+
 ## Split and tag discipline
 
 Benchmark scenarios already carry split-aware metadata:

@@ -39,6 +39,7 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Mission
   alias ControlKeel.Observability
   alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
+  alias ControlKeel.Observability.Workshop, as: ObservabilityWorkshop
   alias ControlKeel.Platform
   alias ControlKeel.PolicyTraining
   alias ControlKeel.ProviderBroker
@@ -158,6 +159,7 @@ defmodule ControlKeel.CLI do
     execute: :boolean
   ]
   @obs_import_switches [dry_run: :boolean, persist: :boolean, format: :string, json: :boolean]
+  @obs_workshop_switches [dry_run: :boolean, format: :string, json: :boolean]
   @audit_log_switches [format: :string]
   @service_account_create_switches [workspace_id: :integer, name: :string, scopes: :string]
   @service_account_list_switches [workspace_id: :integer]
@@ -485,6 +487,9 @@ defmodule ControlKeel.CLI do
 
       ["obs", "import", file_path | rest] ->
         parse_obs_import(file_path, rest)
+
+      ["obs", "workshop", file_path | rest] ->
+        parse_obs_workshop(file_path, rest)
 
       ["obs", "run", session_id | rest] ->
         parse_obs_run(session_id, rest)
@@ -2605,6 +2610,34 @@ defmodule ControlKeel.CLI do
       {:error, {:integrity_not_verified, status}} ->
         {:error,
          "Observability envelope integrity must be verified before persistence; got #{status || "unknown"}."}
+    end
+  end
+
+  def run_command(%{command: :obs_workshop, args: [file_path], options: options}, _project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, preview} <- observability_workshop_preview(file_path, options) do
+      case format do
+        "json" -> {:ok, [Jason.encode!(preview)]}
+        _ -> {:ok, observability_workshop_lines(preview)}
+      end
+    else
+      {:error, {:invalid_output_format, message}} ->
+        {:error, message}
+
+      {:error, :dry_run_required} ->
+        {:error, "Workshop observability preview requires --dry-run."}
+
+      {:error, :enoent} ->
+        {:error, "Workshop snapshot file was not found."}
+
+      {:error, {:invalid_json, message}} ->
+        {:error, "Workshop snapshot must be valid JSON: #{message}"}
+
+      {:error, {:invalid_field, field}} ->
+        {:error, "Workshop snapshot field `#{field}` has an invalid shape."}
+
+      {:error, :invalid_workshop_snapshot} ->
+        {:error, "Workshop snapshot must contain runs or a run with optional spans/live_events."}
     end
   end
 
@@ -4880,6 +4913,12 @@ defmodule ControlKeel.CLI do
     end
   end
 
+  defp parse_obs_workshop(file_path, rest) do
+    with {:ok, parsed} <- parse_with_switches(:obs_workshop, rest, @obs_workshop_switches) do
+      {:ok, %{parsed | args: [file_path]}}
+    end
+  end
+
   defp parse_obs_timeline([]), do: parse_with_switches(:obs_timeline, [], @obs_switches)
 
   defp parse_obs_timeline([maybe_session_id | rest]) do
@@ -5695,6 +5734,32 @@ defmodule ControlKeel.CLI do
       _other ->
         []
     end
+  end
+
+  defp observability_workshop_preview(file_path, options) do
+    if options[:dry_run] == true do
+      ObservabilityWorkshop.preview_file(file_path)
+    else
+      {:error, :dry_run_required}
+    end
+  end
+
+  defp observability_workshop_lines(preview) do
+    counts = preview.counts
+    integrity = preview.integrity
+
+    [
+      "Workshop observability dry-run:",
+      "Schema: #{preview.schema_version}",
+      "Runs: #{counts.runs}",
+      "Spans: #{counts.spans} (tools #{counts.tool_spans}, errors #{counts.error_spans})",
+      "Live events: #{counts.live_events}",
+      "Saved events: #{counts.saved_events}",
+      "Redaction: #{preview.redaction.policy} (raw span and event payloads excluded)",
+      "Payload chars redacted: #{counts.payload_chars_redacted}",
+      "Integrity: #{integrity.payload_sha256}",
+      "Mutation: #{preview.mutation}"
+    ] ++ Enum.map(preview.recommendations, &"- #{&1}")
   end
 
   defp observability_import_lines(%{dry_run: true} = preview) do

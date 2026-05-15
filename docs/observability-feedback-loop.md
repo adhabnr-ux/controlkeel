@@ -87,6 +87,17 @@ controlkeel obs imports
 
 Persisted imports are snapshots and are deduplicated by payload hash; they do not rewrite sessions, findings, or memory.
 
+## Optional Raindrop Workshop evidence
+
+Raindrop Workshop is a local-first trace viewer with a local daemon and UI for runs, spans, and live events. CK should treat Workshop as an **optional evidence source**, not as a required runtime or an authority surface. The useful boundary is:
+
+- Workshop: low-latency local trace viewing.
+- ControlKeel: governed summaries, redaction, findings, eval candidates, benchmark evidence, and human-gated promotion.
+
+Use `controlkeel obs workshop <snapshot.json> --dry-run` to preview a local Workshop-shaped snapshot. The preview is summary-only: raw span payloads and event content remain in Workshop or separate proof artifacts. This lets teams decide whether a trace contains useful CK eval/benchmark evidence before persisting anything.
+
+Build-vs-integrate stance: CK should build the durable governance loop itself and integrate with Workshop only at the evidence boundary. That keeps CK portable across hosts while still benefiting from Workshop's local trace UI when operators choose to run it.
+
 ## Trace reality check
 
 Phil from BrainTrust emphasizes that agent traces are fundamentally different from normal application traces. They are "nasty" - semi-structured, unstructured, and massive. Traditional spans might be a couple kilobytes, but agent spans can be 10-20 megabytes because they contain so much context.
