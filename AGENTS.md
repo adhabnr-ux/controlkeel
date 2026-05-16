@@ -330,10 +330,6 @@ Always give the form an explicit, unique DOM ID, like `id="todo-form"`.
 
 <!-- usage-rules-end -->
 
-<!-- controlkee
-
-<!-- controlkee
-
 <!-- controlkeel:start -->
 # ControlKeel Companion Instructions
 

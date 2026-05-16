@@ -4677,7 +4677,7 @@ defmodule ControlKeel.Skills.Exporter do
     stop_hook_active="false"
 
     if command -v jq >/dev/null 2>&1; then
-      stop_hook_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false')
+      stop_hook_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null || printf 'false')
     elif command -v python3 >/dev/null 2>&1; then
       stop_hook_active=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('stop_hook_active', False))" 2>/dev/null || printf 'false')
     fi
@@ -4685,16 +4685,16 @@ defmodule ControlKeel.Skills.Exporter do
     session_id=""
 
     if command -v jq >/dev/null 2>&1; then
-      session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
+      session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null || printf '')
     elif command -v python3 >/dev/null 2>&1; then
-      session_id=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null)
+      session_id=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null || printf '')
     fi
 
     context=$(CONTROLKEEL_HOOK_TIMEOUT_SECONDS="${CONTROLKEEL_STOP_HOOK_TIMEOUT_SECONDS:-3}" ck_run context --session-id "${session_id:-1}" --json 2>/dev/null || true)
 
     if [ -n "$context" ]; then
       if command -v jq >/dev/null 2>&1; then
-        blocked_count=$(printf '%s' "$context" | jq -r '.active_findings.blocked // 0')
+        blocked_count=$(printf '%s' "$context" | jq -r '.active_findings.blocked // 0' 2>/dev/null || printf '0')
       elif command -v python3 >/dev/null 2>&1; then
         blocked_count=$(printf '%s' "$context" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('active_findings', {}).get('blocked', 0))" 2>/dev/null || printf '0')
       fi

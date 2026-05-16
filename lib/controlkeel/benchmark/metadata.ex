@@ -99,10 +99,14 @@ defmodule ControlKeel.Benchmark.Metadata do
 
   defp coerce_enum(metadata, key, valid_values) do
     case Map.get(metadata, key) do
-      nil -> metadata
+      nil ->
+        metadata
+
       value when is_binary(value) ->
         if value in valid_values, do: metadata, else: Map.delete(metadata, key)
-      _ -> Map.delete(metadata, key)
+
+      _ ->
+        Map.delete(metadata, key)
     end
   end
 

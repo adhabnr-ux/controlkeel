@@ -1873,6 +1873,22 @@ defmodule ControlKeel.SkillsTest do
     assert output =~ "blocked findings"
   end
 
+  test "codex stop hook tolerates malformed hook input", %{tmp_dir: tmp_dir} do
+    assert {:ok, _install} = Skills.install("codex", tmp_dir, scope: "project")
+
+    hook_path = Path.join(tmp_dir, ".codex/hooks/ck-stop.sh")
+
+    {output, 0} =
+      System.cmd("sh", ["-c", "printf '%s' \"$CK_TEST_INPUT\" | sh \"$CK_HOOK_PATH\""],
+        env: [
+          {"CK_TEST_INPUT", "not-json"},
+          {"CK_HOOK_PATH", hook_path}
+        ]
+      )
+
+    assert output == ""
+  end
+
   test "installer removes broken ControlKeel comment fragments", %{tmp_dir: tmp_dir} do
     repo_instructions = """
     # Repo Instructions

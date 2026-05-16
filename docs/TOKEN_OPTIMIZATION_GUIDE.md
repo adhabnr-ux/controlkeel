@@ -148,7 +148,7 @@ case SpendAlerts.check_interaction_spike(session_id, cost_cents, baseline_cents)
 end
 ```
 
-These signals also feed into CK observability artifacts (`obs problems`, failure clusters) and can become benchmark candidates for regression protection. See [docs/benchmarks.md](benchmarks.md) for production signal integration.
+These alerts are stored locally and delivered to registered callbacks. Callers can convert reviewed spike alerts into CK observability artifacts (`obs problems`, failure clusters) or benchmark candidates for regression protection. See [docs/benchmarks.md](benchmarks.md) for production signal integration.
 
 ## Configuration
 

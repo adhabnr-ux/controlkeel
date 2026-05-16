@@ -240,8 +240,6 @@ ControlKeel exposes three protocol surfaces around the integration catalog:
 - **Hosted MCP** for service-account-driven remote clients
 - **Minimal A2A** for agent-card discovery and narrow JSON-RPC message dispatch
 
-Hosted MCP uses:
-
 ## Extension hierarchy and the harness pattern
 
 Based on Anthropic's "Claude Code at scale" research, the ecosystem built around the model—the harness—determines actual performance more than the model alone. The harness is built from layered extension points, each serving distinct functions.

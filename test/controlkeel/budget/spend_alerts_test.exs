@@ -61,6 +61,34 @@ defmodule ControlKeel.Budget.SpendAlertsTest do
     assert :ok = SpendAlerts.register_callback(fn _alert -> :ok end)
   end
 
+  test "check_interaction_spike stores spike alerts for a session" do
+    session = session_fixture()
+
+    assert {:spike, alert} = SpendAlerts.check_interaction_spike(session.id, 450, 100)
+    assert alert.type == :interaction_cost_spike
+    assert alert.severity == :medium
+    assert alert.ratio == 4.5
+
+    assert {:ok, alerts} = SpendAlerts.get_alerts(session.id)
+    assert Enum.any?(alerts, &(&1.type == :interaction_cost_spike))
+  end
+
+  test "check_interaction_spike returns normal below threshold or invalid baseline" do
+    assert {:ok, :normal} = SpendAlerts.check_interaction_spike(123, 250, 100)
+    assert {:ok, :normal} = SpendAlerts.check_interaction_spike(123, 250, 0)
+  end
+
+  test "check_interaction_spike fires registered callbacks" do
+    test_pid = self()
+
+    assert :ok =
+             SpendAlerts.register_callback(fn alert -> send(test_pid, {:spike_alert, alert}) end)
+
+    assert {:spike, alert} = SpendAlerts.check_interaction_spike(123, 900, 100)
+
+    assert_receive {:spike_alert, ^alert}
+  end
+
   test "alerts include budget context" do
     session = session_fixture(%{budget_cents: 1_000, daily_budget_cents: 500, spent_cents: 800})
 
