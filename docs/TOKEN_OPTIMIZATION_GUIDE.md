@@ -101,34 +101,16 @@ export CK_TOOL_GROUPS=core,governance,observability
 
 ### 4. API Interaction Pattern (Major Impact for Coding Agents)
 
-**Problem**: For coding agents that generate code against complex APIs, the choice between MCP tools and typed SDKs has dramatic token cost implications.
+For coding agents that generate code against complex APIs, prefer typed SDKs or
+code-mode surfaces over always-loaded MCP tool catalogs when those catalogs would
+consume large parts of the context window. MCP remains appropriate for smaller
+tool surfaces and agent-time operations such as summarization, triage, and
+interactive user actions.
 
-**Empirical evidence**: monday.com's Vibe agent comparison against their GraphQL API:
-- SDK approach: 15,626 input tokens per task (mean), 1.0 model steps, $0.025/task
-- MCP approach: ~158,000 input tokens per task (mean), 4.0 model steps, $0.210/task
-- **Result: 8.4× higher inference cost for MCP with identical outcomes**
-
-**Why MCP is more expensive for code generation:**
-- MCP servers ship full tool definitions on every model step (~34k tokens for monday's server)
-- Agents average multiple steps per task (discover schema → write code → validate → retry)
-- This accumulates to 150–200k input tokens before solution submission
-- SDK prompts are heavy but read once and stable across tasks (easily cached)
-
-**When to prefer SDKs:**
-- Coding agents that generate per-customer applications against complex APIs
-- APIs with user-defined schemas per customer (e.g., per-board column definitions)
-- APIs with complex value shapes that require encoding/decoding logic
-- Scenarios where generated code must be future-proof against API evolution
-
-**When MCP remains appropriate:**
-- Agents acting at agent-time without code generation (docs summarization, ticket triage)
-- Small API surfaces (dozen tools, not 66+)
-- Stable schemas without customer-specific variations
-- Interactive agents calling APIs on behalf of one user at a time
-
-**Solution**: For code-generation workflows against complex APIs, prefer typed SDKs over MCP tools. The architectural question isn't "MCP or SDK" but "what's the right primary surface for this agent's job?" This decision can mean the difference between $0.025/task and $0.210/task at scale.
-
-See [docs/code-mode-governance.md](code-mode-governance.md) for detailed case study and analysis.
+The detailed monday.com SDK-vs-MCP case study and code-mode operating guidance
+live in [docs/code-mode-governance.md](code-mode-governance.md). Keep this guide
+focused on token-optimization actions rather than duplicating the full case
+study.
 
 ### 5. Cost Spike and Context Bloat Monitoring
 

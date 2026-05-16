@@ -70,6 +70,8 @@ These are the current higher-confidence host adapters where the docs, release as
 | Warp | `controlkeel attach warp` | native review through Warp local agent + MCP/tool loop | `.warp/skills`, `.agents/skills`, `.warp/controlkeel-mcp.json`, `.warp/README.md`, and repo `AGENTS.md` |
 | Devin for Terminal | `controlkeel attach devin-terminal` | native hook review | `.devin/config.json`, `.devin/hooks.v1.json`, `.devin/hooks`, `.devin/skills`, `.devin/agents`, plus `.agents/skills` compatibility copies |
 
+OpenCode note: some sessions expose file mutation as `apply_patch` rather than tools literally named `Edit` or `Write`. Agents should inspect the available tool list and use `apply_patch` for repo edits when present. Do not ask the operator to enable Edit/Write only because those exact names are missing; bash file writes remain outside the governed editing path.
+
 For Codex there are two supported CK delivery modes:
 
 - `controlkeel attach codex-cli`
@@ -242,88 +244,11 @@ ControlKeel exposes three protocol surfaces around the integration catalog:
 
 ## Extension hierarchy and the harness pattern
 
-Based on Anthropic's "Claude Code at scale" research, the ecosystem built around the model—the harness—determines actual performance more than the model alone. The harness is built from layered extension points, each serving distinct functions.
-
-### The extension layers
-
-#### 1. Context files (CLAUDE.md/AGENTS.md)
-- **Purpose:** Foundation context that agents read automatically at session start
-- **Load pattern:** Additive as agent moves through directory tree (root → subdirectories)
-- **Best for:** Project-specific conventions, codebase knowledge, critical gotchas
-- **CK alignment:** AGENTS.md serves this role for ControlKeel project itself
-
-**Best practices:**
-- Keep root context files lean: pointers and critical gotchas only
-- Use subdirectory files for local conventions
-- Update every 3-6 months as model intelligence evolves
-- Avoid using for reusable expertise that belongs in skills
-
-#### 2. Hooks (continuous improvement)
-- **Purpose:** Scripts that run at key moments (start, stop, pre-edit, post-edit)
-- **Load pattern:** Triggered by specific events
-- **Best for:** Automating consistent behavior, capturing session learnings
-- **CK alignment:** CK supports hooks through its governance framework
-
-**Valuable patterns:**
-- **Stop hooks:** Reflect on session, propose context file updates while fresh
-- **Start hooks:** Load team-specific context dynamically for module setups
-- **Automated checks:** Enforce linting, formatting, validation deterministically
-
-#### 3. Skills (on-demand expertise)
-- **Purpose:** Packaged instructions for specific task types or workflows
-- **Load pattern:** Progressive disclosure—only load when task calls for it
-- **Best for:** Reusable expertise across sessions and projects
-- **CK alignment:** CK's skill system implements this pattern directly
-
-**Capabilities:**
-- Path scoping: Bind skills to specific directories
-- Domain specialization: Security review, document processing, etc.
-- Workflow encapsulation: Complex multi-step processes
-
-#### 4. Plugins (distribution mechanism)
-- **Purpose:** Bundled skills, hooks, and MCP configurations in installable packages
-- **Load pattern:** Always available once configured
-- **Best for:** Distributing working setups across organization
-- **CK alignment:** CK's plugin system supports organizational distribution
-
-**Benefits:**
-- New engineers immediately have same context as experienced team members
-- Updates distributed through managed marketplaces
-- Enables organizational consistency
-
-#### 5. Language Server Protocol (LSP) integrations
-- **Purpose:** Real-time code intelligence via language-specific servers
-- **Load pattern:** Always available once configured
-- **Best for:** Symbol-level navigation, automatic error detection in typed languages
-- **CK alignment:** LSP is a Claude Code and IDE-native capability. CK's virtual workspace performs filesystem-level exploration (grep, find, read). Configure LSP through your IDE or Claude Code extension, not through CK.
-
-**Benefits:**
-- Symbol-level precision: follow function calls to definitions
-- Distinguish between identically named functions in different languages
-- Critical for multi-language codebases and C/C++ navigation
-
-#### 6. MCP servers (external connectivity)
-- **Purpose:** Connections to external tools, data sources, and APIs
-- **Load pattern:** Always available once configured
-- **Best for:** Giving agents access to internal tools they can't otherwise reach
-- **CK alignment:** CK's MCP integration is foundational to its architecture
-
-**Patterns:**
-- Structured search as direct tool call
-- Internal documentation integration
-- Ticketing system connections
-- Analytics platform access
-
-#### 7. Subagents (exploration/editing separation)
-- **Purpose:** Separate agent instances with own context windows for specific tasks
-- **Load pattern:** When invoked
-- **Best for:** Splitting exploration from editing, parallel work
-- **CK alignment:** CK supports subagent delegation through its routing system
-
-**Patterns:**
-- Read-only subagent maps subsystem, writes findings
-- Main agent edits with full picture from findings
-- Parallel subagents for independent exploration
+ControlKeel maps host integration surfaces onto the common agent harness layers:
+context files, hooks, skills, plugins, LSP, MCP servers, and subagents. This
+page documents how CK exposes those integration surfaces. The detailed
+large-codebase setup and maintenance guidance is canonical in
+[large-codebase-patterns.md](large-codebase-patterns.md).
 
 ### Extension layer summary
 

@@ -64,7 +64,7 @@ defmodule ControlKeel.Observability do
     final_response
   )
 
-  @doc "Returns the signal family taxonomy map (:explicit | :implicit | :trajectory → [signal_name])."
+  @doc "Returns the signal family vocabulary map (:explicit | :implicit | :trajectory -> [signal_name])."
   def signal_families, do: @signal_families
 
   @doc "Returns the list of valid signal names for a given family atom."
@@ -78,7 +78,7 @@ defmodule ControlKeel.Observability do
     end)
   end
 
-  @doc "Returns the list of valid agentic eval checkpoint dimension strings."
+  @doc "Returns the documented agentic eval checkpoint dimension vocabulary."
   def eval_checkpoint_dimensions, do: @eval_checkpoint_dimensions
 
   @doc "Returns true if the given string is a valid checkpoint dimension."

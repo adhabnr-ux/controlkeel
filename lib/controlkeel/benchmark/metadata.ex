@@ -46,8 +46,11 @@ defmodule ControlKeel.Benchmark.Metadata do
   def suite_internal?(_payload), do: false
 
   @doc """
-  Normalizes run-level metadata, validating versioning and comparison fields
-  documented for regression comparisons, red-team evidence, and experiment tracking.
+  Normalizes run-level metadata vocabulary for regression comparisons,
+  red-team evidence, and experiment tracking.
+
+  This helper only coerces documented metadata fields; callers must explicitly
+  use it in import or run-creation paths when they want normalization.
   """
   def normalize_run_metadata(metadata) when is_map(metadata) do
     metadata

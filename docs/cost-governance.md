@@ -52,33 +52,15 @@ Also be honest about the task texture. Overnight work is much more credible when
 
 ## SDK vs MCP cost optimization
 
-For coding agents that generate code against complex APIs, the choice between SDKs and MCP tools has significant cost implications. Empirical data from monday.com's Vibe agent shows:
+For coding agents that generate code against complex APIs, the primary interface
+choice is a cost decision: typed SDKs or code-mode surfaces can avoid repeatedly
+loading large MCP tool catalogs. MCP remains the right fit for small tool
+surfaces and interactive agent-time actions.
 
-**Cost impact:**
-- SDK approach: 15,626 input tokens per task (mean), 1.0 model steps, $0.025/task
-- MCP approach: ~158,000 input tokens per task (mean), 4.0 model steps, $0.210/task
-- **Result: 8.4× higher inference cost for MCP with identical outcomes**
-
-**Why MCP is more expensive for code generation:**
-- MCP servers ship tool definitions (~34k tokens for monday's server) on every model step
-- Agents average 4 steps per task (discover schema → write code → validate → retry)
-- This accumulates to 150–200k input tokens before solution submission
-- SDK prompts are heavy (~12k tokens) but read once and stable across tasks (easily cached)
-
-**When to prefer SDKs:**
-- Coding agents that generate per-customer applications against complex APIs
-- APIs with user-defined schemas per customer (e.g., per-board column definitions)
-- APIs with complex value shapes that require encoding/decoding logic
-- Scenarios where generated code must be future-proof against API evolution
-
-**When MCP remains appropriate:**
-- Agents acting at agent-time without code generation (docs summarization, ticket triage)
-- Small API surfaces (dozen tools, not 66+)
-- Stable schemas without customer-specific variations
-- Interactive agents calling APIs on behalf of one user at a time
-
-**Cost optimization principle:**
-The architectural question isn't "MCP or SDK" but "what's the right primary surface for this agent's job?" Choose SDKs for code-generation workflows against complex APIs, and MCP for interactive agent-time operations. This decision can mean the difference between $0.025/task and $0.210/task at scale.
+Treat the question as "which surface gives this agent the smallest reliable
+working set?" rather than "SDK or MCP everywhere." The full cost case study and
+operating checklist are maintained in
+[code-mode-governance.md](code-mode-governance.md).
 
 ## Proxy observability
 
