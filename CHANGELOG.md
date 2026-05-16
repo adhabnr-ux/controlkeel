@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.20 — 2026-05-07
+
+### What's changed
+
+- docs: enhance documentation with clarity on governed engineering game loop and agentic work
+- docs: replace stale release checkpoints with refreshable template
+- fix: copy Python runtime executables in generated Dockerfile
+- fix: align deployment templates with runtime defaults
+- feat: enhance Amp Neo integration with compaction provenance tracking and CK-gated remote-control commands
+
 ## v0.3.19 — 2026-05-06
 
 ### What's changed
