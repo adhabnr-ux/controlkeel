@@ -19,6 +19,17 @@ defmodule ControlKeelWeb.PageControllerTest do
     assert body =~ "Delivery Flow"
     assert body =~ "Signal Preview"
     assert body =~ "New Mission"
+    assert body =~ "href=\"/install\""
+    assert body =~ "Install"
+  end
+
+  test "GET /install renders the install page", %{conn: conn} do
+    conn = get(conn, ~p"/install")
+    body = html_response(conn, 200)
+
+    assert body =~ "Install ControlKeel"
+    assert body =~ "Choose a bootstrap channel"
+    assert body =~ "Copy"
   end
 
   test "GET /getting-started renders the install guide", %{conn: conn} do
