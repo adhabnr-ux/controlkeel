@@ -3,19 +3,7 @@
   overhead = @benchmark_summary.average_overhead_percent
   proof_coverage = @ship_summary.outcome_metrics.proof_backed_task_coverage_percent
   deploy_ready = @ship_summary.outcome_metrics.deploy_ready_task_rate_percent
-  avg_findings = @ship_summary.average_findings_per_session
-
-  format_percent = fn
-    nil -> "Not recorded"
-    value when is_float(value) -> "#{Float.round(value, 1)}%"
-    value -> "#{value}%"
-  end
-
-  format_number = fn
-    nil -> "Not recorded"
-    value when is_float(value) -> Float.round(value, 1)
-    value -> value
-  end %>
+  avg_findings = @ship_summary.average_findings_per_session %>
 
   <section class="mx-auto flex max-w-7xl flex-col gap-6">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -52,7 +40,7 @@
             <.icon name="hero-shield-check" class="size-4" />
           </span>
         </div>
-        <p class="mt-4 text-3xl font-semibold text-white">{format_percent.(catch_rate)}</p>
+        <p class="mt-4 text-3xl font-semibold text-white">{format_percent(catch_rate)}</p>
         <div class="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
           <div
             class="h-full rounded-full bg-lime-300"
@@ -71,7 +59,7 @@
             <.icon name="hero-document-check" class="size-4" />
           </span>
         </div>
-        <p class="mt-4 text-3xl font-semibold text-white">{format_percent.(proof_coverage)}</p>
+        <p class="mt-4 text-3xl font-semibold text-white">{format_percent(proof_coverage)}</p>
         <div class="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
           <div
             class="h-full rounded-full bg-sky-300"
@@ -88,7 +76,7 @@
             <.icon name="hero-rocket-launch" class="size-4" />
           </span>
         </div>
-        <p class="mt-4 text-3xl font-semibold text-white">{format_percent.(deploy_ready)}</p>
+        <p class="mt-4 text-3xl font-semibold text-white">{format_percent(deploy_ready)}</p>
         <div class="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
           <div
             class="h-full rounded-full bg-emerald-300"
@@ -105,7 +93,7 @@
             <.icon name="hero-exclamation-triangle" class="size-4" />
           </span>
         </div>
-        <p class="mt-4 text-3xl font-semibold text-white">{format_number.(avg_findings)}</p>
+        <p class="mt-4 text-3xl font-semibold text-white">{format_number(avg_findings)}</p>
 
         <p class="mt-3 text-xs text-zinc-500">Average findings per recent mission</p>
       </article>
@@ -163,13 +151,13 @@
         <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
           <div class="rounded-2xl bg-white/[0.04] p-3">
             <dt class="text-zinc-500">Avg overhead</dt>
-            <dd class="mt-1 font-semibold text-white">{format_percent.(overhead)}</dd>
+            <dd class="mt-1 font-semibold text-white">{format_percent(overhead)}</dd>
           </div>
           <div class="rounded-2xl bg-white/[0.04] p-3">
             <dt class="text-zinc-500">First finding</dt>
             <dd class="mt-1 font-semibold text-white">
               {if @ship_summary.average_time_to_first_finding_seconds,
-                do: "#{format_number.(@ship_summary.average_time_to_first_finding_seconds)}s",
+                do: "#{format_number(@ship_summary.average_time_to_first_finding_seconds)}s",
                 else: "Not recorded"}
             </dd>
           </div>
