@@ -64,12 +64,46 @@ defmodule ControlKeelWeb.Layouts do
             Missions
           </a>
           <a
+            href={~p"/install"}
+            data-sidebar-link
+            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-arrow-down-tray" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+            Install
+          </a>
+          <a
+            href={~p"/skills"}
+            data-sidebar-link
+            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-puzzle-piece" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+            Skills
+          </a>
+          <a
             href={~p"/proofs"}
             data-sidebar-link
             class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
           >
             <.icon name="hero-shield-check" class="size-4 text-zinc-500 group-hover:text-lime-300" />
             Proofs
+          </a>
+          <a
+            href={~p"/policies"}
+            data-sidebar-link
+            class="group flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon
+              name="hero-adjustments-horizontal"
+              class="size-4 text-zinc-500 group-hover:text-lime-300"
+            /> Policy Studio
+          </a>
+          <a
+            href={~p"/deploy"}
+            data-sidebar-link
+            class="group flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-cloud-arrow-up" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+            Deploy
           </a>
           <a
             href={~p"/benchmarks"}
@@ -137,42 +171,6 @@ defmodule ControlKeelWeb.Layouts do
                 </p>
               </div>
             </div>
-
-            <div class="flex items-center gap-3">
-              <a
-                href={~p"/skills"}
-                class="hidden items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-lime-300/40 hover:bg-lime-300/10 hover:text-white sm:inline-flex"
-              >
-                <.icon name="hero-puzzle-piece" class="size-4" /> Skills
-              </a>
-              <.theme_toggle />
-              <details class="group relative">
-                <summary class="flex cursor-pointer list-none items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1 pr-3 transition hover:bg-white/10">
-                  <span class="flex size-8 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-lime-200 ring-1 ring-white/10">
-                    CK
-                  </span>
-                  <span class="hidden text-sm font-medium text-zinc-200 sm:inline">Operator</span>
-                  <.icon
-                    name="hero-chevron-down-micro"
-                    class="size-4 text-zinc-500 transition group-open:rotate-180"
-                  />
-                </summary>
-                <div class="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-zinc-900 p-2 shadow-2xl shadow-black/40">
-                  <a
-                    href={~p"/policies"}
-                    class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-white"
-                  >
-                    <.icon name="hero-adjustments-horizontal" class="size-4" /> Policy Studio
-                  </a>
-                  <a
-                    href={~p"/deploy"}
-                    class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-white"
-                  >
-                    <.icon name="hero-cloud-arrow-up" class="size-4" /> Deploy
-                  </a>
-                </div>
-              </details>
-            </div>
           </div>
         </header>
 
@@ -225,46 +223,6 @@ defmodule ControlKeelWeb.Layouts do
         {gettext("Attempting to reconnect")}
         <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
-    </div>
-    """
-  end
-
-  @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
-
-  See <head> in root.html.heex which applies the theme before page load.
-  """
-  def theme_toggle(assigns) do
-    ~H"""
-    <div class="relative flex w-28 items-center rounded-full border border-white/10 bg-white/5 p-1">
-      <div class="absolute left-1 top-1 h-8 w-8 rounded-full bg-lime-300/90 shadow-sm shadow-lime-300/20 transition-[left] [[data-theme=light]_&]:left-[2.375rem] [[data-theme=dark]_&]:left-[4.5rem]" />
-
-      <button
-        class="relative z-10 flex size-8 cursor-pointer items-center justify-center rounded-full text-zinc-400 transition hover:text-white"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
-        title="Use system theme"
-      >
-        <.icon name="hero-computer-desktop-micro" class="size-4" />
-      </button>
-
-      <button
-        class="relative z-10 flex size-8 cursor-pointer items-center justify-center rounded-full text-zinc-400 transition hover:text-white"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-        title="Use light theme"
-      >
-        <.icon name="hero-sun-micro" class="size-4" />
-      </button>
-
-      <button
-        class="relative z-10 flex size-8 cursor-pointer items-center justify-center rounded-full text-zinc-400 transition hover:text-white"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-        title="Use dark theme"
-      >
-        <.icon name="hero-moon-micro" class="size-4" />
-      </button>
     </div>
     """
   end

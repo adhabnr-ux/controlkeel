@@ -71,6 +71,7 @@ defmodule ControlKeelWeb.Router do
     live "/observability/sessions/:id", ObservabilityLive, :show
     live "/missions/:id", MissionControlLive, :show
     live "/policies", PolicyStudioLive, :index
+    live "/install", InstallLive, :index
     live "/skills", SkillsLive, :index
     live "/deploy", DeploymentLive, :index
   end

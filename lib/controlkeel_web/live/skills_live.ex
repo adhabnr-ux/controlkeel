@@ -15,7 +15,6 @@ defmodule ControlKeelWeb.SkillsLive do
      |> assign(:selected, nil)
      |> assign(:last_result, nil)
      |> assign(:agent_integrations, Skills.agent_integrations())
-     |> assign(:install_channels, Skills.install_channels())
      |> assign(:target_options, target_options())
      |> assign(:scope_options, [{"Export", "export"}, {"User", "user"}, {"Project", "project"}])
      |> assign_analysis(project_root)
@@ -156,33 +155,6 @@ defmodule ControlKeelWeb.SkillsLive do
           <div class="ck-card ck-stat-card">
             <p class="ck-mini-label">Project trust</p>
             <strong>{if @trusted_project?, do: "trusted", else: "gated"}</strong>
-          </div>
-        </div>
-
-        <div class="ck-card" style="margin: 1rem 0;">
-          <p class="ck-mini-label">Install ControlKeel</p>
-          <div class="ck-finding-list">
-            <%= for channel <- @install_channels do %>
-              <article class="ck-finding-item" id={"install-channel-#{channel.id}"}>
-                <div class="ck-finding-head">
-                  <h3>{channel.label}</h3>
-                  <span class="ck-pill ck-pill-neutral">{Enum.join(channel.platforms, ", ")}</span>
-                </div>
-                <p class="ck-note">{channel.description}</p>
-                <div class="flex items-start gap-2" style="margin-top: 0.5rem;">
-                  <code>{channel.command}</code>
-                  <button
-                    type="button"
-                    class="ck-link"
-                    id={"copy-install-#{channel.id}"}
-                    phx-click="copy_command"
-                    phx-value-command={channel.command}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </article>
-            <% end %>
           </div>
         </div>
 
