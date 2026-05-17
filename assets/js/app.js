@@ -47,7 +47,7 @@ const setSidebarActiveLink = () => {
       score = pathname === "/" ? 2 : 0
     } else if (pathname === url) {
       score = 100 + url.length
-    } else if (pathname.startsWith(url + "/") || pathname.startsWith(url)) {
+    } else if (pathname === url || pathname.startsWith(url + "/")) {
       score = 10 + url.length
     }
 
