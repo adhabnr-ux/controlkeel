@@ -47,15 +47,17 @@ defmodule ControlKeelWeb.Layouts do
           </span>
         </a>
 
-        <nav class="mt-8 flex flex-1 flex-col gap-1 text-sm">
+        <nav data-sidebar class="mt-8 flex flex-1 flex-col gap-1 text-sm">
           <a
             href={~p"/"}
+            data-sidebar-link
             class="group flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5 font-medium text-white shadow-sm ring-1 ring-white/10 transition hover:bg-white/15"
           >
             <.icon name="hero-squares-2x2" class="size-4 text-lime-300" /> Dashboard
           </a>
           <a
             href={~p"/start"}
+            data-sidebar-link
             class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
           >
             <.icon name="hero-rocket-launch" class="size-4 text-zinc-500 group-hover:text-lime-300" />
@@ -63,6 +65,7 @@ defmodule ControlKeelWeb.Layouts do
           </a>
           <a
             href={~p"/proofs"}
+            data-sidebar-link
             class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
           >
             <.icon name="hero-shield-check" class="size-4 text-zinc-500 group-hover:text-lime-300" />
@@ -70,6 +73,7 @@ defmodule ControlKeelWeb.Layouts do
           </a>
           <a
             href={~p"/benchmarks"}
+            data-sidebar-link
             class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
           >
             <.icon
@@ -79,6 +83,7 @@ defmodule ControlKeelWeb.Layouts do
           </a>
           <a
             href={~p"/ship"}
+            data-sidebar-link
             class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
           >
             <.icon name="hero-paper-airplane" class="size-4 text-zinc-500 group-hover:text-lime-300" />
@@ -86,6 +91,7 @@ defmodule ControlKeelWeb.Layouts do
           </a>
           <a
             href={~p"/findings"}
+            data-sidebar-link
             class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
           >
             <.icon
@@ -95,6 +101,7 @@ defmodule ControlKeelWeb.Layouts do
           </a>
           <a
             href={~p"/observability"}
+            data-sidebar-link
             class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
           >
             <.icon name="hero-signal" class="size-4 text-zinc-500 group-hover:text-lime-300" />

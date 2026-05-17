@@ -106,18 +106,78 @@
           </span>
         </div>
         <p class="mt-4 text-3xl font-semibold text-white">{format_number.(avg_findings)}</p>
-        <div class="mt-5 flex items-end gap-1">
-          <span class="h-5 flex-1 rounded-t bg-amber-200/30"></span>
-          <span class="h-8 flex-1 rounded-t bg-amber-200/50"></span>
-          <span class="h-12 flex-1 rounded-t bg-amber-200/80"></span>
-          <span class="h-7 flex-1 rounded-t bg-amber-200/40"></span>
-          <span class="h-10 flex-1 rounded-t bg-amber-200/60"></span>
-        </div>
+
         <p class="mt-3 text-xs text-zinc-500">Average findings per recent mission</p>
       </article>
     </div>
 
-    <div class="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+    <aside class="grid gap-6 grid-cols-2 w-full">
+      <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+              Funnel
+            </p>
+            <h2 class="mt-1 text-xl font-semibold text-white">Delivery Flow</h2>
+          </div>
+          <span class="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-400">
+            {@ship_summary.recent_session_count} sessions
+          </span>
+        </div>
+        <div class="mt-5 space-y-4">
+          <%= for step <- @ship_summary.steps do %>
+            <div>
+              <div class="flex items-center justify-between gap-3 text-sm">
+                <span class="capitalize text-zinc-300">
+                  {String.replace(step.step, "_", " ")}
+                </span>
+                <span class="font-semibold text-white">{step.count}</span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  class="h-full rounded-full bg-lime-300"
+                  style={"width: #{min(step.conversion_percent || 0, 100)}%"}
+                />
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </section>
+
+      <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+              Telemetry
+            </p>
+            <h2 class="mt-1 text-xl font-semibold text-white">Signal Preview</h2>
+          </div>
+          <a
+            href={~p"/benchmarks"}
+            class="text-sm font-medium text-zinc-400 hover:text-lime-300"
+          >
+            Benchmarks
+          </a>
+        </div>
+
+        <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div class="rounded-2xl bg-white/[0.04] p-3">
+            <dt class="text-zinc-500">Avg overhead</dt>
+            <dd class="mt-1 font-semibold text-white">{format_percent.(overhead)}</dd>
+          </div>
+          <div class="rounded-2xl bg-white/[0.04] p-3">
+            <dt class="text-zinc-500">First finding</dt>
+            <dd class="mt-1 font-semibold text-white">
+              {if @ship_summary.average_time_to_first_finding_seconds,
+                do: "#{format_number.(@ship_summary.average_time_to_first_finding_seconds)}s",
+                else: "Not recorded"}
+            </dd>
+          </div>
+        </dl>
+      </section>
+    </aside>
+
+    <div class="grid gap-6 w-full ">
       <section class="rounded-3xl border border-white/10 bg-zinc-900/70 shadow-2xl shadow-black/20 backdrop-blur">
         <div class="flex flex-col gap-3 border-b border-white/10 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -211,85 +271,6 @@
           </table>
         </div>
       </section>
-
-      <aside class="grid gap-6">
-        <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
-                Funnel
-              </p>
-              <h2 class="mt-1 text-xl font-semibold text-white">Delivery Flow</h2>
-            </div>
-            <span class="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-400">
-              {@ship_summary.recent_session_count} sessions
-            </span>
-          </div>
-          <div class="mt-5 space-y-4">
-            <%= for step <- @ship_summary.steps do %>
-              <div>
-                <div class="flex items-center justify-between gap-3 text-sm">
-                  <span class="capitalize text-zinc-300">
-                    {String.replace(step.step, "_", " ")}
-                  </span>
-                  <span class="font-semibold text-white">{step.count}</span>
-                </div>
-                <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    class="h-full rounded-full bg-lime-300"
-                    style={"width: #{min(step.conversion_percent || 0, 100)}%"}
-                  />
-                </div>
-              </div>
-            <% end %>
-          </div>
-        </section>
-
-        <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
-                Telemetry
-              </p>
-              <h2 class="mt-1 text-xl font-semibold text-white">Signal Preview</h2>
-            </div>
-            <a
-              href={~p"/benchmarks"}
-              class="text-sm font-medium text-zinc-400 hover:text-lime-300"
-            >
-              Benchmarks
-            </a>
-          </div>
-          <div class="mt-5 grid h-48 grid-cols-12 items-end gap-2 rounded-2xl border border-white/10 bg-black/20 p-4">
-            <span class="col-span-1 h-[28%] rounded-t bg-lime-300/30"></span>
-            <span class="col-span-1 h-[44%] rounded-t bg-lime-300/40"></span>
-            <span class="col-span-1 h-[36%] rounded-t bg-lime-300/35"></span>
-            <span class="col-span-1 h-[62%] rounded-t bg-lime-300/55"></span>
-            <span class="col-span-1 h-[50%] rounded-t bg-lime-300/45"></span>
-            <span class="col-span-1 h-[76%] rounded-t bg-lime-300/70"></span>
-            <span class="col-span-1 h-[58%] rounded-t bg-lime-300/50"></span>
-            <span class="col-span-1 h-[82%] rounded-t bg-lime-300/80"></span>
-            <span class="col-span-1 h-[66%] rounded-t bg-lime-300/60"></span>
-            <span class="col-span-1 h-[90%] rounded-t bg-lime-300"></span>
-            <span class="col-span-1 h-[72%] rounded-t bg-lime-300/70"></span>
-            <span class="col-span-1 h-[86%] rounded-t bg-lime-300/90"></span>
-          </div>
-          <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div class="rounded-2xl bg-white/[0.04] p-3">
-              <dt class="text-zinc-500">Avg overhead</dt>
-              <dd class="mt-1 font-semibold text-white">{format_percent.(overhead)}</dd>
-            </div>
-            <div class="rounded-2xl bg-white/[0.04] p-3">
-              <dt class="text-zinc-500">First finding</dt>
-              <dd class="mt-1 font-semibold text-white">
-                {if @ship_summary.average_time_to_first_finding_seconds,
-                  do: "#{format_number.(@ship_summary.average_time_to_first_finding_seconds)}s",
-                  else: "Not recorded"}
-              </dd>
-            </div>
-          </dl>
-        </section>
-      </aside>
     </div>
   </section>
 </Layouts.app>
