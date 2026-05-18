@@ -1009,14 +1009,14 @@ First public release.
 - SQL-based implementation (no pgvector required) using SQLite GROUP BY + ORDER BY
 
 **CLI** (11 commands)
-- `init`, `attach`, `status`, `findings`, `approve`, `watch`, `mcp`, `demo`, `version`, `help`
+- `init`, `attach`, `status`, `findings`, `approve`, `watch`, `mcp`, `version`, `help`
 - `attach claude-code` — registers MCP server with Claude Code
 - `attach cursor` — writes to `~/.config/Cursor/User/globalStorage/cursor.mcp.json`
 - `attach windsurf` — writes to `~/.codeium/windsurf/mcp_config.json`
 - Binary packaging via Burrito — no Erlang required on target machine
 
 **Developer experience**
-- `mix ck.demo` — benchmark: 10 real-world vibe coding failure scenarios (hardcoded keys, SQL injection, client-side auth bypass, unencrypted PHI, eval() RCE, open redirect, Supabase public bucket, PII to Segment, DEBUG=True in prod, pickle.loads deserialization RCE)
+- `mix ck.smoke` — benchmark smoke check for real-world governance failure scenarios (hardcoded keys, SQL injection, client-side auth bypass, unencrypted PHI, eval() RCE, open redirect, Supabase public bucket, PII to Segment, DEBUG=True in prod, pickle.loads deserialization RCE)
 - `mix ck.watch` / `controlkeel watch` — live stream of findings and budget in the terminal
 - 159 tests, 0 failures
 

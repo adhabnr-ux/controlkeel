@@ -145,7 +145,7 @@ For hosts with a stronger native capability container, CK now prefers that too i
 
 This keeps the product aligned with CK’s intent: agents should be able to invoke ControlKeel directly during autonomous work, rather than depending on the human operator to manually drive review state transitions.
 
-Experience profile examples for first-class hosts:
+Experience profile cases for first-class hosts:
 
 | Host | Cost | Performance | Token pressure | Time | UX |
 | ---- | ---- | ----------- | -------------- | ---- | -- |

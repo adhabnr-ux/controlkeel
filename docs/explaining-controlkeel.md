@@ -49,7 +49,7 @@ Without a layer like ControlKeel, the usual pattern is:
 3. humans hope the behavior was safe and correct
 4. only after the fact do people try to reconstruct what happened
 
-That is fine for toy work. It gets shaky fast for real repos, regulated work, shared teams, and expensive or high-risk changes.
+That is fine for throwaway work. It gets shaky fast for real repos, regulated work, shared teams, and expensive or high-risk changes.
 
 ControlKeel exists because **agent capability is not the same thing as delivery safety**.
 
@@ -57,7 +57,7 @@ ControlKeel exists because **agent capability is not the same thing as delivery 
 
 Industry practitioners have identified a specific pain point that makes working with AI agents miserable: **having to re-explain domain knowledge in every new session**.
 
-Consider a concrete example: suppose you have a rule that "using BigInt in this repo is bad for complex reasons." The explanation might be 1,000 tokens of technical detail about serialization, performance characteristics, or compatibility issues. Now multiply this by hundreds of similar domain-specific rules, and you have 500,000+ tokens of mandatory domain knowledge.
+Consider a concrete case: suppose you have a rule that "using BigInt in this repo is bad for complex reasons." The explanation might be 1,000 tokens of technical detail about serialization, performance characteristics, or compatibility issues. Now multiply this by hundreds of similar domain-specific rules, and you have 500,000+ tokens of mandatory domain knowledge.
 
 You face two options:
 
@@ -132,7 +132,7 @@ ControlKeel is not:
 - another IDE
 - a prompt marketplace
 - a generic “AI assistant” shell wrapper
-- a fake universal integration that claims to deeply support every host
+- an unsupported universal integration that claims to deeply support every host
 - only a code scanner
 - only a code review bot
 

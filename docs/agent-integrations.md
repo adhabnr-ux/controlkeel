@@ -21,7 +21,7 @@ ControlKeel supports agent ecosystems through a few distinct mechanisms:
 
 That mechanism split is intentionally simpler than the full catalog, but it should always match the canonical [support-matrix.md](support-matrix.md).
 
-One useful example is `jcode`: CK does not currently ship a native `controlkeel attach jcode` path, but jcode does load `AGENTS.md` and supports project-local `.jcode/mcp.json` plus optional `.jcode/prompt-overlay.md`. So CK treats jcode as a research/compatibility row rather than pretending it is already a first-class host adapter.
+One useful integration case is `jcode`: CK does not currently ship a native `controlkeel attach jcode` path, but jcode does load `AGENTS.md` and supports project-local `.jcode/mcp.json` plus optional `.jcode/prompt-overlay.md`. So CK treats jcode as a research/compatibility row rather than pretending it is already a first-class host adapter.
 
 Devin now splits into two truthful CK stories:
 
@@ -136,7 +136,7 @@ For the exhaustive fields behind those rows, including phase model, runtime tran
 
 ControlKeel also ships stronger repo-native surfaces for hosts whose official UX is based on rules, commands, hooks, workflows, or extension manifests rather than a package marketplace.
 
-Current examples:
+Current supported cases:
 
 - Windsurf: hooks, workflows, commands, and MCP config
 - Continue: prompts, command prompts, headless guidance, and MCP server config
@@ -230,7 +230,7 @@ For UI flows, unit tests alone often miss regressions. The most reliable pattern
 
 - add or extend E2E flows (Playwright-style) where possible
 - when using external computer-use runtimes, treat their recordings/screenshots as proof artifacts
-- import that evidence via CK proof and regression surfaces (for example `ck_regression_result`) so "it worked" stays auditable
+- import that evidence via CK proof and regression surfaces (such as `ck_regression_result`) so "it worked" stays auditable
 
 Pi subagent extensions such as `pi-subagents` fit a similar companion pattern inside the Pi host rather than a new CK dependency. The useful parts for CK are the delegation contracts they make visible: narrow child roles, chain or parallel runs, foreground/background status, recursion guards, fresh or forked context, clarification channels, and optional worktree isolation. Use `controlkeel attach pi` or the published `@aryaminus/controlkeel-pi-extension` so Pi parent and child sessions can reach the repo-local CK MCP, skills, and commands as appropriate; benchmark those runs with explicit delegation-surface evidence instead of a vague multi-agent label.
 
@@ -319,7 +319,7 @@ That means CK's skill model is already closer to a progressive-disclosure packag
 
 In practice, that gives CK the same core advantage that people want from modern skill systems: agents do not need to front-load every workflow into the initial context window just to keep the option available.
 
-The same honesty applies to browser automation. CK can coexist with external browser runtimes and browser-specific MCP servers, but it should describe those as companions rather than native attach targets. For example, a third-party browser such as [Lightpanda](https://lightpanda.io/) can provide lightweight headless navigation through its own stdio MCP server or CDP-compatible surface, while CK continues to own the governance, findings, proof, and review loop around that work.
+The same honesty applies to browser automation. CK can coexist with external browser runtimes and browser-specific MCP servers, but it should describe those as companions rather than native attach targets. A third-party browser such as [Lightpanda](https://lightpanda.io/) can provide lightweight headless navigation through its own stdio MCP server or CDP-compatible surface, while CK continues to own the governance, findings, proof, and review loop around that work.
 
 In practice, `ck_context` is the main continuity surface across those transports. It returns current mission state plus a bounded workspace snapshot, a deterministic workspace cache key, recent CK-visible transcript events, transcript summaries, and resumable task context for the active session.
 
@@ -401,11 +401,11 @@ The `intertwine/dspy-agent-skills` repository is a useful external pattern for e
 - keep startup metadata small and load deeper references only after activation
 - make activation text specific enough to trigger reliably, but short enough for hosts to load cheaply
 - put source-grounded procedural claims in `SKILL.md` or linked references, not vague marketing copy
-- ship offline or dry-run examples so the package can be smoke-tested without secrets or paid provider calls
-- add regression guards for known teaching-material mistakes, especially stale APIs and examples that would make an agent write broken code
+- ship offline or dry-run fixtures so the package can be smoke-tested without secrets or paid provider calls
+- add regression guards for known teaching-material mistakes, especially stale APIs and fixtures that would make an agent write broken code
 - keep versioning and marketplace metadata in plugin manifests rather than legacy skill-frontmatter fields
 
-For CK, third-party skill material should enter as evidence and patterns first. If the pack changes behavior, treat it like any other governed extension: run parser validation, inspect references/examples, record provenance, and require the normal review gate before it can influence high-impact actions.
+For CK, third-party skill material should enter as evidence and patterns first. If the pack changes behavior, treat it like any other governed extension: run parser validation, inspect references/fixtures, record provenance, and require the normal review gate before it can influence high-impact actions.
 
 ### Persistent role files and daemon-style policy
 

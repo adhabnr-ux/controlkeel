@@ -186,7 +186,7 @@ OpenCode is the primary host used in the benchmark evidence above, and CK suppor
 3. OpenCode can call `ck_context` / `ck_context_pack` to reacquire bounded session state, current task, proof summary, memory hits, resume packet, budget summary, review gate state, and workspace context without relying on chat history.
 4. OpenCode can call `ck_validate`, `ck_review_submit`, `ck_memory_record`, and `ck_budget` so validation, approvals, durable memory, and spend evidence stay in CK rather than in one host runtime.
 
-The same governed loop is available to OpenCode, Codex, Claude Code, Copilot, and other supported hosts, but the README examples lead with OpenCode because that is the best current host-backed evidence path in this repository.
+The same governed loop is available to OpenCode, Codex, Claude Code, Copilot, and other supported hosts, but the README guidance leads with OpenCode because that is the best current host-backed evidence path in this repository.
 
 ---
 
@@ -243,7 +243,7 @@ ControlKeel supports hosts through a few real mechanisms:
 - **Native attach**: `controlkeel attach <host>` installs MCP config plus the strongest repo-native companion CK can truthfully ship.
 - **Direct host install**: some hosts also support a package, plugin, VSIX, or extension-link path.
 - **Hosted protocol access**: remote clients can use hosted MCP and minimal A2A.
-- **Runtime export**: headless systems such as Devin and Open SWE get runtime bundles instead of fake attach commands.
+- **Runtime export**: headless systems such as Devin and Open SWE get runtime bundles instead of unsupported native attach commands.
 - **Provider-only and fallback governance**: unsupported generators can still be governed through bootstrap, findings, proofs, and validation flows.
 
 Common attach targets today:

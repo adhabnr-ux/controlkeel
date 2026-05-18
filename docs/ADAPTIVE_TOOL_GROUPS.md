@@ -71,7 +71,7 @@ controlkeel tool groups suggest
 
 This analyzes your usage patterns and suggests optimal tool groups for your project.
 
-Output example:
+Output case:
 ```
 Tool Groups Suggestion:
   Suggested groups: ["core", "governance", "filesystem", "git"]

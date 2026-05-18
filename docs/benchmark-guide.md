@@ -6,13 +6,7 @@ This guide explains how to use ControlKeel's benchmark engine to compare governa
 
 ### Step 1: Configure subjects
 
-Copy the multi-host subject template into your governed project:
-
-```bash
-cp docs/examples/multi-host-benchmark-subjects.json controlkeel/benchmark_subjects.json
-```
-
-Or use the existing project config that already includes Copilot and OpenCode:
+Use the checked-in project config that includes Copilot and OpenCode, or create `controlkeel/benchmark_subjects.json` with the host subjects you want to compare:
 
 ```bash
 # Already done if you're in the ControlKeel repo:
@@ -192,7 +186,7 @@ If you benchmark overnight or AFK behavior, separate two different questions:
 - **Closed-loop**: did the governed run finish a bounded, reviewable slice?
 - **Open-loop**: did the governed run make acceptable progress on a named metric or search space?
 
-Do not score those the same way. Closed-loop runs care about completion, reviewability, and regression safety. Open-loop runs care about progress quality, not fake completion theater.
+Do not score those the same way. Closed-loop runs care about completion, reviewability, and regression safety. Open-loop runs care about progress quality, not unsupported completion claims.
 
 When importing or exporting those runs, use metadata that makes the loop shape explicit:
 
@@ -245,7 +239,7 @@ A minimal comparison should answer:
 - Did the trajectory shape change: more tools, repeated failures, loops, bypasses, or different subagent paths?
 - Did wins regress: fewer successful completions or fewer desired user outcomes?
 
-Small samples can reveal obvious regressions, but do not overclaim precision. If the sample is directional, label it as directional. If the result will gate a broad rollout, require stronger coverage or production-monitoring follow-up.
+Small runs can reveal obvious regressions, but do not overclaim precision. If the run is directional, label it as directional. If the result will gate a broad rollout, require stronger coverage or production-monitoring follow-up.
 
 ### Triage-agent boundaries
 
@@ -254,7 +248,7 @@ A triage agent can inspect signal spikes, summarize representative traces, and p
 - it can open a finding, draft an eval candidate, or prepare a review packet
 - it should cite signal windows, cohorts, versions, and trace identifiers
 - it must not directly change production prompts, tools, policies, or feature flags
-- it should record uncertainty when clusters are weak or samples are small
+- it should record uncertainty when clusters are weak or runs are small
 
 ### Trace-linked diagnosis workflow
 
@@ -298,7 +292,7 @@ If a benchmark uses LLM-as-judge scoring, record it separately from deterministi
 
 - a narrow dimension being judged
 - a rubric version
-- examples or anchors for each allowed label
+- anchors for each allowed label
 - constrained judge output labels
 - meta-evaluation against human or golden labels
 - notes on sample size and cost

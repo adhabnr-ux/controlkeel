@@ -481,7 +481,7 @@ Expected:
 
 - catalog lists real targets
 - diagnostics do not contradict generated output
-- diagnostics catch weak trigger headers, missing negative boundaries, and missing workflow / output / examples sections for custom skills
+- diagnostics catch weak trigger headers, missing negative boundaries, and missing workflow / output / case sections for custom skills
 - diagnostics warn when a custom skill becomes a large monolith without routing detailed material through `references/` or companion files
 - invalid or unsupported states are explained clearly
 
@@ -620,7 +620,7 @@ controlkeel service-account create --workspace-id 1 --name "qa-mcp" --scopes "mc
 controlkeel service-account list --workspace-id 1
 ```
 
-This is the minimal hosted-MCP example used for validation. The broader hosted scope map is documented in [support-matrix.md](support-matrix.md#hosted-mcp).
+This is the minimal hosted-MCP workflow used for validation. The broader hosted scope map is documented in [support-matrix.md](support-matrix.md#hosted-mcp).
 
 Expected:
 
@@ -738,7 +738,7 @@ Expected:
 
 - runtime bundles are created
 - bundle docs explain how the runtime should use ControlKeel
-- runtime manifests or bootstrap examples match the runtime shape they claim to support
+- runtime manifests or bootstrap references match the runtime shape they claim to support
 
 ### 14.4 Governed execution
 

@@ -39,7 +39,7 @@ This is especially important when trying new prompting schemes, tool-call format
 
 ## Production signals as eval seeds
 
-Production monitoring should feed benchmark design when signals show recurring or high-impact failure modes. A signal is not automatically a benchmark; first cluster the examples and identify the failure dimension.
+Production monitoring should feed benchmark design when signals show recurring or high-impact failure modes. A signal is not automatically a benchmark; first cluster the traces and identify the failure dimension.
 
 Good candidates include:
 
@@ -54,7 +54,7 @@ Good candidates include:
 - repeated self-correction or bypass patterns
 - positive “win” patterns worth preserving
 
-When converting a production signal into an eval, keep both the aggregate metric and representative trace examples. The benchmark should explain what changed, who was affected, and which version or feature flag was active.
+When converting a production signal into an eval, keep both the aggregate metric and representative traces. The benchmark should explain what changed, who was affected, and which version or feature flag was active.
 
 Recommended metadata:
 
@@ -132,7 +132,7 @@ Recommended scenario design:
 - Start with a real trace, span, finding, review comment, or debrief that shows the behavior.
 - Name the failure dimension before writing the test.
 - Prefer deterministic checks for policy, schema, exact-match, capability, and regression assertions.
-- Use judge-based scoring only for narrow semantic dimensions with rubrics, examples, constrained labels, and meta-evaluation against human/golden labels.
+- Use judge-based scoring only for narrow semantic dimensions with rubrics, anchors, constrained labels, and meta-evaluation against human/golden labels.
 - Keep capability evals separate from regression evals: a capability eval is a hill to climb; once CK or a host reliably passes it, promote it into a regression suite.
 - Compare experiments with one changed variable at a time: prompt, model, policy artifact, router rule, retrieval strategy, or harness setting.
 
@@ -166,10 +166,10 @@ The `twaldin/hone` project adds a useful interoperability pattern for CK benchma
 Recommended practice when importing external optimizer runs:
 
 - keep one stable scalar score channel (for ranking) and one structured trace channel (for diagnosis)
-- capture scorer contract details in metadata (for example: `score_source`, `trace_format`, `trace_count`)
-- record optimizer context in metadata (for example: `optimizer_framework`, `mutator`, `target_scope`, `scheduler_strategy`, `observer_mode`)
-- if observer/context-updating loops are used, require a rollback guard in promotion notes (for example, revert observer updates when rolling quality drops)
-- promote only when held-out evidence improves across multiple samples and safety/regression expectations still pass
+- capture scorer contract details in metadata (such as: `score_source`, `trace_format`, `trace_count`)
+- record optimizer context in metadata (such as: `optimizer_framework`, `mutator`, `target_scope`, `scheduler_strategy`, `observer_mode`)
+- if observer/context-updating loops are used, require a rollback guard in promotion notes (such as reverting observer updates when rolling quality drops)
+- promote only when held-out evidence improves across multiple runs and safety/regression expectations still pass
 
 This is aligned with CK’s evidence-first posture: external optimizers can search freely, but CK remains the promotion gate and audit trail.
 
@@ -185,7 +185,7 @@ This keeps the benchmark reproducible without requiring a deep native integratio
 
 - `controlkeel_validate` — direct ControlKeel validation path
 - `controlkeel_proxy` — ControlKeel governed proxy path
-- `manual_import` — placeholder run first, then import captured external output
+- `manual_import` — awaiting-import run first, then import captured external output
 - `shell` — scriptable subject that writes stdout or files for rescoring
 
 ## Multimodal and large artifacts
@@ -229,10 +229,10 @@ Each scenario also carries structured metadata that acts like behavior tags, inc
 
 For search-sensitive agent workflows, add retrieval-specific metadata instead of relying only on aggregate wall-clock or tool-call counts:
 
-- `search_task_type`: for example `workspace_orientation`, `symbol_lookup`, `call_site_discovery`, or `implementation_entrypoint`
-- `retrieval_strategy`: for example `filesystem_find`, `filesystem_grep`, `hybrid_memory`, `ranked_code_search`, or `late_interaction_rerank`
-- `orientation_metric`: for example `target_file_rank`, `hit_at_1`, `hit_at_3`, `files_read_before_target`, or `searches_before_first_read`
-- `result_presentation`: for example `raw_matches`, `ranked_paths`, `grouped_files`, or `trimmed_context`
+- `search_task_type`: such as `workspace_orientation`, `symbol_lookup`, `call_site_discovery`, or `implementation_entrypoint`
+- `retrieval_strategy`: such as `filesystem_find`, `filesystem_grep`, `hybrid_memory`, `ranked_code_search`, or `late_interaction_rerank`
+- `orientation_metric`: such as `target_file_rank`, `hit_at_1`, `hit_at_3`, `files_read_before_target`, or `searches_before_first_read`
+- `result_presentation`: such as `raw_matches`, `ranked_paths`, `grouped_files`, or `trimmed_context`
 
 The goal is to measure whether a retrieval surface helps the agent choose the right file sooner. Faster search calls are useful, but promotion should depend on retrieval quality and held-out end-to-end outcomes, not latency alone.
 
@@ -257,7 +257,7 @@ Not every useful benchmark case is about producing the right positive answer. So
 
 Two especially useful patterns are:
 
-- **Premise-refusal or pushback cases**: prompts where the right behavior is to challenge the framing, reject the invalid premise, or ask for clarification instead of confidently producing a fake analysis.
+- **Premise-refusal or pushback cases**: prompts where the right behavior is to challenge the framing, reject the invalid premise, or ask for clarification instead of confidently producing an unsupported analysis.
 - **Dissatisfaction or both-bad cases**: expert prompts where two candidate outputs can both be unsatisfactory even if neither contains a classic policy violation.
 
 This matters because many benchmark curves overstate progress on narrow, well-specified tasks while missing failures such as:
@@ -362,7 +362,7 @@ These fields help distinguish "done by morning" runs from "better by morning" ru
 
 This gives CK a way to compare experiments such as terminal-native tool syntax, recursive language-model loops, or typed functional runtimes without pretending those are all first-class shipped CK targets. The rule is simple: benchmark the concrete runtime contract that actually ran, record it honestly, and compare it on the same held-out suite.
 
-Protocol-adapter experiments are a good example of why this metadata matters. Sometimes the runtime loop is fine and the weak point is the model-facing interface: provider-native JSON tools are brittle, stop reasons are misleading, or smaller models fail to emit valid syntax. In those cases, the experiment is not "new runtime versus old runtime." It is "same runtime, different adapter contract." CK should record that distinction explicitly.
+Protocol-adapter experiments are a clear case of why this metadata matters. Sometimes the runtime loop is fine and the weak point is the model-facing interface: provider-native JSON tools are brittle, stop reasons are misleading, or smaller models fail to emit valid syntax. In those cases, the experiment is not "new runtime versus old runtime." It is "same runtime, different adapter contract." CK should record that distinction explicitly.
 
 ### Skill activation and detection metadata
 
@@ -412,7 +412,7 @@ When using benchmark scores as a release gate for agent harness changes (model s
 
 If the abort threshold triggers: flip traffic back to stable, open a finding with the regression cohort attached, and treat it as a new failure cluster entering the improvement loop. Do not re-promote until the root cause is identified and the held-out suite passes.
 
-For minority or experimental model integrations (non-dominant provider), sample at 100% rather than applying the standard traffic-proportional rate — minority models never reach statistical significance fast enough to gate a rollout decision at low sample rates.
+For minority or experimental model integrations (non-dominant provider), route at 100% rather than applying the standard traffic-proportional rate — minority models never reach statistical significance fast enough to gate a rollout decision at low routing rates.
 
 Record rollout gate decisions in benchmark run metadata using:
 
@@ -441,7 +441,7 @@ On `/benchmarks`, use **Quick presets** (OpenCode comparison, ControlKeel valida
 
 ## OpenCode and host-governance procedures
 
-Procedural setup, import payload examples, host-mode commands, and the surface evaluator live in [benchmark-guide.md](benchmark-guide.md). Current published results and interpretation live in [benchmark-evidence.md](benchmark-evidence.md). Keep this document focused on benchmark concepts, metadata discipline, and operator guidance.
+Procedural setup, import payload references, host-mode commands, and the surface evaluator live in [benchmark-guide.md](benchmark-guide.md). Current published results and interpretation live in [benchmark-evidence.md](benchmark-evidence.md). Keep this document focused on benchmark concepts, metadata discipline, and operator guidance.
 
 A full evaluation pass should include both layers:
 
@@ -470,7 +470,7 @@ For GEPA-style text optimization specifically:
 - enforce zero overlap between optimization/training cases and held-out promotion cases
 - run multi-sample candidate evaluations (not single-run score snapshots) before promotion
 - use CK exports and run metadata as the audit trail for what changed and why it was promoted
-- include optimizer-run metadata (for example scheduler/observer/target-scope settings) so later comparisons stay apples-to-apples
+- include optimizer-run metadata (such as scheduler/observer/target-scope settings) so later comparisons stay apples-to-apples
 
 For experimental recursive or typed-runtime systems, the same rule applies: benchmark the concrete runtime behavior that actually ran. Do not promote based on architectural taste alone. If the experiment matters, record it honestly in run metadata and compare it on the same held-out suite.
 

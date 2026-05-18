@@ -110,7 +110,7 @@ The harness is built from layered extension points, each serving distinct functi
 - Updates distributed through managed marketplaces
 - Enables organizational consistency without manual configuration
 
-**Real-world example:** A retail organization built a skill connecting Claude to their internal analytics platform for business analysts, then distributed it as a plugin before broad rollout.
+**Real-world case:** A retail organization built a skill connecting Claude to their internal analytics platform for business analysts, then distributed it as a plugin before broad rollout.
 
 #### 5. Language Server Protocol (LSP) integrations (symbol-level precision)
 - **What:** Real-time code intelligence via language-specific servers

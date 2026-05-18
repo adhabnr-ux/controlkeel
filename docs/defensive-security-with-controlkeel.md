@@ -154,4 +154,4 @@ CK is not claiming:
 - full black-box binary exploitation as a first-class attach flow
 - public access to a cyber verification marketplace
 
-Binary and endpoint evidence can be represented today through imported or shell-subject artifacts and isolated runtime paths, but not through fake broad native capability claims.
+Binary and endpoint evidence can be represented today through imported or shell-subject artifacts and isolated runtime paths, but not through unsupported broad native capability claims.

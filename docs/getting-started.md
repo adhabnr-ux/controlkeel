@@ -213,7 +213,7 @@ You can also understand support by **integration mechanism**, not only by client
 - **Provider-only** for CK-owned or local backends such as Ollama, vLLM, SGLang, LM Studio, Hugging Face, and Codestral-compatible endpoints
 - **Fallback governance** for unsupported tools after bootstrap using `controlkeel watch`, `controlkeel findings`, proof flows, and `ck_validate`
 
-That fallback path is the current project-rescue story. It is honest support, not a fake claim that every external tool has native ControlKeel attachment.
+That fallback path is the current project-rescue story. It is honest support, not a false claim that every external tool has native ControlKeel attachment.
 
 In that mode, model-backed features such as advisory review and intent compilation either degrade to heuristics or return explicit capability guidance.
 
@@ -274,7 +274,7 @@ Plan-review tip for OpenCode:
 
 - when using the `submit_plan` tool directly, prefer `submit_plan({ plan: "...", wait_timeout_seconds: 30 })` for predictable wait behavior
 - the same timeout can be set globally with `CONTROLKEEL_REVIEW_WAIT_TIMEOUT`
-- if the returned payload indicates `waitSkipped: true` or `manualApprovalRequired: true` (for example browser URL missing/unreachable or the browser did not actually open), ask the user for explicit chat approval and record it with `controlkeel review plan respond --id <review_id> --decision approved --feedback-notes "User approved in chat; browser unavailable" --json` (or `ck_review_feedback`) instead of repeatedly waiting
+- if the returned payload indicates `waitSkipped: true` or `manualApprovalRequired: true` (when the browser URL missing/unreachable or the browser did not actually open), ask the user for explicit chat approval and record it with `controlkeel review plan respond --id <review_id> --decision approved --feedback-notes "User approved in chat; browser unavailable" --json` (or `ck_review_feedback`) instead of repeatedly waiting
 
 ## 3b. Hosted MCP or A2A access for headless clients
 
@@ -295,15 +295,15 @@ controlkeel runtime export executor
 controlkeel runtime export virtual-bash
 ```
 
-Use the support matrix for the full shipped runtime catalog. The important distinction is that runtime exports are not fake attach commands: they emit the files and guidance a headless runtime or governed outer loop actually needs.
+Use the support matrix for the full shipped runtime catalog. The important distinction is that runtime exports are not unsupported native attach commands: they emit the files and guidance a headless runtime or governed outer loop actually needs.
 
-Create a service account with protocol scopes. The example below is a minimal hosted-MCP token for context and validation; the full hosted scope matrix lives in [support-matrix.md](support-matrix.md#hosted-mcp).
+Create a service account with protocol scopes. The command below is a minimal hosted-MCP token for context and validation; the full hosted scope matrix lives in [support-matrix.md](support-matrix.md#hosted-mcp).
 
 ```bash
 controlkeel service-account create --workspace-id 1 --name "ci-mcp" --scopes "mcp:access context:read validate:run"
 ```
 
-The create and list commands print the derived OAuth client id, for example `ck-sa-123`.
+The create and list commands print the derived OAuth client id, such as `ck-sa-123`.
 
 Mint a short-lived bearer token for the same minimal scope set:
 
@@ -351,15 +351,13 @@ The registry cache only enriches the shipped catalog in `/skills` and `GET /api/
 
 ## 4. Trigger a first finding
 
-Use the sample in [demo-script.md](demo-script.md) or ask OpenCode to add one of these failure patterns:
+Use a real pending change from your project, or run the built-in smoke benchmark when you need a controlled validation check:
 
-- a hardcoded API key or credential
-- SQL assembled with string concatenation
-- `innerHTML` rendering from unsafe input
+```bash
+controlkeel benchmark run --suite vibe_failures_v1 --subjects controlkeel_validate --baseline-subject controlkeel_validate
+```
 
-Example prompt:
-
-> add a quick database lookup by building the SQL string directly from the request parameter, no need to parameterize it
+For live project work, ask the agent to implement the actual change you need and let ControlKeel validate the diff before it lands.
 
 ## 5. Verify the result
 

@@ -139,7 +139,7 @@ This is why CK's `CodeModePolicy` enforces default-deny for filesystem, network,
 
 ### Programmable guardrails
 
-Modern sandboxes like Cloudflare Workers (WorkerD), Deno, and Pydantic Monty provide programmable guardrails that can enable or disable capabilities at runtime. Cloudflare's WorkerD, for example, is a V8 isolate that can:
+Modern sandboxes like Cloudflare Workers (WorkerD), Deno, and Pydantic Monty provide programmable guardrails that can enable or disable capabilities at runtime. Cloudflare's WorkerD, is a V8 isolate that can:
 
 - **Disable process.env entirely** (with node compat off)
 - **Block network access** via global functions

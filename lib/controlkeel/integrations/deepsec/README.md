@@ -312,7 +312,7 @@ alias ControlKeel.Integrations.Deepsec.CustomConfig
 :ok = CustomConfig.apply_config(config, "/workspace")
 
 # Create sample configuration
-{:ok, path} = CustomConfig.create_sample_config("sample.config.json")
+{:ok, path} = CustomConfig.create_starter_config("starter.config.json")
 ```
 
 ### Using Streaming (Phase 4)

@@ -64,7 +64,7 @@ Fleet-wide observability should aggregate posture without centralizing unnecessa
 
 ### Sample size and cost-aware confidence
 
-Not every eval run needs the same sample size. Use small samples for directional learning and larger samples for release-confidence or external claims.
+Not every eval run needs the same run count. Use small runs for directional learning and larger runs for release-confidence or external claims.
 
 A practical rule of thumb:
 

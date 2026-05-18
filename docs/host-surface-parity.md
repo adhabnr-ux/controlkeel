@@ -187,7 +187,7 @@ Why this matters:
 
 Official surfaces used (as documented by Cursor for IDE-native agent features):
 
-- **Rules** — repo-scoped guidance (for example `.mdc` under `.cursor/rules`)
+- **Rules** — repo-scoped guidance (such as `.mdc` under `.cursor/rules`)
 - **Skills** — Agent Skills under `.cursor/skills`
 - **Commands** — slash/recipe-style command markdown under `.cursor/commands`
 - **Agents** — specialized agent prompt files under `.cursor/agents` (including background-style workflows)

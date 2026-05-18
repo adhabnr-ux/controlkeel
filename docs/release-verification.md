@@ -37,7 +37,7 @@ Guardrails for cost and correctness:
 - CI runs on normal pushes and PRs, and is the inexpensive gate.
 - Release Smoke is the expensive cross-platform packaging gate, and runs for release bump commits (or manual dispatch).
 - Tag-triggered Release must find a successful Release Smoke run for the exact tag SHA.
-- If Release Smoke for that SHA is completed but not successful (for example `skipped`), Release should fail fast.
+- If Release Smoke for that SHA is completed but not successful (such as `skipped`), Release should fail fast.
 
 ## Checklist
 

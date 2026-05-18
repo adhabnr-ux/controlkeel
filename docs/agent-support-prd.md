@@ -25,7 +25,7 @@ ControlKeel should expose a truthful, typed agent support model instead of a fla
   - Used for hosted or asynchronous runtimes and governed outer-loop recipes such as Devin, Open SWE, Executor, and `virtual-bash`.
 - `framework_adapter`
   - Benchmarks, policy training, or runtime harness adapter surface.
-  - Not exposed as a fake local attach command.
+  - Not exposed as a native local attach command.
 - `provider_only`
   - CK-owned provider/model template only.
   - Used for OpenAI-compatible backends and local runtimes.

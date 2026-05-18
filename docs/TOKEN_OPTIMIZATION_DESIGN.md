@@ -112,7 +112,7 @@ ControlKeel.MCP.Protocol.tool_schemas(tool_groups: :all)
 1. ~~**Configuration Integration:** Add config file support for default tool groups~~ ✅ **COMPLETE**
 2. **Dynamic Group Selection:** Integrate with `ck_context` to suggest optimal groups based on task type
 3. **Monitoring:** Track which tool groups are most commonly used
-4. **Documentation:** Update CK README with tool group usage examples
+4. **Documentation:** Update CK README with tool group usage guidance
 5. **Host Coordination:** Document tool groups for host implementations to use selectively
 
 ## Summary

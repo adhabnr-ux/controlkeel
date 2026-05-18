@@ -108,7 +108,7 @@ Install dmux itself with:
 npm -g i dmux
 ```
 
-Then attach CK to the underlying agent runtime that dmux will launch inside its worktrees, for example:
+Then attach CK to the underlying agent runtime that dmux will launch inside its worktrees, such as:
 
 ```bash
 controlkeel attach codex-cli

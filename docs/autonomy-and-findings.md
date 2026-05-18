@@ -43,7 +43,7 @@ Both diagnostics also provide CK-style `diagnostic_findings` payloads. CK does n
 
 ## Provider-backed vs heuristic mode
 
-- **LLM advisory** (extra pattern review on top of FastPath and Semgrep) runs only when a provider is configured. Validate and MCP `ck_validate` responses include an **`advisory`** object describing whether the advisory layer ran or was skipped (for example no API key).
+- **LLM advisory** (extra pattern review on top of FastPath and Semgrep) runs only when a provider is configured. Validate and MCP `ck_validate` responses include an **`advisory`** object describing whether the advisory layer ran or was skipped (such as no API key).
 - **Heuristic mode** still supports governance, MCP tools, proofs, skills, and benchmarks; model-backed advisory and some compilation paths are limited.
 - **Destructive shell tripwires** run even in heuristic mode. Repo-wide cleanup commands such as `git checkout -- .`, `git reset --hard`, `git clean -fd`, and broad `rm -rf` scopes are blocked with checkpoint and rollback guidance so agents cannot treat them as ordinary shell mutations.
 
@@ -72,7 +72,7 @@ A useful distinction is between:
 
 CK is designed to push as much mechanical feedback as possible into automated findings and review guidance, while still surfacing explicit human-gate hints for judgment calls.
 
-Specific judgment call examples from practice:
+Specific judgment call cases from practice:
 - **Database migrations**: Require human review because they depend on locks, data size in production, and rollback safety
 - **Permissioning changes**: Often underdocumented and can have security implications that agents miss
 - **Dependency additions**: Require human judgment about maintainer trust, license compatibility, and long-term maintenance

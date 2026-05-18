@@ -15,7 +15,7 @@ A new module that implements MCP server tool discovery:
 - **`validate_server/2`**: Validates that a server URL is accessible and responds to MCP protocol
 - **Transport support**: 
   - HTTP-based discovery (implemented using Erlang's built-in `:httpc`)
-  - stdio-based discovery (placeholder for future implementation)
+  - HTTP-based discovery only; stdio discovery is rejected with an explicit unsupported-transport error
 - **Auto-detection**: Automatically detects transport type from URL scheme
 
 ### 2. MCP Tool for Discovery
@@ -100,7 +100,7 @@ Uses Erlang's built-in `:httpc` library for HTTP requests:
 
 Automatically detects transport type from URL scheme:
 - `http://` or `https://` → HTTP transport
-- `stdio://` or `/path/to/executable` → stdio transport (placeholder)
+- `stdio://` or `/path/to/executable` → unsupported by discovery; use a configured MCP client for stdio servers
 - Default to HTTP for unknown schemes
 
 ### Error Handling
@@ -162,11 +162,7 @@ This aligns with CK's philosophy: MCP is a protocol that should be easy to integ
 
 ### stdio-Based Discovery
 
-The stdio discovery is currently a placeholder. Future implementation would:
-- Spawn a subprocess for the MCP server
-- Communicate via stdio using MCP protocol
-- Handle process lifecycle and cleanup
-- Support credential passing for authenticated MCP servers
+Stdio discovery is intentionally not part of `ck_mcp_discover` today. Use configured MCP clients for stdio servers so process lifecycle, credentials, and local execution authority remain explicit.
 
 ### Tool Registration
 

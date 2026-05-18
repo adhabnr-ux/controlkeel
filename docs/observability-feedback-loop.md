@@ -167,7 +167,7 @@ Different failures need different evals:
 - Use human review to create or audit golden data, not as the only scalable production gate.
 - Split broad quality questions into narrow dimensions. Avoid one "god evaluator" that tries to score correctness, faithfulness, safety, tone, and completeness at once.
 
-For judge-based evals, require a narrow rubric, examples, constrained output labels, and meta-evaluation against human or golden labels before treating the judge as decision-useful. If the evaluator cannot distinguish the failure mode in historical traces, it should not gate promotion.
+For judge-based evals, require a narrow rubric, anchors, constrained output labels, and meta-evaluation against human or golden labels before treating the judge as decision-useful. If the evaluator cannot distinguish the failure mode in historical traces, it should not gate promotion.
 
 Agent workflows should be evaluated by outcome and safety properties, not by requiring one exact trajectory. Agents may solve a task through unexpected but acceptable paths; CK should care whether the bounded slice was completed, evidence remained reviewable, and governance constraints held.
 
@@ -288,7 +288,7 @@ The intent is to make continual learning **explicit and reviewable** rather than
 
 ### Post-run debriefs as a low-cost signal
 
-A simple, cheap way to find harness and instruction failures is to debrief the agent at the end of a run (for example via a host stop-hook):
+A simple, cheap way to find harness and instruction failures is to debrief the agent at the end of a run (such as via a host stop-hook):
 
 - "What blocked you or confused you in this run?"
 - "What single change to the instructions/tools would have made you more successful?"
@@ -319,7 +319,7 @@ Review agents can catch some issues, but they have fundamental limitations. As M
 
 This means:
 
-- Review agents may suggest patterns that look sophisticated but are actually the same complexity they learned from bad examples
+- Review agents may suggest patterns that look sophisticated but are actually the same complexity they learned from bad patterns
 - They cannot substitute for human judgment on architecture, product fit, or domain-specific constraints
 - They compound the same "local decisions, global mess" problem that generator agents have
 

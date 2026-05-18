@@ -342,7 +342,7 @@ This keeps retrieval as an attributed evidence surface. CK can rank and summariz
 
 CK resolves workspace context from governed state, not only from process-local assumptions.
 
-For example:
+For instance:
 
 - runtime context can attach a `project_root`
 - workspace resolution can look at the governed session binding
@@ -396,7 +396,7 @@ This is where CK catches things like:
 - unsafe trust-boundary crossings
 - broad destructive shell operations
 
-Recent destructive-shell protection is a good example of how CK governs execution rather than only reviewing code after the fact.
+Recent destructive-shell protection is a clear case of how CK governs execution rather than only reviewing code after the fact.
 
 Repo-wide commands such as:
 
@@ -552,11 +552,11 @@ CK does not try to solve this by assuming a bigger base model is always enough. 
 
 Danilo's experience with the PostHog Wizard reinforces this pattern: with context windows being what they are, "you can't beat just shoving a bunch of markdown files into the context and patching the holes." The Wizard uses fresh hot markdown from posthog.com and lets the agent select what it needs based on the framework and language being integrated.
 
-Those reference implementations are especially useful when you want consistency at scale: they constrain improvisation by example without overconstraining the agent's search space.
+Those reference implementations are especially useful when you want consistency at scale: they constrain improvisation by reference without overconstraining the agent's search space.
 
 ### Model airplanes
 
-Danilo calls these thin reference implementations "model airplanes" - projects that have the correct shape of an integration without being full production applications. For example, auth might work for anything (you can put whatever you want in the password field), but the UI is auth-shaped. This makes them:
+Danilo calls these thin reference implementations "model airplanes" - projects that have the correct shape of an integration without being full production applications. For instance, auth might work for anything (you can put whatever you want in the password field), but the UI is auth-shaped. This makes them:
 
 - **More token efficient**: Not a full production app, just the shape
 - **Consistent**: Agents learn the correct pattern once and apply it consistently
@@ -638,7 +638,7 @@ This is particularly powerful for things that humans are unreliable at reviewing
 
 Ryan recommends writing tests about the source code itself, separate from lints, to adapt the codebase to the harness. Since context is limited, you can write a test that limits files to no longer than 350 lines. This is "engineering to be context efficient"—squeezing more juice out of the model capability by adapting the codebase to how the harness works.
 
-Other examples of source code tests:
+Other cases of source code tests:
 - Asserting package privacy and dependency edges between layers
 - Ensuring Zod schemas are deduplicated (single canonical implementation)
 - Verifying use of shared utilities instead of local duplicates
