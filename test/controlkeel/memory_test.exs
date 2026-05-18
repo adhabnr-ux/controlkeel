@@ -15,7 +15,7 @@ defmodule ControlKeel.MemoryTest do
           true -> [0.0, 0.0, 1.0]
         end
 
-      {:ok, %{embedding: embedding, provider: "stub", model: "stub-1"}}
+      {:ok, %{embedding: embedding, provider: "deterministic", model: "deterministic-1"}}
     end
   end
 

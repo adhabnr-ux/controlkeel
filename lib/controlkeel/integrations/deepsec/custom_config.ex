@@ -122,19 +122,19 @@ defmodule ControlKeel.Integrations.Deepsec.CustomConfig do
   end
 
   @doc """
-  Creates a sample custom configuration file.
+  Creates a starter custom configuration file.
 
   ## Parameters
-  - output_path: Path to save the sample config
+  - output_path: Path to save the starter config
 
   ## Returns
   {:ok, path} on success
   {:error, reason} on failure
   """
-  def create_sample_config(output_path \\ nil) do
+  def create_starter_config(output_path \\ nil) do
     output_path = output_path || Path.join(File.cwd!(), @default_config_file)
 
-    sample_config = %{
+    starter_config = %{
       "matchers" => [
         %{
           "slug" => "custom-api-key",
@@ -159,7 +159,7 @@ defmodule ControlKeel.Integrations.Deepsec.CustomConfig do
       "timeout" => 300
     }
 
-    save_config(sample_config, output_path)
+    save_config(starter_config, output_path)
   end
 
   @doc """

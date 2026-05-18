@@ -291,10 +291,10 @@ defmodule ControlKeelWeb.BenchmarksLive do
             </p>
             <ul class="ck-mini-list" style="margin-top: 0.75rem;">
               <li>
-                Create `controlkeel/benchmark_subjects.json` from `docs/examples/opencode-benchmark-subjects.json`.
+                Create or review `controlkeel/benchmark_subjects.json` with the OpenCode subject you want to import.
               </li>
               <li>
-                Run the suite once with `opencode_manual` to create awaiting-import placeholders.
+                Run the suite once with `opencode_manual` to create awaiting-import records.
               </li>
               <li>
                 Import captured OpenCode output or replace the subject with a scripted shell command later.
@@ -428,7 +428,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
           </p>
           <p class="ck-note" style="margin-top: 0.5rem;">
             For a reproducible external comparison, start with `controlkeel_validate,opencode_manual`
-            and import the OpenCode output after the placeholder run finishes.
+            and import the OpenCode output after the awaiting-import run finishes.
           </p>
         </div>
 

@@ -74,11 +74,11 @@ defmodule ControlKeel.Integrations.Deepsec.CustomConfigTest do
     end
   end
 
-  describe "create_sample_config/1" do
-    test "creates a sample configuration file" do
-      tmp_path = Path.join(System.tmp_dir!(), "sample_config_#{System.unique_integer()}.json")
+  describe "create_starter_config/1" do
+    test "creates a starter configuration file" do
+      tmp_path = Path.join(System.tmp_dir!(), "starter_config_#{System.unique_integer()}.json")
 
-      {:ok, path} = CustomConfig.create_sample_config(tmp_path)
+      {:ok, path} = CustomConfig.create_starter_config(tmp_path)
 
       assert File.exists?(path)
 

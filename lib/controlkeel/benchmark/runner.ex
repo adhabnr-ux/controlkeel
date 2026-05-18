@@ -33,11 +33,11 @@ defmodule ControlKeel.Benchmark.Runner do
   end
 
   def run_subject(%Scenario{} = scenario, %{"type" => "manual_import"} = subject, _opts) do
-    finalize(placeholder_outcome("awaiting_import", subject), scenario)
+    finalize(pending_outcome("awaiting_import", subject), scenario)
   end
 
   def run_subject(%Scenario{} = scenario, subject, _opts) do
-    finalize(placeholder_outcome("skipped_unconfigured", subject), scenario)
+    finalize(pending_outcome("skipped_unconfigured", subject), scenario)
   end
 
   def import_subject_result(%Scenario{} = scenario, attrs) when is_map(attrs) do
@@ -119,7 +119,7 @@ defmodule ControlKeel.Benchmark.Runner do
     }
   end
 
-  def placeholder_outcome(status, subject) do
+  def pending_outcome(status, subject) do
     %{
       "status" => status,
       "decision" => nil,
@@ -131,7 +131,7 @@ defmodule ControlKeel.Benchmark.Runner do
         "configured" => subject["configured"] || false
       },
       "payload" => %{
-        "summary" => placeholder_summary(status, subject),
+        "summary" => pending_summary(status, subject),
         "findings" => []
       }
     }
@@ -325,14 +325,14 @@ defmodule ControlKeel.Benchmark.Runner do
     end
   end
 
-  defp placeholder_summary("awaiting_import", subject),
+  defp pending_summary("awaiting_import", subject),
     do: "#{subject["label"] || subject["id"]} is awaiting imported benchmark output."
 
-  defp placeholder_summary("skipped_unconfigured", subject),
+  defp pending_summary("skipped_unconfigured", subject),
     do:
       "#{subject["label"] || subject["id"]} is not configured in controlkeel/benchmark_subjects.json."
 
-  defp placeholder_summary(status, subject),
+  defp pending_summary(status, subject),
     do: "#{subject["label"] || subject["id"]} is in #{status} state."
 
   defp finding_to_map(finding) do

@@ -47,10 +47,10 @@ defmodule ControlKeel.GovernanceTest do
     assert {_, 0} = System.cmd("git", ["init"], cd: tmp_dir)
     assert {"", 0} = System.cmd("git", ["config", "user.email", "test@example.com"], cd: tmp_dir)
     assert {"", 0} = System.cmd("git", ["config", "user.name", "ControlKeel Test"], cd: tmp_dir)
-    assert :ok == File.write(Path.join(tmp_dir, "README.md"), "# demo\n")
+    assert :ok == File.write(Path.join(tmp_dir, "README.md"), "# trial\n")
     assert {"", 0} = System.cmd("git", ["add", "README.md"], cd: tmp_dir)
     assert {_, 0} = System.cmd("git", ["commit", "-m", "initial"], cd: tmp_dir)
-    assert :ok == File.write(Path.join(tmp_dir, "README.md"), "# demo\n\nstill safe\n")
+    assert :ok == File.write(Path.join(tmp_dir, "README.md"), "# trial\n\nstill safe\n")
     assert {_, 0} = System.cmd("git", ["commit", "-am", "update"], cd: tmp_dir)
 
     assert {:ok, review} = Governance.review_diff("HEAD~1", "HEAD", project_root: tmp_dir)
@@ -72,7 +72,7 @@ defmodule ControlKeel.GovernanceTest do
     previous = Application.get_env(:controlkeel, :governance_patch_fetcher)
 
     Application.put_env(:controlkeel, :governance_patch_fetcher, fn url, _opts ->
-      assert url == "https://github.com/acme/demo/pull/123.patch"
+      assert url == "https://github.com/acme/trial/pull/123.patch"
       {:ok, patch}
     end)
 
@@ -85,11 +85,11 @@ defmodule ControlKeel.GovernanceTest do
     end)
 
     assert {:ok, review} =
-             Governance.review_pr_url("https://github.com/acme/demo/pull/123")
+             Governance.review_pr_url("https://github.com/acme/trial/pull/123")
 
     assert review["decision"] == "block"
-    assert review["pr_url"] == "https://github.com/acme/demo/pull/123"
-    assert review["patch_url"] == "https://github.com/acme/demo/pull/123.patch"
+    assert review["pr_url"] == "https://github.com/acme/trial/pull/123"
+    assert review["patch_url"] == "https://github.com/acme/trial/pull/123.patch"
   end
 
   test "release_readiness requires smoke and provenance even with a deploy-ready proof" do

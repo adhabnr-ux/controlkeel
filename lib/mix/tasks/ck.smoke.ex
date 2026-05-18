@@ -1,18 +1,18 @@
-defmodule Mix.Tasks.Ck.Demo do
+defmodule Mix.Tasks.Ck.Smoke do
   use Mix.Task
 
-  @shortdoc "Seeds a demo session showing ControlKeel detecting a hardcoded secret"
+  @shortdoc "Runs the built-in governance benchmark smoke check"
 
   @moduledoc """
-  Creates a demo mission that walks through the core ControlKeel detection loop:
+  Runs a built-in governance smoke check through the benchmark engine:
 
-    1. Creates a governed session for a healthcare project
-    2. Runs ck_validate with content containing a hardcoded API key
-    3. Reports the findings detected and the Mission Control URL
+    1. Selects a built-in governance benchmark scenario
+    2. Runs ck_validate through the benchmark engine
+    3. Reports the findings detected and the benchmark URL
 
   Usage:
 
-      mix ck.demo [--host http://localhost:4000]
+      mix ck.smoke [--host http://localhost:4000]
 
   """
 
@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Ck.Demo do
       report_benchmark(shell, run, host)
     else
       {:error, reason} ->
-        Mix.raise("Demo failed: #{inspect(reason)}")
+        Mix.raise("Smoke check failed: #{inspect(reason)}")
     end
   end
 

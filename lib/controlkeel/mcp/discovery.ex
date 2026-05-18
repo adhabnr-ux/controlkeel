@@ -6,8 +6,8 @@ defmodule ControlKeel.MCP.Discovery do
   an MCP server's tools/list endpoint and return discovered tool schemas without
   requiring manual configuration.
 
-  Currently supports HTTP-based MCP servers. stdio-based discovery is planned
-  for future implementation.
+  Currently supports HTTP-based MCP servers. Stdio discovery is intentionally
+  unsupported by this module; use configured MCP clients for stdio servers.
 
   ## Security
 

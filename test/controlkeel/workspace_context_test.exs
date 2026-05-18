@@ -20,8 +20,8 @@ defmodule ControlKeel.WorkspaceContextTest do
 
   test "build/1 returns git context and detected instruction files", %{tmp_dir: tmp_dir} do
     File.write!(Path.join(tmp_dir, "AGENTS.md"), "repo instructions\n")
-    File.write!(Path.join(tmp_dir, "README.md"), "# Demo\n")
-    File.write!(Path.join(tmp_dir, "mix.exs"), "defmodule Demo.MixProject do end\n")
+    File.write!(Path.join(tmp_dir, "README.md"), "# Trial\n")
+    File.write!(Path.join(tmp_dir, "mix.exs"), "defmodule Trial.MixProject do end\n")
 
     assert {_, 0} = System.cmd("git", ["init"], cd: tmp_dir)
     assert {"", 0} = System.cmd("git", ["config", "user.email", "test@example.com"], cd: tmp_dir)
@@ -53,7 +53,7 @@ defmodule ControlKeel.WorkspaceContextTest do
 
   test "cache key changes when tracked instruction files change", %{tmp_dir: tmp_dir} do
     File.write!(Path.join(tmp_dir, "AGENTS.md"), "repo instructions\n")
-    File.write!(Path.join(tmp_dir, "README.md"), "# Demo\n")
+    File.write!(Path.join(tmp_dir, "README.md"), "# Trial\n")
 
     assert {_, 0} = System.cmd("git", ["init"], cd: tmp_dir)
     assert {"", 0} = System.cmd("git", ["config", "user.email", "test@example.com"], cd: tmp_dir)
@@ -74,10 +74,10 @@ defmodule ControlKeel.WorkspaceContextTest do
   } do
     File.mkdir_p!(Path.join(tmp_dir, "lib"))
     large_body = Enum.map_join(1..820, "\n", fn index -> "line_#{index} = #{index}" end)
-    source_path = Path.join(tmp_dir, "lib/demo.ex")
+    source_path = Path.join(tmp_dir, "lib/trial.ex")
 
     File.write!(source_path, large_body)
-    File.write!(Path.join(tmp_dir, "README.md"), "# Demo\n")
+    File.write!(Path.join(tmp_dir, "README.md"), "# Trial\n")
 
     assert {_, 0} = System.cmd("git", ["init"], cd: tmp_dir)
     assert {"", 0} = System.cmd("git", ["config", "user.email", "test@example.com"], cd: tmp_dir)
@@ -87,7 +87,7 @@ defmodule ControlKeel.WorkspaceContextTest do
 
     Enum.each(1..3, fn iteration ->
       File.write!(source_path, large_body <> "\n# change #{iteration}\n")
-      assert {"", 0} = System.cmd("git", ["add", "lib/demo.ex"], cd: tmp_dir)
+      assert {"", 0} = System.cmd("git", ["add", "lib/trial.ex"], cd: tmp_dir)
       assert {_, 0} = System.cmd("git", ["commit", "-m", "change #{iteration}"], cd: tmp_dir)
     end)
 
@@ -97,12 +97,12 @@ defmodule ControlKeel.WorkspaceContextTest do
 
     assert Enum.any?(
              get_in(context, ["design_drift", "large_files"]),
-             &(&1["path"] == "lib/demo.ex")
+             &(&1["path"] == "lib/trial.ex")
            )
 
     assert Enum.any?(
              get_in(context, ["design_drift", "recent_hotspots"]),
-             &(&1["path"] == "lib/demo.ex")
+             &(&1["path"] == "lib/trial.ex")
            )
 
     assert Enum.any?(

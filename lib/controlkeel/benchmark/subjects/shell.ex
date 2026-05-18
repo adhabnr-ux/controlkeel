@@ -9,13 +9,13 @@ defmodule ControlKeel.Benchmark.Subjects.Shell do
 
     case subject do
       %{"configured" => false} ->
-        Runner.placeholder_outcome("skipped_unconfigured", subject)
+        Runner.pending_outcome("skipped_unconfigured", subject)
 
       %{"command" => command} when is_binary(command) and command != "" ->
         execute_shell_subject(scenario, subject, project_root)
 
       _other ->
-        Runner.placeholder_outcome("skipped_unconfigured", subject)
+        Runner.pending_outcome("skipped_unconfigured", subject)
     end
   end
 

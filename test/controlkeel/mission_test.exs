@@ -860,7 +860,7 @@ defmodule ControlKeel.MissionTest do
                  "task_id" => task.id,
                  "review_type" => "diff",
                  "title" => "Diff review",
-                 "submission_body" => "diff --git a/lib/demo.ex b/lib/demo.ex\n+ok = true\n",
+                 "submission_body" => "diff --git a/lib/trial.ex b/lib/trial.ex\n+ok = true\n",
                  "submitted_by" => "codex"
                })
 

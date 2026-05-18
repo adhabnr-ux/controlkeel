@@ -334,7 +334,7 @@ defmodule ControlKeelWeb.ApiControllerTest do
       previous = Application.get_env(:controlkeel, :governance_patch_fetcher)
 
       Application.put_env(:controlkeel, :governance_patch_fetcher, fn url, _opts ->
-        assert url == "https://github.com/acme/demo/pull/456.patch"
+        assert url == "https://github.com/acme/trial/pull/456.patch"
 
         {:ok,
          """
@@ -357,12 +357,12 @@ defmodule ControlKeelWeb.ApiControllerTest do
 
       conn =
         post(conn, ~p"/api/v1/review/pr", %{
-          pr_url: "https://github.com/acme/demo/pull/456"
+          pr_url: "https://github.com/acme/trial/pull/456"
         })
 
       body = json_response(conn, 200)
       assert body["review"]["decision"] == "block"
-      assert body["review"]["patch_url"] == "https://github.com/acme/demo/pull/456.patch"
+      assert body["review"]["patch_url"] == "https://github.com/acme/trial/pull/456.patch"
     end
 
     test "evaluates release readiness from proof and evidence state", %{conn: conn} do

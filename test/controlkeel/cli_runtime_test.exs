@@ -353,9 +353,9 @@ defmodule ControlKeel.CLIRuntimeTest do
   end
 
   test "setup bootstraps from a nested directory and reports detected hosts", %{tmp_dir: tmp_dir} do
-    File.write!(Path.join(tmp_dir, "mix.exs"), "defmodule Demo.MixProject do\nend\n")
+    File.write!(Path.join(tmp_dir, "mix.exs"), "defmodule Trial.MixProject do\nend\n")
 
-    nested = Path.join(tmp_dir, "lib/demo")
+    nested = Path.join(tmp_dir, "lib/trial")
     File.mkdir_p!(nested)
 
     File.mkdir_p!(

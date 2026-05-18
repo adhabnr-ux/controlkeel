@@ -14,7 +14,7 @@ defmodule ControlKeel.WorkspaceCheckpointTest do
     File.rm_rf!(tmp_dir)
     File.mkdir_p!(tmp_dir)
 
-    File.write!(Path.join(tmp_dir, "README.md"), "# Demo\n")
+    File.write!(Path.join(tmp_dir, "README.md"), "# Trial\n")
 
     assert {_, 0} = System.cmd("git", ["init"], cd: tmp_dir)
     assert {_, 0} = System.cmd("git", ["config", "user.email", "test@example.com"], cd: tmp_dir)
@@ -26,7 +26,7 @@ defmodule ControlKeel.WorkspaceCheckpointTest do
 
     workspace_attrs = %{
       name: "Demo",
-      slug: "demo-#{System.unique_integer([:positive])}",
+      slug: "trial-#{System.unique_integer([:positive])}",
       industry: "software",
       agent: "test",
       budget_cents: 0,

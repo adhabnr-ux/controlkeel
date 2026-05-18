@@ -773,7 +773,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
     File.rm_rf!(tmp_dir)
     File.mkdir_p!(Path.join(tmp_dir, "docs"))
-    File.write!(Path.join(tmp_dir, "README.md"), "# Demo\n\nOAuth lives here.\n")
+    File.write!(Path.join(tmp_dir, "README.md"), "# Trial\n\nOAuth lives here.\n")
     File.write!(Path.join(tmp_dir, "docs/guide.md"), "Guide\n\nOAuth config lives here too.\n")
 
     {:ok, _binding} =
@@ -877,7 +877,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
     File.rm_rf!(tmp_dir)
     File.mkdir_p!(tmp_dir)
-    File.write!(Path.join(tmp_dir, "README.md"), "# Demo\n")
+    File.write!(Path.join(tmp_dir, "README.md"), "# Trial\n")
 
     {:ok, _binding} =
       ProjectBinding.write(
@@ -1227,7 +1227,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert Enum.any?(citations, &(&1["kind"] == "memory" and &1["memory_id"] == memory_id))
   end
 
-  test "tools/call carries continuity across simulated host binding changes" do
+  test "tools/call carries continuity across controlled host binding changes" do
     tmp_dir =
       Path.join(
         System.tmp_dir!(),
@@ -2873,7 +2873,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
   end
 
   defp write_fake_controlkeel_cli_mixenv(tmp_dir) do
-    script_path = Path.join(tmp_dir, "fake-controlkeel-mixenv.sh")
+    script_path = Path.join(tmp_dir, "local-controlkeel-mixenv.sh")
 
     File.write!(
       script_path,
@@ -2903,7 +2903,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
           exit 0
         fi
 
-        echo "simulated failure in non-prod mix env" >&2
+        echo "controlled failure in non-prod mix env" >&2
         exit 2
       fi
 
@@ -2917,7 +2917,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
   end
 
   defp write_fake_controlkeel_cli(tmp_dir) do
-    script_path = Path.join(tmp_dir, "fake-controlkeel.sh")
+    script_path = Path.join(tmp_dir, "local-controlkeel.sh")
 
     File.write!(
       script_path,

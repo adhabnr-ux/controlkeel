@@ -101,7 +101,7 @@ defmodule ControlKeel.AutoFix do
           "agent_prompt" =>
             """
             Remove the secret-like token in #{location}#{match_clause(match)} and replace it with a runtime secret reference.
-            If this is example code, swap in a clearly fake placeholder that cannot be used in production.
+            If this is non-production code, swap in an inert value that cannot be used in production.
             Return the required environment variable name and any follow-up rotation step the operator must perform.
             """
             |> String.trim(),

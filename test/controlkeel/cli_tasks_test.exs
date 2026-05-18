@@ -77,11 +77,11 @@ defmodule ControlKeel.CLITasksTest do
     assert Repo.aggregate(Session, :count, :id) == session_count
   end
 
-  test "ck.init auto-attaches when .claude dir exists and stub is available", %{
+  test "ck.init auto-attaches when .claude dir exists and shim is available", %{
     tmp_dir: tmp_dir,
     home_dir: home_dir
   } do
-    create_claude_stub(tmp_dir, "controlkeel")
+    create_claude_shim(tmp_dir, "controlkeel")
     File.mkdir_p!(Path.join(home_dir, ".claude"))
 
     output =
@@ -109,7 +109,7 @@ defmodule ControlKeel.CLITasksTest do
   end
 
   test "ck.attach claude-code shells out and updates the binding", %{tmp_dir: tmp_dir} do
-    create_claude_stub(tmp_dir, "controlkeel")
+    create_claude_shim(tmp_dir, "controlkeel")
 
     with_project(tmp_dir, fn ->
       rerun_task("ck.init")
@@ -159,7 +159,7 @@ defmodule ControlKeel.CLITasksTest do
   test "ck.attach claude-code fails clearly when claude mcp reports failed to connect", %{
     tmp_dir: tmp_dir
   } do
-    create_claude_stub_with_failed_connect(tmp_dir, "controlkeel")
+    create_claude_shim_with_failed_connect(tmp_dir, "controlkeel")
 
     with_project(tmp_dir, fn ->
       rerun_task("ck.init")
@@ -399,13 +399,13 @@ defmodule ControlKeel.CLITasksTest do
     assert Benchmark.list_recent_runs(1) != []
   end
 
-  test "ck.demo runs through the benchmark engine without creating sessions" do
+  test "ck.smoke runs through the benchmark engine without creating sessions" do
     session_count = Repo.aggregate(Session, :count, :id)
 
     output =
       capture_io(fn ->
-        rerun_task("ck.demo")
-        Mix.Tasks.Ck.Demo.run(["--host", "http://localhost:4000", "--scenario", "1"])
+        rerun_task("ck.smoke")
+        Mix.Tasks.Ck.Smoke.run(["--host", "http://localhost:4000", "--scenario", "1"])
       end)
 
     assert output =~ "ControlKeel Benchmark"
@@ -427,12 +427,12 @@ defmodule ControlKeel.CLITasksTest do
       )
   end
 
-  defp create_claude_stub_with_failed_connect(tmp_dir, server_name) do
-    stub = Path.join(tmp_dir, "claude")
+  defp create_claude_shim_with_failed_connect(tmp_dir, server_name) do
+    shim = Path.join(tmp_dir, "claude")
     log = Path.join(tmp_dir, "claude.log")
 
     File.write!(
-      stub,
+      shim,
       """
       #!/bin/sh
       echo "$@" >> "#{log}"
@@ -450,16 +450,16 @@ defmodule ControlKeel.CLITasksTest do
       """
     )
 
-    File.chmod!(stub, 0o755)
+    File.chmod!(shim, 0o755)
   end
 
-  defp create_claude_stub(tmp_dir, server_name) do
-    stub = Path.join(tmp_dir, "claude")
+  defp create_claude_shim(tmp_dir, server_name) do
+    shim = Path.join(tmp_dir, "claude")
     log = Path.join(tmp_dir, "claude.log")
     wrapper = Path.join(tmp_dir, "controlkeel/bin/controlkeel-mcp")
 
     File.write!(
-      stub,
+      shim,
       """
       #!/bin/sh
       echo "$@" >> "#{log}"
@@ -475,7 +475,7 @@ defmodule ControlKeel.CLITasksTest do
       """
     )
 
-    File.chmod!(stub, 0o755)
+    File.chmod!(shim, 0o755)
   end
 
   defp with_project(tmp_dir, fun), do: File.cd!(tmp_dir, fun)

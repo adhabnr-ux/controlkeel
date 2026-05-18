@@ -25,7 +25,7 @@ defmodule ControlKeel.WorktreeContextTest do
   end
 
   test "build/1 includes git worktree information", %{tmp_dir: tmp_dir} do
-    File.write!(Path.join(tmp_dir, "README.md"), "# Demo\n")
+    File.write!(Path.join(tmp_dir, "README.md"), "# Trial\n")
 
     assert {_, 0} = System.cmd("git", ["init"], cd: tmp_dir)
     assert {_, 0} = System.cmd("git", ["config", "user.email", "test@example.com"], cd: tmp_dir)

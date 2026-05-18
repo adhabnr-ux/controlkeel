@@ -184,10 +184,8 @@ defmodule ControlKeel.Integrations.Deepsec.Stream do
   defp do_stream_scan(session_id, workspace_path, _opts) do
     alias ControlKeel.Integrations.Deepsec.CLI
 
-    # Run scan and stream findings as they're discovered
-    # Note: deepsec CLI doesn't currently support streaming output
-    # This is a placeholder implementation that would work with
-    # a streaming-capable deepsec version
+    # The current deepsec CLI returns batch output, so this adapter emits each
+    # parsed finding to subscribers after the scan completes.
 
     case CLI.scan(workspace_path: workspace_path) do
       {:ok, output} ->

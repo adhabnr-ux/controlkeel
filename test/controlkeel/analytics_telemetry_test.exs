@@ -52,7 +52,7 @@ defmodule ControlKeel.AnalyticsTelemetryTest do
 
   test "claude attach records agent_attached", %{tmp_dir: tmp_dir, home_dir: home_dir} do
     create_wrapper(tmp_dir)
-    create_claude_stub(tmp_dir, "controlkeel")
+    create_claude_shim(tmp_dir, "controlkeel")
     File.mkdir_p!(Path.join(home_dir, ".claude"))
 
     with_project(tmp_dir, fn ->
@@ -161,12 +161,12 @@ defmodule ControlKeel.AnalyticsTelemetryTest do
     File.chmod!(path, 0o755)
   end
 
-  defp create_claude_stub(tmp_dir, server_name) do
-    stub = Path.join(tmp_dir, "claude")
+  defp create_claude_shim(tmp_dir, server_name) do
+    shim = Path.join(tmp_dir, "claude")
     wrapper = Path.join(tmp_dir, "bin/controlkeel-mcp")
 
     File.write!(
-      stub,
+      shim,
       """
       #!/bin/sh
       if [ "$1" = "mcp" ] && [ "$2" = "add-json" ]; then
@@ -181,6 +181,6 @@ defmodule ControlKeel.AnalyticsTelemetryTest do
       """
     )
 
-    File.chmod!(stub, 0o755)
+    File.chmod!(shim, 0o755)
   end
 end

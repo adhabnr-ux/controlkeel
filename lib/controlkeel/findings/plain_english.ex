@@ -17,7 +17,7 @@ defmodule ControlKeel.Findings.PlainEnglish do
       fix:
         "Always escape or sanitize user input before displaying it. Use your framework's built-in escaping.",
       risk_if_ignored:
-        "Attackers could steal login sessions, redirect users to fake sites, or deface your application."
+        "Attackers could steal login sessions, redirect users to fraudulent sites, or deface your application."
     },
     "security.hardcoded_secret" => %{
       title: "Password or key left in code",

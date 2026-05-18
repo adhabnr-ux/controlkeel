@@ -11,12 +11,12 @@ defmodule ControlKeel.ProjectRootTest do
       )
 
     File.rm_rf!(tmp_dir)
-    File.mkdir_p!(Path.join(tmp_dir, "lib/demo"))
-    File.write!(Path.join(tmp_dir, "mix.exs"), "defmodule Demo.MixProject do\nend\n")
+    File.mkdir_p!(Path.join(tmp_dir, "lib/trial"))
+    File.write!(Path.join(tmp_dir, "mix.exs"), "defmodule Trial.MixProject do\nend\n")
 
     on_exit(fn -> File.rm_rf!(tmp_dir) end)
 
-    assert ProjectRoot.resolve(Path.join(tmp_dir, "lib/demo")) == ProjectRoot.resolve(tmp_dir)
+    assert ProjectRoot.resolve(Path.join(tmp_dir, "lib/trial")) == ProjectRoot.resolve(tmp_dir)
   end
 
   test "resolve falls back to the provided directory when no marker exists" do
