@@ -331,8 +331,8 @@ export class GovernedCFAgent extends Agent<Env, { cwd: string }> {
   }
 
   private async validateAction(action: string, payload: any) {
-    const stub = this.env.CK_GOVERNANCE.get(this.env.CK_GOVERNANCE.idFromName("default"));
-    return await stub.validate({ action, payload, context: this.state });
+    const governanceObject = this.env.CK_GOVERNANCE.get(this.env.CK_GOVERNANCE.idFromName("default"));
+    return await governanceObject.validate({ action, payload, context: this.state });
   }
 
   private async log(action: string, payload: any) {
