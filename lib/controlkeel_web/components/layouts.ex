@@ -142,14 +142,6 @@ defmodule ControlKeelWeb.Layouts do
             Observability
           </a>
         </nav>
-
-        <div class="rounded-2xl border border-lime-300/20 bg-lime-300/10 p-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-200">Runtime</p>
-          <p class="mt-2 text-sm font-medium text-white">Policy gated</p>
-          <p class="mt-1 text-xs leading-5 text-zinc-400">
-            Findings, budget, and proof stay visible while agents execute.
-          </p>
-        </div>
       </aside>
 
       <div class="lg:pl-64">
