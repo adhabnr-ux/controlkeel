@@ -27,6 +27,7 @@ import topbar from "../vendor/topbar"
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
 const setSidebarActiveLink = () => {
+  // TODO: Replace this client-side active-link with a LiveView-driven approach
   const links = document.querySelectorAll("[data-sidebar-link]")
   if (!links.length) return
 
