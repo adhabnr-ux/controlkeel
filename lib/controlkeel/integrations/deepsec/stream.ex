@@ -66,7 +66,7 @@ defmodule ControlKeel.Integrations.Deepsec.Stream do
   @doc """
   Streams findings from a deepsec scan with a callback.
   """
-  def stream_scan(callback, workspace_path, _opts \\ []) do
+  def stream_scan(callback, workspace_path, opts \\ []) do
     # Start a temporary stream session
     session_id = generate_session_id()
     subscribe(session_id)
@@ -74,7 +74,7 @@ defmodule ControlKeel.Integrations.Deepsec.Stream do
     # Start the scan in a separate process
     task =
       Task.async(fn ->
-        case do_stream_scan(session_id, workspace_path, []) do
+        case do_stream_scan(session_id, workspace_path, opts) do
           {:ok, _result} ->
             :ok
 
@@ -86,27 +86,32 @@ defmodule ControlKeel.Integrations.Deepsec.Stream do
 
     # Process findings as they arrive
     Stream.resource(
-      fn -> {session_id, task, []} end,
-      fn {session_id, task, buffer} ->
-        # Check if task is complete
-        case Task.yield(task, 100) do
-          {:ok, _result} ->
-            # Task complete, flush buffer and halt
-            {Enum.reverse(buffer), :halt}
+      fn -> {session_id, task, [], :streaming} end,
+      fn
+        {session_id, task, _buffer, :done} ->
+          {:halt, {session_id, task, [], :done}}
 
-          nil ->
-            # Task still running, check for new findings
-            receive do
-              {:finding, finding} ->
-                {[finding], {session_id, task, [finding | buffer]}}
+        {session_id, task, buffer, :streaming} ->
+          # Check if task is complete
+          case Task.yield(task, 100) do
+            {:ok, _result} ->
+              # Task complete; drain any messages emitted before the task exited
+              # that have not yet been consumed by this stream.
+              emit_final_findings(session_id, task, drain_stream_messages(buffer))
 
-              :stream_complete ->
-                {Enum.reverse(buffer), :halt}
-            after
-              100 ->
-                {[], {session_id, task, buffer}}
-            end
-        end
+            nil ->
+              # Task still running, check for new findings
+              receive do
+                {:finding, finding} ->
+                  {[finding], {session_id, task, [finding | buffer], :streaming}}
+
+                :stream_complete ->
+                  emit_final_findings(session_id, task, buffer)
+              after
+                100 ->
+                  {[], {session_id, task, buffer, :streaming}}
+              end
+          end
       end,
       fn _ -> unsubscribe(session_id) end
     )
@@ -181,13 +186,12 @@ defmodule ControlKeel.Integrations.Deepsec.Stream do
 
   ## Private Functions
 
-  defp do_stream_scan(session_id, workspace_path, _opts) do
+  defp do_stream_scan(session_id, workspace_path, opts) do
     alias ControlKeel.Integrations.Deepsec.CLI
 
-    # The current deepsec CLI returns batch output, so this adapter emits each
-    # parsed finding to subscribers after the scan completes.
+    scan_fun = Keyword.get(opts, :scan_fun, &CLI.scan/1)
 
-    case CLI.scan(workspace_path: workspace_path) do
+    case scan_fun.(workspace_path: workspace_path) do
       {:ok, output} ->
         # Parse findings from output
         case CLI.extract_findings(output) do
@@ -220,6 +224,25 @@ defmodule ControlKeel.Integrations.Deepsec.Stream do
         send(pid, :stream_complete)
       end
     end)
+  end
+
+  defp drain_stream_messages(buffer) do
+    receive do
+      {:finding, finding} -> drain_stream_messages([finding | buffer])
+      :stream_complete -> drain_stream_messages(buffer)
+    after
+      0 -> buffer
+    end
+  end
+
+  defp emit_final_findings(session_id, task, buffer) do
+    findings = Enum.reverse(buffer)
+
+    if Enum.empty?(findings) do
+      {:halt, {session_id, task, [], :done}}
+    else
+      {findings, {session_id, task, [], :done}}
+    end
   end
 
   defp generate_session_id do
