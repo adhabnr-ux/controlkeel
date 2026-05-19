@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.3.21 — 2026-05-19
+
+### What's changed
+
+- feat: enhance entropy detection and add tests for credential handling
+- chore: replace synthetic seed data with no-op seeds file
+- refactor: apply terminology cleanup to source and tests
+- chore: remove example files and update remaining demo-script references
+- docs: clean up imprecise terminology across docs and remove demo-script
+- Merge branch 'main' of https://github.com/aryaminus/controlkeel
+- docs: refine documentation on context file usage, SDK vs MCP cost implications, and signal family vocabulary
+- feat: update version in plugin.json and enhance documentation for observability and budget alerts
+- feat: update documentation and implementation for observability and budget alerts
+- docs: add large codebase patterns and best practices for agent deployment
+- docs: enhance documentation on SDK vs MCP cost implications and best practices for coding agents
+- docs: add production signal observability guidance
+- docs: expand agent observability guidance
+- feat: enhance benchmark and observability documentation with eval design principles and sampling guidelines
+- docs: clarify event-sourced harness posture
+- feat: preview Workshop observability snapshots
+- style: format MCP resilience changes
+- chore: prune stale integration artifacts and harden MCP startup
+- Remove legacy deep research report and HELM plan documents; update product strategy plan to clarify focus on current strategy and removal of historical materials.
+- feat: enhance virtual workspace with ranking and orientation metadata for search results
+
 ## v0.3.20 — 2026-05-07
 
 ### What's changed
