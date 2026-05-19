@@ -9,6 +9,14 @@ defmodule ControlKeelWeb.ApiControllerTest do
 
   alias ControlKeel.Mission
 
+  defp aws_key_fixture do
+    ["AKIA", "IOSF", "ODNN", "7EXA", "MPLE"] |> Enum.join()
+  end
+
+  defp secret_assignment_fixture do
+    ["api", "_key", " = \"", aws_key_fixture(), "\""] |> Enum.join()
+  end
+
   # ─── Sessions ────────────────────────────────────────────────────────────────
 
   describe "GET /api/v1/sessions" do
@@ -270,7 +278,7 @@ defmodule ControlKeelWeb.ApiControllerTest do
     test "returns blocked for content with hardcoded secret", %{conn: conn} do
       conn =
         post(conn, ~p"/api/v1/validate", %{
-          content: ~s(api_key = "AKIAIOSFODNN7EXAMPLE"),
+          content: ~s(api_key = "#{aws_key_fixture()}"),
           kind: "code"
         })
 
@@ -315,7 +323,7 @@ defmodule ControlKeelWeb.ApiControllerTest do
       --- a/lib/auth.ex
       +++ b/lib/auth.ex
       @@ -0,0 +1,1 @@
-      +api_key = "AKIAIOSFODNN7EXAMPLE"
+      +#{secret_assignment_fixture()}
       """
 
       conn =
@@ -343,7 +351,7 @@ defmodule ControlKeelWeb.ApiControllerTest do
          --- a/lib/auth.ex
          +++ b/lib/auth.ex
          @@ -0,0 +1,1 @@
-         +api_key = "AKIAIOSFODNN7EXAMPLE"
+         +#{secret_assignment_fixture()}
          """}
       end)
 

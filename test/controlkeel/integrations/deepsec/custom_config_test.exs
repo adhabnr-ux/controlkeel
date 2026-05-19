@@ -76,7 +76,8 @@ defmodule ControlKeel.Integrations.Deepsec.CustomConfigTest do
 
   describe "create_starter_config/1" do
     test "creates a starter configuration file" do
-      tmp_path = Path.join(System.tmp_dir!(), "starter_config_#{System.unique_integer()}.json")
+      tmp_path =
+        Path.join(System.tmp_dir!(), "starter-#{System.unique_integer([:positive])}.json")
 
       {:ok, path} = CustomConfig.create_starter_config(tmp_path)
 

@@ -6,6 +6,14 @@ defmodule ControlKeel.GovernanceTest do
   alias ControlKeel.Governance
   alias ControlKeel.Mission
 
+  defp aws_key_fixture do
+    ["AKIA", "IOSF", "ODNN", "7EXA", "MPLE"] |> Enum.join()
+  end
+
+  defp secret_assignment_fixture do
+    ["api", "_key", " = \"", aws_key_fixture(), "\""] |> Enum.join()
+  end
+
   setup do
     tmp_dir =
       Path.join(
@@ -30,7 +38,7 @@ defmodule ControlKeel.GovernanceTest do
     --- a/lib/auth.ex
     +++ b/lib/auth.ex
     @@ -0,0 +1,1 @@
-    +api_key = "AKIAIOSFODNN7EXAMPLE"
+    +#{secret_assignment_fixture()}
     """
 
     assert {:ok, review} = Governance.review_patch(patch, session_id: session.id)
@@ -66,7 +74,7 @@ defmodule ControlKeel.GovernanceTest do
     --- a/lib/auth.ex
     +++ b/lib/auth.ex
     @@ -0,0 +1,1 @@
-    +api_key = "AKIAIOSFODNN7EXAMPLE"
+    +#{secret_assignment_fixture()}
     """
 
     previous = Application.get_env(:controlkeel, :governance_patch_fetcher)

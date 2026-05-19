@@ -45,4 +45,12 @@ defmodule ControlKeel.Scanner.PatternsTest do
 
     assert findings == []
   end
+
+  test "does not flag interpolated runtime credential values", %{rules: rules} do
+    content = ~S|api_key = "#{fetch_test_fixture()}"|
+
+    findings = Patterns.detect(content, %{"path" => "test/api_test.exs", "kind" => "code"}, rules)
+
+    refute Enum.any?(findings, &(&1.rule_id == "secret.hardcoded_credential"))
+  end
 end

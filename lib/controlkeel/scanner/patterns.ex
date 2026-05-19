@@ -23,9 +23,21 @@ defmodule ControlKeel.Scanner.Patterns do
           {:cont, acc}
 
         [match | _rest] ->
-          {:halt, [finding_from_match(rule, input, match)]}
+          if credential_rule?(rule) and interpolated_runtime_value?(match) do
+            {:cont, acc}
+          else
+            {:halt, [finding_from_match(rule, input, match)]}
+          end
       end
     end)
+  end
+
+  defp credential_rule?(rule) do
+    rule.id in ["secret.hardcoded_credential", "software.hardcoded_credential"]
+  end
+
+  defp interpolated_runtime_value?(match) do
+    Regex.match?(~r/[:=]\s*["']\s*#\{[^}]+\}\s*["']$/, match)
   end
 
   defp finding_from_match(rule, input, match) do

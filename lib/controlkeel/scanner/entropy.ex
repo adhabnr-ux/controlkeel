@@ -17,6 +17,7 @@ defmodule ControlKeel.Scanner.Entropy do
         |> Enum.uniq()
         |> Enum.filter(&(byte_size(&1) >= min_length))
         |> Enum.filter(&high_entropy?(&1, threshold))
+        |> Enum.reject(&benign_code_or_path_token?(content, &1))
         |> Enum.reject(&inline_data_uri_payload?(content, &1))
         |> Enum.map(&finding_from_candidate(rule, input, &1))
 
@@ -46,6 +47,21 @@ defmodule ControlKeel.Scanner.Entropy do
   defp inline_data_uri_payload?(content, candidate) do
     pattern = ~r/data:image\/[a-z0-9.+-]+;base64,#{Regex.escape(candidate)}/i
     Regex.match?(pattern, content)
+  end
+
+  defp benign_code_or_path_token?(content, candidate) do
+    identifier_with_optional_arity?(candidate) or
+      url_path_fragment?(content, candidate)
+  end
+
+  defp identifier_with_optional_arity?(candidate) do
+    Regex.match?(~r/^[a-z][a-z0-9_]*(?:\/\d+)?$/, candidate)
+  end
+
+  defp url_path_fragment?(content, candidate) do
+    String.contains?(candidate, "/") and
+      Regex.match?(~r/^[A-Za-z0-9_.\/-]+$/, candidate) and
+      Regex.match?(~r/https?:\/\/[A-Za-z0-9_.\/-]*#{Regex.escape(candidate)}/, content)
   end
 
   defp finding_from_candidate(rule, input, candidate) do

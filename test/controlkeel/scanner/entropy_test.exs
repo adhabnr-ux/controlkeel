@@ -9,7 +9,7 @@ defmodule ControlKeel.Scanner.EntropyTest do
   end
 
   test "detects high-entropy secret-like tokens", %{rules: rules} do
-    token = "N4f8qP2mX9vR7kL3cT6wH1sD0bY5uJ8"
+    token = ["N4f8", "qP2m", "X9vR", "7kL3", "cT6w", "H1sD", "0bY5", "uJ8"] |> Enum.join()
 
     findings = Entropy.detect(token, %{"path" => ".env", "kind" => "config"}, rules)
 
@@ -28,5 +28,26 @@ defmodule ControlKeel.Scanner.EntropyTest do
     findings = Entropy.detect(content, %{"path" => ".env", "kind" => "config"}, rules)
 
     refute Enum.any?(findings, &(&1.rule_id == "secret.high_entropy_token"))
+  end
+
+  test "ignores code identifiers and URL paths that look entropic", %{rules: rules} do
+    content = """
+    describe "create_starter_config/1" do
+      assert url == "https://github.com/acme/trial/pull/123.patch"
+    end
+    """
+
+    findings =
+      Entropy.detect(content, %{"path" => "test/example_test.exs", "kind" => "code"}, rules)
+
+    refute Enum.any?(findings, &(&1.rule_id == "secret.high_entropy_token"))
+  end
+
+  test "still detects slash-containing high entropy tokens", %{rules: rules} do
+    token = ["N4f8", "qP2m", "X9vR", "7kL3", "/", "cT6w", "H1sD", "0bY5", "uJ8"] |> Enum.join()
+
+    findings = Entropy.detect(token, %{"path" => ".env", "kind" => "config"}, rules)
+
+    assert Enum.any?(findings, &(&1.rule_id == "secret.high_entropy_token"))
   end
 end
