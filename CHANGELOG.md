@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.3.22 — 2026-05-21
+
+### What's changed
+
+- Merge pull request #3 from aryaminus/refactor/web-homepage
+- refactor/web-homepage: remove unused runtime policy section from layout
+- refactor/web-homepage: add TODO to replace client-side active link with LiveView-driven approach
+- fea/web-homepaget: restore vanilla css
+- refactor/web-homepage: move format_percent and format_number functions to PageHTML module
+- Update assets/js/app.js
+- test: update skills live test
+- test: add tests for install page rendering
+- refactor/web-homepage: enhance install page layout and styling
+- refactor/web-homepage: add module and route for ControlKeel installation, policy and observability
+- refactor/web-homepage: implement dynamic sidebar link highlighting and enhance home page layout
+- refactor/web-homepage: Refactor layout and home page to enhance dashboard presentation
+
 ## v0.3.21 — 2026-05-19
 
 ### What's changed
