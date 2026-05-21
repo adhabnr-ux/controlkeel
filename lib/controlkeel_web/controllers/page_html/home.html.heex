@@ -1,161 +1,264 @@
-<Layouts.flash_group flash={@flash} />
-<section class="ck-shell">
-  <div class="ck-grid">
-    <div class="ck-hero-panel">
-      <p class="ck-kicker">Control tower for agent-built software</p>
-      <h1 class="ck-display">Turn agent-generated work into production-ready delivery.</h1>
-      <p class="ck-lead">
-        ControlKeel is the control tower that turns agent-generated work into secure, scoped, validated,
-        production-ready delivery. ControlKeel turns agent output into production engineering. It sits
-        above Claude Code, Codex, Cursor, Replit, and other agents to compile intent, constrain risk,
-        generate manageable tasks, and keep proof attached to every mission.
-      </p>
-      <p class="ck-note">
-        Agent output is cheap. Reviewability, security, release safety, and cost control are not. ControlKeel exists to govern that layer, not replace the coding model underneath it.
-      </p>
-      <p class="ck-note">
-        When a generator leaves you with a brittle repo or unclear launch boundary, ControlKeel is the rescue control plane: bootstrap the project, make the constraints visible, and keep proof attached to the work.
-      </p>
-      <p class="ck-note">
-        The strongest current framing is simple: ControlKeel is software for agents, a company brain for governed delivery, and an operating layer for turning agent work into something a team can actually ship.
-      </p>
-      <div class="ck-action-row">
-        <a href={~p"/start"} class="ck-button-primary">Start a mission</a>
-        <div class="ck-inline-stats">
-          <span>Intent</span>
-          <span>Policy</span>
-          <span>Proof</span>
-        </div>
-      </div>
-    </div>
+<Layouts.app flash={@flash}>
+  <% catch_rate = @benchmark_summary.average_catch_rate
+  overhead = @benchmark_summary.average_overhead_percent
+  proof_coverage = @ship_summary.outcome_metrics.proof_backed_task_coverage_percent
+  deploy_ready = @ship_summary.outcome_metrics.deploy_ready_task_rate_percent
+  avg_findings = @ship_summary.average_findings_per_session %>
 
-    <div class="ck-side-stack">
-      <div class="ck-card ck-card-contrast">
-        <p class="ck-mini-label">Proof console loop</p>
-        <ul class="ck-mini-list">
-          <li>Mission Control for live task state, approvals, and blocked work</li>
-          <li>Proof Browser for immutable audit artifacts and rollback guidance</li>
-          <li>Ship metrics and benchmarks for outcome evidence</li>
-        </ul>
-      </div>
-      <div class="ck-card">
-        <p class="ck-mini-label">Governed delivery lifecycle</p>
-        <ul class="ck-mini-list">
-          <li>Intent intake and execution brief compilation at the start of the mission</li>
-          <li>Task graph, routing, validation, and findings during governed execution</li>
-          <li>Proof bundles, ship metrics, and benchmarks as delivery evidence</li>
-        </ul>
-      </div>
-      <div class="ck-card">
-        <p class="ck-mini-label">Who it is for</p>
-        <p class="ck-note">
-          Serious solo builders and tiny agent-heavy teams who already generate code but still need scoped delivery, approvals, and proof.
+  <section class="mx-auto flex max-w-7xl flex-col gap-6">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-lime-300">Dashboard</p>
+        <h1 class="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          Governed Delivery Monitor
+        </h1>
+        <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
+          Live mission state, benchmark signal, proof coverage, and ship readiness in one operator view.
         </p>
       </div>
-      <div class="ck-card">
-        <p class="ck-mini-label">Project rescue</p>
-        <p class="ck-note">
-          If an unsupported tool or browser generator already changed the repo, bootstrap it under ControlKeel, watch findings and budget live, capture proof, and use governed proxy only when the tool can target compatible endpoints.
-        </p>
-      </div>
-      <div class="ck-card">
-        <p class="ck-mini-label">Occupation-first onboarding</p>
-        <p class="ck-note">
-          Users choose what best describes their work. ControlKeel maps that to the right domain pack, interview language, and governance posture without forcing framework acronyms first.
-        </p>
-      </div>
-      <div class="ck-card">
-        <p class="ck-mini-label">What it is not</p>
-        <ul class="ck-mini-list">
-          <li>Not another IDE or coding model</li>
-          <li>Not a prompt marketplace</li>
-          <li>Not post-hoc code review only</li>
-        </ul>
-      </div>
-      <div class="ck-card">
-        <p class="ck-mini-label">Governed autonomy</p>
-        <p class="ck-note">
-          Findings, approvals, and budget limits stay visible in plain language so non-experts can understand risk without giving the agent full autopilot.
-        </p>
-      </div>
-      <div class="ck-card">
-        <p class="ck-mini-label">Stewardship evidence</p>
-        <p class="ck-note">
-          Proof-backed done tasks: {if @ship_summary.outcome_metrics.proof_backed_task_coverage_percent,
-            do: "#{@ship_summary.outcome_metrics.proof_backed_task_coverage_percent}%",
-            else: "not recorded"}.
-          Deploy-ready task rate: {if @ship_summary.outcome_metrics.deploy_ready_task_rate_percent,
-            do: "#{@ship_summary.outcome_metrics.deploy_ready_task_rate_percent}%",
-            else: "not recorded"}.
-        </p>
-        <a href={~p"/ship"} class="ck-link">Open ship dashboard</a>
-      </div>
-      <div class="ck-card">
-        <p class="ck-mini-label">Benchmark matrix</p>
-        <p class="ck-note">
-          {@benchmark_summary.total_runs} persisted benchmark runs across {@benchmark_summary.total_suites} suites.
-          Average catch rate: {if @benchmark_summary.average_catch_rate,
-            do: "#{Float.round(@benchmark_summary.average_catch_rate, 1)}%",
-            else: "not recorded"}.
-        </p>
-        <a href={~p"/benchmarks"} class="ck-link">Open benchmarks</a>
-      </div>
-      <div class="ck-card">
-        <p class="ck-mini-label">Install guide</p>
-        <p class="ck-note">
-          Follow the 5-minute path from first launch to first governed finding, with the exact commands used by the packaged binary and source setup.
-        </p>
-        <a href={~p"/getting-started"} class="ck-link">Open getting-started guide</a>
-      </div>
-      <div class="ck-card">
-        <p class="ck-mini-label">Skills + integrations</p>
-        <p class="ck-note">
-          Export native skills and plugin bundles for Claude Code, Codex, and Copilot / VS Code, or use MCP plus generated instruction packs for Cursor, Windsurf, Continue, Aider, and other clients.
-        </p>
-        <a href={~p"/skills"} class="ck-link">Open skills studio</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="ck-section-header">
-    <div>
-      <p class="ck-kicker">Recent missions</p>
-      <h2 class="ck-section-title">Latest governed delivery runs</h2>
-    </div>
-    <div class="ck-action-row">
-      <a href={~p"/benchmarks"} class="ck-link">View benchmark matrix</a>
-      <a href={~p"/ship"} class="ck-link">View ship metrics</a>
-      <a href={~p"/skills"} class="ck-link">View skills studio</a>
-      <a href={~p"/start"} class="ck-link">Launch a new mission</a>
-    </div>
-  </div>
-
-  <div class="ck-session-grid">
-    <%= if @recent_sessions == [] do %>
-      <div class="ck-card ck-empty-state">
-        <p class="ck-empty-title">No missions yet.</p>
-        <p class="ck-note">
-          Create the first one and ControlKeel will generate the brief, tasks, and findings.
-        </p>
-      </div>
-    <% else %>
-      <%= for session <- @recent_sessions do %>
-        <a href={~p"/missions/#{session.id}"} class="ck-card ck-session-card">
-          <div class="ck-session-head">
-            <div>
-              <p class="ck-mini-label">{session.workspace.industry |> String.capitalize()}</p>
-              <h3>{session.title}</h3>
-            </div>
-            <span class={["ck-pill", "ck-pill-#{session.risk_tier}"]}>{session.risk_tier}</span>
-          </div>
-          <p class="ck-note">{session.objective}</p>
-          <div class="ck-metric-row">
-            <span>{Enum.count(session.findings)} findings</span>
-            <span>{Enum.count(session.tasks)} tasks</span>
-            <span>${session.budget_cents |> Kernel./(100) |> trunc()}/mo cap</span>
-          </div>
+      <div class="flex flex-wrap gap-2">
+        <a
+          href={~p"/start"}
+          class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
+        >
+          <.icon name="hero-plus" class="size-4" /> New Mission
         </a>
-      <% end %>
-    <% end %>
-  </div>
-</section>
+        <a
+          href={~p"/ship"}
+          class="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-lime-300/40 hover:bg-white/10"
+        >
+          <.icon name="hero-paper-airplane" class="size-4" /> Ship Metrics
+        </a>
+      </div>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <article class="rounded-2xl border border-white/10 bg-white/[0.06] p-5 shadow-xl shadow-black/10 backdrop-blur">
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-sm font-medium text-zinc-400">Benchmark Catch Rate</p>
+          <span class="rounded-full bg-lime-300/10 p-2 text-lime-300">
+            <.icon name="hero-shield-check" class="size-4" />
+          </span>
+        </div>
+        <p class="mt-4 text-3xl font-semibold text-white">{format_percent(catch_rate)}</p>
+        <div class="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+          <div
+            class="h-full rounded-full bg-lime-300"
+            style={"width: #{min(catch_rate || 0, 100)}%"}
+          />
+        </div>
+        <p class="mt-3 text-xs text-zinc-500">
+          {@benchmark_summary.total_runs} runs across {@benchmark_summary.total_suites} suites
+        </p>
+      </article>
+
+      <article class="rounded-2xl border border-white/10 bg-white/[0.06] p-5 shadow-xl shadow-black/10 backdrop-blur">
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-sm font-medium text-zinc-400">Proof Coverage</p>
+          <span class="rounded-full bg-sky-400/10 p-2 text-sky-300">
+            <.icon name="hero-document-check" class="size-4" />
+          </span>
+        </div>
+        <p class="mt-4 text-3xl font-semibold text-white">{format_percent(proof_coverage)}</p>
+        <div class="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+          <div
+            class="h-full rounded-full bg-sky-300"
+            style={"width: #{min(proof_coverage || 0, 100)}%"}
+          />
+        </div>
+        <p class="mt-3 text-xs text-zinc-500">Done tasks with attached evidence</p>
+      </article>
+
+      <article class="rounded-2xl border border-white/10 bg-white/[0.06] p-5 shadow-xl shadow-black/10 backdrop-blur">
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-sm font-medium text-zinc-400">Deploy Ready Rate</p>
+          <span class="rounded-full bg-emerald-400/10 p-2 text-emerald-300">
+            <.icon name="hero-rocket-launch" class="size-4" />
+          </span>
+        </div>
+        <p class="mt-4 text-3xl font-semibold text-white">{format_percent(deploy_ready)}</p>
+        <div class="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+          <div
+            class="h-full rounded-full bg-emerald-300"
+            style={"width: #{min(deploy_ready || 0, 100)}%"}
+          />
+        </div>
+        <p class="mt-3 text-xs text-zinc-500">Release-ready task outcomes</p>
+      </article>
+
+      <article class="rounded-2xl border border-white/10 bg-white/[0.06] p-5 shadow-xl shadow-black/10 backdrop-blur">
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-sm font-medium text-zinc-400">Finding Density</p>
+          <span class="rounded-full bg-amber-300/10 p-2 text-amber-200">
+            <.icon name="hero-exclamation-triangle" class="size-4" />
+          </span>
+        </div>
+        <p class="mt-4 text-3xl font-semibold text-white">{format_number(avg_findings)}</p>
+
+        <p class="mt-3 text-xs text-zinc-500">Average findings per recent mission</p>
+      </article>
+    </div>
+
+    <aside class="grid gap-6 grid-cols-2 w-full">
+      <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+              Funnel
+            </p>
+            <h2 class="mt-1 text-xl font-semibold text-white">Delivery Flow</h2>
+          </div>
+          <span class="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-400">
+            {@ship_summary.recent_session_count} sessions
+          </span>
+        </div>
+        <div class="mt-5 space-y-4">
+          <%= for step <- @ship_summary.steps do %>
+            <div>
+              <div class="flex items-center justify-between gap-3 text-sm">
+                <span class="capitalize text-zinc-300">
+                  {String.replace(step.step, "_", " ")}
+                </span>
+                <span class="font-semibold text-white">{step.count}</span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  class="h-full rounded-full bg-lime-300"
+                  style={"width: #{min(step.conversion_percent || 0, 100)}%"}
+                />
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </section>
+
+      <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+              Telemetry
+            </p>
+            <h2 class="mt-1 text-xl font-semibold text-white">Signal Preview</h2>
+          </div>
+          <a
+            href={~p"/benchmarks"}
+            class="text-sm font-medium text-zinc-400 hover:text-lime-300"
+          >
+            Benchmarks
+          </a>
+        </div>
+
+        <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div class="rounded-2xl bg-white/[0.04] p-3">
+            <dt class="text-zinc-500">Avg overhead</dt>
+            <dd class="mt-1 font-semibold text-white">{format_percent(overhead)}</dd>
+          </div>
+          <div class="rounded-2xl bg-white/[0.04] p-3">
+            <dt class="text-zinc-500">First finding</dt>
+            <dd class="mt-1 font-semibold text-white">
+              {if @ship_summary.average_time_to_first_finding_seconds,
+                do: "#{format_number(@ship_summary.average_time_to_first_finding_seconds)}s",
+                else: "Not recorded"}
+            </dd>
+          </div>
+        </dl>
+      </section>
+    </aside>
+
+    <div class="grid gap-6 w-full ">
+      <section class="rounded-3xl border border-white/10 bg-zinc-900/70 shadow-2xl shadow-black/20 backdrop-blur">
+        <div class="flex flex-col gap-3 border-b border-white/10 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+              Recent Missions
+            </p>
+            <h2 class="mt-1 text-xl font-semibold text-white">Live Task State</h2>
+          </div>
+          <a
+            href={~p"/observability"}
+            class="inline-flex items-center gap-2 text-sm font-medium text-zinc-300 transition hover:text-lime-300"
+          >
+            Open observability <.icon name="hero-arrow-up-right" class="size-4" />
+          </a>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-white/10 text-left text-sm">
+            <thead class="bg-white/[0.03] text-xs uppercase tracking-[0.14em] text-zinc-500">
+              <tr>
+                <th class="px-5 py-3 font-semibold">Mission</th>
+                <th class="px-5 py-3 font-semibold">Risk</th>
+                <th class="px-5 py-3 font-semibold">Workload</th>
+                <th class="px-5 py-3 font-semibold">Findings</th>
+                <th class="px-5 py-3 font-semibold">Budget</th>
+                <th class="px-5 py-3 font-semibold"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/10">
+              <%= if @recent_sessions == [] do %>
+                <tr>
+                  <td colspan="6" class="px-5 py-12 text-center">
+                    <p class="text-base font-medium text-white">No missions yet.</p>
+                    <p class="mt-1 text-sm text-zinc-500">
+                      Start a mission to populate live governance telemetry.
+                    </p>
+                  </td>
+                </tr>
+              <% else %>
+                <%= for session <- @recent_sessions do %>
+                  <tr class="transition hover:bg-white/[0.03]">
+                    <td class="max-w-sm px-5 py-4">
+                      <p class="font-medium text-white">{session.title}</p>
+                      <p class="mt-1 line-clamp-1 text-xs text-zinc-500">{session.objective}</p>
+                      <p class="mt-2 text-xs text-zinc-600">
+                        {session.workspace && session.workspace.name}
+                      </p>
+                    </td>
+                    <td class="px-5 py-4">
+                      <span class={[
+                        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
+                        session.risk_tier in ["critical", "high"] &&
+                          "bg-red-400/10 text-red-200 ring-red-300/20",
+                        session.risk_tier in ["medium", "moderate"] &&
+                          "bg-amber-300/10 text-amber-100 ring-amber-200/20",
+                        session.risk_tier in ["low"] &&
+                          "bg-emerald-300/10 text-emerald-100 ring-emerald-200/20",
+                        session.risk_tier not in ["critical", "high", "medium", "moderate", "low"] &&
+                          "bg-white/10 text-zinc-300 ring-white/15"
+                      ]}>
+                        {session.risk_tier}
+                      </span>
+                    </td>
+                    <td class="px-5 py-4">
+                      <div class="flex items-center gap-2 text-zinc-300">
+                        <.icon name="hero-list-bullet" class="size-4 text-zinc-500" />
+                        {Enum.count(session.tasks)} tasks
+                      </div>
+                    </td>
+                    <td class="px-5 py-4">
+                      <div class="flex items-center gap-2 text-zinc-300">
+                        <.icon name="hero-exclamation-circle" class="size-4 text-zinc-500" />
+                        {Enum.count(session.findings)}
+                      </div>
+                    </td>
+                    <td class="px-5 py-4 text-zinc-300">
+                      ${session.budget_cents |> Kernel./(100) |> trunc()}
+                    </td>
+                    <td class="px-5 py-4 text-right">
+                      <a
+                        href={~p"/missions/#{session.id}"}
+                        class="inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:border-lime-300/40 hover:bg-lime-300/10 hover:text-white"
+                      >
+                        Inspect <.icon name="hero-arrow-right" class="size-3" />
+                      </a>
+                    </td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </section>
+</Layouts.app>

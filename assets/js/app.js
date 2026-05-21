@@ -25,6 +25,51 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+
+const setSidebarActiveLink = () => {
+  // TODO: Replace this client-side active-link with a LiveView-driven approach
+  const links = document.querySelectorAll("[data-sidebar-link]")
+  if (!links.length) return
+
+  const pathname = window.location.pathname
+  let bestMatch = null
+  let bestScore = -1
+
+  links.forEach(link => {
+    const href = link.getAttribute("href")
+    if (!href) return
+
+    const url = href.startsWith("/")
+      ? href
+      : new URL(href, window.location.origin).pathname
+
+    let score = 0
+    if (url === "/") {
+      score = pathname === "/" ? 2 : 0
+    } else if (pathname === url) {
+      score = 100 + url.length
+    } else if (pathname === url || pathname.startsWith(url + "/")) {
+      score = 10 + url.length
+    }
+
+    if (score > bestScore) {
+      bestScore = score
+      bestMatch = link
+    }
+
+    link.classList.remove("bg-white/10", "text-white", "shadow-sm", "ring-1", "ring-white/10")
+    link.removeAttribute("aria-current")
+  })
+
+  if (bestMatch) {
+    bestMatch.classList.add("bg-white/10", "text-white", "shadow-sm", "ring-1", "ring-white/10")
+    bestMatch.setAttribute("aria-current", "page")
+  }
+}
+
+document.addEventListener("DOMContentLoaded", setSidebarActiveLink)
+window.addEventListener("phx:page-loading-stop", setSidebarActiveLink)
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},

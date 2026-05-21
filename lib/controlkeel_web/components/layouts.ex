@@ -35,38 +35,142 @@ defmodule ControlKeelWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
+    <div class="min-h-screen bg-zinc-950 text-zinc-100">
+      <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-white/10 bg-zinc-950/95 px-4 py-5 shadow-2xl shadow-black/30 lg:flex">
+        <a href={~p"/"} class="flex items-center gap-3 rounded-2xl px-2 py-1.5">
+          <span class="flex size-10 items-center justify-center rounded-xl bg-lime-300 text-zinc-950 shadow-lg shadow-lime-300/20">
+            <.icon name="hero-bolt-solid" class="size-5" />
+          </span>
+          <span>
+            <span class="block text-sm font-semibold tracking-wide text-white">ControlKeel</span>
+            <span class="block text-xs text-zinc-500">Governed delivery</span>
+          </span>
         </a>
-      </div>
-      <div class="flex-none">
-        <ul class="flex flex-column px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-          <li>
-            <a href="https://hexdocs.pm/phoenix/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-    </header>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
-        {render_slot(@inner_block)}
+        <nav data-sidebar class="mt-8 flex flex-1 flex-col gap-1 text-sm">
+          <a
+            href={~p"/"}
+            data-sidebar-link
+            class="group flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5 font-medium text-white shadow-sm ring-1 ring-white/10 transition hover:bg-white/15"
+          >
+            <.icon name="hero-squares-2x2" class="size-4 text-lime-300" /> Dashboard
+          </a>
+          <a
+            href={~p"/start"}
+            data-sidebar-link
+            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-rocket-launch" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+            Missions
+          </a>
+          <a
+            href={~p"/install"}
+            data-sidebar-link
+            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-arrow-down-tray" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+            Install
+          </a>
+          <a
+            href={~p"/skills"}
+            data-sidebar-link
+            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-puzzle-piece" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+            Skills
+          </a>
+          <a
+            href={~p"/proofs"}
+            data-sidebar-link
+            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-shield-check" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+            Proofs
+          </a>
+          <a
+            href={~p"/policies"}
+            data-sidebar-link
+            class="group flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon
+              name="hero-adjustments-horizontal"
+              class="size-4 text-zinc-500 group-hover:text-lime-300"
+            /> Policy Studio
+          </a>
+          <a
+            href={~p"/deploy"}
+            data-sidebar-link
+            class="group flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-cloud-arrow-up" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+            Deploy
+          </a>
+          <a
+            href={~p"/benchmarks"}
+            data-sidebar-link
+            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon
+              name="hero-chart-bar-square"
+              class="size-4 text-zinc-500 group-hover:text-lime-300"
+            /> Benchmarks
+          </a>
+          <a
+            href={~p"/ship"}
+            data-sidebar-link
+            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-paper-airplane" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+            Ship Metrics
+          </a>
+          <a
+            href={~p"/findings"}
+            data-sidebar-link
+            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon
+              name="hero-exclamation-triangle"
+              class="size-4 text-zinc-500 group-hover:text-lime-300"
+            /> Findings
+          </a>
+          <a
+            href={~p"/observability"}
+            data-sidebar-link
+            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-signal" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+            Observability
+          </a>
+        </nav>
+      </aside>
+
+      <div class="lg:pl-64">
+        <header class="sticky top-0 z-30 border-b border-white/10 bg-zinc-950/85 backdrop-blur-xl">
+          <div class="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+            <div class="flex min-w-0 items-center gap-3">
+              <a href={~p"/"} class="flex items-center gap-2 lg:hidden">
+                <span class="flex size-9 items-center justify-center rounded-xl bg-lime-300 text-zinc-950">
+                  <.icon name="hero-bolt-solid" class="size-5" />
+                </span>
+                <span class="text-sm font-semibold text-white">ControlKeel</span>
+              </a>
+              <div class="hidden min-w-0 lg:block">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+                  Mission Control
+                </p>
+                <p class="truncate text-sm text-zinc-400">
+                  Live governance, proof, and delivery telemetry
+                </p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main class="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,rgba(190,242,100,0.12),transparent_28rem),linear-gradient(180deg,#0a0a0a_0%,#111113_48%,#18181b_100%)] px-4 py-6 sm:px-6 lg:px-8">
+          {render_slot(@inner_block)}
+        </main>
       </div>
-    </main>
+    </div>
 
     <.flash_group flash={@flash} />
     """
@@ -111,43 +215,6 @@ defmodule ControlKeelWeb.Layouts do
         {gettext("Attempting to reconnect")}
         <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
-    </div>
-    """
-  end
-
-  @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
-
-  See <head> in root.html.heex which applies the theme before page load.
-  """
-  def theme_toggle(assigns) do
-    ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
-      >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-      >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-      >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
     </div>
     """
   end
