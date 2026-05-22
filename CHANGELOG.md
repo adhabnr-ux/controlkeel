@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.23 — 2026-05-22
+
+### What's changed
+
+- fix: suppress noisy spawn errors when deepsec cd directory doesn't exist
+- fix: repair release readiness proof selection
+- feat: enhance npm publishing with trusted publishing and registry configuration
+- feat: enhance stream_scan functionality and add tests for findings emission
+
 ## v0.3.22 — 2026-05-21
 
 ### What's changed
