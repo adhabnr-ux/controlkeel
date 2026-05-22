@@ -310,11 +310,26 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
   defp safe_cmd(command, args, opts \\ []) do
     opts = Keyword.put(opts, :stderr_to_stdout, true)
 
-    try do
-      System.cmd(command, args, opts)
-    rescue
-      _e in [ErlangError] ->
-        {"Command not found: #{command}", 127}
+    # If a :cd option is provided, verify the directory exists before spawning
+    # to avoid noisy "spawn: Could not cd to <path>" stderr output
+    case Keyword.get(opts, :cd) do
+      nil ->
+        :ok
+
+      dir ->
+        if File.exists?(dir), do: :ok, else: {:error, {:enoent, dir}}
+    end
+    |> case do
+      :ok ->
+        try do
+          System.cmd(command, args, opts)
+        rescue
+          _e in [ErlangError] ->
+            {"Command not found: #{command}", 127}
+        end
+
+      {:error, {:enoent, dir}} ->
+        {"Directory not found: #{dir}", 1}
     end
   end
 end
