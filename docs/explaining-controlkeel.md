@@ -11,7 +11,9 @@ This document is the plain-English answer to:
 
 ## The shortest explanation
 
-**ControlKeel is the control plane for agent-generated software delivery.**
+**ControlKeel shapes itself around how you actually steer.** The agent is the fast junior engineer; you are the tech lead. CK's job is to amplify your judgment — not replace it, not restrict it, not nag you with a rules file the agent might ignore. Every plan you approve, every finding you escalate, every refinement you push back on becomes a signal that aligns the system to your real working pattern. Run `controlkeel me` to see that pattern reflected back at any time.
+
+**Under that surface, ControlKeel is the control plane for agent-generated software delivery.**
 
 It does not try to be the coding model, IDE, or chat interface. It sits around the agent loop and adds the parts that usually break first in real work:
 

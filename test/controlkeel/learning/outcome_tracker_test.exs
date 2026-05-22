@@ -44,7 +44,78 @@ defmodule ControlKeel.Learning.OutcomeTrackerTest do
     assert :deploy_failure in outcomes
     assert :test_pass in outcomes
     assert :budget_exceeded in outcomes
-    assert length(outcomes) == 10
+    assert :prompt_first_pass in outcomes
+    assert :prompt_refined_once in outcomes
+    assert :prompt_refined_repeatedly in outcomes
+    assert :prompt_abandoned in outcomes
+    assert length(outcomes) == 14
+  end
+
+  describe "record_prompt_outcome/3" do
+    test "maps depth 1 + approved to prompt_first_pass" do
+      session = session_fixture()
+
+      assert {:ok, result} =
+               OutcomeTracker.record_prompt_outcome(session.id, %{
+                 depth: 1,
+                 status: "approved",
+                 review_id: 42
+               })
+
+      assert result.outcome == :prompt_first_pass
+      assert result.reward > 0
+    end
+
+    test "maps depth 2 + approved to prompt_refined_once" do
+      session = session_fixture()
+
+      assert {:ok, result} =
+               OutcomeTracker.record_prompt_outcome(session.id, %{
+                 depth: 2,
+                 status: "approved",
+                 review_id: 43
+               })
+
+      assert result.outcome == :prompt_refined_once
+    end
+
+    test "maps depth 3+ + approved to prompt_refined_repeatedly with negative reward" do
+      session = session_fixture()
+
+      assert {:ok, result} =
+               OutcomeTracker.record_prompt_outcome(session.id, %{
+                 depth: 5,
+                 status: "approved",
+                 review_id: 44
+               })
+
+      assert result.outcome == :prompt_refined_repeatedly
+      assert result.reward < 0
+    end
+
+    test "maps denied to prompt_abandoned regardless of depth" do
+      session = session_fixture()
+
+      assert {:ok, result} =
+               OutcomeTracker.record_prompt_outcome(session.id, %{
+                 depth: 1,
+                 status: "denied",
+                 review_id: 45
+               })
+
+      assert result.outcome == :prompt_abandoned
+    end
+
+    test "skips on unknown status without error" do
+      session = session_fixture()
+
+      assert {:ok, :skipped} =
+               OutcomeTracker.record_prompt_outcome(session.id, %{
+                 depth: 1,
+                 status: "pending",
+                 review_id: 46
+               })
+    end
   end
 
   test "rewards have expected sign and range" do

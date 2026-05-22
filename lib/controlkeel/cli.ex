@@ -111,6 +111,12 @@ defmodule ControlKeel.CLI do
     format: :string
   ]
   @mcp_switches [project_root: :string]
+  @me_switches [
+    session_id: :integer,
+    format: :string,
+    json: :boolean,
+    project_root: :string
+  ]
   @memory_search_switches [session_id: :integer, type: :string]
   @deploy_analyze_switches [project_root: :string]
   @deploy_cost_switches [
@@ -300,6 +306,9 @@ defmodule ControlKeel.CLI do
 
       ["serve"] ->
         {:ok, %{command: :serve, options: %{}, args: []}}
+
+      ["me" | rest] ->
+        parse_with_switches(:me, rest, @me_switches)
 
       ["init" | rest] ->
         parse_with_switches(:init, rest, @init_switches)
@@ -1977,6 +1986,23 @@ defmodule ControlKeel.CLI do
 
       {:error, reason} ->
         {:error, "Failed to run session: #{format_cli_error(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :me, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, _binding, default_session, _mode} <- ensure_local_project(project_root) do
+      session_id = options[:session_id] || default_session.id
+
+      payload = ControlKeel.Learning.EngineerMirror.build(session_id)
+
+      case format do
+        "json" ->
+          {:ok, [Jason.encode!(payload)]}
+
+        _ ->
+          {:ok, [render_engineer_mirror(payload)]}
+      end
     end
   end
 
@@ -6120,6 +6146,71 @@ defmodule ControlKeel.CLI do
         "- #{group.name}: #{group.invocations} call(s), #{format_money(group.estimated_cost_cents)}, #{group.cost_per_call_cents} cent(s)/call, #{group.tokens_per_call} token(s)/call, decisions #{inspect(group.decisions)}"
       end) ++
       ["Recommendations:"] ++ Enum.map(comparison.recommendations, &"- #{&1}")
+  end
+
+  defp render_engineer_mirror(%{"error" => msg}), do: "Error: #{msg}"
+
+  defp render_engineer_mirror(%{} = m) do
+    today = Map.get(m, "today", %{})
+    rolling = Map.get(m, "rolling_30d", %{})
+    patterns = Map.get(m, "review_patterns")
+
+    rate =
+      case Map.get(rolling, "first_pass_rate") do
+        nil -> "n/a"
+        v when is_float(v) -> "#{trunc(v * 100)}%"
+        _ -> "n/a"
+      end
+
+    median_depth =
+      case Map.get(rolling, "median_refinement_depth") do
+        nil -> "n/a"
+        v -> "#{v}"
+      end
+
+    breakdown =
+      rolling
+      |> Map.get("outcome_breakdown", %{})
+      |> Enum.map(fn {k, v} -> "  #{k}: #{v}" end)
+      |> Enum.join("\n")
+
+    patterns_section =
+      case patterns do
+        nil ->
+          ""
+
+        p ->
+          [
+            "",
+            "Learned review patterns:",
+            "  median_refinement_depth: #{Map.get(p, "median_refinement_depth") || "n/a"}",
+            "  avg_approved_body_length: #{Map.get(p, "avg_approved_body_length") || "n/a"}",
+            "  sample_size: #{Map.get(p, "sample_size", 0)}"
+          ]
+          |> Enum.join("\n")
+      end
+
+    """
+    You — session ##{Map.get(m, "session_id")}
+
+    Today
+      plans submitted:        #{Map.get(today, "plans_submitted", 0)}
+      first-pass approvals:   #{Map.get(today, "first_pass_approvals", 0)}
+      denials:                #{Map.get(today, "denials", 0)}
+
+    Rolling 30 days
+      first-pass rate:        #{rate}
+      median refinement depth: #{median_depth}
+      prompt outcomes:
+    #{if breakdown == "", do: "  (none yet)", else: breakdown}
+    #{patterns_section}
+
+    Top signal
+      #{Map.get(m, "top_signal") || "(none — keep steering)"}
+
+    Suggestion
+      #{Map.get(m, "one_suggestion") || "(nothing to flag right now)"}
+    """
   end
 
   defp render_observability_timeline(session_id, limit, format) do

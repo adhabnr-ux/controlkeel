@@ -398,6 +398,7 @@ defmodule ControlKeel.Mission do
           updated = get_review_with_context(updated.id)
           action = if updated.status == "approved", do: :approved, else: :denied
           record_review_memory(action, updated)
+          maybe_record_prompt_outcome(updated)
           {:ok, updated}
 
         {:error, _step, reason, _changes} ->
@@ -4007,6 +4008,40 @@ defmodule ControlKeel.Mission do
   defp review_memory_title(:approved, review), do: "Review approved: #{review.title}"
   defp review_memory_title(:denied, review), do: "Review denied: #{review.title}"
   defp review_memory_title(_action, review), do: "Review updated: #{review.title}"
+
+  defp maybe_record_prompt_outcome(%Review{review_type: "plan", status: status} = review)
+       when status in ["approved", "denied"] do
+    depth =
+      get_in(review.metadata || %{}, ["plan_refinement", "depth"]) ||
+        get_in(review.metadata || %{}, ["planning_depth"]) ||
+        1
+
+    workspace_id =
+      case review do
+        %{session: %{workspace_id: id}} when not is_nil(id) -> id
+        _ -> nil
+      end
+
+    try do
+      ControlKeel.Learning.OutcomeTracker.record_prompt_outcome(
+        review.session_id,
+        %{depth: depth, status: status, review_id: review.id},
+        workspace_id: workspace_id,
+        metadata: %{
+          "task_id" => review.task_id,
+          "review_type" => review.review_type,
+          "previous_review_id" => review.previous_review_id
+        }
+      )
+    rescue
+      err ->
+        require Logger
+        Logger.debug("prompt outcome emission skipped: #{inspect(err)}")
+        {:ok, :skipped}
+    end
+  end
+
+  defp maybe_record_prompt_outcome(_review), do: {:ok, :skipped}
 
   defp review_memory_body(%Review{} = review) do
     [review.submission_body, review.feedback_notes]

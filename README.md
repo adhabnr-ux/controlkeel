@@ -9,7 +9,9 @@
 
 > Agent output is cheap. Governed delivery is not. Keep engineers at the helm.
 
-**ControlKeel is the control plane for agent-led software delivery.** It sits between your coding agents and production as a portable "company brain": comparing *intended* delivery against *actual* delivery, catching governance drift before it ships, keeping work resumable across any host, and turning raw agent intent into audited tasks through findings and proofs, enforcing validation and review gates.
+**ControlKeel shapes itself around how you actually steer.** The agent is the fast junior engineer; you are the tech lead. CK makes your judgment legible, durable, and enforceable — and learns from every decision you make (approved, denied, escalated, dismissed) so it aligns to your real working pattern, not a spec doc you might not re-read. Run `controlkeel me` any time to see your own steering pattern reflected back.
+
+**Under that surface, ControlKeel is the control plane for agent-led software delivery.** It sits between your coding agents and production as a portable "company brain": comparing *intended* delivery against *actual* delivery, catching governance drift before it ships, keeping work resumable across any host, and turning raw agent intent into audited tasks through findings and proofs, enforcing validation and review gates.
 
 ---
 

@@ -1,6 +1,7 @@
 defmodule ControlKeel.Learning.OutcomeTracker do
   @moduledoc false
 
+  alias ControlKeel.Learning.Stats
   alias ControlKeel.Memory
   alias ControlKeel.Mission
 
@@ -14,7 +15,11 @@ defmodule ControlKeel.Learning.OutcomeTracker do
     user_approval: %{reward: 0.8, label: "User Approved"},
     user_rejection: %{reward: -0.8, label: "User Rejected"},
     budget_on_target: %{reward: 0.2, label: "Budget On Target"},
-    budget_exceeded: %{reward: -0.4, label: "Budget Exceeded"}
+    budget_exceeded: %{reward: -0.4, label: "Budget Exceeded"},
+    prompt_first_pass: %{reward: 0.6, label: "Plan Approved First Pass"},
+    prompt_refined_once: %{reward: 0.2, label: "Plan Approved After One Refinement"},
+    prompt_refined_repeatedly: %{reward: -0.3, label: "Plan Approved After Repeated Refinement"},
+    prompt_abandoned: %{reward: -0.5, label: "Plan Denied / Abandoned"}
   }
 
   def record(session_id, outcome, opts \\ []) do
@@ -184,6 +189,56 @@ defmodule ControlKeel.Learning.OutcomeTracker do
     Map.keys(@outcomes)
   end
 
+  @doc """
+  Record a prompt-quality outcome derived from a review decision.
+
+  Maps (depth, status) to a `prompt_*` outcome and writes it via `record/3`.
+  Depth comes from `review.metadata["plan_refinement"]["depth"]`; status is the
+  terminal review status (`"approved"` or `"denied"`). Unknown shapes are a no-op
+  rather than an error so this can be called fire-and-forget from the review
+  decide path without affecting the transaction outcome.
+  """
+  def record_prompt_outcome(session_id, %{} = review_summary, opts \\ []) do
+    depth = Map.get(review_summary, :depth) || Map.get(review_summary, "depth") || 1
+    status = Map.get(review_summary, :status) || Map.get(review_summary, "status")
+    review_id = Map.get(review_summary, :review_id) || Map.get(review_summary, "review_id")
+
+    case classify_prompt_outcome(depth, status) do
+      nil ->
+        {:ok, :skipped}
+
+      outcome ->
+        metadata =
+          %{
+            "depth" => depth,
+            "terminal_status" => to_string(status || ""),
+            "review_id" => review_id
+          }
+          |> Map.merge(Keyword.get(opts, :metadata, %{}))
+
+        record(session_id, outcome,
+          agent_id: Keyword.get(opts, :agent_id, "human"),
+          task_type: Keyword.get(opts, :task_type, "prompt"),
+          workspace_id: Keyword.get(opts, :workspace_id),
+          metadata: metadata
+        )
+    end
+  end
+
+  defp classify_prompt_outcome(_depth, status) when status in ["denied", :denied],
+    do: :prompt_abandoned
+
+  defp classify_prompt_outcome(depth, status) when status in ["approved", :approved] do
+    cond do
+      depth <= 1 -> :prompt_first_pass
+      depth == 2 -> :prompt_refined_once
+      depth >= 3 -> :prompt_refined_repeatedly
+      true -> nil
+    end
+  end
+
+  defp classify_prompt_outcome(_depth, _status), do: nil
+
   defp workspace_id_for_session(session_id) do
     case Mission.get_session(session_id) do
       %{workspace_id: workspace_id} -> workspace_id
@@ -191,12 +246,7 @@ defmodule ControlKeel.Learning.OutcomeTracker do
     end
   end
 
-  defp within_window?(iso_datetime, cutoff) do
-    case DateTime.from_iso8601(iso_datetime) do
-      {:ok, dt, _} -> DateTime.compare(dt, cutoff) in [:gt, :eq]
-      _ -> false
-    end
-  end
+  defp within_window?(iso_datetime, cutoff), do: Stats.at_or_after?(iso_datetime, cutoff)
 
   defp outcome_to_text(agent_id, label, session_id, reward) do
     "Agent #{agent_id} outcome #{label} in session #{session_id} with reward #{reward}"

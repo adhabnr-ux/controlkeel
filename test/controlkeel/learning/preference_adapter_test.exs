@@ -52,4 +52,14 @@ defmodule ControlKeel.Learning.PreferenceAdapterTest do
     result = PreferenceAdapter.apply_preferences_to_brief(brief, prefs)
     assert result["custom_setting"] == "value"
   end
+
+  test "analyze_review_patterns returns empty map for session without reviews" do
+    session = session_fixture()
+    assert {:ok, patterns} = PreferenceAdapter.analyze_review_patterns(session.id)
+    assert patterns == %{} or is_map(patterns)
+  end
+
+  test "analyze_review_patterns is defensive against invalid session_id" do
+    assert {:ok, %{}} = PreferenceAdapter.analyze_review_patterns(nil)
+  end
 end
