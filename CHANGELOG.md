@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.25 — 2026-05-22
+
+### What's changed
+
+- docs: refine README for clarity and consistency in descriptions
+- docs: tighten README opening paragraph
+- fix: add ck_engineer_mirror to protocol test and apply formatter changes
+- feat: engineer daily mirror + human-side prompt-quality outcomes
+
 ## v0.3.24 — 2026-05-22
 
 ### What's changed
