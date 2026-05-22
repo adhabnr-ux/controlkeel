@@ -295,6 +295,5 @@ For issues or questions about token optimization:
 
 ## Related Documentation
 
-- [Token Optimization Design](TOKEN_OPTIMIZATION_DESIGN.md) - Technical implementation details
 - [ControlKeel CLI Reference](#) - Full CLI command reference
 - [MCP Protocol Documentation](#) - Tool groups and MCP integration details
