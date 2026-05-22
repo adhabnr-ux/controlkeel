@@ -16,7 +16,9 @@ defmodule ControlKeel.MCP.Tools.CkEngineerMirrorTest do
   test "call accepts a stringified session_id" do
     session = session_fixture()
 
-    assert {:ok, payload} = CkEngineerMirror.call(%{"session_id" => Integer.to_string(session.id)})
+    assert {:ok, payload} =
+             CkEngineerMirror.call(%{"session_id" => Integer.to_string(session.id)})
+
     assert payload["session_id"] == session.id
   end
 

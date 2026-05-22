@@ -50,7 +50,9 @@ defmodule ControlKeel.Learning.PreferenceAdapter do
           end
 
         preferences =
-          if review_patterns, do: Map.put(preferences, "review_patterns", review_patterns), else: preferences
+          if review_patterns,
+            do: Map.put(preferences, "review_patterns", review_patterns),
+            else: preferences
 
         {:ok, preferences}
 

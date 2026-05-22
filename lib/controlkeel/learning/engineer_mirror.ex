@@ -147,7 +147,8 @@ defmodule ControlKeel.Learning.EngineerMirror do
     end)
   end
 
-  defp sunk_cost_from_rolling(%{"median_refinement_depth" => depth}) when is_number(depth) and depth >= 3 do
+  defp sunk_cost_from_rolling(%{"median_refinement_depth" => depth})
+       when is_number(depth) and depth >= 3 do
     "Sunk-cost signal: median refinement depth is #{depth}. " <>
       "Plans are being refined repeatedly before approval — consider approving, narrowing, or abandoning."
   end
@@ -179,9 +180,14 @@ defmodule ControlKeel.Learning.EngineerMirror do
 
   defp rate_signal(%{"first_pass_rate" => rate}) when is_float(rate) do
     cond do
-      rate >= 0.7 -> "Strong steering: #{trunc(rate * 100)}% of plans approved on first pass."
-      rate >= 0.4 -> "Mixed steering: #{trunc(rate * 100)}% first-pass approval. Tighten scope before submitting."
-      true -> "Low first-pass rate (#{trunc(rate * 100)}%). Plans are getting denied or refined repeatedly — consider smaller slices."
+      rate >= 0.7 ->
+        "Strong steering: #{trunc(rate * 100)}% of plans approved on first pass."
+
+      rate >= 0.4 ->
+        "Mixed steering: #{trunc(rate * 100)}% first-pass approval. Tighten scope before submitting."
+
+      true ->
+        "Low first-pass rate (#{trunc(rate * 100)}%). Plans are getting denied or refined repeatedly — consider smaller slices."
     end
   end
 
