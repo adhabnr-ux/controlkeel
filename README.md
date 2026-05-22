@@ -9,13 +9,13 @@
 
 > Agent output is cheap. Governed delivery is not. Keep engineers at the helm.
 
-**ControlKeel shapes itself around how you actually steer.** CK makes your judgment legible, durable, and enforceable — and learns from every decision you make (approved, denied, escalated, dismissed) so it aligns to your real working pattern, not a spec doc you might not re-read. Under that surface, CK is the control plane for agent-led software delivery. It sits between your coding agents and production as a portable "company brain": comparing *intended* delivery against *actual* delivery, catching governance drift before it ships, keeping work resumable across any host, and turning raw agent intent into audited tasks through findings and proofs, enforcing validation and review gates.
+**ControlKeel shapes itself around how you actually steer.** It makes your judgment legible, durable, and enforceable - and learns from every decision you make (approved, denied, escalated, dismissed) so it aligns to your real working pattern, not a spec doc you might not re-read. Under that surface, CK is the control plane for agent-led software delivery. It sits between your coding agents and production as a portable "company brain": comparing *intended* delivery against *actual* delivery and turning raw agent intent into audited tasks through findings and proofs. It catches the governance drift by enforcing validation and review gates, while keeping work resumable across any host.
 
 ---
 
 ## Why this exists
 
-If you're using an AI agent today, you probably have an `AGENTS.md` or a `.clauderc` telling it how to behave. But a rules file is just a promise made *to* the model. **ControlKeel enforces the output.** It uses a deterministic scanner to check what the model actually produced, blocking or flagging violations before they ever touch your main branch. Beyond just catching bugs, CK solves the "Unknown Unknowns" problem that makes working with AI miserable: having to re-explain your domain knowledge in every single session.
+If you're using an AI agent today, you probably have an `*.md` telling it how to behave. But a rules/specs file is just a promise made *to* the model. **ControlKeel enforces the output.** It uses a deterministic scanner to check what the model actually produced, blocking or flagging violations before they ever touch your main branch. Beyond just catching bugs, CK solves the "Unknown Unknowns" problem that makes working with AI miserable: having to re-explain your domain knowledge in every single session.
 
 - **Rules that actually work:** Deterministic enforcement, not just LLM suggestions.
 - **Portability:** Move between OpenCode, Claude Code, Cursor, or any supported host without losing your task state with task continuity and resume context.
