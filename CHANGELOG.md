@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.24 — 2026-05-22
+
+### What's changed
+
+- fix: eliminate Exqlite sandbox disconnect error in LiveView tests
+
 ## v0.3.23 — 2026-05-22
 
 ### What's changed
