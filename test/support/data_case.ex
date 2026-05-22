@@ -37,7 +37,14 @@ defmodule ControlKeel.DataCase do
   """
   def setup_sandbox(tags) do
     pid = Ecto.Adapters.SQL.Sandbox.start_owner!(ControlKeel.Repo, shared: not tags[:async])
-    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+
+    on_exit(fn ->
+      # Check in the connection gracefully before stopping the owner.
+      # This prevents "client exited" error logs when LiveView processes
+      # that shared the sandbox are still alive during cleanup.
+      Ecto.Adapters.SQL.Sandbox.checkin(ControlKeel.Repo, sandbox: pid)
+      Ecto.Adapters.SQL.Sandbox.stop_owner(pid)
+    end)
   end
 
   @doc """
