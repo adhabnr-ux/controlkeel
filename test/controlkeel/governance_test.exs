@@ -145,6 +145,60 @@ defmodule ControlKeel.GovernanceTest do
     assert ready["status"] == "ready"
   end
 
+  test "release_readiness falls back to available proofs when release task has none" do
+    session = session_fixture()
+
+    _release_task =
+      task_fixture(%{
+        session: session,
+        status: "done",
+        metadata: %{"track" => "release"},
+        title: "Release coordination"
+      })
+
+    proof_task =
+      task_fixture(%{session: session, status: "done", title: "Validated implementation"})
+
+    assert {:ok, plan_review} =
+             Mission.submit_review(%{
+               "task_id" => proof_task.id,
+               "review_type" => "plan",
+               "plan_phase" => "implementation_plan",
+               "research_summary" => "Reviewed release proof fallback behavior.",
+               "codebase_findings" => [
+                 "Release readiness should not ignore deploy-ready proof bundles."
+               ],
+               "alignment_context" => [
+                 "Release managers need proof fallback during state reconciliation."
+               ],
+               "options_considered" => ["Fail closed", "Fallback to latest available proof"],
+               "selected_option" => "Fallback to latest available proof",
+               "rejected_options" => ["Fail closed when a release-track task has no proof"],
+               "implementation_steps" => ["Generate proof", "Check release readiness"],
+               "validation_plan" => ["mix test"],
+               "submission_body" => "Implementation-ready proof fallback plan"
+             })
+
+    assert {:ok, _approved} =
+             Mission.respond_review(plan_review, %{
+               "decision" => "approved",
+               "feedback_notes" => "Approved plan"
+             })
+
+    proof = proof_bundle_fixture(%{task: proof_task})
+    assert proof.deploy_ready
+
+    assert {:ok, readiness} =
+             Governance.release_readiness(%{
+               session_id: session.id,
+               smoke: %{"status" => "success"},
+               provenance: %{"verified" => true}
+             })
+
+    assert readiness["status"] == "ready"
+    assert readiness["proof"]["id"] == proof.id
+  end
+
   test "install_github_scaffolding writes workflow files", %{tmp_dir: tmp_dir} do
     assert {:ok, install} = Governance.install_github_scaffolding(tmp_dir)
     assert install["provider"] == "github"

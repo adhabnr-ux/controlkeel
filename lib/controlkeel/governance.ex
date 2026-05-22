@@ -162,7 +162,7 @@ defmodule ControlKeel.Governance do
         provenance = normalize_map(opts["provenance"] || opts[:provenance])
         smoke_ready? = smoke_ready?(smoke)
         provenance_verified? = provenance_verified?(provenance)
-        deploy_ready? = latest_proof && latest_proof.deploy_ready
+        deploy_ready? = not is_nil(latest_proof) and latest_proof.deploy_ready
 
         reasons =
           []
@@ -183,7 +183,7 @@ defmodule ControlKeel.Governance do
             "No proof bundle is available for release review."
           )
           |> maybe_add_reason(
-            latest_proof && not latest_proof.deploy_ready,
+            not is_nil(latest_proof) and not latest_proof.deploy_ready,
             "The latest proof bundle is not deploy-ready."
           )
           |> maybe_add_reason(not smoke_ready?, "Release smoke evidence is missing or not green.")
@@ -677,6 +677,10 @@ defmodule ControlKeel.Governance do
         latest_by_task
         |> Map.take(release_task_ids)
         |> Map.values()
+        |> case do
+          [] -> Map.values(latest_by_task)
+          proofs -> proofs
+        end
       end
 
     Enum.max_by(candidate_proofs, &proof_sort_key/1, fn -> nil end)
