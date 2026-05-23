@@ -139,7 +139,7 @@ defmodule ControlKeel.Deployment.AdvisorTest do
     assert result.stack == :python
 
     [dockerfile | _] = result.generators
-    assert dockerfile.content =~ "pip install --no-cache-dir -r requirements.txt gunicorn"
+    assert dockerfile.content =~ "pip install --no-cache-dir -r requirements.txt gunicorn==23.0.0"
     assert dockerfile.content =~ ~s(CMD ["gunicorn")
     assert dockerfile.content =~ "COPY --from=build /usr/local/bin /usr/local/bin"
   end

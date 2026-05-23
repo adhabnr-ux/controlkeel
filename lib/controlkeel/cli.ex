@@ -392,6 +392,12 @@ defmodule ControlKeel.CLI do
       ["run", "session", session_id | rest] ->
         parse_run_command(:run_session, session_id, rest)
 
+      ["session", "list"] ->
+        {:ok, %{command: :session_list, options: %{}, args: []}}
+
+      ["session", "switch", session_id] ->
+        {:ok, %{command: :session_switch, options: %{}, args: [session_id]}}
+
       ["registry", "sync", "acp"] ->
         {:ok, %{command: :registry_sync_acp, options: %{}, args: []}}
 
@@ -1986,6 +1992,50 @@ defmodule ControlKeel.CLI do
 
       {:error, reason} ->
         {:error, "Failed to run session: #{format_cli_error(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :session_list}, _project_root) do
+    sessions = Mission.list_recent_sessions(20)
+
+    lines =
+      if sessions == [] do
+        ["No missions found. Start one with: controlkeel init"]
+      else
+        ["Recent missions:"] ++
+          Enum.map(sessions, fn session ->
+            "##{session.id} #{session.title} — #{session.risk_tier} risk — workspace ##{session.workspace_id}"
+          end)
+      end
+
+    {:ok, lines}
+  end
+
+  def run_command(%{command: :session_switch, args: [session_id]}, project_root) do
+    with {:ok, parsed_id} <- parse_id(session_id),
+         %{} = target <- Mission.get_session(parsed_id),
+         {:ok, binding, _current_session, _mode} <- ensure_local_project(project_root),
+         updated <-
+           binding
+           |> Map.put("session_id", target.id)
+           |> Map.put("workspace_id", target.workspace_id),
+         {:ok, written} <-
+           ProjectBinding.write_effective(updated, project_root,
+             mode: binding_write_mode(binding)
+           ),
+         {:ok, _updated_session} <-
+           Mission.attach_session_runtime_context(target.id, %{
+             "project_root" => ProjectRoot.resolve(project_root)
+           }) do
+      {:ok,
+       [
+         "Switched ControlKeel project binding to mission ##{target.id}: #{target.title}.",
+         "Project root: #{written["project_root"]}."
+       ]}
+    else
+      {:error, :invalid_id} -> {:error, "Invalid mission id: #{session_id}"}
+      nil -> {:error, "Mission not found: #{session_id}"}
+      {:error, reason} -> {:error, "Could not switch mission: #{format_cli_error(reason)}"}
     end
   end
 

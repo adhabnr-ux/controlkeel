@@ -201,6 +201,36 @@ defmodule ControlKeel.Help do
       related: ["findings", "review", "attach"]
     },
     %{
+      id: "sessions",
+      title: "Sessions and mission switching",
+      summary:
+        "Use session commands when a project binding should point at a different mission without reinitializing the folder.",
+      keywords: [
+        "session",
+        "sessions",
+        "mission",
+        "missions",
+        "switch",
+        "active",
+        "project",
+        "folder",
+        "binding"
+      ],
+      phrases: ["switch mission", "change active mission", "list missions", "different folder"],
+      commands: [
+        "controlkeel session list",
+        "controlkeel session switch <mission-id>",
+        "controlkeel status",
+        "controlkeel context --json"
+      ],
+      next_steps: [
+        "Run `controlkeel session list` to see recent missions available to bind.",
+        "Run `controlkeel session switch <mission-id>` inside the project folder that should use that mission.",
+        "Run `controlkeel status` to confirm the active mission, budget, findings, and proof state now match."
+      ],
+      related: ["getting-started", "run", "findings"]
+    },
+    %{
       id: "skills",
       title: "Skills, bundles, and plugins",
       summary:
