@@ -306,21 +306,92 @@ Complete the enterprise surface.
 - NATS JetStream durable queues for multi-node coordination
 - Idempotency and replay for scalable observability projections
 
-## Open questions and decisions owed
+## Architectural decisions (resolved defaults)
 
-These need explicit decisions before Phase 2 code lands. Each one shapes downstream phases, so leaving them implicit creates rework.
+These were open questions in the previous revision. Each is now resolved to a default position grounded in existing code, so implementation can start without waiting on further architecture review. Decisions are revisitable through a `ck_review_submit` packet if Phase N evidence justifies a change.
 
-| Question | Why it matters | Owner | Target decision phase |
-| --- | --- | --- | --- |
-| Single Phoenix app with `Runtime.mode` flag vs. dedicated cloud control-plane service? | Determines deploy topology, schema layout, and whether `CloudRepo` is a sibling repo or a separate app boundary. | architecture | Phase 1 |
-| Workspace identity: signed device key, OAuth client per workspace, or both? | Wire-level auth contract for `controlkeel cloud connect`. Downstream telemetry, hosted MCP, and cloud-agent flows all hang off this. | security | Phase 1 |
-| Telemetry event envelope schema (versioning, idempotency keys, redaction marker placement)? | Stable wire format unblocks Phase 2 ingestion and any third-party dashboard consumers. Schema changes after launch are expensive. | platform | Phase 2 |
-| Org/user/membership data model — extend `Platform.ServiceAccount` or new `accounts` context? | Choice locks the migration path and decides whether service accounts and user accounts share a token model. | platform | Phase 3 |
-| Hosted MCP multi-tenancy: workspace-scoped tokens only, or org + workspace hierarchy in protocol scopes? | Affects scope strings exposed in `ProtocolAccess` and downstream RBAC. | platform | Phase 3 |
-| Storage for proof bundles in cloud mode: Postgres BYTEA, S3-compatible object store, or external blob service? | Drives Phase 5 self-host requirements and DLP/redaction surface area. | infra | Phase 5 |
-| NATS JetStream consumer durability strategy: per-workspace streams vs. shared streams with subject filters? | Determines blast radius of poison messages and back-pressure isolation. | infra | Phase 6 |
+### D1 — App topology: single Phoenix app, `Runtime.mode` flag
 
-Record each decision through `ck_review_submit` as it lands, link the review ID back into this table.
+**Decision:** One Phoenix app, one codebase. `Runtime.mode` (`:local` | `:cloud`, [`lib/controlkeel/runtime.ex`](../lib/controlkeel/runtime.ex)) selects bus, repo, and feature flags at boot. No separate cloud control-plane service.
+
+**Rationale:** `ControlKeel.Runtime` and `ControlKeel.CloudRepo` already implement this pattern. Splitting into two apps doubles deploy surface, doubles auth code, and breaks proof/memory continuity. The local-to-cloud transition is a config change, not a port across services.
+
+**Implication:** Cloud-only code paths gate on `Runtime.cloud?/0`; CI runs the test suite under both modes; the same release artifact serves laptop, team SaaS, and self-host.
+
+### D2 — Workspace identity: keypair for workspace, OAuth tokens for runtime authz
+
+**Decision:** `controlkeel cloud connect` generates a long-lived workspace keypair stored locally; the public key registers the workspace with the cloud control plane. Runtime authorization (hosted MCP, A2A, cloud-agent) continues to use the existing service-account OAuth tokens issued through [`ProtocolAccess`](../lib/controlkeel/protocol_access.ex).
+
+**Rationale:** Workspace identity and runtime authz have different lifecycles. The keypair survives token rotation; tokens stay short-lived. This reuses the service-account model already in code and adds the minimum new primitive (a workspace keypair) on top.
+
+**Implication:** Schema adds `workspace_keys` (workspace_id, public_key, fingerprint, created_at, revoked_at). No change to service-account token flow.
+
+### D3 — Telemetry event envelope
+
+**Decision:** JSON envelope, additive schema versioning, idempotency-key-driven dedupe.
+
+```json
+{
+  "schema_version": "1",
+  "event_id": "01HK...ulid",
+  "workspace_id": "ws_...",
+  "emitted_at": "2026-05-23T23:00:00Z",
+  "kind": "finding.created",
+  "redaction_policy_version": "2026.05",
+  "idempotency_key": "01HK...ulid",
+  "payload": { /* redacted, kind-specific */ }
+}
+```
+
+**Rationale:** ULID `event_id` doubles as default idempotency key. `schema_version` is a string so additive minor versions stay compatible. `redaction_policy_version` makes it auditable which redaction rules ran before egress.
+
+**Implication:** Server-side ingestion validates `schema_version`, rejects events without `redaction_policy_version`, and dedupes by `idempotency_key` within a 7-day window.
+
+### D4 — Accounts model: new `Accounts` context, separate from `ServiceAccount`
+
+**Decision:** New `ControlKeel.Accounts` context with `User`, `Org`, `Membership`, `Role`. Service accounts stay in `ControlKeel.Platform` as machine identities. Both share the same hashed-token pattern but live in separate tables.
+
+**Rationale:** Mixing user identities into `ServiceAccount` would break the machine-identity invariant (no email, no SSO, no human roles). Separating contexts keeps RBAC reasoning clean and lets Phase 6 SSO target users without touching service-account flow.
+
+**Implication:** New tables: `users`, `orgs`, `memberships` (org_id, user_id, role), `workspace_members` (workspace_id, user_id, role). Service accounts gain optional `created_by_user_id`.
+
+### D5 — Hosted MCP multi-tenancy: workspace scopes primary, org-prefixed scopes for cross-workspace operations
+
+**Decision:** Continue with workspace-scoped tokens for tool dispatch (current model). Add `org:`-prefixed scopes (e.g., `org:budget:read`, `org:audit:read`) only for operations that explicitly cross workspaces. Most scopes stay workspace-bound.
+
+**Rationale:** Workspace-bound is the safer default — it preserves data isolation. Adding org-scopes only where the use case crosses workspaces (org budget rollup, org-wide audit export) keeps the scope vocabulary small and the policy surface auditable.
+
+**Implication:** Extend `@protocol_scopes` in [`protocol_access.ex`](../lib/controlkeel/protocol_access.ex) with `org:budget:read`, `org:audit:read`, `org:members:read`, `org:policy:write`. Tokens carrying org-scopes are issued only to org-admin users, not to service accounts by default.
+
+### D6 — Proof bundle storage: S3-compatible object store, local-disk adapter for self-host
+
+**Decision:** S3-compatible object store (AWS S3, MinIO, Cloudflare R2) for cloud mode. Default local-disk adapter for self-host. Postgres only stores the bundle manifest (hash, size, redaction policy version), not the bundle bytes.
+
+**Rationale:** Proof bundles can grow large (trace packets, transcripts). Postgres BYTEA is fine for small artifacts but bloats backups for archives. S3-compatible covers SaaS (S3/R2) and air-gapped self-host (MinIO) with the same adapter.
+
+**Implication:** New `ProofStore` behaviour with `S3` and `LocalDisk` adapters. Migration path from current local file storage is forward-only — existing local proofs stay where they are, new cloud-mode proofs go to the configured store.
+
+### D7 — JetStream durability: shared streams with workspace-scoped subjects
+
+**Decision:** Shared JetStream streams (`ck.events`, `ck.tasks`, `ck.telemetry`) with workspace-scoped subjects (e.g., `ck.events.ws_abc123.finding.created`). Per-workspace streams only when a workspace exceeds an isolation threshold (configurable, default disabled).
+
+**Rationale:** Per-workspace streams give better isolation but create stream proliferation that NATS operators dislike. Shared streams with subject filtering give us per-workspace consumers without operational sprawl. Subject-based ACLs in NATS enforce isolation.
+
+**Implication:** Consumer config uses subject filters. Workspace deletion is a subject-purge operation. Poison message containment is per-consumer dead-letter queue, not per-stream.
+
+### Revisit conditions
+
+Each decision above is revisitable if and only if one of these triggers fires:
+
+| Decision | Revisit trigger |
+| --- | --- |
+| D1 | Cloud-mode boot time exceeds 5× local-mode, or a regulated customer requires a separate compliance boundary. |
+| D2 | Workspace keypair compromise affects more than one workspace, or HSM-backed identity becomes a hard customer requirement. |
+| D3 | A consumer requires schema fields incompatible with additive versioning. |
+| D4 | User and service-account RBAC drift would require duplicating ≥3 policies. |
+| D5 | Cross-workspace operations exceed 20% of hosted MCP traffic. |
+| D6 | A customer requires Postgres-only storage for residency compliance and audits show <5% of bundles exceed BYTEA-friendly size. |
+| D7 | A single workspace's event volume crowds out others or NATS subject-ACL enforcement proves unreliable. |
 
 ## Phase 1 first-PR scope: `controlkeel cloud doctor`
 
