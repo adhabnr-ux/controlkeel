@@ -384,7 +384,7 @@ How severity maps to human gates (and why full “zero human” operation is not
 - The generated MCP wrapper expects `controlkeel` on your `PATH` by default.
 - You can override the binary path with `CONTROLKEEL_BIN=/absolute/path/to/controlkeel`.
 - Packaged local mode creates its own database and secret key automatically when the usual env vars are not set.
-- Packaged local mode is a real product lane. Cloud/headless mode exists partially today, and broader team / enterprise platform work remains a later branch.
+- Packaged local mode is a real product lane. Cloud/headless mode exists partially today, and broader team / enterprise platform work follows the [cloud-enterprise-roadmap.md](cloud-enterprise-roadmap.md) phases. Local mode remains the default and the trust anchor regardless of cloud progress.
 
 ## Large Codebase Configuration
 

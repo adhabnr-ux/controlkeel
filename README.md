@@ -21,7 +21,7 @@ If you're using an AI agent today, you probably have an `*.md` telling it how to
 - **Portability:** Move between OpenCode, Claude Code, Cursor, or any supported host without losing your task state with task continuity and resume context.
 - **Persistence:** Typed memory with citations and "proof bundles" with policy packs mean your agent remembers *why* decisions were made, even weeks later as findings become living knowledge with workspace snapshots.
 - **Governance:** Built-in review gates, approval flows, and budget controls that work the same way regardless of which host you use.
-- **Observability:** Local loop that turns governance evidence into human-gated regression testing and evidence-driven improvement without sending telemetry to a hosted service.
+- **Observability:** Local loop that turns governance evidence into human-gated regression testing and evidence-driven improvement. No telemetry is sent by default; cloud telemetry sync is opt-in when teams need shared dashboards.
 
 ControlKeel transforms your domain knowledge from "shelfware" documentation into a living system that remembers, enforces, and evolves.
 
@@ -339,6 +339,7 @@ Reference:
 
 Architecture and release operations:
 
+- [docs/cloud-enterprise-roadmap.md](docs/cloud-enterprise-roadmap.md)
 - [docs/control-plane-architecture.md](docs/control-plane-architecture.md)
 - [docs/host-surface-parity.md](docs/host-surface-parity.md)
 - [docs/how-controlkeel-works.md](docs/how-controlkeel-works.md)

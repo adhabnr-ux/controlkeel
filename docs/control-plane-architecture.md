@@ -281,6 +281,12 @@ Translates technical findings (rule IDs, categories) into plain English explanat
 
 Session-level progress tracking with task, finding, and budget progress, remaining blockers, and effort estimation.
 
+## Cloud and team maturity
+
+The enterprise control-plane posture described above is the product direction. The phased build path from local-first to cloud-optional team governance is documented in [cloud-enterprise-roadmap.md](cloud-enterprise-roadmap.md).
+
+The current product ships local mode as the default. Cloud features (telemetry sync, hosted MCP gateway, team approvals, org budgets, distributed agents) are additive surfaces that preserve the local trust anchor. See the roadmap for phase sequencing and dependencies.
+
 ## Not shipped by design
 
 These ideas appeared in older planning documents, but they are not current product claims:

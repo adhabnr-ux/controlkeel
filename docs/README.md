@@ -31,6 +31,10 @@ Use this page to decide where to read next.
 - [cost-governance.md](cost-governance.md): token, rate-limit, subscription-window, and budget-control guidance
 - [explaining-controlkeel.md](explaining-controlkeel.md): includes the explicit harness principles around context ownership, observability, extensibility, and provider portability
 
+## Cloud, team, and enterprise
+
+- [cloud-enterprise-roadmap.md](cloud-enterprise-roadmap.md): phased roadmap from local-first to cloud-optional team governance
+
 ## Maintainer and release docs
 
 - [host-surface-parity.md](host-surface-parity.md): host-surface rollout rationale and parity mapping
