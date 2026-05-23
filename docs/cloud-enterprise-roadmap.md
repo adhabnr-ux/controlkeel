@@ -4,9 +4,11 @@ ControlKeel is **local-first by design**. Cloud and team features are strictly o
 
 ## North star
 
-A portable governance plane that works the same way for a solo builder on a laptop and for a team of fifty agents across multiple runtimes — with cloud connectivity added only when the team explicitly opts in.
+ControlKeel Cloud is the governed control plane for teams running agents across local and cloud runtimes.
 
-Local mode remains the default and the trust anchor. Cloud features layer on top, never replace it.
+The enterprise buyer gets one thing: **every agent, tool call, approval, cost, finding, proof, and runtime handoff is governed in one place.**
+
+Local mode remains the default and the trust anchor. Cloud features layer on top, never replace it. CK should govern agent work wherever it runs — laptop, CI, cloud coding agent, enterprise hosted runtime, or self-hosted cluster.
 
 ## Existing code-backed foundations
 
@@ -16,18 +18,21 @@ These surfaces already exist in the codebase and provide the structural scaffold
 | --- | --- | --- |
 | Runtime mode | `ControlKeel.Runtime` | `:local` / `:cloud` mode switch, bus selection, `cloud_repo_enabled?` |
 | Cloud repo | `ControlKeel.CloudRepo` | Postgres adapter stub for cloud-mode persistence |
-| Bus abstraction | `ControlKeel.Bus` + `Bus.Local` + `Bus.Nats` | Pluggable pub/sub: local ETS bus for single-node, NATS for distributed |
+| Bus abstraction | `ControlKeel.Bus` + `Bus.Local` + `Bus.Nats` | Pluggable pub/sub: local ETS bus for single-node, NATS for distributed (`CONTROLKEEL_NATS_URL`) |
 | Service accounts | `ControlKeel.Platform.ServiceAccount` | Named service accounts with hashed tokens and workspace scoping |
 | OAuth scopes | `ControlKeel.ProtocolAccess` | Typed protocol scope model (`mcp:access`, `context:read`, `validate:run`, etc.) |
-| Hosted MCP/A2A | `ControlKeel.ProtocolInterop` | Hosted MCP gateway, A2A agent-card discovery, scoped tool filtering |
+| Hosted MCP/A2A | `ControlKeel.ProtocolInterop` | Hosted MCP gateway (`POST /mcp`), A2A agent-card discovery, scoped tool filtering |
 | Platform APIs | `ControlKeel.Platform` | Task graphs, task runs, policy sets, webhooks, integration delivery |
 | Telemetry handler | `ControlKeel.Analytics.TelemetryHandler` | Local telemetry event emission and persistence |
 | Runtime config | `config/runtime.exs` | Cloud-mode config (Postgres, NATS, `DATABASE_URL`) |
 | Local analytics | `ControlKeel.Analytics` | Local persistence of governance analytics |
+| Runtime catalog | `AgentIntegration.catalog/0` | Attach clients, headless runtime exports, hosted/cloud agent surfaces |
 
 These foundations are real shipped code, not aspirational stubs. They mean the cloud roadmap is about wiring existing surfaces together behind feature flags and opt-in controls, not about building from scratch.
 
 ## Trust and privacy model
+
+This needs to be explicit everywhere:
 
 | Principle | What it means in practice |
 | --- | --- |
@@ -36,101 +41,275 @@ These foundations are real shipped code, not aspirational stubs. They mean the c
 | **Local trust anchor** | Even with cloud sync enabled, the local database remains the primary source of truth. Cloud is a replica and coordination surface, not the authority. |
 | **Service-account boundaries** | Remote access is scoped through named service accounts with fine-grained protocol scopes, not blanket admin keys. |
 | **Evidence redaction** | Telemetry sync applies the same redaction rules as proof bundles and audit exports before data leaves the node. |
+| **Telemetry is evidence, not authority** | Synced telemetry is treated as observability input for dashboards and audit. It does not directly rewrite policy, router, prompt, or skill artifacts. |
 
 ### Opt-in telemetry levels
 
 | Level | What syncs | When to use |
 | --- | --- | --- |
-| **Health** | Heartbeat, version, workspace ID | Fleet monitoring; no governance content |
-| **Governance metadata** | Finding counts, review status, budget summaries | Team dashboards; no source code or diffs |
-| **Evidence sync** | Proof bundles, review packets, memory citations (redacted) | Cross-host coordination; shared audit trail |
-| **Full enterprise audit** | Complete session transcripts (redacted), benchmark results, policy change history | Regulated environments; SOC 2 / GDPR compliance audit |
+| **Health** | Heartbeat, version, workspace ID, install/attach success metrics | Fleet monitoring; no governance content |
+| **Governance metadata** | Finding counts/severity, approval state, budget/cost summaries, task/session IDs (redacted) | Team dashboards; no source code or diffs |
+| **Evidence sync** | Proof bundles, validation summaries, review packets, memory citations, redacted trace packets, regression results | Cross-host coordination; shared audit trail |
+| **Full enterprise audit** | Complete session transcripts (redacted), benchmark results, policy change history, org-controlled retention | Regulated environments; SOC 2 / GDPR compliance audit |
 
-Level selection is per-workspace and requires explicit operator confirmation. There is no automatic escalation.
+Level selection is per-workspace and requires explicit operator confirmation. There is no automatic escalation. Never make cloud telemetry required for core local CK.
+
+## Enterprise package modes
+
+CK should eventually ship in distinct packaging modes, each targeting a different deployment topology:
+
+| Mode | Description |
+| --- | --- |
+| **Local single-user** | Current default. SQLite + local ETS bus + packaged binary. No cloud dependency. |
+| **Team cloud SaaS** | Hosted CK with team workspace, shared MCP gateway, team approvals, org budgets. |
+| **Enterprise self-host** | CK deployed behind enterprise firewalls. Postgres + NATS JetStream + object storage. SSO/RBAC. |
+| **Hybrid** | Local agents + hosted governance. Agents run locally; findings, proofs, and approvals sync to hosted CK. |
+| **Private cloud** | Hosted MCP gateway + customer-owned DB/NATS. CK orchestrates but data stays in customer infrastructure. |
+
+All modes share the same governed MCP surface, validation engine, and proof/memory model. The difference is where the authority node runs and how far evidence syncs.
 
 ## Roadmap branches
 
-### 1. Opt-in telemetry sync
+### 1. Opt-in telemetry and evidence sync
 
-Wire the existing local telemetry handler to an optional upstream sync endpoint. Governance evidence already emits structured events; the sync path serializes those events (with redaction) to a cloud endpoint when enabled.
+Current local observability is good. Cloud should add a sync layer, not replace it.
 
-**Dependencies**: telemetry level configuration UI, redaction pipeline, cloud endpoint auth.
+**CLI surface preview:**
+
+```bash
+controlkeel cloud connect
+controlkeel telemetry status
+controlkeel telemetry enable --level health|governance|evidence
+```
+
+**Build:**
+- Signed workspace identity
+- Redaction policy before upload
+- Event envelope schema
+- Local queue + retry
+- Server-side ingestion
+
+**First useful slice:**
+- Upload only health + version + install/attach success metrics
+- Dashboard: install-to-first-finding funnel across opted-in workspaces
+
+**Dependencies:** telemetry level configuration UI, redaction pipeline, cloud endpoint auth.
 
 ### 2. Hosted MCP gateway
 
-Extend the existing hosted MCP surface to serve as a team's single blessed entrypoint for agent tool access. Service accounts and OAuth scopes already exist; the gateway adds centralized routing, rate limiting, and per-team tool filtering.
+Docs already correctly frame hosted MCP as enterprise gateway/root of trust. Expand from "CK tools over hosted MCP" to a full team gateway.
 
-**Dependencies**: multi-tenant workspace isolation, gateway routing config, per-team scope policies.
+**Build:**
+- Org-scoped MCP gateway
+- Service accounts, user accounts, team accounts
+- Scoped tool catalogs
+- Downstream MCP server registry
+- Per-tool policy checks
+- Audit log for every tool call
+- Optional proxy/tunnel to internal MCP servers
 
-### 3. Team and multi-user approvals
+**First useful slice:**
+- Hosted MCP supports CK tools with org/workspace auth
+- Dashboard shows tool calls, denied calls, scopes, workspace
 
-Add multi-user approval flows so that review gates can require sign-off from specific team roles, not just the operator who started the session. The review/approval schema already supports human-in-the-loop decisions; this branch adds identity, roles, and delegation chains.
+**Later:**
+- Register downstream MCP servers
+- Route through CK gateway
+- Enterprise allowlists and DLP/redaction
 
-**Dependencies**: team identity model, role-based review routing, notification surfaces.
+**Dependencies:** multi-tenant workspace isolation, gateway routing config, per-team scope policies.
 
-### 4. Organization budgets
+### 3. Team workspaces and multi-user approvals
 
-Extend session and daily budgets to org-level rollups with per-team allocation, alerts, and circuit-breaker propagation. Budget controls already exist at the session level; this branch lifts them to the org hierarchy.
+Current model has workspaces but not full team collaboration.
 
-**Dependencies**: org/team hierarchy model, budget allocation API, alert routing.
+**Build:**
+- Users, orgs, memberships, roles
+- Workspace members
+- Review assignments
+- Approval policies and reviewer quorum
+- Human approval SLA / audit log
+
+**First useful slice:**
+- Invite users to a workspace
+- Review packet assigned to a teammate
+- Approval records who approved/denied
+
+**Enterprise slice:**
+- Policy: "security findings need security reviewer"
+- Policy: "prod deploy requires 2 approvals"
+- Policy: "schema migration requires owner approval"
+
+**Dependencies:** team identity model, role-based review routing, notification surfaces.
+
+### 4. Org-level spend controls
+
+Current budget is session/daily and proxy-aware. Enterprise needs org budget policy.
+
+**Build:**
+- Org/workspace/team budget caps
+- Provider/model allowlists
+- Quota windows
+- Per-agent/runtime spend attribution
+- Spend alerts/webhooks
+
+**First useful slice:**
+- Org budget table + workspace rollup
+- Block hosted MCP/provider calls when org cap exceeded
+- Dashboard by workspace/session/agent/model
+
+**Dependencies:** org/team hierarchy model, budget allocation API, alert routing.
 
 ### 5. Cloud-agent runtime loop
 
-Enable agents to run against a shared cloud-hosted ControlKeel instance rather than requiring a local binary. The runtime export system already produces bundles for headless runtimes; this branch makes the CK instance itself the headless host.
+Major players already have cloud agents. CK should support them as first-class runtime surfaces.
 
-**Dependencies**: cloud-mode persistence (CloudRepo), NATS bus for coordination, remote task dispatch.
+Current model already has headless runtime export, service-account credentials, hosted MCP/A2A, and task run state. Make this product-grade:
 
-### 6. JetStream coordination
+**Build:**
+- Cloud agent registration
+- Runtime callback URLs
+- Run package download
+- Proof/result upload
+- Task status sync
+- Hosted MCP credentials per run
+- Runtime event stream
 
-Use NATS JetStream for durable event streaming between ControlKeel nodes, enabling multi-agent coordination, cross-host task dispatch, and replayable audit trails. The bus abstraction already supports NATS; JetStream adds persistence and replay.
+**First useful slice:**
+- "Run this task on cloud runtime" creates service account + package + waiting callback
+- Cloud runtime posts result/proof back
+- Mission Control shows lifecycle
 
-**Dependencies**: NATS JetStream deployment, event schema versioning, consumer group management.
+**Cloud-agent targets (already in support-matrix as `headless_runtime`):**
+- Devin (`controlkeel runtime export devin`)
+- Open SWE (`controlkeel runtime export open-swe`)
+- Warp Oz (`controlkeel runtime export warp-oz`)
+- Executor (`controlkeel runtime export executor`)
+- Virtual Bash (`controlkeel runtime export virtual-bash`)
+- Cloudflare Workers (`controlkeel runtime export cloudflare-workers`)
+- Codex app-server style clients
+- Enterprise internal agents
+
+**Dependencies:** cloud-mode persistence (CloudRepo), NATS bus for coordination, remote task dispatch.
+
+### 6. NATS JetStream multi-node coordination
+
+Current NATS is just pub/sub. Roadmap wants JetStream-backed cloud coordination.
+
+Use JetStream for:
+- Durable task queues
+- Webhook delivery retry
+- Telemetry ingestion
+- Cloud agent callbacks
+- Benchmark/eval jobs
+- Proof processing
+- Budget/circuit-breaker events
+
+**First useful slice:**
+- Durable event envelope
+- Local bus remains default
+- Cloud mode uses NATS JetStream
+- One worker consumes task-run events idempotently
+
+**Critical design:**
+- Append facts first, projections second, side effects after governed state
+- Idempotency keys everywhere
+
+**Dependencies:** NATS JetStream deployment, event schema versioning, consumer group management.
 
 ### 7. Enterprise self-host
 
-Package ControlKeel for deployment behind enterprise firewalls with SSO integration, managed policy packs, and compliance reporting. The domain pack system already supports regulated verticals; this branch adds SSO, air-gapped deployment, and compliance export formats.
+Enterprise customers will want CK fully cloud-capable but not necessarily SaaS-only.
 
-**Dependencies**: SAML/OIDC integration, air-gapped install artifacts, compliance report templates.
+**Build:**
+- SSO/SAML/OIDC integration
+- RBAC
+- Air-gapped install artifacts
+- Compliance report exports (SOC 2, GDPR)
+- Managed policy packs for regulated verticals
+- Admin UI
+- Retention/redaction controls
+- Telemetry disabled by default
+
+**Infrastructure requirements:**
+- Postgres
+- NATS JetStream
+- Object storage for proof bundles
+- SSO integration
+
+**Dependencies:** SAML/OIDC integration, air-gapped install artifacts, compliance report templates.
 
 ## Phased plan
 
-### Phase 1: Narrowest cloud loop (upcoming)
+### Phase 1 — Cloud foundation, no trust leap
 
-The first cloud vertical slice is deliberately small: one team workspace, opt-in telemetry at the governance-metadata level, and a hosted MCP gateway for shared tool access.
+Make docs explicit, harden the cloud-mode boundary, and confirm existing surfaces work end-to-end.
 
-- Workspace sync: health + governance metadata levels
-- Hosted MCP gateway with service-account auth
-- Team approval audit log
+- Make docs explicit: local-first + cloud-optional (done — this doc)
+- Add opt-in telemetry levels to observability docs (done)
+- Add cloud mode status/doctor command
+- Confirm hosted MCP/A2A/service-account flows work end-to-end
+- Add cloud capability markers to runtime surfaces in [support-matrix.md](support-matrix.md)
 
-This phase does not include multi-user identity, org budgets, or cloud-agent runtimes. It proves the trust model, the sync pipeline, and the gateway pattern in production with the smallest possible blast radius.
+This phase proves the trust model and the existing code surfaces in production with zero new cloud dependency.
 
-### Phase 2: Team coordination
+### Phase 2 — Opt-in telemetry and evidence sync
 
-Build on the gateway to add multi-user review flows, team-scoped budgets, and shared memory/policy surfaces.
+Ship the narrowest useful cloud loop.
 
-- Team identity and role-based review routing
-- Per-team budget allocation with alerts
-- Shared typed memory and policy sets across team members
+- `controlkeel cloud connect` with workspace identity
+- `controlkeel telemetry enable --level health|governance`
+- Redaction pipeline before upload
+- Dashboard: install-to-first-finding funnel, finding counts, approval state
 
-### Phase 3: Distributed agents
+Start with health + governance metadata only. No evidence sync yet.
 
-Enable cloud-hosted agent execution with multi-node coordination.
+### Phase 3 — Hosted MCP gateway MVP
 
-- Cloud-agent runtime loop against shared CK instance
-- NATS JetStream for durable event streaming
-- Cross-host task dispatch and resume
+Extend hosted MCP to serve as a team's single blessed entrypoint.
 
-### Phase 4: Enterprise compliance
+- Org/workspace-scoped hosted MCP
+- Tool-call audit log
+- Scope-filtered tool catalogs
+- Gateway dashboard
+- Per-tool policy enforcement
 
-Complete the enterprise surface with SSO, compliance reporting, and air-gapped deployment.
+### Phase 4 — Team workspace MVP
 
-- SAML/OIDC SSO integration
-- Compliance report exports (SOC 2, GDPR)
-- Air-gapped install artifacts
-- Managed policy packs for regulated verticals
+Add multi-user collaboration on top of the gateway.
+
+- Users/orgs/memberships
+- Workspace invite/list
+- Review assignment and team approval audit
+- Org budget rollup
+- Shared typed memory and policy sets
+
+### Phase 5 — Cloud-agent runtime loop
+
+Enable agents to run against a shared cloud-hosted CK instance.
+
+- Runtime registration for Devin, Open SWE, Warp Oz, Executor, CF Workers, Codex app-server, enterprise internal agents
+- Task package handoff with service-account credentials
+- Callback/result/proof ingestion
+- Mission Control lifecycle UI
+- Cloud-agent status and retry handling
+
+### Phase 6 — Enterprise control plane
+
+Complete the enterprise surface.
+
+- SSO/RBAC (SAML/OIDC)
+- Org policy sets
+- Advanced budgets with quota windows
+- Audit exports and retention/redaction controls
+- Self-host packaging
+- NATS JetStream durable queues for multi-node coordination
+- Idempotency and replay for scalable observability projections
 
 ## Relationship to local mode
 
 Every phase preserves local mode as a first-class path. A solo builder on a laptop should never need to set up cloud infrastructure to use ControlKeel effectively. Cloud features are additive surfaces for teams that need them.
 
 The local observability loop, deterministic validation, proof bundles, typed memory, benchmarks, and the full MCP skill surface all work without any cloud dependency. The cloud roadmap is about making those same surfaces useful across team boundaries, not about replacing them.
+
+The key message remains: CK governs agent work wherever it runs. Cloud connectivity is how teams share that governance, not how individuals lose control of it.
