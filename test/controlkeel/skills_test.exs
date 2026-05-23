@@ -6,6 +6,8 @@ defmodule ControlKeel.SkillsTest do
   alias ControlKeel.Skills.Parser
   alias ControlKeel.Skills.Renderer
 
+  @root Path.expand("../..", __DIR__)
+
   setup do
     tmp_dir =
       Path.join(System.tmp_dir!(), "controlkeel-skills-#{System.unique_integer([:positive])}")
@@ -721,6 +723,9 @@ defmodule ControlKeel.SkillsTest do
            )
 
     assert File.exists?(Path.join(codex_plugin_plan.output_dir, ".mcp.hosted.json"))
+
+    assert skill_dir_names(Path.join(@root, "priv/skills")) ==
+             skill_dir_names(Path.join(codex_plugin_plan.output_dir, "skills"))
 
     assert {:ok, claude_plan} = Skills.export("claude-plugin", tmp_dir, scope: "export")
     assert File.exists?(Path.join(claude_plan.output_dir, ".claude-plugin/plugin.json"))
@@ -2056,6 +2061,13 @@ defmodule ControlKeel.SkillsTest do
 
     assert File.exists?(agents_md)
     assert File.read!(agents_md) =~ "ControlKeel"
+  end
+
+  defp skill_dir_names(path) do
+    path
+    |> File.ls!()
+    |> Enum.filter(&File.dir?(Path.join(path, &1)))
+    |> Enum.sort()
   end
 
   defp prompt_hook_output(hook_path, prompt) do
