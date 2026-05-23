@@ -10,6 +10,12 @@ The enterprise buyer gets one thing: **every agent, tool call, approval, cost, f
 
 Local mode remains the default and the trust anchor. Cloud features layer on top, never replace it. CK should govern agent work wherever it runs — laptop, CI, cloud coding agent, enterprise hosted runtime, or self-hosted cluster.
 
+### Positioning (May 2026)
+
+ControlKeel is a **governance plane, not an AI gateway**. The distinction matters because the gateway category is consolidating into security suites (Palo Alto acquiring Portkey, April 2026) and competes on routing/throughput. Governance competes on pre-execution policy gates, durable findings, approval lineage, and proof bundles — surfaces that observability vendors (LangSmith, Langfuse, Braintrust, Helicone, Weave) and gateways (Portkey, Cloudflare One MCP Portals, Smithery) deliberately don't ship.
+
+Align with the [Linux Foundation Agentic AI Foundation](https://lfaidata.foundation/) (founded Dec 2025; hosts A2A and MCP working groups) for protocol legitimacy. Track WebMCP for web-access workloads.
+
 ## Existing code-backed foundations
 
 These surfaces already exist in the codebase and provide the structural scaffolding for cloud/team features:
@@ -42,6 +48,22 @@ This needs to be explicit everywhere:
 | **Service-account boundaries** | Remote access is scoped through named service accounts with fine-grained protocol scopes, not blanket admin keys. |
 | **Evidence redaction** | Telemetry sync applies the same redaction rules as proof bundles and audit exports before data leaves the node. |
 | **Telemetry is evidence, not authority** | Synced telemetry is treated as observability input for dashboards and audit. It does not directly rewrite policy, router, prompt, or skill artifacts. |
+
+### Industry security gate framework
+
+The enterprise governance industry is converging on seven standard approval gates for AI agents moving from pilot to production. CK already covers most of these; this table makes the mapping explicit for security reviewers.
+
+| Gate | Industry requirement | CK coverage |
+| --- | --- | --- |
+| **1. Inventory** | Every agent registered with owner, purpose, risk profile | `AgentIntegration.catalog/0` + workspace binding + service accounts |
+| **2. Behavioral baseline** | Establish normal traffic/API patterns to detect anomalies | Circuit breaker (anomaly detection) + telemetry handler; baselining becomes product-grade in Phase 5 when cloud telemetry enables cross-run comparison |
+| **3. Access match** | Declared permissions match observed usage | Protocol scopes + `ck_validate` trust-boundary checks + scope-filtered hosted MCP (Phase 3) |
+| **4. Blast radius** | Limit what an agent can touch per risk level | Execution posture (read-only virtual workspace → typed runtime → shell sandbox) + review gates + per-tool policy enforcement (Phase 3) |
+| **5. Detection coverage** | Security tools properly tag agent-specific incidents | `ck_validate` deterministic scanner (12/12 catch rate) + findings lifecycle + SIEM-compatible audit exports |
+| **6. Response readiness** | Documented, tested runbooks for revoking compromised agents | Service-account token rotation + budget circuit breaker + `controlkeel cloud doctor` reachability checks |
+| **7. Re-approval triggers** | Mandatory review on permission/scope/model changes | `ck_review_submit` gate + policy-change events in telemetry + reviewer quorum (Phase 4) |
+
+CK does not need to build all seven gates from scratch. The table above shows that most are already present in the shipped product. The roadmap phases strengthen the weaker gates: Phase 3 adds per-tool blast radius control, Phase 4 adds team re-approval workflows, and Phase 5 adds behavioral baselining from cross-run evidence.
 
 ### Opt-in telemetry levels
 
@@ -113,9 +135,11 @@ Docs already correctly frame hosted MCP as enterprise gateway/root of trust. Exp
 - Dashboard shows tool calls, denied calls, scopes, workspace
 
 **Later:**
+
 - Register downstream MCP servers
 - Route through CK gateway
 - Enterprise allowlists and DLP/redaction
+- **MCP supply-chain vetting:** allowlist/denylist by source, CVE feed against registered MCP servers, optional attestation requirement before a server can be routed. Addresses the "Smithery has 6000+ unverified MCP servers" enterprise objection.
 
 **Dependencies:** multi-tenant workspace isolation, gateway routing config, per-team scope policies.
 
@@ -144,19 +168,24 @@ Current model has workspaces but not full team collaboration.
 
 ### 4. Org-level spend controls
 
-Current budget is session/daily and proxy-aware. Enterprise needs org budget policy.
+Current budget is session/daily and proxy-aware. Enterprise needs org budget policy. **This is the #1 complaint in the community right now** (Uber CTO publicly admitted blowing the 2026 AI budget on Claude Code; Microsoft/Fortune coverage of agent token amplification; LeanOps reporting agents burning 50× more tokens than chat). Treat as flagship.
 
 **Build:**
+
 - Org/workspace/team budget caps
 - Provider/model allowlists
 - Quota windows
 - Per-agent/runtime spend attribution
 - Spend alerts/webhooks
+- **Context amplification controls:** gateway-level compaction enforcement, system-prompt dedup detection, ReAct-loop replay cost analysis. Counters the "ReAct re-pays system prompt 20+ times" pattern.
+- **Provider fallback chains:** explicit failover (e.g., Anthropic → Bedrock → local Ollama) with cost-aware routing. Currently only implicit through provider profiles.
 
 **First useful slice:**
+
 - Org budget table + workspace rollup
 - Block hosted MCP/provider calls when org cap exceeded
 - Dashboard by workspace/session/agent/model
+- Surface per-session amplification ratio (output tokens / unique prompt tokens) as a top-line metric
 
 **Dependencies:** org/team hierarchy model, budget allocation API, alert routing.
 
@@ -190,13 +219,32 @@ Current model already has headless runtime export, service-account credentials, 
 - Codex app-server style clients
 - Enterprise internal agents
 
-**Dependencies:** cloud-mode persistence (CloudRepo), NATS bus for coordination, remote task dispatch.
+**Additional targets to add (mainstream enterprise as of 2026):**
 
-### 6. NATS JetStream multi-node coordination
+- **Cursor Cloud Agents** (Cursor 3, Nov 2025) — one-click local↔cloud handoff is the emerging consensus UX.
+- **Replit Agent 3** — mainstream long-running cloud agent.
 
-Current NATS is just pub/sub. Roadmap wants JetStream-backed cloud coordination.
+**Round-trip handoff model:** The cloud-agent loop should be bidirectional, not one-way callback. Cursor 3's local↔cloud round-trip is the emerging consensus: a task can move from laptop to cloud and back without losing review state, proof references, or budget attribution. Model this explicitly:
 
-Use JetStream for:
+1. Local session emits a handoff packet (task + proof refs + budget allocation + service-account scope).
+2. Cloud runtime accepts, executes, and emits intermediate status events.
+3. Cloud runtime returns result + proof bundle hash.
+4. Local session resumes with cloud-produced proofs as evidence, not authority.
+
+**Dependencies:** cloud-mode persistence (CloudRepo), pluggable coordination layer (see branch 6), remote task dispatch.
+
+### 6. Pluggable multi-node coordination (NATS JetStream as one adapter)
+
+Current NATS is just pub/sub. Roadmap wants durable coordination for cloud mode — but the implementation should be pluggable. NATS JetStream is one adapter; **Postgres LISTEN/NOTIFY + queue table is a viable default for self-host customers without a NATS operator on staff** (Cloudflare/Portkey/Smithery all ship with plain HTTPS + queues rather than mandatory JetStream).
+
+**Coordination adapters:**
+
+- **`Postgres`** (default for small teams and self-host) — LISTEN/NOTIFY + durable queue table. No new infra.
+- **`NATS JetStream`** (recommended for high-volume cloud SaaS) — durable streams, consumer groups, replay.
+
+Adapter is selected through runtime config; the coordination interface stays stable so workloads do not need to know which adapter is in play.
+
+Use the coordination layer for:
 - Durable task queues
 - Webhook delivery retry
 - Telemetry ingestion
@@ -239,6 +287,41 @@ Enterprise customers will want CK fully cloud-capable but not necessarily SaaS-o
 
 **Dependencies:** SAML/OIDC integration, air-gapped install artifacts, compliance report templates.
 
+### 8. Eval / regression CI gates
+
+Braintrust, Langfuse, and Laminar all ship eval-driven CI as a flagship surface. CK has benchmark suites and trace packets locally, but no team-level regression gate that runs against held-out task fixtures on every change.
+
+**Build:**
+
+- Eval task fixtures stored alongside proofs (workspace-scoped)
+- `controlkeel eval run --suite <name>` for local execution
+- CI integration: GitHub Action / GitLab CI block on regression in finding rate, validation score, or budget per task
+- Held-out task sets per workspace: agents can't see them; quality measured by completion against blind fixtures
+- Eval result lineage threaded into proof bundles
+
+**First useful slice:**
+
+- One built-in eval suite (governance regression: does `ck_validate` still catch the same findings on the same code?)
+- CI badge: "ControlKeel eval: PASS / FAIL" with link to evidence
+- Local-only run; cloud sync deferred to evidence telemetry level
+
+**Dependencies:** trace packet schema (exists), benchmark suite catalog (exists), fixture storage.
+
+This branch is intentionally smaller scope than the others — it leans on existing benchmark/eval infrastructure rather than building a new product surface. The market gap is the **gate**, not the tooling.
+
+### 9. Agent inventory / shadow-AI discovery (stretch)
+
+The #1 enterprise complaint in late-2025/early-2026 governance coverage is "no centralized inventory of agents." Vectra, Google Cloud, and multiple Hacker News threads keep raising this. CK governs agents it's bound to; it doesn't currently discover unmanaged agents elsewhere in the org.
+
+**Stretch build (Phase 6+):**
+
+- Network-level MCP server discovery (probe known MCP endpoint patterns on internal CIDR ranges, opt-in)
+- Git-history scanner for `.cursor/`, `.codex/`, `.claude/`, `.opencode/`, etc. across an org's repos
+- Browser-extension companion to register agent sessions running in unmanaged contexts
+- Inventory dashboard: registered vs discovered, with onboarding prompts
+
+This is intentionally last — solving discovery before the governance plane is mature would be premature. But flagging it explicitly because every competitor pitch deck mentions it.
+
 ## Phased plan
 
 ### Phase 1 — Cloud foundation, no trust leap
@@ -273,6 +356,10 @@ Extend hosted MCP to serve as a team's single blessed entrypoint.
 - Scope-filtered tool catalogs
 - Gateway dashboard
 - Per-tool policy enforcement
+- Content guardrails: PII/secret redaction at the gateway before tool calls dispatch (aligns with industry standard for DLP at the gateway layer)
+- Signed/verified skill pipeline: skills registered in the gateway catalog carry provenance and integrity checks, not just metadata
+
+**Code mode positioning:** CK already ships `CodeModePolicy` ([code-mode-governance.md](code-mode-governance.md)) — a governed execution model where LLMs write orchestration code instead of loading entire tool catalogs into context. Competitors (notably Bifrost) claim 50–92% token reduction from code mode. CK's advantage is that code mode runs *inside* the governed validation + review + proof loop, not as a separate optimization layer. The gateway phase should surface code mode as a governed alternative to raw tool-call flooding, not just a cost play.
 
 ### Phase 4 — Team workspace MVP
 
@@ -283,6 +370,7 @@ Add multi-user collaboration on top of the gateway.
 - Review assignment and team approval audit
 - Org budget rollup
 - Shared typed memory and policy sets
+- Non-human identity (NHI) lifecycle: agent provisioning → credential rotation → deprovisioning audit, extending the service-account model to cover full agent identity governance (positions CK against Microsoft Entra Agent ID for agent identity management)
 
 ### Phase 5 — Cloud-agent runtime loop
 
@@ -293,6 +381,7 @@ Enable agents to run against a shared cloud-hosted CK instance.
 - Callback/result/proof ingestion
 - Mission Control lifecycle UI
 - Cloud-agent status and retry handling
+- Behavioral baselining: cross-run telemetry enables statistical baselines for normal agent behavior; deviations feed back into circuit breaker thresholds and finding generation (strengthens Gate 2 from the security gate framework)
 
 ### Phase 6 — Enterprise control plane
 
@@ -305,6 +394,7 @@ Complete the enterprise surface.
 - Self-host packaging
 - NATS JetStream durable queues for multi-node coordination
 - Idempotency and replay for scalable observability projections
+- Compliance framework mapping: explicit control-to-framework mapping for EU AI Act (high-risk system requirements, effective August 2026), NIST AI RMF, SOC 2 (trust service criteria), and GDPR (data processing records). CK's proof bundles, findings lifecycle, review gates, and audit exports already generate the evidence these frameworks require — Phase 6 adds the mapping documentation and report templates so auditors can trace CK evidence to specific control objectives without manual interpretation
 
 ## Architectural decisions (resolved defaults)
 
@@ -369,7 +459,7 @@ These were open questions in the previous revision. Each is now resolved to a de
 
 **Rationale:** Proof bundles can grow large (trace packets, transcripts). Postgres BYTEA is fine for small artifacts but bloats backups for archives. S3-compatible covers SaaS (S3/R2) and air-gapped self-host (MinIO) with the same adapter.
 
-**Implication:** New `ProofStore` behaviour with `S3` and `LocalDisk` adapters. Migration path from current local file storage is forward-only — existing local proofs stay where they are, new cloud-mode proofs go to the configured store.
+**Implication:** New `ProofStore` behaviour with `S3` and `LocalDisk` adapters. **Ship LocalDisk first** (covers self-host and local-mode); add S3 adapter when the first cloud SaaS customer needs it. Both adapters from day one is premature — Sentry and Langfuse both shipped one and added the other later. Migration path from current local file storage is forward-only — existing local proofs stay where they are, new cloud-mode proofs go to the configured store.
 
 ### D7 — JetStream durability: shared streams with workspace-scoped subjects
 
@@ -452,6 +542,44 @@ Each phase ships behind explicit gates. A phase is not "done" until all of its g
 | Hosted MCP becomes a single point of failure for team work | Local stdio MCP remains the default; hosted MCP is additive. Doctor command surfaces hosted MCP reachability so teams notice degradation. |
 | Service-account tokens leak | Tokens are hashed at rest, rotated through `controlkeel service-accounts rotate`; hosted MCP rate-limits per token; cloud doctor flags tokens older than 90 days unused. |
 | JetStream consumers process events non-idempotently | All cloud-mode events carry an idempotency key; consumers record processed keys in a TTL'd dedupe table; replay tests run in CI. |
+| Context-window cost amplification (ReAct loops re-paying for system prompt 20× per run) | Phase 4 amplification ratio metric surfaces this per session; gateway-level compaction enforcement (branch 4) blocks loops above a configurable threshold; budget circuit breaker trips before runaway. |
+| Downstream MCP server in the gateway turns out to be malicious or compromised | Branch 2 MCP supply-chain vetting: allowlist by source, CVE feed against registered servers, optional attestation requirement; tool-call audit log preserves dispatch lineage; reachability degrades to "denied" rather than failing open. |
+| EU AI Act enforcement (ramping through 2026 for high-risk systems) makes audit trails regulatory rather than optional | Audit exports already cover SOC 2 / GDPR shape; Phase 6 adds EU AI Act-specific control mapping. Proof bundles + findings lineage already meet the "demonstrable risk management" bar — the gap is the report template, not the evidence. |
+| Cursor Cloud Agents / Replit Agent become dominant before our cloud-agent loop ships, creating a "doesn't work with what teams already use" perception | Branch 5 explicitly adds both targets; round-trip handoff model matches Cursor 3's UX so adoption is friction-free. |
+
+## Competitive positioning
+
+The 2026 MCP gateway and agent governance market includes both specialized gateways (Bifrost, TrueFoundry, MCP Manager, AgentGateway.dev) and broader AI security platforms (Credo AI, AccuKnox, Microsoft Copilot Studio, Kong). CK's positioning is distinct in three ways:
+
+### What CK does that competitors don't
+
+| CK advantage | Why it matters |
+| --- | --- |
+| **Local-first with zero cloud dependency** | Every competitor is cloud-first or cloud-only. A solo builder on a laptop gets the full governance loop without network egress. Cloud is additive, never required. |
+| **Cross-host portability** | CK governs across 40+ agent hosts (OpenCode, Claude Code, Codex, Copilot, Cursor, Warp, etc.) through the same proof/memory/review surfaces. Competitors are host-agnostic or ecosystem-locked. |
+| **Deterministic validation (12/12)** | CK's pattern scanner catches 100% of benchmark risky scenarios without provider tokens. Most competitors rely on LLM-based checks or policy documentation only. |
+| **Proof bundles as product** | CK's immutable proof bundles, citable typed memory, and resume packets go beyond simple audit logs to portable, reviewable evidence that survives host switches and session boundaries. |
+| **Governed learning loop** | eval candidates → benchmark drafts → materialize → run → promotion is a governed improvement cycle no competitor ships as a first-class workflow. |
+
+### What CK should borrow from competitors
+
+| Industry pattern | Source | How CK addresses it |
+| --- | --- | --- |
+| Hierarchical budget controls (key/team/org) | Bifrost Virtual Keys | Phase 4 org budget rollup + Phase 6 quota windows |
+| Content guardrails at the gateway | Bifrost + Azure Content Safety | Phase 3 gateway PII/secret redaction |
+| Signed/verified skill pipeline | NVIDIA verified skills | Phase 3 gateway skill provenance |
+| Non-human identity lifecycle | Microsoft Entra Agent ID | Phase 4 NHI lifecycle in accounts model |
+| Compliance framework mapping | Credo AI | Phase 6 explicit control-to-framework reports |
+| Code mode for token reduction | Bifrost (50–92% savings) | Already in CK as `CodeModePolicy`; positioned in Phase 3 as governed alternative to raw tool-call flooding |
+| Behavioral baselining | Industry 7-gate standard | Phase 5 cross-run statistical baselines from telemetry |
+
+### What CK should not chase
+
+| Distraction | Reason |
+| --- | --- |
+| API monetization / billing engine | CK is a governance plane, not an API marketplace (that's Kong's territory) |
+| LLM routing / load balancing | CK's provider brokerage is sufficient; dedicated LLM gateways optimize raw performance better |
+| Agent playground UI | Useful but not governance-critical; CK's `ck_execute_code` sandbox covers the governed execution path |
 
 ## Relationship to local mode
 
