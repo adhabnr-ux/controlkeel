@@ -306,6 +306,82 @@ Complete the enterprise surface.
 - NATS JetStream durable queues for multi-node coordination
 - Idempotency and replay for scalable observability projections
 
+## Open questions and decisions owed
+
+These need explicit decisions before Phase 2 code lands. Each one shapes downstream phases, so leaving them implicit creates rework.
+
+| Question | Why it matters | Owner | Target decision phase |
+| --- | --- | --- | --- |
+| Single Phoenix app with `Runtime.mode` flag vs. dedicated cloud control-plane service? | Determines deploy topology, schema layout, and whether `CloudRepo` is a sibling repo or a separate app boundary. | architecture | Phase 1 |
+| Workspace identity: signed device key, OAuth client per workspace, or both? | Wire-level auth contract for `controlkeel cloud connect`. Downstream telemetry, hosted MCP, and cloud-agent flows all hang off this. | security | Phase 1 |
+| Telemetry event envelope schema (versioning, idempotency keys, redaction marker placement)? | Stable wire format unblocks Phase 2 ingestion and any third-party dashboard consumers. Schema changes after launch are expensive. | platform | Phase 2 |
+| Org/user/membership data model — extend `Platform.ServiceAccount` or new `accounts` context? | Choice locks the migration path and decides whether service accounts and user accounts share a token model. | platform | Phase 3 |
+| Hosted MCP multi-tenancy: workspace-scoped tokens only, or org + workspace hierarchy in protocol scopes? | Affects scope strings exposed in `ProtocolAccess` and downstream RBAC. | platform | Phase 3 |
+| Storage for proof bundles in cloud mode: Postgres BYTEA, S3-compatible object store, or external blob service? | Drives Phase 5 self-host requirements and DLP/redaction surface area. | infra | Phase 5 |
+| NATS JetStream consumer durability strategy: per-workspace streams vs. shared streams with subject filters? | Determines blast radius of poison messages and back-pressure isolation. | infra | Phase 6 |
+
+Record each decision through `ck_review_submit` as it lands, link the review ID back into this table.
+
+## Phase 1 first-PR scope: `controlkeel cloud doctor`
+
+Phase 1 lists "add cloud mode status/doctor command" as the only item without existing code. Below is the concrete first-PR spec so it can be picked up immediately.
+
+**Goal:** A read-only diagnostic that proves the cloud-mode boundary works end-to-end before any sync feature ships.
+
+**Surface:**
+
+```bash
+controlkeel cloud doctor
+```
+
+**Reports:**
+
+- `Runtime.mode` value and source (config vs. env override)
+- `CloudRepo` configured? (DATABASE_URL present + reachable in cloud mode)
+- Bus selection: `Bus.Local` vs `Bus.Nats`, and NATS reachability if configured
+- Service-account count and oldest unused token
+- Hosted MCP route registered? (`POST /mcp` reachable on configured host)
+- A2A agent-card endpoint reachable?
+- Telemetry sync status: `disabled` (always, until Phase 2 lands)
+
+**Non-goals:**
+
+- No mutation. No token issuance. No remote calls beyond local-network probes already configured.
+- Does not send telemetry. Does not assume cloud connectivity.
+
+**Acceptance:**
+
+- Command exits 0 with structured report when running in local mode and reports all checks "not applicable".
+- Command exits non-zero only on detected misconfiguration (e.g., `Runtime.mode == :cloud` but `DATABASE_URL` unset).
+- New test in `test/controlkeel/cli_runtime_test.exs` covers both local and cloud-mode probes via stubs.
+- No new runtime dependencies.
+
+This becomes the trust-anchor command for every later phase — it should keep working unchanged as Phase 2+ adds new surfaces.
+
+## Per-phase acceptance gates
+
+Each phase ships behind explicit gates. A phase is not "done" until all of its gates pass and a `ck_review_submit` packet captures the evidence.
+
+| Phase | Acceptance gates |
+| --- | --- |
+| **Phase 1 — Cloud foundation** | `controlkeel cloud doctor` ships; hosted MCP/A2A end-to-end test green in CI; docs land; no findings open against trust-boundary or untrusted instruction rules. |
+| **Phase 2 — Telemetry sync** | `controlkeel cloud connect` issues a signed workspace identity; `controlkeel telemetry enable --level health` posts at least one health event end-to-end; redaction pipeline has unit tests; dashboard renders install-to-first-finding funnel for a seeded workspace. |
+| **Phase 3 — Hosted MCP gateway MVP** | Hosted MCP rejects requests outside the org/workspace scope; tool-call audit log records every dispatch; gateway dashboard renders calls/denied/scopes; per-tool policy enforcement covered by tests. |
+| **Phase 4 — Team workspace MVP** | Invite flow creates user, membership, role; review packet can be assigned and approved/denied by a different user; org budget cap blocks provider calls with a recorded `budget_exceeded` event; shared typed memory survives a workspace-rejoin. |
+| **Phase 5 — Cloud-agent runtime loop** | At least two cloud-agent targets (Devin + Open SWE recommended) complete the runtime registration → task package → callback → proof ingestion loop in a fixture test; Mission Control lifecycle UI renders all states. |
+| **Phase 6 — Enterprise control plane** | SSO/RBAC login flow works against a SAML/OIDC fixture; air-gapped install bundle builds; NATS JetStream durable queue replays an interrupted task-run idempotently; compliance report export covers SOC 2 + GDPR sample evidence. |
+
+## Risks and mitigations
+
+| Risk | Mitigation |
+| --- | --- |
+| Cloud features drag local-mode latency through shared code paths | Keep cloud-mode code behind `Runtime.mode` checks; benchmark local-mode startup and first-finding latency in CI; treat regressions as ship-blockers. |
+| Telemetry redaction leaks repo content | Redaction is applied at event-envelope build time and tested with a corpus of secret/PII fixtures before any network egress; cloud doctor reports the redaction-policy version in use. |
+| Migration from local SQLite to cloud Postgres loses proof/memory continuity | No automatic migration; `controlkeel cloud connect` records a forward-only workspace identity. Local proofs stay local; cloud-mode workspaces start fresh and reference local proofs by hash. |
+| Hosted MCP becomes a single point of failure for team work | Local stdio MCP remains the default; hosted MCP is additive. Doctor command surfaces hosted MCP reachability so teams notice degradation. |
+| Service-account tokens leak | Tokens are hashed at rest, rotated through `controlkeel service-accounts rotate`; hosted MCP rate-limits per token; cloud doctor flags tokens older than 90 days unused. |
+| JetStream consumers process events non-idempotently | All cloud-mode events carry an idempotency key; consumers record processed keys in a TTL'd dedupe table; replay tests run in CI. |
+
 ## Relationship to local mode
 
 Every phase preserves local mode as a first-class path. A solo builder on a laptop should never need to set up cloud infrastructure to use ControlKeel effectively. Cloud features are additive surfaces for teams that need them.
