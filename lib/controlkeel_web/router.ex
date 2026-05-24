@@ -197,6 +197,7 @@ defmodule ControlKeelWeb.Router do
     pipe_through :cloud_telemetry_ingest
 
     post "/telemetry", CloudTelemetryController, :ingest
+    post "/runtime/callbacks", CloudRuntimeCallbackController, :update
   end
 
   if Application.compile_env(:controlkeel, :dev_routes) do

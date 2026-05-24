@@ -272,6 +272,15 @@ defmodule ControlKeel.CLI do
   @org_budget_show_switches [project_root: :string]
   @org_invite_switches [project_root: :string, email: :string, role: :string]
   @org_members_switches [project_root: :string]
+  @run_cloud_agent_switches [
+    project_root: :string,
+    runtime: :string,
+    budget_cents: :integer,
+    scopes: :string,
+    note: :string
+  ]
+  @eval_list_switches [project_root: :string]
+  @eval_run_switches [project_root: :string, suite: :string]
   @agents_list_switches [project_root: :string, format: :string, json: :boolean]
   @route_agent_switches [
     task: :string,
@@ -471,6 +480,18 @@ defmodule ControlKeel.CLI do
 
       ["run", "task", task_id | rest] ->
         parse_run_command(:run_task, task_id, rest)
+
+      ["run", "cloud-agent", task_id | rest] ->
+        case parse_with_switches(:run_cloud_agent, rest, @run_cloud_agent_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [task_id])}
+          err -> err
+        end
+
+      ["eval", "list" | rest] ->
+        parse_with_switches(:eval_list, rest, @eval_list_switches)
+
+      ["eval", "run" | rest] ->
+        parse_with_switches(:eval_run, rest, @eval_run_switches)
 
       ["run", "session", session_id | rest] ->
         parse_run_command(:run_session, session_id, rest)
@@ -1876,6 +1897,125 @@ defmodule ControlKeel.CLI do
 
       {:error, {:write_failed, reason}} ->
         {:error, "Failed to persist telemetry config: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :eval_list, options: _options}, _project_root) do
+    alias ControlKeel.Cloud.EvalRunner
+
+    suites = EvalRunner.list_suites()
+
+    rows =
+      if suites == [] do
+        ["No eval suites available."]
+      else
+        ["Eval suites:"] ++
+          Enum.map(suites, fn s ->
+            "  #{s.slug}\t(#{s.case_count} cases)\t#{s.title}"
+          end)
+      end
+
+    {:ok, rows}
+  end
+
+  def run_command(%{command: :eval_run, options: options}, _project_root) do
+    alias ControlKeel.Cloud.EvalRunner
+
+    slug = options[:suite] || "governance-regression"
+
+    case EvalRunner.run(slug) do
+      :not_found ->
+        {:error, "Unknown eval suite: #{slug}"}
+
+      {:ok, result} ->
+        header = [
+          "Eval suite: #{result.title} (#{result.slug})",
+          "Total: #{result.total}",
+          "Passed: #{result.passed}",
+          "Failed: #{result.failed}"
+        ]
+
+        case_rows =
+          Enum.map(result.cases, fn c ->
+            badge = if c.status == :pass, do: "PASS", else: "FAIL"
+
+            extras =
+              cond do
+                c.missing_rule_ids != [] ->
+                  " missing=#{Enum.join(c.missing_rule_ids, ",")}"
+
+                c.unexpected_block_rule_ids != [] ->
+                  " unexpected_block=#{Enum.join(c.unexpected_block_rule_ids, ",")}"
+
+                true ->
+                  ""
+              end
+
+            "  [#{badge}] #{c.name} decision=#{c.decision}#{extras}"
+          end)
+
+        lines = header ++ case_rows
+
+        if result.failed == 0 do
+          {:ok, lines}
+        else
+          {:error, Enum.join(lines, "\n")}
+        end
+    end
+  end
+
+  def run_command(
+        %{command: :run_cloud_agent, options: options, args: [task_id_str]},
+        _project_root
+      ) do
+    alias ControlKeel.Cloud.RuntimeContext
+    alias ControlKeel.Mission
+
+    with {:ok, task_id} <- parse_integer_arg(task_id_str, "task-id"),
+         {:ok, runtime} <- require_string_option(options[:runtime], "runtime"),
+         :ok <- validate_runtime_target(runtime),
+         {:ok, budget} <- validate_budget_cents(options[:budget_cents]),
+         %{} = task <- Mission.get_task(task_id) do
+      session = Mission.get_session(task.session_id)
+      workspace_id = session && session.workspace_id
+
+      cond do
+        workspace_id == nil ->
+          {:error, "Task #{task_id} has no associated workspace"}
+
+        true ->
+          attrs = %{
+            workspace_id: workspace_id,
+            session_id: session.id,
+            task_id: task.id,
+            runtime_target: runtime,
+            budget_cents_allocated: budget,
+            scopes: parse_scopes(options[:scopes]),
+            payload: build_cloud_payload(task, options)
+          }
+
+          case RuntimeContext.create_package(attrs) do
+            {:ok, package, raw_token} ->
+              {:ok,
+               [
+                 "Cloud run package created",
+                 "Package ID: #{package.id}",
+                 "Task: #{task.id} — #{task.title}",
+                 "Runtime: #{package.runtime_target}",
+                 "Budget allocated (cents): #{package.budget_cents_allocated}",
+                 "Scopes: #{package.scopes || "(none)"}",
+                 "Callback token (deliver out of band): #{raw_token}",
+                 "Initial status: #{package.status}"
+               ]}
+
+            {:error, changeset} ->
+              {:error, "Failed to create package: #{format_changeset_errors(changeset)}"}
+          end
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+      {:error, msg} when is_binary(msg) -> {:error, msg}
+      nil -> {:error, "Task not found: #{task_id_str}"}
     end
   end
 
@@ -7357,6 +7497,41 @@ defmodule ControlKeel.CLI do
       {:ok, level} -> {:ok, level}
       :error -> {:error, :invalid_level}
     end
+  end
+
+  defp parse_integer_arg(value, name) do
+    case Integer.parse(to_string(value)) do
+      {n, ""} -> {:ok, n}
+      _ -> {:error, "Invalid #{name}: #{value}"}
+    end
+  end
+
+  defp validate_runtime_target(runtime) do
+    if runtime in ControlKeel.Cloud.RunPackage.valid_runtimes() do
+      :ok
+    else
+      {:error,
+       "Unknown runtime '#{runtime}'. Valid runtimes: " <>
+         Enum.join(ControlKeel.Cloud.RunPackage.valid_runtimes(), ", ")}
+    end
+  end
+
+  defp validate_budget_cents(nil), do: {:ok, 0}
+  defp validate_budget_cents(n) when is_integer(n) and n >= 0, do: {:ok, n}
+  defp validate_budget_cents(_), do: {:error, "--budget-cents must be a non-negative integer"}
+
+  defp parse_scopes(nil), do: nil
+  defp parse_scopes(""), do: nil
+  defp parse_scopes(value) when is_binary(value), do: value
+
+  defp build_cloud_payload(task, options) do
+    %{
+      "task_title" => task.title,
+      "validation_gate" => task.validation_gate,
+      "note" => options[:note]
+    }
+    |> Enum.reject(fn {_k, v} -> v in [nil, ""] end)
+    |> Map.new()
   end
 
   defp format_changeset_errors(%Ecto.Changeset{errors: errors}) do

@@ -43,6 +43,44 @@ defmodule ControlKeelWeb.CloudTelemetryLiveTest do
       assert html =~ "not connected"
       assert html =~ "unconfigured"
       assert html =~ "No events received yet"
+      assert html =~ "No cloud-agent runs yet"
+    end
+  end
+
+  describe "mount/render with cloud-agent runs" do
+    alias ControlKeel.Cloud.RuntimeContext
+    alias ControlKeel.MissionFixtures
+
+    test "shows status counts and recent run rows", %{conn: conn} do
+      workspace = MissionFixtures.workspace_fixture()
+      session = MissionFixtures.session_fixture(%{workspace: workspace})
+      task = MissionFixtures.task_fixture(%{session: session, title: "Cloud demo"})
+
+      {:ok, _, _} =
+        RuntimeContext.create_package(%{
+          workspace_id: workspace.id,
+          session_id: session.id,
+          task_id: task.id,
+          runtime_target: "devin",
+          budget_cents_allocated: 100
+        })
+
+      {:ok, pkg, _} =
+        RuntimeContext.create_package(%{
+          workspace_id: workspace.id,
+          runtime_target: "open-swe",
+          budget_cents_allocated: 0
+        })
+
+      {:ok, _} = RuntimeContext.transition_status(pkg, "completed")
+
+      {:ok, _view, html} = live(conn, ~p"/cloud/telemetry")
+
+      assert html =~ "Cloud-agent run packages"
+      assert html =~ "pending"
+      assert html =~ "completed"
+      assert html =~ "devin"
+      assert html =~ "open-swe"
     end
   end
 

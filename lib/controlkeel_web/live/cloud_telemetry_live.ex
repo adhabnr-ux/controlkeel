@@ -16,6 +16,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
   alias ControlKeel.Cloud.Ingestion
   alias ControlKeel.Cloud.McpAuditLog
   alias ControlKeel.Cloud.McpRegistry
+  alias ControlKeel.Cloud.RuntimeContext
   alias ControlKeel.Cloud.Sender
   alias ControlKeel.Cloud.TelemetryConfig
   alias ControlKeel.Cloud.TelemetryQueue
@@ -61,6 +62,8 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
     |> assign(:mcp_registry_denylist, McpRegistry.denylist())
     |> assign(:guardrails_summary, Guardrails.summary())
     |> assign(:org_budgets, org_budget_overviews())
+    |> assign(:cloud_runs_summary, RuntimeContext.global_status_counts())
+    |> assign(:cloud_runs_recent, RuntimeContext.recent(limit: 15))
   end
 
   defp org_budget_overviews do
@@ -187,6 +190,45 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
                   <tr>
                     <td><code>{kind}</code></td>
                     <td class="ck-table-right">{count}</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
+        </div>
+
+        <div id="cloud-agent-runs" class="ck-card">
+          <h2 class="ck-card-title">Cloud-agent run packages</h2>
+          <p class="ck-note">
+            <%= for {status, count} <- Enum.sort(@cloud_runs_summary) do %>
+              <strong>{status}</strong>: {count} ·
+            <% end %>
+            <%= if @cloud_runs_summary == %{} do %>
+              No cloud-agent runs yet.
+            <% end %>
+          </p>
+
+          <%= if @cloud_runs_recent != [] do %>
+            <table class="ck-table">
+              <thead>
+                <tr>
+                  <th>Package</th>
+                  <th>Runtime</th>
+                  <th>Status</th>
+                  <th>Task</th>
+                  <th>Workspace</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for pkg <- @cloud_runs_recent do %>
+                  <tr>
+                    <td><code>#{pkg.id}</code></td>
+                    <td><code>{pkg.runtime_target}</code></td>
+                    <td>{pkg.status}</td>
+                    <td>{pkg.task_id || "—"}</td>
+                    <td>{pkg.workspace_id}</td>
+                    <td>{DateTime.to_iso8601(pkg.inserted_at)}</td>
                   </tr>
                 <% end %>
               </tbody>

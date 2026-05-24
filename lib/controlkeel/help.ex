@@ -527,6 +527,17 @@ defmodule ControlKeel.Help do
                                       Report task run outcome/output metadata
       controlkeel run task <id> [--agent auto|<id>] [--mode auto|embedded|handoff|runtime] [--sandbox local|docker|e2b|nono]
                                       Run or hand off a governed task through a supported agent
+      controlkeel eval list             List available eval suites
+      controlkeel eval run [--suite <slug>]
+                                        Run an eval suite against ck_validate fixtures.
+                                        Exits non-zero on regression. Default suite:
+                                        governance-regression.
+      controlkeel run cloud-agent <task-id> --runtime <runtime> [--budget-cents N] [--scopes "a,b,c"] [--note "..."]
+                                      Create a cloud-runtime handoff package for a task.
+                                      Runtimes: devin, open-swe, cursor-cloud-agents, replit-agent,
+                                      warp-oz, executor, virtual-bash, cloudflare-workers,
+                                      codex-app-server, enterprise-internal. Prints the raw
+                                      callback token; deliver out of band to the cloud runtime.
       controlkeel run session <id> [--agent auto|<id>] [--mode auto|embedded|handoff|runtime] [--sandbox local|docker|e2b|nono]
                                       Run all ready tasks for a governed session
       controlkeel sandbox status       Show execution sandbox adapter availability
