@@ -36,3 +36,4 @@ config :phoenix,
   sort_verified_routes_query_params: true
 
 config :controlkeel, :analytics_telemetry_handler, false
+config :controlkeel, :cloud_sender_periodic_enabled, false

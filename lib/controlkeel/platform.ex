@@ -46,6 +46,12 @@ defmodule ControlKeel.Platform do
     |> Repo.all()
   end
 
+  def list_all_service_accounts do
+    ServiceAccount
+    |> order_by([account], asc: account.workspace_id, asc: account.id)
+    |> Repo.all()
+  end
+
   def get_service_account(id), do: Repo.get(ServiceAccount, id)
 
   def create_service_account(workspace_id, attrs) do

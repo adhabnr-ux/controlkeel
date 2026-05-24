@@ -476,6 +476,22 @@ defmodule ControlKeel.Help do
       controlkeel plugin install codex|claude|copilot|openclaw [--scope user|project] [--mode local|hosted]
                                       Install a plugin bundle with local and hosted MCP templates
       controlkeel agents doctor       Show bidirectional execution and install readiness
+      controlkeel cloud doctor        Show cloud-mode boundary status (runtime mode, cloud repo,
+                                      bus, service accounts, hosted MCP/A2A, telemetry sync)
+      controlkeel cloud connect [--rotate]
+                                      Generate (or rotate) a local workspace identity keypair.
+                                      Local-only — no remote registration is performed.
+      controlkeel telemetry status    Show opt-in cloud telemetry sync state (disabled by default)
+      controlkeel telemetry enable --level health|governance|evidence|full_audit
+                                      Opt in to cloud telemetry at the specified level.
+                                      Requires `controlkeel cloud connect` first.
+                                      Writes local state only; no remote sync until pipeline ships.
+      controlkeel telemetry disable   Opt out of cloud telemetry. Workspace identity is preserved.
+      controlkeel telemetry queue [--limit N]
+                                      Inspect pending telemetry events queued for upstream sync.
+      controlkeel telemetry flush [--limit N]
+                                      Drain queued telemetry events to the configured endpoint.
+                                      No-op when no endpoint is set; events stay queued.
       controlkeel agents list [--json]
                                       List runnable/attached agent integrations
       controlkeel route-agent --task "..." [--risk-tier low|medium|high|critical] [--budget-remaining-cents N] [--allowed-agents a,b] [--domain-pack software] [--json]

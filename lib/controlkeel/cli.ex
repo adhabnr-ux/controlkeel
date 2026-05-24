@@ -255,6 +255,13 @@ defmodule ControlKeel.CLI do
   @govern_install_switches [project_root: :string]
   @plugin_switches [project_root: :string, scope: :string, mode: :string]
   @agents_doctor_switches [project_root: :string]
+  @cloud_doctor_switches [project_root: :string]
+  @cloud_connect_switches [project_root: :string, rotate: :boolean]
+  @telemetry_status_switches [project_root: :string]
+  @telemetry_enable_switches [project_root: :string, level: :string]
+  @telemetry_disable_switches [project_root: :string]
+  @telemetry_queue_switches [project_root: :string, limit: :integer]
+  @telemetry_flush_switches [project_root: :string, limit: :integer]
   @agents_list_switches [project_root: :string, format: :string, json: :boolean]
   @route_agent_switches [
     task: :string,
@@ -364,6 +371,27 @@ defmodule ControlKeel.CLI do
 
       ["agents", "doctor" | rest] ->
         parse_with_switches(:agents_doctor, rest, @agents_doctor_switches)
+
+      ["cloud", "doctor" | rest] ->
+        parse_with_switches(:cloud_doctor, rest, @cloud_doctor_switches)
+
+      ["cloud", "connect" | rest] ->
+        parse_with_switches(:cloud_connect, rest, @cloud_connect_switches)
+
+      ["telemetry", "status" | rest] ->
+        parse_with_switches(:telemetry_status, rest, @telemetry_status_switches)
+
+      ["telemetry", "enable" | rest] ->
+        parse_with_switches(:telemetry_enable, rest, @telemetry_enable_switches)
+
+      ["telemetry", "disable" | rest] ->
+        parse_with_switches(:telemetry_disable, rest, @telemetry_disable_switches)
+
+      ["telemetry", "queue" | rest] ->
+        parse_with_switches(:telemetry_queue, rest, @telemetry_queue_switches)
+
+      ["telemetry", "flush" | rest] ->
+        parse_with_switches(:telemetry_flush, rest, @telemetry_flush_switches)
 
       ["agents", "list" | rest] ->
         parse_with_switches(:agents_list, rest, @agents_list_switches)
@@ -1708,6 +1736,174 @@ defmodule ControlKeel.CLI do
       {:error, reason} ->
         {:error, "Failed to install plugin bundle: #{format_cli_error(reason)}"}
     end
+  end
+
+  def run_command(%{command: :cloud_doctor, options: _options}, _project_root) do
+    report = ControlKeel.Cloud.Doctor.report()
+    lines = ControlKeel.Cloud.Doctor.format(report)
+
+    if report.ok do
+      {:ok, lines}
+    else
+      {:error, Enum.join(lines, "\n")}
+    end
+  end
+
+  def run_command(%{command: :cloud_connect, options: options}, _project_root) do
+    force? = Map.get(options, :rotate, false)
+
+    case ControlKeel.Cloud.WorkspaceIdentity.ensure(force: force?) do
+      {:ok, identity, outcome} ->
+        action =
+          case outcome do
+            :existing -> "Already connected"
+            :created -> "Workspace identity created"
+            :rotated -> "Workspace identity rotated"
+          end
+
+        {:ok,
+         [
+           action,
+           "Workspace ID: #{identity.workspace_id}",
+           "Algorithm: #{identity.algorithm}",
+           "Fingerprint: #{ControlKeel.Cloud.WorkspaceIdentity.short_fingerprint(identity)}...",
+           "Created at: #{DateTime.to_iso8601(identity.created_at)}",
+           "Identity path: #{identity.path}",
+           "Note: this is a local identity primitive. No remote registration is performed."
+         ]}
+
+      {:error, reason} ->
+        {:error, "Failed to generate workspace identity: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :telemetry_enable, options: options}, _project_root) do
+    alias ControlKeel.Cloud.TelemetryConfig
+
+    with {:ok, raw_level} <- require_string_option(options[:level], "level"),
+         {:ok, level} <- parse_telemetry_level(raw_level),
+         {:ok, state} <- TelemetryConfig.enable(level) do
+      {:ok,
+       [
+         "Cloud telemetry enabled",
+         "Level: #{state.level}",
+         "Workspace: #{state.workspace_id}",
+         "Redaction policy version: #{state.redaction_policy_version}",
+         "Config path: #{state.path}",
+         "Note: this writes local state only. No remote sync is performed until the sync pipeline ships."
+       ]}
+    else
+      {:error, {:missing_option, option}} ->
+        {:error,
+         "Missing required option --#{option}. Levels: #{telemetry_level_list_text()}"}
+
+      {:error, :invalid_level} ->
+        {:error, "Invalid level. Choose one of: #{telemetry_level_list_text()}"}
+
+      {:error, :not_connected} ->
+        {:error,
+         "Workspace identity not found. Run `controlkeel cloud connect` first to generate a local identity."}
+
+      {:error, {:write_failed, reason}} ->
+        {:error, "Failed to persist telemetry config: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :telemetry_disable, options: _options}, _project_root) do
+    case ControlKeel.Cloud.TelemetryConfig.disable() do
+      {:ok, state} ->
+        {:ok,
+         [
+           "Cloud telemetry disabled",
+           "Level: #{state.level}",
+           "Config path: #{state.path}"
+         ]}
+
+      {:error, {:write_failed, reason}} ->
+        {:error, "Failed to persist telemetry config: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :telemetry_flush, options: options}, _project_root) do
+    alias ControlKeel.Cloud.Sender
+
+    limit_opts = if options[:limit], do: [limit: options[:limit]], else: []
+
+    case Sender.flush(limit_opts) do
+      {:ok, :no_endpoint, 0} ->
+        {:ok,
+         [
+           "Cloud telemetry flush: skipped (no endpoint configured)",
+           "Set :controlkeel, :cloud_telemetry_endpoint to enable upstream sync."
+         ]}
+
+      {:ok, :no_pending, 0} ->
+        {:ok, ["Cloud telemetry flush: queue is empty"]}
+
+      {:ok, :sent, count} ->
+        {:ok, ["Cloud telemetry flush: sent #{count} event(s)"]}
+
+      {:error, :not_connected, _} ->
+        {:error,
+         "Cloud telemetry flush failed: workspace not connected. Run `controlkeel cloud connect` first."}
+
+      {:error, :network, count} ->
+        {:error,
+         "Cloud telemetry flush failed: network error (#{count} event(s) marked failed and will retry)"}
+
+      {:error, {:server, status}, count} ->
+        {:error,
+         "Cloud telemetry flush failed: server returned #{status} (#{count} event(s) marked failed)"}
+    end
+  end
+
+  def run_command(%{command: :telemetry_queue, options: options}, _project_root) do
+    alias ControlKeel.Cloud.TelemetryQueue
+
+    limit = Map.get(options, :limit, 20)
+    pending = TelemetryQueue.pending(limit: limit)
+    total = TelemetryQueue.pending_count()
+
+    header = [
+      "ControlKeel cloud telemetry queue",
+      "Pending events: #{total}",
+      "Showing: #{length(pending)}/#{total} (limit=#{limit})"
+    ]
+
+    rows =
+      if pending == [] do
+        ["  (queue is empty)"]
+      else
+        Enum.map(pending, fn event ->
+          "  #{event.event_id}  #{event.kind}  workspace=#{event.workspace_id}  attempts=#{event.send_attempts}  queued_at=#{DateTime.to_iso8601(event.queued_at)}"
+        end)
+      end
+
+    {:ok, header ++ rows}
+  end
+
+  def run_command(%{command: :telemetry_status, options: _options}, _project_root) do
+    state = ControlKeel.Cloud.TelemetryConfig.load()
+    enabled? = ControlKeel.Cloud.TelemetryConfig.enabled?(state)
+
+    base = [
+      "ControlKeel cloud telemetry",
+      "Status: #{if enabled?, do: "enabled", else: "disabled"}",
+      "Level: #{state.level}",
+      "Source: #{state.source}",
+      "Config path: #{state.path}",
+      "Redaction policy version: #{state.redaction_policy_version}",
+      "Schema version: #{state.schema_version}"
+    ]
+
+    workspace_line = if state.workspace_id, do: ["Workspace: #{state.workspace_id}"], else: []
+
+    enabled_at_line =
+      if state.enabled_at, do: ["Enabled at: #{DateTime.to_iso8601(state.enabled_at)}"], else: []
+
+    error_line = if state.load_error, do: ["Load error: #{state.load_error}"], else: []
+
+    {:ok, base ++ workspace_line ++ enabled_at_line ++ error_line}
   end
 
   def run_command(%{command: :agents_doctor, options: options}, project_root) do
@@ -6817,6 +7013,20 @@ defmodule ControlKeel.CLI do
   defp require_string_option(nil, option), do: {:error, {:missing_option, option}}
   defp require_string_option("", option), do: {:error, {:missing_option, option}}
   defp require_string_option(value, _option), do: {:ok, to_string(value)}
+
+  defp parse_telemetry_level(value) do
+    case ControlKeel.Cloud.TelemetryConfig.parse_level(value) do
+      {:ok, :disabled} -> {:error, :invalid_level}
+      {:ok, level} -> {:ok, level}
+      :error -> {:error, :invalid_level}
+    end
+  end
+
+  defp telemetry_level_list_text do
+    ControlKeel.Cloud.TelemetryConfig.opt_in_levels()
+    |> Enum.map(&Atom.to_string/1)
+    |> Enum.join(" | ")
+  end
 
   defp selected_base_url(%{"provider_chain" => [resolution | _]}) do
     resolution["base_url"] || "default"

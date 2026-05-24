@@ -79,6 +79,7 @@ defmodule ControlKeel.Application do
         ControlKeel.Runtime.bus_module()
       ] ++
       analytics_children() ++
+      cloud_emitter_children() ++
       [
         {DNSCluster, query: Application.get_env(:controlkeel, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: ControlKeel.PubSub},
@@ -109,6 +110,7 @@ defmodule ControlKeel.Application do
         ControlKeel.Runtime.bus_module()
       ] ++
       analytics_children() ++
+      cloud_emitter_children() ++
       [
         {Phoenix.PubSub, name: ControlKeel.PubSub},
         ControlKeel.Skills.Activation,
@@ -244,6 +246,22 @@ defmodule ControlKeel.Application do
   defp cloud_repo_children do
     if ControlKeel.Runtime.cloud_repo_enabled?() do
       [ControlKeel.CloudRepo]
+    else
+      []
+    end
+  end
+
+  defp cloud_emitter_children do
+    if Application.get_env(:controlkeel, :cloud_emitter_enabled, true) do
+      [ControlKeel.Cloud.Emitter.Supervisor] ++ cloud_sender_periodic_children()
+    else
+      []
+    end
+  end
+
+  defp cloud_sender_periodic_children do
+    if Application.get_env(:controlkeel, :cloud_sender_periodic_enabled, true) do
+      [ControlKeel.Cloud.Sender.Periodic]
     else
       []
     end
