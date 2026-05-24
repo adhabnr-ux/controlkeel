@@ -22,6 +22,9 @@ defmodule ControlKeel.Accounts do
   alias ControlKeel.Repo
 
   @org_budget_setting_key "budget_cents"
+  @org_idp_setting_key "identity_provider"
+  @oidc_required_keys ~w(issuer client_id)
+  @saml_required_keys ~w(entity_id idp_metadata_url)
 
   @role_rank %{
     "owner" => 3,
@@ -441,6 +444,105 @@ defmodule ControlKeel.Accounts do
       workspace_count: length(workspaces),
       over_cap?: not is_nil(budget) and spent > budget
     }
+  end
+
+  # ──────────────── Org identity providers ─
+
+  @doc """
+  Configure the org's identity provider.
+
+  Per architectural decision D2/D4 SSO/SAML/OIDC is a Phase 6 concern; this
+  slice persists the configuration shape so future slices can wire up actual
+  login redirects. Client secrets are intentionally NOT stored here — they
+  require encryption-at-rest and a secrets-management story. For now the
+  config holds only public-facing IdP metadata: issuer URLs, client_id,
+  entity_id, metadata URL.
+
+  Pass `attrs = nil` to clear an existing IdP config.
+
+  Supported provider types:
+
+    - `"oidc"`: requires `issuer` and `client_id`
+    - `"saml"`: requires `entity_id` and `idp_metadata_url`
+  """
+  @spec set_org_identity_provider(integer(), map() | nil) ::
+          {:ok, Org.t()} | {:error, :not_found | Ecto.Changeset.t() | atom() | {atom(), term()}}
+  def set_org_identity_provider(org_id, nil) do
+    update_org_idp(org_id, nil)
+  end
+
+  def set_org_identity_provider(org_id, attrs) when is_map(attrs) do
+    with {:ok, normalized} <- validate_idp_attrs(attrs) do
+      update_org_idp(org_id, normalized)
+    end
+  end
+
+  def set_org_identity_provider(_, _), do: {:error, :invalid}
+
+  @doc "Read the IdP config for an org, or nil when unset."
+  @spec get_org_identity_provider(integer() | Org.t()) :: map() | nil
+  def get_org_identity_provider(%Org{settings: settings}), do: extract_idp(settings)
+
+  def get_org_identity_provider(org_id) when is_integer(org_id) do
+    case Repo.get(Org, org_id) do
+      %Org{} = org -> get_org_identity_provider(org)
+      _ -> nil
+    end
+  end
+
+  defp update_org_idp(org_id, idp_or_nil) do
+    case Repo.get(Org, org_id) do
+      nil ->
+        {:error, :not_found}
+
+      %Org{} = org ->
+        settings =
+          org.settings
+          |> Map.new(fn {k, v} -> {to_string(k), v} end)
+          |> put_or_drop_idp(idp_or_nil)
+
+        org
+        |> Org.changeset(%{settings: settings})
+        |> Repo.update()
+    end
+  end
+
+  defp put_or_drop_idp(settings, nil), do: Map.delete(settings, @org_idp_setting_key)
+  defp put_or_drop_idp(settings, idp), do: Map.put(settings, @org_idp_setting_key, idp)
+
+  defp extract_idp(nil), do: nil
+  defp extract_idp(%{} = settings) when settings == %{}, do: nil
+
+  defp extract_idp(%{} = settings) do
+    case Map.get(settings, @org_idp_setting_key) || Map.get(settings, :identity_provider) do
+      %{} = idp -> idp
+      _ -> nil
+    end
+  end
+
+  defp extract_idp(_), do: nil
+
+  defp validate_idp_attrs(attrs) do
+    normalized = Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
+
+    case Map.get(normalized, "type") do
+      "oidc" -> ensure_required(normalized, "oidc", @oidc_required_keys)
+      "saml" -> ensure_required(normalized, "saml", @saml_required_keys)
+      _ -> {:error, :unsupported_provider_type}
+    end
+  end
+
+  defp ensure_required(normalized, type, required_keys) do
+    missing =
+      Enum.reject(required_keys, fn key ->
+        value = Map.get(normalized, key)
+        is_binary(value) and String.trim(value) != ""
+      end)
+
+    case missing do
+      [] -> {:ok, Map.put(normalized, "type", type)}
+      _ -> {:error, {:missing_fields, missing}}
+    end
   end
 
   # ──────────────── Team review flow ───────

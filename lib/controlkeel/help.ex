@@ -511,6 +511,12 @@ defmodule ControlKeel.Help do
                                       Invite a user to an org. Prints the raw invitation
                                       token; deliver it to the invitee out of band
       controlkeel org members <slug>  List members of an org
+      controlkeel org idp set <slug> --type oidc --issuer <url> --client-id <id>
+      controlkeel org idp set <slug> --type saml --entity-id <id> --idp-metadata-url <url>
+      controlkeel org idp set <slug> --clear
+                                      Configure or clear the org's identity provider.
+                                      Client secrets are intentionally NOT stored here.
+      controlkeel org idp show <slug> Display the org's identity provider configuration
       controlkeel agents list [--json]
                                       List runnable/attached agent integrations
       controlkeel route-agent --task "..." [--risk-tier low|medium|high|critical] [--budget-remaining-cents N] [--allowed-agents a,b] [--domain-pack software] [--json]
@@ -528,6 +534,11 @@ defmodule ControlKeel.Help do
       controlkeel run task <id> [--agent auto|<id>] [--mode auto|embedded|handoff|runtime] [--sandbox local|docker|e2b|nono]
                                       Run or hand off a governed task through a supported agent
       controlkeel eval list             List available eval suites
+      controlkeel audit export --workspace <slug>|--org <slug>
+                                        [--since ISO8601] [--until ISO8601] [--out FILE]
+                                        Export an audit bundle (findings, reviews, audit events,
+                                        MCP tool calls, cloud-agent runs, received telemetry) for
+                                        SOC 2 / GDPR procurement. Prints JSON to stdout or --out.
       controlkeel eval run [--suite <slug>]
                                         Run an eval suite against ck_validate fixtures.
                                         Exits non-zero on regression. Default suite:

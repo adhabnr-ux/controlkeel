@@ -71,7 +71,14 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
     |> Enum.map(fn org ->
       status = Accounts.org_budget_status(org.id)
       breakdown = Accounts.org_workspace_breakdown(org.id)
-      Map.merge(status, %{org_name: org.name, org_slug: org.slug, workspaces: breakdown})
+      idp = Accounts.get_org_identity_provider(org)
+
+      Map.merge(status, %{
+        org_name: org.name,
+        org_slug: org.slug,
+        workspaces: breakdown,
+        idp_type: idp && idp["type"]
+      })
     end)
   end
 
@@ -250,6 +257,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
                   <th class="ck-table-right">Budget (cents)</th>
                   <th class="ck-table-right">Remaining</th>
                   <th>Status</th>
+                  <th>SSO</th>
                 </tr>
               </thead>
               <tbody>
@@ -261,6 +269,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
                     <td class="ck-table-right">{format_cap(o.budget_cents)}</td>
                     <td class="ck-table-right">{format_remaining(o.remaining_cents)}</td>
                     <td>{if o.over_cap?, do: "OVER CAP", else: "ok"}</td>
+                    <td>{o.idp_type || "—"}</td>
                   </tr>
                 <% end %>
               </tbody>

@@ -272,6 +272,16 @@ defmodule ControlKeel.CLI do
   @org_budget_show_switches [project_root: :string]
   @org_invite_switches [project_root: :string, email: :string, role: :string]
   @org_members_switches [project_root: :string]
+  @org_idp_set_switches [
+    project_root: :string,
+    type: :string,
+    issuer: :string,
+    client_id: :string,
+    entity_id: :string,
+    idp_metadata_url: :string,
+    clear: :boolean
+  ]
+  @org_idp_show_switches [project_root: :string]
   @run_cloud_agent_switches [
     project_root: :string,
     runtime: :string,
@@ -281,6 +291,14 @@ defmodule ControlKeel.CLI do
   ]
   @eval_list_switches [project_root: :string]
   @eval_run_switches [project_root: :string, suite: :string]
+  @audit_export_switches [
+    project_root: :string,
+    workspace: :string,
+    org: :string,
+    since: :string,
+    until: :string,
+    out: :string
+  ]
   @agents_list_switches [project_root: :string, format: :string, json: :boolean]
   @route_agent_switches [
     task: :string,
@@ -451,6 +469,18 @@ defmodule ControlKeel.CLI do
           err -> err
         end
 
+      ["org", "idp", "set", slug | rest] ->
+        case parse_with_switches(:org_idp_set, rest, @org_idp_set_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
+      ["org", "idp", "show", slug | rest] ->
+        case parse_with_switches(:org_idp_show, rest, @org_idp_show_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
       ["mcp", "registry", "check", server_name | rest] ->
         case parse_with_switches(:mcp_registry_check, rest, @mcp_registry_check_switches) do
           {:ok, parsed} -> {:ok, Map.put(parsed, :args, [server_name])}
@@ -492,6 +522,9 @@ defmodule ControlKeel.CLI do
 
       ["eval", "run" | rest] ->
         parse_with_switches(:eval_run, rest, @eval_run_switches)
+
+      ["audit", "export" | rest] ->
+        parse_with_switches(:audit_export, rest, @audit_export_switches)
 
       ["run", "session", session_id | rest] ->
         parse_run_command(:run_session, session_id, rest)
@@ -1900,6 +1933,69 @@ defmodule ControlKeel.CLI do
     end
   end
 
+  def run_command(%{command: :audit_export, options: options}, _project_root) do
+    alias ControlKeel.Accounts
+    alias ControlKeel.Cloud.AuditExport
+    alias ControlKeel.Mission
+    alias ControlKeel.Repo
+
+    with {:ok, scope_opts} <- resolve_audit_scope(options),
+         {:ok, since_opt} <- parse_optional_datetime(options[:since], "since"),
+         {:ok, until_opt} <- parse_optional_datetime(options[:until], "until"),
+         build_opts <-
+           scope_opts
+           |> maybe_append(:since, since_opt)
+           |> maybe_append(:until, until_opt),
+         {:ok, bundle} <- AuditExport.build(build_opts) do
+      json = Jason.encode!(bundle, pretty: true)
+
+      case options[:out] do
+        nil ->
+          {:ok, [json]}
+
+        path ->
+          case File.write(path, json) do
+            :ok ->
+              {:ok,
+               [
+                 "Audit export written",
+                 "Path: #{path}",
+                 "Scope: #{bundle["scope"]["type"]}/#{bundle["scope"]["id"]}",
+                 "Findings: #{length(bundle["findings"])}",
+                 "Reviews: #{length(bundle["reviews"])}",
+                 "MCP calls: #{length(bundle["mcp_tool_calls"])}"
+               ]}
+
+            {:error, reason} ->
+              {:error, "Failed to write #{path}: #{inspect(reason)}"}
+          end
+      end
+    else
+      {:error, :scope_required} ->
+        {:error, "Provide --workspace <slug> or --org <slug>"}
+
+      {:error, :scope_conflict} ->
+        {:error, "Pass exactly one of --workspace or --org"}
+
+      {:error, :unknown_workspace} ->
+        {:error, "Workspace not found"}
+
+      {:error, :unknown_org} ->
+        {:error, "Org not found"}
+
+      {:error, {:invalid_datetime, name}} ->
+        {:error,
+         "--#{name} must be an ISO8601 timestamp (e.g. 2026-01-01T00:00:00Z)"}
+
+      _ = _accounts_ref = Accounts
+      _ = _mission_ref = Mission
+      _ = _repo_ref = Repo
+
+      {:error, reason} ->
+        {:error, "Failed: #{inspect(reason)}"}
+    end
+  end
+
   def run_command(%{command: :eval_list, options: _options}, _project_root) do
     alias ControlKeel.Cloud.EvalRunner
 
@@ -2190,6 +2286,85 @@ defmodule ControlKeel.CLI do
     else
       {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
       nil -> {:error, "Org not found: #{slug}"}
+    end
+  end
+
+  def run_command(%{command: :org_idp_set, options: options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    case Accounts.get_org_by_slug(slug) do
+      nil ->
+        {:error, "Org not found: #{slug}"}
+
+      org ->
+        cond do
+          Map.get(options, :clear, false) ->
+            case Accounts.set_org_identity_provider(org.id, nil) do
+              {:ok, _} ->
+                {:ok, ["Identity provider cleared for #{org.slug}"]}
+
+              {:error, reason} ->
+                {:error, "Failed: #{inspect(reason)}"}
+            end
+
+          true ->
+            attrs =
+              %{
+                "type" => options[:type],
+                "issuer" => options[:issuer],
+                "client_id" => options[:client_id],
+                "entity_id" => options[:entity_id],
+                "idp_metadata_url" => options[:idp_metadata_url]
+              }
+              |> Enum.reject(fn {_k, v} -> is_nil(v) or v == "" end)
+              |> Map.new()
+
+            case Accounts.set_org_identity_provider(org.id, attrs) do
+              {:ok, _} ->
+                {:ok,
+                 [
+                   "Identity provider configured",
+                   "Org: #{org.slug}",
+                   "Type: #{options[:type]}"
+                 ]}
+
+              {:error, :unsupported_provider_type} ->
+                {:error, "Provide --type oidc or --type saml"}
+
+              {:error, {:missing_fields, fields}} ->
+                {:error,
+                 "Missing required field(s) for #{options[:type]}: " <> Enum.join(fields, ", ")}
+
+              {:error, reason} ->
+                {:error, "Failed: #{inspect(reason)}"}
+            end
+        end
+    end
+  end
+
+  def run_command(%{command: :org_idp_show, options: _options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    case Accounts.get_org_by_slug(slug) do
+      nil ->
+        {:error, "Org not found: #{slug}"}
+
+      org ->
+        case Accounts.get_org_identity_provider(org) do
+          nil ->
+            {:ok, ["Org: #{org.slug}", "Identity provider: (none)"]}
+
+          %{} = idp ->
+            header = ["Org: #{org.slug}", "Type: #{idp["type"]}"]
+
+            extras =
+              idp
+              |> Map.delete("type")
+              |> Enum.sort_by(&elem(&1, 0))
+              |> Enum.map(fn {k, v} -> "  #{k}: #{v}" end)
+
+            {:ok, header ++ extras}
+        end
     end
   end
 
@@ -7498,6 +7673,44 @@ defmodule ControlKeel.CLI do
       :error -> {:error, :invalid_level}
     end
   end
+
+  defp resolve_audit_scope(options) do
+    workspace_slug = options[:workspace]
+    org_slug = options[:org]
+
+    cond do
+      workspace_slug && org_slug ->
+        {:error, :scope_conflict}
+
+      workspace_slug ->
+        case ControlKeel.Repo.get_by(ControlKeel.Mission.Workspace, slug: workspace_slug) do
+          nil -> {:error, :unknown_workspace}
+          ws -> {:ok, [workspace_id: ws.id]}
+        end
+
+      org_slug ->
+        case ControlKeel.Accounts.get_org_by_slug(org_slug) do
+          nil -> {:error, :unknown_org}
+          org -> {:ok, [org_id: org.id]}
+        end
+
+      true ->
+        {:error, :scope_required}
+    end
+  end
+
+  defp parse_optional_datetime(nil, _name), do: {:ok, nil}
+  defp parse_optional_datetime("", _name), do: {:ok, nil}
+
+  defp parse_optional_datetime(value, name) when is_binary(value) do
+    case DateTime.from_iso8601(value) do
+      {:ok, dt, _} -> {:ok, DateTime.truncate(dt, :second)}
+      _ -> {:error, {:invalid_datetime, name}}
+    end
+  end
+
+  defp maybe_append(opts, _key, nil), do: opts
+  defp maybe_append(opts, key, value), do: Keyword.put(opts, key, value)
 
   defp parse_integer_arg(value, name) do
     case Integer.parse(to_string(value)) do
