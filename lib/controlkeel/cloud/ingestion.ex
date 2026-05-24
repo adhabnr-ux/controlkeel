@@ -209,4 +209,51 @@ defmodule ControlKeel.Cloud.Ingestion do
     |> limit(^limit)
     |> Repo.all()
   end
+
+  @doc """
+  Funnel metrics for the Mission Control dashboard.
+
+  Returns counts by event kind plus high-level funnel stages
+  (install → attach → first finding) and per-workspace activity.
+  """
+  @spec funnel_metrics() :: %{
+          total: non_neg_integer(),
+          by_kind: [{String.t(), non_neg_integer()}],
+          workspaces: non_neg_integer(),
+          install_success: non_neg_integer(),
+          attach_success: non_neg_integer(),
+          first_findings: non_neg_integer(),
+          last_received_at: DateTime.t() | nil
+        }
+  def funnel_metrics do
+    by_kind =
+      ReceivedTelemetryEvent
+      |> group_by([e], e.kind)
+      |> select([e], {e.kind, count(e.id)})
+      |> Repo.all()
+      |> Enum.sort_by(&elem(&1, 1), :desc)
+
+    by_kind_map = Map.new(by_kind)
+    total = by_kind_map |> Map.values() |> Enum.sum()
+
+    workspaces =
+      ReceivedTelemetryEvent
+      |> select([e], count(e.workspace_id, :distinct))
+      |> Repo.one() || 0
+
+    last_received_at =
+      ReceivedTelemetryEvent
+      |> select([e], max(e.received_at))
+      |> Repo.one()
+
+    %{
+      total: total,
+      by_kind: by_kind,
+      workspaces: workspaces,
+      install_success: Map.get(by_kind_map, "install.success", 0),
+      attach_success: Map.get(by_kind_map, "attach.success", 0),
+      first_findings: Map.get(by_kind_map, "finding.created", 0),
+      last_received_at: last_received_at
+    }
+  end
 end
