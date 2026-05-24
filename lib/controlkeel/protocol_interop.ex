@@ -1,6 +1,9 @@
 defmodule ControlKeel.ProtocolInterop do
   @moduledoc false
 
+  alias ControlKeel.Cloud.Guardrails
+  alias ControlKeel.Cloud.McpAuditLog
+  alias ControlKeel.Cloud.McpPolicy
   alias ControlKeel.MCP.Protocol
   alias ControlKeel.Mission
   alias ControlKeel.Platform.ServiceAccount
@@ -70,13 +73,41 @@ defmodule ControlKeel.ProtocolInterop do
 
   def authorize_hosted_tool_call(auth_context, tool_name, arguments, resource_id)
       when is_map(auth_context) and is_binary(tool_name) and is_map(arguments) do
-    with :ok <- verify_resource_access(auth_context, resource_id),
+    with :ok <- McpPolicy.check(auth_context, tool_name, resource_id),
+         :ok <- Guardrails.scan(arguments, tool_name),
+         :ok <- verify_resource_access(auth_context, resource_id),
          :ok <- verify_tool_scopes(auth_context.scopes, tool_name, resource_id),
          :ok <- verify_workspace_scope(auth_context.service_account, arguments),
          :ok <- verify_cyber_access(auth_context.service_account, tool_name, arguments) do
+      audit_record(:allowed, auth_context, tool_name, arguments, resource_id, nil)
       :ok
+    else
+      {:error, reason} = err ->
+        audit_record(:denied, auth_context, tool_name, arguments, resource_id, reason)
+        err
     end
   end
+
+  defp audit_record(outcome, auth_context, tool_name, arguments, resource_id, reason) do
+    McpAuditLog.record(outcome, %{
+      service_account: Map.get(auth_context, :service_account),
+      tool_name: tool_name,
+      resource: resource_id,
+      arguments: arguments,
+      scopes: Map.get(auth_context, :scopes),
+      denial_reason: audit_denial_token(reason)
+    })
+  end
+
+  defp audit_denial_token(nil), do: nil
+  defp audit_denial_token(reason) when is_binary(reason), do: reason
+  defp audit_denial_token(reason) when is_atom(reason), do: Atom.to_string(reason)
+  defp audit_denial_token({:forbidden, reason}), do: "forbidden:#{inspect(reason)}"
+  defp audit_denial_token({:invalid_arguments, _}), do: "invalid_arguments"
+  defp audit_denial_token({:policy, sub}) when is_atom(sub), do: "policy:#{sub}"
+  defp audit_denial_token({:guardrail, name}) when is_atom(name), do: "guardrail:#{name}"
+  defp audit_denial_token({tag, _}) when is_atom(tag), do: Atom.to_string(tag)
+  defp audit_denial_token(other), do: inspect(other) |> String.slice(0, 80)
 
   def handle_a2a_request(request, auth_context) when is_map(request) do
     with %{"jsonrpc" => "2.0", "id" => id, "method" => "message/send", "params" => params} <-
@@ -126,10 +157,17 @@ defmodule ControlKeel.ProtocolInterop do
   end
 
   defp authorize_a2a_tool_call(auth_context, tool_name, arguments) do
-    with :ok <- verify_tool_scopes(auth_context.scopes, tool_name, "a2a"),
+    with :ok <- McpPolicy.check(auth_context, tool_name, "a2a"),
+         :ok <- Guardrails.scan(arguments, tool_name),
+         :ok <- verify_tool_scopes(auth_context.scopes, tool_name, "a2a"),
          :ok <- verify_workspace_scope(auth_context.service_account, arguments),
          :ok <- verify_cyber_access(auth_context.service_account, tool_name, arguments) do
+      audit_record(:allowed, auth_context, tool_name, arguments, "a2a", nil)
       :ok
+    else
+      {:error, reason} = err ->
+        audit_record(:denied, auth_context, tool_name, arguments, "a2a", reason)
+        err
     end
   end
 

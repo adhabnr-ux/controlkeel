@@ -1,0 +1,661 @@
+defmodule ControlKeel.Accounts do
+  @moduledoc """
+  Cloud accounts context: users, orgs, memberships.
+
+  Per architectural decision D4, this is the human-identity surface. Machine
+  identities continue to live under `ControlKeel.Platform.ServiceAccount`.
+
+  Auth in this first slice is invite-only via high-entropy tokens
+  (`invite_member/3` produces the token; `accept_invitation/2` redeems it).
+  SSO/password flows are a Phase 6 concern.
+  """
+
+  import Ecto.Query, warn: false
+
+  alias ControlKeel.Accounts.Membership
+  alias ControlKeel.Accounts.Org
+  alias ControlKeel.Accounts.ReviewAuditEvent
+  alias ControlKeel.Accounts.User
+  alias ControlKeel.Mission.Review
+  alias ControlKeel.Mission.Session
+  alias ControlKeel.Mission.Workspace
+  alias ControlKeel.Repo
+
+  @org_budget_setting_key "budget_cents"
+
+  @role_rank %{
+    "owner" => 3,
+    "admin" => 2,
+    "member" => 1,
+    "viewer" => 0
+  }
+
+  # ──────────────── Users ──────────────────
+
+  @spec create_user(map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def create_user(attrs) do
+    %User{}
+    |> User.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @spec get_user(integer()) :: User.t() | nil
+  def get_user(id), do: Repo.get(User, id)
+
+  @spec get_user_by_email(String.t()) :: User.t() | nil
+  def get_user_by_email(email) when is_binary(email) do
+    Repo.get_by(User, email: String.downcase(String.trim(email)))
+  end
+
+  @spec list_users(keyword()) :: [User.t()]
+  def list_users(opts \\ []) do
+    User
+    |> filter_status(Keyword.get(opts, :status))
+    |> order_by([u], asc: u.email)
+    |> Repo.all()
+  end
+
+  @spec disable_user(integer()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | :not_found}
+  def disable_user(user_id) do
+    case Repo.get(User, user_id) do
+      nil -> {:error, :not_found}
+      user -> user |> User.changeset(%{status: "disabled"}) |> Repo.update()
+    end
+  end
+
+  # ──────────────── Orgs ───────────────────
+
+  @spec create_org(map()) :: {:ok, Org.t()} | {:error, Ecto.Changeset.t()}
+  def create_org(attrs) do
+    %Org{}
+    |> Org.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @spec get_org(integer()) :: Org.t() | nil
+  def get_org(id), do: Repo.get(Org, id)
+
+  @spec get_org_by_slug(String.t()) :: Org.t() | nil
+  def get_org_by_slug(slug) when is_binary(slug) do
+    Repo.get_by(Org, slug: String.downcase(String.trim(slug)))
+  end
+
+  @spec list_orgs(keyword()) :: [Org.t()]
+  def list_orgs(opts \\ []) do
+    Org
+    |> filter_status(Keyword.get(opts, :status))
+    |> order_by([o], asc: o.name)
+    |> Repo.all()
+  end
+
+  # ──────────────── Memberships ────────────
+
+  @doc """
+  Create a `pending` membership with an invitation token.
+
+  Returns `{:ok, membership, raw_token}` so the caller can deliver the token
+  out of band (email, copy-link). The token is only available once — the row
+  stores its hash.
+  """
+  @spec invite_member(integer(), integer(), keyword()) ::
+          {:ok, Membership.t(), String.t()} | {:error, Ecto.Changeset.t()}
+  def invite_member(user_id, org_id, opts \\ []) do
+    role = Keyword.get(opts, :role, "member")
+    invited_by = Keyword.get(opts, :invited_by_user_id)
+    raw_token = generate_token()
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    attrs = %{
+      user_id: user_id,
+      org_id: org_id,
+      role: role,
+      status: "pending",
+      invitation_token_hash: token_hash(raw_token),
+      invited_at: now,
+      invited_by_user_id: invited_by
+    }
+
+    case %Membership{}
+         |> Membership.changeset(attrs)
+         |> Repo.insert() do
+      {:ok, membership} -> {:ok, membership, raw_token}
+      {:error, _} = err -> err
+    end
+  end
+
+  @doc """
+  Look up a pending invitation by raw token without consuming it.
+
+  Returns `{:ok, %{membership, org, user}}` when the token matches a pending
+  membership. Returns `{:error, :invalid_token}` for unknown tokens and
+  `{:error, :already_accepted}` for already-redeemed memberships.
+
+  Useful for rendering the invitation-acceptance page so the recipient can see
+  which org and role they're joining before clicking accept.
+  """
+  @spec lookup_invitation(String.t()) ::
+          {:ok, %{membership: Membership.t(), org: Org.t(), user: User.t()}}
+          | {:error, :invalid_token | :already_accepted}
+  def lookup_invitation(raw_token) when is_binary(raw_token) do
+    hash = token_hash(raw_token)
+
+    case Repo.get_by(Membership, invitation_token_hash: hash) do
+      nil ->
+        {:error, :invalid_token}
+
+      %Membership{status: "pending"} = membership ->
+        {:ok,
+         %{
+           membership: membership,
+           org: Repo.get(Org, membership.org_id),
+           user: Repo.get(User, membership.user_id)
+         }}
+
+      %Membership{status: "active"} ->
+        {:error, :already_accepted}
+
+      _ ->
+        {:error, :invalid_token}
+    end
+  end
+
+  @doc """
+  Accept an invitation by presenting the raw token.
+
+  On success the membership flips from `pending` to `active`, the hash is
+  cleared, and `accepted_at` is stamped.
+  """
+  @spec accept_invitation(String.t(), integer()) ::
+          {:ok, Membership.t()}
+          | {:error, :invalid_token | :already_accepted | Ecto.Changeset.t()}
+  def accept_invitation(raw_token, user_id) when is_binary(raw_token) and is_integer(user_id) do
+    hash = token_hash(raw_token)
+
+    case Repo.get_by(Membership, invitation_token_hash: hash) do
+      nil ->
+        {:error, :invalid_token}
+
+      %Membership{user_id: ^user_id, status: "pending"} = membership ->
+        membership
+        |> Membership.changeset(%{
+          status: "active",
+          invitation_token_hash: nil,
+          accepted_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+        |> Repo.update()
+
+      %Membership{status: "active"} ->
+        {:error, :already_accepted}
+
+      %Membership{} ->
+        {:error, :invalid_token}
+    end
+  end
+
+  @spec revoke_membership(integer()) :: {:ok, Membership.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def revoke_membership(membership_id) do
+    case Repo.get(Membership, membership_id) do
+      nil ->
+        {:error, :not_found}
+
+      membership ->
+        membership
+        |> Membership.changeset(%{status: "revoked"})
+        |> Repo.update()
+    end
+  end
+
+  @spec get_membership(integer()) :: Membership.t() | nil
+  def get_membership(id), do: Repo.get(Membership, id)
+
+  @spec list_memberships_for_org(integer(), keyword()) :: [Membership.t()]
+  def list_memberships_for_org(org_id, opts \\ []) do
+    Membership
+    |> where([m], m.org_id == ^org_id)
+    |> filter_status(Keyword.get(opts, :status))
+    |> order_by([m], asc: m.id)
+    |> Repo.all()
+  end
+
+  @spec list_memberships_for_user(integer(), keyword()) :: [Membership.t()]
+  def list_memberships_for_user(user_id, opts \\ []) do
+    Membership
+    |> where([m], m.user_id == ^user_id)
+    |> filter_status(Keyword.get(opts, :status))
+    |> order_by([m], asc: m.id)
+    |> Repo.all()
+  end
+
+  # ──────────────── Workspace linkage ──────
+
+  @doc """
+  Link a workspace to an org. Pass `org_id: nil` to detach.
+
+  Returns `{:error, :not_found}` when the workspace doesn't exist.
+  """
+  @spec assign_workspace_to_org(integer(), integer() | nil) ::
+          {:ok, Workspace.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def assign_workspace_to_org(workspace_id, org_id) do
+    case Repo.get(Workspace, workspace_id) do
+      nil ->
+        {:error, :not_found}
+
+      workspace ->
+        workspace
+        |> Ecto.Changeset.change(%{org_id: org_id})
+        |> Repo.update()
+    end
+  end
+
+  @doc "List workspaces belonging to an org."
+  @spec list_workspaces_for_org(integer()) :: [Workspace.t()]
+  def list_workspaces_for_org(org_id) when is_integer(org_id) do
+    Workspace
+    |> where([w], w.org_id == ^org_id)
+    |> order_by([w], asc: w.name)
+    |> Repo.all()
+  end
+
+  @doc "List unaffiliated workspaces (no org assigned)."
+  @spec list_unaffiliated_workspaces() :: [Workspace.t()]
+  def list_unaffiliated_workspaces do
+    Workspace
+    |> where([w], is_nil(w.org_id))
+    |> order_by([w], asc: w.name)
+    |> Repo.all()
+  end
+
+  @doc """
+  List workspaces visible to a user through their active memberships.
+
+  Returns workspaces of every org where the user has an `active` membership.
+  Unaffiliated workspaces (org_id nil) are not returned — those are treated as
+  individual-mode and addressed separately via the local-first surfaces.
+  """
+  @spec list_workspaces_for_user(integer()) :: [Workspace.t()]
+  def list_workspaces_for_user(user_id) when is_integer(user_id) do
+    Workspace
+    |> join(:inner, [w], m in Membership,
+      on: m.org_id == w.org_id and m.user_id == ^user_id and m.status == "active"
+    )
+    |> distinct(true)
+    |> order_by([w], asc: w.name)
+    |> Repo.all()
+  end
+
+  # ──────────────── Org budgets ────────────
+
+  @doc """
+  Read the org's configured budget cap in cents.
+
+  Stored in `Org.settings["budget_cents"]` so no schema migration is required.
+  Returns `nil` when unset (no cap).
+  """
+  @spec org_budget_cents(integer() | Org.t()) :: non_neg_integer() | nil
+  def org_budget_cents(%Org{settings: settings}), do: extract_budget_cents(settings)
+
+  def org_budget_cents(org_id) when is_integer(org_id) do
+    case Repo.get(Org, org_id) do
+      %Org{} = org -> org_budget_cents(org)
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Set or clear the org budget cap. Pass `nil` or `0` to clear.
+
+  Only persists the budget field; other settings keys are preserved.
+  """
+  @spec set_org_budget_cents(integer(), non_neg_integer() | nil) ::
+          {:ok, Org.t()} | {:error, :not_found | Ecto.Changeset.t() | :invalid}
+  def set_org_budget_cents(org_id, cents) when is_integer(cents) and cents >= 0 do
+    do_set_org_budget(org_id, cents)
+  end
+
+  def set_org_budget_cents(org_id, nil), do: do_set_org_budget(org_id, nil)
+  def set_org_budget_cents(_, _), do: {:error, :invalid}
+
+  defp do_set_org_budget(org_id, cents) do
+    case Repo.get(Org, org_id) do
+      nil ->
+        {:error, :not_found}
+
+      %Org{} = org ->
+        settings =
+          org.settings
+          |> Map.new(fn {k, v} -> {to_string(k), v} end)
+          |> put_or_drop_budget(cents)
+
+        org
+        |> Org.changeset(%{settings: settings})
+        |> Repo.update()
+    end
+  end
+
+  defp put_or_drop_budget(settings, nil), do: Map.delete(settings, @org_budget_setting_key)
+  defp put_or_drop_budget(settings, 0), do: Map.delete(settings, @org_budget_setting_key)
+  defp put_or_drop_budget(settings, cents), do: Map.put(settings, @org_budget_setting_key, cents)
+
+  defp extract_budget_cents(nil), do: nil
+  defp extract_budget_cents(%{} = settings) when settings == %{}, do: nil
+
+  defp extract_budget_cents(%{} = settings) do
+    case Map.get(settings, @org_budget_setting_key) || Map.get(settings, :budget_cents) do
+      n when is_integer(n) and n > 0 -> n
+      _ -> nil
+    end
+  end
+
+  defp extract_budget_cents(_), do: nil
+
+  @doc """
+  Sum of `spent_cents` across all sessions in workspaces belonging to the org.
+  Returns `0` when the org has no workspaces or no sessions yet.
+  """
+  @spec org_spend_cents(integer()) :: non_neg_integer()
+  def org_spend_cents(org_id) when is_integer(org_id) do
+    query =
+      from s in Session,
+        join: w in Workspace,
+        on: w.id == s.workspace_id,
+        where: w.org_id == ^org_id,
+        select: coalesce(sum(s.spent_cents), 0)
+
+    Repo.one(query) || 0
+  end
+
+  @doc """
+  Per-workspace spend within an org, sorted by spend descending.
+
+  Returns `[%{workspace_id, workspace_name, workspace_slug, spent_cents}]`.
+  """
+  @spec org_workspace_breakdown(integer()) :: [map()]
+  def org_workspace_breakdown(org_id) when is_integer(org_id) do
+    spend_subquery =
+      from s in Session,
+        group_by: s.workspace_id,
+        select: %{workspace_id: s.workspace_id, spent_cents: coalesce(sum(s.spent_cents), 0)}
+
+    query =
+      from w in Workspace,
+        left_join: spend in subquery(spend_subquery),
+        on: spend.workspace_id == w.id,
+        where: w.org_id == ^org_id,
+        order_by: [desc: coalesce(spend.spent_cents, 0), asc: w.name],
+        select: %{
+          workspace_id: w.id,
+          workspace_name: w.name,
+          workspace_slug: w.slug,
+          spent_cents: coalesce(spend.spent_cents, 0)
+        }
+
+    Repo.all(query)
+  end
+
+  @doc """
+  Check if a workspace's owning org is over its budget cap.
+
+  Returns `{:over_cap, status}` when the workspace belongs to an org with a
+  budget cap and the rolled-up spend exceeds it. Returns `:ok` for solo
+  workspaces (no org) and for affiliated workspaces under their cap.
+  """
+  @spec workspace_org_cap_status(integer()) :: :ok | {:over_cap, map()}
+  def workspace_org_cap_status(workspace_id) when is_integer(workspace_id) do
+    case Repo.get(Workspace, workspace_id) do
+      %Workspace{org_id: org_id} when is_integer(org_id) ->
+        status = org_budget_status(org_id)
+        if status.over_cap?, do: {:over_cap, status}, else: :ok
+
+      _ ->
+        :ok
+    end
+  end
+
+  @doc """
+  Compact budget posture for an org.
+  """
+  @spec org_budget_status(integer()) :: %{
+          org_id: integer(),
+          budget_cents: non_neg_integer() | nil,
+          spent_cents: non_neg_integer(),
+          remaining_cents: non_neg_integer() | nil,
+          workspace_count: non_neg_integer(),
+          over_cap?: boolean()
+        }
+  def org_budget_status(org_id) when is_integer(org_id) do
+    budget = org_budget_cents(org_id)
+    spent = org_spend_cents(org_id)
+    workspaces = list_workspaces_for_org(org_id)
+
+    remaining =
+      case budget do
+        nil -> nil
+        n -> max(n - spent, 0)
+      end
+
+    %{
+      org_id: org_id,
+      budget_cents: budget,
+      spent_cents: spent,
+      remaining_cents: remaining,
+      workspace_count: length(workspaces),
+      over_cap?: not is_nil(budget) and spent > budget
+    }
+  end
+
+  # ──────────────── Team review flow ───────
+
+  @doc """
+  Assign a review to a user.
+
+  The assignee must be an active member of the workspace's org. If the review's
+  workspace has no org (solo workspace), assignment is rejected — solo
+  workspaces use the existing single-user approve flow.
+
+  Pass `required_role:` (e.g. "admin") to require that the eventual decider
+  hold at least that role. The assignee themselves does not need that role;
+  only the user who calls `decide_review/4` is gated.
+  """
+  @spec assign_review(integer(), integer(), keyword()) ::
+          {:ok, Review.t()}
+          | {:error,
+             :review_not_found
+             | :workspace_unaffiliated
+             | :assignee_not_member
+             | Ecto.Changeset.t()}
+  def assign_review(review_id, assignee_user_id, opts \\ []) do
+    actor_id = Keyword.get(opts, :actor_user_id)
+    required_role = Keyword.get(opts, :required_role)
+    note = Keyword.get(opts, :note)
+
+    with {:ok, review} <- fetch_review(review_id),
+         {:ok, org_id} <- review_org_id(review),
+         :ok <- ensure_active_member(assignee_user_id, org_id) do
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      previous_assigned = review.assigned_user_id
+
+      with {:ok, updated} <-
+             review
+             |> Review.changeset(%{
+               assigned_user_id: assignee_user_id,
+               assigned_by_user_id: actor_id,
+               assigned_at: now,
+               required_role: required_role
+             })
+             |> Repo.update() do
+        event_type = if previous_assigned, do: "reassigned", else: "assigned"
+
+        _ =
+          record_review_event(review_id, %{
+            event_type: event_type,
+            actor_user_id: actor_id,
+            target_user_id: assignee_user_id,
+            required_role: required_role,
+            actor_role: nil,
+            note: note,
+            recorded_at: now
+          })
+
+        {:ok, updated}
+      end
+    end
+  end
+
+  @doc """
+  Record a decision on a review.
+
+  Decision must be `:approved` or `:denied`. Authorisation rules:
+
+    1. Decider must be an active member of the workspace's org.
+    2. If the review has an `assigned_user_id`, the decider must match it OR
+       hold `admin`/`owner` role (override authority).
+    3. If the review has a `required_role`, the decider's actual role must be
+       at least as high in the role ladder.
+
+  All checks are recorded as an audit event whether or not the decision is
+  accepted.
+  """
+  @spec decide_review(integer(), integer(), :approved | :denied, keyword()) ::
+          {:ok, Review.t()}
+          | {:error,
+             :review_not_found
+             | :workspace_unaffiliated
+             | :not_a_member
+             | :not_assigned
+             | :insufficient_role
+             | :already_decided
+             | Ecto.Changeset.t()}
+  def decide_review(review_id, decider_user_id, decision, opts \\ [])
+      when decision in [:approved, :denied] do
+    note = Keyword.get(opts, :feedback_notes)
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    with {:ok, review} <- fetch_review(review_id),
+         :ok <- ensure_not_decided(review),
+         {:ok, org_id} <- review_org_id(review),
+         {:ok, role} <- fetch_active_role(decider_user_id, org_id),
+         :ok <- ensure_assignee_or_override(review, decider_user_id, role),
+         :ok <- ensure_required_role(review.required_role, role) do
+      decision_str = Atom.to_string(decision)
+
+      with {:ok, updated} <-
+             review
+             |> Review.changeset(%{
+               status: decision_str,
+               decided_by_user_id: decider_user_id,
+               reviewed_by: "user:#{decider_user_id}",
+               responded_at: now,
+               feedback_notes: note
+             })
+             |> Repo.update() do
+        _ =
+          record_review_event(review_id, %{
+            event_type: decision_str,
+            actor_user_id: decider_user_id,
+            target_user_id: review.assigned_user_id,
+            required_role: review.required_role,
+            actor_role: role,
+            note: note,
+            recorded_at: now
+          })
+
+        {:ok, updated}
+      end
+    else
+      {:error, reason} = err when is_atom(reason) ->
+        _ =
+          record_review_event(review_id, %{
+            event_type: "denied",
+            actor_user_id: decider_user_id,
+            required_role: nil,
+            actor_role: nil,
+            note: "rejected by policy: #{reason}",
+            recorded_at: now
+          })
+
+        err
+
+      other ->
+        other
+    end
+  end
+
+  @doc "List audit events for a review, oldest first."
+  @spec review_audit_events(integer()) :: [ReviewAuditEvent.t()]
+  def review_audit_events(review_id) do
+    ReviewAuditEvent
+    |> where([e], e.review_id == ^review_id)
+    |> order_by([e], asc: e.recorded_at, asc: e.id)
+    |> Repo.all()
+  end
+
+  defp fetch_review(id) do
+    case Repo.get(Review, id) do
+      nil -> {:error, :review_not_found}
+      review -> {:ok, review}
+    end
+  end
+
+  defp ensure_not_decided(%Review{status: "pending"}), do: :ok
+  defp ensure_not_decided(_), do: {:error, :already_decided}
+
+  defp review_org_id(%Review{session_id: session_id}) do
+    with %Session{workspace_id: workspace_id} <- Repo.get(Session, session_id),
+         %Workspace{org_id: org_id} when not is_nil(org_id) <-
+           Repo.get(Workspace, workspace_id) do
+      {:ok, org_id}
+    else
+      _ -> {:error, :workspace_unaffiliated}
+    end
+  end
+
+  defp ensure_active_member(user_id, org_id) do
+    case Repo.get_by(Membership, user_id: user_id, org_id: org_id, status: "active") do
+      %Membership{} -> :ok
+      _ -> {:error, :assignee_not_member}
+    end
+  end
+
+  defp fetch_active_role(user_id, org_id) do
+    case Repo.get_by(Membership, user_id: user_id, org_id: org_id, status: "active") do
+      %Membership{role: role} -> {:ok, role}
+      _ -> {:error, :not_a_member}
+    end
+  end
+
+  defp ensure_assignee_or_override(%Review{assigned_user_id: nil}, _decider_id, _role), do: :ok
+
+  defp ensure_assignee_or_override(%Review{assigned_user_id: assigned}, decider, _role)
+       when assigned == decider,
+       do: :ok
+
+  defp ensure_assignee_or_override(_review, _decider, role) when role in ["owner", "admin"], do: :ok
+  defp ensure_assignee_or_override(_, _, _), do: {:error, :not_assigned}
+
+  defp ensure_required_role(nil, _actor_role), do: :ok
+
+  defp ensure_required_role(required, actor) do
+    required_rank = Map.get(@role_rank, required, 0)
+    actor_rank = Map.get(@role_rank, actor, 0)
+    if actor_rank >= required_rank, do: :ok, else: {:error, :insufficient_role}
+  end
+
+  defp record_review_event(review_id, attrs) do
+    %ReviewAuditEvent{}
+    |> ReviewAuditEvent.changeset(Map.put(attrs, :review_id, review_id))
+    |> Repo.insert()
+  end
+
+  # ──────────────── Helpers ────────────────
+
+  defp filter_status(query, nil), do: query
+  defp filter_status(query, status), do: where(query, [x], x.status == ^status)
+
+  defp generate_token do
+    32 |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
+  end
+
+  defp token_hash(token) do
+    :crypto.hash(:sha256, token) |> Base.encode16(case: :lower)
+  end
+end

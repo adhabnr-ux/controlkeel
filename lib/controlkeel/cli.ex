@@ -262,6 +262,16 @@ defmodule ControlKeel.CLI do
   @telemetry_disable_switches [project_root: :string]
   @telemetry_queue_switches [project_root: :string, limit: :integer]
   @telemetry_flush_switches [project_root: :string, limit: :integer]
+  @mcp_registry_list_switches [project_root: :string]
+  @mcp_registry_check_switches [project_root: :string, attested: :boolean]
+  @mcp_guardrails_switches [project_root: :string]
+  @user_create_switches [project_root: :string, email: :string, name: :string]
+  @org_create_switches [project_root: :string, name: :string, slug: :string]
+  @org_list_switches [project_root: :string]
+  @org_budget_set_switches [project_root: :string, cents: :integer, clear: :boolean]
+  @org_budget_show_switches [project_root: :string]
+  @org_invite_switches [project_root: :string, email: :string, role: :string]
+  @org_members_switches [project_root: :string]
   @agents_list_switches [project_root: :string, format: :string, json: :boolean]
   @route_agent_switches [
     task: :string,
@@ -392,6 +402,51 @@ defmodule ControlKeel.CLI do
 
       ["telemetry", "flush" | rest] ->
         parse_with_switches(:telemetry_flush, rest, @telemetry_flush_switches)
+
+      ["mcp", "registry", "list" | rest] ->
+        parse_with_switches(:mcp_registry_list, rest, @mcp_registry_list_switches)
+
+      ["mcp", "guardrails", "list" | rest] ->
+        parse_with_switches(:mcp_guardrails_list, rest, @mcp_guardrails_switches)
+
+      ["user", "create" | rest] ->
+        parse_with_switches(:user_create, rest, @user_create_switches)
+
+      ["org", "create" | rest] ->
+        parse_with_switches(:org_create, rest, @org_create_switches)
+
+      ["org", "list" | rest] ->
+        parse_with_switches(:org_list, rest, @org_list_switches)
+
+      ["org", "budget", "set", slug | rest] ->
+        case parse_with_switches(:org_budget_set, rest, @org_budget_set_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
+      ["org", "budget", "show", slug | rest] ->
+        case parse_with_switches(:org_budget_show, rest, @org_budget_show_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
+      ["org", "invite", slug | rest] ->
+        case parse_with_switches(:org_invite, rest, @org_invite_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
+      ["org", "members", slug | rest] ->
+        case parse_with_switches(:org_members, rest, @org_members_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
+      ["mcp", "registry", "check", server_name | rest] ->
+        case parse_with_switches(:mcp_registry_check, rest, @mcp_registry_check_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [server_name])}
+          err -> err
+        end
 
       ["agents", "list" | rest] ->
         parse_with_switches(:agents_list, rest, @agents_list_switches)
@@ -1822,6 +1877,288 @@ defmodule ControlKeel.CLI do
       {:error, {:write_failed, reason}} ->
         {:error, "Failed to persist telemetry config: #{inspect(reason)}"}
     end
+  end
+
+  def run_command(%{command: :user_create, options: options}, _project_root) do
+    alias ControlKeel.Accounts
+
+    with {:ok, email} <- require_string_option(options[:email], "email") do
+      attrs = %{email: email, name: options[:name]}
+
+      case Accounts.create_user(attrs) do
+        {:ok, user} ->
+          {:ok,
+           [
+             "User created",
+             "ID: #{user.id}",
+             "Email: #{user.email}",
+             "Name: #{user.name || "(none)"}"
+           ]}
+
+        {:error, changeset} ->
+          {:error, "Failed to create user: #{format_changeset_errors(changeset)}"}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+    end
+  end
+
+  def run_command(%{command: :org_create, options: options}, _project_root) do
+    alias ControlKeel.Accounts
+
+    with {:ok, name} <- require_string_option(options[:name], "name"),
+         {:ok, slug} <- require_string_option(options[:slug], "slug") do
+      case Accounts.create_org(%{name: name, slug: slug}) do
+        {:ok, org} ->
+          {:ok,
+           [
+             "Org created",
+             "ID: #{org.id}",
+             "Name: #{org.name}",
+             "Slug: #{org.slug}",
+             "Status: #{org.status}"
+           ]}
+
+        {:error, changeset} ->
+          {:error, "Failed to create org: #{format_changeset_errors(changeset)}"}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+    end
+  end
+
+  def run_command(%{command: :org_list, options: _options}, _project_root) do
+    alias ControlKeel.Accounts
+
+    orgs = Accounts.list_orgs()
+
+    if orgs == [] do
+      {:ok, ["No orgs configured."]}
+    else
+      header = ["Orgs:"]
+
+      rows =
+        Enum.map(orgs, fn o ->
+          budget = Accounts.org_budget_cents(o) || "uncapped"
+          "  #{o.slug}\t#{o.name}\tbudget=#{budget}\tstatus=#{o.status}"
+        end)
+
+      {:ok, header ++ rows}
+    end
+  end
+
+  def run_command(%{command: :org_budget_set, options: options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    case Accounts.get_org_by_slug(slug) do
+      nil ->
+        {:error, "Org not found: #{slug}"}
+
+      org ->
+        cents =
+          cond do
+            Map.get(options, :clear, false) -> nil
+            is_integer(options[:cents]) -> options[:cents]
+            true -> :unset
+          end
+
+        case cents do
+          :unset ->
+            {:error, "Provide either --cents N or --clear"}
+
+          value ->
+            case Accounts.set_org_budget_cents(org.id, value) do
+              {:ok, _} ->
+                {:ok,
+                 [
+                   "Org budget updated",
+                   "Org: #{org.slug}",
+                   "Budget: #{value || "uncapped"}"
+                 ]}
+
+              {:error, reason} ->
+                {:error, "Failed: #{inspect(reason)}"}
+            end
+        end
+    end
+  end
+
+  def run_command(%{command: :org_budget_show, options: _options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    case Accounts.get_org_by_slug(slug) do
+      nil ->
+        {:error, "Org not found: #{slug}"}
+
+      org ->
+        status = Accounts.org_budget_status(org.id)
+        breakdown = Accounts.org_workspace_breakdown(org.id)
+
+        header = [
+          "Org: #{org.slug}",
+          "Budget: #{status.budget_cents || "uncapped"}",
+          "Spent: #{status.spent_cents}",
+          "Remaining: #{status.remaining_cents || "—"}",
+          "Workspaces: #{status.workspace_count}",
+          "Over cap: #{status.over_cap?}"
+        ]
+
+        rows =
+          case breakdown do
+            [] -> []
+            ws -> ["Workspace breakdown:"] ++ Enum.map(ws, &"  #{&1.workspace_slug}\t#{&1.spent_cents}")
+          end
+
+        {:ok, header ++ rows}
+    end
+  end
+
+  def run_command(%{command: :org_invite, options: options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    with {:ok, email} <- require_string_option(options[:email], "email"),
+         org when not is_nil(org) <- Accounts.get_org_by_slug(slug) do
+      user =
+        Accounts.get_user_by_email(email) ||
+          (case Accounts.create_user(%{email: email}) do
+             {:ok, u} -> u
+             _ -> nil
+           end)
+
+      cond do
+        user == nil ->
+          {:error, "Could not find or create user for #{email}"}
+
+        true ->
+          role = options[:role] || "member"
+
+          case Accounts.invite_member(user.id, org.id, role: role) do
+            {:ok, membership, raw_token} ->
+              {:ok,
+               [
+                 "Invitation created",
+                 "Org: #{org.slug}",
+                 "User: #{user.email}",
+                 "Role: #{membership.role}",
+                 "Invitation token (deliver out of band): #{raw_token}"
+               ]}
+
+            {:error, changeset} ->
+              {:error, "Failed to invite: #{format_changeset_errors(changeset)}"}
+          end
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+      nil -> {:error, "Org not found: #{slug}"}
+    end
+  end
+
+  def run_command(%{command: :org_members, options: _options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    case Accounts.get_org_by_slug(slug) do
+      nil ->
+        {:error, "Org not found: #{slug}"}
+
+      org ->
+        memberships = Accounts.list_memberships_for_org(org.id)
+
+        rows =
+          if memberships == [] do
+            ["No members."]
+          else
+            Enum.map(memberships, fn m ->
+              user = Accounts.get_user(m.user_id)
+              email = if(user, do: user.email, else: "(deleted)")
+              "  #{email}\trole=#{m.role}\tstatus=#{m.status}"
+            end)
+          end
+
+        {:ok, ["Members of #{org.slug}:" | rows]}
+    end
+  end
+
+  def run_command(%{command: :mcp_guardrails_list, options: _options}, _project_root) do
+    alias ControlKeel.Cloud.Guardrails
+
+    summary = Guardrails.summary()
+
+    header = [
+      "Cloud MCP content guardrails",
+      "Enabled: #{summary.enabled}",
+      "Active patterns: #{summary.pattern_count}",
+      ""
+    ]
+
+    pattern_rows =
+      if summary.patterns == [] do
+        ["No patterns active."]
+      else
+        ["Patterns:"] ++ Enum.map(summary.patterns, &"  #{&1}")
+      end
+
+    allow_rows =
+      if summary.allow_for_tools == [] do
+        []
+      else
+        ["", "Allow-for-tools (skipped from scanning):"] ++
+          Enum.map(summary.allow_for_tools, &"  #{&1}")
+      end
+
+    {:ok, header ++ pattern_rows ++ allow_rows}
+  end
+
+  def run_command(%{command: :mcp_registry_list, options: _options}, _project_root) do
+    alias ControlKeel.Cloud.McpRegistry
+
+    summary = McpRegistry.summary()
+    entries = McpRegistry.entries()
+    denylist = McpRegistry.denylist()
+
+    header = [
+      "Cloud MCP server registry",
+      "Default policy: #{summary.default_policy}",
+      "Allowlisted: #{summary.allowlist_count} (#{summary.requires_attestation} require attestation)",
+      "Denylisted:  #{summary.denylist_count}",
+      ""
+    ]
+
+    allow_rows =
+      if entries == [] do
+        ["Allowlist: (empty)"]
+      else
+        ["Allowlist:"] ++
+          Enum.map(entries, fn e ->
+            "  #{e.name}  attestation=#{e.attestation}#{format_url(e.url)}#{format_note(e.note)}"
+          end)
+      end
+
+    deny_rows =
+      if denylist == [] do
+        ["Denylist: (empty)"]
+      else
+        ["Denylist:"] ++ Enum.map(denylist, &"  #{&1}")
+      end
+
+    {:ok, header ++ allow_rows ++ [""] ++ deny_rows}
+  end
+
+  def run_command(%{command: :mcp_registry_check, options: options, args: [server_name]}, _project_root) do
+    alias ControlKeel.Cloud.McpRegistry
+
+    attested? = Map.get(options, :attested, false)
+    disposition = McpRegistry.lookup(server_name, attested?: attested?)
+
+    line =
+      case disposition do
+        :allowed ->
+          "ALLOWED: #{server_name}#{if attested?, do: " (attestation provided)", else: ""}"
+
+        {:denied, reason} ->
+          "DENIED:  #{server_name} (#{reason})"
+      end
+
+    {:ok, [line]}
   end
 
   def run_command(%{command: :telemetry_flush, options: options}, _project_root) do
@@ -7021,6 +7358,21 @@ defmodule ControlKeel.CLI do
       :error -> {:error, :invalid_level}
     end
   end
+
+  defp format_changeset_errors(%Ecto.Changeset{errors: errors}) do
+    errors
+    |> Enum.map(fn {field, {msg, _}} -> "#{field}: #{msg}" end)
+    |> Enum.join("; ")
+  end
+
+  defp format_changeset_errors(other), do: inspect(other)
+
+  defp format_url(nil), do: ""
+  defp format_url(url), do: "  url=#{url}"
+
+  defp format_note(nil), do: ""
+  defp format_note(""), do: ""
+  defp format_note(note), do: "  note=#{note}"
 
   defp telemetry_level_list_text do
     ControlKeel.Cloud.TelemetryConfig.opt_in_levels()

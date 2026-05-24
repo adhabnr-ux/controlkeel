@@ -11,7 +11,11 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
   use ControlKeelWeb, :live_view
 
+  alias ControlKeel.Accounts
+  alias ControlKeel.Cloud.Guardrails
   alias ControlKeel.Cloud.Ingestion
+  alias ControlKeel.Cloud.McpAuditLog
+  alias ControlKeel.Cloud.McpRegistry
   alias ControlKeel.Cloud.Sender
   alias ControlKeel.Cloud.TelemetryConfig
   alias ControlKeel.Cloud.TelemetryQueue
@@ -49,6 +53,23 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
     |> assign(:endpoint, endpoint)
     |> assign(:identity_summary, identity_summary)
     |> assign(:recent_events, Ingestion.recent(limit: 25))
+    |> assign(:mcp_audit_summary, McpAuditLog.summary())
+    |> assign(:mcp_audit_by_tool, McpAuditLog.counts_by_tool())
+    |> assign(:mcp_audit_recent, McpAuditLog.recent(limit: 25))
+    |> assign(:mcp_registry_summary, McpRegistry.summary())
+    |> assign(:mcp_registry_entries, McpRegistry.entries())
+    |> assign(:mcp_registry_denylist, McpRegistry.denylist())
+    |> assign(:guardrails_summary, Guardrails.summary())
+    |> assign(:org_budgets, org_budget_overviews())
+  end
+
+  defp org_budget_overviews do
+    Accounts.list_orgs(status: "active")
+    |> Enum.map(fn org ->
+      status = Accounts.org_budget_status(org.id)
+      breakdown = Accounts.org_workspace_breakdown(org.id)
+      Map.merge(status, %{org_name: org.name, org_slug: org.slug, workspaces: breakdown})
+    end)
   end
 
   defp identity_summary do
@@ -173,6 +194,156 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
           <% end %>
         </div>
 
+        <div id="cloud-org-budgets" class="ck-card">
+          <h2 class="ck-card-title">Org budget rollup</h2>
+          <%= if @org_budgets == [] do %>
+            <p class="ck-note">No active orgs.</p>
+          <% else %>
+            <table class="ck-table">
+              <thead>
+                <tr>
+                  <th>Org</th>
+                  <th class="ck-table-right">Workspaces</th>
+                  <th class="ck-table-right">Spent (cents)</th>
+                  <th class="ck-table-right">Budget (cents)</th>
+                  <th class="ck-table-right">Remaining</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for o <- @org_budgets do %>
+                  <tr>
+                    <td><code>{o.org_slug}</code> — {o.org_name}</td>
+                    <td class="ck-table-right">{o.workspace_count}</td>
+                    <td class="ck-table-right">{o.spent_cents}</td>
+                    <td class="ck-table-right">{format_cap(o.budget_cents)}</td>
+                    <td class="ck-table-right">{format_remaining(o.remaining_cents)}</td>
+                    <td>{if o.over_cap?, do: "OVER CAP", else: "ok"}</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
+        </div>
+
+        <div id="cloud-mcp-guardrails" class="ck-card">
+          <h2 class="ck-card-title">Content guardrails</h2>
+          <p class="ck-note">
+            enabled: <strong>{@guardrails_summary.enabled}</strong> ·
+            patterns: {@guardrails_summary.pattern_count}
+            {if @guardrails_summary.allow_for_tools == [], do: "", else: " · allow-for: " <> Enum.join(@guardrails_summary.allow_for_tools, ", ")}
+          </p>
+          <%= if @guardrails_summary.enabled do %>
+            <p class="ck-note">
+              Active: <%= for name <- @guardrails_summary.patterns do %><code>{name}</code> <% end %>
+            </p>
+          <% else %>
+            <p class="ck-note">
+              Disabled — set <code>:cloud_mcp_guardrails</code> with <code>enabled: true</code> to scan tool arguments for secrets.
+            </p>
+          <% end %>
+        </div>
+
+        <div id="cloud-mcp-registry" class="ck-card">
+          <h2 class="ck-card-title">Downstream MCP server registry</h2>
+          <p class="ck-note">
+            default policy: <strong>{@mcp_registry_summary.default_policy}</strong> ·
+            {@mcp_registry_summary.allowlist_count} allowlisted ·
+            {@mcp_registry_summary.requires_attestation} require attestation ·
+            {@mcp_registry_summary.denylist_count} denylisted
+          </p>
+          <%= if @mcp_registry_entries == [] and @mcp_registry_denylist == [] do %>
+            <p class="ck-note">No downstream MCP servers configured.</p>
+          <% else %>
+            <%= if @mcp_registry_entries != [] do %>
+              <table class="ck-table">
+                <thead>
+                  <tr>
+                    <th>Allowlisted</th>
+                    <th>Attestation</th>
+                    <th>URL</th>
+                    <th>Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <%= for e <- @mcp_registry_entries do %>
+                    <tr>
+                      <td><code>{e.name}</code></td>
+                      <td>{e.attestation}</td>
+                      <td><code>{e.url || ""}</code></td>
+                      <td>{e.note || ""}</td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            <% end %>
+            <%= if @mcp_registry_denylist != [] do %>
+              <p class="ck-note">
+                Denylisted: <%= for name <- @mcp_registry_denylist do %><code>{name}</code> <% end %>
+              </p>
+            <% end %>
+          <% end %>
+        </div>
+
+        <div id="cloud-mcp-audit-summary" class="ck-card">
+          <h2 class="ck-card-title">Hosted MCP / A2A audit</h2>
+          <p class="ck-note">
+            {@mcp_audit_summary.total} total · {@mcp_audit_summary.allowed} allowed · {@mcp_audit_summary.denied} denied
+          </p>
+          <%= if @mcp_audit_by_tool == [] do %>
+            <p class="ck-note">No hosted MCP / A2A calls recorded yet.</p>
+          <% else %>
+            <table class="ck-table">
+              <thead>
+                <tr>
+                  <th>Tool</th>
+                  <th class="ck-table-right">Allowed</th>
+                  <th class="ck-table-right">Denied</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for row <- @mcp_audit_by_tool do %>
+                  <tr>
+                    <td><code>{row.tool_name}</code></td>
+                    <td class="ck-table-right">{row.allowed}</td>
+                    <td class="ck-table-right">{row.denied}</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
+        </div>
+
+        <div id="cloud-mcp-audit-recent" class="ck-card">
+          <h2 class="ck-card-title">Recent tool dispatches</h2>
+          <%= if @mcp_audit_recent == [] do %>
+            <p class="ck-note">No calls yet.</p>
+          <% else %>
+            <table class="ck-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Resource</th>
+                  <th>Tool</th>
+                  <th>Outcome</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for row <- @mcp_audit_recent do %>
+                  <tr>
+                    <td>{DateTime.to_iso8601(row.requested_at)}</td>
+                    <td><code>{row.resource}</code></td>
+                    <td><code>{row.tool_name}</code></td>
+                    <td>{row.outcome}</td>
+                    <td>{row.denial_reason || ""}</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
+        </div>
+
         <div id="cloud-telemetry-recent" class="ck-card">
           <h2 class="ck-card-title">Recent received events</h2>
           <%= if @recent_events == [] do %>
@@ -230,6 +401,12 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
   defp telemetry_pill_class(:disabled), do: "ck-pill ck-pill-neutral"
   defp telemetry_pill_class(_other), do: "ck-pill ck-pill-success"
+
+  defp format_cap(nil), do: "uncapped"
+  defp format_cap(n) when is_integer(n), do: Integer.to_string(n)
+
+  defp format_remaining(nil), do: "—"
+  defp format_remaining(n) when is_integer(n), do: Integer.to_string(n)
 
   defp last_seen_note(nil), do: ""
   defp last_seen_note(%DateTime{} = ts), do: ", last #{DateTime.to_iso8601(ts)}"

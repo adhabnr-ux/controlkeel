@@ -54,6 +54,7 @@ defmodule ControlKeelWeb.Router do
     live "/reviews/:id", ReviewLive, :show
     live "/ship", ShipLive, :index
     live "/cloud/telemetry", CloudTelemetryLive, :index
+    live "/cloud/invitations/:token", InvitationLive, :show
     live "/observability", ObservabilityOverviewLive, :index
     live "/observability/loop", ObservabilityLoopLive, :index
     live "/observability/benchmarks/drafts", ObservabilityBenchmarkDraftsLive, :index

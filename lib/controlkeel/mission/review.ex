@@ -19,6 +19,12 @@ defmodule ControlKeel.Mission.Review do
     field :metadata, :map, default: %{}
     field :responded_at, :utc_datetime
 
+    field :assigned_user_id, :integer
+    field :assigned_by_user_id, :integer
+    field :assigned_at, :utc_datetime
+    field :decided_by_user_id, :integer
+    field :required_role, :string
+
     belongs_to :session, Session
     belongs_to :task, Task
     belongs_to :previous_review, Review
@@ -42,7 +48,12 @@ defmodule ControlKeel.Mission.Review do
       :responded_at,
       :session_id,
       :task_id,
-      :previous_review_id
+      :previous_review_id,
+      :assigned_user_id,
+      :assigned_by_user_id,
+      :assigned_at,
+      :decided_by_user_id,
+      :required_role
     ])
     |> validate_required([:title, :review_type, :status, :submission_body, :session_id])
     |> validate_inclusion(:review_type, @review_types)

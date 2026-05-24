@@ -2,6 +2,7 @@ defmodule ControlKeel.Mission.Workspace do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias ControlKeel.Accounts.Org
   alias ControlKeel.Memory.Record
   alias ControlKeel.Mission.Session
   alias ControlKeel.Platform.{IntegrationWebhook, ServiceAccount, WorkspacePolicySet}
@@ -15,6 +16,7 @@ defmodule ControlKeel.Mission.Workspace do
     field :compliance_profile, :string
     field :status, :string, default: "draft"
 
+    belongs_to :org, Org
     has_many :sessions, Session
     has_many :memory_records, Record
     has_many :service_accounts, ServiceAccount
@@ -26,7 +28,16 @@ defmodule ControlKeel.Mission.Workspace do
 
   def changeset(workspace, attrs) do
     workspace
-    |> cast(attrs, [:name, :slug, :industry, :agent, :budget_cents, :compliance_profile, :status])
+    |> cast(attrs, [
+      :name,
+      :slug,
+      :industry,
+      :agent,
+      :budget_cents,
+      :compliance_profile,
+      :status,
+      :org_id
+    ])
     |> validate_required([
       :name,
       :slug,

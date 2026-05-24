@@ -1,6 +1,7 @@
 defmodule ControlKeel.Proxy.Governor do
   @moduledoc false
 
+  alias ControlKeel.Accounts
   alias ControlKeel.Budget
   alias ControlKeel.Mission
   alias ControlKeel.Mission.Session
@@ -34,8 +35,10 @@ defmodule ControlKeel.Proxy.Governor do
         _other -> []
       end
 
+    org_cap_findings = org_cap_findings(session, provider, tool)
+
     scan = scan_content(extracted.text, opts[:path], opts[:kind] || "text", opts)
-    findings = uniq_findings(budget_findings ++ scan.findings)
+    findings = uniq_findings(budget_findings ++ org_cap_findings ++ scan.findings)
     decision = final_decision(budget, findings)
     summary = summary_for(decision, budget, findings)
 
@@ -171,6 +174,37 @@ defmodule ControlKeel.Proxy.Governor do
       findings: findings
     }
   end
+
+  defp org_cap_findings(%Session{workspace_id: workspace_id}, provider, tool)
+       when is_integer(workspace_id) do
+    case Accounts.workspace_org_cap_status(workspace_id) do
+      :ok ->
+        []
+
+      {:over_cap, status} ->
+        [
+          %Scanner.Finding{
+            id: "org_budget_" <> Integer.to_string(System.unique_integer([:positive])),
+            severity: "high",
+            category: "cost",
+            rule_id: "cost.org_budget_cap_exceeded",
+            decision: "block",
+            plain_message:
+              "Org budget cap exceeded: spent #{status.spent_cents} of #{status.budget_cents} cents",
+            location: %{"path" => "/proxy/#{provider}#{tool}", "kind" => "text"},
+            metadata: %{
+              "scanner" => "org_budget",
+              "org_id" => status.org_id,
+              "budget_cents" => status.budget_cents,
+              "spent_cents" => status.spent_cents,
+              "remaining_cents" => status.remaining_cents
+            }
+          }
+        ]
+    end
+  end
+
+  defp org_cap_findings(_session, _provider, _tool), do: []
 
   defp budget_findings(%{"decision" => "allow"}, _provider, _tool), do: []
 

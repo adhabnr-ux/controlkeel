@@ -492,6 +492,25 @@ defmodule ControlKeel.Help do
       controlkeel telemetry flush [--limit N]
                                       Drain queued telemetry events to the configured endpoint.
                                       No-op when no endpoint is set; events stay queued.
+      controlkeel mcp registry list   List vetted downstream MCP servers (allowlist + denylist)
+      controlkeel mcp registry check <server-name> [--attested]
+                                      Show whether a downstream MCP server is allowed
+      controlkeel mcp guardrails list Show active content guardrails (secret/PII patterns)
+                                      that scan inbound tool arguments at the hosted gateway
+      controlkeel user create --email <email> [--name <name>]
+                                      Create a cloud user
+      controlkeel org create --name <name> --slug <slug>
+                                      Create a cloud org
+      controlkeel org list            List active orgs with budget and status
+      controlkeel org budget set <slug> --cents N
+      controlkeel org budget set <slug> --clear
+                                      Set or clear an org-level budget cap
+      controlkeel org budget show <slug>
+                                      Show org budget rollup and per-workspace breakdown
+      controlkeel org invite <slug> --email <email> [--role owner|admin|member|viewer]
+                                      Invite a user to an org. Prints the raw invitation
+                                      token; deliver it to the invitee out of band
+      controlkeel org members <slug>  List members of an org
       controlkeel agents list [--json]
                                       List runnable/attached agent integrations
       controlkeel route-agent --task "..." [--risk-tier low|medium|high|critical] [--budget-remaining-cents N] [--allowed-agents a,b] [--domain-pack software] [--json]
