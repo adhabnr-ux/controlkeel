@@ -119,6 +119,8 @@ controlkeel telemetry enable --level health|governance|evidence
 
 ### 2. Hosted MCP gateway
 
+**POSITIONING (May 2026):** Lead with "Governed MCP Gateway" positioning vs just routing. Microsoft/Docker gateways focus on routing + observability but have weak governance. CK's differentiation: per-tool policy enforcement, audit logs, scope-filtered catalogs, and supply-chain vetting (allowlist/denylist by source, CVE feed, attestation). Emphasize governance depth over routing breadth.
+
 Docs already correctly frame hosted MCP as enterprise gateway/root of trust. Expand from "CK tools over hosted MCP" to a full team gateway.
 
 **Build:**
@@ -145,6 +147,8 @@ Docs already correctly frame hosted MCP as enterprise gateway/root of trust. Exp
 
 ### 3. Team workspaces and multi-user approvals
 
+**STRENGTHEN (May 2026):** Market validation shows enterprise demand for multi-approver workflows. Credo AI, Aletyx (four-eyes principle), and enterprise customers explicitly request "prod deploy requires 2 approvals" and "security findings need security reviewer." Ensure reviewer quorum, role-based routing, and human approval SLA are first-class features, not afterthoughts.
+
 Current model has workspaces but not full team collaboration.
 
 **Build:**
@@ -167,6 +171,8 @@ Current model has workspaces but not full team collaboration.
 **Dependencies:** team identity model, role-based review routing, notification surfaces.
 
 ### 4. Org-level spend controls
+
+**PRIORITY ELEVATION (May 2026):** Market validation confirms this is the #1 enterprise pain point. Token amplification attacks ($42 single requests), 50-200× cost amplification in agentic workflows, and enterprise budget blowouts (Uber CTO) make this a Phase 3 priority rather than Phase 4. Consider adding pre-call budget enforcement (Stripe auth/capture pattern) and aggregate same-prompt detection (CostFuse killer feature) as immediate differentiators.
 
 Current budget is session/daily and proxy-aware. Enterprise needs org budget policy. **This is the #1 complaint in the community right now** (Uber CTO publicly admitted blowing the 2026 AI budget on Claude Code; Microsoft/Fortune coverage of agent token amplification; LeanOps reporting agents burning 50× more tokens than chat). Treat as flagship.
 
@@ -267,6 +273,8 @@ Use the coordination layer for:
 
 ### 7. Enterprise self-host
 
+**ACCELERATE (May 2026):** Cursor's Self-Hosted Pool March 2026 release shows strong enterprise demand for data sovereignty (SOC 2, HIPAA, FedRAMP compliance). Cursor's positioning: "code never leaves perimeter" resonates with regulated industries. Accelerate self-host roadmap to match this momentum, emphasizing Kubernetes-native fleet management and air-gapped install artifacts.
+
 Enterprise customers will want CK fully cloud-capable but not necessarily SaaS-only.
 
 **Build:**
@@ -310,6 +318,8 @@ Braintrust, Langfuse, and Laminar all ship eval-driven CI as a flagship surface.
 This branch is intentionally smaller scope than the others — it leans on existing benchmark/eval infrastructure rather than building a new product surface. The market gap is the **gate**, not the tooling.
 
 ### 9. Agent inventory / shadow-AI discovery (stretch)
+
+**PRIORITY ELEVATION (May 2026):** Market validation shows this is rapidly becoming table stakes. ServiceNow AI Control Tower, Microsoft Agent 365, and Cyberhaven (509% surge in endpoint AI apps) all now ship shadow AI discovery. Competitive gap is closing rapidly. Elevate from Phase 6+ stretch to Phase 3 to maintain market position as enterprises demand centralized agent inventory.
 
 The #1 enterprise complaint in late-2025/early-2026 governance coverage is "no centralized inventory of agents." Vectra, Google Cloud, and multiple Hacker News threads keep raising this. CK governs agents it's bound to; it doesn't currently discover unmanaged agents elsewhere in the org.
 
@@ -546,6 +556,50 @@ Each phase ships behind explicit gates. A phase is not "done" until all of its g
 | Downstream MCP server in the gateway turns out to be malicious or compromised | Branch 2 MCP supply-chain vetting: allowlist by source, CVE feed against registered servers, optional attestation requirement; tool-call audit log preserves dispatch lineage; reachability degrades to "denied" rather than failing open. |
 | EU AI Act enforcement (ramping through 2026 for high-risk systems) makes audit trails regulatory rather than optional | Audit exports already cover SOC 2 / GDPR shape; Phase 6 adds EU AI Act-specific control mapping. Proof bundles + findings lineage already meet the "demonstrable risk management" bar — the gap is the report template, not the evidence. |
 | Cursor Cloud Agents / Replit Agent become dominant before our cloud-agent loop ships, creating a "doesn't work with what teams already use" perception | Branch 5 explicitly adds both targets; round-trip handoff model matches Cursor 3's UX so adoption is friction-free. |
+
+## Market validation (May 2026)
+
+Comprehensive competitive analysis shows ControlKeel's roadmap is well-positioned against rapidly consolidating markets. Key findings:
+
+### Market pain points CK addresses uniquely
+
+| Pain Point | Market Evidence | CK Solution |
+| --- | --- | --- |
+| **Token amplification attacks** | $42 single requests via prompt injection (Tian Pan, 2026); 50-200× cost amplification in agentic workflows (NStarX Tokenomics 2.0); enterprises blowing 8-12× budget on uncontrolled agents | Branch 4: context amplification controls, provider fallback chains, budget circuit breaker. **ELEVATE PRIORITY: Add pre-call budget enforcement (Stripe auth/capture pattern), aggregate same-prompt detection (CostFuse killer feature)** |
+| **Shadow AI discovery** | 509% surge in endpoint AI apps (Cyberhaven, May 2026); ServiceNow AI Control Tower: "Discover finds AI assets once deployed"; Microsoft Agent 365: shadow AI discovery across endpoints | Branch 9: git-history scanner, network-level MCP discovery. **ELEVATE PRIORITY: Move to Phase 3 (currently stretch, Phase 6+)** |
+| **Multi-approval workflows** | Credo AI: governance workflows with approval gates; Aletyx: multi-approver workflows, four-eyes principle; enterprise demand: "prod deploy requires 2 approvals" | Branch 3: team workspaces. **STRENGTHEN: Add reviewer quorum, role-based routing, human approval SLA** |
+| **Data sovereignty** | Cursor Self-Hosted Pool: enterprise demand for SOC 2/HIPAA/FedRAMP compliance; "code never leaves perimeter" positioning | Branch 7: enterprise self-host. **ACCELERATE: Leverage Cursor momentum, emphasize Kubernetes-native fleet management** |
+
+### Competitive landscape (May 2026)
+
+**AI Governance Platforms:**
+- **Credo AI**: Unified governance with shadow AI discovery, policy packs (EU AI Act, NIST, ISO 42001), governance workflows. *Gap: Policy-level only, not tool-level governance*
+- **AI Gov Platform**: Safety gates that block unsafe deployments, accountability mapping, compliance scoring (0-100). *Gap: Deployment-focused, not agent runtime governance*
+- **Corevexa**: Layer-7 governance engine with real-time risk scoring, DOA rules, immutable audit logs. *Gap: Enterprise-focused, not local-first*
+- **ServiceNow AI Control Tower**: Discover/observe/govern/secure/measure AI across enterprise, 30+ cloud integrations. *Gap: Observability-heavy, weak validation*
+- **Microsoft Agent 365**: Shadow AI discovery, local agent management, enterprise controls. *Gap: Microsoft ecosystem lock-in*
+
+**Cloud Agent Platforms:**
+- **Cursor Cloud Agents**: Self-hosted pool, Kubernetes fleet management, multi-repo environments, Slack/Linear integration. *Gap: Strong runtime, weak governance surfaces*
+- **Replit Agent 3**: Mainstream long-running cloud agent. *Gap: Consumer-focused, not enterprise governance*
+- **Devin**: Fleet-based cloud agents. *Gap: Cloud-only, no local option*
+- **GitHub Enterprise AI Controls**: Agent control plane, audit logging, shadow AI discovery. *Gap: GitHub ecosystem lock-in*
+
+**MCP Gateway Ecosystem:**
+- **Microsoft MCP Gateway**: Kubernetes-based, session-aware routing, telemetry, access control. *Gap: Routing + observability, weak governance*
+- **Docker MCP Gateway**: OpenTelemetry instrumentation, observability, enterprise integration. *Gap: Container-focused, not agent governance*
+- **MCP Gateway Registry**: OAuth authentication, dynamic tool discovery, unified access. *Gap: Discovery-focused, not validation*
+
+### CK's competitive advantages
+
+| Advantage | Competitive Differentiation |
+| --- | --- |
+| **Local-first + cloud-optional** | Every competitor is cloud-first or cloud-only. Solo builders get full governance without network egress. |
+| **Tool-level governance** | Competitors operate at policy level only. CK validates per-tool calls with deterministic scanner (12/12 catch rate). |
+| **Proof bundles + review lineage** | Competitors have audit logs. CK has portable, reviewable evidence that survives host switches. |
+| **Budget enforcement with amplification detection** | Competitors have basic spend caps. CK has context amplification controls, pre-call enforcement. |
+| **Shadow AI discovery** | Competitive gap rapidly closing (ServiceNow, Microsoft). CK must elevate priority to maintain lead. |
+| **Self-host option** | Cursor leading here. CK must accelerate to match enterprise data sovereignty demand. |
 
 ## Competitive positioning
 
