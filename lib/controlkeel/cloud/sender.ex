@@ -48,6 +48,7 @@ defmodule ControlKeel.Cloud.Sender do
 
   require Logger
 
+  alias ControlKeel.Cloud.AuthToken
   alias ControlKeel.Cloud.TelemetryEnvelope
   alias ControlKeel.Cloud.TelemetryEvent
   alias ControlKeel.Cloud.TelemetryQueue
@@ -126,12 +127,24 @@ defmodule ControlKeel.Cloud.Sender do
     batch_id = TelemetryEnvelope.ulid()
     body = build_batch_body(identity, events)
 
-    headers = [
-      {"authorization", "Bearer #{identity.workspace_id}"},
-      {"content-type", "application/json"},
-      {"idempotency-key", batch_id}
-    ]
+    case AuthToken.sign(identity) do
+      {:ok, token} ->
+        headers = [
+          {"authorization", "Bearer #{token}"},
+          {"content-type", "application/json"},
+          {"idempotency-key", batch_id}
+        ]
 
+        do_post_batch(url, body, headers, events, timeout)
+
+      {:error, reason} ->
+        Logger.warning("Cloud.Sender: failed to sign auth token: #{inspect(reason)}")
+        record_failures(events, "failed to sign auth token: #{inspect(reason)}")
+        {:error, :network, length(events)}
+    end
+  end
+
+  defp do_post_batch(url, body, headers, events, timeout) do
     case post(url, body, headers, timeout) do
       {:ok, status} when status in 200..299 ->
         ack_sent(events)

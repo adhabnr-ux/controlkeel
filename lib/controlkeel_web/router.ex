@@ -24,6 +24,10 @@ defmodule ControlKeelWeb.Router do
     plug ControlKeelWeb.Plugs.ProtocolAccessAuth, resource: "mcp"
   end
 
+  pipeline :cloud_telemetry_ingest do
+    plug :accepts, ["json"]
+  end
+
   pipeline :hosted_a2a do
     plug :accepts, ["json"]
 
@@ -185,6 +189,12 @@ defmodule ControlKeelWeb.Router do
     pipe_through :hosted_a2a
 
     post "/a2a", ProtocolController, :a2a
+  end
+
+  scope "/cloud/v1", ControlKeelWeb do
+    pipe_through :cloud_telemetry_ingest
+
+    post "/telemetry", CloudTelemetryController, :ingest
   end
 
   if Application.compile_env(:controlkeel, :dev_routes) do

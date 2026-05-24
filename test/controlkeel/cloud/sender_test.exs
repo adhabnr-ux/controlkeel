@@ -110,7 +110,9 @@ defmodule ControlKeel.Cloud.SenderTest do
       assert length(body["events"]) == 2
 
       headers = Keyword.fetch!(opts, :headers)
-      assert {"authorization", "Bearer " <> _} = List.keyfind(headers, "authorization", 0)
+      {"authorization", "Bearer " <> token} = List.keyfind(headers, "authorization", 0)
+      # Signed token: payload.signature, both base64url
+      assert [_payload_b64, _sig_b64] = String.split(token, ".", parts: 2)
       assert {"content-type", "application/json"} = List.keyfind(headers, "content-type", 0)
       assert {"idempotency-key", batch_id} = List.keyfind(headers, "idempotency-key", 0)
       assert String.length(batch_id) == 26
