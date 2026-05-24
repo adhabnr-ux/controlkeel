@@ -297,7 +297,10 @@ defmodule ControlKeel.CLI do
     org: :string,
     since: :string,
     until: :string,
-    out: :string
+    out: :string,
+    template: :string,
+    sign: :boolean,
+    signing_key_env: :string
   ]
   @agents_list_switches [project_root: :string, format: :string, json: :boolean]
   @route_agent_switches [
@@ -1934,10 +1937,8 @@ defmodule ControlKeel.CLI do
   end
 
   def run_command(%{command: :audit_export, options: options}, _project_root) do
-    alias ControlKeel.Accounts
     alias ControlKeel.Cloud.AuditExport
-    alias ControlKeel.Mission
-    alias ControlKeel.Repo
+    alias ControlKeel.Cloud.ComplianceTemplate
 
     with {:ok, scope_opts} <- resolve_audit_scope(options),
          {:ok, since_opt} <- parse_optional_datetime(options[:since], "since"),
@@ -1946,8 +1947,10 @@ defmodule ControlKeel.CLI do
            scope_opts
            |> maybe_append(:since, since_opt)
            |> maybe_append(:until, until_opt),
-         {:ok, bundle} <- AuditExport.build(build_opts) do
-      json = Jason.encode!(bundle, pretty: true)
+          {:ok, bundle} <- AuditExport.build(build_opts),
+          {:ok, export_payload} <- maybe_render_compliance_template(bundle, options[:template]),
+          {:ok, final_payload} <- maybe_sign_audit_export(export_payload, options) do
+      json = Jason.encode!(final_payload, pretty: true)
 
       case options[:out] do
         nil ->
@@ -1961,6 +1964,7 @@ defmodule ControlKeel.CLI do
                  "Audit export written",
                  "Path: #{path}",
                  "Scope: #{bundle["scope"]["type"]}/#{bundle["scope"]["id"]}",
+                  "Template: #{options[:template] || "raw"}",
                  "Findings: #{length(bundle["findings"])}",
                  "Reviews: #{length(bundle["reviews"])}",
                  "MCP calls: #{length(bundle["mcp_tool_calls"])}"
@@ -1987,9 +1991,15 @@ defmodule ControlKeel.CLI do
         {:error,
          "--#{name} must be an ISO8601 timestamp (e.g. 2026-01-01T00:00:00Z)"}
 
-      _ = _accounts_ref = Accounts
-      _ = _mission_ref = Mission
-      _ = _repo_ref = Repo
+      {:error, :unsupported_template} ->
+        {:error,
+         "--template must be one of: " <> Enum.join(ComplianceTemplate.supported_templates(), ", ")}
+
+      {:error, :missing_signing_key_env} ->
+        {:error, "--sign requires --signing-key-env <ENV>"}
+
+      {:error, {:missing_signing_key, env}} ->
+        {:error, "Signing key environment variable is not set: #{env}"}
 
       {:error, reason} ->
         {:error, "Failed: #{inspect(reason)}"}
@@ -7673,6 +7683,32 @@ defmodule ControlKeel.CLI do
       :error -> {:error, :invalid_level}
     end
   end
+
+  defp maybe_render_compliance_template(bundle, nil), do: {:ok, bundle}
+  defp maybe_render_compliance_template(bundle, ""), do: {:ok, bundle}
+
+  defp maybe_render_compliance_template(bundle, template) do
+    ControlKeel.Cloud.ComplianceTemplate.render(bundle, template)
+  end
+
+  defp maybe_sign_audit_export(payload, %{sign: true} = options) do
+    case options[:signing_key_env] do
+      nil ->
+        {:error, :missing_signing_key_env}
+
+      "" ->
+        {:error, :missing_signing_key_env}
+
+      env ->
+        case System.get_env(env) do
+          nil -> {:error, {:missing_signing_key, env}}
+          "" -> {:error, {:missing_signing_key, env}}
+          key -> {:ok, ControlKeel.Cloud.AuditExportSigner.sign(payload, key, key_id: env)}
+        end
+    end
+  end
+
+  defp maybe_sign_audit_export(payload, _options), do: {:ok, payload}
 
   defp resolve_audit_scope(options) do
     workspace_slug = options[:workspace]

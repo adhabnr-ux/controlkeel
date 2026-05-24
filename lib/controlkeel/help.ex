@@ -535,7 +535,7 @@ defmodule ControlKeel.Help do
                                       Run or hand off a governed task through a supported agent
       controlkeel eval list             List available eval suites
       controlkeel audit export --workspace <slug>|--org <slug>
-                                        [--since ISO8601] [--until ISO8601] [--out FILE]
+                                        [--since ISO8601] [--until ISO8601] [--template soc2|gdpr] [--sign --signing-key-env ENV] [--out FILE]
                                         Export an audit bundle (findings, reviews, audit events,
                                         MCP tool calls, cloud-agent runs, received telemetry) for
                                         SOC 2 / GDPR procurement. Prints JSON to stdout or --out.

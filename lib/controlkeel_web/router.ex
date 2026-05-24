@@ -5,6 +5,7 @@ defmodule ControlKeelWeb.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
+    plug ControlKeelWeb.Plugs.LoadCurrentUser
     plug :put_root_layout, html: {ControlKeelWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
@@ -55,6 +56,9 @@ defmodule ControlKeelWeb.Router do
     live "/ship", ShipLive, :index
     live "/cloud/telemetry", CloudTelemetryLive, :index
     live "/cloud/invitations/:token", InvitationLive, :show
+    get "/auth/oidc/start", OidcController, :start
+    get "/auth/oidc/callback", OidcController, :callback
+    get "/auth/logout", AuthController, :logout
     live "/observability", ObservabilityOverviewLive, :index
     live "/observability/loop", ObservabilityLoopLive, :index
     live "/observability/benchmarks/drafts", ObservabilityBenchmarkDraftsLive, :index

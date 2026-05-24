@@ -229,6 +229,18 @@ defmodule ControlKeel.Accounts do
     |> Repo.all()
   end
 
+  @doc "Return the active membership for a user/org pair, or nil."
+  @spec get_active_membership(integer(), integer()) :: Membership.t() | nil
+  def get_active_membership(user_id, org_id) do
+    Repo.get_by(Membership, user_id: user_id, org_id: org_id, status: "active")
+  end
+
+  @doc "True when the role is at least the required role in the org ladder."
+  @spec role_at_least?(String.t() | nil, String.t() | nil) :: boolean()
+  def role_at_least?(role, required) do
+    Map.get(@role_rank, role || "", -1) >= Map.get(@role_rank, required || "viewer", 0)
+  end
+
   # ──────────────── Workspace linkage ──────
 
   @doc """
@@ -490,6 +502,33 @@ defmodule ControlKeel.Accounts do
     end
   end
 
+  @doc """
+  Find or create a user from trusted SSO claims and ensure org membership.
+
+  This is the JIT provisioning primitive for the Phase 6 SSO scaffold. The
+  caller is responsible for verifying the OIDC/SAML assertion before passing
+  claims here. Existing memberships are reactivated; new memberships are
+  created active without an invitation token because the IdP assertion is the
+  source of trust for this path.
+  """
+  @spec ensure_sso_membership(integer(), map(), keyword()) ::
+          {:ok, User.t(), Membership.t()}
+          | {:error, :not_found | :missing_email | Ecto.Changeset.t()}
+  def ensure_sso_membership(org_id, claims, opts \\ [])
+
+  def ensure_sso_membership(org_id, claims, opts) when is_map(claims) do
+    role = Keyword.get(opts, :role, "member")
+
+    with %Org{} <- Repo.get(Org, org_id) || {:error, :not_found},
+         {:ok, email} <- sso_claim_email(claims),
+         {:ok, user} <- find_or_create_sso_user(email, Map.get(claims, "name") || Map.get(claims, :name)),
+         {:ok, membership} <- activate_sso_membership(user.id, org_id, role) do
+      {:ok, user, membership}
+    end
+  end
+
+  def ensure_sso_membership(_, _, _), do: {:error, :missing_email}
+
   defp update_org_idp(org_id, idp_or_nil) do
     case Repo.get(Org, org_id) do
       nil ->
@@ -521,6 +560,49 @@ defmodule ControlKeel.Accounts do
   end
 
   defp extract_idp(_), do: nil
+
+  defp sso_claim_email(claims) do
+    email = Map.get(claims, "email") || Map.get(claims, :email)
+
+    case email |> to_string() |> String.downcase() |> String.trim() do
+      "" -> {:error, :missing_email}
+      normalized -> {:ok, normalized}
+    end
+  end
+
+  defp find_or_create_sso_user(email, name) do
+    case get_user_by_email(email) do
+      %User{} = user -> {:ok, user}
+      nil -> create_user(%{email: email, name: name})
+    end
+  end
+
+  defp activate_sso_membership(user_id, org_id, role) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    case Repo.get_by(Membership, user_id: user_id, org_id: org_id) do
+      nil ->
+        %Membership{}
+        |> Membership.changeset(%{
+          user_id: user_id,
+          org_id: org_id,
+          role: role,
+          status: "active",
+          accepted_at: now
+        })
+        |> Repo.insert()
+
+      %Membership{} = membership ->
+        membership
+        |> Membership.changeset(%{
+          role: membership.role || role,
+          status: "active",
+          invitation_token_hash: nil,
+          accepted_at: membership.accepted_at || now
+        })
+        |> Repo.update()
+    end
+  end
 
   defp validate_idp_attrs(attrs) do
     normalized = Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
