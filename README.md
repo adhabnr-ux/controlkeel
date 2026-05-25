@@ -34,7 +34,7 @@ ControlKeel transforms your domain knowledge from "shelfware" documentation into
 Copy/paste this into your agent (OpenCode, Codex, Claude, or another supported host):
 
 ```text
-Set up ControlKeel for this repository. Read and follow https://raw.githubusercontent.com/aryaminus/controlkeel/main/README.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/getting-started.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/direct-host-installs.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/support-matrix.md, and https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/agent-integrations.md. Detect this host, install CK if missing, run controlkeel setup, then attach the strongest useful host path with plugin and MCP plus skills/hooks/agents as available. Run controlkeel attach doctor, provider doctor, status, findings, controlkeel me, and the host-specific MCP check; apply only safe local fixes and re-verify. Redact proxy tokens and secrets from shared logs. Pause and ask before continuing if the host needs trust, manual provider config, a restart after attach/plugin changes, or a plan-review approval that cannot auto-wait. For Codex, ensure the project is trusted and restart Codex after attach/plugin changes.
+Set up ControlKeel for this repository. Read and follow https://raw.githubusercontent.com/aryaminus/controlkeel/main/README.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/getting-started.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/one-line-install.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/direct-host-installs.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/support-matrix.md, and https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/agent-integrations.md. Detect this host, install CK if missing, run controlkeel setup, then attach the strongest useful host path with plugin and MCP plus skills/hooks/agents as available. If CK was added only as MCP, call ck_attach for this host to install the missing hooks, skills, commands, and agent profiles. Run controlkeel attach doctor, provider doctor, status, findings, controlkeel me, and the host-specific MCP check; apply only safe local fixes and re-verify. Redact proxy tokens and secrets from shared logs. Pause and ask before continuing if the host needs trust, manual provider config, a restart after attach/plugin changes, or a plan-review approval that cannot auto-wait. For Codex, ensure the project is trusted and restart Codex after attach/plugin changes.
 ```
 
 ### Install ControlKeel
@@ -58,6 +58,8 @@ curl -fsSL https://github.com/aryaminus/controlkeel/releases/latest/download/ins
 ```powershell
 irm https://github.com/aryaminus/controlkeel/releases/latest/download/install.ps1 | iex
 ```
+
+For host-specific one-liners and MCP-only copy/paste setup, see [docs/one-line-install.md](docs/one-line-install.md). If a user starts with MCP-only setup, the agent can call `ck_attach` to add the repo-local hooks, skills, commands, and companion agents without leaving the session.
 
 ### First governed run
 

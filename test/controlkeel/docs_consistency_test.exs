@@ -91,6 +91,27 @@ defmodule ControlKeel.DocsConsistencyTest do
     assert support_matrix =~ "`warp-oz`"
   end
 
+  describe "install scripts surface the first-touch attach + cloud guidance" do
+    test "scripts/install.sh points new users at controlkeel attach + cloud connect" do
+      script = read_doc!("scripts/install.sh")
+
+      assert script =~ "controlkeel attach claude-code"
+      assert script =~ "controlkeel attach cursor"
+      assert script =~ "controlkeel cloud connect --enroll"
+      assert script =~ "controlkeel cloud doctor"
+      assert script =~ "docs/self-hosting.md"
+    end
+
+    test "scripts/install.ps1 points new users at controlkeel attach + cloud connect" do
+      script = read_doc!("scripts/install.ps1")
+
+      assert script =~ "controlkeel attach claude-code"
+      assert script =~ "controlkeel attach cursor"
+      assert script =~ "controlkeel cloud connect --enroll"
+      assert script =~ "controlkeel cloud doctor"
+    end
+  end
+
   defp read_doc!(path) do
     @repo_root
     |> Path.join(path)

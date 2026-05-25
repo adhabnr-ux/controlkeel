@@ -284,7 +284,8 @@ defmodule ControlKeel.MCP.Protocol do
       "ck_budget",
       "ck_route",
       "ck_mcp_discover",
-      "ck_token_audit"
+      "ck_token_audit",
+      "ck_attach"
     ],
     "governance" => [
       "ck_review_submit",
@@ -387,7 +388,8 @@ defmodule ControlKeel.MCP.Protocol do
         ck_engineer_mirror_tool(),
         ck_load_resources_tool(),
         ck_mcp_discover_tool(),
-        ck_token_audit_tool()
+        ck_token_audit_tool(),
+        ck_attach_tool()
       ]
 
       # Always expose ck_skill_list / ck_skill_load / ck_skill_validate. Do not call Registry here: a full
@@ -552,6 +554,9 @@ defmodule ControlKeel.MCP.Protocol do
 
   defp do_dispatch_tool("ck_outcome_tracker", arguments), do: CkOutcomeTracker.call(arguments)
   defp do_dispatch_tool("ck_token_audit", arguments), do: CkTokenAudit.call(arguments)
+
+  defp do_dispatch_tool("ck_attach", arguments),
+    do: ControlKeel.MCP.Tools.CkAttach.call(arguments)
 
   defp do_dispatch_tool(unknown, _arguments),
     do: {:error, {:invalid_arguments, "Unknown tool: #{unknown}"}}
@@ -2534,6 +2539,44 @@ defmodule ControlKeel.MCP.Protocol do
             "enum" => ["http", "stdio"],
             "description" =>
               "Transport type. Auto-detected from server_url if not specified. HTTP uses Erlang's built-in :httpc (no extra dependencies)."
+          }
+        }
+      }
+    }
+  end
+
+  defp ck_attach_tool do
+    %{
+      "name" => "ck_attach",
+      "description" =>
+        "Wire ControlKeel into the current agent host (Claude Code, Cursor, Codex, OpenCode, etc.). " <>
+          "Closes the gap for users who installed ControlKeel via a one-line MCP-add command but skipped " <>
+          "`controlkeel attach <host>`. Installs the host-specific hooks (SessionStart, PreToolUse, " <>
+          "PostToolUse, UserPromptSubmit), skills directory, slash commands, AGENTS.md/CLAUDE.md preamble, " <>
+          "and subagent profiles for the requested host. Idempotent — re-running refreshes artifacts to " <>
+          "the current version. Writes only inside `project_root`; no network egress. " <>
+          "Call this once after a one-line MCP install when the host lacks ControlKeel hooks/skills. " <>
+          "Use `ck_mcp_discover` first if unsure which host ID to pass.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["host"],
+        "properties" => %{
+          "host" => %{
+            "type" => "string",
+            "description" =>
+              "Agent host ID to attach. One of: claude-code, codex-cli, cursor, opencode, augment, " <>
+                "continue, aider, cline, roo-code, kiro, goose, gemini-cli, letta-code, windsurf, " <>
+                "vscode, copilot, pi."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root. Defaults to CK_PROJECT_ROOT or the MCP server's working directory."
+          },
+          "scope" => %{
+            "type" => "string",
+            "enum" => ["project", "user"],
+            "description" => "Attach scope. Defaults to project."
           }
         }
       }

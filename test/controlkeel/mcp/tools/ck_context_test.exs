@@ -260,6 +260,73 @@ defmodule ControlKeel.MCP.Tools.CkContextTest do
     assert omitted_result["session_id"] == session.id
   end
 
+  describe "attach_advisory" do
+    test "reports :attached when host hooks/skills are installed" do
+      tmp_dir =
+        Path.join(System.tmp_dir!(), "ck-context-advisory-#{System.unique_integer([:positive])}")
+
+      File.mkdir_p!(tmp_dir)
+      on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+      session = session_fixture()
+
+      assert {:ok, _binding} =
+               ProjectBinding.write(
+                 %{
+                   "workspace_id" => session.workspace_id,
+                   "session_id" => session.id,
+                   "agent" => "claude-code",
+                   "attached_agents" => %{
+                     "claude_code" => %{"server_name" => "controlkeel", "scope" => "local"}
+                   }
+                 },
+                 tmp_dir
+               )
+
+      assert {:ok, result} =
+               CkContext.call(%{"session_id" => session.id, "project_root" => tmp_dir})
+
+      advisory = result["attach_advisory"]
+      assert advisory["status"] == "attached"
+      assert "claude_code" in advisory["hosts"]
+      assert advisory["guidance"] =~ "installed"
+    end
+
+    test "reports :mcp_only with ck_attach guidance when only MCP is wired" do
+      tmp_dir =
+        Path.join(
+          System.tmp_dir!(),
+          "ck-context-advisory-mcp-#{System.unique_integer([:positive])}"
+        )
+
+      File.mkdir_p!(tmp_dir)
+      on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+      session = session_fixture()
+
+      # An auto-bootstrapped binding with no attached_agents simulates the
+      # one-line MCP-add path: tools work but hooks/skills are missing.
+      assert {:ok, _binding} =
+               ProjectBinding.write(
+                 %{
+                   "workspace_id" => session.workspace_id,
+                   "session_id" => session.id,
+                   "agent" => "claude-code",
+                   "attached_agents" => %{},
+                   "bootstrap" => %{"auto_bootstrapped" => true, "mode" => "ephemeral"}
+                 },
+                 tmp_dir
+               )
+
+      assert {:ok, result} =
+               CkContext.call(%{"session_id" => session.id, "project_root" => tmp_dir})
+
+      advisory = result["attach_advisory"]
+      assert advisory["status"] in ["mcp_only", "unbound"]
+      assert advisory["guidance"] =~ "ck_attach" or advisory["guidance"] =~ "controlkeel attach"
+    end
+  end
+
   test "context pack rejects non-finite and non-integer ids clearly" do
     assert {:error, {:invalid_arguments, message}} =
              CkContextPack.call(%{"session_id" => :nan, "query" => "continuation"})

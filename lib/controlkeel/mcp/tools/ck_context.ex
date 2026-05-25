@@ -60,7 +60,8 @@ defmodule ControlKeel.MCP.Tools.CkContext do
           "model" => provider_status["selected_model"],
           "fallback_chain" => provider_status["fallback_chain"]
         },
-        "bootstrap_status" => provider_status["bootstrap"]
+        "bootstrap_status" => provider_status["bootstrap"],
+        "attach_advisory" => attach_advisory(project_root, provider_status["bootstrap"])
       }
 
       {:ok, apply_detail_level(context, arguments)}
@@ -263,6 +264,55 @@ defmodule ControlKeel.MCP.Tools.CkContext do
       end
 
     WorkspaceContext.resolve_project_root(session, fallback_root) || fallback_root
+  end
+
+  # Detect whether the host that started this MCP session has actually been
+  # attached (hooks/skills/AGENTS.md installed) or whether the user only ran
+  # a one-line MCP-add command and skipped `controlkeel attach <host>`. The
+  # advisory surfaces the gap and the fix (call ck_attach) without forcing
+  # action — the LLM can read it and decide.
+  defp attach_advisory(project_root, bootstrap_status) do
+    binding =
+      case ControlKeel.ProjectBinding.read(project_root) do
+        {:ok, b} -> b
+        _ -> %{}
+      end
+
+    attached = Map.get(binding, "attached_agents") || %{}
+
+    auto_bootstrapped =
+      is_map(bootstrap_status) and Map.get(bootstrap_status, "auto_bootstrapped")
+
+    cond do
+      map_size(attached) > 0 ->
+        %{
+          "status" => "attached",
+          "hosts" => Map.keys(attached),
+          "guidance" => "Hooks, skills, and host-native commands are installed."
+        }
+
+      auto_bootstrapped ->
+        %{
+          "status" => "mcp_only",
+          "hosts" => [],
+          "guidance" =>
+            "This project has MCP tools wired but no host-specific hooks or skills " <>
+              "installed. To enable SessionStart auto-context, PreToolUse auto-validate, " <>
+              "completion-review slash command, and AGENTS.md governance preamble, call " <>
+              "the `ck_attach` tool with the host you're running in " <>
+              "(e.g. {\"host\":\"claude-code\"}), or run `controlkeel attach <host>` " <>
+              "from your shell. See docs/one-line-install.md for the full host list."
+        }
+
+      true ->
+        %{
+          "status" => "unbound",
+          "hosts" => [],
+          "guidance" =>
+            "No ControlKeel project binding detected. Run `controlkeel attach <host>` " <>
+              "or call the `ck_attach` MCP tool to wire CK into the current agent host."
+        }
+    end
   end
 
   defp context_reacquisition(workspace_context) do

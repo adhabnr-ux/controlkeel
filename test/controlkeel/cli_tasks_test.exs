@@ -5,6 +5,7 @@ defmodule ControlKeel.CLITasksTest do
   import ExUnit.CaptureIO
   import ControlKeel.MissionFixtures
 
+  alias ControlKeel.CLI
   alias ControlKeel.Mission
   alias ControlKeel.Analytics
   alias ControlKeel.Benchmark
@@ -125,6 +126,14 @@ defmodule ControlKeel.CLITasksTest do
       end)
 
     assert output =~ "Attached ControlKeel to Claude Code."
+
+    # Phase 7 — attach should surface cloud-mode next steps so the user
+    # discovers `cloud connect --enroll` and `cloud doctor` from the very
+    # first attach output, not only by reading docs.
+    assert output =~ "controlkeel cloud connect --enroll" or
+             output =~ "Cloud — already connected"
+
+    assert output =~ "controlkeel cloud doctor"
 
     log = File.read!(Path.join(tmp_dir, "claude.log"))
     assert log =~ "mcp add-json controlkeel"
@@ -356,6 +365,51 @@ defmodule ControlKeel.CLITasksTest do
            )
 
     assert File.exists?(Path.join(tmp_dir, "controlkeel/dist/codex/.codex/config.toml"))
+  end
+
+  test "skills doctor and token audit show actionable duplicate skill guidance", %{
+    tmp_dir: tmp_dir
+  } do
+    assert {:ok, parsed_setup} = CLI.parse(["setup", "--project-root", tmp_dir])
+    assert {:ok, _setup_lines} = CLI.run_command(parsed_setup, tmp_dir)
+
+    skill_name = "shared-skill"
+
+    for subdir <- [".agents/skills", ".claude/skills"] do
+      skill_dir = Path.join([tmp_dir, subdir, skill_name])
+      File.mkdir_p!(skill_dir)
+
+      File.write!(
+        Path.join(skill_dir, "SKILL.md"),
+        """
+        ---
+        name: shared-skill
+        description: Shared governance skill
+        ---
+        # Shared Skill
+
+        Use CK governance for setup checks.
+        """
+      )
+    end
+
+    assert {:ok, parsed_doctor} = CLI.parse(["skills", "doctor", "--project-root", tmp_dir])
+    assert {:ok, doctor_lines} = CLI.run_command(parsed_doctor, tmp_dir)
+    doctor_output = Enum.join(doctor_lines, "\n")
+
+    assert doctor_output =~ "controlkeel token audit --mode skills"
+    refute doctor_output =~ "controlkeel token audit mode=skills"
+
+    assert {:ok, parsed_audit} =
+             CLI.parse(["token", "audit", "--mode", "skills", "--project-root", tmp_dir])
+
+    assert {:ok, audit_lines} = CLI.run_command(parsed_audit, tmp_dir)
+    audit_output = Enum.join(audit_lines, "\n")
+
+    assert audit_output =~ "Duplicate skill groups: 1"
+    assert audit_output =~ "Duplicate skill tokens:"
+    assert audit_output =~ "#{skill_name}: 2 copies"
+    refute audit_output =~ "() tokens"
   end
 
   test "ck.benchmark delegates to the runtime benchmark CLI", %{tmp_dir: tmp_dir} do

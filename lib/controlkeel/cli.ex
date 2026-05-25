@@ -2014,8 +2014,7 @@ defmodule ControlKeel.CLI do
        ]}
     else
       {:error, {:missing_option, option}} ->
-        {:error,
-         "Missing required option --#{option}. Levels: #{telemetry_level_list_text()}"}
+        {:error, "Missing required option --#{option}. Levels: #{telemetry_level_list_text()}"}
 
       {:error, :invalid_level} ->
         {:error, "Invalid level. Choose one of: #{telemetry_level_list_text()}"}
@@ -2061,7 +2060,9 @@ defmodule ControlKeel.CLI do
     else
       results =
         Enum.map(workspace_ids, fn ws_id ->
-          case ControlKeel.Cloud.BaselineAnalyzer.compute_and_store(ws_id, window_days: window_days) do
+          case ControlKeel.Cloud.BaselineAnalyzer.compute_and_store(ws_id,
+                 window_days: window_days
+               ) do
             {:ok, baseline} ->
               "workspace #{ws_id}: #{baseline.sample_sessions} sample sessions, #{baseline_tool_count(baseline)} tools, window #{window_days}d"
 
@@ -2174,7 +2175,8 @@ defmodule ControlKeel.CLI do
               ["By host:"] ++
                 Enum.map(summary.by_host, fn h ->
                   "  #{h.host}\t(#{h.count}) — #{Enum.join(h.evidence, ", ")}"
-                end) ++ ["", "Hits:"] ++
+                end) ++
+                ["", "Hits:"] ++
                 Enum.map(hits, fn hit ->
                   "  #{hit.host}\t#{hit.path}\t#{hit.kind}\t#{hit.evidence}"
                 end)
@@ -2196,9 +2198,9 @@ defmodule ControlKeel.CLI do
            scope_opts
            |> maybe_append(:since, since_opt)
            |> maybe_append(:until, until_opt),
-          {:ok, bundle} <- AuditExport.build(build_opts),
-          {:ok, export_payload} <- maybe_render_compliance_template(bundle, options[:template]),
-          {:ok, final_payload} <- maybe_sign_audit_export(export_payload, options) do
+         {:ok, bundle} <- AuditExport.build(build_opts),
+         {:ok, export_payload} <- maybe_render_compliance_template(bundle, options[:template]),
+         {:ok, final_payload} <- maybe_sign_audit_export(export_payload, options) do
       json = Jason.encode!(final_payload, pretty: true)
 
       case options[:out] do
@@ -2213,7 +2215,7 @@ defmodule ControlKeel.CLI do
                  "Audit export written",
                  "Path: #{path}",
                  "Scope: #{bundle["scope"]["type"]}/#{bundle["scope"]["id"]}",
-                  "Template: #{options[:template] || "raw"}",
+                 "Template: #{options[:template] || "raw"}",
                  "Findings: #{length(bundle["findings"])}",
                  "Reviews: #{length(bundle["reviews"])}",
                  "MCP calls: #{length(bundle["mcp_tool_calls"])}"
@@ -2237,12 +2239,12 @@ defmodule ControlKeel.CLI do
         {:error, "Org not found"}
 
       {:error, {:invalid_datetime, name}} ->
-        {:error,
-         "--#{name} must be an ISO8601 timestamp (e.g. 2026-01-01T00:00:00Z)"}
+        {:error, "--#{name} must be an ISO8601 timestamp (e.g. 2026-01-01T00:00:00Z)"}
 
       {:error, :unsupported_template} ->
         {:error,
-         "--template must be one of: " <> Enum.join(ComplianceTemplate.supported_templates(), ", ")}
+         "--template must be one of: " <>
+           Enum.join(ComplianceTemplate.supported_templates(), ", ")}
 
       {:error, :missing_signing_key_env} ->
         {:error, "--sign requires --signing-key-env <ENV>"}
@@ -2500,8 +2502,12 @@ defmodule ControlKeel.CLI do
 
         rows =
           case breakdown do
-            [] -> []
-            ws -> ["Workspace breakdown:"] ++ Enum.map(ws, &"  #{&1.workspace_slug}\t#{&1.spent_cents}")
+            [] ->
+              []
+
+            ws ->
+              ["Workspace breakdown:"] ++
+                Enum.map(ws, &"  #{&1.workspace_slug}\t#{&1.spent_cents}")
           end
 
         {:ok, header ++ rows}
@@ -2515,10 +2521,10 @@ defmodule ControlKeel.CLI do
          org when not is_nil(org) <- Accounts.get_org_by_slug(slug) do
       user =
         Accounts.get_user_by_email(email) ||
-          (case Accounts.create_user(%{email: email}) do
-             {:ok, u} -> u
-             _ -> nil
-           end)
+          case Accounts.create_user(%{email: email}) do
+            {:ok, u} -> u
+            _ -> nil
+          end
 
       cond do
         user == nil ->
@@ -2717,7 +2723,10 @@ defmodule ControlKeel.CLI do
     {:ok, header ++ allow_rows ++ [""] ++ deny_rows}
   end
 
-  def run_command(%{command: :mcp_registry_check, options: options, args: [server_name]}, _project_root) do
+  def run_command(
+        %{command: :mcp_registry_check, options: options, args: [server_name]},
+        _project_root
+      ) do
     alias ControlKeel.Cloud.McpRegistry
 
     attested? = Map.get(options, :attested, false)
@@ -5223,7 +5232,7 @@ defmodule ControlKeel.CLI do
           "⚠️  TOKEN OPTIMIZATION WARNING:",
           "  Found #{duplicate_copy_count} duplicate skill copies wasting tokens.",
           "  Run 'controlkeel token audit' for detailed analysis and recommendations.",
-          "  Run 'controlkeel token audit mode=skills' to see skill-specific optimization guidance."
+          "  Run 'controlkeel token audit --mode skills' to see skill-specific optimization guidance."
         ]
       else
         []
@@ -5947,8 +5956,10 @@ defmodule ControlKeel.CLI do
       "full" ->
         rule_files = result["rule_files"] || []
         skills = result["skills"] || []
-        duplicates = result["duplicates"] || []
-        recommendations = result["recommendations"] || []
+        duplicates = result["skill_duplicates"] || result["duplicates"] || []
+
+        recommendations =
+          (result["recommendations"] || []) ++ (result["skill_recommendations"] || [])
 
         [
           "Token Audit Results",
@@ -5958,21 +5969,23 @@ defmodule ControlKeel.CLI do
           "Total estimated tokens: #{result["estimated_tokens"]}",
           "Rule files: #{length(rule_files)}",
           "Skills: #{length(skills)}",
-          "Duplicates: #{length(duplicates)}",
+          "Skill tokens: #{result["total_skill_tokens"] || 0}",
+          "Duplicate skill groups: #{length(duplicates)}",
+          "Duplicate skill tokens: #{result["duplicate_token_count"] || 0}",
           "",
           "Rule files:"
         ] ++
-          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{rf["tokens"]} tokens)" end) ++
+          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{token_count(rf)} tokens)" end) ++
           [
             "",
             "Skills:"
           ] ++
-          Enum.map(skills, fn s -> "  - #{s["name"]} (#{s["tokens"]} tokens)" end) ++
+          Enum.map(skills, fn s -> "  - #{s["name"]} (#{token_count(s)} tokens)" end) ++
           [
             "",
-            "Duplicates:"
+            "Duplicate skill groups:"
           ] ++
-          Enum.map(duplicates, fn d -> "  - #{d["path"]} (duplicate of #{d["original"]})" end) ++
+          Enum.map(duplicates, &format_skill_duplicate/1) ++
           [
             "",
             "Recommendations:"
@@ -5991,7 +6004,7 @@ defmodule ControlKeel.CLI do
           "Rule files: #{length(rule_files)}",
           ""
         ] ++
-          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{rf["tokens"]} tokens)" end)
+          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{token_count(rf)} tokens)" end)
 
       "skills" ->
         skills = result["skills"] || []
@@ -6002,17 +6015,23 @@ defmodule ControlKeel.CLI do
           "====================",
           "",
           "Project root: #{result["project_root"]}",
-          "Total skill tokens: #{result["estimated_tokens"]}",
+          "Total skill tokens: #{result["total_skill_tokens"] || result["estimated_tokens"] || 0}",
+          "Duplicate skill tokens: #{result["duplicate_token_count"] || 0}",
           "Skills: #{length(skills)}",
-          "Duplicates: #{length(duplicates)}",
+          "Duplicate skill groups: #{length(duplicates)}",
           ""
         ] ++
-          Enum.map(skills, fn s -> "  - #{s["name"]} (#{s["tokens"]} tokens)" end) ++
+          Enum.map(skills, fn s -> "  - #{s["name"]} (#{token_count(s)} tokens)" end) ++
           [
             "",
-            "Duplicates:"
+            "Duplicate skill groups:"
           ] ++
-          Enum.map(duplicates, fn d -> "  - #{d["path"]} (duplicate of #{d["original"]})" end)
+          Enum.map(duplicates, &format_skill_duplicate/1) ++
+          [
+            "",
+            "Recommendations:"
+          ] ++
+          Enum.map(result["recommendations"] || [], fn r -> "  - #{r}" end)
 
       "tools" ->
         tools = result["tools"] || []
@@ -6022,16 +6041,38 @@ defmodule ControlKeel.CLI do
           "===================",
           "",
           "Project root: #{result["project_root"]}",
-          "Total tool tokens: #{result["estimated_tokens"]}",
+          "Total tool tokens: #{result["total_tokens"] || result["estimated_tokens"] || 0}",
           "Tools: #{length(tools)}",
           ""
         ] ++
-          Enum.map(tools, fn t -> "  - #{t["name"]} (#{t["tokens"]} tokens)" end)
+          Enum.map(tools, fn t -> "  - #{t["name"]} (#{token_count(t)} tokens)" end) ++
+          [
+            "",
+            "Recommendations:"
+          ] ++
+          Enum.map(result["recommendations"] || [], fn r -> "  - #{r}" end)
     end
   end
 
   defp format_token_audit(result, _mode, "json") do
     [Jason.encode!(result, pretty: true)]
+  end
+
+  defp token_count(item) when is_map(item) do
+    item["tokens"] || item["estimated_tokens"] || item["total_tokens"] || 0
+  end
+
+  defp format_skill_duplicate(%{"name" => name} = duplicate) do
+    locations =
+      duplicate
+      |> Map.get("locations", [])
+      |> Enum.join(", ")
+
+    "  - #{name}: #{duplicate["count"] || 0} copies, #{duplicate["total_tokens"] || 0} tokens (#{locations})"
+  end
+
+  defp format_skill_duplicate(duplicate) when is_map(duplicate) do
+    "  - #{duplicate["path"] || "unknown"} (duplicate of #{duplicate["original"] || "unknown"})"
   end
 
   defp format_tool_groups_suggest(groups, reason, stats, "text") do
@@ -8299,7 +8340,29 @@ defmodule ControlKeel.CLI do
           integration.upstream_docs_url && "Upstream docs: #{integration.upstream_docs_url}"
         ]
         |> Enum.reject(&is_nil/1)
+        |> Kernel.++(cloud_guidance_lines())
         |> Kernel.++(Distribution.current_install_lines())
+    end
+  end
+
+  defp cloud_guidance_lines do
+    case ControlKeel.Cloud.WorkspaceIdentity.load() do
+      {:ok, identity} ->
+        [
+          "",
+          "Cloud — already connected (workspace #{identity.workspace_id}).",
+          "  controlkeel cloud doctor              # verify the cloud-mode boundary",
+          "  controlkeel telemetry status          # check sync state and queue depth"
+        ]
+
+      _ ->
+        [
+          "",
+          "Cloud — optional next step (sync findings, proofs, and approvals across a team):",
+          "  controlkeel cloud connect --enroll https://controlkeel.com",
+          "  # or your self-host URL, e.g. https://govern.acme.com (see docs/self-hosting.md)",
+          "  controlkeel cloud doctor              # verify the cloud-mode boundary"
+        ]
     end
   end
 

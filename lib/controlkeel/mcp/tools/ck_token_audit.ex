@@ -71,14 +71,16 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
              "ratio" => Float.round(r.ratio, 3),
              "input_tokens" => r.input_tokens,
              "output_tokens" => r.output_tokens,
-             "flag" => if(r.ratio >= 20.0, do: "danger", else: if(r.ratio >= 5.0, do: "warn", else: "ok"))
+             "flag" =>
+               if(r.ratio >= 20.0, do: "danger", else: if(r.ratio >= 5.0, do: "warn", else: "ok"))
            }
          end),
        "recommendations" => build_amplification_recommendations(flagged)
      }}
   end
 
-  defp build_amplification_recommendations([]), do: ["No sessions exceed the 5× amplification threshold."]
+  defp build_amplification_recommendations([]),
+    do: ["No sessions exceed the 5× amplification threshold."]
 
   defp build_amplification_recommendations(flagged) do
     danger = Enum.count(flagged, &(&1.ratio >= 20.0))
@@ -88,14 +90,20 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
 
     recs =
       if danger > 0 do
-        ["#{danger} session(s) exceed 20× output amplification — investigate for runaway generation" | recs]
+        [
+          "#{danger} session(s) exceed 20× output amplification — investigate for runaway generation"
+          | recs
+        ]
       else
         recs
       end
 
     recs =
       if warn > 0 do
-        ["#{warn} session(s) exceed 5× output amplification — review for verbosity or prompt injection" | recs]
+        [
+          "#{warn} session(s) exceed 5× output amplification — review for verbosity or prompt injection"
+          | recs
+        ]
       else
         recs
       end
@@ -106,13 +114,18 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
   defp audit_full(project_root) do
     with {:ok, rules_data} <- audit_rules_only(project_root),
          {:ok, skills_data} <- audit_skills(project_root) do
+      rule_tokens = rules_data["estimated_tokens"] || 0
+      skill_tokens = skills_data["total_skill_tokens"] || 0
+
       {:ok,
        Map.merge(rules_data, %{
+         "rule_tokens" => rule_tokens,
+         "estimated_tokens" => rule_tokens + skill_tokens,
          "skills" => skills_data["skills"],
          "skill_duplicates" => skills_data["duplicates"],
          "duplicate_token_count" => skills_data["duplicate_token_count"],
          "duplicate_word_count" => skills_data["duplicate_word_count"],
-         "total_skill_tokens" => skills_data["total_skill_tokens"],
+         "total_skill_tokens" => skill_tokens,
          "total_skill_words" => skills_data["total_skill_words"],
          "skill_recommendations" => skills_data["recommendations"]
        })}
@@ -179,6 +192,8 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
 
     {:ok,
      %{
+       "project_root" => project_root,
+       "estimated_tokens" => total_skill_tokens,
        "skills" => all_skills,
        "duplicates" => duplicates,
        "total_skill_words" => total_skill_words,

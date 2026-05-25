@@ -81,11 +81,34 @@ chmod +x "${TMP_DIR}/controlkeel"
 mv "${TMP_DIR}/controlkeel" "${DEST_DIR}/controlkeel"
 
 echo "Installed ControlKeel to ${DEST_DIR}/controlkeel"
-echo "Run: controlkeel version"
+echo ""
 
 case ":$PATH:" in
   *":${DEST_DIR}:"*) ;;
   *)
-    echo "Add ${DEST_DIR} to your PATH if it is not already available." >&2
+    echo "Add ${DEST_DIR} to your PATH first:" >&2
+    echo "  export PATH=\"${DEST_DIR}:\$PATH\"" >&2
+    echo "" >&2
     ;;
 esac
+
+cat <<'EOF'
+Next steps — wire ControlKeel into your agent host:
+
+  1. Attach to the agent you use (one or more):
+       controlkeel attach claude-code
+       controlkeel attach cursor
+       controlkeel attach codex-cli
+       controlkeel attach opencode
+       controlkeel attach copilot
+
+  2. Optional — sync governance evidence to a control plane:
+       controlkeel cloud connect --enroll https://controlkeel.com
+     (or your self-host URL, e.g. https://govern.acme.com)
+
+  3. Verify everything is healthy:
+       controlkeel cloud doctor
+
+Run `controlkeel --help` for the full surface. See docs/self-hosting.md
+to run your own controlkeel.com on fly.io.
+EOF

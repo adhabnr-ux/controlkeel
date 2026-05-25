@@ -630,4 +630,28 @@ defmodule ControlKeel.AgentIntegrationTest do
     assert copilot.auth_mode == "agent_runtime"
     assert copilot.runtime_transport == "hook_session_parser"
   end
+
+  describe "mcp_install_command/1" do
+    test "returns the Claude CLI one-liner for claude-code" do
+      cmd = AgentIntegration.mcp_install_command("claude-code")
+      assert cmd =~ "claude mcp add-json controlkeel"
+      assert cmd =~ ~s({"command":"controlkeel","args":["mcp"]})
+    end
+
+    test "returns the OpenCode one-liner" do
+      assert AgentIntegration.mcp_install_command("opencode") ==
+               "opencode mcp add controlkeel controlkeel mcp"
+    end
+
+    test "returns the Cursor JSON snippet" do
+      cmd = AgentIntegration.mcp_install_command("cursor")
+      assert cmd =~ "mcpServers"
+      assert cmd =~ "controlkeel"
+    end
+
+    test "returns nil for hosts without a canonical one-liner" do
+      assert AgentIntegration.mcp_install_command("aider") == nil
+      assert AgentIntegration.mcp_install_command("not-a-host") == nil
+    end
+  end
 end

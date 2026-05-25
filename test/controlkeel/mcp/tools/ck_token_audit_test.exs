@@ -120,6 +120,9 @@ defmodule ControlKeel.MCP.Tools.CkTokenAuditTest do
 
       assert {:ok, result} = CkTokenAudit.call(%{"mode" => "skills", "project_root" => tmp})
 
+      assert result["project_root"] == tmp
+      assert result["estimated_tokens"] == result["total_skill_tokens"]
+
       project_dups = Enum.filter(result["duplicates"], &(&1["name"] == skill_name))
       assert length(project_dups) == 1
       dup = hd(project_dups)
@@ -155,6 +158,8 @@ defmodule ControlKeel.MCP.Tools.CkTokenAuditTest do
       assert is_list(result["skills"])
       assert is_list(result["skill_recommendations"])
       assert is_integer(result["duplicate_token_count"])
+      assert result["rule_tokens"] > 0
+      assert result["estimated_tokens"] == result["rule_tokens"] + result["total_skill_tokens"]
     end
 
     test "defaults to full mode when mode is omitted", %{tmp: tmp} do

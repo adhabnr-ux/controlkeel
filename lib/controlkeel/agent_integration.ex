@@ -1709,6 +1709,46 @@ defmodule ControlKeel.AgentIntegration do
 
   def attachable_ids, do: Enum.map(attach_catalog(), & &1.id)
 
+  @doc """
+  Return the one-line copy-paste MCP install command for a host, when one is
+  natively supported. This is the "Path B" install — registers ControlKeel as
+  an MCP server without running `controlkeel attach`, so the user gets the
+  tool surface but not hooks/skills/AGENTS.md.
+
+  Returns `nil` for hosts where there is no canonical one-liner (the user
+  must edit a config file manually). Callers should fall back to
+  `integration.attach_command` (the "Path A" install) for full setup.
+
+  See [docs/one-line-install.md](../../docs/one-line-install.md) for the
+  human-readable reference.
+  """
+  @spec mcp_install_command(String.t() | nil) :: String.t() | nil
+  def mcp_install_command(host_id) do
+    case normalize_id(host_id) do
+      "claude-code" ->
+        "claude mcp add-json controlkeel '{\"command\":\"controlkeel\",\"args\":[\"mcp\"]}' --scope local"
+
+      "opencode" ->
+        "opencode mcp add controlkeel controlkeel mcp"
+
+      "cursor" ->
+        ~s({"mcpServers":{"controlkeel":{"command":"controlkeel","args":["mcp"]}}})
+
+      "codex-cli" ->
+        # TOML snippet; user must append to ~/.codex/config.toml manually.
+        "[mcp_servers.controlkeel]\ncommand = \"controlkeel\"\nargs = [\"mcp\"]"
+
+      "vscode" ->
+        ~s({"servers":{"controlkeel":{"command":"controlkeel","args":["mcp"]}}})
+
+      "copilot" ->
+        ~s({"servers":{"controlkeel":{"command":"controlkeel","args":["mcp"]}}})
+
+      _ ->
+        nil
+    end
+  end
+
   def runtime_export_catalog do
     Enum.filter(catalog(), &(&1.support_class == "headless_runtime"))
   end
