@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.3.26 — 2026-05-25
+
+### What's changed
+
+- feat: implement multi-tenant workspace key management
+- feat: enhance findings and policy studio live views with rejection handling and tool policies
+- feat(api): add workspace tool policy management and NHI audit event endpoints
+- feat: implement JetStream adapter for durable pub/sub queues and add visibility to memory records
+- feat: implement Tier 2 deferred items — behavioral baselining, air-gapped pack, NHI lifecycle
+- feat: implement Tier 1 deferred items — fallback chain, compliance templates, workspace tool policies
+- feat(cloud): update cloud enterprise roadmap with shipped status and deferred items
+- feat(agents): add 'agents discover' command for scanning agent-host configurations
+- feat(saml): implement SAML authentication flow with controller, client, and CLI support
+- feat(auth): implement OIDC authentication flow with session management
+- feat: Implement org identity provider configuration and audit export functionality
+- feat(cloud): implement runtime context for cloud run packages
+- Add comprehensive tests for CLI commands, cloud guardrails, MCP audit logs, policies, and invitation handling
+- feat: Add CloudTelemetryLive for monitoring telemetry ingestion health and funnel metrics
+- feat: Implement cloud telemetry ingestion and authentication
+- Add tests for ControlKeel Cloud components
+- feat(docs): enhance cloud enterprise roadmap with positioning, priority elevation, and market validation updates
+- feat(docs): expand cloud enterprise roadmap with governance framework and security gates
+- feat(docs): update architectural decisions section with resolved defaults and implications
+- feat(docs): add open questions and phase acceptance gates to cloud enterprise roadmap
+- feat(docs): add cloud-capable runtime surfaces section to support matrix
+- feat(docs): enhance cloud and team governance documentation with roadmap and telemetry sync details
+- feat(tests): add skill directory name assertion and helper function
+- feat: add session list and switch commands with corresponding help documentation
+- chore: remove stale research and strategy docs
+
 ## v0.3.25 — 2026-05-22
 
 ### What's changed
