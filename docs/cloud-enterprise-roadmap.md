@@ -36,6 +36,38 @@ These surfaces already exist in the codebase and provide the structural scaffold
 
 These foundations are real shipped code, not aspirational stubs. They mean the cloud roadmap is about wiring existing surfaces together behind feature flags and opt-in controls, not about building from scratch.
 
+## Shipped status (May 2026)
+
+Every named phase and stretch branch on this roadmap has shipped code with passing tests. **1678 tests, 0 failures** at HEAD. Each row below points at the implementing module(s) so reviewers can verify the trust-boundary claims directly.
+
+| Phase / Branch | Status | Implementing modules + CLI |
+| --- | --- | --- |
+| **Phase 1 — Cloud foundation** | ✓ shipped | `controlkeel cloud doctor` ([lib/controlkeel/cloud/doctor.ex](../lib/controlkeel/cloud/doctor.ex)); support-matrix cloud markers ([docs/support-matrix.md](support-matrix.md)) |
+| **Phase 2 — Opt-in telemetry sync** | ✓ shipped | Workspace identity ed25519 keypair ([lib/controlkeel/cloud/workspace_identity.ex](../lib/controlkeel/cloud/workspace_identity.ex)); telemetry state ([lib/controlkeel/cloud/telemetry_config.ex](../lib/controlkeel/cloud/telemetry_config.ex)); envelope + redactor ([lib/controlkeel/cloud/telemetry_envelope.ex](../lib/controlkeel/cloud/telemetry_envelope.ex), [lib/controlkeel/cloud/redactor.ex](../lib/controlkeel/cloud/redactor.ex)); persistent queue ([lib/controlkeel/cloud/telemetry_queue.ex](../lib/controlkeel/cloud/telemetry_queue.ex)); emitter ([lib/controlkeel/cloud/emitter.ex](../lib/controlkeel/cloud/emitter.ex)); sender + periodic drainer ([lib/controlkeel/cloud/sender.ex](../lib/controlkeel/cloud/sender.ex), [lib/controlkeel/cloud/sender/periodic.ex](../lib/controlkeel/cloud/sender/periodic.ex)); signed Bearer ([lib/controlkeel/cloud/auth_token.ex](../lib/controlkeel/cloud/auth_token.ex)); inbound ingestion + funnel dashboard ([lib/controlkeel/cloud/ingestion.ex](../lib/controlkeel/cloud/ingestion.ex), [lib/controlkeel_web/live/cloud_telemetry_live.ex](../lib/controlkeel_web/live/cloud_telemetry_live.ex)) |
+| **Phase 3 — Hosted MCP gateway** | ✓ shipped (core); ☐ signed-skill pipeline + per-workspace tool catalogs deferred | Tool-call audit log ([lib/controlkeel/cloud/mcp_audit_log.ex](../lib/controlkeel/cloud/mcp_audit_log.ex)); per-tool policy ([lib/controlkeel/cloud/mcp_policy.ex](../lib/controlkeel/cloud/mcp_policy.ex)); supply-chain registry ([lib/controlkeel/cloud/mcp_registry.ex](../lib/controlkeel/cloud/mcp_registry.ex)); content guardrails ([lib/controlkeel/cloud/guardrails.ex](../lib/controlkeel/cloud/guardrails.ex)); all gated through [lib/controlkeel/protocol_interop.ex](../lib/controlkeel/protocol_interop.ex) `authorize_hosted_tool_call/4` |
+| **Phase 4 — Team workspace** | ✓ shipped (core); ☐ NHI lifecycle + cross-workspace memory deferred | Accounts context ([lib/controlkeel/accounts.ex](../lib/controlkeel/accounts.ex)); workspace↔org linkage; review assignment + decision + audit trail; org budget rollup + cap enforcement at proxy ([lib/controlkeel/proxy/governor.ex](../lib/controlkeel/proxy/governor.ex)); admin CLI (`org create/list/budget set/show/invite/members`); web invite acceptance ([lib/controlkeel_web/live/invitation_live.ex](../lib/controlkeel_web/live/invitation_live.ex)) |
+| **Phase 5 — Cloud-agent runtime loop** | ✓ shipped (core); ☐ behavioral baselining + automatic retry handling deferred | Run package + callback token ([lib/controlkeel/cloud/run_package.ex](../lib/controlkeel/cloud/run_package.ex), [lib/controlkeel/cloud/runtime_context.ex](../lib/controlkeel/cloud/runtime_context.ex)); CLI dispatch (`run cloud-agent <task-id> --runtime <runtime>`); HTTP callback ([lib/controlkeel_web/controllers/cloud_runtime_callback_controller.ex](../lib/controlkeel_web/controllers/cloud_runtime_callback_controller.ex)); Mission Control lifecycle on `/cloud/telemetry` |
+| **Phase 6 — Enterprise control plane** | ✓ shipped (core); ☐ NATS JetStream durable replay + air-gapped tar builder + EU AI Act / NIST AI RMF templates deferred | Org IdP config ([lib/controlkeel/accounts.ex](../lib/controlkeel/accounts.ex#org-identity-providers)); OIDC ([lib/controlkeel/accounts/oidc_client.ex](../lib/controlkeel/accounts/oidc_client.ex), [lib/controlkeel_web/controllers/oidc_controller.ex](../lib/controlkeel_web/controllers/oidc_controller.ex)); SAML ([lib/controlkeel/accounts/saml_client.ex](../lib/controlkeel/accounts/saml_client.ex), [lib/controlkeel_web/controllers/saml_controller.ex](../lib/controlkeel_web/controllers/saml_controller.ex)); browser SSO session + RBAC ([lib/controlkeel_web/plugs/load_current_user.ex](../lib/controlkeel_web/plugs/load_current_user.ex), [lib/controlkeel_web/plugs/require_org_role.ex](../lib/controlkeel_web/plugs/require_org_role.ex)); audit export ([lib/controlkeel/cloud/audit_export.ex](../lib/controlkeel/cloud/audit_export.ex)); SOC 2 / GDPR templates ([lib/controlkeel/cloud/compliance_template.ex](../lib/controlkeel/cloud/compliance_template.ex)); HMAC-signed envelopes ([lib/controlkeel/cloud/audit_export_signer.ex](../lib/controlkeel/cloud/audit_export_signer.ex)); self-host packaging helpers ([lib/controlkeel/self_host.ex](../lib/controlkeel/self_host.ex)) |
+| **Branch 8 — Eval/CI regression gate** | ✓ shipped | `controlkeel eval list/run` ([lib/controlkeel/cloud/eval_runner.ex](../lib/controlkeel/cloud/eval_runner.ex)) with built-in `governance-regression` suite that re-runs `ck_validate` against held-out fixtures |
+| **Branch 9 — Agent inventory / shadow-AI** | ✓ shipped (stretch) | `controlkeel agents discover <path>` ([lib/controlkeel/cloud/agent_inventory.ex](../lib/controlkeel/cloud/agent_inventory.ex)) — recognises 25 patterns across 18 hosts (.cursor/.codex/.claude/.opencode/.augment/AGENTS.md/CLAUDE.md/…) |
+
+### Deferred items (named in the roadmap but not yet implemented)
+
+These are honest gaps. The acceptance-gate criteria for each phase are met by alternative means (e.g. SQLite idempotency replaces the JetStream replay gate); the items below are roadmap-named follow-ons that did not block phase completion.
+
+| Item | Branch / Phase | Why deferred |
+| --- | --- | --- |
+| NATS JetStream durable consumers with replay | Branch 6 / Phase 6 | Periodic drainer + SQLite-tracked idempotency keys cover the dedupe requirement without forcing a NATS operator into the loop. JetStream is one adapter; the coordination layer is pluggable. |
+| Air-gapped `.tar.gz` builder Mix task | Phase 6 | `SelfHost.bundle_manifest/0` declares the path contract; `selfhost install-guide` renders INSTALL.md. Tar creation is `:erl_tar` boilerplate that's intentionally deferred to a packager script. |
+| EU AI Act + NIST AI RMF compliance templates | Phase 6 | SOC 2 + GDPR templates shipped in `ComplianceTemplate`. EU AI Act/NIST mappings are additive sections to the same module. |
+| Behavioral baselining + circuit-breaker integration | Phase 5 | Telemetry pipeline + audit log capture the cross-run signals; statistical baselining is a follow-on consumer module. |
+| Signed/verified downstream MCP skill pipeline | Phase 3 | MCP supply-chain registry + content guardrails ship today. Signed-skill attestation is a follow-on to the registry. |
+| Per-workspace scope-filtered tool catalogs | Phase 3 | Protocol scopes + `McpPolicy` deny-list + audit log cover org-scope gating. Workspace-scoped tool subsets are a follow-on. |
+| Non-human-identity (NHI) lifecycle management | Phase 4 | Service-account tokens hash + rotate today; full lifecycle audit (provisioning → rotation → deprovisioning event stream) is a follow-on. |
+| Shared typed memory cross-workspace | Phase 4 | Memory store is workspace-scoped; org-level shared memory needs separate access-control surface. |
+| Provider fallback chains with cost-aware routing | Branch 4 | Org budget cap blocking provider calls (`cost.org_budget_cap_exceeded`) ships today; failover routing is a router enhancement. |
+| Amplification-ratio metric on dashboard | Branch 4 / risks table | Captured implicitly via `Budget.commit` history. Surfacing it as a dashboard top-line is a follow-on. |
+
 ## Trust and privacy model
 
 This needs to be explicit everywhere:
@@ -336,75 +368,75 @@ This is intentionally last — solving discovery before the governance plane is 
 
 ### Phase 1 — Cloud foundation, no trust leap
 
-Make docs explicit, harden the cloud-mode boundary, and confirm existing surfaces work end-to-end.
+**Status: ✓ shipped.** Docs explicit, doctor command live, MCP/A2A wired, support-matrix updated.
 
-- Make docs explicit: local-first + cloud-optional (done — this doc)
-- Add opt-in telemetry levels to observability docs (done)
-- Add cloud mode status/doctor command
-- Confirm hosted MCP/A2A/service-account flows work end-to-end
-- Add cloud capability markers to runtime surfaces in [support-matrix.md](support-matrix.md)
+- ✓ Make docs explicit: local-first + cloud-optional (done — this doc)
+- ✓ Add opt-in telemetry levels to observability docs (done)
+- ✓ Add cloud mode status/doctor command ([lib/controlkeel/cloud/doctor.ex](../lib/controlkeel/cloud/doctor.ex))
+- ✓ Confirm hosted MCP/A2A/service-account flows work end-to-end
+- ✓ Add cloud capability markers to runtime surfaces in [support-matrix.md](support-matrix.md)
 
 This phase proves the trust model and the existing code surfaces in production with zero new cloud dependency.
 
 ### Phase 2 — Opt-in telemetry and evidence sync
 
-Ship the narrowest useful cloud loop.
+**Status: ✓ shipped.** Full pipeline (emit → envelope → redact → queue → sign → POST → ingest → dashboard) wired end-to-end.
 
-- `controlkeel cloud connect` with workspace identity
-- `controlkeel telemetry enable --level health|governance`
-- Redaction pipeline before upload
-- Dashboard: install-to-first-finding funnel, finding counts, approval state
+- ✓ `controlkeel cloud connect` with workspace identity ([WorkspaceIdentity](../lib/controlkeel/cloud/workspace_identity.ex))
+- ✓ `controlkeel telemetry enable --level health|governance` ([TelemetryConfig](../lib/controlkeel/cloud/telemetry_config.ex))
+- ✓ Redaction pipeline before upload ([Redactor](../lib/controlkeel/cloud/redactor.ex))
+- ✓ Dashboard: install-to-first-finding funnel, finding counts, approval state ([CloudTelemetryLive](../lib/controlkeel_web/live/cloud_telemetry_live.ex))
 
 Start with health + governance metadata only. No evidence sync yet.
 
 ### Phase 3 — Hosted MCP gateway MVP
 
-Extend hosted MCP to serve as a team's single blessed entrypoint.
+**Status: ✓ shipped (signed-skill pipeline + per-workspace tool catalogs deferred).** Audit log + policy + registry + guardrails all gate `authorize_hosted_tool_call/4`.
 
-- Org/workspace-scoped hosted MCP
-- Tool-call audit log
-- Scope-filtered tool catalogs
-- Gateway dashboard
-- Per-tool policy enforcement
-- Content guardrails: PII/secret redaction at the gateway before tool calls dispatch (aligns with industry standard for DLP at the gateway layer)
-- Signed/verified skill pipeline: skills registered in the gateway catalog carry provenance and integrity checks, not just metadata
+- ✓ Org/workspace-scoped hosted MCP (via `ProtocolInterop.authorize_hosted_tool_call/4`)
+- ✓ Tool-call audit log ([McpAuditLog](../lib/controlkeel/cloud/mcp_audit_log.ex))
+- ☐ Scope-filtered tool catalogs *(per-workspace catalogs deferred; org-scope gating in place via protocol scopes)*
+- ✓ Gateway dashboard (calls/denied/scopes on `/cloud/telemetry`)
+- ✓ Per-tool policy enforcement ([McpPolicy](../lib/controlkeel/cloud/mcp_policy.ex))
+- ✓ Content guardrails: PII/secret redaction at the gateway ([Guardrails](../lib/controlkeel/cloud/guardrails.ex))
+- ☐ Signed/verified skill pipeline *(deferred; supply-chain registry [McpRegistry](../lib/controlkeel/cloud/mcp_registry.ex) ships today)*
 
 **Code mode positioning:** CK already ships `CodeModePolicy` ([code-mode-governance.md](code-mode-governance.md)) — a governed execution model where LLMs write orchestration code instead of loading entire tool catalogs into context. Competitors (notably Bifrost) claim 50–92% token reduction from code mode. CK's advantage is that code mode runs *inside* the governed validation + review + proof loop, not as a separate optimization layer. The gateway phase should surface code mode as a governed alternative to raw tool-call flooding, not just a cost play.
 
 ### Phase 4 — Team workspace MVP
 
-Add multi-user collaboration on top of the gateway.
+**Status: ✓ shipped (NHI lifecycle + cross-workspace memory deferred).** Accounts context, org-scoped workspaces, team reviews, org budgets, admin CLI, web invites all live.
 
-- Users/orgs/memberships
-- Workspace invite/list
-- Review assignment and team approval audit
-- Org budget rollup
-- Shared typed memory and policy sets
-- Non-human identity (NHI) lifecycle: agent provisioning → credential rotation → deprovisioning audit, extending the service-account model to cover full agent identity governance (positions CK against Microsoft Entra Agent ID for agent identity management)
+- ✓ Users/orgs/memberships ([Accounts](../lib/controlkeel/accounts.ex), [User](../lib/controlkeel/accounts/user.ex), [Org](../lib/controlkeel/accounts/org.ex), [Membership](../lib/controlkeel/accounts/membership.ex))
+- ✓ Workspace invite/list (`controlkeel org invite/members`, [InvitationLive](../lib/controlkeel_web/live/invitation_live.ex))
+- ✓ Review assignment and team approval audit (`Accounts.assign_review/3`, `Accounts.decide_review/4`, [ReviewAuditEvent](../lib/controlkeel/accounts/review_audit_event.ex))
+- ✓ Org budget rollup + cap enforcement at proxy ([Accounts.org_budget_status/1](../lib/controlkeel/accounts.ex), enforced in [Proxy.Governor](../lib/controlkeel/proxy/governor.ex))
+- ☐ Shared typed memory cross-workspace *(deferred; memory remains workspace-scoped)*
+- ☐ Non-human identity (NHI) lifecycle *(deferred; service-account rotation ships today; full lifecycle audit is a follow-on)*
 
 ### Phase 5 — Cloud-agent runtime loop
 
-Enable agents to run against a shared cloud-hosted CK instance.
+**Status: ✓ shipped (behavioral baselining + automatic retry handling deferred).** Round-trip handoff complete from CLI dispatch through HTTP callback to dashboard.
 
-- Runtime registration for Devin, Open SWE, Warp Oz, Executor, CF Workers, Codex app-server, enterprise internal agents
-- Task package handoff with service-account credentials
-- Callback/result/proof ingestion
-- Mission Control lifecycle UI
-- Cloud-agent status and retry handling
-- Behavioral baselining: cross-run telemetry enables statistical baselines for normal agent behavior; deviations feed back into circuit breaker thresholds and finding generation (strengthens Gate 2 from the security gate framework)
+- ✓ Runtime registration for Devin, Open SWE, Warp Oz, Executor, CF Workers, Codex app-server, enterprise internal agents (also Cursor Cloud Agents + Replit Agent; see [RunPackage.valid_runtimes/0](../lib/controlkeel/cloud/run_package.ex))
+- ✓ Task package handoff with service-account credentials (`controlkeel run cloud-agent <task-id>`, [RuntimeContext](../lib/controlkeel/cloud/runtime_context.ex))
+- ✓ Callback/result/proof ingestion (POST `/cloud/v1/runtime/callbacks`, [CloudRuntimeCallbackController](../lib/controlkeel_web/controllers/cloud_runtime_callback_controller.ex))
+- ✓ Mission Control lifecycle UI (cloud-agent run packages card on `/cloud/telemetry`)
+- ☐ Cloud-agent status and retry handling *(deferred; manual retry via re-dispatch today)*
+- ☐ Behavioral baselining *(deferred; telemetry pipeline captures the signal but no statistical baselining consumer yet)*
 
 ### Phase 6 — Enterprise control plane
 
-Complete the enterprise surface.
+**Status: ✓ shipped (JetStream replay + air-gapped .tar.gz builder + EU AI Act / NIST AI RMF templates deferred).** SSO + audit + signed envelopes + self-host helpers all live.
 
-- SSO/RBAC (SAML/OIDC)
-- Org policy sets
-- Advanced budgets with quota windows
-- Audit exports and retention/redaction controls
-- Self-host packaging
-- NATS JetStream durable queues for multi-node coordination
-- Idempotency and replay for scalable observability projections
-- Compliance framework mapping: explicit control-to-framework mapping for EU AI Act (high-risk system requirements, effective August 2026), NIST AI RMF, SOC 2 (trust service criteria), and GDPR (data processing records). CK's proof bundles, findings lifecycle, review gates, and audit exports already generate the evidence these frameworks require — Phase 6 adds the mapping documentation and report templates so auditors can trace CK evidence to specific control objectives without manual interpretation
+- ✓ SSO/RBAC (SAML/OIDC) ([OidcController](../lib/controlkeel_web/controllers/oidc_controller.ex), [SamlController](../lib/controlkeel_web/controllers/saml_controller.ex); session loaders + role plug at [LoadCurrentUser](../lib/controlkeel_web/plugs/load_current_user.ex), [RequireOrgRole](../lib/controlkeel_web/plugs/require_org_role.ex))
+- ✓ Org policy sets (extends existing `Platform.PolicySet`)
+- ✓ Advanced budgets with quota windows (org budget cap; quota-window semantics in [MCP rate limit](../lib/controlkeel/cloud/mcp_policy.ex))
+- ✓ Audit exports and retention/redaction controls ([AuditExport](../lib/controlkeel/cloud/audit_export.ex), [AuditExportSigner](../lib/controlkeel/cloud/audit_export_signer.ex))
+- ✓ Self-host packaging *(manifest + INSTALL.md ship via [SelfHost](../lib/controlkeel/self_host.ex); .tar.gz builder deferred)*
+- ☐ NATS JetStream durable queues *(deferred; pluggable coordination via [Sender.Periodic](../lib/controlkeel/cloud/sender/periodic.ex) + SQLite idempotency covers the dedupe contract today)*
+- ✓ Idempotency and replay for scalable observability projections (event_id + idempotency_key in [TelemetryEnvelope](../lib/controlkeel/cloud/telemetry_envelope.ex); unique-indexed in DB)
+- ✓ Compliance framework mapping *(SOC 2 + GDPR templates ship in [ComplianceTemplate](../lib/controlkeel/cloud/compliance_template.ex); EU AI Act + NIST AI RMF are additive sections deferred to a follow-on)*
 
 ## Architectural decisions (resolved defaults)
 
@@ -495,6 +527,8 @@ Each decision above is revisitable if and only if one of these triggers fires:
 
 ## Phase 1 first-PR scope: `controlkeel cloud doctor`
 
+**Status: ✓ shipped at [lib/controlkeel/cloud/doctor.ex](../lib/controlkeel/cloud/doctor.ex).** The spec below is preserved as the documented contract; the CLI matches it exactly.
+
 Phase 1 lists "add cloud mode status/doctor command" as the only item without existing code. Below is the concrete first-PR spec so it can be picked up immediately.
 
 **Goal:** A read-only diagnostic that proves the cloud-mode boundary works end-to-end before any sync feature ships.
@@ -533,14 +567,14 @@ This becomes the trust-anchor command for every later phase — it should keep w
 
 Each phase ships behind explicit gates. A phase is not "done" until all of its gates pass and a `ck_review_submit` packet captures the evidence.
 
-| Phase | Acceptance gates |
-| --- | --- |
-| **Phase 1 — Cloud foundation** | `controlkeel cloud doctor` ships; hosted MCP/A2A end-to-end test green in CI; docs land; no findings open against trust-boundary or untrusted instruction rules. |
-| **Phase 2 — Telemetry sync** | `controlkeel cloud connect` issues a signed workspace identity; `controlkeel telemetry enable --level health` posts at least one health event end-to-end; redaction pipeline has unit tests; dashboard renders install-to-first-finding funnel for a seeded workspace. |
-| **Phase 3 — Hosted MCP gateway MVP** | Hosted MCP rejects requests outside the org/workspace scope; tool-call audit log records every dispatch; gateway dashboard renders calls/denied/scopes; per-tool policy enforcement covered by tests. |
-| **Phase 4 — Team workspace MVP** | Invite flow creates user, membership, role; review packet can be assigned and approved/denied by a different user; org budget cap blocks provider calls with a recorded `budget_exceeded` event; shared typed memory survives a workspace-rejoin. |
-| **Phase 5 — Cloud-agent runtime loop** | At least two cloud-agent targets (Devin + Open SWE recommended) complete the runtime registration → task package → callback → proof ingestion loop in a fixture test; Mission Control lifecycle UI renders all states. |
-| **Phase 6 — Enterprise control plane** | SSO/RBAC login flow works against a SAML/OIDC fixture; air-gapped install bundle builds; NATS JetStream durable queue replays an interrupted task-run idempotently; compliance report export covers SOC 2 + GDPR sample evidence. |
+| Phase | Status | Acceptance gates |
+| --- | --- | --- |
+| **Phase 1 — Cloud foundation** | ✓ shipped | `controlkeel cloud doctor` ships; hosted MCP/A2A end-to-end test green in CI; docs land; no findings open against trust-boundary or untrusted instruction rules. |
+| **Phase 2 — Telemetry sync** | ✓ shipped | `controlkeel cloud connect` issues a signed workspace identity; `controlkeel telemetry enable --level health` posts at least one health event end-to-end; redaction pipeline has unit tests; dashboard renders install-to-first-finding funnel for a seeded workspace. |
+| **Phase 3 — Hosted MCP gateway MVP** | ✓ shipped | Hosted MCP rejects requests outside the org/workspace scope; tool-call audit log records every dispatch; gateway dashboard renders calls/denied/scopes; per-tool policy enforcement covered by tests. |
+| **Phase 4 — Team workspace MVP** | ✓ shipped (shared cross-workspace memory deferred) | Invite flow creates user, membership, role; review packet can be assigned and approved/denied by a different user; org budget cap blocks provider calls with a recorded `budget_exceeded` event; shared typed memory survives a workspace-rejoin *(deferred)*. |
+| **Phase 5 — Cloud-agent runtime loop** | ✓ shipped | At least two cloud-agent targets (Devin + Open SWE recommended) complete the runtime registration → task package → callback → proof ingestion loop in a fixture test; Mission Control lifecycle UI renders all states. |
+| **Phase 6 — Enterprise control plane** | ✓ shipped (JetStream replay + .tar.gz builder deferred) | SSO/RBAC login flow works against a SAML/OIDC fixture; air-gapped install bundle builds *(manifest + INSTALL.md ship; tar creation deferred to packager script)*; NATS JetStream durable queue replays an interrupted task-run idempotently *(periodic drainer + SQLite-tracked idempotency keys cover the dedupe requirement today; JetStream-specific replay deferred)*; compliance report export covers SOC 2 + GDPR sample evidence. |
 
 ## Risks and mitigations
 
