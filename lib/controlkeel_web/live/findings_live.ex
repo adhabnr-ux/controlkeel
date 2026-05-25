@@ -17,6 +17,8 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:session_options, Mission.list_findings_browser_sessions())
      |> assign(:selected_finding, nil)
      |> assign(:selected_fix, nil)
+     |> assign(:reject_id, nil)
+     |> assign(:reject_reason, "")
      |> assign(:severities, @severities)
      |> assign(:statuses, @statuses)
      |> assign(:form, to_form(%{}, as: :filters))}
@@ -65,17 +67,37 @@ defmodule ControlKeelWeb.FindingsLive do
 
   @impl true
   def handle_event("reject", %{"id" => id}, socket) do
+    {:noreply, socket |> assign(:reject_id, id) |> assign(:reject_reason, "")}
+  end
+
+  @impl true
+  def handle_event("set_reject_reason", %{"value" => reason}, socket) do
+    {:noreply, assign(socket, :reject_reason, reason)}
+  end
+
+  @impl true
+  def handle_event("confirm_reject", _params, socket) do
+    id = socket.assigns.reject_id
+    reason = socket.assigns.reject_reason |> String.trim() |> then(&(if &1 == "", do: nil, else: &1))
+
     with {:ok, finding_id} <- parse_id(id),
          %{} = finding <- Mission.get_finding(finding_id),
-         {:ok, _updated} <- Mission.reject_finding(finding, nil) do
+         {:ok, _updated} <- Mission.reject_finding(finding, reason) do
       {:noreply,
        socket
+       |> assign(:reject_id, nil)
+       |> assign(:reject_reason, "")
        |> put_flash(:info, "Finding rejected.")
        |> refresh_browser()}
     else
       _error ->
         {:noreply, put_flash(socket, :error, "ControlKeel could not reject that finding.")}
     end
+  end
+
+  @impl true
+  def handle_event("cancel_reject", _params, socket) do
+    {:noreply, socket |> assign(:reject_id, nil) |> assign(:reject_reason, "")}
   end
 
   @impl true
@@ -214,9 +236,26 @@ defmodule ControlKeelWeb.FindingsLive do
                 </button>
               </:action>
               <:action :let={finding}>
-                <button type="button" class="ck-link" phx-click="reject" phx-value-id={finding.id}>
-                  Reject
-                </button>
+                <%= if @reject_id == to_string(finding.id) do %>
+                  <div class="ck-inline-form" style="display:flex;gap:0.25rem;align-items:center;">
+                    <input
+                      type="text"
+                      class="ck-input ck-input-sm"
+                      placeholder="Reason (optional)"
+                      value={@reject_reason}
+                      phx-keyup="set_reject_reason"
+                      phx-key="Enter"
+                      phx-click-away="cancel_reject"
+                      style="width:12rem;"
+                    />
+                    <button type="button" class="ck-link" phx-click="confirm_reject">Confirm</button>
+                    <button type="button" class="ck-link ck-link-muted" phx-click="cancel_reject">Cancel</button>
+                  </div>
+                <% else %>
+                  <button type="button" class="ck-link" phx-click="reject" phx-value-id={finding.id}>
+                    Reject
+                  </button>
+                <% end %>
               </:action>
               <:action :let={finding}>
                 <button type="button" class="ck-link" phx-click="view_fix" phx-value-id={finding.id}>

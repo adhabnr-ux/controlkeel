@@ -13,6 +13,8 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
   alias ControlKeel.Accounts
   alias ControlKeel.Budget
+  alias ControlKeel.Platform
+  alias ControlKeel.ProviderConfig
   alias ControlKeel.Cloud.BaselineAnalyzer
   alias ControlKeel.Cloud.Guardrails
   alias ControlKeel.Cloud.WorkspaceBaseline
@@ -69,6 +71,8 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
     |> assign(:cloud_runs_recent, RuntimeContext.recent(limit: 15))
     |> assign(:amplification_ratios, Budget.amplification_ratios(limit: 10, since_hours: 24))
     |> assign(:behavioral_baselines, load_behavioral_baselines())
+    |> assign(:fallback_chain, load_fallback_chain())
+    |> assign(:nhi_summaries, load_nhi_summaries())
   end
 
   defp org_budget_overviews do
@@ -409,6 +413,54 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
           <% end %>
         </div>
 
+        <div id="cloud-fallback-chain" class="ck-card">
+          <h2 class="ck-card-title">Provider fallback chain</h2>
+          <%= if @fallback_chain == [] do %>
+            <p class="ck-note">
+              No fallback chain configured. Set one with <code>controlkeel provider set-fallback-chain anthropic openai openrouter</code>.
+            </p>
+          <% else %>
+            <ol class="ck-mini-list" style="margin-top: 0.5rem;">
+              <%= for {provider, idx} <- Enum.with_index(@fallback_chain, 1) do %>
+                <li><strong>#{idx}</strong> <code>{provider}</code></li>
+              <% end %>
+            </ol>
+            <p class="ck-note" style="margin-top: 0.5rem;">
+              When a provider's budget is exhausted the next available provider in this chain is selected automatically.
+            </p>
+          <% end %>
+        </div>
+
+        <div id="cloud-nhi-summary" class="ck-card">
+          <h2 class="ck-card-title">Non-human identity (NHI) lifecycle</h2>
+          <%= if @nhi_summaries == [] do %>
+            <p class="ck-note">No service accounts provisioned yet.</p>
+          <% else %>
+            <table class="ck-table">
+              <thead>
+                <tr>
+                  <th>Workspace</th>
+                  <th>Org</th>
+                  <th class="ck-table-right">Total</th>
+                  <th class="ck-table-right">Active</th>
+                  <th class="ck-table-right">Revoked</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for summary <- @nhi_summaries do %>
+                  <tr>
+                    <td>{summary.workspace_name}</td>
+                    <td>{summary.org_name}</td>
+                    <td class="ck-table-right">{summary.total}</td>
+                    <td class="ck-table-right">{summary.active}</td>
+                    <td class="ck-table-right">{summary.revoked}</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
+        </div>
+
         <div id="cloud-mcp-audit-summary" class="ck-card">
           <h2 class="ck-card-title">Hosted MCP / A2A audit</h2>
           <p class="ck-note">
@@ -563,5 +615,24 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
     baseline
     |> WorkspaceBaseline.decode()
     |> map_size()
+  end
+
+  defp load_fallback_chain do
+    case ProviderConfig.read() do
+      {:ok, config} -> Map.get(config, "fallback_chain", [])
+      _ -> []
+    end
+  end
+
+  defp load_nhi_summaries do
+    Accounts.list_orgs(status: "active")
+    |> Enum.flat_map(fn org ->
+      Accounts.org_workspace_breakdown(org.id)
+      |> Enum.map(fn ws ->
+        summary = Platform.nhi_lifecycle_summary(ws.workspace_id)
+        Map.merge(summary, %{workspace_name: ws.workspace_name, org_name: org.name})
+      end)
+    end)
+    |> Enum.reject(&(&1.total == 0))
   end
 end

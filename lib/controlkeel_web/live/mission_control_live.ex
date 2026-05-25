@@ -102,10 +102,13 @@ defmodule ControlKeelWeb.MissionControlLive do
   end
 
   @impl true
-  def handle_event("reject_finding", %{"id" => id}, socket) do
+  def handle_event("reject_finding", params, socket) do
+    id = params["id"]
+    reason = params["reason"] |> then(&(if is_binary(&1) and String.trim(&1) != "", do: String.trim(&1), else: nil))
+
     with {:ok, finding_id} <- parse_id(id),
          %{} = finding <- Enum.find(socket.assigns.session.findings, &(&1.id == finding_id)),
-         {:ok, _updated} <- Mission.reject_finding(finding) do
+         {:ok, _updated} <- Mission.reject_finding(finding, reason) do
       case Mission.get_session_context(socket.assigns.session.id) do
         nil ->
           {:noreply, socket}

@@ -1,6 +1,8 @@
 defmodule ControlKeelWeb.PolicyStudioLive do
   use ControlKeelWeb, :live_view
 
+  alias ControlKeel.Accounts
+  alias ControlKeel.Accounts.WorkspaceToolPolicy
   alias ControlKeel.Intent
   alias ControlKeel.Mission
   alias ControlKeel.Policy.PackLoader
@@ -11,7 +13,8 @@ defmodule ControlKeelWeb.PolicyStudioLive do
      socket
      |> assign(:page_title, "Policy Studio")
      |> assign_packs()
-     |> assign_sessions()}
+     |> assign_sessions()
+     |> assign_tool_policies()}
   end
 
   @impl true
@@ -123,22 +126,53 @@ defmodule ControlKeelWeb.PolicyStudioLive do
             </div>
 
             <div class="ck-card">
-              <p class="ck-mini-label">What gets blocked automatically</p>
-              <ul class="ck-mini-list">
-                <li>Hardcoded API keys, passwords, tokens (baseline pack)</li>
-                <li>SQL injection patterns (baseline pack)</li>
-                <li>Open CORS wildcard headers (software pack)</li>
-                <li>Dynamic code execution — eval, exec (software pack)</li>
-                <li>Discriminatory candidate scoring or filtering (HR pack)</li>
-                <li>Privileged client communications written to logs (legal pack)</li>
-                <li>Tracking cookies or analytics without consent (marketing pack)</li>
-                <li>Deal value, quota, or revenue data written to logs (sales pack)</li>
-                <li>Fair Housing filtering by protected characteristics (real estate pack)</li>
-                <li>Agent runs that would exceed session budget (cost pack)</li>
-              </ul>
+              <p class="ck-mini-label">
+                What gets blocked automatically
+                <span class="ck-pill ck-pill-critical" style="margin-left: 0.5rem;">{@block_count} rules</span>
+              </p>
+              <%= if @blocked_rules == [] do %>
+                <p class="ck-note">No blocking rules loaded.</p>
+              <% else %>
+                <ul class="ck-mini-list">
+                  <%= for {pack_name, rules} <- @blocked_rules do %>
+                    <%= for rule <- rules do %>
+                      <li>
+                        <strong>{rule.category}</strong>
+                        <span class="ck-note"> ({pack_label(pack_name)} pack)</span>
+                      </li>
+                    <% end %>
+                  <% end %>
+                </ul>
+              <% end %>
               <p class="ck-note" style="margin-top: 1rem;">
                 Warnings let the agent continue but surface a finding for your review. Blocks stop execution and require a policy fix before proceeding.
               </p>
+            </div>
+
+            <div class="ck-card" style="margin-top: 1rem;">
+              <p class="ck-mini-label">Workspace tool policies</p>
+              <%= if @tool_policies == [] do %>
+                <p class="ck-note">
+                  All workspaces inherit global tool access. Set a workspace policy with <code>controlkeel workspace tool-policy set</code>.
+                </p>
+              <% else %>
+                <div class="ck-finding-list">
+                  <%= for {ws, policy} <- @tool_policies do %>
+                    <article class="ck-finding-item">
+                      <div class="ck-finding-head">
+                        <h3>{ws.name}</h3>
+                        <span class={"ck-pill #{tool_policy_pill_class(policy.mode)}"}>{policy.mode}</span>
+                      </div>
+                      <% tools = WorkspaceToolPolicy.decode_tools(policy) %>
+                      <%= if tools != [] do %>
+                        <p class="ck-note" style="margin-top: 0.25rem;">
+                          Tools: {Enum.join(tools, ", ")}
+                        </p>
+                      <% end %>
+                    </article>
+                  <% end %>
+                </div>
+              <% end %>
             </div>
           </div>
         </div>
@@ -151,16 +185,37 @@ defmodule ControlKeelWeb.PolicyStudioLive do
     packs = PackLoader.all_packs()
     all_rules = packs |> Map.values() |> List.flatten()
 
+    blocked_rules =
+      packs
+      |> Enum.map(fn {name, rules} -> {name, Enum.filter(rules, &(&1.action == "block"))} end)
+      |> Enum.reject(fn {_name, rules} -> rules == [] end)
+      |> Enum.sort_by(fn {name, _} -> pack_sort_order(name) end)
+
     socket
     |> assign(:packs, Enum.sort_by(packs, fn {name, _} -> pack_sort_order(name) end))
     |> assign(:pack_count, map_size(packs))
     |> assign(:rule_count, length(all_rules))
     |> assign(:block_count, Enum.count(all_rules, &(&1.action == "block")))
+    |> assign(:blocked_rules, blocked_rules)
   end
 
   defp assign_sessions(socket) do
     sessions = Mission.list_recent_sessions(20)
     assign(socket, :sessions, sessions)
+  end
+
+  defp assign_tool_policies(socket) do
+    workspaces = Mission.list_workspaces()
+
+    policies =
+      workspaces
+      |> Enum.map(fn ws ->
+        policy = Accounts.get_workspace_tool_policy(ws.id)
+        {ws, policy}
+      end)
+      |> Enum.reject(fn {_ws, policy} -> is_nil(policy) || policy.mode == "inherit" end)
+
+    assign(socket, :tool_policies, policies)
   end
 
   defp pack_label("baseline"), do: "Baseline — Secrets & OWASP"
@@ -263,4 +318,8 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   defp budget_fill_class(pct) when pct >= 90, do: "ck-progress-critical"
   defp budget_fill_class(pct) when pct >= 75, do: "ck-progress-warn"
   defp budget_fill_class(_), do: "ck-progress-ok"
+
+  defp tool_policy_pill_class("allowlist"), do: "ck-pill-success"
+  defp tool_policy_pill_class("denylist"), do: "ck-pill-high"
+  defp tool_policy_pill_class(_), do: "ck-pill-neutral"
 end

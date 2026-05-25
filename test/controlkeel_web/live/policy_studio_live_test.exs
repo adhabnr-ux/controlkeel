@@ -51,11 +51,15 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
     assert html =~ "warn"
   end
 
-  test "lists what gets blocked automatically", %{conn: conn} do
+  test "lists what gets blocked automatically from live pack data", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/policies")
 
-    assert html =~ "Hardcoded API keys"
-    assert html =~ "SQL injection"
-    assert html =~ "eval, exec"
+    assert html =~ "What gets blocked automatically"
+    # Dynamic blocking rules section shows rule count badge
+    assert html =~ "Blocking rules"
+    # At least one pack name appears in the blocking rules context
+    assert html =~ "Baseline"
+    # The section includes guidance text
+    assert html =~ "Blocks stop execution"
   end
 end
