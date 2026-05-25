@@ -534,6 +534,12 @@ defmodule ControlKeel.Help do
       controlkeel run task <id> [--agent auto|<id>] [--mode auto|embedded|handoff|runtime] [--sandbox local|docker|e2b|nono]
                                       Run or hand off a governed task through a supported agent
       controlkeel eval list             List available eval suites
+      controlkeel selfhost verify       Check required/recommended env vars + Repo reachability
+                                        for an air-gapped/self-host deployment. Exits non-zero
+                                        when required env vars are missing or the Repo is down.
+      controlkeel selfhost manifest     List paths that belong in an air-gapped install bundle
+      controlkeel selfhost install-guide
+                                        Print the INSTALL.md content for this release
       controlkeel audit export --workspace <slug>|--org <slug>
                                         [--since ISO8601] [--until ISO8601] [--template soc2|gdpr] [--sign --signing-key-env ENV] [--out FILE]
                                         Export an audit bundle (findings, reviews, audit events,

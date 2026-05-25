@@ -40,6 +40,18 @@ defmodule ControlKeelWeb.Router do
   pipeline :proxy_api do
   end
 
+  # SAML IdPs POST the assertion to /auth/saml/acs from outside our app, which
+  # cannot include our CSRF token. Use a dedicated pipeline that keeps session +
+  # current-user loading but skips protect_from_forgery.
+  pipeline :saml_acs do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug ControlKeelWeb.Plugs.LoadCurrentUser
+    plug :put_root_layout, html: {ControlKeelWeb.Layouts, :root}
+    plug :put_secure_browser_headers
+  end
+
   scope "/", ControlKeelWeb do
     pipe_through :browser
 
@@ -58,6 +70,7 @@ defmodule ControlKeelWeb.Router do
     live "/cloud/invitations/:token", InvitationLive, :show
     get "/auth/oidc/start", OidcController, :start
     get "/auth/oidc/callback", OidcController, :callback
+    get "/auth/saml/start", SamlController, :start
     get "/auth/logout", AuthController, :logout
     live "/observability", ObservabilityOverviewLive, :index
     live "/observability/loop", ObservabilityLoopLive, :index
@@ -202,6 +215,12 @@ defmodule ControlKeelWeb.Router do
 
     post "/telemetry", CloudTelemetryController, :ingest
     post "/runtime/callbacks", CloudRuntimeCallbackController, :update
+  end
+
+  scope "/", ControlKeelWeb do
+    pipe_through :saml_acs
+
+    post "/auth/saml/acs", SamlController, :acs
   end
 
   if Application.compile_env(:controlkeel, :dev_routes) do

@@ -302,6 +302,7 @@ defmodule ControlKeel.CLI do
     sign: :boolean,
     signing_key_env: :string
   ]
+  @selfhost_switches [project_root: :string]
   @agents_list_switches [project_root: :string, format: :string, json: :boolean]
   @route_agent_switches [
     task: :string,
@@ -528,6 +529,15 @@ defmodule ControlKeel.CLI do
 
       ["audit", "export" | rest] ->
         parse_with_switches(:audit_export, rest, @audit_export_switches)
+
+      ["selfhost", "verify" | rest] ->
+        parse_with_switches(:selfhost_verify, rest, @selfhost_switches)
+
+      ["selfhost", "manifest" | rest] ->
+        parse_with_switches(:selfhost_manifest, rest, @selfhost_switches)
+
+      ["selfhost", "install-guide" | rest] ->
+        parse_with_switches(:selfhost_install_guide, rest, @selfhost_switches)
 
       ["run", "session", session_id | rest] ->
         parse_run_command(:run_session, session_id, rest)
@@ -1934,6 +1944,50 @@ defmodule ControlKeel.CLI do
       {:error, {:write_failed, reason}} ->
         {:error, "Failed to persist telemetry config: #{inspect(reason)}"}
     end
+  end
+
+  def run_command(%{command: :selfhost_verify, options: _options}, _project_root) do
+    result = ControlKeel.SelfHost.verify_environment()
+
+    header = [
+      "ControlKeel self-host verify",
+      "Ready: #{result.ready?}",
+      "Runtime mode: #{result.repo.mode}",
+      "Cloud repo enabled: #{result.repo.cloud_repo_enabled?}",
+      "Repo reachable: #{result.repo.repo_reachable?}#{format_repo_error(result.repo.error)}",
+      "",
+      "Required environment:"
+    ]
+
+    required_rows =
+      Enum.map(result.required_env, fn check ->
+        badge = if check.present?, do: "ok  ", else: "MISS"
+        "  [#{badge}] #{check.name}#{format_value_hint(check.value_hint)}"
+      end)
+
+    recommended_rows =
+      ["", "Recommended environment:"] ++
+        Enum.map(result.recommended_env, fn check ->
+          badge = if check.present?, do: "ok  ", else: "-   "
+          "  [#{badge}] #{check.name}#{format_value_hint(check.value_hint)}"
+        end)
+
+    lines = header ++ required_rows ++ recommended_rows
+
+    if result.ready? do
+      {:ok, lines}
+    else
+      {:error, Enum.join(lines, "\n")}
+    end
+  end
+
+  def run_command(%{command: :selfhost_manifest, options: _options}, _project_root) do
+    paths = ControlKeel.SelfHost.bundle_manifest()
+    {:ok, ["Air-gapped bundle manifest:"] ++ Enum.map(paths, &"  #{&1}")}
+  end
+
+  def run_command(%{command: :selfhost_install_guide, options: _options}, _project_root) do
+    {:ok, [ControlKeel.SelfHost.install_guide()]}
   end
 
   def run_command(%{command: :audit_export, options: options}, _project_root) do
@@ -7709,6 +7763,12 @@ defmodule ControlKeel.CLI do
   end
 
   defp maybe_sign_audit_export(payload, _options), do: {:ok, payload}
+
+  defp format_repo_error(nil), do: ""
+  defp format_repo_error(msg), do: " — " <> msg
+
+  defp format_value_hint(nil), do: ""
+  defp format_value_hint(hint), do: " " <> hint
 
   defp resolve_audit_scope(options) do
     workspace_slug = options[:workspace]
