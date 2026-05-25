@@ -217,9 +217,27 @@ defmodule ControlKeel.Cloud.BaselineAnalyzer do
 
         bline ->
           [
-            check_metric(row.tool, :calls, row.call_count, bline["mean_calls_per_session"], threshold),
-            check_metric(row.tool, :input_tokens, row.input_tokens, bline["mean_input_tokens"], threshold),
-            check_metric(row.tool, :output_tokens, row.output_tokens, bline["mean_output_tokens"], threshold)
+            check_metric(
+              row.tool,
+              :calls,
+              row.call_count,
+              bline["mean_calls_per_session"],
+              threshold
+            ),
+            check_metric(
+              row.tool,
+              :input_tokens,
+              row.input_tokens,
+              bline["mean_input_tokens"],
+              threshold
+            ),
+            check_metric(
+              row.tool,
+              :output_tokens,
+              row.output_tokens,
+              bline["mean_output_tokens"],
+              threshold
+            )
           ]
           |> Enum.reject(&is_nil/1)
       end
@@ -235,7 +253,13 @@ defmodule ControlKeel.Cloud.BaselineAnalyzer do
     ratio = (observed || 0) / baseline_mean
 
     if ratio >= threshold do
-      %{tool: tool, metric: metric, observed: observed, baseline_mean: baseline_mean, ratio: Float.round(ratio, 2)}
+      %{
+        tool: tool,
+        metric: metric,
+        observed: observed,
+        baseline_mean: baseline_mean,
+        ratio: Float.round(ratio, 2)
+      }
     end
   end
 

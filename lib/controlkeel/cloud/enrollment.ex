@@ -68,7 +68,11 @@ defmodule ControlKeel.Cloud.Enrollment do
   `invite_token` are passed through unchanged.
   """
   @spec build(map(), keyword()) :: {:ok, map()} | {:error, term()}
-  def build(%{workspace_id: ws, public_key: pub_b64, private_key: priv_b64, fingerprint: fp} = _identity, opts \\ []) do
+  def build(
+        %{workspace_id: ws, public_key: pub_b64, private_key: priv_b64, fingerprint: fp} =
+          _identity,
+        opts \\ []
+      ) do
     name = Keyword.get(opts, :name)
     invite_token = Keyword.get(opts, :invite_token)
     algorithm = "ed25519"

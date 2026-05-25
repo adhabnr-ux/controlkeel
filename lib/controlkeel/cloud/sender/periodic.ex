@@ -68,11 +68,24 @@ defmodule ControlKeel.Cloud.Sender.Periodic do
   @impl true
   def init(opts) do
     state = %{
-      interval_ms: Keyword.get(opts, :interval_ms, configured(:cloud_sender_interval_ms, @default_interval_ms)),
+      interval_ms:
+        Keyword.get(
+          opts,
+          :interval_ms,
+          configured(:cloud_sender_interval_ms, @default_interval_ms)
+        ),
       backoff_initial_ms:
-        Keyword.get(opts, :backoff_initial_ms, configured(:cloud_sender_backoff_initial_ms, @default_backoff_initial_ms)),
+        Keyword.get(
+          opts,
+          :backoff_initial_ms,
+          configured(:cloud_sender_backoff_initial_ms, @default_backoff_initial_ms)
+        ),
       backoff_max_ms:
-        Keyword.get(opts, :backoff_max_ms, configured(:cloud_sender_backoff_max_ms, @default_backoff_max_ms)),
+        Keyword.get(
+          opts,
+          :backoff_max_ms,
+          configured(:cloud_sender_backoff_max_ms, @default_backoff_max_ms)
+        ),
       last_run_at: nil,
       last_outcome: nil,
       consecutive_failures: 0,
@@ -109,7 +122,13 @@ defmodule ControlKeel.Cloud.Sender.Periodic do
 
     case classify(outcome) do
       :ok ->
-        %{state | last_run_at: now, last_outcome: outcome, consecutive_failures: 0, next_interval_ms: state.interval_ms}
+        %{
+          state
+          | last_run_at: now,
+            last_outcome: outcome,
+            consecutive_failures: 0,
+            next_interval_ms: state.interval_ms
+        }
 
       :failure ->
         failures = state.consecutive_failures + 1
@@ -119,10 +138,22 @@ defmodule ControlKeel.Cloud.Sender.Periodic do
           "Cloud.Sender.Periodic: flush failed (#{inspect(outcome)}), backoff=#{next_ms}ms (consecutive=#{failures})"
         )
 
-        %{state | last_run_at: now, last_outcome: outcome, consecutive_failures: failures, next_interval_ms: next_ms}
+        %{
+          state
+          | last_run_at: now,
+            last_outcome: outcome,
+            consecutive_failures: failures,
+            next_interval_ms: next_ms
+        }
 
       :idle ->
-        %{state | last_run_at: now, last_outcome: outcome, consecutive_failures: 0, next_interval_ms: state.interval_ms}
+        %{
+          state
+          | last_run_at: now,
+            last_outcome: outcome,
+            consecutive_failures: 0,
+            next_interval_ms: state.interval_ms
+        }
     end
   end
 

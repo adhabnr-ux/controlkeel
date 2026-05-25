@@ -124,7 +124,9 @@ defmodule ControlKeel.Cloud.TelemetryQueueTest do
   end
 
   describe "mark_failed/2" do
-    test "records last_error and bumps send_attempts without setting sent_at", %{envelope: envelope} do
+    test "records last_error and bumps send_attempts without setting sent_at", %{
+      envelope: envelope
+    } do
       {:ok, :enqueued, event} = TelemetryQueue.enqueue(envelope)
       {:ok, updated} = TelemetryQueue.mark_failed(event, "timeout after 5s")
 
@@ -141,10 +143,15 @@ defmodule ControlKeel.Cloud.TelemetryQueueTest do
       {:ok, _} = TelemetryQueue.mark_sent(event)
 
       # Backdate sent_at past the retention window
-      from = Ecto.Adapters.SQL.query!(ControlKeel.Repo, "UPDATE cloud_telemetry_events SET sent_at = ? WHERE id = ?", [
-        "2026-01-01 00:00:00",
-        event.id
-      ])
+      from =
+        Ecto.Adapters.SQL.query!(
+          ControlKeel.Repo,
+          "UPDATE cloud_telemetry_events SET sent_at = ? WHERE id = ?",
+          [
+            "2026-01-01 00:00:00",
+            event.id
+          ]
+        )
 
       _ = from
 

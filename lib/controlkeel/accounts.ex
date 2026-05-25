@@ -196,7 +196,8 @@ defmodule ControlKeel.Accounts do
     end
   end
 
-  @spec revoke_membership(integer()) :: {:ok, Membership.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  @spec revoke_membership(integer()) ::
+          {:ok, Membership.t()} | {:error, :not_found | Ecto.Changeset.t()}
   def revoke_membership(membership_id) do
     case Repo.get(Membership, membership_id) do
       nil ->
@@ -522,7 +523,8 @@ defmodule ControlKeel.Accounts do
 
     with %Org{} <- Repo.get(Org, org_id) || {:error, :not_found},
          {:ok, email} <- sso_claim_email(claims),
-         {:ok, user} <- find_or_create_sso_user(email, Map.get(claims, "name") || Map.get(claims, :name)),
+         {:ok, user} <-
+           find_or_create_sso_user(email, Map.get(claims, "name") || Map.get(claims, :name)),
          {:ok, membership} <- activate_sso_membership(user.id, org_id, role) do
       {:ok, user, membership}
     end
@@ -814,7 +816,9 @@ defmodule ControlKeel.Accounts do
        when assigned == decider,
        do: :ok
 
-  defp ensure_assignee_or_override(_review, _decider, role) when role in ["owner", "admin"], do: :ok
+  defp ensure_assignee_or_override(_review, _decider, role) when role in ["owner", "admin"],
+    do: :ok
+
   defp ensure_assignee_or_override(_, _, _), do: {:error, :not_assigned}
 
   defp ensure_required_role(nil, _actor_role), do: :ok
@@ -891,7 +895,9 @@ defmodule ControlKeel.Accounts do
         :ok
 
       "allowlist" ->
-        if tool_name in tools, do: :ok, else: {:error, {:policy, :tool_not_in_workspace_allowlist}}
+        if tool_name in tools,
+          do: :ok,
+          else: {:error, {:policy, :tool_not_in_workspace_allowlist}}
 
       "denylist" ->
         if tool_name in tools, do: {:error, {:policy, :tool_in_workspace_denylist}}, else: :ok

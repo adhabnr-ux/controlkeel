@@ -12,6 +12,7 @@ defmodule ControlKeel.Cloud.McpAuditLogTest do
   describe "record/2 direct" do
     test "persists an allowed call with workspace + service account from auth context" do
       workspace = workspace_fixture()
+
       %{service_account: account, token: _token} =
         service_account_fixture(%{workspace_id: workspace.id})
 
@@ -61,7 +62,8 @@ defmodule ControlKeel.Cloud.McpAuditLogTest do
           {"k#{String.pad_leading("#{n}", 2, "0")}", n}
         end)
 
-      :ok = McpAuditLog.record(:allowed, %{tool_name: "ck_context", resource: "mcp", arguments: args})
+      :ok =
+        McpAuditLog.record(:allowed, %{tool_name: "ck_context", resource: "mcp", arguments: args})
 
       [row] = Repo.all(McpToolCall)
       keys = String.split(row.argument_keys, ",")
@@ -78,12 +80,16 @@ defmodule ControlKeel.Cloud.McpAuditLogTest do
   describe "ProtocolInterop integration" do
     setup do
       workspace = workspace_fixture()
+
       %{service_account: account, token: _token} =
         service_account_fixture(%{workspace_id: workspace.id})
+
       {:ok, account: account, workspace: workspace}
     end
 
-    test "authorize_hosted_tool_call records a denied entry when scopes are missing", %{account: account} do
+    test "authorize_hosted_tool_call records a denied entry when scopes are missing", %{
+      account: account
+    } do
       auth_context = %{
         service_account: account,
         scopes: ["mcp:access"],
@@ -112,14 +118,27 @@ defmodule ControlKeel.Cloud.McpAuditLogTest do
     test "summary/0 returns totals by outcome" do
       :ok = McpAuditLog.record(:allowed, %{tool_name: "ck_context", resource: "mcp"})
       :ok = McpAuditLog.record(:allowed, %{tool_name: "ck_context", resource: "mcp"})
-      :ok = McpAuditLog.record(:denied, %{tool_name: "ck_finding", resource: "mcp", denial_reason: "invalid_scope"})
+
+      :ok =
+        McpAuditLog.record(:denied, %{
+          tool_name: "ck_finding",
+          resource: "mcp",
+          denial_reason: "invalid_scope"
+        })
 
       assert McpAuditLog.summary() == %{total: 3, allowed: 2, denied: 1}
     end
 
     test "counts_by_tool/0 groups by tool with outcome split" do
       :ok = McpAuditLog.record(:allowed, %{tool_name: "ck_context", resource: "mcp"})
-      :ok = McpAuditLog.record(:denied, %{tool_name: "ck_context", resource: "mcp", denial_reason: "x"})
+
+      :ok =
+        McpAuditLog.record(:denied, %{
+          tool_name: "ck_context",
+          resource: "mcp",
+          denial_reason: "x"
+        })
+
       :ok = McpAuditLog.record(:allowed, %{tool_name: "ck_finding", resource: "mcp"})
 
       counts = McpAuditLog.counts_by_tool()

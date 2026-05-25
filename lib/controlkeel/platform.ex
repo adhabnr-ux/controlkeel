@@ -855,11 +855,14 @@ defmodule ControlKeel.Platform do
 
     with {:ok, %{service_account: account, token: token}} <-
            create_service_account(workspace_id, attrs) do
-      record_nhi_event(account.id, "provisioned", actor: actor, metadata: %{
-        "workspace_id" => workspace_id,
-        "name" => account.name,
-        "scopes" => ServiceAccount.scope_list(account)
-      })
+      record_nhi_event(account.id, "provisioned",
+        actor: actor,
+        metadata: %{
+          "workspace_id" => workspace_id,
+          "name" => account.name,
+          "scopes" => ServiceAccount.scope_list(account)
+        }
+      )
 
       {:ok, %{service_account: account, token: token}}
     end
@@ -874,10 +877,13 @@ defmodule ControlKeel.Platform do
     actor = Keyword.get(opts, :actor)
 
     with {:ok, account} <- revoke_service_account(id) do
-      record_nhi_event(id, "deprovisioned", actor: actor, metadata: %{
-        "name" => account.name,
-        "workspace_id" => account.workspace_id
-      })
+      record_nhi_event(id, "deprovisioned",
+        actor: actor,
+        metadata: %{
+          "name" => account.name,
+          "workspace_id" => account.workspace_id
+        }
+      )
 
       {:ok, account}
     end
@@ -893,9 +899,12 @@ defmodule ControlKeel.Platform do
     actor = Keyword.get(opts, :actor)
 
     with {:ok, %{service_account: account, token: token}} <- rotate_service_account(id) do
-      record_nhi_event(id, "token_rotated", actor: actor, metadata: %{
-        "name" => account.name
-      })
+      record_nhi_event(id, "token_rotated",
+        actor: actor,
+        metadata: %{
+          "name" => account.name
+        }
+      )
 
       {:ok, %{service_account: account, token: token}}
     end
@@ -914,7 +923,9 @@ defmodule ControlKeel.Platform do
   def record_nhi_event(service_account_id, event_type, opts \\ []) do
     actor = Keyword.get(opts, :actor)
     metadata = Jason.encode!(Keyword.get(opts, :metadata, %{}))
-    occurred_at = Keyword.get(opts, :occurred_at) || DateTime.utc_now() |> DateTime.truncate(:second)
+
+    occurred_at =
+      Keyword.get(opts, :occurred_at) || DateTime.utc_now() |> DateTime.truncate(:second)
 
     %NhiAuditEvent{}
     |> NhiAuditEvent.changeset(%{

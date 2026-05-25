@@ -31,7 +31,13 @@ defmodule ControlKeel.Cloud.Ingestion do
 
   @typedoc "Result of ingest/2."
   @type result ::
-          {:ok, %{accepted: non_neg_integer(), duplicates: non_neg_integer(), rejected: non_neg_integer(), outcomes: [event_outcome()]}}
+          {:ok,
+           %{
+             accepted: non_neg_integer(),
+             duplicates: non_neg_integer(),
+             rejected: non_neg_integer(),
+             outcomes: [event_outcome()]
+           }}
           | {:error,
              :malformed_batch
              | :unsupported_schema_version
@@ -103,7 +109,9 @@ defmodule ControlKeel.Cloud.Ingestion do
     do: %{event_id: nil, status: :rejected, reason: "envelope is not a JSON object"}
 
   defp validate_envelope(envelope, source_workspace_id) do
-    required = ~w(schema_version event_id workspace_id emitted_at kind redaction_policy_version idempotency_key payload)
+    required =
+      ~w(schema_version event_id workspace_id emitted_at kind redaction_policy_version idempotency_key payload)
+
     missing = Enum.reject(required, &Map.has_key?(envelope, &1))
 
     cond do

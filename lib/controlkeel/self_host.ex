@@ -99,7 +99,8 @@ defmodule ControlKeel.SelfHost do
   Returns `{:ok, %{path: path, sha256: hex}}` on success, or
   `{:error, reason}` on failure (missing release, write error, etc.).
   """
-  @spec pack(String.t(), keyword()) :: {:ok, %{path: String.t(), sha256: String.t()}} | {:error, String.t()}
+  @spec pack(String.t(), keyword()) ::
+          {:ok, %{path: String.t(), sha256: String.t()}} | {:error, String.t()}
   def pack(project_root \\ File.cwd!(), opts \\ []) do
     root = Path.expand(project_root)
     output = Keyword.get(opts, :output, Path.join(root, "controlkeel-release.tar.gz"))

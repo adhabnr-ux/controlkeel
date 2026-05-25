@@ -12,7 +12,8 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistryTest do
 
     Map.merge(
       %{
-        workspace_id: "ws_" <> Base.encode32(:crypto.strong_rand_bytes(8), padding: false, case: :lower),
+        workspace_id:
+          "ws_" <> Base.encode32(:crypto.strong_rand_bytes(8), padding: false, case: :lower),
         public_key: pub_b64,
         algorithm: "ed25519",
         fingerprint: fp,
@@ -57,7 +58,9 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistryTest do
       attrs = sample_key()
       {:ok, _} = WorkspaceKeyRegistry.enroll(attrs)
 
-      assert {:ok, %WorkspaceKey{workspace_id: ws}} = WorkspaceKeyRegistry.fetch(attrs.workspace_id)
+      assert {:ok, %WorkspaceKey{workspace_id: ws}} =
+               WorkspaceKeyRegistry.fetch(attrs.workspace_id)
+
       assert ws == attrs.workspace_id
     end
 

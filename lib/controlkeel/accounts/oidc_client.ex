@@ -47,7 +47,11 @@ defmodule ControlKeel.Accounts.OidcClient do
           {:ok, body}
 
         _ ->
-          {:ok, %{"issuer" => issuer, "token_endpoint" => String.trim_trailing(issuer, "/") <> "/token"}}
+          {:ok,
+           %{
+             "issuer" => issuer,
+             "token_endpoint" => String.trim_trailing(issuer, "/") <> "/token"
+           }}
       end
     end
 
@@ -66,15 +70,22 @@ defmodule ControlKeel.Accounts.OidcClient do
         end
 
       case req_post(endpoint, [form: form], opts) do
-        {:ok, %Req.Response{status: status, body: %{} = body}} when status in 200..299 -> {:ok, body}
-        {:ok, %Req.Response{status: status}} -> {:error, {:token_exchange_failed, status}}
-        {:error, reason} -> {:error, {:token_exchange_failed, reason}}
+        {:ok, %Req.Response{status: status, body: %{} = body}} when status in 200..299 ->
+          {:ok, body}
+
+        {:ok, %Req.Response{status: status}} ->
+          {:error, {:token_exchange_failed, status}}
+
+        {:error, reason} ->
+          {:error, {:token_exchange_failed, reason}}
       end
     end
 
     defp exchange_code(_, _, _, _, _), do: {:error, :missing_token_endpoint}
 
-    defp fetch_id_token(%{"id_token" => token}) when is_binary(token) and token != "", do: {:ok, token}
+    defp fetch_id_token(%{"id_token" => token}) when is_binary(token) and token != "",
+      do: {:ok, token}
+
     defp fetch_id_token(_), do: {:error, :missing_id_token}
 
     defp verify_id_token(id_token, idp, metadata, opts) do
@@ -113,7 +124,13 @@ defmodule ControlKeel.Accounts.OidcClient do
     defp verify_signature(%{"alg" => "none"}, _input, _signature, _metadata, _opts),
       do: {:error, :unsupported_jwt_alg}
 
-    defp verify_signature(%{"alg" => "RS256", "kid" => kid}, signing_input, signature, metadata, opts)
+    defp verify_signature(
+           %{"alg" => "RS256", "kid" => kid},
+           signing_input,
+           signature,
+           metadata,
+           opts
+         )
          when is_binary(kid) and kid != "" do
       with {:ok, jwks_uri} <- jwks_uri(metadata),
            {:ok, jwks} <- fetch_jwks(jwks_uri, opts),
@@ -199,13 +216,18 @@ defmodule ControlKeel.Accounts.OidcClient do
     defp client_secret(%{"client_secret_env" => env}) when is_binary(env), do: System.get_env(env)
 
     defp client_secret(%{"org_slug" => slug}) when is_binary(slug) do
-      env = "CONTROLKEEL_OIDC_CLIENT_SECRET_" <> (slug |> String.upcase() |> String.replace(~r/[^A-Z0-9]/, "_"))
+      env =
+        "CONTROLKEEL_OIDC_CLIENT_SECRET_" <>
+          (slug |> String.upcase() |> String.replace(~r/[^A-Z0-9]/, "_"))
+
       System.get_env(env)
     end
 
     defp client_secret(_), do: nil
 
     defp req_get(url, opts), do: Keyword.get(opts, :http_client, Req).get(url)
-    defp req_post(url, req_opts, opts), do: Keyword.get(opts, :http_client, Req).post(url, req_opts)
+
+    defp req_post(url, req_opts, opts),
+      do: Keyword.get(opts, :http_client, Req).post(url, req_opts)
   end
 end

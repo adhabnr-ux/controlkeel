@@ -93,7 +93,14 @@ defmodule ControlKeel.Cloud.EvalRunner do
   }
 
   @doc "List available built-in suites."
-  @spec list_suites() :: [%{slug: String.t(), title: String.t(), description: String.t(), case_count: non_neg_integer()}]
+  @spec list_suites() :: [
+          %{
+            slug: String.t(),
+            title: String.t(),
+            description: String.t(),
+            case_count: non_neg_integer()
+          }
+        ]
   def list_suites do
     @builtin_suites
     |> Map.values()

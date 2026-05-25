@@ -128,7 +128,9 @@ defmodule ControlKeelWeb.PolicyStudioLive do
             <div class="ck-card">
               <p class="ck-mini-label">
                 What gets blocked automatically
-                <span class="ck-pill ck-pill-critical" style="margin-left: 0.5rem;">{@block_count} rules</span>
+                <span class="ck-pill ck-pill-critical" style="margin-left: 0.5rem;">
+                  {@block_count} rules
+                </span>
               </p>
               <%= if @blocked_rules == [] do %>
                 <p class="ck-note">No blocking rules loaded.</p>
@@ -161,7 +163,9 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                     <article class="ck-finding-item">
                       <div class="ck-finding-head">
                         <h3>{ws.name}</h3>
-                        <span class={"ck-pill #{tool_policy_pill_class(policy.mode)}"}>{policy.mode}</span>
+                        <span class={"ck-pill #{tool_policy_pill_class(policy.mode)}"}>
+                          {policy.mode}
+                        </span>
                       </div>
                       <% tools = WorkspaceToolPolicy.decode_tools(policy) %>
                       <%= if tools != [] do %>

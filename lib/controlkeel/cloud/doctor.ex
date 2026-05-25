@@ -292,7 +292,8 @@ defmodule ControlKeel.Cloud.Doctor do
           id: :sender_endpoint,
           label: "Sender endpoint",
           status: :info,
-          detail: "not configured (cloud_telemetry_endpoint unset; flush is a no-op)#{periodic_suffix()}"
+          detail:
+            "not configured (cloud_telemetry_endpoint unset; flush is a no-op)#{periodic_suffix()}"
         }
 
       url ->
@@ -321,8 +322,9 @@ defmodule ControlKeel.Cloud.Doctor do
           id: :public_host,
           label: "Public host",
           status: :warn,
-          detail: "no PHX_HOST set; defaulting to \"controlkeel.com\". " <>
-                  "Self-hosters must set PHX_HOST to their own domain."
+          detail:
+            "no PHX_HOST set; defaulting to \"controlkeel.com\". " <>
+              "Self-hosters must set PHX_HOST to their own domain."
         }
 
       host == "controlkeel.com" ->

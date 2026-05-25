@@ -140,7 +140,9 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
             <p class="ck-mini-label">Endpoint</p>
             <strong>{@endpoint || "unconfigured"}</strong>
             <p class="ck-note">
-              {if @endpoint, do: "drainer will POST batches here", else: "set :cloud_telemetry_endpoint to enable sync"}
+              {if @endpoint,
+                do: "drainer will POST batches here",
+                else: "set :cloud_telemetry_endpoint to enable sync"}
             </p>
           </div>
 
@@ -342,11 +344,17 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
               <tbody>
                 <%= for row <- @behavioral_baselines do %>
                   <tr>
-                    <td><code>{row.workspace_id}</code>{if row.workspace_name, do: " — #{row.workspace_name}", else: ""}</td>
+                    <td>
+                      <code>{row.workspace_id}</code>{if row.workspace_name,
+                        do: " — #{row.workspace_name}",
+                        else: ""}
+                    </td>
                     <td>{row.org_name}</td>
                     <td class="ck-table-right">{row.tool_count}</td>
                     <td class="ck-table-right">{row.sample_sessions || "—"}</td>
-                    <td>{if row.computed_at, do: DateTime.to_iso8601(row.computed_at), else: "never"}</td>
+                    <td>
+                      {if row.computed_at, do: DateTime.to_iso8601(row.computed_at), else: "never"}
+                    </td>
                   </tr>
                 <% end %>
               </tbody>
@@ -357,17 +365,25 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
         <div id="cloud-mcp-guardrails" class="ck-card">
           <h2 class="ck-card-title">Content guardrails</h2>
           <p class="ck-note">
-            enabled: <strong>{@guardrails_summary.enabled}</strong> ·
+            enabled: <strong>{@guardrails_summary.enabled}</strong>
+            ·
             patterns: {@guardrails_summary.pattern_count}
-            {if @guardrails_summary.allow_for_tools == [], do: "", else: " · allow-for: " <> Enum.join(@guardrails_summary.allow_for_tools, ", ")}
+            {if @guardrails_summary.allow_for_tools == [],
+              do: "",
+              else: " · allow-for: " <> Enum.join(@guardrails_summary.allow_for_tools, ", ")}
           </p>
           <%= if @guardrails_summary.enabled do %>
             <p class="ck-note">
-              Active: <%= for name <- @guardrails_summary.patterns do %><code>{name}</code> <% end %>
+              Active:
+              <%= for name <- @guardrails_summary.patterns do %>
+                <code>{name}</code>
+              <% end %>
             </p>
           <% else %>
             <p class="ck-note">
-              Disabled — set <code>:cloud_mcp_guardrails</code> with <code>enabled: true</code> to scan tool arguments for secrets.
+              Disabled — set <code>:cloud_mcp_guardrails</code>
+              with <code>enabled: true</code>
+              to scan tool arguments for secrets.
             </p>
           <% end %>
         </div>
@@ -375,10 +391,8 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
         <div id="cloud-mcp-registry" class="ck-card">
           <h2 class="ck-card-title">Downstream MCP server registry</h2>
           <p class="ck-note">
-            default policy: <strong>{@mcp_registry_summary.default_policy}</strong> ·
-            {@mcp_registry_summary.allowlist_count} allowlisted ·
-            {@mcp_registry_summary.requires_attestation} require attestation ·
-            {@mcp_registry_summary.denylist_count} denylisted
+            default policy: <strong>{@mcp_registry_summary.default_policy}</strong>
+            · {@mcp_registry_summary.allowlist_count} allowlisted · {@mcp_registry_summary.requires_attestation} require attestation · {@mcp_registry_summary.denylist_count} denylisted
           </p>
           <%= if @mcp_registry_entries == [] and @mcp_registry_denylist == [] do %>
             <p class="ck-note">No downstream MCP servers configured.</p>
@@ -407,7 +421,10 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
             <% end %>
             <%= if @mcp_registry_denylist != [] do %>
               <p class="ck-note">
-                Denylisted: <%= for name <- @mcp_registry_denylist do %><code>{name}</code> <% end %>
+                Denylisted:
+                <%= for name <- @mcp_registry_denylist do %>
+                  <code>{name}</code>
+                <% end %>
               </p>
             <% end %>
           <% end %>
@@ -552,7 +569,9 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
     """
   end
 
-  defp render_identity(%{identity_summary: %{status: :connected, workspace_id: ws, fingerprint: fp}} = assigns) do
+  defp render_identity(
+         %{identity_summary: %{status: :connected, workspace_id: ws, fingerprint: fp}} = assigns
+       ) do
     assigns = assign(assigns, ws: ws, fp: fp)
 
     ~H"""
@@ -597,6 +616,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
       Accounts.org_workspace_breakdown(org.id)
       |> Enum.map(fn ws ->
         baseline = BaselineAnalyzer.get_baseline(ws.workspace_id)
+
         %{
           workspace_id: ws.workspace_id,
           workspace_name: ws.workspace_name,

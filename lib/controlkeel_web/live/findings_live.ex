@@ -78,7 +78,9 @@ defmodule ControlKeelWeb.FindingsLive do
   @impl true
   def handle_event("confirm_reject", _params, socket) do
     id = socket.assigns.reject_id
-    reason = socket.assigns.reject_reason |> String.trim() |> then(&(if &1 == "", do: nil, else: &1))
+
+    reason =
+      socket.assigns.reject_reason |> String.trim() |> then(&if &1 == "", do: nil, else: &1)
 
     with {:ok, finding_id} <- parse_id(id),
          %{} = finding <- Mission.get_finding(finding_id),
@@ -249,7 +251,9 @@ defmodule ControlKeelWeb.FindingsLive do
                       style="width:12rem;"
                     />
                     <button type="button" class="ck-link" phx-click="confirm_reject">Confirm</button>
-                    <button type="button" class="ck-link ck-link-muted" phx-click="cancel_reject">Cancel</button>
+                    <button type="button" class="ck-link ck-link-muted" phx-click="cancel_reject">
+                      Cancel
+                    </button>
                   </div>
                 <% else %>
                   <button type="button" class="ck-link" phx-click="reject" phx-value-id={finding.id}>

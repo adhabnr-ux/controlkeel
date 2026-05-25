@@ -126,7 +126,10 @@ defmodule ControlKeel.AccountsTest do
       assert {:error, :invalid_token} = Accounts.accept_invitation(raw_token, invitee.id)
     end
 
-    test "prevents duplicate active membership for the same (user, org)", %{invitee: invitee, org: org} do
+    test "prevents duplicate active membership for the same (user, org)", %{
+      invitee: invitee,
+      org: org
+    } do
       {:ok, _m, _t} = Accounts.invite_member(invitee.id, org.id)
       assert {:error, changeset} = Accounts.invite_member(invitee.id, org.id)
       assert errors_on(changeset).user_id == ["has already been taken"]
@@ -167,7 +170,9 @@ defmodule ControlKeel.AccountsTest do
 
       ws_a = ControlKeel.MissionFixtures.workspace_fixture(%{name: "WS A", slug: "ws-a"})
       ws_b = ControlKeel.MissionFixtures.workspace_fixture(%{name: "WS B", slug: "ws-b"})
-      ws_unaffiliated = ControlKeel.MissionFixtures.workspace_fixture(%{name: "WS Solo", slug: "ws-solo"})
+
+      ws_unaffiliated =
+        ControlKeel.MissionFixtures.workspace_fixture(%{name: "WS Solo", slug: "ws-solo"})
 
       {:ok,
        alice: alice,

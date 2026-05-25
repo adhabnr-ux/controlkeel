@@ -12,7 +12,7 @@ defmodule ControlKeelWeb.OidcController do
   use ControlKeelWeb, :controller
 
   alias ControlKeel.Accounts
-alias ControlKeel.Accounts.OidcClient
+  alias ControlKeel.Accounts.OidcClient
 
   def start(conn, %{"org" => slug}) do
     with {:ok, org} <- fetch_org(slug),
@@ -23,8 +23,11 @@ alias ControlKeel.Accounts.OidcClient
       |> put_session(:oidc_org_id, org.id)
       |> redirect(external: authorize_url)
     else
-      {:error, :org_not_found} -> text_error(conn, :not_found, "Org not found")
-      {:error, :oidc_not_configured} -> text_error(conn, :bad_request, "OIDC is not configured for this org")
+      {:error, :org_not_found} ->
+        text_error(conn, :not_found, "Org not found")
+
+      {:error, :oidc_not_configured} ->
+        text_error(conn, :bad_request, "OIDC is not configured for this org")
     end
   end
 
@@ -35,7 +38,12 @@ alias ControlKeel.Accounts.OidcClient
          {:ok, org} <- callback_org(conn),
          {:ok, idp} <- oidc_config(org),
          {:ok, code} <- fetch_code(params),
-         {:ok, claims} <- OidcClient.exchange_and_verify(idp_with_org(idp, org), code, url(~p"/auth/oidc/callback")),
+         {:ok, claims} <-
+           OidcClient.exchange_and_verify(
+             idp_with_org(idp, org),
+             code,
+             url(~p"/auth/oidc/callback")
+           ),
          {:ok, user, _membership} <- Accounts.ensure_sso_membership(org.id, claims) do
       conn
       |> delete_session(:oidc_state)
@@ -45,17 +53,38 @@ alias ControlKeel.Accounts.OidcClient
       |> put_flash(:info, "Signed in with SSO")
       |> redirect(to: ~p"/cloud/telemetry")
     else
-      {:error, :invalid_state} -> text_error(conn, :forbidden, "Invalid OIDC state")
-      {:error, :missing_code} -> text_error(conn, :bad_request, "Missing OIDC code")
-      {:error, :missing_email} -> text_error(conn, :bad_request, "OIDC claims missing email")
-      {:error, :issuer_mismatch} -> text_error(conn, :forbidden, "OIDC issuer mismatch")
-      {:error, :audience_mismatch} -> text_error(conn, :forbidden, "OIDC audience mismatch")
-      {:error, :token_expired} -> text_error(conn, :forbidden, "OIDC token expired")
-      {:error, :jwt_signature_verification_unavailable} -> text_error(conn, :forbidden, "OIDC JWT verification unavailable")
-      {:error, {:token_exchange_failed, _}} -> text_error(conn, :bad_gateway, "OIDC token exchange failed")
-      {:error, :org_not_found} -> text_error(conn, :not_found, "Org not found")
-      {:error, :oidc_not_configured} -> text_error(conn, :bad_request, "OIDC is not configured for this org")
-      {:error, changeset} -> text_error(conn, :bad_request, inspect(changeset))
+      {:error, :invalid_state} ->
+        text_error(conn, :forbidden, "Invalid OIDC state")
+
+      {:error, :missing_code} ->
+        text_error(conn, :bad_request, "Missing OIDC code")
+
+      {:error, :missing_email} ->
+        text_error(conn, :bad_request, "OIDC claims missing email")
+
+      {:error, :issuer_mismatch} ->
+        text_error(conn, :forbidden, "OIDC issuer mismatch")
+
+      {:error, :audience_mismatch} ->
+        text_error(conn, :forbidden, "OIDC audience mismatch")
+
+      {:error, :token_expired} ->
+        text_error(conn, :forbidden, "OIDC token expired")
+
+      {:error, :jwt_signature_verification_unavailable} ->
+        text_error(conn, :forbidden, "OIDC JWT verification unavailable")
+
+      {:error, {:token_exchange_failed, _}} ->
+        text_error(conn, :bad_gateway, "OIDC token exchange failed")
+
+      {:error, :org_not_found} ->
+        text_error(conn, :not_found, "Org not found")
+
+      {:error, :oidc_not_configured} ->
+        text_error(conn, :bad_request, "OIDC is not configured for this org")
+
+      {:error, changeset} ->
+        text_error(conn, :bad_request, inspect(changeset))
     end
   end
 

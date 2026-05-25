@@ -968,8 +968,11 @@ defmodule ControlKeelWeb.ApiController do
           actor = get_in(conn.assigns, [:current_user, :email])
 
           case Platform.revoke_agent_identity(String.to_integer(id), actor: actor) do
-            {:ok, revoked} -> json(conn, %{service_account: service_account_summary(revoked)})
-            {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not found"})
+            {:ok, revoked} ->
+              json(conn, %{service_account: service_account_summary(revoked)})
+
+            {:error, :not_found} ->
+              conn |> put_status(:not_found) |> json(%{error: "not found"})
 
             {:error, reason} ->
               conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})

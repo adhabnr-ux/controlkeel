@@ -25,7 +25,11 @@ defmodule ControlKeel.Cloud.AuditExportSigner do
   @doc "Wrap a payload in a signed envelope."
   @spec sign(term(), binary(), keyword()) :: map()
   def sign(payload, key, opts \\ []) when is_binary(key) and byte_size(key) > 0 do
-    signed_at = Keyword.get_lazy(opts, :signed_at, fn -> DateTime.utc_now() |> DateTime.truncate(:second) end)
+    signed_at =
+      Keyword.get_lazy(opts, :signed_at, fn ->
+        DateTime.utc_now() |> DateTime.truncate(:second)
+      end)
+
     key_id = Keyword.get(opts, :key_id, "env")
     canonical = canonical_json(payload)
     digest = :crypto.hash(:sha256, canonical) |> Base.encode16(case: :lower)
@@ -54,11 +58,20 @@ defmodule ControlKeel.Cloud.AuditExportSigner do
     expected_sig = :crypto.mac(:hmac, :sha256, key, canonical) |> Base.encode16(case: :lower)
 
     cond do
-      integrity["digest_algorithm"] != @digest_alg -> {:error, :unsupported_digest_algorithm}
-      integrity["signature_algorithm"] != @signature_alg -> {:error, :unsupported_signature_algorithm}
-      integrity["digest"] != expected_digest -> {:error, :digest_mismatch}
-      integrity["signature"] != expected_sig -> {:error, :signature_mismatch}
-      true -> :ok
+      integrity["digest_algorithm"] != @digest_alg ->
+        {:error, :unsupported_digest_algorithm}
+
+      integrity["signature_algorithm"] != @signature_alg ->
+        {:error, :unsupported_signature_algorithm}
+
+      integrity["digest"] != expected_digest ->
+        {:error, :digest_mismatch}
+
+      integrity["signature"] != expected_sig ->
+        {:error, :signature_mismatch}
+
+      true ->
+        :ok
     end
   end
 

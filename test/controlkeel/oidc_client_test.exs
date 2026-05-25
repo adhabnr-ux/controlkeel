@@ -28,58 +28,98 @@ defmodule ControlKeel.Accounts.OidcClientTest do
 
     test "rejects alg none tokens" do
       {_private_key, jwk} = rsa_keypair("main-key")
-      token = unsigned_token(%{"iss" => "https://good", "aud" => "ck", "exp" => future(), "email" => "a@b.com"})
+
+      token =
+        unsigned_token(%{
+          "iss" => "https://good",
+          "aud" => "ck",
+          "exp" => future(),
+          "email" => "a@b.com"
+        })
 
       assert {:error, :unsupported_jwt_alg} =
-               DefaultAdapter.exchange_and_verify(%{"issuer" => "https://good", "client_id" => "ck"}, "code", "cb",
-                 http_client: http_client(%{"id_token" => token}, [jwk])
-               )
+               DefaultAdapter.exchange_and_verify(
+                 %{"issuer" => "https://good", "client_id" => "ck"},
+                 "code",
+                 "cb", http_client: http_client(%{"id_token" => token}, [jwk]))
     end
 
     test "rejects wrong key / invalid signature" do
       {private_key, _jwk} = rsa_keypair("main-key")
       {_wrong_private, wrong_jwk} = rsa_keypair("main-key")
 
-      token = signed_token(private_key, "main-key", %{"iss" => "https://good", "aud" => "ck", "exp" => future(), "email" => "a@b.com"})
+      token =
+        signed_token(private_key, "main-key", %{
+          "iss" => "https://good",
+          "aud" => "ck",
+          "exp" => future(),
+          "email" => "a@b.com"
+        })
 
       assert {:error, :invalid_id_token_signature} =
-               DefaultAdapter.exchange_and_verify(%{"issuer" => "https://good", "client_id" => "ck"}, "code", "cb",
-                 http_client: http_client(%{"id_token" => token}, [wrong_jwk])
-               )
+               DefaultAdapter.exchange_and_verify(
+                 %{"issuer" => "https://good", "client_id" => "ck"},
+                 "code",
+                 "cb", http_client: http_client(%{"id_token" => token}, [wrong_jwk]))
     end
 
     test "rejects missing JWKS key for kid" do
       {private_key, jwk} = rsa_keypair("different-key")
-      token = signed_token(private_key, "main-key", %{"iss" => "https://good", "aud" => "ck", "exp" => future(), "email" => "a@b.com"})
+
+      token =
+        signed_token(private_key, "main-key", %{
+          "iss" => "https://good",
+          "aud" => "ck",
+          "exp" => future(),
+          "email" => "a@b.com"
+        })
 
       assert {:error, :missing_jwks_key} =
-               DefaultAdapter.exchange_and_verify(%{"issuer" => "https://good", "client_id" => "ck"}, "code", "cb",
-                 http_client: http_client(%{"id_token" => token}, [jwk])
-               )
+               DefaultAdapter.exchange_and_verify(
+                 %{"issuer" => "https://good", "client_id" => "ck"},
+                 "code",
+                 "cb", http_client: http_client(%{"id_token" => token}, [jwk]))
     end
 
     test "rejects issuer mismatch after signature verification" do
       {private_key, jwk} = rsa_keypair("main-key")
-      token = signed_token(private_key, "main-key", %{"iss" => "https://evil", "aud" => "ck", "exp" => future(), "email" => "a@b.com"})
+
+      token =
+        signed_token(private_key, "main-key", %{
+          "iss" => "https://evil",
+          "aud" => "ck",
+          "exp" => future(),
+          "email" => "a@b.com"
+        })
 
       assert {:error, :issuer_mismatch} =
-               DefaultAdapter.exchange_and_verify(%{"issuer" => "https://good", "client_id" => "ck"}, "code", "cb",
-                 http_client: http_client(%{"id_token" => token}, [jwk])
-               )
+               DefaultAdapter.exchange_and_verify(
+                 %{"issuer" => "https://good", "client_id" => "ck"},
+                 "code",
+                 "cb", http_client: http_client(%{"id_token" => token}, [jwk]))
     end
 
     test "rejects audience mismatch after signature verification" do
       {private_key, jwk} = rsa_keypair("main-key")
-      token = signed_token(private_key, "main-key", %{"iss" => "https://good", "aud" => "other", "exp" => future(), "email" => "a@b.com"})
+
+      token =
+        signed_token(private_key, "main-key", %{
+          "iss" => "https://good",
+          "aud" => "other",
+          "exp" => future(),
+          "email" => "a@b.com"
+        })
 
       assert {:error, :audience_mismatch} =
-               DefaultAdapter.exchange_and_verify(%{"issuer" => "https://good", "client_id" => "ck"}, "code", "cb",
-                 http_client: http_client(%{"id_token" => token}, [jwk])
-               )
+               DefaultAdapter.exchange_and_verify(
+                 %{"issuer" => "https://good", "client_id" => "ck"},
+                 "code",
+                 "cb", http_client: http_client(%{"id_token" => token}, [jwk]))
     end
 
     test "rejects expired token after signature verification" do
       {private_key, jwk} = rsa_keypair("main-key")
+
       token =
         signed_token(private_key, "main-key", %{
           "iss" => "https://good",
@@ -89,9 +129,10 @@ defmodule ControlKeel.Accounts.OidcClientTest do
         })
 
       assert {:error, :token_expired} =
-               DefaultAdapter.exchange_and_verify(%{"issuer" => "https://good", "client_id" => "ck"}, "code", "cb",
-                 http_client: http_client(%{"id_token" => token}, [jwk])
-               )
+               DefaultAdapter.exchange_and_verify(
+                 %{"issuer" => "https://good", "client_id" => "ck"},
+                 "code",
+                 "cb", http_client: http_client(%{"id_token" => token}, [jwk]))
     end
   end
 
@@ -114,10 +155,15 @@ defmodule ControlKeel.Accounts.OidcClientTest do
   end
 
   defp signed_token(private_key, kid, claims) do
-    header = %{"alg" => "RS256", "kid" => kid} |> Jason.encode!() |> Base.url_encode64(padding: false)
+    header =
+      %{"alg" => "RS256", "kid" => kid} |> Jason.encode!() |> Base.url_encode64(padding: false)
+
     payload = claims |> Jason.encode!() |> Base.url_encode64(padding: false)
     signing_input = header <> "." <> payload
-    signature = :public_key.sign(signing_input, :sha256, private_key) |> Base.url_encode64(padding: false)
+
+    signature =
+      :public_key.sign(signing_input, :sha256, private_key) |> Base.url_encode64(padding: false)
+
     signing_input <> "." <> signature
   end
 
@@ -130,7 +176,13 @@ defmodule ControlKeel.Accounts.OidcClientTest do
   defp http_client(token_body, keys) do
     token_body = token_body
     jwks_body = %{"keys" => keys}
-    discovery_body = %{"issuer" => "https://good", "token_endpoint" => "https://good/token", "jwks_uri" => "https://good/jwks"}
+
+    discovery_body = %{
+      "issuer" => "https://good",
+      "token_endpoint" => "https://good/token",
+      "jwks_uri" => "https://good/jwks"
+    }
+
     module = Module.concat(__MODULE__, "Http#{System.unique_integer([:positive])}")
 
     {:module, ^module, _binary, _term} =
@@ -147,7 +199,8 @@ defmodule ControlKeel.Accounts.OidcClientTest do
             end
           end
 
-          def post(_url, _opts), do: {:ok, %Req.Response{status: 200, body: unquote(Macro.escape(token_body))}}
+          def post(_url, _opts),
+            do: {:ok, %Req.Response{status: 200, body: unquote(Macro.escape(token_body))}}
         end,
         Macro.Env.location(__ENV__)
       )

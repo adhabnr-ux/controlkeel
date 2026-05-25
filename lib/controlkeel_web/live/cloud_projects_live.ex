@@ -145,8 +145,8 @@ defmodule ControlKeelWeb.CloudProjectsLive do
         <div class="ck-section-header">
           <div>
             <p class="ck-kicker">
-              <.link navigate={~p"/cloud/projects"}>Cloud projects</.link> /
-              <code>{@key.workspace_id}</code>
+              <.link navigate={~p"/cloud/projects"}>Cloud projects</.link>
+              / <code>{@key.workspace_id}</code>
             </p>
             <h1 class="ck-section-title">{@key.name || @key.workspace_id}</h1>
             <p class="ck-lead ck-lead-tight">
@@ -252,8 +252,9 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     ~H"""
     <div class="ck-card">
       <p>
-        Sign in via your org's SSO provider to see enrolled workspaces.
-        <.link href={~p"/auth/oidc/start"}>Start OIDC login</.link>.
+        Sign in via your org's SSO provider to see enrolled workspaces. <.link href={
+          ~p"/auth/oidc/start"
+        }>Start OIDC login</.link>.
       </p>
     </div>
     """
@@ -264,8 +265,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     <div class="ck-card">
       <p>
         Your account is signed in but has no active org membership. Ask an org
-        owner to invite you, then accept the invitation from
-        <code>/cloud/invitations/&lt;token&gt;</code>.
+        owner to invite you, then accept the invitation from <code>/cloud/invitations/&lt;token&gt;</code>.
       </p>
     </div>
     """

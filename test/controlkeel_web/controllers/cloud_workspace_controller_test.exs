@@ -13,7 +13,8 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
     fp = :crypto.hash(:sha256, pub) |> Base.encode16(case: :lower)
 
     %{
-      workspace_id: "ws_" <> Base.encode32(:crypto.strong_rand_bytes(8), padding: false, case: :lower),
+      workspace_id:
+        "ws_" <> Base.encode32(:crypto.strong_rand_bytes(8), padding: false, case: :lower),
       algorithm: "ed25519",
       public_key: pub_b64,
       private_key: priv_b64,

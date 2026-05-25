@@ -9,7 +9,11 @@ defmodule ControlKeel.CLI.AccountsAdminTest do
     test "creates a user and reports id/email" do
       assert {:ok, lines} =
                CLI.run_command(
-                 %{command: :user_create, options: %{email: "alice@example.com", name: "Alice"}, args: []},
+                 %{
+                   command: :user_create,
+                   options: %{email: "alice@example.com", name: "Alice"},
+                   args: []
+                 },
                  File.cwd!()
                )
 

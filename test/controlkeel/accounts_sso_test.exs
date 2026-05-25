@@ -39,7 +39,8 @@ defmodule ControlKeel.AccountsSsoTest do
     end
 
     test "returns :missing_email when claims do not contain email", %{org: org} do
-      assert {:error, :missing_email} = Accounts.ensure_sso_membership(org.id, %{"name" => "No Email"})
+      assert {:error, :missing_email} =
+               Accounts.ensure_sso_membership(org.id, %{"name" => "No Email"})
     end
 
     test "returns :not_found for unknown org" do

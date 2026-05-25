@@ -32,7 +32,8 @@ defmodule ControlKeel.Cloud.AuthTokenMultiTenantTest do
     {pub, priv} = :crypto.generate_key(:eddsa, :ed25519)
 
     %{
-      workspace_id: "ws_" <> Base.encode32(:crypto.strong_rand_bytes(8), padding: false, case: :lower),
+      workspace_id:
+        "ws_" <> Base.encode32(:crypto.strong_rand_bytes(8), padding: false, case: :lower),
       algorithm: "ed25519",
       public_key: Base.encode64(pub),
       private_key: Base.encode64(priv),

@@ -27,7 +27,12 @@ defmodule ControlKeel.Cloud.ComplianceTemplateTest do
       assert template["template"] == "gdpr"
       art32 = section(template, "Art.32")
       assert art32["title"] == "Security of processing"
-      assert Enum.any?(art32["evidence"], &(&1["source"] == "findings" and &1["rule_id"] == "security.test"))
+
+      assert Enum.any?(
+               art32["evidence"],
+               &(&1["source"] == "findings" and &1["rule_id"] == "security.test")
+             )
+
       refute Enum.any?(art32["evidence"], &(&1["rule_id"] == "cost.warn"))
 
       art33 = section(template, "Art.33")
@@ -35,14 +40,15 @@ defmodule ControlKeel.Cloud.ComplianceTemplateTest do
     end
 
     test "handles empty evidence sections" do
-      empty = Map.merge(bundle(), %{
-        "findings" => [],
-        "reviews" => [],
-        "review_audit_events" => [],
-        "mcp_tool_calls" => [],
-        "cloud_run_packages" => [],
-        "received_telemetry_events" => []
-      })
+      empty =
+        Map.merge(bundle(), %{
+          "findings" => [],
+          "reviews" => [],
+          "review_audit_events" => [],
+          "mcp_tool_calls" => [],
+          "cloud_run_packages" => [],
+          "received_telemetry_events" => []
+        })
 
       {:ok, template} = ComplianceTemplate.render(empty, "soc2")
       assert Enum.all?(template["sections"], &(&1["evidence_count"] == 0))
@@ -92,10 +98,25 @@ defmodule ControlKeel.Cloud.ComplianceTemplateTest do
     end
 
     test "NIST MANAGE section only includes resolved findings" do
-      bundle_with_resolved = put_in(bundle(), ["findings"], [
-        %{"id" => 1, "category" => "security", "severity" => "high", "rule_id" => "s.1", "status" => "resolved", "inserted_at" => "2026-01-01T00:00:00Z"},
-        %{"id" => 2, "category" => "cost", "severity" => "medium", "rule_id" => "c.1", "status" => "open", "inserted_at" => "2026-01-01T00:00:00Z"}
-      ])
+      bundle_with_resolved =
+        put_in(bundle(), ["findings"], [
+          %{
+            "id" => 1,
+            "category" => "security",
+            "severity" => "high",
+            "rule_id" => "s.1",
+            "status" => "resolved",
+            "inserted_at" => "2026-01-01T00:00:00Z"
+          },
+          %{
+            "id" => 2,
+            "category" => "cost",
+            "severity" => "medium",
+            "rule_id" => "c.1",
+            "status" => "open",
+            "inserted_at" => "2026-01-01T00:00:00Z"
+          }
+        ])
 
       {:ok, template} = ComplianceTemplate.render(bundle_with_resolved, "nist_ai_rmf")
       manage = section(template, "MANAGE")
@@ -125,14 +146,54 @@ defmodule ControlKeel.Cloud.ComplianceTemplateTest do
       "scope" => %{"type" => "workspace", "id" => 1},
       "window" => %{"since" => "2025-01-01T00:00:00Z", "until" => "2026-01-01T00:00:00Z"},
       "findings" => [
-        %{"id" => 1, "category" => "security", "severity" => "high", "rule_id" => "security.test", "status" => "open", "inserted_at" => "2026-01-01T00:00:00Z"},
-        %{"id" => 2, "category" => "cost", "severity" => "medium", "rule_id" => "cost.warn", "status" => "open", "inserted_at" => "2026-01-01T00:00:00Z"}
+        %{
+          "id" => 1,
+          "category" => "security",
+          "severity" => "high",
+          "rule_id" => "security.test",
+          "status" => "open",
+          "inserted_at" => "2026-01-01T00:00:00Z"
+        },
+        %{
+          "id" => 2,
+          "category" => "cost",
+          "severity" => "medium",
+          "rule_id" => "cost.warn",
+          "status" => "open",
+          "inserted_at" => "2026-01-01T00:00:00Z"
+        }
       ],
-      "reviews" => [%{"id" => 10, "title" => "Plan", "status" => "approved", "inserted_at" => "2026-01-01T00:00:00Z"}],
-      "review_audit_events" => [%{"id" => 11, "event_type" => "approved", "recorded_at" => "2026-01-01T00:00:00Z"}],
-      "mcp_tool_calls" => [%{"id" => 12, "resource" => "mcp", "tool_name" => "search", "outcome" => "allowed", "requested_at" => "2026-01-01T00:00:00Z"}],
-      "cloud_run_packages" => [%{"id" => 13, "runtime_target" => "devin", "status" => "completed", "inserted_at" => "2026-01-01T00:00:00Z"}],
-      "received_telemetry_events" => [%{"id" => 14, "kind" => "finding", "received_at" => "2026-01-01T00:00:00Z"}]
+      "reviews" => [
+        %{
+          "id" => 10,
+          "title" => "Plan",
+          "status" => "approved",
+          "inserted_at" => "2026-01-01T00:00:00Z"
+        }
+      ],
+      "review_audit_events" => [
+        %{"id" => 11, "event_type" => "approved", "recorded_at" => "2026-01-01T00:00:00Z"}
+      ],
+      "mcp_tool_calls" => [
+        %{
+          "id" => 12,
+          "resource" => "mcp",
+          "tool_name" => "search",
+          "outcome" => "allowed",
+          "requested_at" => "2026-01-01T00:00:00Z"
+        }
+      ],
+      "cloud_run_packages" => [
+        %{
+          "id" => 13,
+          "runtime_target" => "devin",
+          "status" => "completed",
+          "inserted_at" => "2026-01-01T00:00:00Z"
+        }
+      ],
+      "received_telemetry_events" => [
+        %{"id" => 14, "kind" => "finding", "received_at" => "2026-01-01T00:00:00Z"}
+      ]
     }
   end
 end

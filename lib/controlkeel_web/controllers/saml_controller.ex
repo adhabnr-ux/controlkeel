@@ -60,16 +60,35 @@ defmodule ControlKeelWeb.SamlController do
       |> put_flash(:info, "Signed in with SAML")
       |> redirect(to: ~p"/cloud/telemetry")
     else
-      {:error, :invalid_relay_state} -> text_error(conn, :forbidden, "Invalid SAML RelayState")
-      {:error, :missing_saml_response} -> text_error(conn, :bad_request, "Missing SAMLResponse")
-      {:error, :missing_email} -> text_error(conn, :bad_request, "SAML assertion missing email")
-      {:error, :org_not_found} -> text_error(conn, :not_found, "Org not found")
-      {:error, :saml_not_configured} -> text_error(conn, :bad_request, "SAML is not configured for this org")
-      {:error, :saml_adapter_not_configured} -> text_error(conn, :service_unavailable, "SAML adapter is not configured")
-      {:error, :signature_invalid} -> text_error(conn, :forbidden, "SAML signature invalid")
-      {:error, :assertion_expired} -> text_error(conn, :forbidden, "SAML assertion expired")
-      {:error, :audience_mismatch} -> text_error(conn, :forbidden, "SAML audience mismatch")
-      {:error, changeset} -> text_error(conn, :bad_request, inspect(changeset))
+      {:error, :invalid_relay_state} ->
+        text_error(conn, :forbidden, "Invalid SAML RelayState")
+
+      {:error, :missing_saml_response} ->
+        text_error(conn, :bad_request, "Missing SAMLResponse")
+
+      {:error, :missing_email} ->
+        text_error(conn, :bad_request, "SAML assertion missing email")
+
+      {:error, :org_not_found} ->
+        text_error(conn, :not_found, "Org not found")
+
+      {:error, :saml_not_configured} ->
+        text_error(conn, :bad_request, "SAML is not configured for this org")
+
+      {:error, :saml_adapter_not_configured} ->
+        text_error(conn, :service_unavailable, "SAML adapter is not configured")
+
+      {:error, :signature_invalid} ->
+        text_error(conn, :forbidden, "SAML signature invalid")
+
+      {:error, :assertion_expired} ->
+        text_error(conn, :forbidden, "SAML assertion expired")
+
+      {:error, :audience_mismatch} ->
+        text_error(conn, :forbidden, "SAML audience mismatch")
+
+      {:error, changeset} ->
+        text_error(conn, :bad_request, inspect(changeset))
     end
   end
 

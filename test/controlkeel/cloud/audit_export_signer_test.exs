@@ -12,7 +12,11 @@ defmodule ControlKeel.Cloud.AuditExportSignerTest do
   end
 
   test "sign wraps payload and verifies with the same key" do
-    envelope = AuditExportSigner.sign(%{"a" => 1}, "test-key", key_id: "TEST_KEY", signed_at: ~U[2026-01-01 00:00:00Z])
+    envelope =
+      AuditExportSigner.sign(%{"a" => 1}, "test-key",
+        key_id: "TEST_KEY",
+        signed_at: ~U[2026-01-01 00:00:00Z]
+      )
 
     assert envelope["kind"] == "controlkeel.audit_export.signed"
     assert envelope["integrity"]["key_id"] == "TEST_KEY"

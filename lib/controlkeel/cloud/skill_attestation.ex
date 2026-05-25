@@ -129,7 +129,9 @@ defmodule ControlKeel.Cloud.SkillAttestation do
       expires_str ->
         case DateTime.from_iso8601(expires_str) do
           {:ok, expires, _} ->
-            if DateTime.compare(DateTime.utc_now(), expires) == :lt, do: :ok, else: {:error, :expired}
+            if DateTime.compare(DateTime.utc_now(), expires) == :lt,
+              do: :ok,
+              else: {:error, :expired}
 
           _ ->
             {:error, :bad_expires_at}

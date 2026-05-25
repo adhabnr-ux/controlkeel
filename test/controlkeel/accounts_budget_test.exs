@@ -53,9 +53,16 @@ defmodule ControlKeel.AccountsBudgetTest do
 
   describe "org_spend_cents/1 and org_workspace_breakdown/1" do
     setup %{org: org} do
-      ws_a = MissionFixtures.workspace_fixture(%{slug: "ws-a-#{System.unique_integer([:positive])}"})
-      ws_b = MissionFixtures.workspace_fixture(%{slug: "ws-b-#{System.unique_integer([:positive])}"})
-      ws_unaffil = MissionFixtures.workspace_fixture(%{slug: "ws-solo-#{System.unique_integer([:positive])}"})
+      ws_a =
+        MissionFixtures.workspace_fixture(%{slug: "ws-a-#{System.unique_integer([:positive])}"})
+
+      ws_b =
+        MissionFixtures.workspace_fixture(%{slug: "ws-b-#{System.unique_integer([:positive])}"})
+
+      ws_unaffil =
+        MissionFixtures.workspace_fixture(%{
+          slug: "ws-solo-#{System.unique_integer([:positive])}"
+        })
 
       {:ok, _} = Accounts.assign_workspace_to_org(ws_a.id, org.id)
       {:ok, _} = Accounts.assign_workspace_to_org(ws_b.id, org.id)
@@ -87,7 +94,11 @@ defmodule ControlKeel.AccountsBudgetTest do
     end
 
     test "breakdown includes workspaces with zero spend", %{org: org} do
-      empty_ws = MissionFixtures.workspace_fixture(%{slug: "ws-empty-#{System.unique_integer([:positive])}"})
+      empty_ws =
+        MissionFixtures.workspace_fixture(%{
+          slug: "ws-empty-#{System.unique_integer([:positive])}"
+        })
+
       {:ok, _} = Accounts.assign_workspace_to_org(empty_ws.id, org.id)
 
       rows = Accounts.org_workspace_breakdown(org.id)
@@ -107,7 +118,9 @@ defmodule ControlKeel.AccountsBudgetTest do
     end
 
     test "computes remaining and over_cap correctly", %{org: org} do
-      ws = MissionFixtures.workspace_fixture(%{slug: "ws-bud-#{System.unique_integer([:positive])}"})
+      ws =
+        MissionFixtures.workspace_fixture(%{slug: "ws-bud-#{System.unique_integer([:positive])}"})
+
       {:ok, _} = Accounts.assign_workspace_to_org(ws.id, org.id)
       _ = MissionFixtures.session_fixture(%{workspace: ws, spent_cents: 750})
 
@@ -122,7 +135,11 @@ defmodule ControlKeel.AccountsBudgetTest do
     end
 
     test "flags over_cap when spend exceeds budget", %{org: org} do
-      ws = MissionFixtures.workspace_fixture(%{slug: "ws-over-#{System.unique_integer([:positive])}"})
+      ws =
+        MissionFixtures.workspace_fixture(%{
+          slug: "ws-over-#{System.unique_integer([:positive])}"
+        })
+
       {:ok, _} = Accounts.assign_workspace_to_org(ws.id, org.id)
       _ = MissionFixtures.session_fixture(%{workspace: ws, spent_cents: 2000})
 

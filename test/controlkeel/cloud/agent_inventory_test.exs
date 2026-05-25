@@ -17,7 +17,10 @@ defmodule ControlKeel.Cloud.AgentInventoryTest do
 
   describe "scan/2 errors" do
     test "returns :not_found for a missing path" do
-      assert {:error, :not_found} = AgentInventory.scan("/definitely/does/not/exist/-#{System.unique_integer([:positive])}")
+      assert {:error, :not_found} =
+               AgentInventory.scan(
+                 "/definitely/does/not/exist/-#{System.unique_integer([:positive])}"
+               )
     end
 
     test "returns :not_a_directory when path is a file", %{tmp: tmp} do

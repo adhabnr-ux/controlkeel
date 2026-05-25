@@ -179,7 +179,8 @@ defmodule ControlKeel.Cloud.RuntimeContextTest do
   describe "RunPackage helpers" do
     test "terminal? matches all three terminal statuses" do
       for status <- ~w(completed failed cancelled) do
-        assert RunPackage.terminal?(%RunPackage{status: status}), "status #{status} should be terminal"
+        assert RunPackage.terminal?(%RunPackage{status: status}),
+               "status #{status} should be terminal"
       end
 
       refute RunPackage.terminal?(%RunPackage{status: "pending"})

@@ -39,7 +39,11 @@ defmodule ControlKeelWeb.CloudTelemetryControllerTest do
   end
 
   describe "POST /cloud/v1/telemetry" do
-    test "rejects missing Authorization header", %{conn: conn, identity: identity, envelope: envelope} do
+    test "rejects missing Authorization header", %{
+      conn: conn,
+      identity: identity,
+      envelope: envelope
+    } do
       conn =
         post(conn, "/cloud/v1/telemetry",
           schema_version: "1",

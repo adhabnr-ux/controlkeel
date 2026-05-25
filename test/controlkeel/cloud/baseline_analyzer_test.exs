@@ -27,9 +27,15 @@ defmodule ControlKeel.Cloud.BaselineAnalyzerTest do
 
       for session <- [s1, s2] do
         Repo.insert!(%Invocation{
-          source: "proxy", tool: "ck_validate", provider: "anthropic", model: "claude-sonnet-4-6",
-          input_tokens: 100, output_tokens: 200,
-          estimated_cost_cents: 5, decision: "allow", metadata: %{},
+          source: "proxy",
+          tool: "ck_validate",
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+          input_tokens: 100,
+          output_tokens: 200,
+          estimated_cost_cents: 5,
+          decision: "allow",
+          metadata: %{},
           session_id: session.id
         })
       end
@@ -59,8 +65,10 @@ defmodule ControlKeel.Cloud.BaselineAnalyzerTest do
 
     test "returns empty list when baseline has too few samples", %{workspace: ws} do
       Repo.insert!(%WorkspaceBaseline{
-        workspace_id: ws.id, window_days: 7,
-        baseline_data: ~s({"ck_validate": {"mean_calls_per_session": 1.0, "mean_input_tokens": 100.0, "mean_output_tokens": 200.0, "sample_count": 2}}),
+        workspace_id: ws.id,
+        window_days: 7,
+        baseline_data:
+          ~s({"ck_validate": {"mean_calls_per_session": 1.0, "mean_input_tokens": 100.0, "mean_output_tokens": 200.0, "sample_count": 2}}),
         sample_sessions: 2,
         computed_at: DateTime.utc_now() |> DateTime.truncate(:second)
       })
@@ -71,15 +79,17 @@ defmodule ControlKeel.Cloud.BaselineAnalyzerTest do
 
     test "detects call-count deviation above threshold", %{workspace: ws} do
       Repo.insert!(%WorkspaceBaseline{
-        workspace_id: ws.id, window_days: 7,
-        baseline_data: Jason.encode!(%{
-          "ck_validate" => %{
-            "mean_calls_per_session" => 1.0,
-            "mean_input_tokens" => 100.0,
-            "mean_output_tokens" => 200.0,
-            "sample_count" => 10
-          }
-        }),
+        workspace_id: ws.id,
+        window_days: 7,
+        baseline_data:
+          Jason.encode!(%{
+            "ck_validate" => %{
+              "mean_calls_per_session" => 1.0,
+              "mean_input_tokens" => 100.0,
+              "mean_output_tokens" => 200.0,
+              "sample_count" => 10
+            }
+          }),
         sample_sessions: 10,
         computed_at: DateTime.utc_now() |> DateTime.truncate(:second)
       })
@@ -88,9 +98,15 @@ defmodule ControlKeel.Cloud.BaselineAnalyzerTest do
 
       for _ <- 1..5 do
         Repo.insert!(%Invocation{
-          source: "proxy", tool: "ck_validate", provider: "anthropic", model: "c",
-          input_tokens: 100, output_tokens: 200,
-          estimated_cost_cents: 1, decision: "allow", metadata: %{},
+          source: "proxy",
+          tool: "ck_validate",
+          provider: "anthropic",
+          model: "c",
+          input_tokens: 100,
+          output_tokens: 200,
+          estimated_cost_cents: 1,
+          decision: "allow",
+          metadata: %{},
           session_id: session.id
         })
       end

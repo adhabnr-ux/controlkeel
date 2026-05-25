@@ -199,16 +199,28 @@ defmodule ControlKeel.BudgetTest do
       s2 = session_fixture(%{budget_cents: 10_000, spent_cents: 0})
 
       Repo.insert!(%Invocation{
-        source: "proxy", tool: "chat", provider: "openai", model: "gpt-4",
-        input_tokens: 100, output_tokens: 1_000,
-        estimated_cost_cents: 5, decision: "allow", metadata: %{},
+        source: "proxy",
+        tool: "chat",
+        provider: "openai",
+        model: "gpt-4",
+        input_tokens: 100,
+        output_tokens: 1_000,
+        estimated_cost_cents: 5,
+        decision: "allow",
+        metadata: %{},
         session_id: s1.id
       })
 
       Repo.insert!(%Invocation{
-        source: "proxy", tool: "chat", provider: "openai", model: "gpt-4",
-        input_tokens: 200, output_tokens: 200,
-        estimated_cost_cents: 5, decision: "allow", metadata: %{},
+        source: "proxy",
+        tool: "chat",
+        provider: "openai",
+        model: "gpt-4",
+        input_tokens: 200,
+        output_tokens: 200,
+        estimated_cost_cents: 5,
+        decision: "allow",
+        metadata: %{},
         session_id: s2.id
       })
 
@@ -225,9 +237,15 @@ defmodule ControlKeel.BudgetTest do
       session = session_fixture(%{budget_cents: 10_000, spent_cents: 0})
 
       Repo.insert!(%Invocation{
-        source: "proxy", tool: "chat", provider: "anthropic", model: "claude-sonnet-4-6",
-        input_tokens: 50, output_tokens: 50,
-        estimated_cost_cents: 1, decision: "allow", metadata: %{},
+        source: "proxy",
+        tool: "chat",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        input_tokens: 50,
+        output_tokens: 50,
+        estimated_cost_cents: 1,
+        decision: "allow",
+        metadata: %{},
         session_id: session.id,
         inserted_at: ~U[2000-01-01 00:00:00Z]
       })

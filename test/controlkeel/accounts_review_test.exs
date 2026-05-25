@@ -63,7 +63,9 @@ defmodule ControlKeel.AccountsReviewTest do
     end
 
     test "rejects assignment when workspace has no org", %{alice: alice, bob: bob} do
-      solo_ws = MissionFixtures.workspace_fixture(%{slug: "solo-#{System.unique_integer([:positive])}"})
+      solo_ws =
+        MissionFixtures.workspace_fixture(%{slug: "solo-#{System.unique_integer([:positive])}"})
+
       solo_session = MissionFixtures.session_fixture(%{workspace: solo_ws})
       solo_review = MissionFixtures.review_fixture(%{session: solo_session, title: "Solo"})
 
@@ -71,7 +73,12 @@ defmodule ControlKeel.AccountsReviewTest do
                Accounts.assign_review(solo_review.id, bob.id, actor_user_id: alice.id)
     end
 
-    test "reassignment records a 'reassigned' event", %{review: review, alice: alice, bob: bob, carol: carol} do
+    test "reassignment records a 'reassigned' event", %{
+      review: review,
+      alice: alice,
+      bob: bob,
+      carol: carol
+    } do
       {:ok, _} = Accounts.assign_review(review.id, bob.id, actor_user_id: alice.id)
       {:ok, reassigned} = Accounts.assign_review(review.id, carol.id, actor_user_id: alice.id)
 
@@ -131,7 +138,12 @@ defmodule ControlKeel.AccountsReviewTest do
       assert {:error, :already_decided} = Accounts.decide_review(review.id, bob.id, :denied)
     end
 
-    test "required_role gates the decider", %{review: review, alice: alice, bob: bob, carol: carol} do
+    test "required_role gates the decider", %{
+      review: review,
+      alice: alice,
+      bob: bob,
+      carol: carol
+    } do
       {:ok, _} =
         Accounts.assign_review(review.id, carol.id,
           actor_user_id: alice.id,

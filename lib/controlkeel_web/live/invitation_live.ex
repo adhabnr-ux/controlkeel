@@ -96,8 +96,7 @@ defmodule ControlKeelWeb.InvitationLive do
 
         <div class="ck-card">
           <p>
-            Confirm the email this invitation was issued to:
-            <strong><code>{@invited_user.email}</code></strong>.
+            Confirm the email this invitation was issued to: <strong><code>{@invited_user.email}</code></strong>.
           </p>
 
           <form id="invitation-accept-form" phx-submit="accept">
@@ -143,7 +142,9 @@ defmodule ControlKeelWeb.InvitationLive do
       <section id="invitation-page" class="ck-shell ck-shell-tight">
         <div class="ck-card">
           <h1 class="ck-section-title">Already accepted</h1>
-          <p>This invitation has already been used. If you didn't accept it, contact the org owner.</p>
+          <p>
+            This invitation has already been used. If you didn't accept it, contact the org owner.
+          </p>
         </div>
       </section>
     </Layouts.app>

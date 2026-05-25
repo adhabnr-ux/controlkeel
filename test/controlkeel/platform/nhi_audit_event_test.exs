@@ -14,10 +14,12 @@ defmodule ControlKeel.Platform.NhiAuditEventTest do
   describe "provision_agent_identity/3" do
     test "creates service account and provisioned audit event", %{workspace: ws} do
       assert {:ok, %{service_account: account, token: token}} =
-               Platform.provision_agent_identity(ws.id, %{
-                 name: "ci-bot",
-                 scopes: ["mcp:access", "validate:run"]
-               }, actor: "admin@example.com")
+               Platform.provision_agent_identity(
+                 ws.id,
+                 %{
+                   name: "ci-bot",
+                   scopes: ["mcp:access", "validate:run"]
+                 }, actor: "admin@example.com")
 
       assert account.status == "active"
       assert is_binary(token)

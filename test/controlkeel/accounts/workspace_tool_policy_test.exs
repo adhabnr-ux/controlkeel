@@ -21,7 +21,12 @@ defmodule ControlKeel.Accounts.WorkspaceToolPolicyTest do
 
   describe "set_workspace_tool_policy/3" do
     test "creates a new allowlist policy", %{workspace: ws} do
-      assert {:ok, policy} = Accounts.set_workspace_tool_policy(ws.id, "allowlist", ["ck_validate", "ck_finding"])
+      assert {:ok, policy} =
+               Accounts.set_workspace_tool_policy(ws.id, "allowlist", [
+                 "ck_validate",
+                 "ck_finding"
+               ])
+
       assert policy.mode == "allowlist"
       assert WorkspaceToolPolicy.decode_tools(policy) == ["ck_validate", "ck_finding"]
     end
@@ -55,12 +60,14 @@ defmodule ControlKeel.Accounts.WorkspaceToolPolicyTest do
 
     test "allowlist: blocks tools not in the list", %{workspace: ws} do
       Accounts.set_workspace_tool_policy(ws.id, "allowlist", ["ck_validate"])
+
       assert {:error, {:policy, :tool_not_in_workspace_allowlist}} =
                Accounts.check_workspace_tool_policy(ws.id, "ck_delegate")
     end
 
     test "denylist: blocks tools in the list", %{workspace: ws} do
       Accounts.set_workspace_tool_policy(ws.id, "denylist", ["ck_delegate"])
+
       assert {:error, {:policy, :tool_in_workspace_denylist}} =
                Accounts.check_workspace_tool_policy(ws.id, "ck_delegate")
     end

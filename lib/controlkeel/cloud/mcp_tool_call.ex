@@ -29,7 +29,10 @@ defmodule ControlKeel.Cloud.McpToolCall do
 
   def changeset(call, attrs) do
     call
-    |> cast(attrs, @required ++ ~w(workspace_id service_account_id denial_reason scopes_granted argument_keys)a)
+    |> cast(
+      attrs,
+      @required ++ ~w(workspace_id service_account_id denial_reason scopes_granted argument_keys)a
+    )
     |> validate_required(@required)
     |> validate_inclusion(:outcome, @valid_outcomes)
   end

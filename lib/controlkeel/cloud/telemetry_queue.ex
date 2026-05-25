@@ -160,7 +160,9 @@ defmodule ControlKeel.Cloud.TelemetryQueue do
   """
   @spec discard(TelemetryEvent.t() | integer()) :: {non_neg_integer(), nil}
   def discard(%TelemetryEvent{id: id}), do: discard(id)
-  def discard(id) when is_integer(id), do: Repo.delete_all(from e in TelemetryEvent, where: e.id == ^id)
+
+  def discard(id) when is_integer(id),
+    do: Repo.delete_all(from e in TelemetryEvent, where: e.id == ^id)
 
   defp envelope_to_attrs(envelope) do
     %{

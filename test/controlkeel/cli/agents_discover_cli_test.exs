@@ -50,7 +50,11 @@ defmodule ControlKeel.CLI.AgentsDiscoverTest do
     test "errors on missing path", %{} do
       assert {:error, msg} =
                CLI.run_command(
-                 %{command: :agents_discover, options: %{}, args: ["/nope/missing-#{System.unique_integer([:positive])}"]},
+                 %{
+                   command: :agents_discover,
+                   options: %{},
+                   args: ["/nope/missing-#{System.unique_integer([:positive])}"]
+                 },
                  File.cwd!()
                )
 

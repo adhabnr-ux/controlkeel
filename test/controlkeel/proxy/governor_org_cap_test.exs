@@ -7,12 +7,21 @@ defmodule ControlKeel.Proxy.GovernorOrgCapTest do
 
   describe "workspace_org_cap_status/1" do
     test "returns :ok for unaffiliated workspaces" do
-      ws = MissionFixtures.workspace_fixture(%{slug: "ws-solo-#{System.unique_integer([:positive])}"})
+      ws =
+        MissionFixtures.workspace_fixture(%{
+          slug: "ws-solo-#{System.unique_integer([:positive])}"
+        })
+
       assert :ok = Accounts.workspace_org_cap_status(ws.id)
     end
 
     test "returns :ok when org has no budget cap set" do
-      {:ok, org} = Accounts.create_org(%{name: "NoCap", slug: "no-cap-#{System.unique_integer([:positive])}"})
+      {:ok, org} =
+        Accounts.create_org(%{
+          name: "NoCap",
+          slug: "no-cap-#{System.unique_integer([:positive])}"
+        })
+
       ws = MissionFixtures.workspace_fixture(%{slug: "ws-#{System.unique_integer([:positive])}"})
       {:ok, _} = Accounts.assign_workspace_to_org(ws.id, org.id)
 
@@ -20,7 +29,9 @@ defmodule ControlKeel.Proxy.GovernorOrgCapTest do
     end
 
     test "returns :ok when under cap" do
-      {:ok, org} = Accounts.create_org(%{name: "Under", slug: "under-#{System.unique_integer([:positive])}"})
+      {:ok, org} =
+        Accounts.create_org(%{name: "Under", slug: "under-#{System.unique_integer([:positive])}"})
+
       ws = MissionFixtures.workspace_fixture(%{slug: "ws-#{System.unique_integer([:positive])}"})
       {:ok, _} = Accounts.assign_workspace_to_org(ws.id, org.id)
       _ = MissionFixtures.session_fixture(%{workspace: ws, spent_cents: 200})
@@ -30,7 +41,9 @@ defmodule ControlKeel.Proxy.GovernorOrgCapTest do
     end
 
     test "returns {:over_cap, status} when org spend exceeds cap" do
-      {:ok, org} = Accounts.create_org(%{name: "Over", slug: "over-#{System.unique_integer([:positive])}"})
+      {:ok, org} =
+        Accounts.create_org(%{name: "Over", slug: "over-#{System.unique_integer([:positive])}"})
+
       ws = MissionFixtures.workspace_fixture(%{slug: "ws-#{System.unique_integer([:positive])}"})
       {:ok, _} = Accounts.assign_workspace_to_org(ws.id, org.id)
       _ = MissionFixtures.session_fixture(%{workspace: ws, spent_cents: 2000})
@@ -45,7 +58,12 @@ defmodule ControlKeel.Proxy.GovernorOrgCapTest do
 
   describe "Governor.preflight/5 org-cap blocking" do
     setup do
-      {:ok, org} = Accounts.create_org(%{name: "Budget Org", slug: "budget-#{System.unique_integer([:positive])}"})
+      {:ok, org} =
+        Accounts.create_org(%{
+          name: "Budget Org",
+          slug: "budget-#{System.unique_integer([:positive])}"
+        })
+
       ws = MissionFixtures.workspace_fixture(%{slug: "ws-#{System.unique_integer([:positive])}"})
       {:ok, _} = Accounts.assign_workspace_to_org(ws.id, org.id)
       {:ok, org: org, workspace: ws}
@@ -89,7 +107,11 @@ defmodule ControlKeel.Proxy.GovernorOrgCapTest do
     end
 
     test "no org-cap finding emitted when workspace is unaffiliated" do
-      solo_ws = MissionFixtures.workspace_fixture(%{slug: "ws-solo-#{System.unique_integer([:positive])}"})
+      solo_ws =
+        MissionFixtures.workspace_fixture(%{
+          slug: "ws-solo-#{System.unique_integer([:positive])}"
+        })
+
       session = MissionFixtures.session_fixture(%{workspace: solo_ws, spent_cents: 999_999})
 
       {:ok, preflight} =

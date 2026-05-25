@@ -20,7 +20,13 @@ defmodule ControlKeel.Cloud.WorkspaceBaseline do
   def changeset(record, attrs) do
     record
     |> cast(attrs, [:workspace_id, :window_days, :baseline_data, :sample_sessions, :computed_at])
-    |> validate_required([:workspace_id, :window_days, :baseline_data, :sample_sessions, :computed_at])
+    |> validate_required([
+      :workspace_id,
+      :window_days,
+      :baseline_data,
+      :sample_sessions,
+      :computed_at
+    ])
     |> validate_number(:window_days, greater_than: 0)
     |> validate_number(:sample_sessions, greater_than_or_equal_to: 0)
     |> assoc_constraint(:workspace)

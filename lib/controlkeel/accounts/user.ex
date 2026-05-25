@@ -43,5 +43,7 @@ defmodule ControlKeel.Accounts.User do
   end
 
   defp normalize_email(nil), do: nil
-  defp normalize_email(email) when is_binary(email), do: email |> String.downcase() |> String.trim()
+
+  defp normalize_email(email) when is_binary(email),
+    do: email |> String.downcase() |> String.trim()
 end

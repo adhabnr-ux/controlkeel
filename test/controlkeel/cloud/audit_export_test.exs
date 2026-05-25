@@ -33,7 +33,11 @@ defmodule ControlKeel.Cloud.AuditExportTest do
       {:ok, workspace: workspace, session: session, finding: finding, review: review}
     end
 
-    test "captures findings and reviews", %{workspace: workspace, finding: finding, review: review} do
+    test "captures findings and reviews", %{
+      workspace: workspace,
+      finding: finding,
+      review: review
+    } do
       {:ok, bundle} = AuditExport.build(workspace_id: workspace.id)
 
       assert bundle["schema_version"] == "1"
@@ -65,7 +69,8 @@ defmodule ControlKeel.Cloud.AuditExportTest do
 
       {:ok, bundle} = AuditExport.build(workspace_id: workspace.id)
 
-      assert [%{"runtime_target" => "devin", "status" => "completed"}] = bundle["cloud_run_packages"]
+      assert [%{"runtime_target" => "devin", "status" => "completed"}] =
+               bundle["cloud_run_packages"]
     end
 
     test "produces JSON-encodable output", %{workspace: workspace} do
@@ -77,8 +82,13 @@ defmodule ControlKeel.Cloud.AuditExportTest do
   describe "build/1 org scope" do
     setup do
       {:ok, org} = Accounts.create_org(%{name: "Acme", slug: "acme"})
-      ws_a = MissionFixtures.workspace_fixture(%{slug: "ws-a-#{System.unique_integer([:positive])}"})
-      ws_b = MissionFixtures.workspace_fixture(%{slug: "ws-b-#{System.unique_integer([:positive])}"})
+
+      ws_a =
+        MissionFixtures.workspace_fixture(%{slug: "ws-a-#{System.unique_integer([:positive])}"})
+
+      ws_b =
+        MissionFixtures.workspace_fixture(%{slug: "ws-b-#{System.unique_integer([:positive])}"})
+
       {:ok, _} = Accounts.assign_workspace_to_org(ws_a.id, org.id)
       {:ok, _} = Accounts.assign_workspace_to_org(ws_b.id, org.id)
 

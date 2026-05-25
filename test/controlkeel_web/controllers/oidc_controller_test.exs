@@ -6,6 +6,7 @@ defmodule ControlKeelWeb.OidcControllerTest do
   setup do
     original_adapter = Application.get_env(:controlkeel, :oidc_client_adapter)
     Application.put_env(:controlkeel, :oidc_client_adapter, ControlKeel.OidcTestAdapter)
+
     on_exit(fn ->
       if original_adapter do
         Application.put_env(:controlkeel, :oidc_client_adapter, original_adapter)
@@ -72,7 +73,10 @@ defmodule ControlKeelWeb.OidcControllerTest do
   end
 
   describe "GET /auth/oidc/callback" do
-    test "provisions user and active membership when state and claims are valid", %{conn: conn, org: org} do
+    test "provisions user and active membership when state and claims are valid", %{
+      conn: conn,
+      org: org
+    } do
       ControlKeel.OidcTestAdapter.put("provider-code", %{
         "email" => "CAROL@example.com",
         "name" => "Carol",

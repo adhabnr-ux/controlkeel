@@ -14,7 +14,12 @@ defmodule ControlKeelWeb.InvitationLiveTest do
   end
 
   describe "GET /cloud/invitations/:token" do
-    test "renders the join page for a valid pending invitation", %{conn: conn, org: org, invitee: invitee, token: token} do
+    test "renders the join page for a valid pending invitation", %{
+      conn: conn,
+      org: org,
+      invitee: invitee,
+      token: token
+    } do
       {:ok, _view, html} = live(conn, "/cloud/invitations/#{token}")
 
       assert html =~ "Join " <> org.name
@@ -27,7 +32,11 @@ defmodule ControlKeelWeb.InvitationLiveTest do
       assert html =~ "Invitation not found"
     end
 
-    test "renders 'Invitation not found' after the token has been used", %{conn: conn, invitee: invitee, token: token} do
+    test "renders 'Invitation not found' after the token has been used", %{
+      conn: conn,
+      invitee: invitee,
+      token: token
+    } do
       # Acceptance clears the token hash, so the same raw token can no longer be
       # looked up — that's the correct security posture.
       {:ok, _} = Accounts.accept_invitation(token, invitee.id)
@@ -38,7 +47,11 @@ defmodule ControlKeelWeb.InvitationLiveTest do
   end
 
   describe "accept event" do
-    test "accepts the invitation when email matches", %{conn: conn, invitee: invitee, token: token} do
+    test "accepts the invitation when email matches", %{
+      conn: conn,
+      invitee: invitee,
+      token: token
+    } do
       {:ok, view, _html} = live(conn, "/cloud/invitations/#{token}")
 
       _html =

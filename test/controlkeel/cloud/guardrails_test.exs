@@ -99,6 +99,7 @@ defmodule ControlKeel.Cloud.GuardrailsTest do
 
       # Openai key NOT scanned because only aws_access_key is listed
       assert :ok = Guardrails.scan(%{"k" => "sk-AAAAAAAAAAAAAAAAAAAAAAAA"}, "ck_context")
+
       assert {:error, {:guardrail, :aws_access_key}} =
                Guardrails.scan(%{"k" => "AKIA0123456789ABCDEF"}, "ck_context")
     end
@@ -112,7 +113,9 @@ defmodule ControlKeel.Cloud.GuardrailsTest do
       })
 
       assert :ok = Guardrails.scan(%{"code" => "sk-AAAAAAAAAAAAAAAAAAAAAAAA"}, "ck_validate")
-      assert {:error, _} = Guardrails.scan(%{"code" => "sk-AAAAAAAAAAAAAAAAAAAAAAAA"}, "ck_context")
+
+      assert {:error, _} =
+               Guardrails.scan(%{"code" => "sk-AAAAAAAAAAAAAAAAAAAAAAAA"}, "ck_context")
     end
   end
 

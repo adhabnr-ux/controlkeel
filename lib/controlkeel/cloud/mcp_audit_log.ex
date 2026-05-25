@@ -95,7 +95,9 @@ defmodule ControlKeel.Cloud.McpAuditLog do
   def count, do: Repo.aggregate(McpToolCall, :count, :id)
 
   @doc "Counts grouped by tool_name + outcome, descending by total."
-  @spec counts_by_tool() :: [%{tool_name: String.t(), allowed: non_neg_integer(), denied: non_neg_integer()}]
+  @spec counts_by_tool() :: [
+          %{tool_name: String.t(), allowed: non_neg_integer(), denied: non_neg_integer()}
+        ]
   def counts_by_tool do
     McpToolCall
     |> group_by([c], [c.tool_name, c.outcome])
@@ -118,7 +120,11 @@ defmodule ControlKeel.Cloud.McpAuditLog do
   end
 
   @doc "Aggregate counts."
-  @spec summary() :: %{total: non_neg_integer(), allowed: non_neg_integer(), denied: non_neg_integer()}
+  @spec summary() :: %{
+          total: non_neg_integer(),
+          allowed: non_neg_integer(),
+          denied: non_neg_integer()
+        }
   def summary do
     rows =
       McpToolCall

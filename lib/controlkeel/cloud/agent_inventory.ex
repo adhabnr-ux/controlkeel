@@ -36,16 +36,46 @@ defmodule ControlKeel.Cloud.AgentInventory do
 
   @patterns [
     # Per-host repo-scoped directories
-    %{host: "claude-code", relative_path: ".claude", kind: :directory, evidence: "claude-code repo dir"},
+    %{
+      host: "claude-code",
+      relative_path: ".claude",
+      kind: :directory,
+      evidence: "claude-code repo dir"
+    },
     %{host: "cursor", relative_path: ".cursor", kind: :directory, evidence: "cursor workspace"},
     %{host: "codex-cli", relative_path: ".codex", kind: :directory, evidence: "codex workspace"},
-    %{host: "opencode", relative_path: ".opencode", kind: :directory, evidence: "opencode workspace"},
-    %{host: "augment", relative_path: ".augment", kind: :directory, evidence: "augment workspace"},
+    %{
+      host: "opencode",
+      relative_path: ".opencode",
+      kind: :directory,
+      evidence: "opencode workspace"
+    },
+    %{
+      host: "augment",
+      relative_path: ".augment",
+      kind: :directory,
+      evidence: "augment workspace"
+    },
     %{host: "warp", relative_path: ".warp", kind: :directory, evidence: "warp workspace"},
-    %{host: "devin-terminal", relative_path: ".devin", kind: :directory, evidence: "devin terminal workspace"},
+    %{
+      host: "devin-terminal",
+      relative_path: ".devin",
+      kind: :directory,
+      evidence: "devin terminal workspace"
+    },
     %{host: "kiro", relative_path: ".kiro", kind: :directory, evidence: "kiro workspace"},
-    %{host: "windsurf", relative_path: ".windsurf", kind: :directory, evidence: "windsurf workspace"},
-    %{host: "continue", relative_path: ".continue", kind: :directory, evidence: "continue workspace"},
+    %{
+      host: "windsurf",
+      relative_path: ".windsurf",
+      kind: :directory,
+      evidence: "windsurf workspace"
+    },
+    %{
+      host: "continue",
+      relative_path: ".continue",
+      kind: :directory,
+      evidence: "continue workspace"
+    },
     %{host: "cline", relative_path: ".cline", kind: :directory, evidence: "cline workspace"},
     %{host: "goose", relative_path: ".goose", kind: :directory, evidence: "goose workspace"},
     %{host: "amp", relative_path: ".amp", kind: :directory, evidence: "amp workspace"},
@@ -55,16 +85,41 @@ defmodule ControlKeel.Cloud.AgentInventory do
     %{host: "letta-code", relative_path: ".letta", kind: :directory, evidence: "letta workspace"},
 
     # Cross-host conventions
-    %{host: "agents-md", relative_path: "AGENTS.md", kind: :file, evidence: "AGENTS.md spec file"},
-    %{host: "agents-skills", relative_path: ".agents", kind: :directory, evidence: "open AgentSkills bundle"},
+    %{
+      host: "agents-md",
+      relative_path: "AGENTS.md",
+      kind: :file,
+      evidence: "AGENTS.md spec file"
+    },
+    %{
+      host: "agents-skills",
+      relative_path: ".agents",
+      kind: :directory,
+      evidence: "open AgentSkills bundle"
+    },
 
     # Single-file conventions
-    %{host: "claude-code", relative_path: "CLAUDE.md", kind: :file, evidence: "CLAUDE.md project instructions"},
+    %{
+      host: "claude-code",
+      relative_path: "CLAUDE.md",
+      kind: :file,
+      evidence: "CLAUDE.md project instructions"
+    },
     %{host: "aider", relative_path: ".aider.conf.yml", kind: :file, evidence: "aider config"},
     %{host: "aider", relative_path: "AIDER.md", kind: :file, evidence: "aider project doc"},
     %{host: "kilo", relative_path: ".kilo/kilo.json", kind: :file, evidence: "kilo config"},
-    %{host: "letta-code", relative_path: ".letta/settings.json", kind: :file, evidence: "letta settings"},
-    %{host: "windsurf", relative_path: ".windsurf/hooks.json", kind: :file, evidence: "windsurf hook config"}
+    %{
+      host: "letta-code",
+      relative_path: ".letta/settings.json",
+      kind: :file,
+      evidence: "letta settings"
+    },
+    %{
+      host: "windsurf",
+      relative_path: ".windsurf/hooks.json",
+      kind: :file,
+      evidence: "windsurf hook config"
+    }
   ]
 
   @doc "Patterns the discoverer recognises (mostly used by tests)."
@@ -134,6 +189,7 @@ defmodule ControlKeel.Cloud.AgentInventory do
       []
     else
       hits_here = matches_at(current, root)
+
       sub_hits =
         case File.ls(current) do
           {:ok, entries} ->

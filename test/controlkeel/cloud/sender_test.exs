@@ -143,7 +143,8 @@ defmodule ControlKeel.Cloud.SenderTest do
     end
 
     test "respects limit option" do
-      for _ <- 1..5, do: enqueue_envelope("heartbeat", %{"x" => System.unique_integer([:positive])})
+      for _ <- 1..5,
+          do: enqueue_envelope("heartbeat", %{"x" => System.unique_integer([:positive])})
 
       install_recording_http(fn _url, _opts -> {:ok, %{status: 200}} end)
 
@@ -167,12 +168,21 @@ defmodule ControlKeel.Cloud.SenderTest do
   end
 
   defp install_recording_http(handler) do
-    Application.put_env(:controlkeel, :cloud_sender_http_module, ControlKeel.Cloud.SenderTest.FakeHTTP)
+    Application.put_env(
+      :controlkeel,
+      :cloud_sender_http_module,
+      ControlKeel.Cloud.SenderTest.FakeHTTP
+    )
+
     Process.put(:fake_http_handler, handler)
   end
 
   defp install_failing_http do
-    Application.put_env(:controlkeel, :cloud_sender_http_module, ControlKeel.Cloud.SenderTest.ForbiddenHTTP)
+    Application.put_env(
+      :controlkeel,
+      :cloud_sender_http_module,
+      ControlKeel.Cloud.SenderTest.ForbiddenHTTP
+    )
   end
 
   defmodule FakeHTTP do

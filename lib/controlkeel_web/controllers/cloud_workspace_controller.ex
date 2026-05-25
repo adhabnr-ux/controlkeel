@@ -58,8 +58,13 @@ defmodule ControlKeelWeb.CloudWorkspaceController do
         bad_request(conn, reason)
 
       {:error, reason}
-      when reason in [:unsupported_algorithm, :public_key_invalid, :proof_expired,
-                      :proof_future_dated, :proof_payload_mismatch] ->
+      when reason in [
+             :unsupported_algorithm,
+             :public_key_invalid,
+             :proof_expired,
+             :proof_future_dated,
+             :proof_payload_mismatch
+           ] ->
         bad_request(conn, reason)
 
       {:error, :invalid_invite} ->
