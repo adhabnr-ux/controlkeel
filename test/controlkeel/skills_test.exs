@@ -1482,6 +1482,10 @@ defmodule ControlKeel.SkillsTest do
 
     assert claude_install_agent =~ "controlkeel update --json"
 
+    claude_settings = File.read!(Path.join(tmp_dir, ".claude/settings.json"))
+    assert claude_settings =~ ".tool_input.command // .command // empty"
+    assert claude_settings =~ "Deploy-like command detected"
+
     assert {:ok, github_install} = Skills.install("github-repo", tmp_dir, scope: "project")
     assert github_install.destination == Path.join(tmp_dir, ".github/skills")
     assert File.exists?(Path.join(tmp_dir, ".github/skills/controlkeel-governance/SKILL.md"))

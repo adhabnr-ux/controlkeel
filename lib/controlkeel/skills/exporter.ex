@@ -4031,7 +4031,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "controlkeel context --json >/dev/null 2>&1 || true; printf '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"ControlKeel available. Start with ck_context to load mission state.\"}}' ",
+                  "controlkeel context --json >/dev/null 2>&1 || true; printf '{\"systemMessage\":\"ControlKeel available. Start with ck_context to load mission state.\"}' ",
                 "statusMessage" => "Loading ControlKeel context",
                 "timeout" => 10
               }
@@ -4045,7 +4045,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "TOOL_INPUT=$(cat); if command -v jq >/dev/null 2>&1; then CMD=$(printf '%s' \"$TOOL_INPUT\" | jq -r '.command // empty' 2>/dev/null); else CMD=$(printf '%s' \"$TOOL_INPUT\"); fi; printf '%s' \"$CMD\" | grep -qiE '(deploy|fly |wrangler publish|mix release|docker push|heroku|git push origin)' && printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"Deploy-like command detected. Confirm ck_validate and ck_review_submit were called this turn before proceeding.\"}}' || true",
+                  "TOOL_INPUT=$(cat); if command -v jq >/dev/null 2>&1; then CMD=$(printf '%s' \"$TOOL_INPUT\" | jq -r '.tool_input.command // .command // empty' 2>/dev/null); else CMD=$(printf '%s' \"$TOOL_INPUT\" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get(\"tool_input\",{}).get(\"command\") or d.get(\"command\", \"\"))' 2>/dev/null || true); fi; printf '%s' \"$CMD\" | grep -qiE '(deploy|fly |wrangler publish|mix release|docker push|heroku|git push origin)' && printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"Deploy-like command detected. Confirm ck_validate and ck_review_submit were called this turn before proceeding.\"}}' || true",
                 "statusMessage" => "Checking Bash command with ControlKeel",
                 "timeout" => 10
               }
@@ -4082,7 +4082,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PostCompact\",\"additionalContext\":\"Context was compacted. You are in a ControlKeel-governed session: always call ck_context before proceeding, ck_validate before code or shell changes, and ck_finding for any issues you discover.\"}}' ",
+                  "printf '{\"systemMessage\":\"Context was compacted. You are in a ControlKeel-governed session: always call ck_context before proceeding, ck_validate before code or shell changes, and ck_finding for any issues you discover.\"}' ",
                 "statusMessage" => "Re-initializing ControlKeel governance context",
                 "timeout" => 5
               }
@@ -4095,7 +4095,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"SubagentStart\",\"additionalContext\":\"You are in a ControlKeel-governed session. Call ck_context before proceeding with any task, ck_validate before code or shell changes, and ck_finding for issues you discover.\"}}' ",
+                  "printf '{\"systemMessage\":\"You are in a ControlKeel-governed session. Call ck_context before proceeding with any task, ck_validate before code or shell changes, and ck_finding for issues you discover.\"}' ",
                 "timeout" => 5
               }
             ]
@@ -4107,7 +4107,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"ConfigChange\",\"additionalContext\":\"Configuration changed. Governance constraints and hooks may have been updated. Call ck_context to refresh your governance state if needed.\"}}' ",
+                  "printf '{\"systemMessage\":\"Configuration changed. Governance constraints and hooks may have been updated. Call ck_context to refresh your governance state if needed.\"}' ",
                 "timeout" => 5
               }
             ]
@@ -4328,7 +4328,7 @@ defmodule ControlKeel.Skills.Exporter do
     #!/usr/bin/env sh
     set -u
 
-    printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PostCompact","additionalContext":"Context was compacted. You are in a ControlKeel-governed session: always call ck_context before proceeding, ck_validate before code or shell changes, and ck_finding for any issues you discover. Resume any in-progress work only after re-loading governance state."}}'
+    printf '%s\n' '{"systemMessage":"Context was compacted. You are in a ControlKeel-governed session: always call ck_context before proceeding, ck_validate before code or shell changes, and ck_finding for any issues you discover. Resume any in-progress work only after re-loading governance state."}'
     exit 0
     """
   end
@@ -4358,7 +4358,7 @@ defmodule ControlKeel.Skills.Exporter do
     #!/usr/bin/env sh
     set -u
 
-    printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"SubagentStart","additionalContext":"You are in a ControlKeel-governed session. Call ck_context before proceeding with any task, ck_validate before code or shell changes, and ck_finding for issues you discover. Follow all governance constraints from the parent session."}}'
+    printf '%s\n' '{"systemMessage":"You are in a ControlKeel-governed session. Call ck_context before proceeding with any task, ck_validate before code or shell changes, and ck_finding for issues you discover. Follow all governance constraints from the parent session."}'
     exit 0
     """
   end
@@ -4397,7 +4397,7 @@ defmodule ControlKeel.Skills.Exporter do
       source=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('source','unknown'))" 2>/dev/null || echo "unknown")
     fi
 
-    printf '{"hookSpecificOutput":{"hookEventName":"ConfigChange","additionalContext":"Configuration changed (source: %s). Governance constraints and hooks may have been updated. Call ck_context to refresh your governance state if the change affects your current task."}}\n' "$source"
+    printf '{"systemMessage":"Configuration changed (source: %s). Governance constraints and hooks may have been updated. Call ck_context to refresh your governance state if the change affects your current task."}\n' "$source"
     exit 0
     """
   end
@@ -4418,7 +4418,7 @@ defmodule ControlKeel.Skills.Exporter do
 
     # Surface the denied tool so Claude can adjust its approach.
     # We do not retry by default — governance rules should be respected.
-    printf '{"hookSpecificOutput":{"hookEventName":"PermissionDenied","additionalContext":"Tool call denied: %s. This is a governance or safety constraint. Do not retry the same action. If unintended, call ck_context to review active governance rules or check ck_finding for active blocks."}}\n' "$tool_name"
+    printf '{"systemMessage":"Tool call denied: %s. This is a governance or safety constraint. Do not retry the same action. If unintended, call ck_context to review active governance rules or check ck_finding for active blocks."}\n' "$tool_name"
     exit 0
     """
   end
@@ -4627,7 +4627,7 @@ defmodule ControlKeel.Skills.Exporter do
 
     ck_run context --session-id "${session_id:-1}" --json >/dev/null 2>&1 || true
 
-    printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"ControlKeel available. Start with ck_context to load mission state, call ck_validate before risky edits, ck_budget before expensive operations, and ck_route before delegation."}}'
+    printf '%s\n' '{"systemMessage":"ControlKeel available. Start with ck_context to load mission state, call ck_validate before risky edits, ck_budget before expensive operations, and ck_route before delegation."}'
     exit 0
     """
   end
