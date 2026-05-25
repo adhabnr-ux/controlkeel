@@ -303,6 +303,11 @@ defmodule ControlKeel.CLI do
     signing_key_env: :string
   ]
   @selfhost_switches [project_root: :string]
+  @agents_discover_switches [
+    project_root: :string,
+    max_depth: :integer,
+    json: :boolean
+  ]
   @agents_list_switches [project_root: :string, format: :string, json: :boolean]
   @route_agent_switches [
     task: :string,
@@ -538,6 +543,12 @@ defmodule ControlKeel.CLI do
 
       ["selfhost", "install-guide" | rest] ->
         parse_with_switches(:selfhost_install_guide, rest, @selfhost_switches)
+
+      ["agents", "discover", path | rest] ->
+        case parse_with_switches(:agents_discover, rest, @agents_discover_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [path])}
+          err -> err
+        end
 
       ["run", "session", session_id | rest] ->
         parse_run_command(:run_session, session_id, rest)
@@ -1988,6 +1999,54 @@ defmodule ControlKeel.CLI do
 
   def run_command(%{command: :selfhost_install_guide, options: _options}, _project_root) do
     {:ok, [ControlKeel.SelfHost.install_guide()]}
+  end
+
+  def run_command(%{command: :agents_discover, options: options, args: [path]}, _project_root) do
+    alias ControlKeel.Cloud.AgentInventory
+
+    scan_opts =
+      case options[:max_depth] do
+        n when is_integer(n) -> [max_depth: n]
+        _ -> []
+      end
+
+    case AgentInventory.scan(path, scan_opts) do
+      {:error, :not_found} ->
+        {:error, "Path not found: #{path}"}
+
+      {:error, :not_a_directory} ->
+        {:error, "Not a directory: #{path}"}
+
+      {:ok, hits} ->
+        if Map.get(options, :json, false) do
+          summary = AgentInventory.summarize(hits)
+          {:ok, [Jason.encode!(%{hits: hits, summary: summary}, pretty: true)]}
+        else
+          summary = AgentInventory.summarize(hits)
+
+          header = [
+            "Agent inventory scan",
+            "Root: #{Path.expand(path)}",
+            "Total hits: #{summary.total}",
+            ""
+          ]
+
+          rows =
+            if summary.by_host == [] do
+              ["No agent host evidence found."]
+            else
+              ["By host:"] ++
+                Enum.map(summary.by_host, fn h ->
+                  "  #{h.host}\t(#{h.count}) — #{Enum.join(h.evidence, ", ")}"
+                end) ++ ["", "Hits:"] ++
+                Enum.map(hits, fn hit ->
+                  "  #{hit.host}\t#{hit.path}\t#{hit.kind}\t#{hit.evidence}"
+                end)
+            end
+
+          {:ok, header ++ rows}
+        end
+    end
   end
 
   def run_command(%{command: :audit_export, options: options}, _project_root) do

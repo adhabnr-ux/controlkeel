@@ -540,6 +540,10 @@ defmodule ControlKeel.Help do
       controlkeel selfhost manifest     List paths that belong in an air-gapped install bundle
       controlkeel selfhost install-guide
                                         Print the INSTALL.md content for this release
+      controlkeel agents discover <path> [--max-depth N] [--json]
+                                        Scan a directory tree for agent-host config files
+                                        (.cursor/, .codex/, .claude/, AGENTS.md, CLAUDE.md, etc.)
+                                        Closes the "shadow AI" enterprise inventory gap.
       controlkeel audit export --workspace <slug>|--org <slug>
                                         [--since ISO8601] [--until ISO8601] [--template soc2|gdpr] [--sign --signing-key-env ENV] [--out FILE]
                                         Export an audit bundle (findings, reviews, audit events,
