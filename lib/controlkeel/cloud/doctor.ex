@@ -55,7 +55,8 @@ defmodule ControlKeel.Cloud.Doctor do
       hosted_mcp_check(),
       a2a_check(),
       telemetry_check(),
-      sender_endpoint_check()
+      sender_endpoint_check(),
+      public_host_check(mode)
     ]
 
     %{
@@ -300,6 +301,44 @@ defmodule ControlKeel.Cloud.Doctor do
           label: "Sender endpoint",
           status: :ok,
           detail: "#{url}#{periodic_suffix()}"
+        }
+    end
+  end
+
+  defp public_host_check(:local) do
+    not_applicable(:public_host, "Public host", "local mode")
+  end
+
+  defp public_host_check(:cloud) do
+    phx_host = System.get_env("PHX_HOST")
+    endpoint_config = Application.get_env(:controlkeel, ControlKeelWeb.Endpoint, [])
+    url_config = Keyword.get(endpoint_config, :url, [])
+    host = phx_host || Keyword.get(url_config, :host)
+
+    cond do
+      host in [nil, ""] ->
+        %{
+          id: :public_host,
+          label: "Public host",
+          status: :warn,
+          detail: "no PHX_HOST set; defaulting to \"controlkeel.com\". " <>
+                  "Self-hosters must set PHX_HOST to their own domain."
+        }
+
+      host == "controlkeel.com" ->
+        %{
+          id: :public_host,
+          label: "Public host",
+          status: :ok,
+          detail: "controlkeel.com (canonical SaaS deployment)"
+        }
+
+      true ->
+        %{
+          id: :public_host,
+          label: "Public host",
+          status: :ok,
+          detail: "#{host} (self-host deployment)"
         }
     end
   end

@@ -478,9 +478,12 @@ defmodule ControlKeel.Help do
       controlkeel agents doctor       Show bidirectional execution and install readiness
       controlkeel cloud doctor        Show cloud-mode boundary status (runtime mode, cloud repo,
                                       bus, service accounts, hosted MCP/A2A, telemetry sync)
-      controlkeel cloud connect [--rotate]
+      controlkeel cloud connect [--rotate] [--enroll URL] [--name N] [--invite TOKEN]
                                       Generate (or rotate) a local workspace identity keypair.
-                                      Local-only — no remote registration is performed.
+                                      With --enroll, posts a proof-of-possession envelope to
+                                      <URL>/cloud/v1/workspaces/register so the control plane
+                                      (e.g. https://controlkeel.com) accepts subsequent telemetry.
+                                      --invite binds the workspace to an org via an invitation token.
       controlkeel telemetry status    Show opt-in cloud telemetry sync state (disabled by default)
       controlkeel telemetry enable --level health|governance|evidence|full_audit
                                       Opt in to cloud telemetry at the specified level.

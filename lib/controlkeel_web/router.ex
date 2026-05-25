@@ -67,6 +67,8 @@ defmodule ControlKeelWeb.Router do
     live "/reviews/:id", ReviewLive, :show
     live "/ship", ShipLive, :index
     live "/cloud/telemetry", CloudTelemetryLive, :index
+    live "/cloud/projects", CloudProjectsLive, :index
+    live "/cloud/projects/:ws_id", CloudProjectsLive, :show
     live "/cloud/invitations/:token", InvitationLive, :show
     get "/auth/oidc/start", OidcController, :start
     get "/auth/oidc/callback", OidcController, :callback
@@ -219,6 +221,7 @@ defmodule ControlKeelWeb.Router do
 
     post "/telemetry", CloudTelemetryController, :ingest
     post "/runtime/callbacks", CloudRuntimeCallbackController, :update
+    post "/workspaces/register", CloudWorkspaceController, :register
   end
 
   scope "/", ControlKeelWeb do

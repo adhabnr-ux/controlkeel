@@ -9,6 +9,18 @@ defmodule ControlKeel.Cloud.DoctorTest do
     original_database_url = System.get_env("DATABASE_URL")
     original_nats_url = System.get_env("CONTROLKEEL_NATS_URL")
     original_runtime_env = System.get_env("CONTROLKEEL_RUNTIME_MODE")
+    original_phx_host = System.get_env("PHX_HOST")
+    original_endpoint = Application.get_env(:controlkeel, ControlKeelWeb.Endpoint)
+
+    on_exit(fn ->
+      if original_endpoint do
+        Application.put_env(:controlkeel, ControlKeelWeb.Endpoint, original_endpoint)
+      else
+        Application.delete_env(:controlkeel, ControlKeelWeb.Endpoint)
+      end
+
+      restore_env("PHX_HOST", original_phx_host)
+    end)
 
     on_exit(fn ->
       if original_mode do
@@ -154,6 +166,54 @@ defmodule ControlKeel.Cloud.DoctorTest do
 
       assert a2a.status == :ok
       assert a2a.detail =~ "/a2a"
+    end
+  end
+
+  describe "public_host check" do
+    setup do
+      Application.put_env(:controlkeel, :runtime_mode, :cloud)
+      Application.put_env(:controlkeel, ControlKeel.CloudRepo, url: "postgres://placeholder")
+      System.put_env("DATABASE_URL", "postgres://example/db")
+      :ok
+    end
+
+    test "is :not_applicable in local mode" do
+      Application.put_env(:controlkeel, :runtime_mode, :local)
+      System.delete_env("PHX_HOST")
+
+      report = Doctor.report()
+      host = find_check(report, :public_host)
+      assert host.status == :not_applicable
+    end
+
+    test "warns when PHX_HOST is unset in cloud mode" do
+      System.delete_env("PHX_HOST")
+
+      Application.put_env(:controlkeel, ControlKeelWeb.Endpoint, url: [host: nil])
+
+      report = Doctor.report()
+      host = find_check(report, :public_host)
+      assert host.status == :warn
+      assert host.detail =~ "PHX_HOST"
+    end
+
+    test "reports canonical SaaS when host is controlkeel.com" do
+      System.put_env("PHX_HOST", "controlkeel.com")
+
+      report = Doctor.report()
+      host = find_check(report, :public_host)
+      assert host.status == :ok
+      assert host.detail =~ "canonical SaaS"
+    end
+
+    test "reports self-host when PHX_HOST is anything else" do
+      System.put_env("PHX_HOST", "govern.acme.example")
+
+      report = Doctor.report()
+      host = find_check(report, :public_host)
+      assert host.status == :ok
+      assert host.detail =~ "self-host"
+      assert host.detail =~ "govern.acme.example"
     end
   end
 

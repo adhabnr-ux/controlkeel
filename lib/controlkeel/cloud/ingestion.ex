@@ -210,6 +210,29 @@ defmodule ControlKeel.Cloud.Ingestion do
     |> Repo.all()
   end
 
+  @doc "Recent received events scoped to a single enrolled workspace_id."
+  @spec recent_for_workspace(String.t(), keyword()) :: [ReceivedTelemetryEvent.t()]
+  def recent_for_workspace(workspace_id, opts \\ []) when is_binary(workspace_id) do
+    limit = Keyword.get(opts, :limit, 50)
+
+    ReceivedTelemetryEvent
+    |> where([e], e.workspace_id == ^workspace_id)
+    |> order_by([e], desc: e.received_at, desc: e.id)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  @doc "Per-kind event counts for a single workspace_id."
+  @spec counts_for_workspace(String.t()) :: %{String.t() => non_neg_integer()}
+  def counts_for_workspace(workspace_id) when is_binary(workspace_id) do
+    ReceivedTelemetryEvent
+    |> where([e], e.workspace_id == ^workspace_id)
+    |> group_by([e], e.kind)
+    |> select([e], {e.kind, count(e.id)})
+    |> Repo.all()
+    |> Map.new()
+  end
+
   @doc """
   Funnel metrics for the Mission Control dashboard.
 

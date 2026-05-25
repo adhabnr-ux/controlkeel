@@ -28,13 +28,21 @@ defmodule ControlKeel.Cloud.AuthToken do
 
   ## Verification
 
-  In this slice the receiver looks up the local workspace identity to fetch the
-  public key. Multi-tenant cloud will switch to a `workspace_keys` registry
-  table; the API of `verify/1` is designed to absorb that change without
-  changing call sites.
+  Verification resolves the workspace public key in two steps (architectural
+  decision D8 in [cloud-enterprise-roadmap.md](../../docs/cloud-enterprise-roadmap.md)):
+
+    1. `WorkspaceKeyRegistry.fetch/1` — the multi-tenant registry table.
+       This is what controlkeel.com uses to verify Bearer tokens posted by
+       enrolled laptops.
+    2. Falls back to `WorkspaceIdentity.load/0` for single-node self-host
+       deployments where the sender and receiver are the same process.
+
+  On a successful verify the registry's `last_seen_at` is touched so the
+  org-scoped projects UI can show fresh-vs-stale workspaces.
   """
 
   alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.WorkspaceKeyRegistry
 
   @default_ttl_seconds 300
   @signature_size_bytes 64
@@ -101,9 +109,11 @@ defmodule ControlKeel.Cloud.AuthToken do
     with {:ok, payload_json, signature} <- split_token(token),
          {:ok, payload} <- decode_payload(payload_json),
          {:ok, ws_id, iat, exp} <- extract_claims(payload),
-         {:ok, pub_key} <- resolve_public_key(ws_id),
+         {:ok, pub_key, source} <- resolve_public_key(ws_id),
          :ok <- verify_signature(payload_json, signature, pub_key),
          :ok <- verify_not_expired(exp) do
+      if source == :registry, do: WorkspaceKeyRegistry.touch_last_seen(ws_id)
+
       {:ok,
        %{
          workspace_id: ws_id,
@@ -157,10 +167,27 @@ defmodule ControlKeel.Cloud.AuthToken do
   defp extract_claims(_), do: {:error, :malformed}
 
   defp resolve_public_key(workspace_id) do
+    case WorkspaceKeyRegistry.fetch(workspace_id) do
+      {:ok, %{public_key: pub_b64}} ->
+        case Base.decode64(pub_b64) do
+          {:ok, pub} -> {:ok, pub, :registry}
+          :error -> {:error, :public_key_invalid}
+        end
+
+      {:error, :not_found} ->
+        resolve_from_local_identity(workspace_id)
+    end
+  rescue
+    # Registry table may not exist in some test repos or older self-host
+    # builds. Fall back to the local identity in that case.
+    _ -> resolve_from_local_identity(workspace_id)
+  end
+
+  defp resolve_from_local_identity(workspace_id) do
     case WorkspaceIdentity.load() do
       {:ok, %{workspace_id: ^workspace_id, public_key: pub_b64}} ->
         case Base.decode64(pub_b64) do
-          {:ok, pub} -> {:ok, pub}
+          {:ok, pub} -> {:ok, pub, :local}
           :error -> {:error, :public_key_invalid}
         end
 

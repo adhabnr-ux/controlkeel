@@ -50,6 +50,7 @@ Every named phase and stretch branch on this roadmap has shipped code with passi
 | **Phase 6 — Enterprise control plane** | ✓ shipped | Org IdP config ([lib/controlkeel/accounts.ex](../lib/controlkeel/accounts.ex#org-identity-providers)); OIDC ([lib/controlkeel/accounts/oidc_client.ex](../lib/controlkeel/accounts/oidc_client.ex), [lib/controlkeel_web/controllers/oidc_controller.ex](../lib/controlkeel_web/controllers/oidc_controller.ex)); SAML ([lib/controlkeel/accounts/saml_client.ex](../lib/controlkeel/accounts/saml_client.ex), [lib/controlkeel_web/controllers/saml_controller.ex](../lib/controlkeel_web/controllers/saml_controller.ex)); browser SSO session + RBAC ([lib/controlkeel_web/plugs/load_current_user.ex](../lib/controlkeel_web/plugs/load_current_user.ex), [lib/controlkeel_web/plugs/require_org_role.ex](../lib/controlkeel_web/plugs/require_org_role.ex)); audit export ([lib/controlkeel/cloud/audit_export.ex](../lib/controlkeel/cloud/audit_export.ex)); SOC 2 + GDPR + **EU AI Act + NIST AI RMF** compliance templates ([lib/controlkeel/cloud/compliance_template.ex](../lib/controlkeel/cloud/compliance_template.ex)) — Art.9/10/13/14/17 + GOVERN/MAP/MEASURE/MANAGE sections; HMAC-signed envelopes ([lib/controlkeel/cloud/audit_export_signer.ex](../lib/controlkeel/cloud/audit_export_signer.ex)); **air-gapped `.tar.gz` builder** ([lib/controlkeel/self_host.ex](../lib/controlkeel/self_host.ex)) — `SelfHost.pack/2` via `:erl_tar` + SHA256, CLI `selfhost pack`; **NATS JetStream durable queues** ([lib/controlkeel/bus/jet_stream.ex](../lib/controlkeel/bus/jet_stream.ex)) — durable consumer groups with in-process buffer fallback, plugged into `Runtime.bus_module/0` via `:jet_stream` config key |
 | **Branch 8 — Eval/CI regression gate** | ✓ shipped | `controlkeel eval list/run` ([lib/controlkeel/cloud/eval_runner.ex](../lib/controlkeel/cloud/eval_runner.ex)) with built-in `governance-regression` suite that re-runs `ck_validate` against held-out fixtures |
 | **Branch 9 — Agent inventory / shadow-AI** | ✓ shipped (stretch) | `controlkeel agents discover <path>` ([lib/controlkeel/cloud/agent_inventory.ex](../lib/controlkeel/cloud/agent_inventory.ex)) — recognises 25 patterns across 18 hosts (.cursor/.codex/.claude/.opencode/.augment/AGENTS.md/CLAUDE.md/…) |
+| **Phase 7 — Multi-tenant SaaS at controlkeel.com** | ✓ shipped | Multi-tenant key registry ([lib/controlkeel/cloud/workspace_key_registry.ex](../lib/controlkeel/cloud/workspace_key_registry.ex)) backed by `workspace_keys` table; `AuthToken.verify/1` resolves through the registry first, falls back to local self-test; `POST /cloud/v1/workspaces/register` accepts an enrolment envelope signed by the new pubkey (proof of possession); CLI `controlkeel cloud connect --enroll <url> [--invite TOKEN] [--name N]`; org-scoped `/cloud/projects` and `/cloud/projects/:ws_id` LiveViews list enrolled workspaces and per-workspace event streams; [fly.toml](../fly.toml) deploy manifest for controlkeel.com with Postgres + signed-bearer ingestion |
 
 ### Deferred items — all shipped
 
@@ -424,6 +425,33 @@ Start with health + governance metadata only. No evidence sync yet.
 - ✓ Mission Control lifecycle UI (cloud-agent run packages card on `/cloud/telemetry`)
 - ☐ Cloud-agent status and retry handling *(deferred; manual retry via re-dispatch today)*
 - ☐ Behavioral baselining *(deferred; telemetry pipeline captures the signal but no statistical baselining consumer yet)*
+
+### Phase 7 — Multi-tenant SaaS at controlkeel.com
+
+**Status: ✓ shipped.** Closes the gap between "local primitives exist" and "controlkeel.com receives, stores, and surfaces telemetry from many laptops."
+
+Phases 1–6 wired every governance primitive but the receiver side was single-tenant: `AuthToken.verify/1` only resolved one public key (the receiver's own local identity), `cloud connect` was local-only with no remote enrolment, and `CloudTelemetryLive` had no org scoping. Phase 7 fills those four gaps.
+
+- ✓ Multi-tenant key registry — `workspace_keys` table + [WorkspaceKeyRegistry](../lib/controlkeel/cloud/workspace_key_registry.ex). Stores `(workspace_id, public_key, fingerprint, algorithm, name, org_id, last_seen_at, revoked_at)`. `AuthToken.verify/1` tries the registry first via `WorkspaceKeyRegistry.fetch/1`, falls back to local identity match for single-node self-test.
+- ✓ Public registration endpoint — `POST /cloud/v1/workspaces/register`. Body carries `{workspace_id, algorithm, public_key, name, invite_token, proof}` where `proof` is a self-signed envelope over the registration payload (Ed25519 signature using the new pubkey) so the server confirms the requester actually holds the private half. Optional `invite_token` binds the workspace to an org. Idempotent on fingerprint.
+- ✓ Enrolment CLI — `controlkeel cloud connect --enroll https://controlkeel.com [--name NAME] [--invite TOKEN]`. Generates (or reuses) the local identity, builds a proof-of-possession envelope, and POSTs it. Writes the resolved server URL into telemetry config so the sender targets the right endpoint without further config.
+- ✓ Org-scoped projects UI — `/cloud/projects` lists enrolled workspaces scoped by SSO'd user's org membership; `/cloud/projects/:ws_id` shows per-workspace funnel + event stream with `WorkspaceKeyRegistry`-enforced authorization. Existing `/cloud/telemetry` becomes the cross-org operator view (admin only) for hosted operators of controlkeel.com itself.
+- ✓ Deploy bundle — [fly.toml](../fly.toml) for controlkeel.com plus [deploy/fly.self-host.toml](../deploy/fly.self-host.toml) as the parameterised template for self-hosters. Both target the same release artifact; only `app` / `primary_region` / `PHX_HOST` differ. Phoenix release behind `PHX_HOST`, Postgres release migrations via `ControlKeel.Release.migrate/0`, `CONTROLKEEL_RUNTIME_MODE=cloud`, `CONTROLKEEL_BUS=local` (NATS JetStream optional), TLS termination at edge.
+- ✓ Self-host parity — [docs/self-hosting.md](self-hosting.md) walks teams through running their own controlkeel.com behind their firewall. Every Phase 1–7 surface ships in self-host mode without feature gates. `cloud doctor` adds a `Public host` check that distinguishes canonical SaaS from self-host deployments and flags missing `PHX_HOST`.
+
+**Architectural decision D8 — Two ways to resolve a workspace public key, registry-first**
+
+`AuthToken.verify/1` now consults `WorkspaceKeyRegistry.fetch/1` before falling back to `WorkspaceIdentity.load/0`. Self-host single-node deployments keep working because the local identity still matches when no registry row exists. Multi-tenant cloud works because every enrolled laptop has its own row keyed by `workspace_id`. No call site changes.
+
+**Trust model for `POST /cloud/v1/workspaces/register`**
+
+The endpoint is intentionally unauthenticated at the HTTP layer — the caller has no prior credentials. Trust comes from the embedded proof-of-possession signature: the server requires that `proof.signature` validates against `proof.payload` using the supplied `public_key`. Without this, anyone could enrol a forged `workspace_id`. The payload includes the workspace_id + algorithm + a fresh client timestamp; the server rejects timestamps drifting more than 5 minutes to limit replay. Future hardening (rate limits per fingerprint, optional admin pre-approval) is additive.
+
+**Revisit conditions**
+
+- Registry adoption exceeds rate-limit handling capacity → add per-IP throttling.
+- Optional invite-token model proves insufficient for enterprise SSO-only enrolment → add `POST /cloud/v1/workspaces/admin-enroll` requiring an org-admin session.
+- Self-host single-node operators stop using the fallback path → remove the `WorkspaceIdentity.load` fallback in a later major version.
 
 ### Phase 6 — Enterprise control plane
 

@@ -259,7 +259,13 @@ defmodule ControlKeel.CLI do
   @plugin_switches [project_root: :string, scope: :string, mode: :string]
   @agents_doctor_switches [project_root: :string]
   @cloud_doctor_switches [project_root: :string]
-  @cloud_connect_switches [project_root: :string, rotate: :boolean]
+  @cloud_connect_switches [
+    project_root: :string,
+    rotate: :boolean,
+    enroll: :string,
+    name: :string,
+    invite: :string
+  ]
   @telemetry_status_switches [project_root: :string]
   @telemetry_enable_switches [project_root: :string, level: :string]
   @telemetry_disable_switches [project_root: :string]
@@ -1906,6 +1912,9 @@ defmodule ControlKeel.CLI do
 
   def run_command(%{command: :cloud_connect, options: options}, _project_root) do
     force? = Map.get(options, :rotate, false)
+    enroll_url = Map.get(options, :enroll)
+    name = Map.get(options, :name)
+    invite = Map.get(options, :invite)
 
     case ControlKeel.Cloud.WorkspaceIdentity.ensure(force: force?) do
       {:ok, identity, outcome} ->
@@ -1916,21 +1925,77 @@ defmodule ControlKeel.CLI do
             :rotated -> "Workspace identity rotated"
           end
 
-        {:ok,
-         [
-           action,
-           "Workspace ID: #{identity.workspace_id}",
-           "Algorithm: #{identity.algorithm}",
-           "Fingerprint: #{ControlKeel.Cloud.WorkspaceIdentity.short_fingerprint(identity)}...",
-           "Created at: #{DateTime.to_iso8601(identity.created_at)}",
-           "Identity path: #{identity.path}",
-           "Note: this is a local identity primitive. No remote registration is performed."
-         ]}
+        base = [
+          action,
+          "Workspace ID: #{identity.workspace_id}",
+          "Algorithm: #{identity.algorithm}",
+          "Fingerprint: #{ControlKeel.Cloud.WorkspaceIdentity.short_fingerprint(identity)}...",
+          "Created at: #{DateTime.to_iso8601(identity.created_at)}",
+          "Identity path: #{identity.path}"
+        ]
+
+        case enroll_url do
+          nil ->
+            {:ok,
+             base ++
+               [
+                 "Note: this is a local identity primitive. Pass --enroll <url> to register with a control plane."
+               ]}
+
+          url when is_binary(url) and url != "" ->
+            case enroll_remote(identity, url, name: name, invite_token: invite) do
+              {:ok, summary_lines} -> {:ok, base ++ summary_lines}
+              {:error, reason} -> {:error, "Enrolment failed: #{reason}"}
+            end
+        end
 
       {:error, reason} ->
         {:error, "Failed to generate workspace identity: #{inspect(reason)}"}
     end
   end
+
+  defp enroll_remote(identity, base_url, opts) do
+    alias ControlKeel.Cloud.Enrollment
+
+    register_url = String.trim_trailing(base_url, "/") <> "/cloud/v1/workspaces/register"
+
+    with {:ok, envelope} <- Enrollment.build(identity, opts),
+         {:ok, response} <- post_enrollment(register_url, envelope) do
+      {:ok,
+       [
+         "Enrolled with: #{base_url}",
+         "Server response: #{response_summary(response)}"
+       ]}
+    else
+      {:error, reason} -> {:error, inspect(reason)}
+    end
+  end
+
+  defp post_enrollment(url, envelope) do
+    http_module = Application.get_env(:controlkeel, :cloud_enrollment_http_module, Req)
+
+    case http_module.post(url, json: envelope, receive_timeout: 10_000) do
+      {:ok, %{status: status, body: body}} when status in 200..299 ->
+        {:ok, %{status: status, body: body}}
+
+      {:ok, %{status: status, body: body}} ->
+        {:error, "server returned #{status}: #{inspect(body)}"}
+
+      {:error, %{__exception__: true} = error} ->
+        {:error, Exception.message(error)}
+
+      {:error, reason} ->
+        {:error, inspect(reason)}
+    end
+  rescue
+    error -> {:error, Exception.message(error)}
+  end
+
+  defp response_summary(%{status: status, body: body}) when is_map(body) do
+    "#{status} workspace=#{Map.get(body, "workspace_id") || Map.get(body, :workspace_id) || "?"}"
+  end
+
+  defp response_summary(%{status: status}), do: "#{status}"
 
   def run_command(%{command: :telemetry_enable, options: options}, _project_root) do
     alias ControlKeel.Cloud.TelemetryConfig

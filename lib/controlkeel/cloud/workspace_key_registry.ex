@@ -1,0 +1,146 @@
+defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
+  @moduledoc """
+  Multi-tenant registry of enrolled workspace public keys.
+
+  This is the receiver-side counterpart to
+  `ControlKeel.Cloud.WorkspaceIdentity`. Phase 7 introduces this so that
+  controlkeel.com can verify Bearer tokens from many different laptops, each
+  owning its own ed25519 keypair.
+
+  Public API:
+
+    - `enroll/1` — store or refresh a registration (idempotent on fingerprint).
+    - `fetch/1` — look up the active registration for a workspace_id.
+    - `revoke/1` — soft-delete a registration so its tokens stop verifying.
+    - `list_for_org/1` — list workspaces visible to a given org_id (used by
+      the org-scoped projects LiveView).
+    - `touch_last_seen/1` — update last_seen_at on successful token verify.
+
+  Self-host single-node deployments are not required to use this table at
+  all — `AuthToken.verify/1` falls back to the local `WorkspaceIdentity`
+  when no registry row exists.
+  """
+
+  import Ecto.Query, warn: false
+
+  alias ControlKeel.Cloud.WorkspaceKey
+  alias ControlKeel.Repo
+
+  @type enrollment :: %{
+          workspace_id: String.t(),
+          public_key: String.t(),
+          algorithm: String.t(),
+          fingerprint: String.t(),
+          name: String.t() | nil,
+          org_id: integer() | nil
+        }
+
+  @doc """
+  Insert or refresh a registration.
+
+  When a row already exists for `workspace_id`, the public key, fingerprint,
+  algorithm, name, and (optionally) org binding are updated and `revoked_at`
+  is cleared. Otherwise a new row is inserted.
+
+  Callers must compute the fingerprint themselves (hex SHA256 of the raw
+  public key bytes) before calling. This keeps the registry agnostic to
+  encoding choices.
+  """
+  @spec enroll(enrollment()) :: {:ok, %WorkspaceKey{}} | {:error, Ecto.Changeset.t()}
+  def enroll(%{workspace_id: ws} = attrs) when is_binary(ws) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    base = Map.put(attrs, :last_seen_at, now)
+
+    case Repo.get_by(WorkspaceKey, workspace_id: ws) do
+      nil ->
+        %WorkspaceKey{}
+        |> WorkspaceKey.changeset(base)
+        |> Repo.insert()
+
+      %WorkspaceKey{} = existing ->
+        existing
+        |> WorkspaceKey.changeset(Map.put(base, :revoked_at, nil))
+        |> Repo.update()
+    end
+  end
+
+  @doc """
+  Look up the active registration for `workspace_id`.
+
+  Returns `{:ok, key}` when an active (non-revoked) row exists,
+  `{:error, :not_found}` otherwise.
+  """
+  @spec fetch(String.t()) :: {:ok, %WorkspaceKey{}} | {:error, :not_found}
+  def fetch(workspace_id) when is_binary(workspace_id) do
+    case Repo.get_by(WorkspaceKey, workspace_id: workspace_id) do
+      nil -> {:error, :not_found}
+      %WorkspaceKey{revoked_at: nil} = key -> {:ok, key}
+      %WorkspaceKey{} -> {:error, :not_found}
+    end
+  end
+
+  @doc "Soft-delete a registration."
+  @spec revoke(String.t()) :: {:ok, %WorkspaceKey{}} | {:error, :not_found | Ecto.Changeset.t()}
+  def revoke(workspace_id) when is_binary(workspace_id) do
+    case Repo.get_by(WorkspaceKey, workspace_id: workspace_id) do
+      nil ->
+        {:error, :not_found}
+
+      %WorkspaceKey{} = key ->
+        key
+        |> WorkspaceKey.changeset(%{
+          revoked_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+        |> Repo.update()
+    end
+  end
+
+  @doc "All active registrations bound to the given org."
+  @spec list_for_org(integer() | nil) :: [%WorkspaceKey{}]
+  def list_for_org(nil), do: []
+
+  def list_for_org(org_id) when is_integer(org_id) do
+    from(k in WorkspaceKey,
+      where: k.org_id == ^org_id and is_nil(k.revoked_at),
+      order_by: [desc: k.last_seen_at, desc: k.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  @doc "All active registrations across all orgs (admin-only view)."
+  @spec list_all() :: [%WorkspaceKey{}]
+  def list_all do
+    from(k in WorkspaceKey,
+      where: is_nil(k.revoked_at),
+      order_by: [desc: k.last_seen_at, desc: k.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  @doc "Refresh `last_seen_at` on the row for `workspace_id` (best-effort)."
+  @spec touch_last_seen(String.t()) :: :ok
+  def touch_last_seen(workspace_id) when is_binary(workspace_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    from(k in WorkspaceKey, where: k.workspace_id == ^workspace_id)
+    |> Repo.update_all(set: [last_seen_at: now])
+
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  @doc """
+  Compute the canonical fingerprint for a base64-encoded public key.
+
+  Matches the format used by `ControlKeel.Cloud.WorkspaceIdentity` so a
+  workspace's local fingerprint and the server-side fingerprint agree.
+  """
+  @spec fingerprint_for(String.t()) :: {:ok, String.t()} | {:error, :public_key_invalid}
+  def fingerprint_for(public_key_b64) when is_binary(public_key_b64) do
+    case Base.decode64(public_key_b64) do
+      {:ok, raw} -> {:ok, :crypto.hash(:sha256, raw) |> Base.encode16(case: :lower)}
+      :error -> {:error, :public_key_invalid}
+    end
+  end
+end
