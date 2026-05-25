@@ -122,7 +122,11 @@ defmodule ControlKeelWeb.Router do
     post "/workspaces/:id/policy-sets/:policy_set_id/apply", ApiController, :apply_policy_set
     get "/workspaces/:id/webhooks", ApiController, :list_webhooks
     post "/workspaces/:id/webhooks", ApiController, :create_webhook
+    get "/workspaces/:id/tool-policy", ApiController, :get_workspace_tool_policy
+    put "/workspaces/:id/tool-policy", ApiController, :set_workspace_tool_policy
     post "/service-accounts/:id/rotate", ApiController, :rotate_service_account
+    delete "/service-accounts/:id", ApiController, :revoke_service_account
+    get "/service-accounts/:id/events", ApiController, :list_nhi_audit_events
     post "/webhooks/:id/replay", ApiController, :replay_webhook
     get "/providers", ApiController, :list_providers
     get "/providers/status", ApiController, :provider_status

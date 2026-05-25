@@ -914,7 +914,11 @@ defmodule ControlKeelWeb.ApiController do
 
   def create_service_account(conn, %{"id" => workspace_id} = params) do
     with :ok <- authorize_workspace_access(conn, workspace_id, "service_accounts:write") do
-      case Platform.create_service_account(String.to_integer(workspace_id), params) do
+      actor = get_in(conn.assigns, [:current_user, :email])
+
+      case Platform.provision_agent_identity(String.to_integer(workspace_id), params,
+             actor: actor
+           ) do
         {:ok, %{service_account: account, token: token}} ->
           conn
           |> put_status(:created)
@@ -938,7 +942,9 @@ defmodule ControlKeelWeb.ApiController do
       account ->
         with :ok <-
                authorize_workspace_for_conn(conn, account.workspace_id, "service_accounts:write") do
-          case Platform.rotate_service_account(String.to_integer(id)) do
+          actor = get_in(conn.assigns, [:current_user, :email])
+
+          case Platform.rotate_agent_identity_token(String.to_integer(id), actor: actor) do
             {:ok, %{service_account: updated, token: token}} ->
               json(conn, %{service_account: service_account_summary(updated), token: token})
 
@@ -948,6 +954,98 @@ defmodule ControlKeelWeb.ApiController do
         else
           {:error, :forbidden} -> conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
         end
+    end
+  end
+
+  def revoke_service_account(conn, %{"id" => id}) do
+    case Platform.get_service_account(String.to_integer(id)) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "service account not found"})
+
+      account ->
+        with :ok <-
+               authorize_workspace_for_conn(conn, account.workspace_id, "service_accounts:write") do
+          actor = get_in(conn.assigns, [:current_user, :email])
+
+          case Platform.revoke_agent_identity(String.to_integer(id), actor: actor) do
+            {:ok, revoked} -> json(conn, %{service_account: service_account_summary(revoked)})
+            {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not found"})
+
+            {:error, reason} ->
+              conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+          end
+        else
+          {:error, :forbidden} -> conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
+        end
+    end
+  end
+
+  def list_nhi_audit_events(conn, %{"id" => id}) do
+    case Platform.get_service_account(String.to_integer(id)) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "service account not found"})
+
+      account ->
+        with :ok <-
+               authorize_workspace_for_conn(conn, account.workspace_id, "service_accounts:read") do
+          events = Platform.list_nhi_audit_events(String.to_integer(id))
+
+          json(conn, %{
+            events:
+              Enum.map(events, fn e ->
+                %{
+                  id: e.id,
+                  event_type: e.event_type,
+                  actor: e.actor,
+                  metadata: ControlKeel.Platform.NhiAuditEvent.decode_metadata(e),
+                  occurred_at: e.occurred_at
+                }
+              end)
+          })
+        else
+          {:error, :forbidden} -> conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
+        end
+    end
+  end
+
+  def get_workspace_tool_policy(conn, %{"id" => workspace_id}) do
+    with :ok <- authorize_workspace_access(conn, workspace_id, "workspace:read") do
+      policy = ControlKeel.Accounts.get_workspace_tool_policy(String.to_integer(workspace_id))
+
+      json(conn, %{
+        workspace_id: String.to_integer(workspace_id),
+        mode: (policy && policy.mode) || "inherit",
+        tools: (policy && ControlKeel.Accounts.WorkspaceToolPolicy.decode_tools(policy)) || []
+      })
+    else
+      {:error, :forbidden} -> conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
+    end
+  end
+
+  def set_workspace_tool_policy(conn, %{"id" => workspace_id} = params) do
+    with :ok <- authorize_workspace_access(conn, workspace_id, "workspace:write") do
+      mode = params["mode"] || "inherit"
+      tools = params["tools"] || []
+
+      case ControlKeel.Accounts.set_workspace_tool_policy(
+             String.to_integer(workspace_id),
+             mode,
+             tools
+           ) do
+        {:ok, policy} ->
+          json(conn, %{
+            workspace_id: String.to_integer(workspace_id),
+            mode: policy.mode,
+            tools: ControlKeel.Accounts.WorkspaceToolPolicy.decode_tools(policy)
+          })
+
+        {:error, changeset} ->
+          conn
+          |> put_status(:unprocessable_entity)
+          |> json(%{error: "invalid policy", details: changeset_errors(changeset)})
+      end
+    else
+      {:error, :forbidden} -> conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
     end
   end
 

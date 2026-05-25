@@ -23,8 +23,13 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
         "tools" ->
           audit_tools()
 
+        "amplification" ->
+          audit_amplification(normalized)
+
         _ ->
-          {:error, {:invalid_arguments, "mode must be 'full', 'skills', 'rules', or 'tools'"}}
+          {:error,
+           {:invalid_arguments,
+            "mode must be 'full', 'skills', 'rules', 'tools', or 'amplification'"}}
       end
     end
   end
@@ -35,8 +40,67 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
     {:ok,
      %{
        "project_root" => Map.get(arguments, "project_root"),
-       "mode" => Map.get(arguments, "mode", "full")
+       "mode" => Map.get(arguments, "mode", "full"),
+       "session_id" => Map.get(arguments, "session_id"),
+       "limit" => Map.get(arguments, "limit", 20)
      }}
+  end
+
+  defp audit_amplification(%{"session_id" => session_id, "limit" => limit}) do
+    alias ControlKeel.Budget
+
+    opts =
+      [limit: limit]
+      |> then(fn o -> if session_id, do: [{:session_id, session_id} | o], else: o end)
+
+    ratios = Budget.amplification_ratios(opts)
+
+    flagged = Enum.filter(ratios, &(&1.ratio >= 5.0))
+
+    {:ok,
+     %{
+       "mode" => "amplification",
+       "session_id" => session_id,
+       "total_sessions" => length(ratios),
+       "flagged_count" => length(flagged),
+       "ratios" =>
+         Enum.map(ratios, fn r ->
+           %{
+             "session_id" => r.session_id,
+             "workspace_id" => r.workspace_id,
+             "ratio" => Float.round(r.ratio, 3),
+             "input_tokens" => r.input_tokens,
+             "output_tokens" => r.output_tokens,
+             "flag" => if(r.ratio >= 20.0, do: "danger", else: if(r.ratio >= 5.0, do: "warn", else: "ok"))
+           }
+         end),
+       "recommendations" => build_amplification_recommendations(flagged)
+     }}
+  end
+
+  defp build_amplification_recommendations([]), do: ["No sessions exceed the 5× amplification threshold."]
+
+  defp build_amplification_recommendations(flagged) do
+    danger = Enum.count(flagged, &(&1.ratio >= 20.0))
+    warn = length(flagged) - danger
+
+    recs = []
+
+    recs =
+      if danger > 0 do
+        ["#{danger} session(s) exceed 20× output amplification — investigate for runaway generation" | recs]
+      else
+        recs
+      end
+
+    recs =
+      if warn > 0 do
+        ["#{warn} session(s) exceed 5× output amplification — review for verbosity or prompt injection" | recs]
+      else
+        recs
+      end
+
+    Enum.reverse(recs)
   end
 
   defp audit_full(project_root) do

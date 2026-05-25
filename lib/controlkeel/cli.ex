@@ -40,6 +40,8 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Observability
   alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
   alias ControlKeel.Observability.Workshop, as: ObservabilityWorkshop
+  alias ControlKeel.Accounts
+  alias ControlKeel.Accounts.WorkspaceToolPolicy
   alias ControlKeel.Platform
   alias ControlKeel.PolicyTraining
   alias ControlKeel.ProviderBroker
@@ -304,6 +306,8 @@ defmodule ControlKeel.CLI do
     signing_key_env: :string
   ]
   @baseline_compute_switches [workspace_id: :integer, window_days: :integer]
+  @workspace_tool_policy_get_switches [workspace_id: :integer]
+  @workspace_tool_policy_set_switches [workspace_id: :integer, mode: :string, tools: :string]
   @selfhost_switches [project_root: :string]
   @selfhost_pack_switches [project_root: :string, output: :string]
   @agents_discover_switches [
@@ -537,6 +541,12 @@ defmodule ControlKeel.CLI do
 
       ["audit", "export" | rest] ->
         parse_with_switches(:audit_export, rest, @audit_export_switches)
+
+      ["workspace", "tool-policy", "get" | rest] ->
+        parse_with_switches(:workspace_tool_policy_get, rest, @workspace_tool_policy_get_switches)
+
+      ["workspace", "tool-policy", "set" | rest] ->
+        parse_with_switches(:workspace_tool_policy_set, rest, @workspace_tool_policy_set_switches)
 
       ["baseline", "compute" | rest] ->
         parse_with_switches(:baseline_compute, rest, @baseline_compute_switches)
@@ -4374,8 +4384,8 @@ defmodule ControlKeel.CLI do
 
   def run_command(%{command: :service_account_revoke, args: [id]}, _project_root) do
     with {:ok, parsed_id} <- parse_id(id),
-         {:ok, account} <- Platform.revoke_service_account(parsed_id) do
-      {:ok, ["Revoked service account ##{account.id}."]}
+         {:ok, account} <- Platform.revoke_agent_identity(parsed_id) do
+      {:ok, ["Revoked service account ##{account.id}. Audit event recorded."]}
     else
       {:error, :invalid_id} ->
         {:error, "Service account id must be an integer."}
@@ -4391,10 +4401,10 @@ defmodule ControlKeel.CLI do
   def run_command(%{command: :service_account_rotate, args: [id]}, _project_root) do
     with {:ok, parsed_id} <- parse_id(id),
          {:ok, %{service_account: account, token: token}} <-
-           Platform.rotate_service_account(parsed_id) do
+           Platform.rotate_agent_identity_token(parsed_id) do
       {:ok,
        [
-         "Rotated service account ##{account.id}.",
+         "Rotated service account ##{account.id}. Audit event recorded.",
          "OAuth client id: #{ProtocolAccess.oauth_client_id(account)}",
          "Token: #{token}"
        ]}
@@ -4407,6 +4417,60 @@ defmodule ControlKeel.CLI do
 
       {:error, reason} ->
         {:error, "Failed to rotate service account: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :workspace_tool_policy_get, options: options}, _project_root) do
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id") do
+      policy = Accounts.get_workspace_tool_policy(workspace_id)
+      mode = (policy && policy.mode) || "inherit"
+      tools = (policy && WorkspaceToolPolicy.decode_tools(policy)) || []
+
+      lines = [
+        "Tool policy for workspace ##{workspace_id}:",
+        "  Mode: #{mode}"
+      ]
+
+      lines =
+        if tools == [] do
+          lines
+        else
+          lines ++ ["  Tools: #{Enum.join(tools, ", ")}"]
+        end
+
+      {:ok, lines}
+    else
+      {:error, {:missing_option, option}} ->
+        {:error, "Missing required option --#{option}"}
+    end
+  end
+
+  def run_command(%{command: :workspace_tool_policy_set, options: options}, _project_root) do
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id"),
+         {:ok, mode} <- require_string_option(options[:mode], "mode") do
+      tools =
+        case options[:tools] do
+          nil -> []
+          t -> String.split(t, ",") |> Enum.map(&String.trim/1)
+        end
+
+      case Accounts.set_workspace_tool_policy(workspace_id, mode, tools) do
+        {:ok, policy} ->
+          decoded = WorkspaceToolPolicy.decode_tools(policy)
+
+          {:ok,
+           [
+             "Tool policy updated for workspace ##{workspace_id}.",
+             "  Mode: #{policy.mode}",
+             "  Tools: #{if decoded == [], do: "(none)", else: Enum.join(decoded, ", ")}"
+           ]}
+
+        {:error, changeset} ->
+          {:error, "Failed to set tool policy: #{inspect(changeset)}"}
+      end
+    else
+      {:error, {:missing_option, option}} ->
+        {:error, "Missing required option --#{option}"}
     end
   end
 

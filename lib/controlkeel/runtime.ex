@@ -15,6 +15,7 @@ defmodule ControlKeel.Runtime do
   def bus_module do
     case bus() do
       :nats -> ControlKeel.Bus.Nats
+      :jet_stream -> ControlKeel.Bus.JetStream
       _ -> ControlKeel.Bus.Local
     end
   end
