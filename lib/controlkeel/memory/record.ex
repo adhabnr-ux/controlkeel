@@ -16,6 +16,8 @@ defmodule ControlKeel.Memory.Record do
     field :source_id, :string
     field :metadata, :map, default: %{}
     field :archived_at, :utc_datetime
+    field :visibility, :string, default: "workspace"
+    field :shared_org_id, :integer
 
     belongs_to :workspace, Workspace
     belongs_to :session, Session
@@ -39,7 +41,9 @@ defmodule ControlKeel.Memory.Record do
       :source_type,
       :source_id,
       :metadata,
-      :archived_at
+      :archived_at,
+      :visibility,
+      :shared_org_id
     ])
     |> validate_required([
       :workspace_id,

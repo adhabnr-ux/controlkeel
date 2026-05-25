@@ -146,12 +146,40 @@ defmodule ControlKeel.Memory.Store.Sqlite do
   defp maybe_scope_records(query, opts) do
     query
     |> where([r], is_nil(r.archived_at))
-    |> maybe_scope(:workspace_id, opts[:workspace_id])
+    |> maybe_scope_visibility(opts)
     |> maybe_scope(:session_id, opts[:session_id])
     |> maybe_scope(:task_id, opts[:task_id])
     |> maybe_scope(:record_type, opts[:record_type])
     |> maybe_scope(:source_type, opts[:source_type])
     |> maybe_scope(:source_id, opts[:source_id])
+  end
+
+  defp maybe_scope_visibility(query, opts) do
+    case {opts[:workspace_id], opts[:org_id], opts[:visibility]} do
+      {nil, nil, _} ->
+        query
+
+      {workspace_id, nil, _} ->
+        from(r in query, where: r.workspace_id == ^workspace_id)
+
+      {workspace_id, org_id, :org} ->
+        from(r in query,
+          where:
+            r.workspace_id == ^workspace_id or
+              (r.visibility == "org" and r.shared_org_id == ^org_id) or
+              r.visibility == "admin"
+        )
+
+      {_workspace_id, org_id, :admin} ->
+        from(r in query,
+          where:
+            r.visibility == "admin" or
+              (r.visibility == "org" and r.shared_org_id == ^org_id)
+        )
+
+      {workspace_id, _org_id, _} ->
+        from(r in query, where: r.workspace_id == ^workspace_id)
+    end
   end
 
   defp maybe_scope(query, _field, nil), do: query
@@ -291,9 +319,23 @@ defmodule ControlKeel.Memory.Store.Sqlite do
   end
 
   defp filter_sql(opts) do
+    base =
+      case {opts[:workspace_id], opts[:org_id], opts[:visibility]} do
+        {workspace_id, org_id, :org} when not is_nil(workspace_id) and not is_nil(org_id) ->
+          "(mr.workspace_id = ? OR (mr.visibility = 'org' AND mr.shared_org_id = ?) OR mr.visibility = 'admin')"
+
+        {nil, org_id, :admin} when not is_nil(org_id) ->
+          "(mr.visibility = 'admin' OR (mr.visibility = 'org' AND mr.shared_org_id = ?))"
+
+        {workspace_id, _, _} when not is_nil(workspace_id) ->
+          "mr.workspace_id = ?"
+
+        _ ->
+          nil
+      end
+
     clauses =
-      []
-      |> maybe_clause("mr.workspace_id = ?", opts[:workspace_id])
+      List.wrap(base)
       |> maybe_clause("mr.session_id = ?", opts[:session_id])
       |> maybe_clause("mr.task_id = ?", opts[:task_id])
       |> maybe_clause("mr.record_type = ?", opts[:record_type])
@@ -305,8 +347,23 @@ defmodule ControlKeel.Memory.Store.Sqlite do
   end
 
   defp filter_params(match, opts) do
+    workspace_params =
+      case {opts[:workspace_id], opts[:org_id], opts[:visibility]} do
+        {workspace_id, org_id, :org} when not is_nil(workspace_id) and not is_nil(org_id) ->
+          [workspace_id, org_id]
+
+        {nil, org_id, :admin} when not is_nil(org_id) ->
+          [org_id]
+
+        {workspace_id, _, _} when not is_nil(workspace_id) ->
+          [workspace_id]
+
+        _ ->
+          []
+      end
+
     [match]
-    |> maybe_param(opts[:workspace_id])
+    |> Kernel.++(workspace_params)
     |> maybe_param(opts[:session_id])
     |> maybe_param(opts[:task_id])
     |> maybe_param(opts[:record_type])

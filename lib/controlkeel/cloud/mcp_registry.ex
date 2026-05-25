@@ -1,4 +1,6 @@
 defmodule ControlKeel.Cloud.McpRegistry do
+  alias ControlKeel.Cloud.SkillAttestation
+
   @moduledoc """
   Vetted registry of downstream MCP servers for the hosted gateway.
 
@@ -47,11 +49,20 @@ defmodule ControlKeel.Cloud.McpRegistry do
           note: String.t() | nil
         }
 
-  @doc "Resolve disposition for a server by name."
+  @doc """
+  Resolve disposition for a server by name.
+
+  Accepts either `attested?: true` (caller already verified out-of-band) or
+  `cert: "<json>"` (raw attestation cert JSON; verified inline via
+  `SkillAttestation.verify/2`).
+  """
   @spec lookup(String.t(), keyword()) :: disposition()
   def lookup(server_name, opts \\ []) when is_binary(server_name) do
     registry = current()
-    attested? = Keyword.get(opts, :attested?, false)
+
+    attested? =
+      Keyword.get(opts, :attested?, false) or
+        SkillAttestation.verified?(Keyword.get(opts, :cert))
 
     cond do
       denied?(registry, server_name) ->
