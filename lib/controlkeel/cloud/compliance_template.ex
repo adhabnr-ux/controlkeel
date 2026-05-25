@@ -9,7 +9,7 @@ defmodule ControlKeel.Cloud.ComplianceTemplate do
   """
 
   @schema_version "1"
-  @supported ~w(soc2 gdpr)
+  @supported ~w(soc2 gdpr eu_ai_act nist_ai_rmf)
 
   @doc "Supported template identifiers."
   def supported_templates, do: @supported
@@ -20,6 +20,8 @@ defmodule ControlKeel.Cloud.ComplianceTemplate do
     case normalize(template) do
       "soc2" -> {:ok, base(bundle, "soc2", "SOC 2") |> Map.put("sections", soc2_sections(bundle))}
       "gdpr" -> {:ok, base(bundle, "gdpr", "GDPR") |> Map.put("sections", gdpr_sections(bundle))}
+      "eu_ai_act" -> {:ok, base(bundle, "eu_ai_act", "EU AI Act (High-Risk)") |> Map.put("sections", eu_ai_act_sections(bundle))}
+      "nist_ai_rmf" -> {:ok, base(bundle, "nist_ai_rmf", "NIST AI RMF") |> Map.put("sections", nist_ai_rmf_sections(bundle))}
       _ -> {:error, :unsupported_template}
     end
   end
@@ -98,6 +100,56 @@ defmodule ControlKeel.Cloud.ComplianceTemplate do
     ]
   end
 
+  defp eu_ai_act_sections(bundle) do
+    [
+      section("Art.9", "Risk management system", "Findings recorded throughout the AI system lifecycle mapped to ongoing risk identification and mitigation obligations.", [
+        refs(bundle, "findings"),
+        refs(bundle, "cloud_run_packages")
+      ]),
+      section("Art.10", "Data and data governance", "Telemetry events and workspace-scoped evidence supporting data quality and minimisation obligations.", [
+        refs(bundle, "received_telemetry_events"),
+        refs(bundle, "mcp_tool_calls")
+      ]),
+      section("Art.13", "Transparency and provision of information", "Review decisions and audit events that document operator-facing transparency and traceability obligations.", [
+        refs(bundle, "reviews"),
+        refs(bundle, "review_audit_events")
+      ]),
+      section("Art.14", "Human oversight", "Human-approved review records demonstrating meaningful human control over high-risk AI outputs and actions.", [
+        filtered_refs(bundle, "reviews", &human_approved?/1),
+        refs(bundle, "review_audit_events")
+      ]),
+      section("Art.17", "Quality management system", "Governed cloud-agent runs, review approvals, and change-linked audit events supporting quality and conformity obligations.", [
+        refs(bundle, "cloud_run_packages"),
+        refs(bundle, "reviews"),
+        refs(bundle, "review_audit_events")
+      ])
+    ]
+  end
+
+  defp nist_ai_rmf_sections(bundle) do
+    [
+      section("GOVERN", "Governance and accountability", "Review workflows, org-scoped controls, and audit events evidencing accountability structures and AI risk governance policies.", [
+        refs(bundle, "reviews"),
+        refs(bundle, "review_audit_events"),
+        refs(bundle, "mcp_tool_calls")
+      ]),
+      section("MAP", "Risk identification and context", "Findings and policy-denied tool calls mapping AI risk categories, likelihood, and potential impact.", [
+        refs(bundle, "findings"),
+        filtered_refs(bundle, "mcp_tool_calls", &denied_call?/1)
+      ]),
+      section("MEASURE", "Risk analysis and measurement", "Telemetry events, cloud-agent run outcomes, and review audit events supporting quantitative risk measurement.", [
+        refs(bundle, "received_telemetry_events"),
+        refs(bundle, "cloud_run_packages"),
+        refs(bundle, "review_audit_events")
+      ]),
+      section("MANAGE", "Risk treatment and response", "Resolved and mitigated findings, approved reviews, and governed cloud-run lifecycle records demonstrating active risk treatment.", [
+        filtered_refs(bundle, "findings", &resolved_finding?/1),
+        filtered_refs(bundle, "reviews", &human_approved?/1),
+        refs(bundle, "cloud_run_packages")
+      ])
+    ]
+  end
+
   defp section(id, title, description, ref_groups) do
     evidence = ref_groups |> List.flatten() |> Enum.reject(&is_nil/1)
 
@@ -151,4 +203,13 @@ defmodule ControlKeel.Cloud.ComplianceTemplate do
   defp high_or_critical?(_), do: false
 
   defp count(bundle, key), do: bundle |> Map.get(key, []) |> length()
+
+  defp human_approved?(%{"status" => status}), do: status in ["approved", "approved_with_conditions"]
+  defp human_approved?(_), do: false
+
+  defp resolved_finding?(%{"status" => status}), do: status in ["resolved", "mitigated", "closed"]
+  defp resolved_finding?(_), do: false
+
+  defp denied_call?(%{"outcome" => outcome}), do: outcome in ["denied", "blocked"]
+  defp denied_call?(_), do: false
 end

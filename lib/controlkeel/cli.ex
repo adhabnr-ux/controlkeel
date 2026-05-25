@@ -43,6 +43,7 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Platform
   alias ControlKeel.PolicyTraining
   alias ControlKeel.ProviderBroker
+  alias ControlKeel.ProviderConfig
   alias ControlKeel.ProtocolAccess
   alias ControlKeel.ProjectBinding
   alias ControlKeel.ProjectRoot
@@ -813,6 +814,9 @@ defmodule ControlKeel.CLI do
 
       ["provider", "set-model", provider | rest] ->
         parse_provider_set_model(provider, rest)
+
+      ["provider", "set-fallback-chain" | rest] ->
+        parse_provider_set_fallback_chain(rest)
 
       ["bootstrap" | rest] ->
         parse_with_switches(:bootstrap, rest, @bootstrap_switches)
@@ -4753,6 +4757,29 @@ defmodule ControlKeel.CLI do
     end
   end
 
+  def run_command(
+        %{command: :provider_set_fallback_chain, args: providers},
+        _project_root
+      )
+      when providers != [] do
+    case ProviderConfig.set_fallback_chain(providers) do
+      {:ok, _config} ->
+        {:ok, ["Fallback chain set: #{Enum.join(providers, " → ")}"]}
+
+      {:error, {:unknown_providers, bad}} ->
+        {:error,
+         "Unknown provider(s): #{Enum.join(bad, ", ")}. Allowed: #{Enum.join(ProviderConfig.allowed_providers(), ", ")}"}
+
+      {:error, reason} ->
+        {:error, "Failed to set fallback chain: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :provider_set_fallback_chain, args: []}, _project_root) do
+    {:error,
+     "Provide at least one provider: controlkeel provider set-fallback-chain <p1> [p2 ...]"}
+  end
+
   def run_command(%{command: :bootstrap, options: options}, project_root) do
     root = resolve_project_root(options, project_root)
     overrides = %{"agent" => options[:agent] || "claude"}
@@ -6098,6 +6125,16 @@ defmodule ControlKeel.CLI do
 
       _ ->
         {:error, usage_text()}
+    end
+  end
+
+  defp parse_provider_set_fallback_chain(argv) do
+    case OptionParser.parse(argv, strict: []) do
+      {_options, providers, []} when providers != [] ->
+        {:ok, %{command: :provider_set_fallback_chain, options: %{}, args: providers}}
+
+      _ ->
+        {:ok, %{command: :provider_set_fallback_chain, options: %{}, args: []}}
     end
   end
 

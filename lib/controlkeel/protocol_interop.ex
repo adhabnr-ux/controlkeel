@@ -1,6 +1,7 @@
 defmodule ControlKeel.ProtocolInterop do
   @moduledoc false
 
+  alias ControlKeel.Accounts
   alias ControlKeel.Cloud.Guardrails
   alias ControlKeel.Cloud.McpAuditLog
   alias ControlKeel.Cloud.McpPolicy
@@ -73,7 +74,10 @@ defmodule ControlKeel.ProtocolInterop do
 
   def authorize_hosted_tool_call(auth_context, tool_name, arguments, resource_id)
       when is_map(auth_context) and is_binary(tool_name) and is_map(arguments) do
+    workspace_id = workspace_id_from_auth(auth_context)
+
     with :ok <- McpPolicy.check(auth_context, tool_name, resource_id),
+         :ok <- Accounts.check_workspace_tool_policy(workspace_id, tool_name),
          :ok <- Guardrails.scan(arguments, tool_name),
          :ok <- verify_resource_access(auth_context, resource_id),
          :ok <- verify_tool_scopes(auth_context.scopes, tool_name, resource_id),
@@ -231,6 +235,9 @@ defmodule ControlKeel.ProtocolInterop do
   end
 
   defp delegated_task(_arguments), do: {:error, :not_found}
+
+  defp workspace_id_from_auth(%{service_account: %ServiceAccount{workspace_id: id}}), do: id
+  defp workspace_id_from_auth(_), do: nil
 
   defp verify_resource_access(%{scopes: scopes}, resource_id) do
     access_scope =

@@ -45,6 +45,26 @@ defmodule ControlKeel.ProviderConfig do
     end
   end
 
+  @doc """
+  Persists the fallback chain order to the user config file.
+
+  `chain` must be a non-empty list of provider ids from `allowed_providers/0`.
+  """
+  @spec set_fallback_chain([String.t()]) :: {:ok, map()} | {:error, term()}
+  def set_fallback_chain(chain) when is_list(chain) and chain != [] do
+    invalid = Enum.reject(chain, &(&1 in @providers))
+
+    if invalid != [] do
+      {:error, {:unknown_providers, invalid}}
+    else
+      with {:ok, config} <- read() do
+        write(Map.put(config, "fallback_chain", chain))
+      end
+    end
+  end
+
+  def set_fallback_chain(_chain), do: {:error, :empty_chain}
+
   def put_profile(provider, attrs) when is_binary(provider) and is_map(attrs) do
     provider = normalize_provider(provider)
 

@@ -12,6 +12,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Accounts
+  alias ControlKeel.Budget
   alias ControlKeel.Cloud.Guardrails
   alias ControlKeel.Cloud.Ingestion
   alias ControlKeel.Cloud.McpAuditLog
@@ -64,6 +65,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
     |> assign(:org_budgets, org_budget_overviews())
     |> assign(:cloud_runs_summary, RuntimeContext.global_status_counts())
     |> assign(:cloud_runs_recent, RuntimeContext.recent(limit: 15))
+    |> assign(:amplification_ratios, Budget.amplification_ratios(limit: 10, since_hours: 24))
   end
 
   defp org_budget_overviews do
@@ -277,6 +279,39 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
           <% end %>
         </div>
 
+        <div id="cloud-amplification-ratio" class="ck-card">
+          <h2 class="ck-card-title">Token amplification ratio (last 24 h)</h2>
+          <p class="ck-note">
+            output_tokens / input_tokens per session — ratios &gt;&gt; 10 may indicate runaway generation.
+          </p>
+          <%= if @amplification_ratios == [] do %>
+            <p class="ck-note">No invocations recorded in the last 24 hours.</p>
+          <% else %>
+            <table class="ck-table">
+              <thead>
+                <tr>
+                  <th>Session</th>
+                  <th>Workspace</th>
+                  <th class="ck-table-right">Input tokens</th>
+                  <th class="ck-table-right">Output tokens</th>
+                  <th class="ck-table-right">Ratio</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for row <- @amplification_ratios do %>
+                  <tr>
+                    <td><code>{row.session_id}</code></td>
+                    <td><code>{row.workspace_id || "—"}</code></td>
+                    <td class="ck-table-right">{row.input_tokens}</td>
+                    <td class="ck-table-right">{row.output_tokens}</td>
+                    <td class={["ck-table-right", amplification_class(row.ratio)]}>{row.ratio}×</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
+        </div>
+
         <div id="cloud-mcp-guardrails" class="ck-card">
           <h2 class="ck-card-title">Content guardrails</h2>
           <p class="ck-note">
@@ -461,4 +496,8 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
   defp last_seen_note(nil), do: ""
   defp last_seen_note(%DateTime{} = ts), do: ", last #{DateTime.to_iso8601(ts)}"
+
+  defp amplification_class(ratio) when ratio > 20, do: "ck-text-danger"
+  defp amplification_class(ratio) when ratio > 5, do: "ck-text-warn"
+  defp amplification_class(_ratio), do: ""
 end

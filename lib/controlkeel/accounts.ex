@@ -16,6 +16,7 @@ defmodule ControlKeel.Accounts do
   alias ControlKeel.Accounts.Org
   alias ControlKeel.Accounts.ReviewAuditEvent
   alias ControlKeel.Accounts.User
+  alias ControlKeel.Accounts.WorkspaceToolPolicy
   alias ControlKeel.Mission.Review
   alias ControlKeel.Mission.Session
   alias ControlKeel.Mission.Workspace
@@ -834,6 +835,71 @@ defmodule ControlKeel.Accounts do
 
   defp filter_status(query, nil), do: query
   defp filter_status(query, status), do: where(query, [x], x.status == ^status)
+
+  # ---------------------------------------------------------------------------
+  # Workspace tool catalog policies
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Returns the tool policy for `workspace_id`, or a default `:inherit` policy
+  if none has been configured.
+  """
+  @spec get_workspace_tool_policy(integer()) :: WorkspaceToolPolicy.t()
+  def get_workspace_tool_policy(workspace_id) when is_integer(workspace_id) do
+    Repo.get_by(WorkspaceToolPolicy, workspace_id: workspace_id) ||
+      %WorkspaceToolPolicy{workspace_id: workspace_id, mode: "inherit", tools: "[]"}
+  end
+
+  @doc """
+  Upserts the tool policy for `workspace_id`.
+
+  `mode` must be one of `"inherit"`, `"allowlist"`, or `"denylist"`.
+  `tools` is a list of tool name strings.
+  """
+  @spec set_workspace_tool_policy(integer(), String.t(), [String.t()]) ::
+          {:ok, WorkspaceToolPolicy.t()} | {:error, Ecto.Changeset.t()}
+  def set_workspace_tool_policy(workspace_id, mode, tools)
+      when is_integer(workspace_id) and is_binary(mode) and is_list(tools) do
+    existing = Repo.get_by(WorkspaceToolPolicy, workspace_id: workspace_id)
+
+    attrs = %{workspace_id: workspace_id, mode: mode, tools: tools}
+
+    changeset =
+      case existing do
+        nil -> WorkspaceToolPolicy.changeset(%WorkspaceToolPolicy{}, attrs)
+        record -> WorkspaceToolPolicy.changeset(record, attrs)
+      end
+
+    Repo.insert_or_update(changeset)
+  end
+
+  @doc """
+  Checks `tool_name` against the workspace's tool policy. Returns `:ok` to
+  allow, `{:error, {:policy, reason}}` to deny.
+  """
+  @spec check_workspace_tool_policy(integer() | nil, String.t()) ::
+          :ok | {:error, {:policy, atom()}}
+  def check_workspace_tool_policy(nil, _tool_name), do: :ok
+
+  def check_workspace_tool_policy(workspace_id, tool_name)
+      when is_integer(workspace_id) and is_binary(tool_name) do
+    policy = get_workspace_tool_policy(workspace_id)
+    tools = WorkspaceToolPolicy.decode_tools(policy)
+
+    case policy.mode do
+      "inherit" ->
+        :ok
+
+      "allowlist" ->
+        if tool_name in tools, do: :ok, else: {:error, {:policy, :tool_not_in_workspace_allowlist}}
+
+      "denylist" ->
+        if tool_name in tools, do: {:error, {:policy, :tool_in_workspace_denylist}}, else: :ok
+
+      _ ->
+        :ok
+    end
+  end
 
   defp generate_token do
     32 |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)

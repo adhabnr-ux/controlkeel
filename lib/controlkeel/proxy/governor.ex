@@ -5,6 +5,7 @@ defmodule ControlKeel.Proxy.Governor do
   alias ControlKeel.Budget
   alias ControlKeel.Mission
   alias ControlKeel.Mission.Session
+  alias ControlKeel.ProviderBroker.FallbackChain
   alias ControlKeel.Scanner
   alias ControlKeel.Scanner.{FastPath, Semgrep}
 
@@ -45,13 +46,22 @@ defmodule ControlKeel.Proxy.Governor do
     persist_findings(session, findings, opts, "request")
     emit_decision(provider, "request", decision, session.id, length(findings))
 
+    fallback_provider =
+      if decision == "block" and only_budget_blocked?(findings) do
+        estimated_cost = budget_estimated_cost(budget)
+        provider_str = Atom.to_string(provider)
+        project_root = opts[:project_root] || File.cwd!()
+        FallbackChain.select(project_root, session.id, estimated_cost, provider_str)
+      end
+
     {:ok,
      %{
        decision: decision,
        allowed: decision != "block",
        summary: summary,
        findings: findings,
-       budget: budget
+       budget: budget,
+       fallback_provider: fallback_provider
      }}
   end
 
@@ -321,4 +331,12 @@ defmodule ControlKeel.Proxy.Governor do
 
   defp estimated_cost({:ok, estimate}), do: estimate["estimated_cost_cents"]
   defp estimated_cost(_preflight), do: 0
+
+  defp only_budget_blocked?(findings) do
+    blocking = Enum.filter(findings, &(&1.decision == "block"))
+    blocking != [] and Enum.all?(blocking, &(&1.category == "cost"))
+  end
+
+  defp budget_estimated_cost({:ok, estimate}), do: estimate["estimated_cost_cents"] || 0
+  defp budget_estimated_cost(_), do: 0
 end

@@ -162,6 +162,73 @@ defmodule ControlKeel.Budget do
     end
   end
 
+  @doc """
+  Returns `true` when the session has budget headroom for `estimated_cost_cents`
+  on the given provider. Ollama (cost 0) always returns `true`.
+  """
+  @spec provider_has_headroom?(String.t() | nil, String.t(), non_neg_integer()) :: boolean()
+  def provider_has_headroom?(_session_id, "ollama", _estimated_cost_cents), do: true
+
+  def provider_has_headroom?(session_id, _provider, estimated_cost_cents) do
+    case fetch_session(session_id) do
+      {:ok, session} ->
+        rolling_24h = rolling_24h_spend_cents(session.id)
+        projected_session = (session.spent_cents || 0) + estimated_cost_cents
+        projected_daily = rolling_24h + estimated_cost_cents
+        decision(session, projected_session, projected_daily) != "block"
+
+      _ ->
+        false
+    end
+  end
+
+  @doc """
+  Returns per-session token amplification ratios (output_tokens / input_tokens)
+  for sessions with activity in the last `since_hours` hours, ordered
+  descending. A ratio > 1.0 means the agent produced more tokens than it
+  consumed — ratios >> 10 may indicate runaway generation.
+
+  Options:
+    - `:limit` — max rows returned (default 20)
+    - `:since_hours` — look-back window in hours (default 24)
+  """
+  @spec amplification_ratios(keyword()) :: [
+          %{
+            session_id: integer(),
+            workspace_id: integer() | nil,
+            input_tokens: integer(),
+            output_tokens: integer(),
+            ratio: float()
+          }
+        ]
+  def amplification_ratios(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 20)
+    since_hours = Keyword.get(opts, :since_hours, 24)
+    since = DateTime.utc_now() |> DateTime.add(-since_hours, :hour) |> DateTime.truncate(:second)
+
+    from(i in Invocation,
+      join: s in Session,
+      on: s.id == i.session_id,
+      where: i.inserted_at >= ^since,
+      group_by: [i.session_id, s.workspace_id],
+      select: %{
+        session_id: i.session_id,
+        workspace_id: s.workspace_id,
+        input_tokens: sum(i.input_tokens),
+        output_tokens: sum(i.output_tokens)
+      }
+    )
+    |> Repo.all()
+    |> Enum.map(fn row ->
+      input = row.input_tokens || 0
+      output = row.output_tokens || 0
+      ratio = if input > 0, do: Float.round(output / input, 2), else: 0.0
+      Map.put(row, :ratio, ratio)
+    end)
+    |> Enum.sort_by(& &1.ratio, :desc)
+    |> Enum.take(limit)
+  end
+
   def rolling_24h_spend_cents(session_id) do
     since =
       DateTime.utc_now()
