@@ -303,7 +303,9 @@ defmodule ControlKeel.CLI do
     sign: :boolean,
     signing_key_env: :string
   ]
+  @baseline_compute_switches [workspace_id: :integer, window_days: :integer]
   @selfhost_switches [project_root: :string]
+  @selfhost_pack_switches [project_root: :string, output: :string]
   @agents_discover_switches [
     project_root: :string,
     max_depth: :integer,
@@ -535,6 +537,12 @@ defmodule ControlKeel.CLI do
 
       ["audit", "export" | rest] ->
         parse_with_switches(:audit_export, rest, @audit_export_switches)
+
+      ["baseline", "compute" | rest] ->
+        parse_with_switches(:baseline_compute, rest, @baseline_compute_switches)
+
+      ["selfhost", "pack" | rest] ->
+        parse_with_switches(:selfhost_pack, rest, @selfhost_pack_switches)
 
       ["selfhost", "verify" | rest] ->
         parse_with_switches(:selfhost_verify, rest, @selfhost_switches)
@@ -1958,6 +1966,55 @@ defmodule ControlKeel.CLI do
 
       {:error, {:write_failed, reason}} ->
         {:error, "Failed to persist telemetry config: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :baseline_compute, options: options}, _project_root) do
+    workspace_id = options[:workspace_id]
+    window_days = options[:window_days] || 7
+
+    workspace_ids =
+      if workspace_id do
+        [workspace_id]
+      else
+        ControlKeel.Mission.list_workspaces()
+        |> Enum.map(& &1.id)
+      end
+
+    if workspace_ids == [] do
+      {:ok, ["No workspaces found."]}
+    else
+      results =
+        Enum.map(workspace_ids, fn ws_id ->
+          case ControlKeel.Cloud.BaselineAnalyzer.compute_and_store(ws_id, window_days: window_days) do
+            {:ok, baseline} ->
+              "workspace #{ws_id}: #{baseline.sample_sessions} sample sessions, #{baseline_tool_count(baseline)} tools, window #{window_days}d"
+
+            {:error, reason} ->
+              "workspace #{ws_id}: error — #{inspect(reason)}"
+          end
+        end)
+
+      {:ok, ["Behavioral baselines computed:"] ++ results}
+    end
+  end
+
+  def run_command(%{command: :selfhost_pack, options: options}, project_root) do
+    root = resolve_project_root(options, project_root)
+    pack_opts = Enum.reject([output: options[:output]], fn {_, v} -> is_nil(v) end)
+
+    case ControlKeel.SelfHost.pack(root, pack_opts) do
+      {:ok, %{path: path, sha256: sha256}} ->
+        {:ok,
+         [
+           "Air-gapped bundle written: #{path}",
+           "SHA256: #{sha256}",
+           "",
+           "Ship this file to your air-gapped host. See INSTALL.md for boot instructions."
+         ]}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -7859,6 +7916,12 @@ defmodule ControlKeel.CLI do
   end
 
   defp maybe_sign_audit_export(payload, _options), do: {:ok, payload}
+
+  defp baseline_tool_count(baseline) do
+    baseline
+    |> ControlKeel.Cloud.WorkspaceBaseline.decode()
+    |> map_size()
+  end
 
   defp format_repo_error(nil), do: ""
   defp format_repo_error(msg), do: " — " <> msg

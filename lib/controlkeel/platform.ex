@@ -12,6 +12,7 @@ defmodule ControlKeel.Platform do
     AuditExport,
     IntegrationDelivery,
     IntegrationWebhook,
+    NhiAuditEvent,
     PolicySet,
     ServiceAccount,
     TaskCheckResult,
@@ -834,5 +835,141 @@ defmodule ControlKeel.Platform do
       _other ->
         []
     end
+  end
+
+  # ---------------------------------------------------------------------------
+  # NHI lifecycle management
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Provisions a new agent identity (service account) and records a
+  `"provisioned"` NHI audit event.
+
+  Returns `{:ok, %{service_account: sa, token: token}}` on success.
+  """
+  @spec provision_agent_identity(integer(), map(), keyword()) ::
+          {:ok, %{service_account: ServiceAccount.t(), token: String.t()}}
+          | {:error, term()}
+  def provision_agent_identity(workspace_id, attrs, opts \\ []) do
+    actor = Keyword.get(opts, :actor)
+
+    with {:ok, %{service_account: account, token: token}} <-
+           create_service_account(workspace_id, attrs) do
+      record_nhi_event(account.id, "provisioned", actor: actor, metadata: %{
+        "workspace_id" => workspace_id,
+        "name" => account.name,
+        "scopes" => ServiceAccount.scope_list(account)
+      })
+
+      {:ok, %{service_account: account, token: token}}
+    end
+  end
+
+  @doc """
+  Revokes an agent identity and records a `"deprovisioned"` NHI audit event.
+  """
+  @spec revoke_agent_identity(integer(), keyword()) ::
+          {:ok, ServiceAccount.t()} | {:error, :not_found | term()}
+  def revoke_agent_identity(id, opts \\ []) when is_integer(id) do
+    actor = Keyword.get(opts, :actor)
+
+    with {:ok, account} <- revoke_service_account(id) do
+      record_nhi_event(id, "deprovisioned", actor: actor, metadata: %{
+        "name" => account.name,
+        "workspace_id" => account.workspace_id
+      })
+
+      {:ok, account}
+    end
+  end
+
+  @doc """
+  Rotates the token for an agent identity and records a `"token_rotated"` event.
+  """
+  @spec rotate_agent_identity_token(integer(), keyword()) ::
+          {:ok, %{service_account: ServiceAccount.t(), token: String.t()}}
+          | {:error, :not_found | term()}
+  def rotate_agent_identity_token(id, opts \\ []) when is_integer(id) do
+    actor = Keyword.get(opts, :actor)
+
+    with {:ok, %{service_account: account, token: token}} <- rotate_service_account(id) do
+      record_nhi_event(id, "token_rotated", actor: actor, metadata: %{
+        "name" => account.name
+      })
+
+      {:ok, %{service_account: account, token: token}}
+    end
+  end
+
+  @doc """
+  Appends a raw NHI lifecycle event for `service_account_id`.
+
+  Options:
+    - `:actor` — string identifying who/what triggered the event
+    - `:metadata` — map of additional context (encoded as JSON)
+    - `:occurred_at` — override timestamp (defaults to `DateTime.utc_now/0`)
+  """
+  @spec record_nhi_event(integer(), String.t(), keyword()) ::
+          {:ok, NhiAuditEvent.t()} | {:error, Ecto.Changeset.t()}
+  def record_nhi_event(service_account_id, event_type, opts \\ []) do
+    actor = Keyword.get(opts, :actor)
+    metadata = Jason.encode!(Keyword.get(opts, :metadata, %{}))
+    occurred_at = Keyword.get(opts, :occurred_at) || DateTime.utc_now() |> DateTime.truncate(:second)
+
+    %NhiAuditEvent{}
+    |> NhiAuditEvent.changeset(%{
+      service_account_id: service_account_id,
+      event_type: event_type,
+      actor: actor,
+      metadata: metadata,
+      occurred_at: occurred_at
+    })
+    |> Repo.insert()
+  end
+
+  @doc """
+  Returns all NHI audit events for `service_account_id`, ordered by
+  `occurred_at` ascending.
+  """
+  @spec list_nhi_audit_events(integer()) :: [NhiAuditEvent.t()]
+  def list_nhi_audit_events(service_account_id) do
+    NhiAuditEvent
+    |> where([e], e.service_account_id == ^service_account_id)
+    |> order_by([e], asc: e.occurred_at)
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns the full NHI lifecycle summary for all service accounts in
+  `workspace_id`: provisioned count, active count, deprovisioned count, and
+  the last event per identity.
+  """
+  @spec nhi_lifecycle_summary(integer()) :: map()
+  def nhi_lifecycle_summary(workspace_id) when is_integer(workspace_id) do
+    accounts = list_service_accounts(workspace_id)
+
+    identities =
+      Enum.map(accounts, fn account ->
+        events = list_nhi_audit_events(account.id)
+        last_event = List.last(events)
+
+        %{
+          id: account.id,
+          name: account.name,
+          status: account.status,
+          last_used_at: account.last_used_at,
+          provisioned_at: account.inserted_at,
+          last_event_type: last_event && last_event.event_type,
+          last_event_at: last_event && last_event.occurred_at,
+          event_count: length(events)
+        }
+      end)
+
+    %{
+      total: length(accounts),
+      active: Enum.count(accounts, &ServiceAccount.active?/1),
+      revoked: Enum.count(accounts, &(&1.status == "revoked")),
+      identities: identities
+    }
   end
 end

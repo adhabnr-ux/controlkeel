@@ -13,7 +13,9 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
   alias ControlKeel.Accounts
   alias ControlKeel.Budget
+  alias ControlKeel.Cloud.BaselineAnalyzer
   alias ControlKeel.Cloud.Guardrails
+  alias ControlKeel.Cloud.WorkspaceBaseline
   alias ControlKeel.Cloud.Ingestion
   alias ControlKeel.Cloud.McpAuditLog
   alias ControlKeel.Cloud.McpRegistry
@@ -66,6 +68,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
     |> assign(:cloud_runs_summary, RuntimeContext.global_status_counts())
     |> assign(:cloud_runs_recent, RuntimeContext.recent(limit: 15))
     |> assign(:amplification_ratios, Budget.amplification_ratios(limit: 10, since_hours: 24))
+    |> assign(:behavioral_baselines, load_behavioral_baselines())
   end
 
   defp org_budget_overviews do
@@ -312,6 +315,41 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
           <% end %>
         </div>
 
+        <div id="cloud-behavioral-baselines" class="ck-card">
+          <h2 class="ck-card-title">Behavioral baselines</h2>
+          <p class="ck-note">
+            Per-workspace tool-usage baselines. Run
+            <code>controlkeel baseline compute --workspace-id &lt;id&gt;</code>
+            to refresh. Deviations ≥ 3× baseline create findings automatically.
+          </p>
+          <%= if @behavioral_baselines == [] do %>
+            <p class="ck-note">No active workspaces.</p>
+          <% else %>
+            <table class="ck-table">
+              <thead>
+                <tr>
+                  <th>Workspace</th>
+                  <th>Org</th>
+                  <th class="ck-table-right">Tools baselined</th>
+                  <th class="ck-table-right">Sample sessions</th>
+                  <th>Last computed</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for row <- @behavioral_baselines do %>
+                  <tr>
+                    <td><code>{row.workspace_id}</code>{if row.workspace_name, do: " — #{row.workspace_name}", else: ""}</td>
+                    <td>{row.org_name}</td>
+                    <td class="ck-table-right">{row.tool_count}</td>
+                    <td class="ck-table-right">{row.sample_sessions || "—"}</td>
+                    <td>{if row.computed_at, do: DateTime.to_iso8601(row.computed_at), else: "never"}</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
+        </div>
+
         <div id="cloud-mcp-guardrails" class="ck-card">
           <h2 class="ck-card-title">Content guardrails</h2>
           <p class="ck-note">
@@ -500,4 +538,30 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
   defp amplification_class(ratio) when ratio > 20, do: "ck-text-danger"
   defp amplification_class(ratio) when ratio > 5, do: "ck-text-warn"
   defp amplification_class(_ratio), do: ""
+
+  defp load_behavioral_baselines do
+    Accounts.list_orgs(status: "active")
+    |> Enum.flat_map(fn org ->
+      Accounts.org_workspace_breakdown(org.id)
+      |> Enum.map(fn ws ->
+        baseline = BaselineAnalyzer.get_baseline(ws.workspace_id)
+        %{
+          workspace_id: ws.workspace_id,
+          workspace_name: ws.workspace_name,
+          org_name: org.name,
+          computed_at: baseline && baseline.computed_at,
+          sample_sessions: baseline && baseline.sample_sessions,
+          tool_count: baseline_tool_count(baseline)
+        }
+      end)
+    end)
+  end
+
+  defp baseline_tool_count(nil), do: 0
+
+  defp baseline_tool_count(baseline) do
+    baseline
+    |> WorkspaceBaseline.decode()
+    |> map_size()
+  end
 end

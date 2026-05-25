@@ -88,6 +88,93 @@ defmodule ControlKeel.SelfHost do
   @spec bundle_manifest() :: [String.t()]
   def bundle_manifest, do: @manifest_paths
 
+  @doc """
+  Build an air-gapped install bundle by taring the `bundle_manifest/0` paths.
+
+  `project_root` — the repo root to tar from (defaults to `File.cwd!/0`).
+
+  Options:
+    - `:output` — output path for the `.tar.gz` (default: `./controlkeel-release.tar.gz`)
+
+  Returns `{:ok, %{path: path, sha256: hex}}` on success, or
+  `{:error, reason}` on failure (missing release, write error, etc.).
+  """
+  @spec pack(String.t(), keyword()) :: {:ok, %{path: String.t(), sha256: String.t()}} | {:error, String.t()}
+  def pack(project_root \\ File.cwd!(), opts \\ []) do
+    root = Path.expand(project_root)
+    output = Keyword.get(opts, :output, Path.join(root, "controlkeel-release.tar.gz"))
+
+    release_dir = Path.join(root, "_build/prod/rel/controlkeel")
+
+    unless File.dir?(release_dir) do
+      {:error,
+       "Release artifact not found at #{release_dir}. Run `MIX_ENV=prod mix release` first."}
+    else
+      paths =
+        @manifest_paths
+        |> Enum.map(&Path.join(root, &1))
+        |> Enum.filter(&(File.exists?(&1) or File.dir?(&1)))
+        |> Enum.map(&Path.relative_to(&1, root))
+
+      case paths do
+        [] ->
+          {:error, "No manifest paths exist under #{root}. Nothing to pack."}
+
+        file_list ->
+          with :ok <- File.mkdir_p(Path.dirname(output)),
+               :ok <- create_tarball(root, output, file_list) do
+            sha256 = sha256_file(output)
+            {:ok, %{path: output, sha256: sha256}}
+          else
+            {:error, reason} -> {:error, "Failed to write tarball: #{inspect(reason)}"}
+          end
+      end
+    end
+  end
+
+  defp create_tarball(root, output, file_list) do
+    # Build a list of {charlist_filename, binary_content} tuples for :erl_tar
+    entries =
+      file_list
+      |> Enum.flat_map(&expand_path(Path.join(root, &1), &1))
+      |> Enum.reject(fn {_name, content} -> is_nil(content) end)
+
+    case :erl_tar.create(String.to_charlist(output), entries, [:compressed]) do
+      :ok -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp expand_path(full_path, relative) do
+    cond do
+      File.regular?(full_path) ->
+        case File.read(full_path) do
+          {:ok, content} -> [{String.to_charlist(relative), content}]
+          _ -> []
+        end
+
+      File.dir?(full_path) ->
+        full_path
+        |> File.ls!()
+        |> Enum.flat_map(fn name ->
+          expand_path(Path.join(full_path, name), Path.join(relative, name))
+        end)
+
+      true ->
+        []
+    end
+  end
+
+  defp sha256_file(path) do
+    path
+    |> File.stream!([], 65_536)
+    |> Enum.reduce(:crypto.hash_init(:sha256), fn chunk, state ->
+      :crypto.hash_update(state, chunk)
+    end)
+    |> :crypto.hash_final()
+    |> Base.encode16(case: :lower)
+  end
+
   @doc "Render the installation guide as a Markdown string."
   @spec install_guide() :: String.t()
   def install_guide do
