@@ -392,6 +392,24 @@ defmodule ControlKeel.Skills.SkillTarget do
         "export",
         ["export"],
         true
+      ),
+      target(
+        "antigravity-cli-native",
+        "Antigravity CLI native bundle",
+        "Full 7-surface CK governance bundle for Antigravity CLI: plugin manifest, skills, agents, rules, hooks, MCP config, and instructions.",
+        true,
+        "project",
+        ["project", "export"],
+        true
+      ),
+      target(
+        "antigravity-cli-plugin",
+        "Antigravity CLI portable plugin",
+        "Portable CK governance plugin for Antigravity CLI global install via plugin directory.",
+        false,
+        "export",
+        ["export"],
+        true
       )
     ] ++ AdapterRegistry.skill_targets()
   end

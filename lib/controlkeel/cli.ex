@@ -1353,7 +1353,9 @@ defmodule ControlKeel.CLI do
              "letta-code",
              "devin-terminal",
              "warp",
-             "multica"
+             "multica",
+             "antigravity-cli",
+             "antigravity-ide"
            ] do
     root = options[:project_root] || project_root
 
@@ -1368,7 +1370,9 @@ defmodule ControlKeel.CLI do
         "letta-code" => "letta-code-native",
         "devin-terminal" => "devin-terminal-native",
         "warp" => "warp-native",
-        "multica" => "multica-native"
+        "multica" => "multica-native",
+        "antigravity-cli" => "antigravity-cli-native",
+        "antigravity-ide" => "antigravity-cli-native"
       }[agent]
 
     with {:ok, binding, _session, _mode} <-

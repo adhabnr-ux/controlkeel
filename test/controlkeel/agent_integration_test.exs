@@ -30,7 +30,8 @@ defmodule ControlKeel.AgentIntegrationTest do
     assert "kiro-cli" in ids
     assert "roo" in ids
     assert "jcode" in ids
-    assert "antigravity" in ids
+    assert "antigravity-cli" in ids
+    assert "antigravity-ide" in ids
     assert "clawdbot" in ids
     assert "kilo" in ids
     assert "nous-research" in ids
@@ -414,7 +415,6 @@ defmodule ControlKeel.AgentIntegrationTest do
 
   test "skills-compatible agent names stay honest about support tier" do
     jcode = AgentIntegration.get("jcode")
-    antigravity = AgentIntegration.get("antigravity")
     clawdbot = AgentIntegration.get("clawdbot")
     nous = AgentIntegration.get("nous-research")
     trae = AgentIntegration.get("trae")
@@ -436,7 +436,7 @@ defmodule ControlKeel.AgentIntegrationTest do
                  "raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh")
            )
 
-    for integration <- [antigravity, clawdbot, nous, trae] do
+    for integration <- [clawdbot, nous, trae] do
       assert integration.support_class == "unverified"
       assert integration.preferred_target == "open-standard"
       assert integration.export_targets == ["open-standard"]

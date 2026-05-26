@@ -1448,30 +1448,69 @@ defmodule ControlKeel.AgentIntegration do
           }
         ]
       }),
-      unverified_entry(%{
-        id: "antigravity",
-        label: "Antigravity",
-        category: "skills-compatible",
+      attach_client(%{
+        id: "antigravity-cli",
+        label: "Antigravity CLI (AGY)",
+        category: "native-first",
         description:
-          "No verified native CK attach/runtime contract yet. ControlKeel support for Antigravity is currently through open-standard AgentSkills installs such as the skills.sh flow.",
-        auth_mode: "none",
-        upstream_slug: "unverified/antigravity",
-        upstream_docs_url: "https://antigravity.google/",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        mcp_mode: "none",
+          "Attaches MCP server and delivers native governance via Antigravity CLI plugins, skills, agents, hooks, rules, and MCP config. AGY is the terminal-first surface of the Antigravity ecosystem with full plugin support.",
+        attach_command: "controlkeel attach antigravity-cli",
+        config_location:
+          "Antigravity CLI config lives in ~/.gemini/antigravity-cli/ (settings.json, mcp_config.json). Workspace config uses .agents/ (skills, rules, hooks, mcp_config.json). Global plugins live in ~/.gemini/config/plugins/.",
+        companion_delivery:
+          "Installs .agents/skills, .agents/rules, .agents/hooks.json, .agents/mcp_config.json, AGENTS.md, GEMINI.md, and a .agents/plugins/controlkeel/ plugin bundle with manifest, agents, skills, rules, hooks, and MCP config.",
+        preferred_target: "antigravity-cli-native",
+        default_scope: "project",
+        router_agent_id: "antigravity-cli",
+        auth_mode: "agent_runtime",
+        mcp_mode: "native",
         skills_mode: "native",
-        preferred_target: "open-standard",
-        export_targets: ["open-standard"],
-        agent_uses_ck_via: ["native_skills"],
-        direct_install_methods: [
-          %{
-            "kind" => "skills_sh",
-            "label" => "skills.sh install",
-            "command" =>
-              "npx skills add https://github.com/aryaminus/controlkeel --skill controlkeel-governance",
-            "availability" => "supported"
-          }
-        ]
+        upstream_slug: "google/antigravity-cli",
+        upstream_docs_url: "https://antigravity.google/docs/cli",
+        provider_bridge: %{
+          supported: true,
+          provider: "google",
+          mode: "agent_runtime",
+          owner: "agent"
+        },
+        supported_scopes: ["user", "project"],
+        export_targets: ["antigravity-cli-native", "antigravity-cli-plugin"],
+        review_experience: "native_review",
+        submission_mode: "tool_call",
+        feedback_mode: "tool_call",
+        phase_model: "host_plan_mode"
+      }),
+      attach_client(%{
+        id: "antigravity-ide",
+        label: "Antigravity 2.0 IDE",
+        category: "native-first",
+        description:
+          "Prepares Antigravity 2.0 IDE workspace-native skills, rules, hooks, MCP config, and a distributable plugin bundle for governed repo work. Shares the same .agents/ workspace structure as Antigravity CLI.",
+        attach_command: "controlkeel attach antigravity-ide",
+        config_location:
+          "Antigravity IDE config lives in ~/.gemini/antigravity/ (mcp_config.json, skills/). Workspace config uses .agents/ (skills, rules, hooks, mcp_config.json). Global plugins live in ~/.gemini/config/plugins/.",
+        companion_delivery:
+          "Installs .agents/skills, .agents/rules, .agents/hooks.json, .agents/mcp_config.json, AGENTS.md, GEMINI.md, and a .agents/plugins/controlkeel/ plugin bundle.",
+        preferred_target: "antigravity-cli-native",
+        default_scope: "project",
+        router_agent_id: "antigravity-ide",
+        auth_mode: "agent_runtime",
+        mcp_mode: "native",
+        skills_mode: "native",
+        upstream_slug: "google/antigravity",
+        upstream_docs_url: "https://antigravity.google/docs",
+        provider_bridge: %{
+          supported: true,
+          provider: "google",
+          mode: "agent_runtime",
+          owner: "agent"
+        },
+        supported_scopes: ["project"],
+        export_targets: ["antigravity-cli-native", "antigravity-cli-plugin"],
+        review_experience: "browser_review",
+        submission_mode: "command",
+        feedback_mode: "command_reply",
+        phase_model: "host_plan_mode"
       }),
       unverified_entry(%{
         id: "clawdbot",

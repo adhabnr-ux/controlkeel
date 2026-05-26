@@ -9108,6 +9108,316 @@ defmodule ControlKeel.Skills.Exporter do
     """
   end
 
+  defp write_target(%SkillTarget{id: "antigravity-cli-native"}, root, project_root, skills, opts) do
+    # 1. Plugin bundle — the richest surface Antigravity supports
+    plugin_root = Path.join(root, ".agents/plugins/controlkeel")
+    File.mkdir_p!(plugin_root)
+
+    # Plugin manifest
+    plugin_manifest = Path.join(plugin_root, "plugin.json")
+    File.write!(plugin_manifest, Jason.encode!(%{"name" => "controlkeel"}, pretty: true) <> "\n")
+
+    # Plugin skills (inside plugin bundle)
+    plugin_skill_root = Path.join(plugin_root, "skills")
+    write_skill_tree(skills, plugin_skill_root)
+
+    # Plugin agents
+    agent_path = Path.join(plugin_root, "agents/controlkeel-operator.md")
+    File.mkdir_p!(Path.dirname(agent_path))
+    File.write!(agent_path, antigravity_agent_contents())
+
+    # Plugin rules
+    rules_dir = Path.join(plugin_root, "rules")
+    File.mkdir_p!(rules_dir)
+    File.write!(Path.join(rules_dir, "controlkeel.md"), antigravity_rules_contents())
+
+    # Plugin hooks — governance gate
+    plugin_hooks_path = Path.join(plugin_root, "hooks.json")
+
+    File.write!(
+      plugin_hooks_path,
+      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # Plugin MCP config
+    plugin_mcp_path = Path.join(plugin_root, "mcp_config.json")
+
+    File.write!(
+      plugin_mcp_path,
+      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # 2. Workspace-level skills (for agents that discover .agents/skills/)
+    ws_skill_root = Path.join(root, ".agents/skills")
+    write_skill_tree(skills, ws_skill_root)
+
+    # 3. Workspace-level rules
+    ws_rules_dir = Path.join(root, ".agents/rules")
+    File.mkdir_p!(ws_rules_dir)
+    File.write!(Path.join(ws_rules_dir, "controlkeel.md"), antigravity_rules_contents())
+
+    # 4. Workspace-level hooks
+    ws_hooks_path = Path.join(root, ".agents/hooks.json")
+
+    File.write!(
+      ws_hooks_path,
+      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # 5. Workspace-level MCP config
+    ws_mcp_path = Path.join(root, ".agents/mcp_config.json")
+
+    File.write!(
+      ws_mcp_path,
+      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # 6. Context files
+    gemini_md = Path.join(root, "GEMINI.md")
+    File.write!(gemini_md, instructions_only_contents("antigravity-cli", project_root, opts))
+
+    agents_md = Path.join(root, "AGENTS.md")
+    File.write!(agents_md, instructions_only_contents("antigravity-cli", project_root, opts))
+
+    with_common_assets(
+      root,
+      project_root,
+      opts,
+      [
+        %{"path" => plugin_root, "kind" => "plugin"},
+        %{"path" => plugin_manifest, "kind" => "settings"},
+        %{"path" => plugin_skill_root, "kind" => "skills"},
+        %{"path" => agent_path, "kind" => "agent"},
+        %{"path" => Path.join(rules_dir, "controlkeel.md"), "kind" => "rules"},
+        %{"path" => plugin_hooks_path, "kind" => "hooks"},
+        %{"path" => plugin_mcp_path, "kind" => "mcp"},
+        %{"path" => ws_skill_root, "kind" => "skills"},
+        %{"path" => Path.join(ws_rules_dir, "controlkeel.md"), "kind" => "rules"},
+        %{"path" => ws_hooks_path, "kind" => "hooks"},
+        %{"path" => ws_mcp_path, "kind" => "mcp"},
+        %{"path" => gemini_md, "kind" => "instructions"},
+        %{"path" => agents_md, "kind" => "instructions"}
+      ],
+      [
+        "The plugin bundle at `.agents/plugins/controlkeel/` contains skills, agents, rules, hooks, and MCP config as a single installable unit.",
+        "Antigravity CLI discovers workspace plugins automatically from `.agents/plugins/`.",
+        "To install globally, copy the plugin to `~/.gemini/config/plugins/controlkeel/`.",
+        "Workspace skills, rules, hooks, and MCP config in `.agents/` are also auto-discovered.",
+        "Run `agy plugin list` to verify the controlkeel plugin is loaded."
+      ]
+    )
+  end
+
+  defp write_target(%SkillTarget{id: "antigravity-cli-plugin"}, root, project_root, skills, opts) do
+    # Portable plugin bundle for global install or marketplace distribution
+    plugin_root = Path.join(root, "controlkeel")
+    File.mkdir_p!(plugin_root)
+
+    plugin_manifest = Path.join(plugin_root, "plugin.json")
+    File.write!(plugin_manifest, Jason.encode!(%{"name" => "controlkeel"}, pretty: true) <> "\n")
+
+    skill_root = Path.join(plugin_root, "skills")
+    write_skill_tree(skills, skill_root)
+
+    agent_path = Path.join(plugin_root, "agents/controlkeel-operator.md")
+    File.mkdir_p!(Path.dirname(agent_path))
+    File.write!(agent_path, antigravity_agent_contents())
+
+    rules_dir = Path.join(plugin_root, "rules")
+    File.mkdir_p!(rules_dir)
+    File.write!(Path.join(rules_dir, "controlkeel.md"), antigravity_rules_contents())
+
+    hooks_path = Path.join(plugin_root, "hooks.json")
+
+    File.write!(
+      hooks_path,
+      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
+    )
+
+    mcp_path = Path.join(plugin_root, "mcp_config.json")
+
+    File.write!(
+      mcp_path,
+      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
+    )
+
+    readme_path = Path.join(root, "README.md")
+    File.write!(readme_path, antigravity_plugin_readme_contents())
+
+    with_common_assets(
+      root,
+      project_root,
+      opts,
+      [
+        %{"path" => plugin_manifest, "kind" => "settings"},
+        %{"path" => skill_root, "kind" => "skills"},
+        %{"path" => agent_path, "kind" => "agent"},
+        %{"path" => Path.join(rules_dir, "controlkeel.md"), "kind" => "rules"},
+        %{"path" => hooks_path, "kind" => "hooks"},
+        %{"path" => mcp_path, "kind" => "mcp"},
+        %{"path" => readme_path, "kind" => "instructions"}
+      ],
+      [
+        "Install globally: copy the `controlkeel/` directory to `~/.gemini/config/plugins/controlkeel/`.",
+        "Or install per-workspace: copy to `.agents/plugins/controlkeel/`.",
+        "Run `agy plugin list` to verify."
+      ]
+    )
+  end
+
+  defp antigravity_agent_contents do
+    """
+    ---
+    name: controlkeel-operator
+    description: |
+      Governed code review and validation agent. Use for pre-commit validation,
+      security review, policy checks, and governed commit flows.
+      Invoke when code changes need governance review before merging.
+    ---
+
+    # ControlKeel Governance Operator
+
+    You are a governed code review and validation agent operating inside Antigravity.
+
+    ## Core Workflow
+
+    1. **Context First**: Call `ck_context` at the start of every review session.
+    2. **Validate Before Action**: Use `ck_validate` on all proposed code changes, shell commands, and config edits.
+    3. **Record Findings**: Use `ck_finding` for any security, compliance, or quality issues discovered.
+    4. **Review Gates**: Submit plans via `ck_review_submit` before broad mutations. Poll `ck_review_status` until approved.
+    5. **Budget Awareness**: Check `ck_budget` before expensive multi-phase work.
+    6. **Commit Governance**: Use `ck_git_commit` instead of raw git commit.
+
+    ## Available Tools
+
+    All 48 ControlKeel MCP tools are available through the CK MCP server:
+    - Governance: ck_validate, ck_context, ck_finding, ck_review_submit, ck_review_status
+    - Memory: ck_memory_record, ck_memory_search, ck_memory_archive
+    - Git: ck_git_status, ck_git_diff, ck_git_commit
+    - Budget: ck_budget, ck_cost_optimizer, ck_route
+    - Execution: ck_execute_code (sandboxed), ck_delegate
+
+    ## Constraints
+
+    - Never proceed past blocked critical or high findings.
+    - Always wait for review approval before implementing.
+    - Record all decisions and findings for audit trail.
+    - Respect budget limits and escalate when approaching limits.
+    """
+  end
+
+  defp antigravity_hooks_manifest(_project_root, _opts) do
+    ck_bin = "controlkeel"
+
+    %{
+      "controlkeel-governance" => %{
+        "PreToolUse" => [
+          %{
+            "matcher" => "run_command",
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" => "#{ck_bin} hook pre-tool-use --project-root ${workspacePaths[0]}",
+                "timeout" => 15
+              }
+            ]
+          }
+        ],
+        "PostToolUse" => [
+          %{
+            "matcher" => "write_to_file|replace_file_content|multi_replace_file_content",
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" => "#{ck_bin} hook post-tool-use --project-root ${workspacePaths[0]}",
+                "timeout" => 15
+              }
+            ]
+          }
+        ],
+        "Stop" => [
+          %{
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" => "#{ck_bin} hook stop --project-root ${workspacePaths[0]}",
+                "timeout" => 10
+              }
+            ]
+          }
+        ]
+      }
+    }
+  end
+
+  defp antigravity_mcp_config(project_root, opts) do
+    %{
+      "mcpServers" => %{
+        "controlkeel" => mcp_payload(project_root, opts)
+      }
+    }
+  end
+
+  defp antigravity_rules_contents do
+    """
+    # ControlKeel Governance Rules
+
+    ## Pre-commit Governance
+    - Always call `ck_validate` before shell commands, file writes, or config changes.
+    - Run `ck_context` at session start to reacquire governance state.
+    - Use `ck_review_submit` before broad mutations; wait for approval before proceeding.
+
+    ## Security
+    - Never commit secrets, API keys, or tokens.
+    - Use `ck_finding` to record any security issues discovered during work.
+    - Check `ck_budget` before expensive multi-phase or delegated work.
+
+    ## Code Quality
+    - Run `ck_git_diff` before committing to validate changes against policy.
+    - Use `ck_git_commit` instead of raw git commit to validate commit messages.
+
+    ## Review Gates
+    - Submit plans via `ck_review_submit` for human approval before implementation.
+    - Poll `ck_review_status` until approved/denied before proceeding.
+    - Record outcomes with `ck_outcome_tracker` before ending the session.
+    """
+  end
+
+  defp antigravity_plugin_readme_contents do
+    """
+    # ControlKeel Governance Plugin for Antigravity
+
+    This plugin brings full ControlKeel governance to Antigravity CLI and IDE.
+
+    ## What's Included
+
+    - **Skills**: Governance workflows (review, validate, commit, deploy)
+    - **Agent**: `controlkeel-operator` — guided governance agent profile
+    - **Rules**: Security, code quality, and review gate policies
+    - **Hooks**: Pre-tool-use governance gates and post-write validation
+    - **MCP**: ControlKeel MCP server for tool access
+
+    ## Installation
+
+    ### Global (all workspaces)
+    Copy the `controlkeel/` directory to `~/.gemini/config/plugins/controlkeel/`.
+
+    ### Per-workspace
+    Copy the `controlkeel/` directory to `.agents/plugins/controlkeel/` in your project.
+
+    ## Verification
+
+    Run `agy plugin list` and confirm `controlkeel` appears.
+
+    ## Usage
+
+    The plugin auto-loads when Antigravity starts. Use `ck_validate`, `ck_review_submit`,
+    `ck_finding`, and other governance tools through the Antigravity agent.
+
+    For full documentation, see https://github.com/aryaminus/controlkeel.
+    """
+  end
+
   defp app_version do
     ControlKeel.CLI.version()
   end
