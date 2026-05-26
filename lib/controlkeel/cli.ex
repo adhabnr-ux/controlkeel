@@ -1152,12 +1152,13 @@ defmodule ControlKeel.CLI do
     end
   end
 
-  def run_command(%{command: :attach, args: ["codex-cli"], options: options}, project_root) do
+  def run_command(%{command: :attach, args: [agent], options: options}, project_root)
+      when agent in ["codex-cli", "codex-app-server", "t3code"] do
     root = options[:project_root] || project_root
 
     with {:ok, binding, _session, _mode} <-
-           ensure_attach_project(root, %{"agent" => "codex-cli"}),
-         {:ok, scope} <- validate_attach_scope("codex-cli", options),
+           ensure_attach_project(root, %{"agent" => agent}),
+         {:ok, scope} <- validate_attach_scope(agent, options),
          command_spec <- ProjectBinding.mcp_command_spec(root),
          config_path <- CodexConfig.path_for_scope(root, scope),
          {:ok, _} <- CodexConfig.write(config_path, command_spec),
@@ -1165,7 +1166,7 @@ defmodule ControlKeel.CLI do
          attached <-
            %{
              "server_name" => "controlkeel",
-             "ide" => "codex-cli",
+             "ide" => agent,
              "config_path" => config_path,
              "scope" => scope,
              "target" => "codex",
@@ -1178,23 +1179,24 @@ defmodule ControlKeel.CLI do
              "attached_at" =>
                DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
            },
-         updated <- ProjectBinding.update_attached_agent(binding, "codex-cli", attached),
+         updated <- ProjectBinding.update_attached_agent(binding, agent, attached),
          {:ok, _} <-
            ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
       {:ok,
        [
-         "Attached ControlKeel to Codex CLI.",
+         "Attached ControlKeel to #{display_attach_agent(agent)}.",
          "MCP server written to #{config_path}.",
-         "Restart Codex CLI to activate."
+         "Restart #{display_attach_agent(agent)} to activate."
        ] ++
          bootstrap_lines(root) ++
-         codex_attach_install_lines(install_result) ++ attach_guidance_lines("codex-cli")}
+         codex_attach_install_lines(install_result) ++ attach_guidance_lines(agent)}
     else
       {:error, message} when is_binary(message) ->
         {:error, message}
 
       {:error, reason} ->
-        {:error, "Failed to attach ControlKeel to Codex CLI: #{inspect(reason)}"}
+        {:error,
+         "Failed to attach ControlKeel to #{display_attach_agent(agent)}: #{inspect(reason)}"}
     end
   end
 
@@ -1350,7 +1352,8 @@ defmodule ControlKeel.CLI do
              "pi",
              "letta-code",
              "devin-terminal",
-             "warp"
+             "warp",
+             "multica"
            ] do
     root = options[:project_root] || project_root
 
@@ -1364,7 +1367,8 @@ defmodule ControlKeel.CLI do
         "pi" => "pi-native",
         "letta-code" => "letta-code-native",
         "devin-terminal" => "devin-terminal-native",
-        "warp" => "warp-native"
+        "warp" => "warp-native",
+        "multica" => "multica-native"
       }[agent]
 
     with {:ok, binding, _session, _mode} <-

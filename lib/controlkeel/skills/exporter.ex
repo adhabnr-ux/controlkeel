@@ -264,6 +264,27 @@ defmodule ControlKeel.Skills.Exporter do
     settings_path = Path.join(root, ".claude/settings.json")
     File.write!(settings_path, Jason.encode!(claude_manual_settings(), pretty: true) <> "\n")
 
+    review_command_path = Path.join(root, ".claude/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Claude Code", "claude-code"))
+
+    submit_command_path = Path.join(root, ".claude/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Claude Code", "claude-code", ".claude/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".claude/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Claude Code", "claude-code", ".claude/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".claude/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Claude Code"))
+
     with_common_assets(
       root,
       project_root,
@@ -271,6 +292,10 @@ defmodule ControlKeel.Skills.Exporter do
       [
         %{"path" => skill_root, "kind" => "skills"},
         %{"path" => agent_path, "kind" => "agent"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => mcp_path, "kind" => "mcp"},
         %{"path" => claude_md, "kind" => "instructions"},
         %{"path" => settings_path, "kind" => "hooks"}
@@ -793,6 +818,27 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("letta-code", project_root, opts))
 
+    review_command_path = Path.join(root, ".letta/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Letta", "letta"))
+
+    submit_command_path = Path.join(root, ".letta/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Letta", "letta", ".letta/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".letta/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Letta", "letta", ".letta/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".letta/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Letta"))
+
     with_common_assets(
       root,
       project_root,
@@ -805,6 +851,10 @@ defmodule ControlKeel.Skills.Exporter do
         %{"path" => session_hook_path, "kind" => "hook"},
         %{"path" => mcp_helper_path, "kind" => "mcp"},
         %{"path" => readme_path, "kind" => "instructions"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => mcp_path, "kind" => "mcp"},
         %{"path" => agents_path, "kind" => "instructions"}
       ],
@@ -958,7 +1008,10 @@ defmodule ControlKeel.Skills.Exporter do
     )
   end
 
-  defp write_target(%SkillTarget{id: "goose-native"}, root, project_root, _skills, opts) do
+  defp write_target(%SkillTarget{id: "goose-native"}, root, project_root, skills, opts) do
+    skill_root = Path.join(root, "goose/skills")
+    write_skill_tree(skills, skill_root)
+
     hints_path = Path.join(root, ".goosehints")
     File.write!(hints_path, goose_hints_contents())
 
@@ -998,6 +1051,7 @@ defmodule ControlKeel.Skills.Exporter do
       project_root,
       opts,
       [
+        %{"path" => skill_root, "kind" => "skills"},
         %{"path" => hints_path, "kind" => "instructions"},
         %{"path" => workflow_path, "kind" => "workflow"},
         %{"path" => command_path, "kind" => "command"},
@@ -1026,12 +1080,37 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("hermes-agent", project_root, opts))
 
+    review_command_path = Path.join(root, ".hermes/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Hermes", "hermes"))
+
+    submit_command_path = Path.join(root, ".hermes/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Hermes", "hermes", ".hermes/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".hermes/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Hermes", "hermes", ".hermes/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".hermes/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Hermes"))
+
     with_common_assets(
       root,
       project_root,
       opts,
       [
         %{"path" => skill_root, "kind" => "skills"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => mcp_path, "kind" => "mcp"},
         %{"path" => agents_path, "kind" => "instructions"}
       ],
@@ -1053,12 +1132,37 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("multica", project_root, opts))
 
+    review_command_path = Path.join(root, ".multica/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Multica", "multica"))
+
+    submit_command_path = Path.join(root, ".multica/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Multica", "multica", ".multica/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".multica/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Multica", "multica", ".multica/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".multica/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Multica"))
+
     with_common_assets(
       root,
       project_root,
       opts,
       [
         %{"path" => compat_skill_root, "kind" => "skills"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => config_path, "kind" => "mcp"},
         %{"path" => agents_path, "kind" => "instructions"}
       ],
@@ -1147,12 +1251,37 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("openclaw", project_root, opts))
 
+    review_command_path = Path.join(root, ".openclaw/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("OpenClaw", "openclaw"))
+
+    submit_command_path = Path.join(root, ".openclaw/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("OpenClaw", "openclaw", ".openclaw/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".openclaw/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("OpenClaw", "openclaw", ".openclaw/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".openclaw/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("OpenClaw"))
+
     with_common_assets(
       root,
       project_root,
       opts,
       [
         %{"path" => skill_root, "kind" => "skills"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => config_path, "kind" => "settings"},
         %{"path" => agents_path, "kind" => "instructions"}
       ],
@@ -1575,12 +1704,37 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("forge", project_root, opts))
 
+    review_command_path = Path.join(root, ".forge/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Forge", "forge"))
+
+    submit_command_path = Path.join(root, ".forge/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Forge", "forge", ".forge/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".forge/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Forge", "forge", ".forge/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".forge/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Forge"))
+
     with_common_assets(
       root,
       project_root,
       opts,
       [
         %{"path" => skill_root, "kind" => "skills"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => acp_path, "kind" => "settings"},
         %{"path" => mcp_path, "kind" => "mcp"},
         %{"path" => agents_path, "kind" => "instructions"}
@@ -1711,7 +1865,12 @@ defmodule ControlKeel.Skills.Exporter do
     File.mkdir_p!(Path.dirname(skill_path))
     File.write!(skill_path, gemini_skill_contents())
 
-    # 4. GEMINI.md context
+    # 4. MCP config
+    mcp_path = Path.join(root, ".gemini/mcp.json")
+    File.mkdir_p!(Path.dirname(mcp_path))
+    File.write!(mcp_path, Jason.encode!(mcp_payload(project_root, opts), pretty: true) <> "\n")
+
+    # 5. GEMINI.md context
     gemini_md_path = Path.join(root, "GEMINI.md")
     File.write!(gemini_md_path, instructions_only_contents("gemini-cli", project_root, opts))
 
@@ -1729,6 +1888,7 @@ defmodule ControlKeel.Skills.Exporter do
         %{"path" => annotate_command_path, "kind" => "command"},
         %{"path" => last_command_path, "kind" => "command"},
         %{"path" => skill_path, "kind" => "skills"},
+        %{"path" => mcp_path, "kind" => "mcp"},
         %{"path" => gemini_md_path, "kind" => "instructions"},
         %{"path" => extension_readme_path, "kind" => "instructions"}
       ],
@@ -1739,7 +1899,11 @@ defmodule ControlKeel.Skills.Exporter do
     )
   end
 
-  defp write_target(%SkillTarget{id: "kiro-native"}, root, project_root, _skills, opts) do
+  defp write_target(%SkillTarget{id: "kiro-native"}, root, project_root, skills, opts) do
+    # 0. Skill tree
+    skill_root = Path.join(root, ".kiro/skills")
+    write_skill_tree(skills, skill_root)
+
     # 1. Agent Hook — post-tool validation
     hook_path = Path.join(root, ".kiro/hooks/controlkeel-validate.json")
     File.mkdir_p!(Path.dirname(hook_path))
@@ -1809,6 +1973,7 @@ defmodule ControlKeel.Skills.Exporter do
       project_root,
       opts,
       [
+        %{"path" => skill_root, "kind" => "skills"},
         %{"path" => hook_path, "kind" => "hook"},
         %{"path" => review_hook_path, "kind" => "hook"},
         %{"path" => nudge_validate_hook_path, "kind" => "hook"},
@@ -2193,6 +2358,27 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("warp", project_root, opts))
 
+    review_command_path = Path.join(root, ".warp/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Warp", "warp"))
+
+    submit_command_path = Path.join(root, ".warp/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Warp", "warp", ".warp/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".warp/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Warp", "warp", ".warp/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".warp/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Warp"))
+
     with_common_assets(
       root,
       project_root,
@@ -2200,6 +2386,10 @@ defmodule ControlKeel.Skills.Exporter do
       [
         %{"path" => compat_skill_root, "kind" => "skills"},
         %{"path" => native_skill_root, "kind" => "skills"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => config_path, "kind" => "mcp"},
         %{"path" => readme_path, "kind" => "runtime"},
         %{"path" => agents_path, "kind" => "instructions"}
@@ -2253,6 +2443,27 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("devin-terminal", project_root, opts))
 
+    review_command_path = Path.join(root, ".devin/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Devin", "devin"))
+
+    submit_command_path = Path.join(root, ".devin/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Devin", "devin", ".devin/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".devin/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Devin", "devin", ".devin/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".devin/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Devin"))
+
     with_common_assets(
       root,
       project_root,
@@ -2263,6 +2474,10 @@ defmodule ControlKeel.Skills.Exporter do
         %{"path" => agent_path, "kind" => "agent"},
         %{"path" => hook_manifest_path, "kind" => "hooks"},
         %{"path" => hook_dir, "kind" => "hooks"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => config_path, "kind" => "mcp"},
         %{"path" => readme_path, "kind" => "runtime"},
         %{"path" => agents_path, "kind" => "instructions"}
