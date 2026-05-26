@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.27 — 2026-05-26
+
+### What's changed
+
+- feat(antigravity): add Antigravity CLI and IDE support with governance bundles
+- feat(host-parity): fix crashes and close surface gaps across 26 attachable hosts
+- feat(cloud): expand hosted governance surfaces
+- feat(setup): strengthen one-line ControlKeel attach flow
+- test: update assertions for Claude settings in skills test
+
 ## v0.3.26 — 2026-05-25
 
 ### What's changed
