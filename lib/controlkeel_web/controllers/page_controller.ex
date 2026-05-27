@@ -12,7 +12,7 @@ defmodule ControlKeelWeb.PageController do
     render(conn, :home,
       benchmark_summary: Benchmark.benchmark_summary(),
       provider_status: ProviderBroker.status(project_root),
-      recent_sessions: Mission.list_recent_sessions(),
+      recent_sessions: Mission.list_recent_sessions(4),
       ship_summary: Analytics.funnel_summary()
     )
   end

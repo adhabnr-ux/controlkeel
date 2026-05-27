@@ -40,7 +40,8 @@ defmodule ControlKeelWeb.Router do
 
     get "/", PageController, :home
     get "/getting-started", PageController, :getting_started
-    live "/start", OnboardingLive, :new
+    live "/missions", MissionsLive, :index
+    live "/missions/start", OnboardingLive, :new
     live "/findings", FindingsLive, :index
     live "/benchmarks", BenchmarksLive, :index
     live "/benchmarks/runs/:id", BenchmarksLive, :show

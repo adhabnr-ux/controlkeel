@@ -6,7 +6,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
   alias ControlKeel.Mission
 
   test "user can complete onboarding, regenerate, and create a mission", %{conn: conn} do
-    {:ok, view, html} = live(conn, ~p"/start")
+    {:ok, view, html} = live(conn, ~p"/missions/start")
 
     assert html =~ "Choose the domain and primary agent"
     assert html =~ "Founder / Product Builder"
@@ -86,7 +86,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
       }
     )
 
-    {:ok, view, html} = live(conn, ~p"/start")
+    {:ok, view, html} = live(conn, ~p"/missions/start")
     refute html =~ "sk-secret-test"
 
     render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
@@ -101,7 +101,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
   test "review step explains heuristic mode and provider status without leaking secrets", %{
     conn: conn
   } do
-    {:ok, view, _html} = live(conn, ~p"/start")
+    {:ok, view, _html} = live(conn, ~p"/missions/start")
 
     render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
 
@@ -139,7 +139,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
   end
 
   test "expanded domain occupations render and advance through onboarding", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/start")
+    {:ok, view, _html} = live(conn, ~p"/missions/start")
 
     assert has_element?(view, "input[value=\"hr\"]")
     assert has_element?(view, "input[value=\"legal\"]")

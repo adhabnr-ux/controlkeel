@@ -129,7 +129,7 @@ defmodule ControlKeel.Intent.TelemetryTest do
   end
 
   test "interview lifecycle telemetry emits at step boundaries", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/start")
+    {:ok, view, _html} = live(conn, ~p"/missions/start")
 
     render_submit(
       form(view, "form", launch: %{"occupation" => "healthcare", "agent" => "claude"})
