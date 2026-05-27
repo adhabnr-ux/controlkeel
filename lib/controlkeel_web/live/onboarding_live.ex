@@ -122,27 +122,11 @@ defmodule ControlKeelWeb.OnboardingLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="max-w-7xl mx-auto px-4 py-8 md:py-12">
-        <div class="flex flex-col md:flex-row justify-between gap-6 border-b border-zinc-800 pb-6 mb-8">
-          <div>
-            <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
-              Mission onboarding
-            </p>
-            <h1 class="text-3xl md:text-4xl font-serif text-zinc-100 tracking-tight mt-1">
-              Compile a governed execution brief
-            </h1>
-            <p class="text-zinc-400 text-sm mt-2 leading-relaxed max-w-2xl">
-              Complete the four onboarding steps to compile your mission brief.
-            </p>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-3 text-xs font-mono text-zinc-400 bg-zinc-900/50 border border-zinc-800/80 rounded-full px-5 py-2.5 mb-8">
-          <span class="text-lime-400 font-semibold">Step {@step} of 4</span>
-          <span class="text-zinc-750">•</span>
-          <span>{@preflight.domain_pack_label} pack</span>
-          <span class="text-zinc-750">•</span>
-          <span>{@preflight.preliminary_risk_tier} preliminary risk</span>
+      <section class="max-w-7xl mx-auto px-4 py-6">
+        <div class="mb-8">
+          <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
+            Mission onboarding
+          </p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -158,9 +142,6 @@ defmodule ControlKeelWeb.OnboardingLive do
                       <h2 class="text-2xl font-serif text-zinc-100 mt-1">
                         Choose the domain and primary agent
                       </h2>
-                      <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
-                        Pick the domain profile and primary agent for this mission.
-                      </p>
                     </div>
 
                     <div class="space-y-1.5">
@@ -226,7 +207,9 @@ defmodule ControlKeelWeb.OnboardingLive do
                       <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
                         Step 2 of 4
                       </p>
-                      <h2 class="text-2xl font-serif text-zinc-100 mt-1">Describe the product</h2>
+                      <h2 class="text-2xl font-serif text-zinc-100 mt-1">
+                        Describe the product
+                      </h2>
                     </div>
 
                     <div class="space-y-4">
@@ -483,6 +466,30 @@ defmodule ControlKeelWeb.OnboardingLive do
                   </h4>
                   <p class="text-zinc-200 text-sm mt-0.5">{@preflight.occupation.label}</p>
                 </div>
+
+                <div>
+                  <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                    Description
+                  </h4>
+                  <p class="text-zinc-200 text-sm mt-0.5">{@preflight.occupation.description}</p>
+                </div>
+
+                <div class="flex gap-2 justify-between">
+                  <div>
+                    <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                      Domain
+                    </h4>
+                    <p class="text-zinc-200 text-sm mt-0.5">{@preflight.occupation.domain_pack}</p>
+                  </div>
+
+                  <div>
+                    <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                      preliminary risk
+                    </h4>
+                    <p class="text-zinc-200 text-sm mt-0.5">{@preflight.preliminary_risk_tier}</p>
+                  </div>
+                </div>
+
                 <div>
                   <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
                     Validation emphasis
@@ -513,7 +520,6 @@ defmodule ControlKeelWeb.OnboardingLive do
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </section>
@@ -579,7 +585,7 @@ defmodule ControlKeelWeb.OnboardingLive do
       |> maybe_error(
         "idea",
         short_text?(attrs["idea"], 12),
-        "Describe the product in a few concrete sentences."
+        "Describe the product in a few concrete sentences (at least 12 characters)."
       )
 
     step_result(attrs, errors)
@@ -594,7 +600,7 @@ defmodule ControlKeelWeb.OnboardingLive do
           acc,
           "interview_answers.#{question.id}",
           short_text?(answer, 8),
-          "Answer this question before compiling the brief."
+          "Answer this question before compiling the brief (at least 8 characters)."
         )
       end)
 
