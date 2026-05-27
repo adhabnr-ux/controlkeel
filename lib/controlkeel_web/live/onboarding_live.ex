@@ -3,14 +3,12 @@ defmodule ControlKeelWeb.OnboardingLive do
 
   alias ControlKeel.Intent
   alias ControlKeel.Mission
-  alias ControlKeel.ProviderBroker
 
   @impl true
   def mount(_params, _session, socket) do
     occupation = default_occupation()
     attrs = default_attrs(occupation)
     project_root = socket.endpoint.config(:project_root) || File.cwd!()
-    provider_status = ProviderBroker.status(project_root)
 
     {:ok,
      socket
@@ -22,7 +20,6 @@ defmodule ControlKeelWeb.OnboardingLive do
      |> assign(:attrs, attrs)
      |> assign(:interview_questions, Intent.interview_questions(occupation))
      |> assign(:preflight, Intent.preflight_context(attrs))
-     |> assign(:provider_status, provider_status)
      |> assign(:errors, %{})
      |> assign(:compile_error, nil)
      |> assign(:compiled_brief, nil)
@@ -125,211 +122,277 @@ defmodule ControlKeelWeb.OnboardingLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+      <section class="max-w-7xl mx-auto px-4 py-8 md:py-12">
+        <div class="flex flex-col md:flex-row justify-between gap-6 border-b border-zinc-800 pb-6 mb-8">
           <div>
-            <p class="ck-kicker">Mission onboarding</p>
-            <h1 class="ck-section-title">Compile a governed execution brief</h1>
-            <p class="ck-lead ck-lead-tight">
-              ControlKeel is the control tower that turns agent-generated work into secure, scoped, validated, production-ready delivery. ControlKeel turns agent output into production engineering. This flow interviews the operator in plain language, compiles the brief on the server, and seeds a production-minded mission.
+            <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
+              Mission onboarding
             </p>
-            <p class="ck-note">
-              Agent output is cheap. Reviewability, security, release safety, and cost control are not. This flow exists to turn a rough idea into a governed execution brief, task plan, and proof trail.
-            </p>
-            <p class="ck-note">
-              If a generator leaves you with a brittle repo or unclear launch boundary, ControlKeel acts as the rescue control plane: it compiles the brief, makes the constraints visible, and keeps proof attached to the work.
+            <h1 class="text-3xl md:text-4xl font-serif text-zinc-100 tracking-tight mt-1">
+              Compile a governed execution brief
+            </h1>
+            <p class="text-zinc-400 text-sm mt-2 leading-relaxed max-w-2xl">
+              Complete the four onboarding steps to compile your mission brief.
             </p>
           </div>
-          <a href={~p"/"} class="ck-link">Back home</a>
         </div>
 
-        <div class="ck-metric-row">
-          <span>Step {@step} of 4</span>
+        <div class="flex flex-wrap items-center gap-3 text-xs font-mono text-zinc-400 bg-zinc-900/50 border border-zinc-800/80 rounded-full px-5 py-2.5 mb-8">
+          <span class="text-lime-400 font-semibold">Step {@step} of 4</span>
+          <span class="text-zinc-750">•</span>
           <span>{@preflight.domain_pack_label} pack</span>
+          <span class="text-zinc-750">•</span>
           <span>{@preflight.preliminary_risk_tier} preliminary risk</span>
         </div>
 
-        <div class="ck-grid ck-grid-dashboard">
-          <div class="ck-card">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div class="lg:col-span-2 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6 md:p-8 backdrop-blur-xl">
             <.form for={@form} phx-change="validate" phx-submit="next">
               <%= case @step do %>
                 <% 1 -> %>
-                  <div class="ck-form-panel">
-                    <p class="ck-mini-label">Step 1</p>
-                    <h2 class="ck-section-title">Choose the domain and primary agent</h2>
-                    <p class="ck-note">
-                      Start with what best describes the work. ControlKeel uses that choice to set the domain pack, interview language, and initial governance posture without forcing framework acronyms first.
-                    </p>
-
-                    <div class="ck-session-grid">
-                      <%= for profile <- @occupation_profiles do %>
-                        <label class="ck-card ck-session-card">
-                          <input
-                            type="radio"
-                            name="launch[occupation]"
-                            value={profile.id}
-                            checked={@attrs["occupation"] == profile.id}
-                          />
-                          <div class="ck-session-head">
-                            <div>
-                              <p class="ck-mini-label">{Intent.pack_label(profile.domain_pack)}</p>
-                              <h3>{profile.label}</h3>
-                            </div>
-                          </div>
-                          <p class="ck-note">{profile.description}</p>
-                        </label>
-                      <% end %>
+                  <div class="space-y-6">
+                    <div>
+                      <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
+                        Step 1 of 4
+                      </p>
+                      <h2 class="text-2xl font-serif text-zinc-100 mt-1">
+                        Choose the domain and primary agent
+                      </h2>
+                      <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
+                        Pick the domain profile and primary agent for this mission.
+                      </p>
                     </div>
-                    <%= if error = field_error(@errors, "occupation") do %>
-                      <p class="ck-note">{error}</p>
-                    <% end %>
 
-                    <label>
-                      <span class="ck-label">Primary agent</span>
-                      <select name="launch[agent]">
-                        <%= for {id, label} <- @agent_options do %>
-                          <option value={id} selected={@attrs["agent"] == id}>{label}</option>
+                    <div class="space-y-1.5">
+                      <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                        Domain profile
+                      </label>
+                      <select
+                        name="launch[occupation]"
+                        class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                      >
+                        <%= for profile <- @occupation_profiles do %>
+                          <option value={profile.id} selected={@attrs["occupation"] == profile.id}>
+                            {profile.label}
+                          </option>
                         <% end %>
                       </select>
-                    </label>
-                    <%= if error = field_error(@errors, "agent") do %>
-                      <p class="ck-note">{error}</p>
-                    <% end %>
+                      <%= if error = field_error(@errors, "occupation") do %>
+                        <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                      <% end %>
+                    </div>
 
-                    <label>
-                      <span class="ck-label">Daily budget (USD)</span>
-                      <span class="ck-note">
-                        ControlKeel stops agents when this limit is reached. $10/day is roughly 3 full features.
-                      </span>
-                      <input
-                        type="number"
-                        name="launch[budget]"
-                        value={@attrs["budget"]}
-                        min="0"
-                        max="500"
-                        step="5"
-                        placeholder="30"
-                      />
-                    </label>
-                    <%= if error = field_error(@errors, "budget") do %>
-                      <p class="ck-note">{error}</p>
-                    <% end %>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-zinc-800/60">
+                      <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                          Primary agent
+                        </label>
+                        <select
+                          name="launch[agent]"
+                          class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                        >
+                          <%= for {id, label} <- @agent_options do %>
+                            <option value={id} selected={@attrs["agent"] == id}>{label}</option>
+                          <% end %>
+                        </select>
+                        <%= if error = field_error(@errors, "agent") do %>
+                          <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                        <% end %>
+                      </div>
+
+                      <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                          Daily budget (USD)
+                        </label>
+                        <input
+                          type="number"
+                          name="launch[budget]"
+                          value={@attrs["budget"]}
+                          min="0"
+                          max="500"
+                          step="5"
+                          placeholder="30"
+                          class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                        />
+                        <%= if error = field_error(@errors, "budget") do %>
+                          <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                        <% end %>
+                      </div>
+                    </div>
                   </div>
                 <% 2 -> %>
-                  <div class="ck-form-panel">
-                    <p class="ck-mini-label">Step 2</p>
-                    <h2 class="ck-section-title">Describe the product</h2>
+                  <div class="space-y-6">
+                    <div>
+                      <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
+                        Step 2 of 4
+                      </p>
+                      <h2 class="text-2xl font-serif text-zinc-100 mt-1">Describe the product</h2>
+                    </div>
 
-                    <label>
-                      <span class="ck-label">Project name</span>
-                      <input
-                        type="text"
-                        name="launch[project_name]"
-                        value={@attrs["project_name"]}
-                        placeholder="ControlKeel mission name"
-                      />
-                    </label>
+                    <div class="space-y-4">
+                      <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                          Project name
+                        </label>
+                        <input
+                          type="text"
+                          name="launch[project_name]"
+                          value={@attrs["project_name"]}
+                          placeholder="e.g., Clinic Intake Portal"
+                          class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                        />
+                      </div>
 
-                    <label>
-                      <span class="ck-label">Core product prompt</span>
-                      <textarea
-                        name="launch[idea]"
-                        rows="8"
-                        placeholder="Describe what you want built in plain language."
-                      ><%= @attrs["idea"] %></textarea>
-                    </label>
-                    <%= if error = field_error(@errors, "idea") do %>
-                      <p class="ck-note">{error}</p>
-                    <% end %>
+                      <div class="space-y-1.5">
+                        <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                          Core product prompt
+                        </label>
+                        <textarea
+                          name="launch[idea]"
+                          rows="8"
+                          placeholder="Describe what you want built in plain language."
+                          class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                        ><%= @attrs["idea"] %></textarea>
+                        <%= if error = field_error(@errors, "idea") do %>
+                          <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                        <% end %>
+                      </div>
+                    </div>
                   </div>
                 <% 3 -> %>
-                  <div class="ck-form-panel">
-                    <p class="ck-mini-label">Step 3</p>
-                    <h2 class="ck-section-title">Answer the guided interview</h2>
+                  <div class="space-y-6">
+                    <div>
+                      <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
+                        Step 3 of 4
+                      </p>
+                      <h2 class="text-2xl font-serif text-zinc-100 mt-1">
+                        Answer the guided interview
+                      </h2>
+                    </div>
 
-                    <%= for question <- @interview_questions do %>
-                      <label>
-                        <span class="ck-label">{question.label}</span>
-                        <span class="ck-note">{question.prompt}</span>
-                        <textarea
-                          name={"launch[interview_answers][#{question.id}]"}
-                          rows="4"
-                          placeholder={question.placeholder}
-                        ><%= Map.get(@attrs["interview_answers"], question.id, "") %></textarea>
-                      </label>
-                      <%= if error = field_error(@errors, "interview_answers.#{question.id}") do %>
-                        <p class="ck-note">{error}</p>
+                    <div class="space-y-6">
+                      <%= for question <- @interview_questions do %>
+                        <div class="space-y-1.5">
+                          <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                            {question.label}
+                          </label>
+                          <p class="text-xs text-zinc-400 leading-relaxed">{question.prompt}</p>
+                          <textarea
+                            name={"launch[interview_answers][#{question.id}]"}
+                            rows="4"
+                            placeholder={question.placeholder}
+                            class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                          ><%= Map.get(@attrs["interview_answers"], question.id, "") %></textarea>
+                          <%= if error = field_error(@errors, "interview_answers.#{question.id}") do %>
+                            <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                          <% end %>
+                        </div>
                       <% end %>
-                    <% end %>
-                    <%= if @compile_error do %>
-                      <p class="ck-note">{@compile_error}</p>
-                    <% end %>
+                      <%= if @compile_error do %>
+                        <p class="text-sm text-yellow-450 font-medium bg-yellow-400/5 border border-yellow-400/20 rounded-xl p-4 mt-2">
+                          {@compile_error}
+                        </p>
+                      <% end %>
+                    </div>
                   </div>
                 <% 4 -> %>
-                  <div class="ck-form-panel">
-                    <p class="ck-mini-label">Step 4</p>
-                    <h2 class="ck-section-title">Review the compiled brief</h2>
+                  <div class="space-y-6">
+                    <div>
+                      <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
+                        Step 4 of 4
+                      </p>
+                      <h2 class="text-2xl font-serif text-zinc-100 mt-1">
+                        Review the compiled brief
+                      </h2>
+                    </div>
+
                     <%= if @compiled_brief do %>
                       <% brief = Intent.to_brief_map(@compiled_brief) %>
                       <% compiler = brief["compiler"] || %{} %>
-                      <div class="ck-brief-grid">
+
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-zinc-805 pb-6">
                         <div>
-                          <h3>Objective</h3>
-                          <p class="ck-note">{brief["objective"]}</p>
-                        </div>
-                        <div>
-                          <h3>Recommended stack</h3>
-                          <p class="ck-note">{brief["recommended_stack"]}</p>
-                        </div>
-                        <div>
-                          <h3>Next step</h3>
-                          <p class="ck-note">{brief["next_step"]}</p>
-                        </div>
-                        <div>
-                          <h3>Compiler</h3>
-                          <p class="ck-note">
-                            {compiler["provider"]} / {compiler["model"]}
+                          <h4 class="text-xs font-semibold text-zinc-350 uppercase tracking-wider font-mono">
+                            Objective
+                          </h4>
+                          <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
+                            {brief["objective"]}
                           </p>
                         </div>
                         <div>
-                          <h3>Provider mode</h3>
-                          <p class="ck-note">{provider_mode_label(@provider_status)}</p>
+                          <h4 class="text-xs font-semibold text-zinc-350 uppercase tracking-wider font-mono">
+                            Recommended Stack
+                          </h4>
+                          <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
+                            {brief["recommended_stack"]}
+                          </p>
+                        </div>
+                        <div>
+                          <h4 class="text-xs font-semibold text-zinc-350 uppercase tracking-wider font-mono">
+                            Next Step
+                          </h4>
+                          <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
+                            {brief["next_step"]}
+                          </p>
+                        </div>
+                        <div>
+                          <h4 class="text-xs font-semibold text-zinc-350 uppercase tracking-wider font-mono">
+                            Compiler Info
+                          </h4>
+                          <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
+                            {compiler["provider"]} / {compiler["model"]}
+                          </p>
                         </div>
                       </div>
 
-                      <div class="ck-grid ck-grid-dashboard">
-                        <div class="ck-card">
-                          <p class="ck-mini-label">Acceptance criteria</p>
-                          <ul class="ck-mini-list">
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                        <div class="rounded-xl border border-zinc-800 bg-zinc-900/20 p-4">
+                          <h4 class="text-xs font-semibold text-lime-400 uppercase tracking-wider font-mono mb-2">
+                            Acceptance criteria
+                          </h4>
+                          <ul class="text-xs text-zinc-400 space-y-1.5 list-disc list-inside">
                             <%= for item <- brief["acceptance_criteria"] || [] do %>
                               <li>{item}</li>
                             <% end %>
                           </ul>
                         </div>
-                        <div class="ck-card">
-                          <p class="ck-mini-label">Production boundary</p>
-                          <div class="ck-brief-grid">
-                            <div>
-                              <h3>Risk tier</h3>
-                              <p class="ck-note">
-                                {boundary_value(@compiled_boundary_summary, "risk_tier")}
-                              </p>
+
+                        <div class="rounded-xl border border-zinc-800 bg-zinc-900/20 p-4">
+                          <h4 class="text-xs font-semibold text-lime-400 uppercase tracking-wider font-mono mb-2">
+                            Production boundary
+                          </h4>
+                          <div class="space-y-3">
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span class="text-zinc-500 block font-mono text-[10px] uppercase">
+                                  Risk Tier
+                                </span>
+                                <span class="text-zinc-300 font-medium">
+                                  {boundary_value(@compiled_boundary_summary, "risk_tier")}
+                                </span>
+                              </div>
+                              <div>
+                                <span class="text-zinc-500 block font-mono text-[10px] uppercase">
+                                  Launch Window
+                                </span>
+                                <span class="text-zinc-300 font-medium">
+                                  {boundary_value(@compiled_boundary_summary, "launch_window")}
+                                </span>
+                              </div>
                             </div>
                             <div>
-                              <h3>Budget note</h3>
-                              <p class="ck-note">
+                              <span class="text-zinc-500 text-xs block font-mono text-[10px] uppercase">
+                                Budget Note
+                              </span>
+                              <span class="text-zinc-300 text-xs font-medium leading-relaxed">
                                 {boundary_value(@compiled_boundary_summary, "budget_note")}
-                              </p>
+                              </span>
                             </div>
                             <div>
-                              <h3>Launch window</h3>
-                              <p class="ck-note">
-                                {boundary_value(@compiled_boundary_summary, "launch_window")}
-                              </p>
-                            </div>
-                            <div>
-                              <h3>Constraints</h3>
-                              <ul class="ck-mini-list">
+                              <span class="text-zinc-500 text-xs block mb-1 font-mono text-[10px] uppercase">
+                                Constraints
+                              </span>
+                              <ul class="text-xs text-zinc-400 space-y-1 list-disc list-inside">
                                 <%= for item <- boundary_list(@compiled_boundary_summary, "constraints") do %>
                                   <li>{item}</li>
                                 <% end %>
@@ -337,9 +400,12 @@ defmodule ControlKeelWeb.OnboardingLive do
                             </div>
                           </div>
                         </div>
-                        <div class="ck-card">
-                          <p class="ck-mini-label">Open questions</p>
-                          <ul class="ck-mini-list">
+
+                        <div class="rounded-xl border border-zinc-800 bg-zinc-900/20 p-4 md:col-span-2">
+                          <h4 class="text-xs font-semibold text-lime-400 uppercase tracking-wider font-mono mb-2">
+                            Open Questions
+                          </h4>
+                          <ul class="text-xs text-zinc-400 space-y-1.5 list-disc list-inside">
                             <%= for item <- brief["open_questions"] || [] do %>
                               <li>{item}</li>
                             <% end %>
@@ -347,136 +413,107 @@ defmodule ControlKeelWeb.OnboardingLive do
                         </div>
                       </div>
                     <% else %>
-                      <p class="ck-note">The brief is not available yet.</p>
+                      <p class="text-zinc-400 text-sm">The brief is not available yet.</p>
                     <% end %>
                   </div>
               <% end %>
 
-              <div class="ck-action-row">
-                <button
-                  :if={@step > 1}
-                  class="ck-link"
-                  type="button"
-                  phx-click="back"
-                >
-                  Back
-                </button>
+              <div class="flex items-center justify-between gap-4 mt-8 pt-4 border-t border-zinc-800/60">
+                <%= if @step > 1 do %>
+                  <button
+                    class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-lime-400 hover:text-lime-300 transition font-mono"
+                    type="button"
+                    phx-click="back"
+                  >
+                    Back
+                  </button>
+                <% else %>
+                  <div></div>
+                <% end %>
 
-                <button :if={@step < 4} class="ck-button-primary" type="submit">
+                <button
+                  :if={@step < 4}
+                  class="px-6 py-2.5 rounded-full bg-lime-400 text-zinc-950 font-bold text-sm hover:bg-lime-300 hover:shadow-[0_0_20px_rgba(196,240,66,0.3)] transition-all duration-200"
+                  type="submit"
+                >
                   {if @step == 3, do: "Compile brief", else: "Continue"}
                 </button>
               </div>
             </.form>
 
-            <div :if={@step == 4} class="ck-action-row">
-              <button class="ck-link" type="button" phx-click="back">Edit answers</button>
-              <button class="ck-link" type="button" phx-click="regenerate">Regenerate</button>
-              <button class="ck-button-primary" type="button" phx-click="accept">
+            <div
+              :if={@step == 4}
+              class="flex flex-wrap items-center justify-between gap-4 mt-8 pt-4 border-t border-zinc-800/60"
+            >
+              <div class="flex gap-2">
+                <button
+                  class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-lime-400 hover:text-lime-300 transition font-mono"
+                  type="button"
+                  phx-click="back"
+                >
+                  Edit answers
+                </button>
+                <button
+                  class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-lime-400 hover:text-lime-300 transition font-mono"
+                  type="button"
+                  phx-click="regenerate"
+                >
+                  Regenerate
+                </button>
+              </div>
+              <button
+                class="px-6 py-2.5 rounded-full bg-lime-400 text-zinc-950 font-bold text-sm hover:bg-lime-300 hover:shadow-[0_0_20px_rgba(196,240,66,0.3)] transition-all duration-200"
+                type="button"
+                phx-click="accept"
+              >
                 Create mission
               </button>
             </div>
           </div>
 
-          <div class="ck-card">
-            <p class="ck-mini-label">Domain pack preview</p>
-            <div class="ck-brief-grid">
-              <div>
-                <h3>Occupation</h3>
-                <p class="ck-note">{@preflight.occupation.label}</p>
-              </div>
-              <div>
-                <h3>Validation emphasis</h3>
-                <p class="ck-note">{@preflight.validation_language}</p>
-              </div>
-              <div>
-                <h3>Compliance</h3>
-                <ul class="ck-tag-list">
-                  <%= for item <- @preflight.compliance do %>
-                    <li><span class="ck-tag">{item}</span></li>
-                  <% end %>
-                </ul>
-              </div>
-              <div>
-                <h3>Stack guidance</h3>
-                <p class="ck-note">{@preflight.stack_guidance}</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="ck-card">
-            <p class="ck-mini-label">Provider and autonomy status</p>
-            <p class="ck-note">
-              Designed for serious solo builders and tiny teams first. ControlKeel is not another IDE, coding model, or post-hoc review layer; it is the governed control loop around those tools.
-            </p>
-            <p class="ck-note" style="margin-top: 0.75rem;">
-              Unsupported tool or rescue situation? Bootstrap the project, use `controlkeel watch`, findings, proofs, and `ck_validate`, then add governed proxy only when the tool can target compatible endpoints.
-            </p>
-            <div class="ck-brief-grid">
-              <div>
-                <h3>Current mode</h3>
-                <p class="ck-note">{provider_mode_label(@provider_status)}</p>
-              </div>
-              <div>
-                <h3>Current provider</h3>
-                <p class="ck-note">{provider_name(@provider_status)}</p>
-              </div>
-              <div>
-                <h3>Setup scope</h3>
-                <p class="ck-note">{setup_scope_copy(@provider_status)}</p>
-              </div>
-              <div>
-                <h3>Attached agents</h3>
-                <p class="ck-note">{attached_agents_copy(@provider_status)}</p>
+          <div class="lg:col-span-1 space-y-6">
+            <div class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6 backdrop-blur-xl">
+              <p class="text-[10px] font-semibold tracking-wider text-lime-400 uppercase font-mono mb-3">
+                Domain pack preview
+              </p>
+              <div class="space-y-4">
+                <div>
+                  <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                    Occupation
+                  </h4>
+                  <p class="text-zinc-200 text-sm mt-0.5">{@preflight.occupation.label}</p>
+                </div>
+                <div>
+                  <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                    Validation emphasis
+                  </h4>
+                  <p class="text-zinc-200 text-sm mt-0.5 leading-relaxed">
+                    {@preflight.validation_language}
+                  </p>
+                </div>
+                <div>
+                  <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider mb-1.5">
+                    Compliance
+                  </h4>
+                  <div class="flex flex-wrap gap-1">
+                    <%= for item <- @preflight.compliance do %>
+                      <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700/50">
+                        {item}
+                      </span>
+                    <% end %>
+                  </div>
+                </div>
+                <div>
+                  <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                    Stack guidance
+                  </h4>
+                  <p class="text-zinc-200 text-xs mt-0.5 leading-relaxed">
+                    {@preflight.stack_guidance}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <p class="ck-note" style="margin-top: 1rem;">
-              {provider_guidance(@provider_status)}
-            </p>
-
-            <p class="ck-note" style="margin-top: 0.75rem;">
-              Autonomy and findings: see
-              <code class="font-mono text-sm">docs/autonomy-and-findings.md</code>
-              in the repository for how severity maps to human review (LLM advisory requires a provider; validate responses include an advisory status).
-            </p>
-
-            <div class="ck-grid ck-grid-dashboard" style="margin-top: 1rem;">
-              <div class="ck-card">
-                <p class="ck-mini-label">Always available</p>
-                <ul class="ck-mini-list">
-                  <%= for item <- always_available_capabilities() do %>
-                    <li>{item}</li>
-                  <% end %>
-                </ul>
-              </div>
-              <div class="ck-card">
-                <p class="ck-mini-label">Model-backed features</p>
-                <ul class="ck-mini-list">
-                  <%= for item <- model_backed_capabilities(@provider_status) do %>
-                    <li>{item}</li>
-                  <% end %>
-                </ul>
-              </div>
-            </div>
-
-            <div class="ck-grid ck-grid-dashboard" style="margin-top: 1rem;">
-              <div class="ck-card">
-                <p class="ck-mini-label">Resolution order</p>
-                <ol class="ck-mini-list">
-                  <%= for item <- provider_resolution_steps() do %>
-                    <li>{item}</li>
-                  <% end %>
-                </ol>
-              </div>
-              <div class="ck-card">
-                <p class="ck-mini-label">Autonomy defaults</p>
-                <ul class="ck-mini-list">
-                  <%= for item <- autonomy_defaults() do %>
-                    <li>{item}</li>
-                  <% end %>
-                </ul>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -643,129 +680,6 @@ defmodule ControlKeelWeb.OnboardingLive do
 
   defp compile_error_message(reason) do
     "ControlKeel could not compile the execution brief yet (#{format_reason(reason)}). If you do not have a bridge, API key, or local Ollama model, ControlKeel still runs in heuristic mode for governance, proofs, skills, and benchmarks."
-  end
-
-  defp provider_mode_label(%{
-         "selected_source" => "agent_bridge",
-         "selected_provider" => provider
-       }) do
-    "Bridge via attached agent (#{provider})"
-  end
-
-  defp provider_mode_label(%{
-         "selected_source" => "workspace_profile",
-         "selected_provider" => provider
-       }) do
-    "Workspace-managed provider (#{provider})"
-  end
-
-  defp provider_mode_label(%{
-         "selected_source" => "user_default_profile",
-         "selected_provider" => provider
-       }) do
-    "ControlKeel user profile (#{provider})"
-  end
-
-  defp provider_mode_label(%{
-         "selected_source" => "project_override",
-         "selected_provider" => provider
-       }) do
-    "Project override (#{provider})"
-  end
-
-  defp provider_mode_label(%{"selected_source" => "ollama", "selected_model" => model}) do
-    "Local Ollama (#{model || "default model"})"
-  end
-
-  defp provider_mode_label(_status), do: "Heuristic / no-LLM fallback"
-
-  defp provider_name(%{"selected_provider" => provider}) when provider in [nil, "heuristic"],
-    do: "No provider selected"
-
-  defp provider_name(%{"selected_provider" => provider, "selected_model" => model}) do
-    if blank?(model), do: provider, else: "#{provider} / #{model}"
-  end
-
-  defp setup_scope_copy(%{"binding_mode" => mode}) when mode in ["project", "ephemeral"] do
-    "Governance stays project-local. Some agent installs can still be user-scoped."
-  end
-
-  defp setup_scope_copy(_status) do
-    "Use user scope for reusable agent installs. Use project bootstrap for governed repos."
-  end
-
-  defp attached_agents_copy(%{"attached_agents" => []}), do: "None yet"
-
-  defp attached_agents_copy(%{"attached_agents" => agents}) when is_list(agents) do
-    agents
-    |> Enum.map_join(", ", fn agent ->
-      Map.get(agent, "label") || Map.get(agent, "id") || "Unknown"
-    end)
-  end
-
-  defp attached_agents_copy(_status), do: "None yet"
-
-  defp provider_guidance(%{"selected_source" => "agent_bridge"}) do
-    "ControlKeel is borrowing model access from an attached agent bridge, so you usually do not need to enter a separate API key for guided compilation and advisory features."
-  end
-
-  defp provider_guidance(%{"selected_source" => source})
-       when source in ["workspace_profile", "user_default_profile", "project_override"] do
-    "ControlKeel has its own provider profile available. Guided compilation and advisory features can run directly from the configured model source."
-  end
-
-  defp provider_guidance(%{"selected_source" => "ollama"}) do
-    "ControlKeel is using a local Ollama model. This keeps setup local-first and avoids hosted API keys, but model quality depends on the local model you run."
-  end
-
-  defp provider_guidance(_status) do
-    "No bridge, API key, or local model is configured right now. ControlKeel still governs agent work, captures proofs, runs MCP tools, and benchmarks outcomes in heuristic mode."
-  end
-
-  defp always_available_capabilities do
-    [
-      "Governance and policy validation on agent actions",
-      "Findings, proof bundles, and mission audit trail",
-      "MCP tools, skills, and agent attachments",
-      "Benchmark runs and policy artifact management"
-    ]
-  end
-
-  defp model_backed_capabilities(%{"selected_provider" => provider})
-       when provider in [nil, "heuristic"] do
-    [
-      "Execution brief compilation falls back to heuristics or may ask for a provider",
-      "Advisory scanner only runs when a provider is available",
-      "Model-backed guidance is limited until a bridge, key, or Ollama model is configured"
-    ]
-  end
-
-  defp model_backed_capabilities(_status) do
-    [
-      "Execution brief compilation can use the configured model path",
-      "Advisory scanner can add model-backed review on top of pattern scanning",
-      "Provider-backed guidance can run without asking for another setup step"
-    ]
-  end
-
-  defp provider_resolution_steps do
-    [
-      "Attached agent bridge when supported",
-      "Workspace or service-account profile",
-      "ControlKeel user default profile",
-      "Project override",
-      "Local Ollama",
-      "Heuristic fallback"
-    ]
-  end
-
-  defp autonomy_defaults do
-    [
-      "Low-risk guidance continues automatically with warnings when needed",
-      "Medium-risk findings stay visible and route the operator toward a fix",
-      "Destructive or high-risk actions should be blocked or explicitly reviewed",
-      "Governed repos keep the policy trail even when model features degrade"
-    ]
   end
 
   defp format_reason(%Ecto.Changeset{}), do: "schema validation failed"

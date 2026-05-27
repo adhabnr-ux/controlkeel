@@ -1,6 +1,8 @@
 defmodule ControlKeelWeb.PageHTML do
   use ControlKeelWeb, :html
 
+  import ControlKeelWeb.ProviderStatusComponents
+
   embed_templates "page_html/*"
 
   def format_percent(nil), do: "Not recorded"
