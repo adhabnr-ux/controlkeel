@@ -63,6 +63,55 @@ defmodule ControlKeel.Governance.SessionDigestTest do
     end
   end
 
+  describe "time/output reporting" do
+    test "exposes avg_task_duration_seconds and tasks_per_hour in metadata" do
+      {:ok, workspace} =
+        Mission.create_workspace(%{
+          name: "Timed",
+          slug: "timed-#{:rand.uniform(10000)}",
+          industry: "software",
+          agent: "claude-code",
+          budget_cents: 10_000,
+          compliance_profile: "baseline",
+          status: "active"
+        })
+
+      {:ok, session} =
+        Mission.create_session(%{
+          title: "Timed Session",
+          objective: "Test",
+          risk_tier: "low",
+          budget_cents: 10_000,
+          daily_budget_cents: 5_000,
+          workspace_id: workspace.id
+        })
+
+      {:ok, _t1} =
+        Mission.create_task(%{
+          title: "t1",
+          status: "completed",
+          session_id: session.id,
+          position: 1,
+          validation_gate: "manual"
+        })
+
+      {:ok, _t2} =
+        Mission.create_task(%{
+          title: "t2",
+          status: "completed",
+          session_id: session.id,
+          position: 2,
+          validation_gate: "manual"
+        })
+
+      assert {:ok, digest} = SessionDigest.generate(session.id)
+      assert Map.has_key?(digest.metadata, "avg_task_duration_seconds")
+      assert Map.has_key?(digest.metadata, "tasks_per_hour")
+      assert Map.has_key?(digest.metadata, "tech_debt_signals")
+      assert is_list(digest.metadata["tech_debt_signals"])
+    end
+  end
+
   describe "latest/1" do
     test "returns the most recent digest" do
       {:ok, workspace} =

@@ -16,6 +16,7 @@ defmodule ControlKeel.Governance.SessionDigest do
   alias ControlKeel.Repo
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Finding, SessionDigest, Task, Review}
+  alias ControlKeel.Governance.TechDebtDetector
 
   @doc "Generate a new digest for a session."
   def generate(session_id, opts \\ []) do
@@ -27,16 +28,21 @@ defmodule ControlKeel.Governance.SessionDigest do
     tasks = load_tasks(session_id, period_start, period_end)
     findings = load_findings(session_id, period_start, period_end)
     reviews = load_reviews(session_id, period_start, period_end)
+    tech_debt_signals = TechDebtDetector.detect_for_session(session_id, opts)
 
     top_rule_ids = count_by_field(findings, :rule_id)
     top_categories = count_by_field(findings, :category)
 
-    highlights = build_highlights(tasks, findings, reviews, session)
+    highlights = build_highlights(tasks, findings, reviews, session, tech_debt_signals)
 
     needs_attention =
       Enum.count(findings, &(&1.status == "blocked")) > 0 or
         Enum.count(reviews, &(&1.status == "pending")) > 0 or
-        session.spent_cents > div(session.budget_cents, 5) * 4
+        session.spent_cents > div(session.budget_cents, 5) * 4 or
+        tech_debt_signals != []
+
+    avg_task_duration_seconds = avg_task_duration(tasks)
+    tasks_per_hour = tasks_per_hour(tasks, period_start, period_end)
 
     attrs = %{
       session_id: session_id,
@@ -57,7 +63,11 @@ defmodule ControlKeel.Governance.SessionDigest do
       highlights: highlights,
       needs_attention: needs_attention,
       generated_at: DateTime.utc_now(),
-      metadata: %{}
+      metadata: %{
+        "avg_task_duration_seconds" => avg_task_duration_seconds,
+        "tasks_per_hour" => tasks_per_hour,
+        "tech_debt_signals" => tech_debt_signals
+      }
     }
 
     %SessionDigest{}
@@ -136,8 +146,15 @@ defmodule ControlKeel.Governance.SessionDigest do
     |> Map.new()
   end
 
-  defp build_highlights(tasks, findings, reviews, session) do
+  defp build_highlights(tasks, findings, reviews, session, tech_debt_signals) do
     highlights = []
+
+    highlights =
+      tech_debt_signals
+      |> Enum.take(3)
+      |> Enum.reduce(highlights, fn signal, acc ->
+        [%{"type" => "tech_debt", "summary" => signal.message} | acc]
+      end)
 
     highlights =
       if session.spent_cents > div(session.budget_cents, 5) * 4 do
@@ -171,5 +188,34 @@ defmodule ControlKeel.Governance.SessionDigest do
       end)
 
     %{"items" => Enum.take(Enum.reverse(highlights), 10)}
+  end
+
+  defp avg_task_duration(tasks) do
+    durations =
+      tasks
+      |> Enum.filter(&(&1.status == "completed"))
+      |> Enum.map(fn t ->
+        if t.updated_at && t.inserted_at do
+          DateTime.diff(t.updated_at, t.inserted_at, :second)
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
+
+    if durations == [] do
+      nil
+    else
+      Float.round(Enum.sum(durations) / length(durations), 1)
+    end
+  end
+
+  defp tasks_per_hour(tasks, period_start, period_end) do
+    completed = Enum.count(tasks, &(&1.status == "completed"))
+    period_seconds = DateTime.diff(period_end, period_start, :second)
+
+    if period_seconds <= 0 do
+      0.0
+    else
+      Float.round(completed / (period_seconds / 3600.0), 2)
+    end
   end
 end

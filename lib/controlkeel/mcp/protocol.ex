@@ -1556,6 +1556,7 @@ defmodule ControlKeel.MCP.Protocol do
           "review_type controls what is being submitted: plan (before implementation), diff (before merging), or completion (task done). " <>
           "submission_body is the full content: plan text, diff, or completion description. " <>
           "For iterative plan refinement, pass previous_review_id and plan_phase (ticket → research_packet → design_options → narrowed_decision → implementation_plan → code_backed_plan). " <>
+          "The plan-quality scorer evaluates structured fields, not just submission_body — populate research_summary, options_considered, selected_option, rejected_options, implementation_steps, validation_plan, code_snippets, alignment_context, consulted_roles, codebase_findings, prior_art_summary, and scope_estimate for a strong score. " <>
           "Returns review_id, status (pending), and a URL where the human reviewer can approve or deny. " <>
           "After submission, poll ck_review_status until the decision is approved or denied before proceeding. " <>
           "Use ck_review_feedback (human-facing) to record a decision on an existing review.",

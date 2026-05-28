@@ -70,7 +70,8 @@ defmodule ControlKeel.MCP.Tools.CkSessionDigest do
       "top_categories" => digest.top_categories,
       "highlights" => digest.highlights,
       "needs_attention" => digest.needs_attention,
-      "generated_at" => digest.generated_at
+      "generated_at" => digest.generated_at,
+      "metadata" => digest.metadata
     }
   end
 

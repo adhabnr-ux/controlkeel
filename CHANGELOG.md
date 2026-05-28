@@ -8,9 +8,19 @@
   Generates condensed, human-scannable digests of what happened in a session —
   tasks completed, findings raised, budget spent, reviews pending, and notable
   highlights. Three digest types: session, daily, shift_change. Sets
-  `needs_attention` flag when blocked findings, pending reviews, or >80% budget
-  consumption detected. Inspired by "you need inboxes that summarize what
-  happened" (Dan Shipper, Lenny Podcast).
+  `needs_attention` flag when blocked findings, pending reviews, >80% budget
+  consumption, or tech-debt accumulation signals are detected. Also exposes
+  `avg_task_duration_seconds` and `tasks_per_hour` in `metadata` so operators
+  can observe time-gained vs output-gained without CK pushing either dimension.
+- feat(techdebt): new `Governance.TechDebtDetector` and `CK-TECHDEBT-001/002`
+  rule family surfaced through `ck_session_digest`. Detects (1) repeated
+  patches on the same `Finding.metadata["path"]` across recent sessions
+  without an intervening refactor/cleanup commit on that path, and (2) the
+  same `rule_id` recurring across ≥3 sessions in the workspace. No new MCP
+  tool, no schema migration — reuses `Finding.metadata` and the existing
+  `SessionDigest.metadata` map. Inspired by Dax Raad's observation that AI
+  code generation mutes the "guilt" of writing a hack, so the muted signal
+  has to come from somewhere else.
 - feat(rollback): new `ck_rollback` MCP tool and `RollbackExecutor` module.
   Makes rollback executable, not just advisory. Records a git checkpoint
   (commit SHA) before each task via `checkpoint` mode, and provides `execute`
@@ -18,11 +28,11 @@
   if downstream completed tasks depend on the changes. Creates an audit finding
   (`CK-ROLLBACK-001`) on every rollback. Inspired by "you need easy rollback."
 - feat(agents): new `ck_workspace_agent` MCP tool and workspace agent roles.
-  Formalizes the "company agent" concept with role-based scoping: `primary`
-  (one super-agent per workspace, maintained by a forward-deployed engineer),
-  `specialized` (domain-scoped), and `ephemeral` (short-lived task runners).
-  Health monitoring, budget tracking, and retirement lifecycle. Inspired by
-  "every company will have one super-agent."
+  Formalizes agent-role scoping for orgs adopting a forward-deployed-engineer
+  pattern, without asserting that pattern as inevitable: `primary` (a single
+  maintained agent per workspace), `specialized` (domain-scoped, multiple
+  allowed), and `ephemeral` (short-lived task runners). Health monitoring,
+  budget tracking, and retirement lifecycle.
 - feat(copilot): new `ck_copilot` MCP tool and `CopilotChannel` GenServer.
   Real-time collaborative channel where human actions (viewing, editing,
   approving, commenting) stream to the agent via PubSub without polling. ETS-
@@ -45,6 +55,10 @@
 - fix(db): apply pending migrations for `external_id` on tasks and
   `workspace_github_repos`.
 
+- fix(mcp): update `ck_review_submit` description to name the structured planning fields
+  (`research_summary`, `options_considered`, `selected_option`, etc.) that the plan-quality
+  scorer evaluates — agents reading the tool description will no longer package everything
+  into `submission_body` and get scored weak on first attempts (CK-REVIEW-SCHEMA-002).
 
 ## v0.3.28 — 2026-05-28
 
