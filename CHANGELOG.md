@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.32 — 2026-05-28
+
+### What's changed
+
+- fix(cloud-sync): hardening pass closing all 10 post-merge findings
+
 ## v0.3.31 — 2026-05-28
 
 ### What's changed
