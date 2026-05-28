@@ -5,6 +5,13 @@ CLI/governance surfaces map to its cloud control plane. It was produced as
 Slice 1 of the cloud-parity-audit work and is intended as the reviewable
 artifact that the remaining slices fix against.
 
+> **Status update:** all 14 findings called out by this audit are now
+> resolved (see the cross-reference table at the bottom). The narrative
+> sections below describe each surface's state at audit time, including
+> the ⚠️ / ❌ gaps that the linked findings closed. Read the matrix
+> top-to-bottom as the original audit; trust the cross-reference table
+> for current state.
+
 Status legend:
 
 - ✅ shipped and verified end-to-end
@@ -216,36 +223,43 @@ identifier — only an integer primary key. The CLI prints "Run package
 created: id=42" which is not useful for the user to reference later.
 Consider a `pkg_<ulid>` external ID.
 
-## Cross-reference: open findings as of this audit
+## Cross-reference: audit findings
 
-| Rule | Severity | Status |
+All 14 findings from the cloud parity audit are resolved. The matrix
+above still describes each surface from the user's perspective; the
+table below tracks each finding to the commit/slice that closed it.
+
+| Rule | Severity | Resolution |
 |---|---|---|
-| CK-CLOUD-AUTHZ-001 | high | resolved |
-| CK-CLOUD-TOKEN-001 | medium | resolved (docs aligned) |
-| CK-CLOUD-DOC-001 | low | resolved |
-| CK-CLOUD-UI-001 | low | resolved |
-| CK-CLOUD-TASK-DEDUP-001 | medium | open |
-| CK-CLOUD-PAYLOAD-001 | high | open |
-| CK-CLOUD-DISPATCH-001 | high | open (roadmap-tracked) |
-| CK-CLOUD-ENROLL-LINK-001 | medium | open |
-| CK-CLOUD-GIT-001 | medium | open |
-| CK-CLOUD-OBS-001 | medium | open |
-| CK-CLOUD-FINDING-001 | medium | open |
-| CK-CLOUD-XORG-TEST-001 | low | open |
-| CK-CLOUD-NAMING-001 | low | open |
+| CK-CLOUD-AUTHZ-001 | high | `Accounts.authorize_cloud_execution/2` gates `RuntimeContext.create_package/1`; CLI `--user-id`. |
+| CK-CLOUD-PAYLOAD-001 | high | `cloud_run_packages.repo_url/branch/commit_sha` captured by `build_cloud_payload/2` via `git rev-parse` / `git remote get-url`; `--repo-url/--branch/--commit-sha` overrides. |
+| CK-CLOUD-DISPATCH-001 | high | `RuntimeDispatcher` behavior + `Manual` default; `:cloud_dispatchers` config registry; `--dispatch` CLI flag. |
+| CK-CLOUD-TOKEN-001 | medium | `RunPackage` + `RuntimeContext` moduledocs aligned with valid-until-terminal semantics. |
+| CK-CLOUD-ID-001 | medium | `workspace_keys.mission_workspace_id` + `WorkspaceKeyRegistry.fetch_by_mission_workspace/1`; LiveView preloads the link. |
+| CK-CLOUD-ENROLL-LINK-001 | medium | Invitation-binding: `memberships.mission_workspace_id` + `Accounts.invite_member(..., mission_workspace_id: …)` + `CloudWorkspaceController` threads the binding through enrollment. |
+| CK-CLOUD-OBS-001 | medium | `CloudProjectsLive` show page renders a Cloud run packages card. |
+| CK-CLOUD-FINDING-001 | medium | `CloudRuntimeCallbackController` accepts `findings[]`; `RuntimeContext.ingest_findings/2` persists each with cloud provenance metadata. |
+| CK-CLOUD-TASK-DEDUP-001 | medium | `tasks.external_id = task_<ulid>`, caller-overridable for cross-clone lineage. |
+| CK-CLOUD-GIT-001 | medium | `workspace_github_repos` schema + Mission API + `controlkeel govern bind/unbind/list github`; bindings ride the cloud payload. |
+| CK-CLOUD-DOC-001 | low | `CloudTelemetryController` moduledoc describes signed ed25519 AuthToken. |
+| CK-CLOUD-UI-001 | low | Missing `<td>` for Project column + awkward `if/do:` pipes. |
+| CK-CLOUD-XORG-TEST-001 | low | `test/controlkeel/cloud/cross_org_isolation_test.exs` pins authz, list_for_org, list_for_workspace, LiveView index, LiveView show. |
+| CK-CLOUD-NAMING-001 | low | `cloud_run_packages.external_id = pkg_<ulid>`, surfaced in CLI, LiveView, callback response. |
 
-## Recommended next slices
+## What's still genuinely out of scope
 
-1. **CK-CLOUD-PAYLOAD-001** (high) — add `repo_url`, `branch`, `commit_sha`
-   to `RunPackage` and capture them in `build_cloud_payload/2` from
-   `git rev-parse` and `git remote get-url`. Without this the cloud handoff
-   model is unsound.
-2. **CK-CLOUD-ENROLL-LINK-001** (medium) — wire `mission_workspace_id` so
-   the identity work from slice 3 is actually exercised in production.
-   Recommend the invitation-binding option (#1 in section 5) — keeps the
-   trust path short.
-3. **CK-CLOUD-OBS-001** (medium) — extend `CloudProjectsLive` to render
-   `RunPackage` rows for the org with their status, findings count, and
-   linked proofs.
-4. **CK-CLOUD-XORG-TEST-001** (low) — write the regression test before any
-   further multi-org work to lock in the boundary.
+These are real future work, not gaps from the audit:
+
+- **Real GitHub App credential exchange.** The `workspace_github_repos`
+  schema is ready (nullable `installation_id`, free-form metadata) but
+  no App ID / webhook secret flow is implemented. Needs an operator
+  decision on App vs. Actions-only and credentials in hand.
+- **Runtime-specific dispatchers** for Devin, Open SWE, Cloudflare
+  Workers, etc. The `RuntimeDispatcher` behavior is the seam; concrete
+  implementations are runtime-by-runtime and depend on which one ships
+  first.
+- **Content-hash task dedup.** `external_id` covers explicit-lineage
+  sharing; auto-detecting "same brief on two laptops" by content hash
+  is a separate decision.
+- **PR governance round-trip.** Needs the GitHub App work above before
+  it can land webhooks/PR-comments/check-runs.

@@ -1,5 +1,48 @@
 # Changelog
 
+## Unreleased
+
+### What's changed
+
+- feat(cloud): authorize cloud run package creation by org/role
+  (`Accounts.authorize_cloud_execution/2`); CLI accepts `--user-id`.
+- feat(cloud): link enrolled cloud workspaces to mission workspaces via
+  invitation binding. `controlkeel cloud connect --enroll` now reports
+  `mission_workspace_id`; `WorkspaceKeyRegistry.fetch_by_mission_workspace/1`.
+- feat(cloud): capture git remote/branch/commit_sha on cloud run packages.
+  `controlkeel run cloud-agent` shells out to git and accepts
+  `--repo-url` / `--branch` / `--commit-sha` overrides.
+- feat(cloud): runtime dispatcher seam. New `RuntimeDispatcher` behavior +
+  `Manual` default; runtime modules register via `:cloud_dispatchers`
+  application config. `controlkeel run cloud-agent --dispatch` chains
+  create and dispatch in one command.
+- feat(cloud): cloud runtime callbacks accept an optional `findings[]`
+  array. `RuntimeContext.ingest_findings/2` persists each finding on the
+  package's session tagged with cloud provenance metadata.
+- feat(cloud): observable run packages on `/cloud/projects/:ws_id` — new
+  "Cloud run packages" card listing each package's status, runtime,
+  revision, budget, and timestamps.
+- feat(cloud): stable user-facing identifiers — `pkg_<ulid>` on cloud run
+  packages, `task_<ulid>` on tasks. Both auto-generated, caller-
+  overridable, unique-enforced. Lookup helpers
+  `RuntimeContext.get_by_external_id/1` and
+  `Mission.get_task_by_external_id/1`.
+- feat(cloud): workspace ↔ GitHub repo bindings. New
+  `workspace_github_repos` schema + Mission API + CLI (`controlkeel
+  govern bind/unbind/list github`). Bound repos ride along in the run
+  package payload so downstream runtimes know which repositories to
+  fetch.
+- feat(cloud): cross-org isolation regression test pins the boundary
+  across authz, `list_for_org`, `list_for_workspace`, and the cloud
+  projects LiveView.
+- fix(cloud): cloud projects table head/body column mismatch and an
+  awkward `if/do:` pipe in `mount_index` / `handle_info`.
+- docs(cloud): callback token lifecycle moduledocs aligned with the
+  valid-until-terminal implementation; telemetry controller docs describe
+  signed ed25519 AuthToken verification.
+- docs(cloud): new `docs/cloud-parity-matrix.md` user-perspective audit
+  of every cloud surface with status markers and finding cross-refs.
+
 ## v0.3.27 — 2026-05-26
 
 ### What's changed
