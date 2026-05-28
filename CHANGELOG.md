@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.31 — 2026-05-28
+
+### What's changed
+
+- feat(cloud-sync): bidirectional sync engine, CLI commands, workspace PubSub
+- Add tech-debt accumulation detection, time/output reporting, and review-submit description fix
+- Add workspace agent management and external service interaction tracking
+- docs(changelog): consolidate duplicate v0.3.28 sections
+
 ## v0.3.30 — 2026-05-28
 
 ### What's changed
