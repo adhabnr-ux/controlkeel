@@ -41,7 +41,9 @@ defmodule ControlKeel.Accounts.OidcClientTest do
                DefaultAdapter.exchange_and_verify(
                  %{"issuer" => "https://good", "client_id" => "ck"},
                  "code",
-                 "cb", http_client: http_client(%{"id_token" => token}, [jwk]))
+                 "cb",
+                 http_client: http_client(%{"id_token" => token}, [jwk])
+               )
     end
 
     test "rejects wrong key / invalid signature" do
@@ -60,7 +62,9 @@ defmodule ControlKeel.Accounts.OidcClientTest do
                DefaultAdapter.exchange_and_verify(
                  %{"issuer" => "https://good", "client_id" => "ck"},
                  "code",
-                 "cb", http_client: http_client(%{"id_token" => token}, [wrong_jwk]))
+                 "cb",
+                 http_client: http_client(%{"id_token" => token}, [wrong_jwk])
+               )
     end
 
     test "rejects missing JWKS key for kid" do
@@ -78,7 +82,9 @@ defmodule ControlKeel.Accounts.OidcClientTest do
                DefaultAdapter.exchange_and_verify(
                  %{"issuer" => "https://good", "client_id" => "ck"},
                  "code",
-                 "cb", http_client: http_client(%{"id_token" => token}, [jwk]))
+                 "cb",
+                 http_client: http_client(%{"id_token" => token}, [jwk])
+               )
     end
 
     test "rejects issuer mismatch after signature verification" do
@@ -96,7 +102,9 @@ defmodule ControlKeel.Accounts.OidcClientTest do
                DefaultAdapter.exchange_and_verify(
                  %{"issuer" => "https://good", "client_id" => "ck"},
                  "code",
-                 "cb", http_client: http_client(%{"id_token" => token}, [jwk]))
+                 "cb",
+                 http_client: http_client(%{"id_token" => token}, [jwk])
+               )
     end
 
     test "rejects audience mismatch after signature verification" do
@@ -114,7 +122,9 @@ defmodule ControlKeel.Accounts.OidcClientTest do
                DefaultAdapter.exchange_and_verify(
                  %{"issuer" => "https://good", "client_id" => "ck"},
                  "code",
-                 "cb", http_client: http_client(%{"id_token" => token}, [jwk]))
+                 "cb",
+                 http_client: http_client(%{"id_token" => token}, [jwk])
+               )
     end
 
     test "rejects expired token after signature verification" do
@@ -132,7 +142,9 @@ defmodule ControlKeel.Accounts.OidcClientTest do
                DefaultAdapter.exchange_and_verify(
                  %{"issuer" => "https://good", "client_id" => "ck"},
                  "code",
-                 "cb", http_client: http_client(%{"id_token" => token}, [jwk]))
+                 "cb",
+                 http_client: http_client(%{"id_token" => token}, [jwk])
+               )
     end
   end
 

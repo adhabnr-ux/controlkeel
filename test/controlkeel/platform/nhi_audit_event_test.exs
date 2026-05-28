@@ -19,7 +19,9 @@ defmodule ControlKeel.Platform.NhiAuditEventTest do
                  %{
                    name: "ci-bot",
                    scopes: ["mcp:access", "validate:run"]
-                 }, actor: "admin@example.com")
+                 },
+                 actor: "admin@example.com"
+               )
 
       assert account.status == "active"
       assert is_binary(token)

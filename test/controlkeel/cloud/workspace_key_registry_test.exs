@@ -146,10 +146,12 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistryTest do
       ws = insert_workspace(org)
 
       {:ok, key} =
-        WorkspaceKeyRegistry.enroll(sample_key(%{
-          org_id: org.id,
-          mission_workspace_id: ws.id
-        }))
+        WorkspaceKeyRegistry.enroll(
+          sample_key(%{
+            org_id: org.id,
+            mission_workspace_id: ws.id
+          })
+        )
 
       assert key.mission_workspace_id == ws.id
     end
@@ -159,10 +161,12 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistryTest do
       ws = insert_workspace(org)
 
       {:ok, key} =
-        WorkspaceKeyRegistry.enroll(sample_key(%{
-          org_id: org.id,
-          mission_workspace_id: ws.id
-        }))
+        WorkspaceKeyRegistry.enroll(
+          sample_key(%{
+            org_id: org.id,
+            mission_workspace_id: ws.id
+          })
+        )
 
       loaded = Repo.preload(key, :mission_workspace)
       assert loaded.mission_workspace.slug == ws.slug
@@ -173,16 +177,20 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistryTest do
       ws = insert_workspace(org)
 
       {:ok, _first} =
-        WorkspaceKeyRegistry.enroll(sample_key(%{
-          org_id: org.id,
-          mission_workspace_id: ws.id
-        }))
+        WorkspaceKeyRegistry.enroll(
+          sample_key(%{
+            org_id: org.id,
+            mission_workspace_id: ws.id
+          })
+        )
 
       assert {:error, %Ecto.Changeset{}} =
-        WorkspaceKeyRegistry.enroll(sample_key(%{
-          org_id: org.id,
-          mission_workspace_id: ws.id
-        }))
+               WorkspaceKeyRegistry.enroll(
+                 sample_key(%{
+                   org_id: org.id,
+                   mission_workspace_id: ws.id
+                 })
+               )
     end
 
     test "same mission_workspace_id under different orgs is allowed" do
@@ -191,18 +199,22 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistryTest do
       ws = insert_workspace(org_a)
 
       {:ok, _a} =
-        WorkspaceKeyRegistry.enroll(sample_key(%{
-          org_id: org_a.id,
-          mission_workspace_id: ws.id
-        }))
+        WorkspaceKeyRegistry.enroll(
+          sample_key(%{
+            org_id: org_a.id,
+            mission_workspace_id: ws.id
+          })
+        )
 
       # Second enrollment under different org should succeed because
       # the unique index is scoped to (org_id, mission_workspace_id).
       {:ok, b} =
-        WorkspaceKeyRegistry.enroll(sample_key(%{
-          org_id: org_b.id,
-          mission_workspace_id: ws.id
-        }))
+        WorkspaceKeyRegistry.enroll(
+          sample_key(%{
+            org_id: org_b.id,
+            mission_workspace_id: ws.id
+          })
+        )
 
       assert b.org_id == org_b.id
     end
@@ -219,10 +231,12 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistryTest do
       ws = insert_workspace(org)
 
       {:ok, enrolled} =
-        WorkspaceKeyRegistry.enroll(sample_key(%{
-          org_id: org.id,
-          mission_workspace_id: ws.id
-        }))
+        WorkspaceKeyRegistry.enroll(
+          sample_key(%{
+            org_id: org.id,
+            mission_workspace_id: ws.id
+          })
+        )
 
       assert {:ok, key} = WorkspaceKeyRegistry.fetch_by_mission_workspace(ws.id)
       assert key.workspace_id == enrolled.workspace_id
@@ -237,10 +251,12 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistryTest do
       ws = insert_workspace(org)
 
       {:ok, enrolled} =
-        WorkspaceKeyRegistry.enroll(sample_key(%{
-          org_id: org.id,
-          mission_workspace_id: ws.id
-        }))
+        WorkspaceKeyRegistry.enroll(
+          sample_key(%{
+            org_id: org.id,
+            mission_workspace_id: ws.id
+          })
+        )
 
       {:ok, _} = WorkspaceKeyRegistry.revoke(enrolled.workspace_id)
 
