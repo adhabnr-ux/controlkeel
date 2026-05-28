@@ -73,6 +73,10 @@ defmodule ControlKeel.Cloud.SyncEngine do
 
   # ── Sync logic ─────────────────────────────────────────────────────
 
+  defp do_sync(%{endpoint: nil}) do
+    {:error, :not_configured}
+  end
+
   defp do_sync(state) do
     case WorkspaceIdentity.load() do
       {:ok, identity} ->
@@ -92,21 +96,27 @@ defmodule ControlKeel.Cloud.SyncEngine do
   end
 
   defp push_unsynced(identity) do
-    case Sync.collect_unsynced(identity.workspace_id) do
-      %{total: 0} ->
-        %{pushed: 0}
+    db_workspace_id = resolve_db_workspace_id()
 
-      %{total: count, records: records} ->
-        envelopes = Enum.map(records, &Sync.serialize_record/1)
+    if db_workspace_id == nil do
+      %{pushed: 0}
+    else
+      case Sync.collect_unsynced(db_workspace_id) do
+        %{total: 0} ->
+          %{pushed: 0}
 
-        case send_to_cloud(identity, envelopes) do
-          :ok ->
-            Sync.mark_synced(records)
-            %{pushed: count}
+        %{total: count, records: records} ->
+          envelopes = Enum.map(records, &Sync.serialize_record/1)
 
-          {:error, reason} ->
-            %{pushed: 0, error: reason}
-        end
+          case send_to_cloud(identity, envelopes) do
+            :ok ->
+              Sync.mark_synced(records)
+              %{pushed: count}
+
+            {:error, reason} ->
+              %{pushed: 0, error: reason}
+          end
+      end
     end
   end
 
@@ -167,6 +177,21 @@ defmodule ControlKeel.Cloud.SyncEngine do
       {"Authorization", "Bearer #{token}"},
       {"Content-Type", "application/json"}
     ]
+  end
+
+  defp resolve_db_workspace_id do
+    import Ecto.Query
+
+    alias ControlKeel.Mission.Workspace
+    alias ControlKeel.Repo
+
+    Workspace
+    |> limit(1)
+    |> Repo.one()
+    |> case do
+      nil -> nil
+      ws -> ws.id
+    end
   end
 
   defp sync_endpoint do

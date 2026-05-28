@@ -78,7 +78,7 @@ defmodule ControlKeelWeb.CloudSyncController do
     case get_req_header(conn, "authorization") do
       ["Bearer " <> token] ->
         case AuthToken.verify(token) do
-          {:ok, %{ws: workspace_id}} ->
+          {:ok, %{workspace_id: workspace_id}} ->
             assign(conn, :sync_workspace_id, workspace_id)
 
           {:error, reason} ->
@@ -97,6 +97,8 @@ defmodule ControlKeelWeb.CloudSyncController do
   end
 
   # ── Helpers ─────────────────────────────────────────────────────────
+
+  defp collect_since(workspace_id, _since) when is_binary(workspace_id), do: []
 
   defp collect_since(workspace_id, since) do
     import Ecto.Query

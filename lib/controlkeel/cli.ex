@@ -2132,6 +2132,9 @@ defmodule ControlKeel.CLI do
       {:ok, %{push: %{pushed: n}}} ->
         {:ok, ["Pushed #{n} record(s) to cloud."]}
 
+      {:error, :not_configured} ->
+        {:error, "Cloud sync endpoint not configured. Set cloud_sync_endpoint first."}
+
       {:error, :not_enrolled} ->
         {:error, "Cloud sync not configured. Run `controlkeel cloud connect` first."}
 
@@ -2148,6 +2151,9 @@ defmodule ControlKeel.CLI do
       {:ok, %{pull: pull_result}} ->
         applied = Map.get(pull_result, :inserted, 0) + Map.get(pull_result, :updated, 0)
         {:ok, ["Pulled and applied #{applied} record(s) from cloud."]}
+
+      {:error, :not_configured} ->
+        {:error, "Cloud sync endpoint not configured. Set cloud_sync_endpoint first."}
 
       {:error, :not_enrolled} ->
         {:error, "Cloud sync not configured. Run `controlkeel cloud connect` first."}

@@ -19,7 +19,7 @@ defmodule ControlKeel.Cloud.SyncTest do
     ws
   end
 
-  defp session!(ws, title \\ "S") do
+  defp session!(ws, title) do
     {:ok, s} =
       Mission.create_session(%{
         title: title,
