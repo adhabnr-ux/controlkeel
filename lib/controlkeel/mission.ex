@@ -25,7 +25,8 @@ defmodule ControlKeel.Mission do
     Session,
     Task,
     TaskCheckpoint,
-    Workspace
+    Workspace,
+    WorkspaceGithubRepo
   }
 
   alias ControlKeel.Scanner
@@ -106,6 +107,53 @@ defmodule ControlKeel.Mission do
   @spec get_task_by_external_id(String.t()) :: Task.t() | nil
   def get_task_by_external_id(external_id) when is_binary(external_id) do
     Repo.get_by(Task, external_id: external_id)
+  end
+
+  # ───────────── Workspace ↔ GitHub repo bindings (CK-CLOUD-GIT-001) ─────────────
+
+  @doc """
+  Bind a GitHub repository to a workspace.
+
+  Pass `:installation_id` if the operator has a GitHub App installation
+  available; nil is fine and represents a declared-but-unauthenticated
+  binding. `:default_branch` is optional and informational.
+  """
+  @spec bind_github_repo(integer(), String.t(), String.t(), keyword()) ::
+          {:ok, WorkspaceGithubRepo.t()} | {:error, Ecto.Changeset.t()}
+  def bind_github_repo(workspace_id, owner, repo, opts \\ [])
+      when is_integer(workspace_id) and is_binary(owner) and is_binary(repo) do
+    attrs = %{
+      workspace_id: workspace_id,
+      owner: owner,
+      repo: repo,
+      default_branch: Keyword.get(opts, :default_branch),
+      installation_id: Keyword.get(opts, :installation_id),
+      metadata: Keyword.get(opts, :metadata, %{})
+    }
+
+    %WorkspaceGithubRepo{}
+    |> WorkspaceGithubRepo.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc "Remove a workspace↔repo binding."
+  @spec unbind_github_repo(integer(), String.t(), String.t()) ::
+          {:ok, WorkspaceGithubRepo.t()} | {:error, :not_found}
+  def unbind_github_repo(workspace_id, owner, repo)
+      when is_integer(workspace_id) and is_binary(owner) and is_binary(repo) do
+    case Repo.get_by(WorkspaceGithubRepo, workspace_id: workspace_id, owner: owner, repo: repo) do
+      nil -> {:error, :not_found}
+      %WorkspaceGithubRepo{} = binding -> Repo.delete(binding)
+    end
+  end
+
+  @doc "List all GitHub repo bindings for a workspace."
+  @spec list_github_repos(integer()) :: [WorkspaceGithubRepo.t()]
+  def list_github_repos(workspace_id) when is_integer(workspace_id) do
+    WorkspaceGithubRepo
+    |> where([r], r.workspace_id == ^workspace_id)
+    |> order_by([r], asc: r.owner, asc: r.repo)
+    |> Repo.all()
   end
 
   @doc "Generate a user-facing task_<ulid> identifier."

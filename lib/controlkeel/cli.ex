@@ -256,6 +256,19 @@ defmodule ControlKeel.CLI do
     project_root: :string
   ]
   @govern_install_switches [project_root: :string]
+  @govern_bind_github_switches [
+    workspace_id: :integer,
+    owner: :string,
+    repo: :string,
+    default_branch: :string,
+    installation_id: :string
+  ]
+  @govern_unbind_github_switches [
+    workspace_id: :integer,
+    owner: :string,
+    repo: :string
+  ]
+  @govern_list_github_switches [workspace_id: :integer]
   @plugin_switches [project_root: :string, scope: :string, mode: :string]
   @agents_doctor_switches [project_root: :string]
   @cloud_doctor_switches [project_root: :string]
@@ -426,6 +439,15 @@ defmodule ControlKeel.CLI do
 
       ["govern", "install", "github" | rest] ->
         parse_with_switches(:govern_install_github, rest, @govern_install_switches)
+
+      ["govern", "bind", "github" | rest] ->
+        parse_with_switches(:govern_bind_github, rest, @govern_bind_github_switches)
+
+      ["govern", "unbind", "github" | rest] ->
+        parse_with_switches(:govern_unbind_github, rest, @govern_unbind_github_switches)
+
+      ["govern", "list", "github" | rest] ->
+        parse_with_switches(:govern_list_github, rest, @govern_list_github_switches)
 
       ["plugin", "export", plugin | rest] ->
         parse_plugin_command(:plugin_export, plugin, rest)
@@ -1857,6 +1879,89 @@ defmodule ControlKeel.CLI do
         {:error, message}
     end
   end
+
+  def run_command(%{command: :govern_bind_github, options: options}, _project_root) do
+    alias ControlKeel.Mission
+
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id"),
+         {:ok, owner} <- require_string_option(options[:owner], "owner"),
+         {:ok, repo} <- require_string_option(options[:repo], "repo") do
+      opts =
+        []
+        |> maybe_put_kw(:default_branch, options[:default_branch])
+        |> maybe_put_kw(:installation_id, options[:installation_id])
+
+      case Mission.bind_github_repo(workspace_id, owner, repo, opts) do
+        {:ok, binding} ->
+          {:ok,
+           [
+             "Bound GitHub repository to workspace #{workspace_id}.",
+             "Repo: #{binding.owner}/#{binding.repo}",
+             "URL:  https://github.com/#{binding.owner}/#{binding.repo}",
+             "Default branch: #{binding.default_branch || "(unset)"}",
+             "Installation: #{binding.installation_id || "(unauthenticated)"}"
+           ]}
+
+        {:error, %Ecto.Changeset{} = cs} ->
+          {:error, "Failed to bind repo: #{format_changeset_errors(cs)}"}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+      {:error, msg} when is_binary(msg) -> {:error, msg}
+    end
+  end
+
+  def run_command(%{command: :govern_unbind_github, options: options}, _project_root) do
+    alias ControlKeel.Mission
+
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id"),
+         {:ok, owner} <- require_string_option(options[:owner], "owner"),
+         {:ok, repo} <- require_string_option(options[:repo], "repo") do
+      case Mission.unbind_github_repo(workspace_id, owner, repo) do
+        {:ok, _} ->
+          {:ok, ["Unbound #{owner}/#{repo} from workspace #{workspace_id}."]}
+
+        {:error, :not_found} ->
+          {:error, "No binding found for #{owner}/#{repo} on workspace #{workspace_id}."}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+      {:error, msg} when is_binary(msg) -> {:error, msg}
+    end
+  end
+
+  def run_command(%{command: :govern_list_github, options: options}, _project_root) do
+    alias ControlKeel.Mission
+
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id") do
+      case Mission.list_github_repos(workspace_id) do
+        [] ->
+          {:ok, ["No GitHub repos bound to workspace #{workspace_id}."]}
+
+        bindings ->
+          rows =
+            Enum.map(bindings, fn b ->
+              "  #{b.owner}/#{b.repo}#{format_default_branch(b.default_branch)}#{format_installation(b.installation_id)}"
+            end)
+
+          {:ok, ["GitHub repos bound to workspace #{workspace_id}:" | rows]}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+    end
+  end
+
+  defp format_default_branch(nil), do: ""
+  defp format_default_branch(""), do: ""
+  defp format_default_branch(branch), do: " (default branch: #{branch})"
+
+  defp format_installation(nil), do: ""
+  defp format_installation(""), do: ""
+  defp format_installation(id), do: " (installation #{id})"
+
+  defp maybe_put_kw(opts, _key, nil), do: opts
+  defp maybe_put_kw(opts, _key, ""), do: opts
+  defp maybe_put_kw(opts, key, value), do: Keyword.put(opts, key, value)
 
   def run_command(%{command: :plugin_export, args: [plugin], options: options}, project_root) do
     root = options[:project_root] || project_root
@@ -8216,13 +8321,42 @@ defmodule ControlKeel.CLI do
   defp parse_scopes(value) when is_binary(value), do: value
 
   defp build_cloud_payload(task, options) do
-    %{
+    base = %{
       "task_title" => task.title,
       "validation_gate" => task.validation_gate,
       "note" => options[:note]
     }
-    |> Enum.reject(fn {_k, v} -> v in [nil, ""] end)
-    |> Map.new()
+
+    base = Enum.reject(base, fn {_k, v} -> v in [nil, ""] end) |> Map.new()
+
+    case cloud_github_bindings(task) do
+      [] -> base
+      bindings -> Map.put(base, "github_repos", bindings)
+    end
+  end
+
+  defp cloud_github_bindings(task) do
+    alias ControlKeel.Mission
+
+    case Mission.get_session(task.session_id) do
+      %{workspace_id: ws_id} when is_integer(ws_id) ->
+        ws_id
+        |> Mission.list_github_repos()
+        |> Enum.map(fn b ->
+          %{
+            "owner" => b.owner,
+            "repo" => b.repo,
+            "default_branch" => b.default_branch,
+            "installation_id" => b.installation_id,
+            "url" => "https://github.com/#{b.owner}/#{b.repo}"
+          }
+          |> Enum.reject(fn {_k, v} -> v in [nil, ""] end)
+          |> Map.new()
+        end)
+
+      _ ->
+        []
+    end
   end
 
   @doc false
