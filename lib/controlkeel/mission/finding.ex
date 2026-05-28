@@ -2,9 +2,11 @@ defmodule ControlKeel.Mission.Finding do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias ControlKeel.Cloud.TelemetryEnvelope
   alias ControlKeel.Mission.Session
 
   schema "findings" do
+    field :external_id, :string
     field :title, :string
     field :severity, :string
     field :category, :string
@@ -13,15 +15,19 @@ defmodule ControlKeel.Mission.Finding do
     field :status, :string, default: "open"
     field :auto_resolved, :boolean, default: false
     field :metadata, :map, default: %{}
+    field :synced_at, :utc_datetime
 
     belongs_to :session, Session
 
     timestamps(type: :utc_datetime)
   end
 
+  @external_id_prefix "f_"
+
   def changeset(finding, attrs) do
     finding
     |> cast(attrs, [
+      :external_id,
       :title,
       :severity,
       :category,
@@ -30,6 +36,7 @@ defmodule ControlKeel.Mission.Finding do
       :status,
       :auto_resolved,
       :metadata,
+      :synced_at,
       :session_id
     ])
     |> validate_required([
@@ -43,6 +50,18 @@ defmodule ControlKeel.Mission.Finding do
       :metadata,
       :session_id
     ])
+    |> maybe_generate_external_id()
+    |> unique_constraint(:external_id)
     |> assoc_constraint(:session)
+  end
+
+  defp maybe_generate_external_id(changeset) do
+    case get_field(changeset, :external_id) do
+      nil ->
+        put_change(changeset, :external_id, @external_id_prefix <> TelemetryEnvelope.ulid())
+
+      _ ->
+        changeset
+    end
   end
 end

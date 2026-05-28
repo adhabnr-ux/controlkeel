@@ -28,6 +28,7 @@ defmodule ControlKeel.Mission.Session do
     field :proxy_token, :string
     field :execution_brief, :map, default: %{}
     field :metadata, :map, default: %{}
+    field :lock_version, :integer, default: 1
 
     belongs_to :workspace, Workspace
     has_many :tasks, Task
@@ -58,6 +59,7 @@ defmodule ControlKeel.Mission.Session do
       :proxy_token,
       :execution_brief,
       :metadata,
+      :lock_version,
       :workspace_id
     ])
     |> ensure_proxy_token()

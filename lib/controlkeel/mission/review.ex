@@ -2,12 +2,14 @@ defmodule ControlKeel.Mission.Review do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias ControlKeel.Cloud.TelemetryEnvelope
   alias ControlKeel.Mission.{Review, Session, Task}
 
   @review_types ~w(plan diff completion)
   @review_statuses ~w(pending approved denied superseded)
 
   schema "reviews" do
+    field :external_id, :string
     field :title, :string
     field :review_type, :string
     field :status, :string, default: "pending"
@@ -18,6 +20,7 @@ defmodule ControlKeel.Mission.Review do
     field :reviewed_by, :string
     field :metadata, :map, default: %{}
     field :responded_at, :utc_datetime
+    field :synced_at, :utc_datetime
 
     field :assigned_user_id, :integer
     field :assigned_by_user_id, :integer
@@ -33,9 +36,12 @@ defmodule ControlKeel.Mission.Review do
     timestamps(type: :utc_datetime)
   end
 
+  @external_id_prefix "rev_"
+
   def changeset(review, attrs) do
     review
     |> cast(attrs, [
+      :external_id,
       :title,
       :review_type,
       :status,
@@ -46,6 +52,7 @@ defmodule ControlKeel.Mission.Review do
       :reviewed_by,
       :metadata,
       :responded_at,
+      :synced_at,
       :session_id,
       :task_id,
       :previous_review_id,
@@ -58,8 +65,20 @@ defmodule ControlKeel.Mission.Review do
     |> validate_required([:title, :review_type, :status, :submission_body, :session_id])
     |> validate_inclusion(:review_type, @review_types)
     |> validate_inclusion(:status, @review_statuses)
+    |> maybe_generate_external_id()
+    |> unique_constraint(:external_id)
     |> assoc_constraint(:session)
     |> assoc_constraint(:task)
     |> assoc_constraint(:previous_review)
+  end
+
+  defp maybe_generate_external_id(changeset) do
+    case get_field(changeset, :external_id) do
+      nil ->
+        put_change(changeset, :external_id, @external_id_prefix <> TelemetryEnvelope.ulid())
+
+      _ ->
+        changeset
+    end
   end
 end

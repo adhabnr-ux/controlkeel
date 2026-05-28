@@ -484,6 +484,11 @@ defmodule ControlKeel.Help do
                                       <URL>/cloud/v1/workspaces/register so the control plane
                                       (e.g. https://controlkeel.com) accepts subsequent telemetry.
                                       --invite binds the workspace to an org via an invitation token.
+       controlkeel cloud push           Push unsynced governance records (findings, memory, reviews,
+                                       digests) to the configured cloud endpoint. Idempotent by external_id.
+       controlkeel cloud pull           Pull remote governance records from the cloud endpoint and
+                                       upsert locally. Conflicts on editable records use lock_version.
+       controlkeel cloud migrate        Check and apply cloud sync migrations (external_id, lock_version).
       controlkeel telemetry status    Show opt-in cloud telemetry sync state (disabled by default)
       controlkeel telemetry enable --level health|governance|evidence|full_audit
                                       Opt in to cloud telemetry at the specified level.

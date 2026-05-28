@@ -87,6 +87,7 @@ defmodule ControlKeel.Application do
         ControlKeel.Memory.Store.Sqlite,
         ControlKeel.RemoteMonitoring,
         ControlKeel.Governance.CopilotChannel,
+        ControlKeel.Cloud.SyncEngine,
         {DynamicSupervisor, strategy: :one_for_one, name: ControlKeel.MCP.Supervisor},
         ControlKeel.MCP.ToolGroupTracker,
         ControlKeelWeb.Endpoint
@@ -118,6 +119,7 @@ defmodule ControlKeel.Application do
         ControlKeel.Memory.Store.Sqlite,
         ControlKeel.RemoteMonitoring,
         ControlKeel.Governance.CopilotChannel,
+        ControlKeel.Cloud.SyncEngine,
         ControlKeel.MCP.ToolGroupTracker
       ]
   end

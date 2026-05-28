@@ -46,6 +46,23 @@ defmodule ControlKeel.Governance.CopilotChannel do
 
   defp topic(session_id), do: "ck_copilot:#{session_id}"
 
+  @doc "Subscribe to workspace-wide events for multi-user realtime."
+  def subscribe_workspace(workspace_id) do
+    Phoenix.PubSub.subscribe(ControlKeel.PubSub, workspace_topic(workspace_id))
+  end
+
+  @doc "Broadcast an event to all subscribers on a workspace."
+  def broadcast_workspace(workspace_id, event_type, payload \\ %{}) do
+    Phoenix.PubSub.broadcast(
+      ControlKeel.PubSub,
+      workspace_topic(workspace_id),
+      {:workspace_event, event_type, payload}
+    )
+  end
+
+  @doc "Get the workspace-scoped PubSub topic."
+  def workspace_topic(workspace_id), do: "ck_workspace:#{workspace_id}"
+
   @impl true
   def init(_opts) do
     table = :ets.new(:ck_copilot_history, [:set, :public, read_concurrency: true])

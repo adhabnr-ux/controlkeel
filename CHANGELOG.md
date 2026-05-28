@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.3.30 — 2026-05-28
+
+### What's changed
+
+- feat(cloud-sync): bidirectional cloud sync for governance records.
+  New `Cloud.Sync` module collects unsynced findings, memory records,
+  reviews, and session digests; serializes them into idempotent envelopes
+  keyed by `external_id`; pushes to the cloud endpoint; and pulls remote
+  records with local upsert. `Cloud.SyncEngine` GenServer orchestrates
+  periodic push/pull (dormant when no `cloud_sync_endpoint` is configured).
+  `CloudSyncController` exposes `POST /cloud/v1/sync/push` and
+  `POST /cloud/v1/sync/pull` with bearer token auth and 500-record batch limit.
+- feat(cloud-sync): workspace-scoped PubSub via `CopilotChannel.subscribe_workspace/1`
+  and `broadcast_workspace/3` — topic `ck_workspace:<id>` enables multi-user
+  realtime without session-level scoping.
+- feat(cli): three new CLI commands — `controlkeel cloud push`,
+  `controlkeel cloud pull`, `controlkeel cloud migrate` — for manual sync
+  trigger and migration check.
+- feat(db): migrations `20260528250000` and `20260528260000` add `external_id`
+  (ULID-prefixed: `f_`, `rev_`, `sd_`, `mem_`) + `synced_at` to findings,
+  memory_records, session_digests, and reviews; `lock_version` (optimistic
+  concurrency) on sessions, tasks, and workspace_agents.
+
+### Migration notes
+
+Run `mix ecto.migrate` to apply the two new migrations. Existing records
+receive auto-generated `external_id` values and `lock_version` defaults to 1.
+No data loss; columns are nullable during transition.
+
 ## v0.3.29 — 2026-05-28
 
 ### What's changed

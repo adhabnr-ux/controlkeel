@@ -222,6 +222,8 @@ defmodule ControlKeelWeb.Router do
     post "/telemetry", CloudTelemetryController, :ingest
     post "/runtime/callbacks", CloudRuntimeCallbackController, :update
     post "/workspaces/register", CloudWorkspaceController, :register
+    post "/sync/push", CloudSyncController, :push
+    post "/sync/pull", CloudSyncController, :pull
   end
 
   scope "/", ControlKeelWeb do

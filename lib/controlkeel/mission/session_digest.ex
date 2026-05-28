@@ -2,11 +2,14 @@ defmodule ControlKeel.Mission.SessionDigest do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias ControlKeel.Cloud.TelemetryEnvelope
   alias ControlKeel.Mission.Session
 
   @valid_digest_types ~w(session daily shift_change)
+  @external_id_prefix "sd_"
 
   schema "session_digests" do
+    field :external_id, :string
     field :digest_type, :string, default: "session"
     field :period_start, :utc_datetime
     field :period_end, :utc_datetime
@@ -25,6 +28,7 @@ defmodule ControlKeel.Mission.SessionDigest do
     field :needs_attention, :boolean, default: false
     field :generated_at, :utc_datetime
     field :metadata, :map, default: %{}
+    field :synced_at, :utc_datetime
 
     belongs_to :session, Session
 
@@ -34,6 +38,7 @@ defmodule ControlKeel.Mission.SessionDigest do
   def changeset(digest, attrs) do
     digest
     |> cast(attrs, [
+      :external_id,
       :session_id,
       :digest_type,
       :period_start,
@@ -52,7 +57,8 @@ defmodule ControlKeel.Mission.SessionDigest do
       :highlights,
       :needs_attention,
       :generated_at,
-      :metadata
+      :metadata,
+      :synced_at
     ])
     |> validate_required([
       :session_id,
@@ -62,7 +68,19 @@ defmodule ControlKeel.Mission.SessionDigest do
       :generated_at
     ])
     |> validate_inclusion(:digest_type, @valid_digest_types)
+    |> maybe_generate_external_id()
+    |> unique_constraint(:external_id)
     |> assoc_constraint(:session)
+  end
+
+  defp maybe_generate_external_id(changeset) do
+    case get_field(changeset, :external_id) do
+      nil ->
+        put_change(changeset, :external_id, @external_id_prefix <> TelemetryEnvelope.ulid())
+
+      _ ->
+        changeset
+    end
   end
 
   def valid_digest_types, do: @valid_digest_types

@@ -279,6 +279,9 @@ defmodule ControlKeel.CLI do
     name: :string,
     invite: :string
   ]
+  @cloud_sync_push_switches [project_root: :string, workspace: :string]
+  @cloud_sync_pull_switches [project_root: :string, workspace: :string]
+  @cloud_sync_migrate_switches [project_root: :string]
   @telemetry_status_switches [project_root: :string]
   @telemetry_enable_switches [project_root: :string, level: :string]
   @telemetry_disable_switches [project_root: :string]
@@ -463,6 +466,15 @@ defmodule ControlKeel.CLI do
 
       ["cloud", "connect" | rest] ->
         parse_with_switches(:cloud_connect, rest, @cloud_connect_switches)
+
+      ["cloud", "push" | rest] ->
+        parse_with_switches(:cloud_sync_push, rest, @cloud_sync_push_switches)
+
+      ["cloud", "pull" | rest] ->
+        parse_with_switches(:cloud_sync_pull, rest, @cloud_sync_pull_switches)
+
+      ["cloud", "migrate" | rest] ->
+        parse_with_switches(:cloud_sync_migrate, rest, @cloud_sync_migrate_switches)
 
       ["telemetry", "status" | rest] ->
         parse_with_switches(:telemetry_status, rest, @telemetry_status_switches)
@@ -2113,6 +2125,48 @@ defmodule ControlKeel.CLI do
       {:error, reason} ->
         {:error, "Failed to generate workspace identity: #{inspect(reason)}"}
     end
+  end
+
+  def run_command(%{command: :cloud_sync_push, options: _options}, _project_root) do
+    case ControlKeel.Cloud.SyncEngine.force_sync() do
+      {:ok, %{push: %{pushed: n}}} ->
+        {:ok, ["Pushed #{n} record(s) to cloud."]}
+
+      {:error, :not_enrolled} ->
+        {:error, "Cloud sync not configured. Run `controlkeel cloud connect` first."}
+
+      {:error, :already_syncing} ->
+        {:error, "Sync already in progress. Try again in a moment."}
+
+      {:error, reason} ->
+        {:error, "Cloud push failed: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :cloud_sync_pull, options: _options}, _project_root) do
+    case ControlKeel.Cloud.SyncEngine.force_sync() do
+      {:ok, %{pull: pull_result}} ->
+        applied = Map.get(pull_result, :inserted, 0) + Map.get(pull_result, :updated, 0)
+        {:ok, ["Pulled and applied #{applied} record(s) from cloud."]}
+
+      {:error, :not_enrolled} ->
+        {:error, "Cloud sync not configured. Run `controlkeel cloud connect` first."}
+
+      {:error, :already_syncing} ->
+        {:error, "Sync already in progress. Try again in a moment."}
+
+      {:error, reason} ->
+        {:error, "Cloud pull failed: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :cloud_sync_migrate, options: _options}, _project_root) do
+    {:ok,
+     [
+       "Cloud sync schema migrations (external_id, synced_at, lock_version) are managed by Ecto.",
+       "Run `mix ecto.migrate` to apply any pending migrations.",
+       "Run `mix ecto.migrations` to see current status."
+     ]}
   end
 
   def run_command(%{command: :telemetry_enable, options: options}, _project_root) do

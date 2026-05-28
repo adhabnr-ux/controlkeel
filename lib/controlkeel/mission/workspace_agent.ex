@@ -25,6 +25,7 @@ defmodule ControlKeel.Mission.WorkspaceAgent do
     field :sessions_count, :integer, default: 0
     field :last_active_at, :utc_datetime
     field :metadata, :map, default: %{}
+    field :lock_version, :integer, default: 1
 
     belongs_to :workspace, Workspace
 
