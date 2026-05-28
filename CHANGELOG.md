@@ -4,17 +4,6 @@
 
 ### What's changed
 
-- chore(format): apply mix format to drift across migrations and tests
-- docs(cloud): refresh parity matrix + record Unreleased changes
-- feat(cloud): workspace↔github bindings + payload propagation (CK-CLOUD-GIT-001)
-- feat(cloud): runtime dispatcher seam with Manual default (CK-CLOUD-DISPATCH-001)
-- docs(cloud): add cloud parity matrix tracking remaining surface gaps
-- feat(cloud): close 10 parity gaps across authz, identity, observability, and naming
-
-## Unreleased
-
-### What's changed
-
 - feat(cloud): authorize cloud run package creation by org/role
   (`Accounts.authorize_cloud_execution/2`); CLI accepts `--user-id`.
 - feat(cloud): link enrolled cloud workspaces to mission workspaces via
@@ -48,6 +37,7 @@
   projects LiveView.
 - fix(cloud): cloud projects table head/body column mismatch and an
   awkward `if/do:` pipe in `mount_index` / `handle_info`.
+- chore(format): apply mix format to drift across migrations and tests.
 - docs(cloud): callback token lifecycle moduledocs aligned with the
   valid-until-terminal implementation; telemetry controller docs describe
   signed ed25519 AuthToken verification.
