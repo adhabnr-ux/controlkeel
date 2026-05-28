@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.28 — 2026-05-28
+
+### What's changed
+
+- chore(format): apply mix format to drift across migrations and tests
+- docs(cloud): refresh parity matrix + record Unreleased changes
+- feat(cloud): workspace↔github bindings + payload propagation (CK-CLOUD-GIT-001)
+- feat(cloud): runtime dispatcher seam with Manual default (CK-CLOUD-DISPATCH-001)
+- docs(cloud): add cloud parity matrix tracking remaining surface gaps
+- feat(cloud): close 10 parity gaps across authz, identity, observability, and naming
+
 ## Unreleased
 
 ### What's changed
