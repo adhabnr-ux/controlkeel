@@ -4,10 +4,61 @@
 
 ### What's changed
 
-- feat(cloud-sync): bidirectional sync engine, CLI commands, workspace PubSub
-- Add tech-debt accumulation detection, time/output reporting, and review-submit description fix
-- Add workspace agent management and external service interaction tracking
-- docs(changelog): consolidate duplicate v0.3.28 sections
+Cloud-sync hardening — closes four high-severity blocking findings and six
+medium issues raised in post-merge review of v0.3.30's `Cloud.Sync`,
+`Cloud.SyncEngine`, and `CloudSyncController`.
+
+- fix(cloud-sync, security): close `CK-CLOUD-SYNC-001`. `Cloud.Sync.serialize_record/1`
+  now uses a per-schema `sync_fields/0` allowlist instead of `Map.drop` on
+  preloads — anything not in the allowlist never ships. Free-form fields
+  (`Memory.Record.body`, `Finding.plain_message`, `Review.submission_body`,
+  task/agent `metadata`, etc.) are tagged `{:redact, _}` and pass through
+  `Cloud.Redactor.redact_value/1`, which scrubs Anthropic/OpenAI `sk-*` keys,
+  GitHub PATs, `Authorization: Bearer` headers, and env-style
+  `token=`/`secret=`/`api_key=` assignments. Envelopes now stamp both
+  `sync_protocol_version` and `redaction_policy_version`.
+- fix(cloud-sync, correctness): close `CK-CLOUD-SYNC-002`. Migration
+  `20260528270000` adds `external_id` (`ses_<ulid>`) and `synced_at` to the
+  `sessions` table, backfilling existing rows with `ses_legacy_<id>`. Without
+  this, every other syncable kind's foreign-key chain was broken.
+- fix(cloud-sync, correctness): close `CK-CLOUD-SYNC-003`. `do_upsert` for
+  append-only kinds now compares the incoming `updated_at` against
+  `local.updated_at` instead of skipping on `synced_at != nil`. Cloud-side
+  status changes (e.g., `open → blocked`) finally propagate to local.
+- fix(cloud-sync, correctness): close `CK-CLOUD-SYNC-004`. `WorkspaceAgent.changeset`
+  now casts `:lock_version` (it was missing from the cast list, which silently
+  dropped every bump). Optimistic concurrency on agents is real now.
+- fix(cloud-sync): close `CK-CLOUD-SYNC-005`/`006`/`007`/`008`. `SyncEngine`
+  state-machine rewrite: `state.syncing` actually flips during do_sync so the
+  `:already_syncing` guard isn't dead code; the first-ever pull uses the unix
+  epoch as the cursor (was: skipped entirely); `last_synced_at` only advances
+  on `{:ok, _}` from `do_sync` (was: advanced on failure, leaking records);
+  workspace resolution goes through `WorkspaceKeyRegistry.fetch/1` instead of
+  `Workspace |> limit(1)`. Unmapped workspaces return `:workspace_not_enrolled`.
+- fix(cloud-sync): close `CK-CLOUD-SYNC-009`. `CloudSyncController` drops the
+  string-id silent-empty guard. The token's cloud `workspace_id` (string) is
+  now resolved to a local `mission_workspace_id` via `WorkspaceKeyRegistry.fetch/1`
+  in a new `resolve_db_workspace_id` plug; unmapped tokens get a 404 with a
+  clear error. Pull now collects **all four** append-only kinds (findings,
+  reviews, session_digests, memory_records) instead of just findings.
+- fix(cloud-sync): close `CK-CLOUD-SYNC-010`. `payload_to_attrs` now collects
+  unknown fields and logs them at warning level instead of silently dropping
+  via `String.to_existing_atom` rescue. Envelope-protocol version mismatch is
+  surfaced via `Logger.warning` so version skew is visible.
+- fix(cloud-sync): wrap `upsert_batch/2` in `Repo.transaction` so partial
+  batch failures roll back; replace per-record changeset writes in `mark_synced/1`
+  with a grouped `Repo.update_all` (one round-trip per schema, not per record);
+  enforce `max_batch_bytes` (default 8 MB) via JSON-encoded size check.
+- test: 24 new tests covering each of the above fixes — round-trip status
+  propagation, redactor pattern coverage, workspace_agent lock_version actually
+  bumps in the DB, syncing-flag guard fires, first-tick pull uses epoch,
+  cursor doesn't advance on failure, unmapped workspace 404s, protocol-version
+  mismatch logs. 1951/1951 tests, 0 failures.
+
+### Migration notes
+
+`mix ecto.migrate` applies `20260528270000_add_external_id_to_sessions.exs`.
+Backfill happens inline; no manual step required.
 
 ## v0.3.30 — 2026-05-28
 

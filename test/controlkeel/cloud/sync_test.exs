@@ -122,13 +122,46 @@ defmodule ControlKeel.Cloud.SyncTest do
         }
       }
 
-      result = Sync.upsert_batch([envelope])
+      assert {:ok, result} = Sync.upsert_batch([envelope])
       assert result.inserted == 1
       assert result.skipped == 0
 
-      # Second upsert: record exists, synced_at still nil, so it updates
-      result2 = Sync.upsert_batch([envelope])
-      assert result2.updated == 1
+      # Second upsert with no updated_at: append-only "not newer" → no_change
+      assert {:ok, result2} = Sync.upsert_batch([envelope])
+      assert result2.no_change == 1
+    end
+
+    test "applies cloud-side update when payload's updated_at is newer (closes CK-CLOUD-SYNC-003)" do
+      ws = workspace!("update")
+      s = session!(ws, "S1")
+      f = finding!(s, "CK-SYNC-UPDATE")
+
+      # Push once so the record has a known updated_at, then simulate cloud
+      # mutating status with a strictly newer updated_at.
+      newer = DateTime.add(f.updated_at, 60, :second) |> DateTime.to_iso8601()
+
+      envelope = %{
+        "external_id" => f.external_id,
+        "kind" => "finding",
+        "payload" => %{
+          "title" => f.title,
+          "severity" => f.severity,
+          "category" => f.category,
+          "rule_id" => f.rule_id,
+          "plain_message" => f.plain_message,
+          "status" => "blocked",
+          "auto_resolved" => false,
+          "metadata" => %{},
+          "session_id" => s.id,
+          "updated_at" => newer
+        }
+      }
+
+      assert {:ok, result} = Sync.upsert_batch([envelope])
+      assert result.updated == 1
+
+      refreshed = Repo.get!(ControlKeel.Mission.Finding, f.id)
+      assert refreshed.status == "blocked"
     end
 
     test "rejects unknown kind" do
@@ -138,8 +171,24 @@ defmodule ControlKeel.Cloud.SyncTest do
         "payload" => %{}
       }
 
-      result = Sync.upsert_batch([envelope])
+      assert {:ok, result} = Sync.upsert_batch([envelope])
       assert result.skipped == 1
+    end
+
+    test "rejects batch exceeding max_batch_bytes" do
+      big = String.duplicate("x", 64)
+
+      envelopes =
+        for i <- 1..50 do
+          %{
+            "external_id" => "f_BIG#{i}",
+            "kind" => "finding",
+            "payload" => %{"blob" => String.duplicate(big, 256)}
+          }
+        end
+
+      assert {:error, {:batch_too_large, %{bytes: _, max: _}}} =
+               Sync.upsert_batch(envelopes, max_batch_bytes: 1024)
     end
   end
 

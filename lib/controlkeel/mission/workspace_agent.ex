@@ -48,7 +48,8 @@ defmodule ControlKeel.Mission.WorkspaceAgent do
       :maintainer_id,
       :sessions_count,
       :last_active_at,
-      :metadata
+      :metadata,
+      :lock_version
     ])
     |> validate_required([:workspace_id, :name, :role, :agent_type])
     |> validate_inclusion(:role, @valid_roles)
@@ -63,6 +64,35 @@ defmodule ControlKeel.Mission.WorkspaceAgent do
   def valid_roles, do: @valid_roles
   def valid_statuses, do: @valid_statuses
   def valid_agent_types, do: @valid_agent_types
+
+  @doc """
+  Allowlist of fields safe to ship via cloud sync. `policy_overrides` and
+  `scope` may contain workspace-scoped configuration including credentials —
+  both pass through the redactor.
+  """
+  def sync_fields do
+    {:include,
+     [
+       :id,
+       :external_id,
+       :workspace_id,
+       :name,
+       :role,
+       :agent_type,
+       :status,
+       {:redact, :scope},
+       :budget_cents,
+       :spent_cents,
+       {:redact, :policy_overrides},
+       :maintainer_id,
+       :sessions_count,
+       :last_active_at,
+       {:redact, :metadata},
+       :lock_version,
+       :inserted_at,
+       :updated_at
+     ]}
+  end
 
   defp maybe_generate_external_id(changeset) do
     case get_field(changeset, :external_id) do

@@ -3,22 +3,41 @@ defmodule ControlKeel.Cloud.Redactor do
   Apply the workspace's redaction policy to a telemetry payload before it leaves
   the local node.
 
-  This module is intentionally a thin skeleton in this slice — the call site is
-  stable so later slices can plug in pattern-based PII/secret detection without
-  changing every emitter. The redaction-policy version is stamped on every
-  envelope so consumers know which rules ran.
+  Two surfaces:
 
-  Current rules (policy version "2026.05"):
+    * `redact/1` — full normalization + pattern scrubbing. Returns
+      `{:ok, payload, policy_version}` on success or `{:error, reason}`. Fail-closed:
+      payloads with non-JSON-safe values are rejected outright.
 
-    - Pass-through for governance-metadata-level payloads (counts, IDs, severity)
-    - Drop unknown atom values (force string/integer/map at envelope build time)
-    - No PII / secret pattern matching yet — that lands in a follow-up slice
+    * `redact_string/1` and `redact_value/1` — pattern-only scrubbing for callers
+      that have already normalized the shape (e.g. `Cloud.Sync.serialize_payload`).
 
-  Returning `{:ok, payload, policy_version}` lets callers persist the policy
-  version inline. Returning `{:error, reason}` blocks the egress (fail-closed).
+  Current rules (policy version `2026.05.28`):
+
+    * Anthropic `sk-ant-*` keys → `[REDACTED:sk-ant]`
+    * Generic `sk-*` keys → `[REDACTED:sk]`
+    * GitHub PATs (`gh[psour]_*`) → `[REDACTED:gh-token]`
+    * `Authorization` / `Bearer` headers → `[REDACTED]`
+    * `token=` / `key=` / `secret=` / `password=` / `api_key=` env-style → `[REDACTED]`
+    * Long base64-ish strings (≥60 chars) → `[REDACTED:base64-ish]` (heuristic; runs last)
+
+  False positives are preferable to leaks.
   """
 
-  @policy_version "2026.05"
+  @policy_version "2026.05.28"
+
+  # Patterns are applied in order — earlier patterns win when matches overlap.
+  @patterns [
+    {~r/sk-ant-[A-Za-z0-9_-]{20,}/, "[REDACTED:sk-ant]"},
+    {~r/sk-[A-Za-z0-9_-]{20,}/, "[REDACTED:sk]"},
+    {~r/gh[psour]_[A-Za-z0-9_]{30,}/, "[REDACTED:gh-token]"},
+    # Authorization: Bearer <token> (full header — also catches "Authorization=...")
+    {~r/(?i)authorization\s*[:=]\s*(?:bearer\s+)?\S+/, "Authorization: [REDACTED]"},
+    # Standalone "Bearer <token>"
+    {~r/(?i)bearer\s+\S+/, "Bearer [REDACTED]"},
+    {~r/(?i)(token|key|secret|password|api_key)\s*=\s*[^\s&]+/, "\\1=[REDACTED]"},
+    {~r/[A-Za-z0-9+\/]{60,}={0,2}/, "[REDACTED:base64-ish]"}
+  ]
 
   @doc "The redaction policy version that this module currently implements."
   @spec policy_version() :: String.t()
@@ -27,8 +46,8 @@ defmodule ControlKeel.Cloud.Redactor do
   @doc """
   Redact a payload according to the current policy.
 
-  In this slice the rules are minimal: enforce that the payload is a map of
-  string keys and primitive values. Anything else fails closed.
+  Normalizes the payload to JSON-safe shapes (strings/numbers/booleans/nil/maps/lists)
+  and applies pattern scrubbing to every string value.
   """
   @spec redact(map()) :: {:ok, map(), String.t()} | {:error, term()}
   def redact(payload) when is_map(payload) do
@@ -39,6 +58,39 @@ defmodule ControlKeel.Cloud.Redactor do
   end
 
   def redact(_), do: {:error, :payload_must_be_a_map}
+
+  @doc """
+  Scrub credential-shaped substrings from a string. Idempotent: re-scrubbing a
+  scrubbed value is a no-op.
+  """
+  @spec redact_string(term()) :: term()
+  def redact_string(value) when is_binary(value) do
+    Enum.reduce(@patterns, value, fn {pattern, replacement}, acc ->
+      String.replace(acc, pattern, replacement)
+    end)
+  end
+
+  def redact_string(value), do: value
+
+  @doc """
+  Recursively scrub a value of any JSON-safe shape. Strings get pattern-replaced,
+  maps and lists are walked, DateTime/Date/Time and other terms pass through.
+  """
+  @spec redact_value(term()) :: term()
+  def redact_value(value) when is_binary(value), do: redact_string(value)
+
+  def redact_value(%DateTime{} = v), do: v
+  def redact_value(%NaiveDateTime{} = v), do: v
+  def redact_value(%Date{} = v), do: v
+  def redact_value(%Time{} = v), do: v
+
+  def redact_value(value) when is_map(value) do
+    Map.new(value, fn {k, v} -> {k, redact_value(v)} end)
+  end
+
+  def redact_value(value) when is_list(value), do: Enum.map(value, &redact_value/1)
+
+  def redact_value(value), do: value
 
   defp normalize_payload(payload) do
     payload
@@ -56,7 +108,7 @@ defmodule ControlKeel.Cloud.Redactor do
   defp normalize_key(key) when is_atom(key), do: {:ok, Atom.to_string(key)}
   defp normalize_key(_), do: {:error, :payload_keys_must_be_strings_or_atoms}
 
-  defp normalize_value(value) when is_binary(value), do: {:ok, value}
+  defp normalize_value(value) when is_binary(value), do: {:ok, redact_string(value)}
   defp normalize_value(value) when is_integer(value), do: {:ok, value}
   defp normalize_value(value) when is_float(value), do: {:ok, value}
   defp normalize_value(value) when is_boolean(value), do: {:ok, value}

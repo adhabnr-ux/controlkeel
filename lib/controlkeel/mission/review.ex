@@ -72,6 +72,40 @@ defmodule ControlKeel.Mission.Review do
     |> assoc_constraint(:previous_review)
   end
 
+  @doc """
+  Allowlist of fields safe to ship via cloud sync. The submission body and
+  feedback notes pass through the redactor because they're free-form text where
+  reviewers occasionally paste log lines.
+  """
+  def sync_fields do
+    {:include,
+     [
+       :id,
+       :external_id,
+       :session_id,
+       :task_id,
+       :previous_review_id,
+       :title,
+       :review_type,
+       :status,
+       {:redact, :submission_body},
+       {:redact, :annotations},
+       {:redact, :feedback_notes},
+       :submitted_by,
+       :reviewed_by,
+       {:redact, :metadata},
+       :responded_at,
+       :assigned_user_id,
+       :assigned_by_user_id,
+       :assigned_at,
+       :decided_by_user_id,
+       :required_role,
+       :synced_at,
+       :inserted_at,
+       :updated_at
+     ]}
+  end
+
   defp maybe_generate_external_id(changeset) do
     case get_field(changeset, :external_id) do
       nil ->

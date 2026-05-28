@@ -55,6 +55,31 @@ defmodule ControlKeel.Mission.Finding do
     |> assoc_constraint(:session)
   end
 
+  @doc """
+  Allowlist of fields safe to ship via cloud sync. `plain_message` and `metadata`
+  are passed through `Cloud.Redactor.redact_value/1` because finding messages
+  occasionally carry stack-frames with embedded tokens.
+  """
+  def sync_fields do
+    {:include,
+     [
+       :id,
+       :external_id,
+       :session_id,
+       :title,
+       :severity,
+       :category,
+       :rule_id,
+       {:redact, :plain_message},
+       :status,
+       :auto_resolved,
+       {:redact, :metadata},
+       :synced_at,
+       :inserted_at,
+       :updated_at
+     ]}
+  end
+
   defp maybe_generate_external_id(changeset) do
     case get_field(changeset, :external_id) do
       nil ->

@@ -1,8 +1,8 @@
 defmodule ControlKeelWeb.CloudSyncControllerTest do
   use ControlKeelWeb.ConnCase, async: false
 
-  alias ControlKeel.Cloud.AuthToken
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.{AuthToken, WorkspaceIdentity, WorkspaceKeyRegistry}
+  alias ControlKeel.Mission
 
   setup %{conn: conn} do
     tmp_home =
@@ -28,9 +28,35 @@ defmodule ControlKeelWeb.CloudSyncControllerTest do
     {:ok, identity, :created} = WorkspaceIdentity.ensure()
     {:ok, token} = AuthToken.sign(identity)
 
+    # Cloud-sync controller now resolves the local Mission.Workspace via
+    # WorkspaceKeyRegistry — tests must enroll the identity so the resolver
+    # can find a mission_workspace_id. Closes CK-CLOUD-SYNC-009.
+    {:ok, workspace} =
+      Mission.create_workspace(%{
+        name: "Sync-Ctrl",
+        slug: "sync-ctrl-#{System.unique_integer([:positive])}",
+        industry: "software",
+        agent: "claude-code",
+        budget_cents: 10_000,
+        compliance_profile: "baseline",
+        status: "active"
+      })
+
+    {:ok, fingerprint} = WorkspaceKeyRegistry.fingerprint_for(identity.public_key)
+
+    {:ok, _key} =
+      WorkspaceKeyRegistry.enroll(%{
+        workspace_id: identity.workspace_id,
+        public_key: identity.public_key,
+        algorithm: "ed25519",
+        fingerprint: fingerprint,
+        name: "test",
+        mission_workspace_id: workspace.id
+      })
+
     conn = put_req_header(conn, "content-type", "application/json")
 
-    {:ok, conn: conn, identity: identity, token: token}
+    {:ok, conn: conn, identity: identity, token: token, workspace: workspace}
   end
 
   describe "POST /cloud/v1/sync/push" do

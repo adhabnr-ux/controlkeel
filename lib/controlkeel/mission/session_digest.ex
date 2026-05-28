@@ -73,6 +73,41 @@ defmodule ControlKeel.Mission.SessionDigest do
     |> assoc_constraint(:session)
   end
 
+  @doc """
+  Allowlist of fields safe to ship via cloud sync. `highlights` and `metadata`
+  are passed through the redactor because they sometimes contain inlined
+  excerpts of trace logs.
+  """
+  def sync_fields do
+    {:include,
+     [
+       :id,
+       :external_id,
+       :session_id,
+       :digest_type,
+       :period_start,
+       :period_end,
+       :tasks_completed,
+       :tasks_failed,
+       :findings_raised,
+       :findings_blocked,
+       :reviews_pending,
+       :reviews_approved,
+       :budget_spent_cents,
+       :budget_remaining_cents,
+       :circuit_breaker_trips,
+       :top_rule_ids,
+       :top_categories,
+       {:redact, :highlights},
+       :needs_attention,
+       :generated_at,
+       {:redact, :metadata},
+       :synced_at,
+       :inserted_at,
+       :updated_at
+     ]}
+  end
+
   defp maybe_generate_external_id(changeset) do
     case get_field(changeset, :external_id) do
       nil ->

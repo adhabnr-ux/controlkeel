@@ -63,4 +63,29 @@ defmodule ControlKeel.Mission.Task do
     |> assoc_constraint(:session)
     |> unique_constraint(:external_id)
   end
+
+  @doc """
+  Allowlist of fields safe to ship via cloud sync. Task titles and metadata
+  are passed through the redactor — agents sometimes embed credentials in task
+  metadata for context.
+  """
+  def sync_fields do
+    {:include,
+     [
+       :id,
+       :external_id,
+       :session_id,
+       {:redact, :title},
+       :status,
+       :estimated_cost_cents,
+       :validation_gate,
+       :position,
+       {:redact, :metadata},
+       :confidence_score,
+       :lock_version,
+       :rollback_boundary,
+       :inserted_at,
+       :updated_at
+     ]}
+  end
 end

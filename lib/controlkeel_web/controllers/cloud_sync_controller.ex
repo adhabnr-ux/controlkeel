@@ -1,75 +1,88 @@
 defmodule ControlKeelWeb.CloudSyncController do
   @moduledoc """
-  Handles bidirectional cloud sync requests.
+  Bidirectional cloud-sync HTTP surface.
 
   Two actions:
-    - push: receives a batch of local records from an enrolled workspace
-    - pull: returns records for a workspace since a given timestamp
+
+    * `POST /cloud/v1/sync/push` — receives a batch of envelopes from an
+      enrolled workspace and upserts them via `Cloud.Sync.upsert_batch/2`.
+      Atomic per batch.
+
+    * `POST /cloud/v1/sync/pull` — returns records for a workspace whose
+      `synced_at` is newer than the requester's `since` timestamp. Covers all
+      four append-only kinds (finding, review, session_digest, memory_record).
+
+  Auth is bearer-token, verified by `Cloud.AuthToken.verify/1`. The token's
+  `workspace_id` (cloud string UUID) is resolved to a local
+  `Mission.Workspace.id` via `WorkspaceKeyRegistry.fetch/1`. Unmapped tokens
+  return 404 — the caller should re-enroll.
   """
 
   use ControlKeelWeb, :controller
 
-  alias ControlKeel.Cloud.{AuthToken, Sync}
+  require Logger
+
+  alias ControlKeel.Cloud.{AuthToken, Sync, WorkspaceKeyRegistry}
+  alias ControlKeel.Mission.{Finding, Review, SessionDigest}
+  alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Repo
 
   plug :verify_sync_token when action in [:push, :pull]
+  plug :resolve_db_workspace_id when action in [:push, :pull]
 
-  @max_batch_size 500
+  @max_batch_count 500
+  @max_batch_bytes 8 * 1024 * 1024
 
   def push(conn, %{"records" => records, "workspace_id" => ws_id}) do
-    workspace_id = conn.assigns[:sync_workspace_id]
+    cloud_workspace_id = conn.assigns[:sync_workspace_id]
 
-    if ws_id != workspace_id do
-      conn
-      |> put_status(:forbidden)
-      |> json(%{error: "workspace_id mismatch"})
-    else
-      if length(records) > @max_batch_size do
-        conn
-        |> put_status(:bad_request)
-        |> json(%{error: "batch too large", max: @max_batch_size})
-      else
-        result = Sync.upsert_batch(records)
+    cond do
+      ws_id != cloud_workspace_id ->
+        send_error(conn, :forbidden, "workspace_id mismatch")
 
-        conn
-        |> json(%{
-          accepted: result.total,
-          inserted: result.inserted,
-          updated: result.updated,
-          skipped: result.skipped,
-          conflicts: result.conflicts
-        })
-      end
+      length(records) > @max_batch_count ->
+        send_error(conn, :bad_request, "batch too large", %{max: @max_batch_count})
+
+      true ->
+        case Sync.upsert_batch(records, max_batch_bytes: @max_batch_bytes) do
+          {:ok, result} ->
+            json(conn, %{
+              accepted: result.total,
+              inserted: result.inserted,
+              updated: result.updated,
+              skipped: result.skipped,
+              no_change: result.no_change,
+              conflicts: result.conflicts
+            })
+
+          {:error, {:batch_too_large, info}} ->
+            send_error(conn, :payload_too_large, "batch too large", info)
+        end
     end
   end
 
   def push(conn, _params) do
-    conn
-    |> put_status(:bad_request)
-    |> json(%{error: "missing records or workspace_id"})
+    send_error(conn, :bad_request, "missing records or workspace_id")
   end
 
   def pull(conn, %{"since" => since_iso, "workspace_id" => ws_id}) do
-    workspace_id = conn.assigns[:sync_workspace_id]
+    cloud_workspace_id = conn.assigns[:sync_workspace_id]
+    db_workspace_id = conn.assigns[:db_workspace_id]
 
-    if ws_id != workspace_id do
-      conn
-      |> put_status(:forbidden)
-      |> json(%{error: "workspace_id mismatch"})
-    else
-      since = parse_timestamp(since_iso)
+    cond do
+      ws_id != cloud_workspace_id ->
+        send_error(conn, :forbidden, "workspace_id mismatch")
 
-      records = collect_since(workspace_id, since)
+      true ->
+        since = parse_timestamp(since_iso)
+        records = collect_since(db_workspace_id, since)
 
-      conn
-      |> json(%{records: records, total: length(records)})
+        json(conn, %{records: records, total: length(records)})
     end
   end
 
   def pull(conn, _params) do
-    conn
-    |> put_status(:bad_request)
-    |> json(%{error: "missing since or workspace_id"})
+    send_error(conn, :bad_request, "missing since or workspace_id")
   end
 
   # ── Auth plug ───────────────────────────────────────────────────────
@@ -96,34 +109,65 @@ defmodule ControlKeelWeb.CloudSyncController do
     end
   end
 
-  # ── Helpers ─────────────────────────────────────────────────────────
+  # ── Workspace resolution plug ──────────────────────────────────────
 
-  defp collect_since(workspace_id, _since) when is_binary(workspace_id), do: []
+  defp resolve_db_workspace_id(conn, _opts) do
+    case conn.assigns[:sync_workspace_id] do
+      ws_id when is_binary(ws_id) ->
+        case WorkspaceKeyRegistry.fetch(ws_id) do
+          {:ok, %{mission_workspace_id: id}} when is_integer(id) ->
+            assign(conn, :db_workspace_id, id)
 
-  defp collect_since(workspace_id, since) do
+          _ ->
+            conn
+            |> put_status(:not_found)
+            |> json(%{error: "workspace not enrolled on this node"})
+            |> halt()
+        end
+
+      _ ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{error: "missing workspace claim"})
+        |> halt()
+    end
+  end
+
+  # ── Pull helpers ────────────────────────────────────────────────────
+
+  defp collect_since(db_workspace_id, since) when is_integer(db_workspace_id) do
     import Ecto.Query
 
-    alias ControlKeel.Mission.{Session, Finding}
-
     session_ids =
-      Session
-      |> where([s], s.workspace_id == ^workspace_id)
+      ControlKeel.Mission.Session
+      |> where([s], s.workspace_id == ^db_workspace_id)
       |> select([s], s.id)
       |> Repo.all()
 
     if session_ids == [] do
       []
     else
-      # Collect recently synced records that the requester doesn't have
-      Finding
-      |> where([f], f.session_id in ^session_ids)
-      |> where([f], f.synced_at > ^since)
-      |> where([f], not is_nil(f.external_id))
-      |> limit(500)
-      |> Repo.all()
-      |> Enum.map(&Sync.serialize_record({"finding", &1}))
+      Enum.flat_map(
+        [
+          {"finding", Finding},
+          {"review", Review},
+          {"session_digest", SessionDigest},
+          {"memory_record", MemoryRecord}
+        ],
+        fn {kind, schema} ->
+          schema
+          |> where([r], r.session_id in ^session_ids)
+          |> where([r], r.synced_at > ^since)
+          |> where([r], not is_nil(r.external_id))
+          |> limit(500)
+          |> Repo.all()
+          |> Enum.map(&Sync.serialize_record({kind, &1}))
+        end
+      )
     end
   end
+
+  defp collect_since(_, _), do: []
 
   defp parse_timestamp(iso) when is_binary(iso) do
     case DateTime.from_iso8601(iso) do
@@ -133,4 +177,12 @@ defmodule ControlKeelWeb.CloudSyncController do
   end
 
   defp parse_timestamp(_), do: DateTime.utc_now() |> DateTime.add(-3600, :second)
+
+  defp send_error(conn, status, message, extra \\ %{}) do
+    body = Map.merge(%{error: message}, extra)
+
+    conn
+    |> put_status(status)
+    |> json(body)
+  end
 end

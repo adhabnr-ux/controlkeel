@@ -70,6 +70,36 @@ defmodule ControlKeel.Memory.Record do
     |> assoc_constraint(:task)
   end
 
+  @doc """
+  Allowlist of fields safe to ship via cloud sync. `title`, `summary`, `body`,
+  and `metadata` are passed through `Cloud.Redactor.redact_value/1` because
+  users sometimes paste credentials into free-form memory content.
+  """
+  def sync_fields do
+    {:include,
+     [
+       :id,
+       :external_id,
+       :workspace_id,
+       :session_id,
+       :task_id,
+       :record_type,
+       {:redact, :title},
+       {:redact, :summary},
+       {:redact, :body},
+       :tags,
+       :source_type,
+       :source_id,
+       {:redact, :metadata},
+       :archived_at,
+       :visibility,
+       :shared_org_id,
+       :synced_at,
+       :inserted_at,
+       :updated_at
+     ]}
+  end
+
   defp maybe_generate_external_id(changeset) do
     case get_field(changeset, :external_id) do
       nil ->
