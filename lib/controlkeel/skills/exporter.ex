@@ -2880,6 +2880,163 @@ defmodule ControlKeel.Skills.Exporter do
     )
   end
 
+  defp write_target(%SkillTarget{id: "antigravity-cli-native"}, root, project_root, skills, opts) do
+    # 1. Plugin bundle — the richest surface Antigravity supports
+    plugin_root = Path.join(root, ".agents/plugins/controlkeel")
+    File.mkdir_p!(plugin_root)
+
+    # Plugin manifest
+    plugin_manifest = Path.join(plugin_root, "plugin.json")
+    File.write!(plugin_manifest, Jason.encode!(%{"name" => "controlkeel"}, pretty: true) <> "\n")
+
+    # Plugin skills (inside plugin bundle)
+    plugin_skill_root = Path.join(plugin_root, "skills")
+    write_skill_tree(skills, plugin_skill_root)
+
+    # Plugin agents
+    agent_path = Path.join(plugin_root, "agents/controlkeel-operator.md")
+    File.mkdir_p!(Path.dirname(agent_path))
+    File.write!(agent_path, antigravity_agent_contents())
+
+    # Plugin rules
+    rules_dir = Path.join(plugin_root, "rules")
+    File.mkdir_p!(rules_dir)
+    File.write!(Path.join(rules_dir, "controlkeel.md"), antigravity_rules_contents())
+
+    # Plugin hooks — governance gate
+    plugin_hooks_path = Path.join(plugin_root, "hooks.json")
+
+    File.write!(
+      plugin_hooks_path,
+      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # Plugin MCP config
+    plugin_mcp_path = Path.join(plugin_root, "mcp_config.json")
+
+    File.write!(
+      plugin_mcp_path,
+      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # 2. Workspace-level skills (for agents that discover .agents/skills/)
+    ws_skill_root = Path.join(root, ".agents/skills")
+    write_skill_tree(skills, ws_skill_root)
+
+    # 3. Workspace-level rules
+    ws_rules_dir = Path.join(root, ".agents/rules")
+    File.mkdir_p!(ws_rules_dir)
+    File.write!(Path.join(ws_rules_dir, "controlkeel.md"), antigravity_rules_contents())
+
+    # 4. Workspace-level hooks
+    ws_hooks_path = Path.join(root, ".agents/hooks.json")
+
+    File.write!(
+      ws_hooks_path,
+      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # 5. Workspace-level MCP config
+    ws_mcp_path = Path.join(root, ".agents/mcp_config.json")
+
+    File.write!(
+      ws_mcp_path,
+      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # 6. Context files
+    gemini_md = Path.join(root, "GEMINI.md")
+    File.write!(gemini_md, instructions_only_contents("antigravity-cli", project_root, opts))
+
+    agents_md = Path.join(root, "AGENTS.md")
+    File.write!(agents_md, instructions_only_contents("antigravity-cli", project_root, opts))
+
+    with_common_assets(
+      root,
+      project_root,
+      opts,
+      [
+        %{"path" => plugin_root, "kind" => "plugin"},
+        %{"path" => plugin_manifest, "kind" => "settings"},
+        %{"path" => plugin_skill_root, "kind" => "skills"},
+        %{"path" => agent_path, "kind" => "agent"},
+        %{"path" => Path.join(rules_dir, "controlkeel.md"), "kind" => "rules"},
+        %{"path" => plugin_hooks_path, "kind" => "hooks"},
+        %{"path" => plugin_mcp_path, "kind" => "mcp"},
+        %{"path" => ws_skill_root, "kind" => "skills"},
+        %{"path" => Path.join(ws_rules_dir, "controlkeel.md"), "kind" => "rules"},
+        %{"path" => ws_hooks_path, "kind" => "hooks"},
+        %{"path" => ws_mcp_path, "kind" => "mcp"},
+        %{"path" => gemini_md, "kind" => "instructions"},
+        %{"path" => agents_md, "kind" => "instructions"}
+      ],
+      [
+        "The plugin bundle at `.agents/plugins/controlkeel/` contains skills, agents, rules, hooks, and MCP config as a single installable unit.",
+        "Antigravity CLI discovers workspace plugins automatically from `.agents/plugins/`.",
+        "To install globally, copy the plugin to `~/.gemini/config/plugins/controlkeel/`.",
+        "Workspace skills, rules, hooks, and MCP config in `.agents/` are also auto-discovered.",
+        "Run `agy plugin list` to verify the controlkeel plugin is loaded."
+      ]
+    )
+  end
+
+  defp write_target(%SkillTarget{id: "antigravity-cli-plugin"}, root, project_root, skills, opts) do
+    # Portable plugin bundle for global install or marketplace distribution
+    plugin_root = Path.join(root, "controlkeel")
+    File.mkdir_p!(plugin_root)
+
+    plugin_manifest = Path.join(plugin_root, "plugin.json")
+    File.write!(plugin_manifest, Jason.encode!(%{"name" => "controlkeel"}, pretty: true) <> "\n")
+
+    skill_root = Path.join(plugin_root, "skills")
+    write_skill_tree(skills, skill_root)
+
+    agent_path = Path.join(plugin_root, "agents/controlkeel-operator.md")
+    File.mkdir_p!(Path.dirname(agent_path))
+    File.write!(agent_path, antigravity_agent_contents())
+
+    rules_dir = Path.join(plugin_root, "rules")
+    File.mkdir_p!(rules_dir)
+    File.write!(Path.join(rules_dir, "controlkeel.md"), antigravity_rules_contents())
+
+    hooks_path = Path.join(plugin_root, "hooks.json")
+
+    File.write!(
+      hooks_path,
+      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
+    )
+
+    mcp_path = Path.join(plugin_root, "mcp_config.json")
+
+    File.write!(
+      mcp_path,
+      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
+    )
+
+    readme_path = Path.join(root, "README.md")
+    File.write!(readme_path, antigravity_plugin_readme_contents())
+
+    with_common_assets(
+      root,
+      project_root,
+      opts,
+      [
+        %{"path" => plugin_manifest, "kind" => "settings"},
+        %{"path" => skill_root, "kind" => "skills"},
+        %{"path" => agent_path, "kind" => "agent"},
+        %{"path" => Path.join(rules_dir, "controlkeel.md"), "kind" => "rules"},
+        %{"path" => hooks_path, "kind" => "hooks"},
+        %{"path" => mcp_path, "kind" => "mcp"},
+        %{"path" => readme_path, "kind" => "instructions"}
+      ],
+      [
+        "Install globally: copy the `controlkeel/` directory to `~/.gemini/config/plugins/controlkeel/`.",
+        "Or install per-workspace: copy to `.agents/plugins/controlkeel/`.",
+        "Run `agy plugin list` to verify."
+      ]
+    )
+  end
+
   defp write_skill_tree(skills, destination_root) do
     File.mkdir_p!(destination_root)
 
@@ -9106,163 +9263,6 @@ defmodule ControlKeel.Skills.Exporter do
     3. Wait with `controlkeel review plan wait --id <review_id> --json`.
     4. Summarize blocked findings and proof status before completion.
     """
-  end
-
-  defp write_target(%SkillTarget{id: "antigravity-cli-native"}, root, project_root, skills, opts) do
-    # 1. Plugin bundle — the richest surface Antigravity supports
-    plugin_root = Path.join(root, ".agents/plugins/controlkeel")
-    File.mkdir_p!(plugin_root)
-
-    # Plugin manifest
-    plugin_manifest = Path.join(plugin_root, "plugin.json")
-    File.write!(plugin_manifest, Jason.encode!(%{"name" => "controlkeel"}, pretty: true) <> "\n")
-
-    # Plugin skills (inside plugin bundle)
-    plugin_skill_root = Path.join(plugin_root, "skills")
-    write_skill_tree(skills, plugin_skill_root)
-
-    # Plugin agents
-    agent_path = Path.join(plugin_root, "agents/controlkeel-operator.md")
-    File.mkdir_p!(Path.dirname(agent_path))
-    File.write!(agent_path, antigravity_agent_contents())
-
-    # Plugin rules
-    rules_dir = Path.join(plugin_root, "rules")
-    File.mkdir_p!(rules_dir)
-    File.write!(Path.join(rules_dir, "controlkeel.md"), antigravity_rules_contents())
-
-    # Plugin hooks — governance gate
-    plugin_hooks_path = Path.join(plugin_root, "hooks.json")
-
-    File.write!(
-      plugin_hooks_path,
-      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
-    )
-
-    # Plugin MCP config
-    plugin_mcp_path = Path.join(plugin_root, "mcp_config.json")
-
-    File.write!(
-      plugin_mcp_path,
-      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
-    )
-
-    # 2. Workspace-level skills (for agents that discover .agents/skills/)
-    ws_skill_root = Path.join(root, ".agents/skills")
-    write_skill_tree(skills, ws_skill_root)
-
-    # 3. Workspace-level rules
-    ws_rules_dir = Path.join(root, ".agents/rules")
-    File.mkdir_p!(ws_rules_dir)
-    File.write!(Path.join(ws_rules_dir, "controlkeel.md"), antigravity_rules_contents())
-
-    # 4. Workspace-level hooks
-    ws_hooks_path = Path.join(root, ".agents/hooks.json")
-
-    File.write!(
-      ws_hooks_path,
-      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
-    )
-
-    # 5. Workspace-level MCP config
-    ws_mcp_path = Path.join(root, ".agents/mcp_config.json")
-
-    File.write!(
-      ws_mcp_path,
-      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
-    )
-
-    # 6. Context files
-    gemini_md = Path.join(root, "GEMINI.md")
-    File.write!(gemini_md, instructions_only_contents("antigravity-cli", project_root, opts))
-
-    agents_md = Path.join(root, "AGENTS.md")
-    File.write!(agents_md, instructions_only_contents("antigravity-cli", project_root, opts))
-
-    with_common_assets(
-      root,
-      project_root,
-      opts,
-      [
-        %{"path" => plugin_root, "kind" => "plugin"},
-        %{"path" => plugin_manifest, "kind" => "settings"},
-        %{"path" => plugin_skill_root, "kind" => "skills"},
-        %{"path" => agent_path, "kind" => "agent"},
-        %{"path" => Path.join(rules_dir, "controlkeel.md"), "kind" => "rules"},
-        %{"path" => plugin_hooks_path, "kind" => "hooks"},
-        %{"path" => plugin_mcp_path, "kind" => "mcp"},
-        %{"path" => ws_skill_root, "kind" => "skills"},
-        %{"path" => Path.join(ws_rules_dir, "controlkeel.md"), "kind" => "rules"},
-        %{"path" => ws_hooks_path, "kind" => "hooks"},
-        %{"path" => ws_mcp_path, "kind" => "mcp"},
-        %{"path" => gemini_md, "kind" => "instructions"},
-        %{"path" => agents_md, "kind" => "instructions"}
-      ],
-      [
-        "The plugin bundle at `.agents/plugins/controlkeel/` contains skills, agents, rules, hooks, and MCP config as a single installable unit.",
-        "Antigravity CLI discovers workspace plugins automatically from `.agents/plugins/`.",
-        "To install globally, copy the plugin to `~/.gemini/config/plugins/controlkeel/`.",
-        "Workspace skills, rules, hooks, and MCP config in `.agents/` are also auto-discovered.",
-        "Run `agy plugin list` to verify the controlkeel plugin is loaded."
-      ]
-    )
-  end
-
-  defp write_target(%SkillTarget{id: "antigravity-cli-plugin"}, root, project_root, skills, opts) do
-    # Portable plugin bundle for global install or marketplace distribution
-    plugin_root = Path.join(root, "controlkeel")
-    File.mkdir_p!(plugin_root)
-
-    plugin_manifest = Path.join(plugin_root, "plugin.json")
-    File.write!(plugin_manifest, Jason.encode!(%{"name" => "controlkeel"}, pretty: true) <> "\n")
-
-    skill_root = Path.join(plugin_root, "skills")
-    write_skill_tree(skills, skill_root)
-
-    agent_path = Path.join(plugin_root, "agents/controlkeel-operator.md")
-    File.mkdir_p!(Path.dirname(agent_path))
-    File.write!(agent_path, antigravity_agent_contents())
-
-    rules_dir = Path.join(plugin_root, "rules")
-    File.mkdir_p!(rules_dir)
-    File.write!(Path.join(rules_dir, "controlkeel.md"), antigravity_rules_contents())
-
-    hooks_path = Path.join(plugin_root, "hooks.json")
-
-    File.write!(
-      hooks_path,
-      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
-    )
-
-    mcp_path = Path.join(plugin_root, "mcp_config.json")
-
-    File.write!(
-      mcp_path,
-      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
-    )
-
-    readme_path = Path.join(root, "README.md")
-    File.write!(readme_path, antigravity_plugin_readme_contents())
-
-    with_common_assets(
-      root,
-      project_root,
-      opts,
-      [
-        %{"path" => plugin_manifest, "kind" => "settings"},
-        %{"path" => skill_root, "kind" => "skills"},
-        %{"path" => agent_path, "kind" => "agent"},
-        %{"path" => Path.join(rules_dir, "controlkeel.md"), "kind" => "rules"},
-        %{"path" => hooks_path, "kind" => "hooks"},
-        %{"path" => mcp_path, "kind" => "mcp"},
-        %{"path" => readme_path, "kind" => "instructions"}
-      ],
-      [
-        "Install globally: copy the `controlkeel/` directory to `~/.gemini/config/plugins/controlkeel/`.",
-        "Or install per-workspace: copy to `.agents/plugins/controlkeel/`.",
-        "Run `agy plugin list` to verify."
-      ]
-    )
   end
 
   defp antigravity_agent_contents do

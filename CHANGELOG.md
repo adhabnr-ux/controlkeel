@@ -1,5 +1,51 @@
 # Changelog
 
+## v0.3.29 — 2026-05-28
+
+### What's changed
+
+- feat(digest): new `ck_session_digest` MCP tool and `SessionDigest` module.
+  Generates condensed, human-scannable digests of what happened in a session —
+  tasks completed, findings raised, budget spent, reviews pending, and notable
+  highlights. Three digest types: session, daily, shift_change. Sets
+  `needs_attention` flag when blocked findings, pending reviews, or >80% budget
+  consumption detected. Inspired by "you need inboxes that summarize what
+  happened" (Dan Shipper, Lenny Podcast).
+- feat(rollback): new `ck_rollback` MCP tool and `RollbackExecutor` module.
+  Makes rollback executable, not just advisory. Records a git checkpoint
+  (commit SHA) before each task via `checkpoint` mode, and provides `execute`
+  mode to revert an agent's work with a single action. Safety-checked: refuses
+  if downstream completed tasks depend on the changes. Creates an audit finding
+  (`CK-ROLLBACK-001`) on every rollback. Inspired by "you need easy rollback."
+- feat(agents): new `ck_workspace_agent` MCP tool and workspace agent roles.
+  Formalizes the "company agent" concept with role-based scoping: `primary`
+  (one super-agent per workspace, maintained by a forward-deployed engineer),
+  `specialized` (domain-scoped), and `ephemeral` (short-lived task runners).
+  Health monitoring, budget tracking, and retirement lifecycle. Inspired by
+  "every company will have one super-agent."
+- feat(copilot): new `ck_copilot` MCP tool and `CopilotChannel` GenServer.
+  Real-time collaborative channel where human actions (viewing, editing,
+  approving, commenting) stream to the agent via PubSub without polling. ETS-
+  backed event history with auto-pruning. Added to supervision tree. Inspired
+  by "build software for humans and agents to use together."
+- feat(saas): new `ck_external_service` MCP tool and `ExternalServiceTracker`.
+  Tracks and governs agent interactions with external SaaS APIs. Per-service
+  rate limiting, cost attribution, latency tracking, and automatic PII
+  redaction (tokens, emails) from endpoints. Summary, rate_limit_status, and
+  top_services views. Inspired by "agents will create massive new demand for
+  SaaS."
+- fix(mcp): eliminate 4 compile warnings that were leaking to stdout and
+  causing intermittent MCP handshake issues (grouped `run_command/2` clauses
+  in cli.ex, grouped `write_target/5` clauses in exporter.ex, removed unused
+  default in cloud_runtime_callback_controller.ex).
+- fix(agents): replace the over-broad `(workspace_id, role)` unique index on
+  `workspace_agents` with a partial unique index scoped to active `primary`
+  agents. The original constraint silently blocked the documented case of
+  registering multiple specialized or ephemeral agents per workspace.
+- fix(db): apply pending migrations for `external_id` on tasks and
+  `workspace_github_repos`.
+
+
 ## v0.3.28 — 2026-05-28
 
 ### What's changed

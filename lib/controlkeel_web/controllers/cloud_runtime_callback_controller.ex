@@ -145,7 +145,7 @@ defmodule ControlKeelWeb.CloudRuntimeCallbackController do
   defp maybe_put(opts, _key, ""), do: opts
   defp maybe_put(opts, key, value), do: Keyword.put(opts, key, value)
 
-  defp summary(package, finding_ids \\ []) do
+  defp summary(package, finding_ids) do
     %{
       id: package.id,
       external_id: package.external_id,

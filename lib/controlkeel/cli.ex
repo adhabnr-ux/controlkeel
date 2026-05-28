@@ -986,6 +986,61 @@ defmodule ControlKeel.CLI do
 
   def usage_text, do: Help.usage_text()
 
+  defp format_default_branch(nil), do: ""
+  defp format_default_branch(""), do: ""
+  defp format_default_branch(branch), do: " (default branch: #{branch})"
+
+  defp format_installation(nil), do: ""
+  defp format_installation(""), do: ""
+  defp format_installation(id), do: " (installation #{id})"
+
+  defp maybe_put_kw(opts, _key, nil), do: opts
+  defp maybe_put_kw(opts, _key, ""), do: opts
+  defp maybe_put_kw(opts, key, value), do: Keyword.put(opts, key, value)
+
+  defp response_summary(%{status: status, body: body}) when is_map(body) do
+    "#{status} workspace=#{Map.get(body, "workspace_id") || Map.get(body, :workspace_id) || "?"}"
+  end
+
+  defp response_summary(%{status: status}), do: "#{status}"
+
+  defp enroll_remote(identity, base_url, opts) do
+    alias ControlKeel.Cloud.Enrollment
+
+    register_url = String.trim_trailing(base_url, "/") <> "/cloud/v1/workspaces/register"
+
+    with {:ok, envelope} <- Enrollment.build(identity, opts),
+         {:ok, response} <- post_enrollment(register_url, envelope) do
+      {:ok,
+       [
+         "Enrolled with: #{base_url}",
+         "Server response: #{response_summary(response)}"
+       ]}
+    else
+      {:error, reason} -> {:error, inspect(reason)}
+    end
+  end
+
+  defp post_enrollment(url, envelope) do
+    http_module = Application.get_env(:controlkeel, :cloud_enrollment_http_module, Req)
+
+    case http_module.post(url, json: envelope, receive_timeout: 10_000) do
+      {:ok, %{status: status, body: body}} when status in 200..299 ->
+        {:ok, %{status: status, body: body}}
+
+      {:ok, %{status: status, body: body}} ->
+        {:error, "server returned #{status}: #{inspect(body)}"}
+
+      {:error, %{__exception__: true} = error} ->
+        {:error, Exception.message(error)}
+
+      {:error, reason} ->
+        {:error, inspect(reason)}
+    end
+  rescue
+    error -> {:error, Exception.message(error)}
+  end
+
   def run_command(%{command: :serve}, _project_root), do: :ok
   def run_command(%{command: :help, args: args}, _project_root), do: {:ok, [Help.render(args)]}
   def run_command(%{command: :version}, _project_root), do: {:ok, ["ControlKeel #{version()}"]}
@@ -1951,18 +2006,6 @@ defmodule ControlKeel.CLI do
     end
   end
 
-  defp format_default_branch(nil), do: ""
-  defp format_default_branch(""), do: ""
-  defp format_default_branch(branch), do: " (default branch: #{branch})"
-
-  defp format_installation(nil), do: ""
-  defp format_installation(""), do: ""
-  defp format_installation(id), do: " (installation #{id})"
-
-  defp maybe_put_kw(opts, _key, nil), do: opts
-  defp maybe_put_kw(opts, _key, ""), do: opts
-  defp maybe_put_kw(opts, key, value), do: Keyword.put(opts, key, value)
-
   def run_command(%{command: :plugin_export, args: [plugin], options: options}, project_root) do
     root = options[:project_root] || project_root
 
@@ -2071,49 +2114,6 @@ defmodule ControlKeel.CLI do
         {:error, "Failed to generate workspace identity: #{inspect(reason)}"}
     end
   end
-
-  defp enroll_remote(identity, base_url, opts) do
-    alias ControlKeel.Cloud.Enrollment
-
-    register_url = String.trim_trailing(base_url, "/") <> "/cloud/v1/workspaces/register"
-
-    with {:ok, envelope} <- Enrollment.build(identity, opts),
-         {:ok, response} <- post_enrollment(register_url, envelope) do
-      {:ok,
-       [
-         "Enrolled with: #{base_url}",
-         "Server response: #{response_summary(response)}"
-       ]}
-    else
-      {:error, reason} -> {:error, inspect(reason)}
-    end
-  end
-
-  defp post_enrollment(url, envelope) do
-    http_module = Application.get_env(:controlkeel, :cloud_enrollment_http_module, Req)
-
-    case http_module.post(url, json: envelope, receive_timeout: 10_000) do
-      {:ok, %{status: status, body: body}} when status in 200..299 ->
-        {:ok, %{status: status, body: body}}
-
-      {:ok, %{status: status, body: body}} ->
-        {:error, "server returned #{status}: #{inspect(body)}"}
-
-      {:error, %{__exception__: true} = error} ->
-        {:error, Exception.message(error)}
-
-      {:error, reason} ->
-        {:error, inspect(reason)}
-    end
-  rescue
-    error -> {:error, Exception.message(error)}
-  end
-
-  defp response_summary(%{status: status, body: body}) when is_map(body) do
-    "#{status} workspace=#{Map.get(body, "workspace_id") || Map.get(body, :workspace_id) || "?"}"
-  end
-
-  defp response_summary(%{status: status}), do: "#{status}"
 
   def run_command(%{command: :telemetry_enable, options: options}, _project_root) do
     alias ControlKeel.Cloud.TelemetryConfig

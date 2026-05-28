@@ -98,6 +98,11 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "ck_mcp_discover",
              "ck_token_audit",
              "ck_attach",
+             "ck_session_digest",
+             "ck_rollback",
+             "ck_workspace_agent",
+             "ck_copilot",
+             "ck_external_service",
              "ck_skill_list",
              "ck_skill_load",
              "ck_skill_validate"

@@ -11,6 +11,7 @@ defmodule ControlKeel.MCP.Protocol do
     CkBudget,
     CkContext,
     CkContextPack,
+    CkCopilot,
     CkExecuteCode,
     CkDelegate,
     CkExperienceIndex,
@@ -44,10 +45,14 @@ defmodule ControlKeel.MCP.Protocol do
     CkDeploymentAdvisor,
     CkEngineerMirror,
     CkOutcomeTracker,
+    CkRollback,
+    CkSessionDigest,
     CkTokenAudit,
     CkToolHealth,
     CkWorktreeList,
     CkWorktreeSwitch,
+    CkExternalService,
+    CkWorkspaceAgent,
     CkCheckpointCreate,
     CkCheckpointRestore,
     CkCheckpointList,
@@ -301,7 +306,12 @@ defmodule ControlKeel.MCP.Protocol do
       "ck_cost_optimizer",
       "ck_deployment_advisor",
       "ck_outcome_tracker",
-      "ck_engineer_mirror"
+      "ck_engineer_mirror",
+      "ck_session_digest",
+      "ck_rollback",
+      "ck_workspace_agent",
+      "ck_copilot",
+      "ck_external_service"
     ],
     "observability" => [
       "ck_observability",
@@ -389,7 +399,12 @@ defmodule ControlKeel.MCP.Protocol do
         ck_load_resources_tool(),
         ck_mcp_discover_tool(),
         ck_token_audit_tool(),
-        ck_attach_tool()
+        ck_attach_tool(),
+        ck_session_digest_tool(),
+        ck_rollback_tool(),
+        ck_workspace_agent_tool(),
+        ck_copilot_tool(),
+        ck_external_service_tool()
       ]
 
       # Always expose ck_skill_list / ck_skill_load / ck_skill_validate. Do not call Registry here: a full
@@ -557,6 +572,12 @@ defmodule ControlKeel.MCP.Protocol do
 
   defp do_dispatch_tool("ck_attach", arguments),
     do: ControlKeel.MCP.Tools.CkAttach.call(arguments)
+
+  defp do_dispatch_tool("ck_session_digest", arguments), do: CkSessionDigest.call(arguments)
+  defp do_dispatch_tool("ck_rollback", arguments), do: CkRollback.call(arguments)
+  defp do_dispatch_tool("ck_workspace_agent", arguments), do: CkWorkspaceAgent.call(arguments)
+  defp do_dispatch_tool("ck_copilot", arguments), do: CkCopilot.call(arguments)
+  defp do_dispatch_tool("ck_external_service", arguments), do: CkExternalService.call(arguments)
 
   defp do_dispatch_tool(unknown, _arguments),
     do: {:error, {:invalid_arguments, "Unknown tool: #{unknown}"}}
@@ -2893,6 +2914,238 @@ defmodule ControlKeel.MCP.Protocol do
       "jsonrpc" => "2.0",
       "id" => id,
       "error" => %{"code" => code, "message" => message}
+    }
+  end
+
+  def ck_session_digest_tool do
+    %{
+      "name" => "ck_session_digest",
+      "description" =>
+        "Generate a condensed, human-scannable digest of what happened in a session — tasks completed, findings raised, budget spent, reviews pending, and notable highlights. Three modes: generate (create a new digest), latest (return the most recent), list (paginated history). Designed for the forward-deployed engineer who needs an 'inbox that summarizes what happened' without reading raw event streams.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["session_id"],
+        "properties" => %{
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["generate", "latest", "list"],
+            "description" => "Operation mode. Defaults to generate."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Session identifier."
+          },
+          "digest_type" => %{
+            "type" => "string",
+            "enum" => ["session", "daily", "shift_change"],
+            "description" => "Type of digest to generate. Defaults to session."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_rollback_tool do
+    %{
+      "name" => "ck_rollback",
+      "description" =>
+        "Execute a governed rollback of an agent's work. Records a git checkpoint before each task and provides a single action to revert. Safety-checked: refuses if downstream tasks depend on the changes. Creates an audit finding on every rollback. Modes: checkpoint (capture git HEAD before task), execute (revert agent's changes), status (check snapshot state), list (all snapshots for session).",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["session_id"],
+        "properties" => %{
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["checkpoint", "execute", "status", "list"],
+            "description" => "Operation mode. Defaults to status."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Session identifier."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier. Required for checkpoint, execute, and status modes."
+          },
+          "reason" => %{
+            "type" => "string",
+            "description" => "Reason for rollback. Recorded in audit finding."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" => "Absolute path to the project root."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_workspace_agent_tool do
+    %{
+      "name" => "ck_workspace_agent",
+      "description" =>
+        "Manage workspace agent roles: one primary 'super-agent' per workspace maintained by a forward-deployed engineer, specialized agents for specific domains, and ephemeral agents for short-lived tasks. Modes: register (create agent, only one primary per workspace), update (change scope/budget/status), list (all agents for workspace), health (aggregated health indicator), retire (deactivate agent).",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => [],
+        "properties" => %{
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["register", "update", "list", "health", "retire"],
+            "description" => "Operation mode. Defaults to list."
+          },
+          "workspace_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Workspace identifier."
+          },
+          "agent_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Agent identifier. Required for update, health, and retire modes."
+          },
+          "name" => %{
+            "type" => "string",
+            "description" => "Human-readable agent name."
+          },
+          "role" => %{
+            "type" => "string",
+            "enum" => ["primary", "specialized", "ephemeral"],
+            "description" => "Agent role. Only one primary per workspace."
+          },
+          "agent_type" => %{
+            "type" => "string",
+            "description" => "Agent adapter type (e.g., claude-code, cursor, opencode)."
+          },
+          "status" => %{
+            "type" => "string",
+            "enum" => ["active", "paused", "retired"],
+            "description" => "Agent status."
+          },
+          "scope" => %{
+            "type" => "object",
+            "description" => "Scoped capabilities and policies for this agent."
+          },
+          "budget_cents" => %{
+            "type" => ["integer", "string"],
+            "description" => "Budget allocation in cents."
+          },
+          "maintainer_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "User ID of the human who maintains this agent."
+          },
+          "policy_overrides" => %{
+            "type" => "object",
+            "description" => "Policy overrides for this agent."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_copilot_tool do
+    %{
+      "name" => "ck_copilot",
+      "description" =>
+        "Real-time collaborative channel where human actions stream to the agent. Build software for humans and agents to use together — agents can see when a human is viewing, editing, or approving. Modes: subscribe (receive events), publish (emit an event), presence (who is active), history (recent events).",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["session_id"],
+        "properties" => %{
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["subscribe", "publish", "presence", "history"],
+            "description" => "Operation mode. Defaults to history."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Session identifier."
+          },
+          "event_type" => %{
+            "type" => "string",
+            "enum" => ["human.viewing", "human.editing", "human.approving", "human.commenting", "agent.status", "agent.progress"],
+            "description" => "Event type for publish mode."
+          },
+          "payload" => %{
+            "type" => "object",
+            "description" => "Event payload."
+          },
+          "actor" => %{
+            "type" => "string",
+            "description" => "Actor identifier (e.g., 'human', 'agent')."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier for scoping the event."
+          },
+          "limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Max events to return in history mode. Default: 50."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_external_service_tool do
+    %{
+      "name" => "ck_external_service",
+      "description" =>
+        "Track and govern agent interactions with external SaaS APIs. Rate limits per service, cost attribution, and PII redaction. Modes: record (log an interaction with auto-redaction), summary (aggregated view per service), rate_limit_status (current rates against limits), top_services (ranked by volume and cost).",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["session_id"],
+        "properties" => %{
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["record", "summary", "rate_limit_status", "top_services"],
+            "description" => "Operation mode. Defaults to summary."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Session identifier."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier for scoping the interaction."
+          },
+          "service_name" => %{
+            "type" => "string",
+            "description" => "External service name (e.g., github, slack, jira)."
+          },
+          "interaction_type" => %{
+            "type" => "string",
+            "enum" => ["api_call", "webhook", "browser_action"],
+            "description" => "Type of interaction. Defaults to api_call."
+          },
+          "method" => %{
+            "type" => "string",
+            "description" => "HTTP method (GET, POST, etc.)."
+          },
+          "endpoint" => %{
+            "type" => "string",
+            "description" => "Sanitized endpoint path. PII is auto-redacted."
+          },
+          "status_code" => %{
+            "type" => ["integer", "string"],
+            "description" => "HTTP status code or result code."
+          },
+          "latency_ms" => %{
+            "type" => ["integer", "string"],
+            "description" => "Request latency in milliseconds."
+          },
+          "cost_cents" => %{
+            "type" => ["integer", "string"],
+            "description" => "Estimated cost in cents."
+          },
+          "limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Max results for top_services mode. Default: 10."
+          },
+          "metadata" => %{
+            "type" => "object",
+            "description" => "Additional metadata."
+          }
+        }
+      }
     }
   end
 end
