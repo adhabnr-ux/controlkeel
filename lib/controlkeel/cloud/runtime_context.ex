@@ -199,6 +199,68 @@ defmodule ControlKeel.Cloud.RuntimeContext do
   end
 
   @doc """
+  Dispatch a freshly-created run package to its runtime via the configured
+  `RuntimeDispatcher` (defaulting to `RuntimeDispatcher.Manual`).
+
+  `raw_token` is the callback token returned from `create_package/1`. It is
+  passed to the dispatcher so a runtime-specific implementation can include
+  it in whatever envelope it uses (HTTP body, queue message, etc.).
+  ControlKeel itself never stores the raw token — only the SHA-256 hash on
+  the package — so dispatch must happen with the in-memory token returned
+  at create time.
+
+  On `{:ok, metadata}` the package transitions `pending → dispatched`, the
+  metadata is stored under `payload["dispatch_metadata"]`, and the updated
+  package is returned. On `{:error, reason}` the package transitions to
+  `failed` with the reason captured in `error_summary`.
+  """
+  @spec dispatch_package(RunPackage.t(), String.t(), keyword()) ::
+          {:ok, RunPackage.t()} | {:error, term()}
+  def dispatch_package(%RunPackage{} = package, raw_token, opts \\ [])
+      when is_binary(raw_token) do
+    dispatcher = ControlKeel.Cloud.RuntimeDispatcher.for_runtime(package.runtime_target)
+    dispatcher_opts = Keyword.put(opts, :raw_token, raw_token)
+
+    case dispatcher.dispatch(package, dispatcher_opts) do
+      {:ok, metadata} when is_map(metadata) ->
+        merged_payload =
+          (package.payload || %{})
+          |> Map.put("dispatch_metadata", metadata)
+
+        case package
+             |> RunPackage.changeset(%{
+               status: "dispatched",
+               payload: merged_payload,
+               dispatched_at: now()
+             })
+             |> Repo.update() do
+          {:ok, updated} -> {:ok, updated}
+          {:error, _} = err -> err
+        end
+
+      {:error, reason} ->
+        summary = "dispatch_failed: #{format_reason(reason)}"
+
+        _ =
+          package
+          |> RunPackage.changeset(%{
+            status: "failed",
+            error_summary: summary,
+            completed_at: now()
+          })
+          |> Repo.update()
+
+        {:error, reason}
+
+      other ->
+        {:error, {:invalid_dispatcher_return, other}}
+    end
+  end
+
+  defp format_reason(reason) when is_binary(reason), do: reason
+  defp format_reason(reason), do: inspect(reason)
+
+  @doc """
   Persist findings reported by a cloud runtime callback against the
   originating package's session.
 

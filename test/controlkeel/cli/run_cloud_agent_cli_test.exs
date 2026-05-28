@@ -45,7 +45,9 @@ defmodule ControlKeel.CLI.RunCloudAgentTest do
       assert package.external_id =~ ~r/^pkg_[0-9A-Z]{26}$/
     end
 
-    test "external_id is unique across packages and looks up via get_by_external_id", %{task: task} do
+    test "external_id is unique across packages and looks up via get_by_external_id", %{
+      task: task
+    } do
       assert {:ok, _lines1} =
                CLI.run_command(
                  %{
@@ -187,6 +189,46 @@ defmodule ControlKeel.CLI.RunCloudAgentTest do
       assert parsed.options[:repo_url] == "git@github.com:acme/widget.git"
       assert parsed.options[:branch] == "feature/x"
       assert parsed.options[:commit_sha] == "abc123def4567890"
+    end
+  end
+
+  describe "--dispatch flag (CK-CLOUD-DISPATCH-001)" do
+    test "create-then-dispatch chains in one CLI invocation", %{task: task, workspace: workspace} do
+      assert {:ok, lines} =
+               CLI.run_command(
+                 %{
+                   command: :run_cloud_agent,
+                   options: %{runtime: "devin", budget_cents: 0, dispatch: true},
+                   args: [Integer.to_string(task.id)]
+                 },
+                 File.cwd!()
+               )
+
+      assert Enum.any?(lines, &(&1 =~ "Status: dispatched"))
+      assert Enum.any?(lines, &(&1 =~ "Dispatched via: manual"))
+
+      [package] = RuntimeContext.list_for_workspace(workspace.id)
+      assert package.status == "dispatched"
+      assert package.dispatched_at
+      assert get_in(package.payload, ["dispatch_metadata", "mode"]) == "manual"
+    end
+
+    test "default (no --dispatch) leaves package pending", %{task: task, workspace: workspace} do
+      assert {:ok, lines} =
+               CLI.run_command(
+                 %{
+                   command: :run_cloud_agent,
+                   options: %{runtime: "devin", budget_cents: 0},
+                   args: [Integer.to_string(task.id)]
+                 },
+                 File.cwd!()
+               )
+
+      assert Enum.any?(lines, &(&1 =~ "Status: pending"))
+      refute Enum.any?(lines, &(&1 =~ "Dispatched via"))
+
+      [package] = RuntimeContext.list_for_workspace(workspace.id)
+      assert package.status == "pending"
     end
   end
 

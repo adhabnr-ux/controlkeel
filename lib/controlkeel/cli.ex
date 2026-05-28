@@ -300,7 +300,8 @@ defmodule ControlKeel.CLI do
     user_id: :integer,
     repo_url: :string,
     branch: :string,
-    commit_sha: :string
+    commit_sha: :string,
+    dispatch: :boolean
   ]
   @eval_list_switches [project_root: :string]
   @eval_run_switches [project_root: :string, suite: :string]
@@ -2371,20 +2372,41 @@ defmodule ControlKeel.CLI do
 
           case RuntimeContext.create_package(attrs) do
             {:ok, package, raw_token} ->
+              dispatch? = options[:dispatch] == true
+
+              {final_package, dispatch_lines} =
+                if dispatch? do
+                  case RuntimeContext.dispatch_package(package, raw_token) do
+                    {:ok, dispatched} ->
+                      meta = get_in(dispatched.payload, ["dispatch_metadata"]) || %{}
+
+                      {dispatched,
+                       [
+                         "Dispatched via: #{Map.get(meta, "mode", "(unknown)")}",
+                         "Dispatch note: #{Map.get(meta, "note", "")}"
+                       ]}
+
+                    {:error, reason} ->
+                      {package, ["Dispatch failed: #{inspect(reason)}"]}
+                  end
+                else
+                  {package, []}
+                end
+
               {:ok,
                [
                  "Cloud run package created",
-                 "Package: #{package.external_id}",
+                 "Package: #{final_package.external_id}",
                  "Task: #{task.id} — #{task.title}",
-                 "Runtime: #{package.runtime_target}",
-                 "Budget allocated (cents): #{package.budget_cents_allocated}",
-                 "Scopes: #{package.scopes || "(none)"}",
-                 "Repo: #{package.repo_url || "(none)"}",
-                 "Branch: #{package.branch || "(none)"}",
-                 "Commit: #{package.commit_sha || "(none)"}",
+                 "Runtime: #{final_package.runtime_target}",
+                 "Budget allocated (cents): #{final_package.budget_cents_allocated}",
+                 "Scopes: #{final_package.scopes || "(none)"}",
+                 "Repo: #{final_package.repo_url || "(none)"}",
+                 "Branch: #{final_package.branch || "(none)"}",
+                 "Commit: #{final_package.commit_sha || "(none)"}",
                  "Callback token (deliver out of band): #{raw_token}",
-                 "Initial status: #{package.status}"
-               ]}
+                 "Status: #{final_package.status}"
+               ] ++ dispatch_lines}
 
             {:error, :unauthorized} ->
               {:error,
