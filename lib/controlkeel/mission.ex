@@ -102,6 +102,16 @@ defmodule ControlKeel.Mission do
   def get_task(id), do: Repo.get(Task, id)
   def get_task!(id), do: Repo.get!(Task, id)
 
+  @doc "Look up a task by its user-facing task_<ulid> external_id."
+  @spec get_task_by_external_id(String.t()) :: Task.t() | nil
+  def get_task_by_external_id(external_id) when is_binary(external_id) do
+    Repo.get_by(Task, external_id: external_id)
+  end
+
+  @doc "Generate a user-facing task_<ulid> identifier."
+  @spec generate_task_external_id() :: String.t()
+  def generate_task_external_id, do: "task_" <> ControlKeel.Cloud.TelemetryEnvelope.ulid()
+
   def task_assurance_summary(nil), do: nil
 
   def task_assurance_summary(%Task{} = task) do
@@ -140,6 +150,8 @@ defmodule ControlKeel.Mission do
   end
 
   def create_task(attrs) do
+    attrs = put_default_task_external_id(attrs)
+
     %Task{}
     |> Task.changeset(attrs)
     |> Repo.insert()
@@ -147,6 +159,18 @@ defmodule ControlKeel.Mission do
       {:ok, task} -> record_task_memory(:created, task)
       _other -> :ok
     end)
+  end
+
+  defp put_default_task_external_id(%{external_id: id} = attrs) when is_binary(id) and id != "",
+    do: attrs
+
+  defp put_default_task_external_id(%{"external_id" => id} = attrs)
+       when is_binary(id) and id != "",
+       do: attrs
+
+  defp put_default_task_external_id(attrs) when is_map(attrs) do
+    key = if Map.has_key?(attrs, "title"), do: "external_id", else: :external_id
+    Map.put(attrs, key, generate_task_external_id())
   end
 
   # Task Checkpoint functions

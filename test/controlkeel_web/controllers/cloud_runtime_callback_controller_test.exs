@@ -110,6 +110,96 @@ defmodule ControlKeelWeb.CloudRuntimeCallbackControllerTest do
     end
   end
 
+  describe "POST /cloud/v1/runtime/callbacks findings ingestion (CK-CLOUD-FINDING-001)" do
+    alias ControlKeel.Mission
+
+    test "creates findings on the originating session with provenance metadata", %{
+      conn: conn,
+      token: token,
+      package: package
+    } do
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/cloud/v1/runtime/callbacks", %{
+          "status" => "completed",
+          "findings" => [
+            %{
+              "title" => "Hardcoded secret",
+              "severity" => "high",
+              "category" => "security",
+              "rule_id" => "CLOUD-RUN-001",
+              "plain_message" => "Found a hardcoded API key in src/foo.ex"
+            },
+            %{
+              "title" => "TODO left",
+              "severity" => "low",
+              "category" => "quality",
+              "rule_id" => "CLOUD-RUN-002",
+              "plain_message" => "Stale TODO in module bar"
+            }
+          ]
+        })
+
+      body = json_response(conn, 200)
+      assert body["status"] == "completed"
+      assert is_list(body["findings_created"])
+      assert length(body["findings_created"]) == 2
+
+      findings =
+        Mission.list_findings()
+        |> Enum.filter(&(&1.session_id == package.session_id))
+
+      assert length(findings) == 2
+
+      hardcoded = Enum.find(findings, &(&1.rule_id == "CLOUD-RUN-001"))
+      assert hardcoded.severity == "high"
+      assert hardcoded.metadata["source"] == "cloud_runtime_callback"
+      assert hardcoded.metadata["cloud_package_id"] == package.id
+      assert hardcoded.metadata["runtime_target"] == "devin"
+    end
+
+    test "callback with no findings array works as before", %{conn: conn, token: token} do
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/cloud/v1/runtime/callbacks", status: "in_progress")
+
+      body = json_response(conn, 200)
+      assert body["status"] == "in_progress"
+      assert body["findings_created"] == []
+    end
+
+    test "malformed finding entries (not a map) → 400", %{conn: conn, token: token} do
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/cloud/v1/runtime/callbacks", %{
+          "status" => "in_progress",
+          "findings" => ["just a string"]
+        })
+
+      assert json_response(conn, 400)["error"] == "invalid_findings"
+    end
+
+    test "finding missing required field → 422 with index", %{conn: conn, token: token} do
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/cloud/v1/runtime/callbacks", %{
+          "status" => "in_progress",
+          "findings" => [
+            # missing rule_id and plain_message
+            %{"title" => "Bad", "severity" => "high", "category" => "security"}
+          ]
+        })
+
+      body = json_response(conn, 422)
+      assert body["error"] == "finding_invalid"
+      assert body["index"] == 0
+    end
+  end
+
   describe "POST /cloud/v1/runtime/callbacks terminal protection" do
     test "rejects callbacks against terminal packages with 403", %{conn: conn, token: token} do
       conn =

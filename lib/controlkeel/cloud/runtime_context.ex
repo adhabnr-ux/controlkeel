@@ -7,6 +7,11 @@ defmodule ControlKeel.Cloud.RuntimeContext do
   layer for Phase 5 — the HTTP/CLI dispatch and the callback endpoint live in
   follow-on slices.
 
+  **Authorization gate (CK-CLOUD-AUTHZ-001):** `create_package/1` now checks
+  whether the workspace's org authorizes the caller before creating a run
+  package. Solo workspaces (no org) are always authorized. Org workspaces
+  require an active membership with role >= member, passed via `user_id` key.
+
   Per architectural decision D2, runtime authorization continues to flow
   through service-account-style tokens. The callback token issued here is
   single-use and bound to one package; it is hashed at rest using the same
@@ -20,6 +25,7 @@ defmodule ControlKeel.Cloud.RuntimeContext do
   import Ecto.Query, warn: false
 
   alias ControlKeel.Cloud.RunPackage
+  alias ControlKeel.Accounts
   alias ControlKeel.Repo
 
   @doc """
@@ -39,24 +45,40 @@ defmodule ControlKeel.Cloud.RuntimeContext do
   (list or string), `payload` (map for runtime-specific fields).
   """
   @spec create_package(map()) ::
-          {:ok, RunPackage.t(), String.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, RunPackage.t(), String.t()}
+          | {:error, Ecto.Changeset.t() | :unauthorized | :not_found | :org_suspended}
   def create_package(attrs) when is_map(attrs) do
-    raw_token = generate_token()
+    workspace_id = parse_integer(attrs[:workspace_id] || attrs["workspace_id"])
 
-    attrs =
-      attrs
-      |> Map.new(fn {k, v} -> {to_string(k), v} end)
-      |> Map.put_new("status", "pending")
-      |> Map.put("callback_token_hash", token_hash(raw_token))
-      |> normalize_list("scopes")
-      |> normalize_list("proof_refs")
+    with :ok <- authorize_workspace(workspace_id, attrs) do
+      raw_token = generate_token()
 
-    case %RunPackage{}
-         |> RunPackage.changeset(attrs)
-         |> Repo.insert() do
-      {:ok, package} -> {:ok, package, raw_token}
-      {:error, _} = err -> err
+      attrs =
+        attrs
+        |> Map.new(fn {k, v} -> {to_string(k), v} end)
+        |> Map.put_new("status", "pending")
+        |> Map.put_new("external_id", generate_external_id())
+        |> Map.put("callback_token_hash", token_hash(raw_token))
+        |> normalize_list("scopes")
+        |> normalize_list("proof_refs")
+
+      case %RunPackage{}
+           |> RunPackage.changeset(attrs)
+           |> Repo.insert() do
+        {:ok, package} -> {:ok, package, raw_token}
+        {:error, _} = err -> err
+      end
     end
+  end
+
+  @doc "Generate a user-facing pkg_<ulid> identifier."
+  @spec generate_external_id() :: String.t()
+  def generate_external_id, do: "pkg_" <> ControlKeel.Cloud.TelemetryEnvelope.ulid()
+
+  @doc "Fetch a package by its user-facing pkg_<ulid> external id."
+  @spec get_by_external_id(String.t()) :: RunPackage.t() | nil
+  def get_by_external_id(external_id) when is_binary(external_id) do
+    Repo.get_by(RunPackage, external_id: external_id)
   end
 
   @doc "Get a package by id."
@@ -174,6 +196,94 @@ defmodule ControlKeel.Cloud.RuntimeContext do
     |> order_by([p], desc: p.inserted_at, desc: p.id)
     |> limit(^limit)
     |> Repo.all()
+  end
+
+  @doc """
+  Persist findings reported by a cloud runtime callback against the
+  originating package's session.
+
+  Each input is a map with the user-facing finding attrs (`title`,
+  `severity`, `category`, `rule_id`, `plain_message`, optional `metadata`).
+  Provenance is tagged into metadata so an auditor can trace a finding back
+  to the cloud package and runtime that produced it.
+
+  Returns `{:ok, [finding_id]}` when every finding inserts, or
+  `{:error, {reason, attempted_index}}` on the first failure so the caller
+  can decide whether to surface a partial-success error.
+  """
+  @spec ingest_findings(RunPackage.t(), [map()]) ::
+          {:ok, [integer()]} | {:error, {atom() | Ecto.Changeset.t(), non_neg_integer()}}
+  def ingest_findings(%RunPackage{session_id: nil}, _findings), do: {:ok, []}
+  def ingest_findings(%RunPackage{}, []), do: {:ok, []}
+
+  def ingest_findings(%RunPackage{session_id: session_id} = package, findings)
+      when is_integer(session_id) and is_list(findings) do
+    findings
+    |> Enum.with_index()
+    |> Enum.reduce_while({:ok, []}, fn {attrs, idx}, {:ok, acc} ->
+      case insert_callback_finding(package, attrs) do
+        {:ok, %{id: id}} -> {:cont, {:ok, [id | acc]}}
+        {:error, reason} -> {:halt, {:error, {reason, idx}}}
+      end
+    end)
+    |> case do
+      {:ok, ids} -> {:ok, Enum.reverse(ids)}
+      err -> err
+    end
+  end
+
+  defp insert_callback_finding(%RunPackage{} = package, attrs) when is_map(attrs) do
+    str = Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
+
+    user_metadata =
+      case Map.get(str, "metadata") do
+        m when is_map(m) -> m
+        _ -> %{}
+      end
+
+    metadata =
+      Map.merge(user_metadata, %{
+        "source" => "cloud_runtime_callback",
+        "cloud_package_id" => package.id,
+        "runtime_target" => package.runtime_target
+      })
+
+    finding_attrs = %{
+      title: str["title"],
+      severity: str["severity"],
+      category: str["category"],
+      rule_id: str["rule_id"],
+      plain_message: str["plain_message"],
+      status: str["status"] || "open",
+      auto_resolved: str["auto_resolved"] || false,
+      metadata: metadata,
+      session_id: package.session_id
+    }
+
+    ControlKeel.Mission.create_finding(finding_attrs)
+  end
+
+  # ─────────────── authorization ───────────────
+
+  defp authorize_workspace(nil, _attrs), do: :ok
+
+  defp authorize_workspace(workspace_id, attrs) when is_integer(workspace_id) do
+    user_id = parse_integer(attrs[:user_id] || attrs["user_id"])
+
+    case Accounts.authorize_cloud_execution(workspace_id, user_id: user_id) do
+      {:ok, :authorized} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp parse_integer(nil), do: nil
+  defp parse_integer(value) when is_integer(value), do: value
+
+  defp parse_integer(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {n, ""} -> n
+      _ -> nil
+    end
   end
 
   # ─────────────── helpers ───────────────

@@ -123,5 +123,101 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
       conn = post(conn, ~p"/cloud/v1/workspaces/register", envelope)
       assert json_response(conn, 400)["error"] == "invalid_invite_token"
     end
+
+    test "binds enrolled key to mission_workspace when invite is scoped (CK-CLOUD-ENROLL-LINK-001)",
+         %{conn: conn} do
+      org = insert_org()
+      mws = insert_mission_workspace(org)
+
+      {:ok, inviter} =
+        %Accounts.User{}
+        |> Accounts.User.changeset(%{
+          email: "inviter-#{System.unique_integer([:positive])}@example.com",
+          status: "active"
+        })
+        |> Repo.insert()
+
+      {:ok, invitee} =
+        %Accounts.User{}
+        |> Accounts.User.changeset(%{
+          email: "invitee-#{System.unique_integer([:positive])}@example.com",
+          status: "active"
+        })
+        |> Repo.insert()
+
+      {:ok, _membership, raw_token} =
+        Accounts.invite_member(invitee.id, org.id,
+          role: "member",
+          invited_by_user_id: inviter.id,
+          mission_workspace_id: mws.id
+        )
+
+      identity = fresh_identity()
+      {:ok, envelope} = Enrollment.build(identity, invite_token: raw_token)
+
+      conn = post(conn, ~p"/cloud/v1/workspaces/register", envelope)
+      body = json_response(conn, 201)
+      assert body["mission_workspace_id"] == mws.id
+
+      {:ok, key} = WorkspaceKeyRegistry.fetch(identity.workspace_id)
+      assert key.org_id == org.id
+      assert key.mission_workspace_id == mws.id
+
+      # fetch_by_mission_workspace now resolves to the enrolled key
+      assert {:ok, ^key} = WorkspaceKeyRegistry.fetch_by_mission_workspace(mws.id)
+    end
+
+    test "unscoped invite leaves mission_workspace_id nil", %{conn: conn} do
+      org = insert_org()
+
+      {:ok, inviter} =
+        %Accounts.User{}
+        |> Accounts.User.changeset(%{
+          email: "inv2-#{System.unique_integer([:positive])}@example.com",
+          status: "active"
+        })
+        |> Repo.insert()
+
+      {:ok, invitee} =
+        %Accounts.User{}
+        |> Accounts.User.changeset(%{
+          email: "inv2t-#{System.unique_integer([:positive])}@example.com",
+          status: "active"
+        })
+        |> Repo.insert()
+
+      {:ok, _m, raw_token} =
+        Accounts.invite_member(invitee.id, org.id, role: "member", invited_by_user_id: inviter.id)
+
+      identity = fresh_identity()
+      {:ok, envelope} = Enrollment.build(identity, invite_token: raw_token)
+
+      conn = post(conn, ~p"/cloud/v1/workspaces/register", envelope)
+      body = json_response(conn, 201)
+      assert body["mission_workspace_id"] == nil
+
+      {:ok, key} = WorkspaceKeyRegistry.fetch(identity.workspace_id)
+      assert key.mission_workspace_id == nil
+    end
+  end
+
+  defp insert_mission_workspace(org) do
+    n = Integer.to_string(System.unique_integer([:positive]))
+
+    {:ok, ws} =
+      %ControlKeel.Mission.Workspace{}
+      |> ControlKeel.Mission.Workspace.changeset(%{
+        name: "Project #{n}",
+        slug: "project-#{n}",
+        org_id: org.id,
+        industry: "technology",
+        agent: "claude",
+        budget_cents: 0,
+        compliance_profile: "baseline",
+        status: "active"
+      })
+      |> Repo.insert()
+
+    ws
   end
 end

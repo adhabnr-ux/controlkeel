@@ -5,14 +5,15 @@ defmodule ControlKeelWeb.CloudTelemetryController do
   Wire protocol matches `ControlKeel.Cloud.Sender`:
 
       POST /cloud/v1/telemetry
-      Authorization: Bearer <workspace_id>
+      Authorization: Bearer <signed-ed25519-token>
       Content-Type: application/json
 
       { "schema_version": "1", "workspace_id": "ws_...", "events": [...] }
 
-  Authorization is currently a placeholder Bearer token containing the
-  workspace_id. A follow-up slice will replace this with a workspace-keypair-
-  signed token verified against the registered public key.
+  Authorization uses `ControlKeel.Cloud.AuthToken` - a short-lived (5 min TTL)
+  ed25519-signed Bearer token verified against the enrolled workspace public key
+  in `ControlKeel.Cloud.WorkspaceKeyRegistry` (multi-tenant) with fallback to
+  local `ControlKeel.Cloud.WorkspaceIdentity` for single-node self-host.
 
   Response:
 

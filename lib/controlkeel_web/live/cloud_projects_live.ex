@@ -23,8 +23,10 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   alias ControlKeel.Accounts
   alias ControlKeel.Cloud.Ingestion
+  alias ControlKeel.Cloud.RuntimeContext
   alias ControlKeel.Cloud.WorkspaceKey
   alias ControlKeel.Cloud.WorkspaceKeyRegistry
+  alias ControlKeel.Repo
 
   @refresh_ms 5_000
 
@@ -56,7 +58,9 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     keys =
       cond do
         socket.assigns.current_membership ->
-          WorkspaceKeyRegistry.list_for_org(socket.assigns.current_org_id)
+          socket.assigns.current_org_id
+          |> WorkspaceKeyRegistry.list_for_org()
+          |> Repo.preload(:mission_workspace)
 
         true ->
           []
@@ -71,6 +75,8 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   defp mount_show(%{"ws_id" => ws_id}, socket) do
     case WorkspaceKeyRegistry.fetch(ws_id) do
       {:ok, key} ->
+        key = Repo.preload(key, :mission_workspace)
+
         cond do
           socket.assigns.current_membership && key.org_id == socket.assigns.current_org_id ->
             {:ok, assign_show_state(socket, key)}
@@ -94,12 +100,20 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   defp assign_show_state(socket, %WorkspaceKey{} = key) do
     events = Ingestion.recent_for_workspace(key.workspace_id, limit: 50)
     counts = Ingestion.counts_for_workspace(key.workspace_id)
+    packages = list_packages(key)
 
     socket
     |> assign(:state, :show)
     |> assign(:key, key)
     |> assign(:events, events)
     |> assign(:counts, counts)
+    |> assign(:packages, packages)
+  end
+
+  defp list_packages(%WorkspaceKey{mission_workspace_id: nil}), do: []
+
+  defp list_packages(%WorkspaceKey{mission_workspace_id: mws_id}) when is_integer(mws_id) do
+    RuntimeContext.list_for_workspace(mws_id, limit: 25)
   end
 
   defp list_state(socket, keys) do
@@ -125,9 +139,13 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
         _ ->
           keys =
-            if socket.assigns.current_membership,
-              do: WorkspaceKeyRegistry.list_for_org(socket.assigns.current_org_id),
-              else: []
+            if socket.assigns.current_membership do
+              socket.assigns.current_org_id
+              |> WorkspaceKeyRegistry.list_for_org()
+              |> Repo.preload(:mission_workspace)
+            else
+              []
+            end
 
           socket
           |> assign(:keys, keys)
@@ -150,8 +168,13 @@ defmodule ControlKeelWeb.CloudProjectsLive do
             </p>
             <h1 class="ck-section-title">{@key.name || @key.workspace_id}</h1>
             <p class="ck-lead ck-lead-tight">
-              Fingerprint <code>{String.slice(@key.fingerprint, 0, 16)}...</code> ·
-              algorithm <code>{@key.algorithm}</code> ·
+              <span :if={@key.mission_workspace}>
+                Project: <strong>{@key.mission_workspace.slug}</strong> ·
+              </span>
+              Fingerprint <code>{String.slice(@key.fingerprint, 0, 16)}...</code>
+              ·
+              algorithm <code>{@key.algorithm}</code>
+              ·
               last seen {format_dt(@key.last_seen_at)}
             </p>
           </div>
@@ -164,6 +187,49 @@ defmodule ControlKeelWeb.CloudProjectsLive do
               <li><strong>{n}</strong> <span>{kind}</span></li>
             <% end %>
           </ul>
+        </div>
+
+        <div class="ck-card">
+          <h2>Cloud run packages</h2>
+          <%= cond do %>
+            <% is_nil(@key.mission_workspace_id) -> %>
+              <p class="ck-note">
+                This enrolled workspace is not yet linked to a project. Issue a scoped invite from the org to link it.
+              </p>
+            <% @packages == [] -> %>
+              <p class="ck-note">No cloud runs handed off yet.</p>
+            <% true -> %>
+              <table class="ck-table">
+                <thead>
+                  <tr>
+                    <th>Package</th>
+                    <th>Runtime</th>
+                    <th>Status</th>
+                    <th>Revision</th>
+                    <th>Budget</th>
+                    <th>Started</th>
+                    <th>Finished</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <%= for pkg <- @packages do %>
+                    <tr>
+                      <td><code>{pkg.external_id}</code></td>
+                      <td><code>{pkg.runtime_target}</code></td>
+                      <td>
+                        <span class={"ck-badge ck-badge-#{package_status_class(pkg.status)}"}>
+                          {pkg.status}
+                        </span>
+                      </td>
+                      <td>{format_revision(pkg)}</td>
+                      <td>{pkg.budget_cents_allocated}¢</td>
+                      <td>{format_dt(pkg.dispatched_at)}</td>
+                      <td>{format_dt(pkg.completed_at)}</td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+          <% end %>
         </div>
 
         <div class="ck-card">
@@ -289,6 +355,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
         <thead>
           <tr>
             <th>Name</th>
+            <th>Project</th>
             <th>Workspace ID</th>
             <th>Fingerprint</th>
             <th>Last seen</th>
@@ -299,6 +366,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
           <%= for key <- @keys do %>
             <tr>
               <td>{key.name || "—"}</td>
+              <td>{project_label(key)}</td>
               <td><code>{key.workspace_id}</code></td>
               <td><code>{String.slice(key.fingerprint, 0, 16)}</code></td>
               <td>{format_dt(key.last_seen_at)}</td>
@@ -317,4 +385,31 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   defp format_dt(nil), do: "never"
   defp format_dt(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M UTC")
+
+  defp project_label(%WorkspaceKey{mission_workspace: %{slug: slug}}) when is_binary(slug),
+    do: slug
+
+  defp project_label(_), do: "—"
+
+  defp package_status_class("completed"), do: "ok"
+  defp package_status_class("failed"), do: "error"
+  defp package_status_class("cancelled"), do: "muted"
+  defp package_status_class("in_progress"), do: "active"
+  defp package_status_class("dispatched"), do: "active"
+  defp package_status_class(_), do: "neutral"
+
+  defp format_revision(%{branch: nil, commit_sha: nil}), do: "—"
+
+  defp format_revision(%{branch: branch, commit_sha: nil}) when is_binary(branch), do: branch
+
+  defp format_revision(%{branch: nil, commit_sha: sha}) when is_binary(sha),
+    do: short_sha(sha)
+
+  defp format_revision(%{branch: branch, commit_sha: sha})
+       when is_binary(branch) and is_binary(sha),
+       do: "#{branch}@#{short_sha(sha)}"
+
+  defp format_revision(_), do: "—"
+
+  defp short_sha(sha) when is_binary(sha), do: String.slice(sha, 0, 7)
 end

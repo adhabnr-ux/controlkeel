@@ -296,7 +296,11 @@ defmodule ControlKeel.CLI do
     runtime: :string,
     budget_cents: :integer,
     scopes: :string,
-    note: :string
+    note: :string,
+    user_id: :integer,
+    repo_url: :string,
+    branch: :string,
+    commit_sha: :string
   ]
   @eval_list_switches [project_root: :string]
   @eval_run_switches [project_root: :string, suite: :string]
@@ -2331,7 +2335,7 @@ defmodule ControlKeel.CLI do
 
   def run_command(
         %{command: :run_cloud_agent, options: options, args: [task_id_str]},
-        _project_root
+        project_root
       ) do
     alias ControlKeel.Cloud.RuntimeContext
     alias ControlKeel.Mission
@@ -2349,29 +2353,48 @@ defmodule ControlKeel.CLI do
           {:error, "Task #{task_id} has no associated workspace"}
 
         true ->
-          attrs = %{
-            workspace_id: workspace_id,
-            session_id: session.id,
-            task_id: task.id,
-            runtime_target: runtime,
-            budget_cents_allocated: budget,
-            scopes: parse_scopes(options[:scopes]),
-            payload: build_cloud_payload(task, options)
-          }
+          root = options[:project_root] || project_root
+          git = capture_git_metadata(root, options)
+
+          attrs =
+            %{
+              workspace_id: workspace_id,
+              session_id: session.id,
+              task_id: task.id,
+              runtime_target: runtime,
+              budget_cents_allocated: budget,
+              scopes: parse_scopes(options[:scopes]),
+              payload: build_cloud_payload(task, options),
+              user_id: options[:user_id]
+            }
+            |> Map.merge(git)
 
           case RuntimeContext.create_package(attrs) do
             {:ok, package, raw_token} ->
               {:ok,
                [
                  "Cloud run package created",
-                 "Package ID: #{package.id}",
+                 "Package: #{package.external_id}",
                  "Task: #{task.id} — #{task.title}",
                  "Runtime: #{package.runtime_target}",
                  "Budget allocated (cents): #{package.budget_cents_allocated}",
                  "Scopes: #{package.scopes || "(none)"}",
+                 "Repo: #{package.repo_url || "(none)"}",
+                 "Branch: #{package.branch || "(none)"}",
+                 "Commit: #{package.commit_sha || "(none)"}",
                  "Callback token (deliver out of band): #{raw_token}",
                  "Initial status: #{package.status}"
                ]}
+
+            {:error, :unauthorized} ->
+              {:error,
+               "Cloud execution unauthorized: workspace belongs to an org and no valid membership was found. Provide --user-id with an active org member."}
+
+            {:error, :org_suspended} ->
+              {:error, "Cloud execution unauthorized: workspace org is suspended."}
+
+            {:error, :not_found} ->
+              {:error, "Cloud execution unauthorized: workspace not found."}
 
             {:error, changeset} ->
               {:error, "Failed to create package: #{format_changeset_errors(changeset)}"}
@@ -8178,6 +8201,76 @@ defmodule ControlKeel.CLI do
     }
     |> Enum.reject(fn {_k, v} -> v in [nil, ""] end)
     |> Map.new()
+  end
+
+  @doc false
+  # Capture git remote/branch/commit_sha for the cloud handoff.
+  #
+  # Explicit CLI overrides win. Otherwise we shell out to git in the given
+  # project_root. Missing or non-git roots return nil for each field — the
+  # cloud server treats nil as "no provable revision" and the operator can
+  # decide whether to accept that for their runtime.
+  def capture_git_metadata(project_root, options) do
+    %{
+      repo_url: options[:repo_url] || detect_git_remote(project_root),
+      branch: options[:branch] || detect_git_branch(project_root),
+      commit_sha: options[:commit_sha] || detect_git_commit_sha(project_root)
+    }
+  end
+
+  defp detect_git_remote(nil), do: nil
+
+  defp detect_git_remote(project_root) do
+    case System.cmd("git", ["remote", "get-url", "origin"],
+           cd: project_root,
+           stderr_to_stdout: true
+         ) do
+      {url, 0} -> String.trim(url)
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp detect_git_branch(nil), do: nil
+
+  defp detect_git_branch(project_root) do
+    case System.cmd("git", ["rev-parse", "--abbrev-ref", "HEAD"],
+           cd: project_root,
+           stderr_to_stdout: true
+         ) do
+      {branch, 0} ->
+        case String.trim(branch) do
+          "" -> nil
+          "HEAD" -> nil
+          name -> name
+        end
+
+      _ ->
+        nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp detect_git_commit_sha(nil), do: nil
+
+  defp detect_git_commit_sha(project_root) do
+    case System.cmd("git", ["rev-parse", "HEAD"],
+           cd: project_root,
+           stderr_to_stdout: true
+         ) do
+      {sha, 0} ->
+        case String.trim(sha) do
+          "" -> nil
+          trimmed -> trimmed
+        end
+
+      _ ->
+        nil
+    end
+  rescue
+    _ -> nil
   end
 
   defp format_changeset_errors(%Ecto.Changeset{errors: errors}) do

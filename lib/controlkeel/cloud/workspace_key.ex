@@ -27,11 +27,12 @@ defmodule ControlKeel.Cloud.WorkspaceKey do
     field :revoked_at, :utc_datetime
 
     belongs_to :org, Org
+    belongs_to :mission_workspace, ControlKeel.Mission.Workspace
     timestamps(type: :utc_datetime)
   end
 
   @required ~w(workspace_id public_key fingerprint algorithm)a
-  @optional ~w(name org_id last_seen_at revoked_at)a
+  @optional ~w(name org_id mission_workspace_id last_seen_at revoked_at)a
   @valid_algorithms ~w(ed25519)
 
   def changeset(key, attrs) do
@@ -42,6 +43,19 @@ defmodule ControlKeel.Cloud.WorkspaceKey do
     |> validate_format(:workspace_id, ~r/^ws_[a-z0-9]+$/)
     |> unique_constraint(:workspace_id)
     |> unique_constraint(:fingerprint)
+    # Two declarations on purpose: the first matches the index name declared
+    # in the migration (used by adapters that surface the DB index name);
+    # the second matches the column-derived name that `ecto_sqlite3` builds
+    # from the failed UNIQUE constraint, since SQLite errors report columns
+    # rather than the index name.
+    |> unique_constraint(:mission_workspace_id,
+      name: :workspace_keys_org_mission_workspace_unique,
+      message: "this project workspace is already enrolled under this org"
+    )
+    |> unique_constraint(:mission_workspace_id,
+      name: :workspace_keys_org_id_mission_workspace_id_index,
+      message: "this project workspace is already enrolled under this org"
+    )
   end
 
   @doc "True when the key is currently usable (not revoked)."

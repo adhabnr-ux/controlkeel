@@ -7,6 +7,7 @@ defmodule ControlKeel.Mission.Task do
   alias ControlKeel.Platform.{TaskCheckResult, TaskEdge, TaskRun}
 
   schema "tasks" do
+    field :external_id, :string
     field :title, :string
     field :status, :string, default: "queued"
     field :estimated_cost_cents, :integer, default: 0
@@ -33,6 +34,7 @@ defmodule ControlKeel.Mission.Task do
   def changeset(task, attrs) do
     task
     |> cast(attrs, [
+      :external_id,
       :title,
       :status,
       :estimated_cost_cents,
@@ -54,6 +56,10 @@ defmodule ControlKeel.Mission.Task do
     ])
     |> validate_number(:estimated_cost_cents, greater_than_or_equal_to: 0)
     |> validate_number(:position, greater_than_or_equal_to: 0)
+    |> validate_format(:external_id, ~r/^task_[0-9A-Z]{26}$|^task_legacy_[0-9]+$/,
+      message: "must look like task_<ulid>"
+    )
     |> assoc_constraint(:session)
+    |> unique_constraint(:external_id)
   end
 end

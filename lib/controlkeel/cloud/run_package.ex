@@ -8,10 +8,14 @@ defmodule ControlKeel.Cloud.RunPackage do
 
     - which task / session / workspace this maps to
     - which runtime is supposed to execute it
+    - which git revision the runtime should operate on (repo_url, branch,
+      commit_sha) — captured at handoff time so the cloud side has a
+      provable code revision rather than trusting a side channel
     - the allocated budget cap (cents) and the granted scopes
     - any proof references the runtime should treat as evidence (not authority)
-    - a single-use callback token (stored hashed) the runtime presents to
-      authenticate callbacks
+    - a callback token (stored hashed) the runtime presents to
+      authenticate callbacks. The token remains valid until the package
+      reaches a terminal status, after which further callbacks are rejected.
     - lifecycle status and the eventual result / error summary
 
   Per the roadmap's round-trip handoff model:
@@ -41,6 +45,7 @@ defmodule ControlKeel.Cloud.RunPackage do
 
   @primary_key {:id, :id, autogenerate: true}
   schema "cloud_run_packages" do
+    field :external_id, :string
     field :runtime_target, :string
     field :status, :string, default: "pending"
     field :callback_token_hash, :string
@@ -52,6 +57,9 @@ defmodule ControlKeel.Cloud.RunPackage do
     field :error_summary, :string
     field :dispatched_at, :utc_datetime
     field :completed_at, :utc_datetime
+    field :repo_url, :string
+    field :branch, :string
+    field :commit_sha, :string
 
     belongs_to :workspace, Workspace
     belongs_to :session, Session
@@ -61,7 +69,7 @@ defmodule ControlKeel.Cloud.RunPackage do
     timestamps(type: :utc_datetime)
   end
 
-  @required ~w(workspace_id runtime_target status callback_token_hash budget_cents_allocated)a
+  @required ~w(workspace_id runtime_target status callback_token_hash budget_cents_allocated external_id)a
 
   def changeset(package, attrs) do
     package
@@ -69,6 +77,7 @@ defmodule ControlKeel.Cloud.RunPackage do
       :workspace_id,
       :session_id,
       :task_id,
+      :external_id,
       :runtime_target,
       :status,
       :callback_token_hash,
@@ -79,14 +88,22 @@ defmodule ControlKeel.Cloud.RunPackage do
       :result_summary,
       :error_summary,
       :dispatched_at,
-      :completed_at
+      :completed_at,
+      :repo_url,
+      :branch,
+      :commit_sha
     ])
     |> validate_required(@required)
     |> validate_inclusion(:runtime_target, @valid_runtimes)
     |> validate_inclusion(:status, @valid_statuses)
     |> validate_number(:budget_cents_allocated, greater_than_or_equal_to: 0)
+    |> validate_format(:commit_sha, ~r/^[0-9a-f]{7,40}$/i, message: "must be a 7-40 char hex SHA")
+    |> validate_format(:external_id, ~r/^pkg_[0-9A-Z]{26}$|^pkg_legacy_[0-9]+$/,
+      message: "must look like pkg_<ulid>"
+    )
     |> assoc_constraint(:workspace)
     |> unique_constraint(:callback_token_hash)
+    |> unique_constraint(:external_id)
   end
 
   @doc "All recognised runtime target ids."

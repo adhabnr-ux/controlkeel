@@ -13,6 +13,14 @@ defmodule ControlKeel.Accounts.Membership do
   with `invitation_token_hash` set. The invitee accepts via the raw token,
   which clears the hash and sets `accepted_at`. After acceptance the
   membership becomes `active`.
+
+  An invitation may pre-bind a `mission_workspace_id`. When the same token
+  is later presented at cloud workspace enrolment (the laptop redeeming a
+  scoped invite), `WorkspaceKeyRegistry.enroll/1` links the new
+  `workspace_keys` row to that project workspace, completing the local↔cloud
+  identity model from the operator side. The field is harmless after
+  user-side acceptance — it just records which workspace the invite was
+  scoped to.
   """
 
   use Ecto.Schema
@@ -32,6 +40,7 @@ defmodule ControlKeel.Accounts.Membership do
 
     belongs_to :user, User
     belongs_to :org, Org
+    belongs_to :mission_workspace, ControlKeel.Mission.Workspace
     timestamps(type: :utc_datetime)
   end
 
@@ -48,7 +57,8 @@ defmodule ControlKeel.Accounts.Membership do
       :invitation_token_hash,
       :invited_at,
       :accepted_at,
-      :invited_by_user_id
+      :invited_by_user_id,
+      :mission_workspace_id
     ])
     |> validate_required([:user_id, :org_id, :role, :status])
     |> validate_inclusion(:role, @valid_roles)

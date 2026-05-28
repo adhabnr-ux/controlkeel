@@ -328,6 +328,85 @@ defmodule ControlKeel.MissionTest do
     assert finding.session_id
   end
 
+  describe "task external_id (CK-CLOUD-TASK-DEDUP-001)" do
+    test "auto-generates a task_<ulid> when caller omits external_id" do
+      task = task_fixture()
+      assert task.external_id =~ ~r/^task_[0-9A-Z]{26}$/
+    end
+
+    test "two tasks get distinct external_ids" do
+      a = task_fixture()
+      b = task_fixture()
+      assert a.external_id != b.external_id
+    end
+
+    test "caller-supplied external_id is preserved" do
+      session = session_fixture()
+      custom = ControlKeel.Mission.generate_task_external_id()
+
+      {:ok, task} =
+        ControlKeel.Mission.create_task(%{
+          title: "Override id",
+          status: "queued",
+          estimated_cost_cents: 0,
+          validation_gate: "manual",
+          position: 0,
+          metadata: %{},
+          session_id: session.id,
+          external_id: custom
+        })
+
+      assert task.external_id == custom
+    end
+
+    test "get_task_by_external_id/1 round-trips" do
+      task = task_fixture()
+      assert ControlKeel.Mission.get_task_by_external_id(task.external_id).id == task.id
+      assert ControlKeel.Mission.get_task_by_external_id("task_does_not_exist") == nil
+    end
+
+    test "duplicate external_id is rejected by the unique constraint" do
+      session = session_fixture()
+      shared = ControlKeel.Mission.generate_task_external_id()
+
+      base = %{
+        status: "queued",
+        estimated_cost_cents: 0,
+        validation_gate: "manual",
+        position: 0,
+        metadata: %{},
+        session_id: session.id,
+        external_id: shared
+      }
+
+      assert {:ok, _} = ControlKeel.Mission.create_task(Map.put(base, :title, "First"))
+
+      assert {:error, %Ecto.Changeset{errors: errors}} =
+               ControlKeel.Mission.create_task(Map.put(base, :title, "Second"))
+
+      assert {:external_id, {"has already been taken", _}} =
+               Enum.find(errors, fn {field, _} -> field == :external_id end)
+    end
+
+    test "malformed external_id is rejected" do
+      session = session_fixture()
+
+      assert {:error, %Ecto.Changeset{errors: errors}} =
+               ControlKeel.Mission.create_task(%{
+                 title: "Bad id",
+                 status: "queued",
+                 estimated_cost_cents: 0,
+                 validation_gate: "manual",
+                 position: 0,
+                 metadata: %{},
+                 session_id: session.id,
+                 external_id: "not-a-task-id"
+               })
+
+      assert Enum.any?(errors, fn {field, _} -> field == :external_id end)
+    end
+  end
+
   test "submit_review/1 supersedes prior plan reviews and unlocks execution on approval" do
     session = session_fixture()
     task = task_fixture(%{session: session, status: "queued"})

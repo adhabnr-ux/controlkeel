@@ -14,6 +14,8 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
     - `revoke/1` — soft-delete a registration so its tokens stop verifying.
     - `list_for_org/1` — list workspaces visible to a given org_id (used by
       the org-scoped projects LiveView).
+    - `fetch_by_mission_workspace/1` — resolve the cloud enrollment for a
+      local mission workspace (bridges the `ws_` ULID to `workspaces.id`).
     - `touch_last_seen/1` — update last_seen_at on successful token verify.
 
   Self-host single-node deployments are not required to use this table at
@@ -32,7 +34,8 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
           algorithm: String.t(),
           fingerprint: String.t(),
           name: String.t() | nil,
-          org_id: integer() | nil
+          org_id: integer() | nil,
+          mission_workspace_id: integer() | nil
         }
 
   @doc """
@@ -131,11 +134,25 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
   end
 
   @doc """
-  Compute the canonical fingerprint for a base64-encoded public key.
+  Find the active `WorkspaceKey` linked to a mission workspace.
 
-  Matches the format used by `ControlKeel.Cloud.WorkspaceIdentity` so a
-  workspace's local fingerprint and the server-side fingerprint agree.
+  Returns `{:ok, key}` when an active enrollment exists for the given
+  mission workspace ID, `{:error, :not_found}` otherwise. Useful for
+  resolving the cloud identity of a local project workspace.
   """
+  @spec fetch_by_mission_workspace(integer()) :: {:ok, %WorkspaceKey{}} | {:error, :not_found}
+  def fetch_by_mission_workspace(mission_workspace_id) when is_integer(mission_workspace_id) do
+    from(k in WorkspaceKey,
+      where: k.mission_workspace_id == ^mission_workspace_id and is_nil(k.revoked_at),
+      limit: 1
+    )
+    |> Repo.one()
+    |> case do
+      nil -> {:error, :not_found}
+      %WorkspaceKey{} = key -> {:ok, key}
+    end
+  end
+
   @spec fingerprint_for(String.t()) :: {:ok, String.t()} | {:error, :public_key_invalid}
   def fingerprint_for(public_key_b64) when is_binary(public_key_b64) do
     case Base.decode64(public_key_b64) do

@@ -106,6 +106,7 @@ defmodule ControlKeel.Accounts do
   def invite_member(user_id, org_id, opts \\ []) do
     role = Keyword.get(opts, :role, "member")
     invited_by = Keyword.get(opts, :invited_by_user_id)
+    mission_workspace_id = Keyword.get(opts, :mission_workspace_id)
     raw_token = generate_token()
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
@@ -116,7 +117,8 @@ defmodule ControlKeel.Accounts do
       status: "pending",
       invitation_token_hash: token_hash(raw_token),
       invited_at: now,
-      invited_by_user_id: invited_by
+      invited_by_user_id: invited_by,
+      mission_workspace_id: mission_workspace_id
     }
 
     case %Membership{}
@@ -136,9 +138,19 @@ defmodule ControlKeel.Accounts do
 
   Useful for rendering the invitation-acceptance page so the recipient can see
   which org and role they're joining before clicking accept.
+
+  The result also exposes `mission_workspace_id` — when non-nil, the invite
+  pre-binds a project workspace and cloud workspace enrolment should link
+  the enrolled key to it.
   """
   @spec lookup_invitation(String.t()) ::
-          {:ok, %{membership: Membership.t(), org: Org.t(), user: User.t()}}
+          {:ok,
+           %{
+             membership: Membership.t(),
+             org: Org.t(),
+             user: User.t(),
+             mission_workspace_id: integer() | nil
+           }}
           | {:error, :invalid_token | :already_accepted}
   def lookup_invitation(raw_token) when is_binary(raw_token) do
     hash = token_hash(raw_token)
@@ -152,7 +164,8 @@ defmodule ControlKeel.Accounts do
          %{
            membership: membership,
            org: Repo.get(Org, membership.org_id),
-           user: Repo.get(User, membership.user_id)
+           user: Repo.get(User, membership.user_id),
+           mission_workspace_id: membership.mission_workspace_id
          }}
 
       %Membership{status: "active"} ->
@@ -913,5 +926,56 @@ defmodule ControlKeel.Accounts do
 
   defp token_hash(token) do
     :crypto.hash(:sha256, token) |> Base.encode16(case: :lower)
+  end
+
+  # ──────────────── Cloud execution authorization ──────
+
+  @doc """
+  Authorize a cloud execution request for a workspace.
+
+  When the workspace belongs to an org, the caller must present a user_id with
+  an active membership at or above `required_role` (default `"member"`). Solo
+  workspaces (no org) are always authorized — the local-first trust anchor
+  applies.
+
+  Returns `{:ok, :authorized}` or `{:error, reason}`.
+  """
+  @spec authorize_cloud_execution(integer(), keyword()) ::
+          {:ok, :authorized} | {:error, :not_found | :unauthorized | :org_suspended}
+  def authorize_cloud_execution(workspace_id, opts \\ []) when is_integer(workspace_id) do
+    required_role = Keyword.get(opts, :required_role, "member")
+    user_id = Keyword.get(opts, :user_id)
+
+    case Repo.get(Workspace, workspace_id) do
+      nil ->
+        {:error, :not_found}
+
+      %Workspace{org_id: nil} ->
+        {:ok, :authorized}
+
+      %Workspace{org_id: org_id} ->
+        org = Repo.get(Org, org_id)
+
+        cond do
+          is_nil(org) or org.status != "active" ->
+            {:error, :org_suspended}
+
+          is_nil(user_id) ->
+            {:error, :unauthorized}
+
+          true ->
+            case get_active_membership(user_id, org_id) do
+              %Membership{role: role} when is_binary(role) ->
+                if role_at_least?(role, required_role) do
+                  {:ok, :authorized}
+                else
+                  {:error, :unauthorized}
+                end
+
+              _ ->
+                {:error, :unauthorized}
+            end
+        end
+    end
   end
 end

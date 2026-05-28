@@ -44,9 +44,9 @@ defmodule ControlKeelWeb.CloudWorkspaceController do
 
   def register(conn, params) do
     with {:ok, verified} <- Enrollment.verify(params),
-         {:ok, org_id} <- resolve_org(verified.invite_token),
+         {:ok, invite} <- resolve_invite(verified.invite_token),
          :ok <- ensure_fingerprint_unused(verified),
-         {:ok, key, status} <- enroll(verified, org_id) do
+         {:ok, key, status} <- enroll(verified, invite) do
       conn
       |> put_status(status)
       |> json(summary(key))
@@ -80,13 +80,16 @@ defmodule ControlKeelWeb.CloudWorkspaceController do
     end
   end
 
-  defp resolve_org(nil), do: {:ok, nil}
-  defp resolve_org(""), do: {:ok, nil}
+  defp resolve_invite(nil), do: {:ok, %{org_id: nil, mission_workspace_id: nil}}
+  defp resolve_invite(""), do: {:ok, %{org_id: nil, mission_workspace_id: nil}}
 
-  defp resolve_org(token) when is_binary(token) do
+  defp resolve_invite(token) when is_binary(token) do
     case Accounts.lookup_invitation(token) do
-      {:ok, %{org: %{id: org_id}}} -> {:ok, org_id}
-      _ -> {:error, :invalid_invite}
+      {:ok, %{org: %{id: org_id}, mission_workspace_id: mws_id}} ->
+        {:ok, %{org_id: org_id, mission_workspace_id: mws_id}}
+
+      _ ->
+        {:error, :invalid_invite}
     end
   end
 
@@ -98,7 +101,7 @@ defmodule ControlKeelWeb.CloudWorkspaceController do
     end
   end
 
-  defp enroll(verified, org_id) do
+  defp enroll(verified, %{org_id: org_id, mission_workspace_id: mws_id}) do
     existing = Repo.get_by(WorkspaceKey, workspace_id: verified.workspace_id)
     status = if existing, do: :ok, else: :created
 
@@ -108,7 +111,8 @@ defmodule ControlKeelWeb.CloudWorkspaceController do
            algorithm: verified.algorithm,
            fingerprint: verified.fingerprint,
            name: verified.name,
-           org_id: org_id
+           org_id: org_id,
+           mission_workspace_id: mws_id
          }) do
       {:ok, key} -> {:ok, key, status}
       {:error, cs} -> {:error, cs}
@@ -122,6 +126,7 @@ defmodule ControlKeelWeb.CloudWorkspaceController do
       algorithm: key.algorithm,
       name: key.name,
       org_id: key.org_id,
+      mission_workspace_id: key.mission_workspace_id,
       enrolled_at: key.inserted_at,
       last_seen_at: key.last_seen_at
     }
