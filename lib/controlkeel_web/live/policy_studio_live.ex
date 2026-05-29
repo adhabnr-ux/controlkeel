@@ -8,13 +8,19 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   alias ControlKeel.Policy.PackLoader
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
+    org_id =
+      socket.assigns[:current_org_id] ||
+        Map.get(session, "current_org_id") ||
+        Map.get(session, :current_org_id)
+
     {:ok,
      socket
      |> assign(:page_title, "Policy Studio")
+     |> assign(:current_org_id, org_id)
      |> assign_packs()
-     |> assign_sessions()
-     |> assign_tool_policies()}
+     |> assign_sessions(org_id)
+     |> assign_tool_policies(org_id)}
   end
 
   @impl true
@@ -203,13 +209,28 @@ defmodule ControlKeelWeb.PolicyStudioLive do
     |> assign(:blocked_rules, blocked_rules)
   end
 
-  defp assign_sessions(socket) do
-    sessions = Mission.list_recent_sessions(20)
+  defp assign_sessions(socket, nil) do
+    assign(socket, :sessions, [])
+  end
+
+  defp assign_sessions(socket, org_id) when is_integer(org_id) do
+    workspaces = Accounts.list_workspaces_for_org(org_id)
+
+    sessions =
+      workspaces
+      |> Enum.flat_map(fn ws -> Mission.list_sessions_for_workspace(ws.id) end)
+      |> Enum.sort_by(& &1.inserted_at, {:desc, DateTime})
+      |> Enum.take(20)
+
     assign(socket, :sessions, sessions)
   end
 
-  defp assign_tool_policies(socket) do
-    workspaces = Mission.list_workspaces()
+  defp assign_tool_policies(socket, nil) do
+    assign(socket, :tool_policies, [])
+  end
+
+  defp assign_tool_policies(socket, org_id) when is_integer(org_id) do
+    workspaces = Accounts.list_workspaces_for_org(org_id)
 
     policies =
       workspaces

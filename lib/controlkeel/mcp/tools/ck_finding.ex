@@ -62,11 +62,12 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
   end
 
   defp resolve_matching_findings(%{session_id: session_id, status: "approved"} = attrs) do
+    # Use scoped query instead of loading all findings into memory
+    findings = Mission.list_findings_for_session(session_id)
+
     query =
-      Mission.list_findings()
-      |> Enum.filter(fn finding ->
-        finding.session_id == session_id and
-          finding.rule_id == attrs.rule_id and
+      Enum.filter(findings, fn finding ->
+        finding.rule_id == attrs.rule_id and
           finding.category == attrs.category and
           finding.status in ["open", "blocked"]
       end)

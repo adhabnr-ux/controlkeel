@@ -30,13 +30,45 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
   @refresh_ms 5_000
 
   @impl true
-  def mount(_params, _session, socket) do
-    if connected?(socket), do: Process.send_after(self(), :refresh, @refresh_ms)
+  def mount(_params, session, socket) do
+    # Admin-only: operator dashboard shows cross-tenant data.
+    # Require an active org membership with admin role.
+    membership = resolve_membership(socket, session)
 
-    {:ok,
-     socket
-     |> assign(:page_title, "Cloud telemetry")
-     |> assign_view_state()}
+    if admin?(membership) do
+      if connected?(socket), do: Process.send_after(self(), :refresh, @refresh_ms)
+
+      {:ok,
+       socket
+       |> assign(:page_title, "Cloud telemetry")
+       |> assign_view_state()}
+    else
+      {:ok,
+       socket
+       |> assign(:page_title, "Cloud telemetry")
+       |> put_flash(:error, "Admin access required.")
+       |> redirect(to: "/")}
+    end
+  end
+
+  defp admin?(%ControlKeel.Accounts.Membership{status: "active", role: role}),
+    do: ControlKeel.Accounts.role_at_least?(role, "admin")
+
+  defp admin?(_), do: false
+
+  defp resolve_membership(socket, session) do
+    # Prefer pre-loaded assign from LoadCurrentUser plug (production),
+    # fall back to session-based resolution (test / edge cases).
+    case socket.assigns[:current_membership] do
+      %ControlKeel.Accounts.Membership{} = m -> m
+      nil ->
+        user_id = Map.get(session, "current_user_id") || Map.get(session, :current_user_id)
+        org_id = Map.get(session, "current_org_id") || Map.get(session, :current_org_id)
+
+        if is_integer(user_id) and is_integer(org_id) do
+          Accounts.get_active_membership(user_id, org_id)
+        end
+    end
   end
 
   @impl true

@@ -3,12 +3,20 @@ defmodule ControlKeelWeb.CloudTelemetryLiveTest do
 
   import Phoenix.LiveViewTest
 
+  alias ControlKeel.Accounts
   alias ControlKeel.Cloud.Ingestion
   alias ControlKeel.Cloud.TelemetryConfig
   alias ControlKeel.Cloud.TelemetryEnvelope
   alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Repo
 
   setup do
+    # CloudTelemetryLive requires admin membership
+    user = insert_user()
+    org = insert_org()
+    insert_active_membership(user.id, org.id, "admin")
+    admin_conn = session_conn(build_conn(), user.id, org.id)
+
     tmp_home =
       Path.join(
         System.tmp_dir!(),
@@ -29,7 +37,7 @@ defmodule ControlKeelWeb.CloudTelemetryLiveTest do
       File.rm_rf!(tmp_home)
     end)
 
-    :ok
+    {:ok, conn: admin_conn}
   end
 
   describe "mount/render with no telemetry yet" do
@@ -109,7 +117,6 @@ defmodule ControlKeelWeb.CloudTelemetryLiveTest do
 
       assert html =~ "3 received"
       assert html =~ identity.workspace_id
-      # All three funnel stages should appear
       assert html =~ "install.success"
       assert html =~ "attach.success"
       assert html =~ "finding.created"
@@ -127,5 +134,53 @@ defmodule ControlKeelWeb.CloudTelemetryLiveTest do
       {:ok, _view, html} = live(conn, ~p"/cloud/telemetry")
       assert html =~ "governance"
     end
+  end
+
+  # ─────────────── helpers ───────────────
+
+  defp insert_user do
+    {:ok, user} =
+      %Accounts.User{}
+      |> Accounts.User.changeset(%{
+        email: "tel-#{System.unique_integer([:positive])}@example.com",
+        status: "active"
+      })
+      |> Repo.insert()
+
+    user
+  end
+
+  defp insert_org do
+    s = "tel-org-#{System.unique_integer([:positive])}"
+
+    {:ok, org} =
+      %Accounts.Org{}
+      |> Accounts.Org.changeset(%{name: s, slug: s, status: "active"})
+      |> Repo.insert()
+
+    org
+  end
+
+  defp insert_active_membership(user_id, org_id, role) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    {:ok, _m} =
+      %Accounts.Membership{}
+      |> Accounts.Membership.changeset(%{
+        user_id: user_id,
+        org_id: org_id,
+        role: role,
+        status: "active",
+        accepted_at: now
+      })
+      |> Repo.insert()
+  end
+
+  defp session_conn(conn, user_id, org_id) do
+    conn
+    |> Plug.Test.init_test_session(%{
+      current_user_id: user_id,
+      current_org_id: org_id
+    })
   end
 end
