@@ -5,14 +5,29 @@ import Config
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
-config :controlkeel, ControlKeel.Repo,
-  database: Path.expand("../controlkeel_test.db", __DIR__),
-  busy_timeout: 15_000,
-  # SQLite-backed tests are more stable with a single pooled connection because
-  # LiveView and benchmark flows can otherwise compete for overlapping write locks.
-  pool_size: 1,
-  pool: Ecto.Adapters.SQL.Sandbox,
-  journal_mode: :wal
+#
+# Set ECTO_ADAPTER=postgres to run the test suite against Postgres
+# (used in the test-postgres CI lane).
+
+if System.get_env("ECTO_ADAPTER") == "postgres" do
+  database_url =
+    System.get_env("DATABASE_URL") ||
+      raise "DATABASE_URL is required when ECTO_ADAPTER=postgres"
+
+  config :controlkeel, ControlKeel.Repo,
+    url: database_url,
+    pool: Ecto.Adapters.SQL.Sandbox,
+    pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
+else
+  config :controlkeel, ControlKeel.Repo,
+    database: Path.expand("../controlkeel_test.db", __DIR__),
+    busy_timeout: 15_000,
+    # SQLite-backed tests are more stable with a single pooled connection because
+    # LiveView and benchmark flows can otherwise compete for overlapping write locks.
+    pool_size: 1,
+    pool: Ecto.Adapters.SQL.Sandbox,
+    journal_mode: :wal
+end
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.

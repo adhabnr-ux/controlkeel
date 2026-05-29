@@ -59,6 +59,55 @@ jobs:
       - run: node --check packages/npm/controlkeel/bin/controlkeel.js
       - run: node --check packages/npm/controlkeel/lib/install.js
 
+  test-postgres:
+    if: >-
+      github.event_name != 'push' ||
+      !startsWith(github.event.head_commit.message || '', 'chore(release): bump version to ')
+    needs: [test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      MIX_ENV: test
+      ECTO_ADAPTER: postgres
+      DATABASE_URL: postgres://controlkeel_test:controlkeel_test@localhost:5432/controlkeel_test
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: controlkeel_test
+          POSTGRES_PASSWORD: controlkeel_test
+          POSTGRES_DB: controlkeel_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: erlef/setup-beam@v1.23.0
+        with:
+          elixir-version: "1.19.5"
+          otp-version: "27.3.4.3"
+      - name: Cache deps
+        uses: actions/cache@v5
+        with:
+          path: |
+            deps
+            _build
+            ~/.hex
+            ~/.mix
+          key: ${{ runner.os }}-mix-pg-${{ hashFiles('mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-pg-
+      - run: mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix ecto.create
+      - run: mix ecto.migrate
+      - name: Run tests against Postgres
+        run: mix test
+        timeout-minutes: 30
+
   self-host-smoke:
     if: >-
       github.event_name != 'push' ||

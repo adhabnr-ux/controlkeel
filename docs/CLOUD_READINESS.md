@@ -38,7 +38,7 @@ This doc sequences the work to close that gap.
 | GitHub repo binding UI | ✅ done | P1a (WorkspaceReposLive) |
 | Service-account / webhook / tool-policy UI | ✅ done | P1b (3 LiveViews) |
 | Membership-revoke broadcast | ✅ done | P2 (PubSub + LiveAuth attach_hook) |
-| Postgres parity CI lane | ⚠️ untested | Finding #294 (P3) |
+| Postgres parity CI lane | ✅ done | `test-postgres` job in ci.yml; ECTO_ADAPTER env var; Repo adapter configurable
 | TypeScript SDK | ❌ missing | Finding #295 (P3) |
 | Skills/hooks cloud execution model | ⚠️ design pending | Finding #293 (P3) |
 | Self-host smoke test in CI | ✅ done | `scripts/self_host_smoke.sh` + `self-host-smoke` job in ci.yml |
@@ -145,7 +145,7 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 
 | # | Item | Finding | Acceptance |
 |---|---|---|---|
-| P3.1 | Postgres parity CI lane | #294 | New CI job runs full suite against Postgres; passes |
+| P3.1 | Postgres parity CI lane | #294 | ✅ `test-postgres` CI job with Postgres 17 service container; `ECTO_ADAPTER` env var makes Repo adapter configurable at compile time; `config/test.exs` conditional on adapter choice; full suite runs against Postgres. |
 | P3.2 | TypeScript SDK (npm: `@controlkeel/sdk`) | #295 | npm package wraps `ck_validate`, `ck_finding`, `ck_review_submit`, `ck_context`; published with semver |
 | P3.3 | Self-host smoke test in CI | #297 | ✅ `scripts/self_host_smoke.sh` boots `mix phx.server` with `PHX_HOST=govern.selfhost.test` against a fresh SQLite DB; asserts `/` responds, `/cloud/v1/workspaces/register` is mounted, `/cloud/v1/sync/push` requires Bearer. CI job runs after `test`. Burrito + Postgres round-trip variants deferred. |
 | P3.4 | Skills/hooks cloud-execution model decision | #293 | Architectural decision recorded in `docs/cloud-execution-model.md`: hybrid (local agent + cloud state) vs cloud sandbox per session. **Decision required before implementation.** |
@@ -156,7 +156,7 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 
 **Dependencies:** P0 + P1. P3.4 should be made before any cloud-side execution feature ships.
 
-**Status:** ⬜ Not started
+**Status:** ⬜ P3.1 ✅ (Postgres CI). P3.2–P3.6 pending.
 
 ---
 
@@ -203,7 +203,7 @@ When a new gap is discovered:
 | CK-CLOUD-SESSION-DEDUP-005 (#323) | high | P0.6 | ✅ closed |
 | CK-CLOUD-ORGADMIN-UI-006 (#324) | high | P1.1–P1.7 ✅ closed via P1a+P1b+P1c | ✅ closed |
 | CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (#325) | medium | P2 (P2.1 + P2.2) | ✅ closed |
-| CK-CLOUD-DB-004 (#294) | medium | P3.1 | open |
+| CK-CLOUD-DB-004 (#294) | medium | P3.1 | ✅ closed |
 | CK-CLOUD-SDK-005 (#295) | medium | P3.2 | open |
 | CK-CLOUD-SELFHOST-007 (#297) | medium | P3.3 | open |
 | CK-CLOUD-EXEC-003 (#293) | high-warn | P3.4 | open (design pending) |
