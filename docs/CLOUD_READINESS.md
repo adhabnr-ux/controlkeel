@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** P0 implemented (6 commits ahead of `origin/main`, none pushed)
+**HEAD:** `c14fbc6` (6 commits ahead of `origin/main`, none pushed)
 **Test status:** 2009 / 2009 passing
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
@@ -61,7 +61,7 @@ Commits in chronological order. Each closed at least one critical finding.
 | `c53f5ef` | LiveView + MCP tool scoping; CloudTelemetry admin gate | tier-3 LiveView leaks |
 | `05816f9` | LiveAuth on_mount + AuthLive (/auth/login) + org-scoped queries + ownership checks | CK-CLOUD-LIVEVIEW-AUTH-001, CK-CLOUD-LOGIN-002, CK-CLOUD-LIVEVIEW-SCOPE-003, CK-CLOUD-MISSION-SCOPE-004, CK-CLOUD-POSTLOGIN-006 |
 | `95367fb` | docs(cloud): add CLOUD_READINESS.md tracker | this doc |
-| (pending) | P0 onboarding unblock: SignupLive, OrgSettingsAuthLive, workspace create form, invite auto-login, session dedup, home Sign In CTAs | CK-CLOUD-ONBOARD-001, CK-CLOUD-WORKSPACE-CREATE-002, CK-CLOUD-IDP-CONFIG-003, CK-CLOUD-INVITE-AUTOLOGIN-004, CK-CLOUD-SESSION-DEDUP-005 |
+| `c14fbc6` | P0 onboarding unblock: SignupLive, OrgSettingsAuthLive, workspace create form, invite auto-login, session dedup, home Sign In CTAs | CK-CLOUD-ONBOARD-001, CK-CLOUD-WORKSPACE-CREATE-002, CK-CLOUD-IDP-CONFIG-003, CK-CLOUD-INVITE-AUTOLOGIN-004, CK-CLOUD-SESSION-DEDUP-005 |
 
 ---
 
