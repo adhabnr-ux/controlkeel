@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** P3.3 implemented (26+ commits ahead of `origin/main`, none pushed)
+**HEAD:** `3795c7c` (28 commits ahead of `origin/main`, none pushed)
 **Test status:** 2074 / 2074 passing + self-host smoke script
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
@@ -67,6 +67,7 @@ Commits in chronological order. Each closed at least one critical finding.
 | `57db1cf` | P1c Mailer module (log + test adapters) wired into OrgMembersLive | P1.7 |
 | `189a527` | P2 real-time membership eviction (PubSub broadcast + LiveAuth attach_hook) | CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (P2.1, P2.2) |
 | `c795f1d` | P3.5 per-workspace rate limiting on /cloud/v1 (ETS token bucket + plug) | P3.5 |
+| `3795c7c` | P3.3 self-host smoke test in CI (scripts/self_host_smoke.sh + ci.yml job) | CK-CLOUD-SELFHOST-007 |
 
 ---
 
