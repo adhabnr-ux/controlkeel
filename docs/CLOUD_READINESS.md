@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `189a527` (22 commits ahead of `origin/main`, none pushed)
-**Test status:** 2065 / 2065 passing
+**HEAD:** P3.5 implemented (24+ commits ahead of `origin/main`, none pushed)
+**Test status:** 2074 / 2074 passing
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
 
@@ -147,7 +147,7 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 | P3.2 | TypeScript SDK (npm: `@controlkeel/sdk`) | #295 | npm package wraps `ck_validate`, `ck_finding`, `ck_review_submit`, `ck_context`; published with semver |
 | P3.3 | Self-host smoke test in CI | #297 | CI boots release against fresh DB, runs through `cloud connect --enroll`, asserts sync push/pull works |
 | P3.4 | Skills/hooks cloud-execution model decision | #293 | Architectural decision recorded in `docs/cloud-execution-model.md`: hybrid (local agent + cloud state) vs cloud sandbox per session. **Decision required before implementation.** |
-| P3.5 | Rate limiting per workspace on `/cloud/v1` | new | Token bucket per `db_workspace_id`; 429 on overflow |
+| P3.5 | Rate limiting per workspace on `/cloud/v1` | new | ✅ ETS-backed token bucket per `db_workspace_id`; plug returns 429 + Retry-After. Single-node only; multi-node coordination deferred. |
 | P3.6 | Billing/usage metering integration | new | Per-org Stripe customer; usage emitted from `Budget.spend_cents` |
 
 **Estimated scope:** Each item is its own slice. P3.4 is a design decision, not code.

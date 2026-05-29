@@ -81,6 +81,7 @@ defmodule ControlKeel.Application do
       analytics_children() ++
       cloud_emitter_children() ++
       mailer_test_inbox_children() ++
+      [ControlKeel.Cloud.RateLimiter] ++
       [
         {DNSCluster, query: Application.get_env(:controlkeel, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: ControlKeel.PubSub},

@@ -31,6 +31,7 @@ defmodule ControlKeelWeb.Router do
 
   pipeline :cloud_api_auth do
     plug ControlKeelWeb.Plugs.CloudWorkspaceKeyAuth
+    plug ControlKeelWeb.Plugs.CloudRateLimit
   end
 
   pipeline :hosted_a2a do
