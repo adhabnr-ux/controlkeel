@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `c795f1d` (25 commits ahead of `origin/main`, none pushed)
-**Test status:** 2074 / 2074 passing
+**HEAD:** P3.3 implemented (26+ commits ahead of `origin/main`, none pushed)
+**Test status:** 2074 / 2074 passing + self-host smoke script
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
 
@@ -41,7 +41,7 @@ This doc sequences the work to close that gap.
 | Postgres parity CI lane | ⚠️ untested | Finding #294 (P3) |
 | TypeScript SDK | ❌ missing | Finding #295 (P3) |
 | Skills/hooks cloud execution model | ⚠️ design pending | Finding #293 (P3) |
-| Self-host smoke test in CI | ❌ missing | Finding #297 (P3) |
+| Self-host smoke test in CI | ✅ done | `scripts/self_host_smoke.sh` + `self-host-smoke` job in ci.yml |
 
 ---
 
@@ -146,7 +146,7 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 |---|---|---|---|
 | P3.1 | Postgres parity CI lane | #294 | New CI job runs full suite against Postgres; passes |
 | P3.2 | TypeScript SDK (npm: `@controlkeel/sdk`) | #295 | npm package wraps `ck_validate`, `ck_finding`, `ck_review_submit`, `ck_context`; published with semver |
-| P3.3 | Self-host smoke test in CI | #297 | CI boots release against fresh DB, runs through `cloud connect --enroll`, asserts sync push/pull works |
+| P3.3 | Self-host smoke test in CI | #297 | ✅ `scripts/self_host_smoke.sh` boots `mix phx.server` with `PHX_HOST=govern.selfhost.test` against a fresh SQLite DB; asserts `/` responds, `/cloud/v1/workspaces/register` is mounted, `/cloud/v1/sync/push` requires Bearer. CI job runs after `test`. Burrito + Postgres round-trip variants deferred. |
 | P3.4 | Skills/hooks cloud-execution model decision | #293 | Architectural decision recorded in `docs/cloud-execution-model.md`: hybrid (local agent + cloud state) vs cloud sandbox per session. **Decision required before implementation.** |
 | P3.5 | Rate limiting per workspace on `/cloud/v1` | new | ✅ ETS-backed token bucket per `db_workspace_id`; plug returns 429 + Retry-After. Single-node only; multi-node coordination deferred. |
 | P3.6 | Billing/usage metering integration | new | Per-org Stripe customer; usage emitted from `Budget.spend_cents` |

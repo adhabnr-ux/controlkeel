@@ -57,10 +57,13 @@ fly secrets set \
 fly certs create govern.acme.com
 # Then add the DNS records fly prints (A/AAAA pointing at your fly app).
 
-# 5. Deploy
+# 5. (Recommended) Pre-flight smoke against a local SQLite — same checks CI runs
+PHX_HOST=govern.acme.com bash scripts/self_host_smoke.sh
+
+# 6. Deploy
 fly deploy
 
-# 6. Smoke test
+# 7. Post-deploy smoke test
 curl -sS https://govern.acme.com/      # 200 home page
 fly ssh console -C "/app/bin/controlkeel cloud doctor"
 ```

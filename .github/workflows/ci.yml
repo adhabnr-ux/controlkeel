@@ -58,3 +58,33 @@ jobs:
       - run: python3 -m py_compile scripts/bump_version.py scripts/render_release_notes.py
       - run: node --check packages/npm/controlkeel/bin/controlkeel.js
       - run: node --check packages/npm/controlkeel/lib/install.js
+
+  self-host-smoke:
+    if: >-
+      github.event_name != 'push' ||
+      !startsWith(github.event.head_commit.message || '', 'chore(release): bump version to ')
+    needs: [test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      MIX_ENV: dev
+    steps:
+      - uses: actions/checkout@v6
+      - uses: erlef/setup-beam@v1.23.0
+        with:
+          elixir-version: "1.19.5"
+          otp-version: "27.3.4.3"
+      - name: Cache deps
+        uses: actions/cache@v5
+        with:
+          path: |
+            deps
+            _build
+            ~/.hex
+            ~/.mix
+          key: ${{ runner.os }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+      - run: mix deps.get
+      - run: chmod +x scripts/self_host_smoke.sh
+      - name: Run self-host smoke
+        run: scripts/self_host_smoke.sh
