@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** P1b implemented (9+ commits ahead of `origin/main`, none pushed)
+**HEAD:** `adfbc08` (10 commits ahead of `origin/main`, none pushed)
 **Test status:** 2031 / 2031 passing
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
@@ -63,6 +63,7 @@ Commits in chronological order. Each closed at least one critical finding.
 | `95367fb` | docs(cloud): add CLOUD_READINESS.md tracker | this doc |
 | `c14fbc6` | P0 onboarding unblock: SignupLive, OrgSettingsAuthLive, workspace create form, invite auto-login, session dedup, home Sign In CTAs | CK-CLOUD-ONBOARD-001, CK-CLOUD-WORKSPACE-CREATE-002, CK-CLOUD-IDP-CONFIG-003, CK-CLOUD-INVITE-AUTOLOGIN-004, CK-CLOUD-SESSION-DEDUP-005 |
 | `99dc316` | P1a org admin UI: OrgMembersLive, OrgSettingsGeneralLive, WorkspaceReposLive + Accounts.update_membership_role/update_org with last-owner protection | CK-CLOUD-ORGADMIN-UI-006 (P1.1, P1.2, P1.3) |
+| `adfbc08` | P1b workspace admin UI: WorkspaceServiceAccountsLive, WorkspaceWebhooksLive, WorkspaceToolPolicyLive | CK-CLOUD-ORGADMIN-UI-006 (P1.4, P1.5, P1.6) |
 
 ---
 
