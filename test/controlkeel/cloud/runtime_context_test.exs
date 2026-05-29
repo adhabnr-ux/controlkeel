@@ -187,4 +187,42 @@ defmodule ControlKeel.Cloud.RuntimeContextTest do
       refute RunPackage.terminal?(%RunPackage{status: "dispatched"})
     end
   end
+  describe "tenant isolation for scoped lookups" do
+    test "get_by_external_id/2 returns nil for different workspace" do
+      ws_a = insert_workspace("rt-iso-a")
+      ws_b = insert_workspace("rt-iso-b")
+
+      {:ok, pkg, _token} = insert_package(ws_a)
+
+      assert RuntimeContext.get_by_external_id(pkg.external_id, ws_a.id) != nil
+      assert RuntimeContext.get_by_external_id(pkg.external_id, ws_b.id) == nil
+    end
+
+    test "get_package/2 returns nil for different workspace" do
+      ws_a = insert_workspace("rt-iso-c")
+      ws_b = insert_workspace("rt-iso-d")
+
+      {:ok, pkg, _token} = insert_package(ws_a)
+
+      assert RuntimeContext.get_package(pkg.id, ws_a.id) != nil
+      assert RuntimeContext.get_package(pkg.id, ws_b.id) == nil
+    end
+  end
+
+  defp insert_workspace(seed) do
+    MissionFixtures.workspace_fixture(%{name: "RT-ISO-#{seed}"})
+  end
+
+  defp insert_package(ws) do
+    session = MissionFixtures.session_fixture(%{workspace: ws})
+
+    RuntimeContext.create_package(%{
+      workspace_id: ws.id,
+      session_id: session.id,
+      runtime_target: "executor",
+      budget_cents_allocated: 1000,
+      scopes: ["mcp:access"],
+      payload: %{"task" => "isolation test"}
+    })
+  end
 end

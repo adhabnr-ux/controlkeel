@@ -162,4 +162,46 @@ defmodule ControlKeel.Cloud.McpAuditLogTest do
       assert length(McpAuditLog.global_recent(limit: 3)) == 3
     end
   end
+
+  describe "tenant isolation for scoped functions" do
+    test "counts_by_tool/1 only returns data for specified workspace" do
+      ws_a = workspace_fixture()
+      ws_b = workspace_fixture()
+
+      McpAuditLog.record(:allowed, %{workspace_id: ws_a.id, tool_name: "tool_x"})
+      McpAuditLog.record(:denied, %{workspace_id: ws_b.id, tool_name: "tool_y"})
+
+      counts_a = McpAuditLog.counts_by_tool(ws_a.id)
+      assert length(counts_a) == 1
+      assert hd(counts_a).tool_name == "tool_x"
+      assert hd(counts_a).allowed == 1
+      assert hd(counts_a).denied == 0
+    end
+
+    test "summary/1 only counts events for specified workspace" do
+      ws_a = workspace_fixture()
+      ws_b = workspace_fixture()
+
+      McpAuditLog.record(:allowed, %{workspace_id: ws_a.id, tool_name: "t1"})
+      McpAuditLog.record(:allowed, %{workspace_id: ws_a.id, tool_name: "t2"})
+      McpAuditLog.record(:denied, %{workspace_id: ws_b.id, tool_name: "t3"})
+
+      summary_a = McpAuditLog.summary(ws_a.id)
+      assert summary_a.total == 2
+      assert summary_a.allowed == 2
+      assert summary_a.denied == 0
+    end
+
+    test "recent/2 only returns events for specified workspace" do
+      ws_a = workspace_fixture()
+      ws_b = workspace_fixture()
+
+      McpAuditLog.record(:allowed, %{workspace_id: ws_a.id, tool_name: "t1"})
+      McpAuditLog.record(:allowed, %{workspace_id: ws_b.id, tool_name: "t2"})
+
+      recent_a = McpAuditLog.recent(ws_a.id, limit: 10)
+      assert length(recent_a) == 1
+      assert hd(recent_a).tool_name == "t1"
+    end
+  end
 end
