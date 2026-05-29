@@ -94,6 +94,8 @@ defmodule ControlKeelWeb.CloudWorkspaceController do
   end
 
   defp ensure_fingerprint_unused(%{workspace_id: ws, fingerprint: fp}) do
+    # DB-level check: if a key with this fingerprint exists and belongs to a
+    # DIFFERENT workspace, reject. Same-workspace match is OK (re-enrollment).
     case Repo.get_by(WorkspaceKey, fingerprint: fp) do
       nil -> :ok
       %WorkspaceKey{workspace_id: ^ws} -> :ok

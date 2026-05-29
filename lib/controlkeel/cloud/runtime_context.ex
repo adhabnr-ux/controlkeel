@@ -25,6 +25,7 @@ defmodule ControlKeel.Cloud.RuntimeContext do
   import Ecto.Query, warn: false
 
   alias ControlKeel.Cloud.RunPackage
+  alias ControlKeel.Cloud.Scope
   alias ControlKeel.Accounts
   alias ControlKeel.Repo
 
@@ -81,9 +82,22 @@ defmodule ControlKeel.Cloud.RuntimeContext do
     Repo.get_by(RunPackage, external_id: external_id)
   end
 
+  @doc "Fetch a package by external id, only if it belongs to `workspace_id`."
+  @spec get_by_external_id(String.t(), integer()) :: RunPackage.t() | nil
+  def get_by_external_id(external_id, workspace_id)
+      when is_binary(external_id) and is_integer(workspace_id) do
+    Scope.get_by_in_workspace(RunPackage, [external_id: external_id], workspace_id)
+  end
+
   @doc "Get a package by id."
   @spec get_package(integer()) :: RunPackage.t() | nil
   def get_package(id), do: Repo.get(RunPackage, id)
+
+  @doc "Get a package by id, only if it belongs to `workspace_id`."
+  @spec get_package(integer(), integer()) :: RunPackage.t() | nil
+  def get_package(id, workspace_id) when is_integer(id) and is_integer(workspace_id) do
+    Scope.get_in_workspace(RunPackage, id, workspace_id)
+  end
 
   @doc """
   Authenticate a raw callback token, returning the matching package.
