@@ -4,20 +4,18 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
 
   This module provides functions to execute deepsec CLI commands
   for scanning, processing, and exporting findings.
+
+  Binary resolution:
+  - Default: looks for `deepsec` on PATH
+  - Override: `CONTROLKEEL_DEEPSEC_BIN` env var or `deepsec_bin` in Proxy config
+  - npx mode: set to "npx" to run via `npx -y deepsec`
   """
 
   alias ControlKeel.Integrations.Deepsec.Config
+  alias ControlKeel.Proxy
 
   @doc """
   Initializes deepsec in the current directory.
-
-  ## Parameters
-  - opts: Keyword list of options
-    - workspace_path: Path to deepsec workspace (default from config)
-
-  ## Returns
-  {:ok, output} on success
-  {:error, reason} on failure
   """
   def init(opts \\ []) do
     workspace_path = Keyword.get(opts, :workspace_path) || Config.workspace_path()
@@ -27,30 +25,29 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
         {:ok, "Deepsec already initialized at #{workspace_path}"}
 
       false ->
-        # Run npx deepsec init
-        case safe_cmd("npx", ["deepsec", "init"], cd: workspace_path) do
-          {output, 0} -> {:ok, output}
-          {output, _} -> {:error, output}
+        with :ok <- File.mkdir_p(workspace_path) do
+          {bin, args} = resolve_command(["init"])
+
+          case safe_cmd(bin, args, cd: workspace_path) do
+            {output, 0} -> {:ok, output}
+            {output, _} -> {:error, output}
+          end
+        else
+          {:error, reason} -> {:error, "Failed to create deepsec workspace: #{inspect(reason)}"}
         end
     end
   end
 
   @doc """
   Runs deepsec scan to find candidate sites with regex matchers.
-
-  ## Parameters
-  - opts: Keyword list of options
-    - workspace_path: Path to deepsec workspace (default from config)
-
-  ## Returns
-  {:ok, output} on success
-  {:error, reason} on failure
   """
   def scan(opts \\ []) do
     workspace_path = Keyword.get(opts, :workspace_path) || Config.workspace_path()
 
     if File.exists?(workspace_path) do
-      case safe_cmd("pnpm", ["deepsec", "scan"], cd: workspace_path) do
+      {bin, args} = resolve_command(["scan"])
+
+      case safe_cmd(bin, args, cd: workspace_path) do
         {output, 0} -> {:ok, output}
         {output, _} -> {:error, output}
       end
@@ -61,20 +58,14 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
 
   @doc """
   Runs AI investigation on scan results.
-
-  ## Parameters
-  - opts: Keyword list of options
-    - workspace_path: Path to deepsec workspace (default from config)
-
-  ## Returns
-  {:ok, output} on success
-  {:error, reason} on failure
   """
   def process(opts \\ []) do
     workspace_path = Keyword.get(opts, :workspace_path) || Config.workspace_path()
 
     if File.exists?(workspace_path) do
-      case safe_cmd("pnpm", ["deepsec", "process"], cd: workspace_path) do
+      {bin, args} = resolve_command(["process"])
+
+      case safe_cmd(bin, args, cd: workspace_path) do
         {output, 0} -> {:ok, output}
         {output, _} -> {:error, output}
       end
@@ -85,20 +76,14 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
 
   @doc """
   Revalidates existing findings to reduce false positives.
-
-  ## Parameters
-  - opts: Keyword list of options
-    - workspace_path: Path to deepsec workspace (default from config)
-
-  ## Returns
-  {:ok, output} on success
-  {:error, reason} on failure
   """
   def revalidate(opts \\ []) do
     workspace_path = Keyword.get(opts, :workspace_path) || Config.workspace_path()
 
     if File.exists?(workspace_path) do
-      case safe_cmd("pnpm", ["deepsec", "revalidate"], cd: workspace_path) do
+      {bin, args} = resolve_command(["revalidate"])
+
+      case safe_cmd(bin, args, cd: workspace_path) do
         {output, 0} -> {:ok, output}
         {output, _} -> {:error, output}
       end
@@ -109,16 +94,6 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
 
   @doc """
   Exports findings in the specified format.
-
-  ## Parameters
-  - format: Export format (:md_dir, :json)
-  - opts: Keyword list of options
-    - workspace_path: Path to deepsec workspace (default from config)
-    - output: Output directory (default: ./findings)
-
-  ## Returns
-  {:ok, output} on success
-  {:error, reason} on failure
   """
   def export(format, opts \\ []) do
     workspace_path = Keyword.get(opts, :workspace_path) || Config.workspace_path()
@@ -132,9 +107,9 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
           _ -> "md-dir"
         end
 
-      case safe_cmd("pnpm", ["deepsec", "export", "--format", format_str, "--out", output_path],
-             cd: workspace_path
-           ) do
+      {bin, args} = resolve_command(["export", "--format", format_str, "--out", output_path])
+
+      case safe_cmd(bin, args, cd: workspace_path) do
         {output, 0} -> {:ok, output}
         {output, _} -> {:error, output}
       end
@@ -145,17 +120,6 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
 
   @doc """
   Runs a complete deepsec workflow: scan → process → revalidate → export.
-
-  ## Parameters
-  - opts: Keyword list of options
-    - workspace_path: Path to deepsec workspace (default from config)
-    - skip_revalidate: Skip revalidation step (default: false)
-    - export_format: Export format (:md_dir or :json, default: :md_dir)
-    - output: Output directory (default: ./findings)
-
-  ## Returns
-  {:ok, results} on success with results from each step
-  {:error, reason} on failure
   """
   def run_full_workflow(opts \\ []) do
     with {:ok, _} <- init(opts),
@@ -173,45 +137,24 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
     end
   end
 
-  # Private functions
-
-  defp maybe_revalidate(opts, scan_output, process_output) do
-    if Keyword.get(opts, :skip_revalidate, false) do
-      {:ok, %{scan: scan_output, process: process_output, revalidate: nil}}
-    else
-      case revalidate(opts) do
-        {:ok, revalidate_output} ->
-          {:ok, %{scan: scan_output, process: process_output, revalidate: revalidate_output}}
-
-        {:error, reason} ->
-          # Continue even if revalidation fails
-          {:ok, %{scan: scan_output, process: process_output, revalidate: "Skipped: #{reason}"}}
-      end
-    end
-  end
-
   @doc """
   Checks if deepsec CLI is available in the system.
 
-  ## Returns
-  true if deepsec CLI is available, false otherwise
+  Checks binary existence without running a potentially slow download.
+  Returns true if the binary path resolves, false otherwise.
   """
   def available? do
-    case safe_cmd("npx", ["--yes", "deepsec", "--help"]) do
-      {_output, 0} -> true
-      _ -> false
-    end
+    {bin, _args} = resolve_command(["--version"])
+    System.find_executable(bin) != nil
   end
 
   @doc """
   Gets the deepsec version.
-
-  ## Returns
-  {:ok, version} on success
-  {:error, reason} on failure
   """
   def version do
-    case safe_cmd("npx", ["--yes", "deepsec", "--version"]) do
+    {bin, args} = resolve_command(["--version"])
+
+    case safe_cmd(bin, args) do
       {output, 0} -> {:ok, String.trim(output)}
       {output, _} -> {:error, output}
     end
@@ -219,17 +162,9 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
 
   @doc """
   Parses JSON output from deepsec commands.
-
-  ## Parameters
-  - output: Raw output string from deepsec command
-
-  ## Returns
-  {:ok, parsed_data} on success
-  {:error, reason} on failure
   """
   def parse_json_output(output) do
     try do
-      # Look for JSON objects in the output
       json_pattern = ~r/\{[\s\S]*\}/
 
       case Regex.run(json_pattern, output) do
@@ -249,13 +184,6 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
 
   @doc """
   Extracts findings from deepsec process output.
-
-  ## Parameters
-  - output: Raw output string from deepsec process command
-
-  ## Returns
-  {:ok, findings} on success with list of finding maps
-  {:error, reason} on failure
   """
   def extract_findings(output) do
     case parse_json_output(output) do
@@ -269,8 +197,36 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
         end
 
       {:error, _reason} ->
-        # Fallback: try to extract findings from text output
         extract_findings_from_text(output)
+    end
+  end
+
+  # Resolves the configured deepsec binary and builds the full argument list.
+  # If configured as "npx", returns {"npx", ["-y", "deepsec" | sub_args]}.
+  # Otherwise returns the binary path with sub_args directly.
+  defp resolve_command(sub_args) do
+    configured = Proxy.deepsec_bin()
+
+    if configured == "npx" do
+      bin = System.find_executable("npx") || "npx"
+      {bin, ["-y", "deepsec" | sub_args]}
+    else
+      bin = System.find_executable(configured) || configured
+      {bin, sub_args}
+    end
+  end
+
+  defp maybe_revalidate(opts, scan_output, process_output) do
+    if Keyword.get(opts, :skip_revalidate, false) do
+      {:ok, %{scan: scan_output, process: process_output, revalidate: nil}}
+    else
+      case revalidate(opts) do
+        {:ok, revalidate_output} ->
+          {:ok, %{scan: scan_output, process: process_output, revalidate: revalidate_output}}
+
+        {:error, reason} ->
+          {:ok, %{scan: scan_output, process: process_output, revalidate: "Skipped: #{reason}"}}
+      end
     end
   end
 
@@ -310,8 +266,6 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
   defp safe_cmd(command, args, opts \\ []) do
     opts = Keyword.put(opts, :stderr_to_stdout, true)
 
-    # If a :cd option is provided, verify the directory exists before spawning
-    # to avoid noisy "spawn: Could not cd to <path>" stderr output
     case Keyword.get(opts, :cd) do
       nil ->
         :ok
