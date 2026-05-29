@@ -210,17 +210,78 @@ defmodule ControlKeel.Accounts do
   end
 
   @spec revoke_membership(integer()) ::
-          {:ok, Membership.t()} | {:error, :not_found | Ecto.Changeset.t()}
+          {:ok, Membership.t()} | {:error, :not_found | :last_owner_protected | Ecto.Changeset.t()}
   def revoke_membership(membership_id) do
     case Repo.get(Membership, membership_id) do
       nil ->
         {:error, :not_found}
+
+      %Membership{role: "owner"} = membership ->
+        if last_active_owner?(membership) do
+          {:error, :last_owner_protected}
+        else
+          membership |> Membership.changeset(%{status: "revoked"}) |> Repo.update()
+        end
 
       membership ->
         membership
         |> Membership.changeset(%{status: "revoked"})
         |> Repo.update()
     end
+  end
+
+  @doc """
+  Change a membership's role. Refuses to demote the last remaining active owner.
+
+  Returns:
+    - `{:ok, membership}` on success
+    - `{:error, :not_found}` if the membership doesn't exist
+    - `{:error, :invalid_role}` if the new role is not one of owner|admin|member|viewer
+    - `{:error, :last_owner_protected}` if demoting the only active owner of an org
+  """
+  @spec update_membership_role(integer(), String.t()) ::
+          {:ok, Membership.t()}
+          | {:error, :not_found | :invalid_role | :last_owner_protected | Ecto.Changeset.t()}
+  def update_membership_role(membership_id, new_role) do
+    if new_role in Map.keys(@role_rank) do
+      do_update_membership_role(membership_id, new_role)
+    else
+      {:error, :invalid_role}
+    end
+  end
+
+  defp do_update_membership_role(membership_id, new_role) do
+    case Repo.get(Membership, membership_id) do
+      nil ->
+        {:error, :not_found}
+
+      %Membership{role: "owner"} = m when new_role != "owner" ->
+        if last_active_owner?(m) do
+          {:error, :last_owner_protected}
+        else
+          m |> Membership.changeset(%{role: new_role}) |> Repo.update()
+        end
+
+      m ->
+        m |> Membership.changeset(%{role: new_role}) |> Repo.update()
+    end
+  end
+
+  defp last_active_owner?(%Membership{org_id: org_id}) do
+    count =
+      Membership
+      |> where([x], x.org_id == ^org_id and x.role == "owner" and x.status == "active")
+      |> Repo.aggregate(:count)
+
+    count <= 1
+  end
+
+  @doc "Update an Org's mutable fields (name, status, settings)."
+  @spec update_org(Org.t(), map()) :: {:ok, Org.t()} | {:error, Ecto.Changeset.t()}
+  def update_org(%Org{} = org, attrs) do
+    org
+    |> Org.changeset(attrs)
+    |> Repo.update()
   end
 
   @spec get_membership(integer()) :: Membership.t() | nil
