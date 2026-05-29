@@ -480,6 +480,12 @@ defmodule ControlKeel.Mission do
   end
 
   def list_findings, do: Repo.all(Finding)
+
+  @doc "Findings for a session, newest first."
+  @spec list_findings_for_session(integer()) :: [Finding.t()]
+  def list_findings_for_session(session_id) when is_integer(session_id) do
+    Repo.all(from(f in Finding, where: f.session_id == ^session_id, order_by: [desc: f.inserted_at]))
+  end
   def get_finding(id), do: Repo.get(Finding, id)
   def get_finding!(id), do: Repo.get!(Finding, id)
 
@@ -614,8 +620,9 @@ defmodule ControlKeel.Mission do
     |> Repo.one()
   end
 
-  def list_recent_sessions(limit \\ 6) do
+  def list_recent_sessions(limit \\ 6, workspace_id \\ nil) do
     Session
+    |> ControlKeel.Cloud.Scope.scope_workspace(workspace_id)
     |> order_by(desc: :inserted_at)
     |> preload([:workspace, :tasks, :findings])
     |> limit(^limit)
@@ -5446,6 +5453,7 @@ defmodule ControlKeel.Mission do
     |> maybe_filter_finding_metadata("disclosure_status", filters.disclosure_status)
     |> maybe_filter_finding_metadata("maintainer_scope", filters.maintainer_scope)
     |> maybe_filter_session(filters.session_id)
+    |> maybe_filter_finding_workspace(filters.workspace_id)
   end
 
   defp proof_bundles_query(filters) do
@@ -5460,6 +5468,7 @@ defmodule ControlKeel.Mission do
     |> maybe_filter_proof_task(filters.task_id)
     |> maybe_filter_proof_ready(filters.deploy_ready)
     |> maybe_filter_proof_risk(filters.risk_tier)
+    |> maybe_filter_proof_workspace(filters.workspace_id)
   end
 
   defp normalize_findings_filters(opts) do
@@ -5476,6 +5485,7 @@ defmodule ControlKeel.Mission do
       disclosure_status: normalize_filter_value(opts["disclosure_status"]),
       maintainer_scope: normalize_filter_value(opts["maintainer_scope"]),
       session_id: normalize_session_filter(opts["session_id"]),
+      workspace_id: normalize_session_filter(opts["workspace_id"]),
       page: normalize_page(opts["page"])
     }
   end
@@ -5490,6 +5500,7 @@ defmodule ControlKeel.Mission do
       task_id: normalize_session_filter(opts["task_id"]),
       deploy_ready: normalize_boolean_filter(opts["deploy_ready"]),
       risk_tier: normalize_filter_value(opts["risk_tier"]),
+      workspace_id: normalize_session_filter(opts["workspace_id"]),
       page: normalize_page(opts["page"])
     }
   end
@@ -5643,6 +5654,18 @@ defmodule ControlKeel.Mission do
 
   defp maybe_filter_session(query, session_id) do
     from([f, _s, _w] in query, where: f.session_id == ^session_id)
+  end
+
+  defp maybe_filter_finding_workspace(query, nil), do: query
+
+  defp maybe_filter_finding_workspace(query, workspace_id) do
+    from([_f, s, _w] in query, where: s.workspace_id == ^workspace_id)
+  end
+
+  defp maybe_filter_proof_workspace(query, nil), do: query
+
+  defp maybe_filter_proof_workspace(query, workspace_id) do
+    from([_proof, _task, session, _workspace] in query, where: session.workspace_id == ^workspace_id)
   end
 
   defp maybe_filter_proof_session(query, nil), do: query

@@ -27,7 +27,7 @@ defmodule ControlKeelWeb.ApiController do
   # ─── Sessions ────────────────────────────────────────────────────────────────
 
   def list_sessions(conn, _params) do
-    sessions = Mission.list_recent_sessions(50)
+    sessions = Mission.list_recent_sessions(50, current_workspace_id(conn))
     json(conn, %{sessions: Enum.map(sessions, &session_summary/1)})
   end
 
@@ -193,7 +193,7 @@ defmodule ControlKeelWeb.ApiController do
         {:error, :invalid_integer} -> 10
       end
 
-    sessions = Mission.list_recent_sessions(limit)
+    sessions = Mission.list_recent_sessions(limit, current_workspace_id(conn))
     benchmark_summary = Benchmark.benchmark_summary()
 
     json(conn, %{
@@ -309,6 +309,7 @@ defmodule ControlKeelWeb.ApiController do
         ~w(session_id severity status category finding_family patch_status disclosure_status maintainer_scope)
       )
       |> Enum.into(%{})
+      |> Map.put("workspace_id", current_workspace_id(conn))
 
     page = Mission.browse_findings(opts)
 
@@ -373,7 +374,7 @@ defmodule ControlKeelWeb.ApiController do
           })
       end
     else
-      sessions = Mission.list_recent_sessions(100)
+      sessions = Mission.list_recent_sessions(100, current_workspace_id(conn))
       total_spent = Enum.reduce(sessions, 0, fn s, acc -> acc + (s.spent_cents || 0) end)
       total_budget = Enum.reduce(sessions, 0, fn s, acc -> acc + (s.budget_cents || 0) end)
 
@@ -424,7 +425,7 @@ defmodule ControlKeelWeb.ApiController do
   end
 
   def list_proofs(conn, params) do
-    browser = Mission.browse_proof_bundles(params)
+    browser = Mission.browse_proof_bundles(Map.put(params, "workspace_id", current_workspace_id(conn)))
 
     json(conn, %{
       proofs: Enum.map(browser.entries, &proof_summary/1),
@@ -1978,6 +1979,16 @@ defmodule ControlKeelWeb.ApiController do
     case Integer.parse(to_string(value)) do
       {parsed, ""} -> parsed
       _ -> nil
+    end
+  end
+
+  defp current_workspace_id(conn) do
+    case conn.assigns[:api_auth] do
+      %{type: :service_account, service_account: %{workspace_id: ws_id}} when is_integer(ws_id) ->
+        ws_id
+
+      _ ->
+        nil
     end
   end
 

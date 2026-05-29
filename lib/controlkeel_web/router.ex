@@ -29,6 +29,10 @@ defmodule ControlKeelWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :cloud_api_auth do
+    plug ControlKeelWeb.Plugs.CloudWorkspaceKeyAuth
+  end
+
   pipeline :hosted_a2a do
     plug :accepts, ["json"]
 
@@ -222,6 +226,11 @@ defmodule ControlKeelWeb.Router do
     post "/telemetry", CloudTelemetryController, :ingest
     post "/runtime/callbacks", CloudRuntimeCallbackController, :update
     post "/workspaces/register", CloudWorkspaceController, :register
+  end
+
+  scope "/cloud/v1", ControlKeelWeb do
+    pipe_through [:cloud_telemetry_ingest, :cloud_api_auth]
+
     post "/sync/push", CloudSyncController, :push
     post "/sync/pull", CloudSyncController, :pull
   end
