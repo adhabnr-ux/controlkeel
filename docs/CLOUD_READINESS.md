@@ -40,7 +40,7 @@ This doc sequences the work to close that gap.
 | Membership-revoke broadcast | ✅ done | P2 (PubSub + LiveAuth attach_hook) |
 | Postgres parity CI lane | ✅ done | `test-postgres` job in ci.yml; ECTO_ADAPTER env var; Repo adapter configurable
 | TypeScript SDK | ✅ done | `@aryaminus/controlkeel-sdk` — typed client for all /cloud/v1 endpoints |
-| Skills/hooks cloud execution model | ⚠️ design pending | Finding #293 (P3) |
+| Skills/hooks cloud execution model | ✅ decided | `docs/cloud-execution-model.md` — hybrid (local agent + cloud state) |
 | Self-host smoke test in CI | ✅ done | `scripts/self_host_smoke.sh` + `self-host-smoke` job in ci.yml |
 
 ---
@@ -152,7 +152,7 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 | P3.1 | Postgres parity CI lane | #294 | ✅ `test-postgres` CI job with Postgres 17 service container; `ECTO_ADAPTER` env var makes Repo adapter configurable at compile time; `config/test.exs` conditional on adapter choice; full suite runs against Postgres. |
 | P3.2 | TypeScript SDK (npm: `@aryaminus/controlkeel-sdk`) | #295 | ✅ `@aryaminus/controlkeel-sdk` package: ControlKeelClient class with typed methods for all /cloud/v1 endpoints (sync, register, service-accounts, webhooks, tool-policy, policy-sets, telemetry, runtime-callbacks). Zero runtime deps. ESM+CJS dual output. Auto-retry on 429/5xx with Retry-After. |
 | P3.3 | Self-host smoke test in CI | #297 | ✅ `scripts/self_host_smoke.sh` boots `mix phx.server` with `PHX_HOST=govern.selfhost.test` against a fresh SQLite DB; asserts `/` responds, `/cloud/v1/workspaces/register` is mounted, `/cloud/v1/sync/push` requires Bearer. CI job runs after `test`. Burrito + Postgres round-trip variants deferred. |
-| P3.4 | Skills/hooks cloud-execution model decision | #293 | Architectural decision recorded in `docs/cloud-execution-model.md`: hybrid (local agent + cloud state) vs cloud sandbox per session. **Decision required before implementation.** |
+| P3.4 | Skills/hooks cloud-execution model decision | #293 | ✅ Hybrid model (local agent + cloud state) formalized in `docs/cloud-execution-model.md`. Cloud sandbox deferred. |
 | P3.5 | Rate limiting per workspace on `/cloud/v1` | new | ✅ ETS-backed token bucket per `db_workspace_id`; plug returns 429 + Retry-After. Single-node only; multi-node coordination deferred. |
 | P3.6 | Billing/usage metering integration | new | ✅ `UsageMeter` GenServer (ETS) aggregates spend per org per day; `UsageEmitter` behaviour with LogEmitter default; GET /cloud/v1/orgs/:slug/usage returns spend + budget + ratio; supervised under late_children. Stripe adapter deferred to P4. |
 
@@ -210,7 +210,7 @@ When a new gap is discovered:
 | CK-CLOUD-DB-004 (#294) | medium | P3.1 | ✅ closed |
 | CK-CLOUD-SDK-005 (#295) | medium | P3.2 | ✅ closed |
 | CK-CLOUD-SELFHOST-007 (#297) | medium | P3.3 | open |
-| CK-CLOUD-EXEC-003 (#293) | high-warn | P3.4 | open (design pending) |
+| CK-CLOUD-EXEC-003 (#293) | high-warn | P3.4 | ✅ closed — hybrid model ADR accepted |
 | CK-CLOUD-WEB-006 (#296) | medium | P4.3 | open |
 
 ---
@@ -230,7 +230,7 @@ When a new gap is discovered:
 
 These should be answered before shipping the corresponding phase.
 
-1. **P3.4 — Skills/hooks cloud-execution model.** Two options: (a) Hybrid — agent stays on user IDE; CK governance state lives in cloud; skills/hooks fire locally and emit to cloud. (b) Cloud sandbox — ephemeral container per session, repo clone, skills/hooks run server-side. Decision needed before any cloud-side execution feature ships.
+1. ~~**P3.4 — Skills/hooks cloud-execution model.**~~ ✅ Decided: hybrid model. See `docs/cloud-execution-model.md`.
 
 2. **P0.4 — IdP self-serve.** Two options: (a) Force every org to bring their own OIDC provider (config UI). (b) Ship a hosted fallback (Anthropic-managed Google/GitHub OAuth) for orgs without an IdP. (b) reduces friction but increases CK's own auth burden.
 
