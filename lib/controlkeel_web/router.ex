@@ -68,6 +68,8 @@ defmodule ControlKeelWeb.Router do
     live "/pricing", PricingLive, :index
     live "/docs", DocsLive, :index
     live "/docs/:name", DocsLive, :show
+    live "/status", StatusLive, :index
+    live "/contact", ContactLive, :index
     live "/signup", SignupLive, :new
     get "/auth/oidc/start", OidcController, :start
     get "/auth/oidc/callback", OidcController, :callback
