@@ -170,7 +170,7 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 
 | # | Item | Acceptance |
 |---|---|---|
-| P4.1 | `/pricing` LiveView | Tier pricing visible without auth |
+| P4.1 | `/pricing` LiveView | ✅ PricingLive at `/pricing` — 3 tiers (Free/Pro/Enterprise) with feature comparison. Public (no auth). CTA buttons link to signup and sales. |
 | P4.2 | `/docs` portal | Generated from `docs/*.md` |
 | P4.3 | Marketing home page (replace governance dashboard for anonymous visitors) | Anonymous visitor sees marketing copy; auth'd user sees dashboard |
 | P4.4 | Status page at status.controlkeel.com | Live uptime + incident history |

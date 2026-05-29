@@ -65,6 +65,7 @@ defmodule ControlKeelWeb.Router do
 
     # Public in all modes
     live "/auth/login", AuthLive, :index
+    live "/pricing", PricingLive, :index
     live "/signup", SignupLive, :new
     get "/auth/oidc/start", OidcController, :start
     get "/auth/oidc/callback", OidcController, :callback
