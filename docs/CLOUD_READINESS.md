@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `99dc316` (8 commits ahead of `origin/main`, none pushed)
-**Test status:** 2021 / 2021 passing
+**HEAD:** P1b implemented (9+ commits ahead of `origin/main`, none pushed)
+**Test status:** 2031 / 2031 passing
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
 
@@ -36,7 +36,7 @@ This doc sequences the work to close that gap.
 | `Mission.create_session` idempotency | ✅ done | P0.6 (partial unique index + lookup-before-insert) |
 | Org admin UI (members/roles/budget) | ✅ done | P1a (OrgMembersLive, OrgSettingsGeneralLive) |
 | GitHub repo binding UI | ✅ done | P1a (WorkspaceReposLive) |
-| Service-account / webhook UI | ❌ blocked | P1b pending |
+| Service-account / webhook / tool-policy UI | ✅ done | P1b (3 LiveViews) |
 | Membership-revoke broadcast | ⚠️ stale-session window | Finding #325 (this doc, P2) |
 | Postgres parity CI lane | ⚠️ untested | Finding #294 (P3) |
 | TypeScript SDK | ❌ missing | Finding #295 (P3) |
@@ -101,17 +101,17 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 | P1.1 | `/org/:slug/members` LiveView (list, invite, revoke, role-change) | #324 | ✅ OrgMembersLive with last-owner protection |
 | P1.2 | `/org/:slug/settings/general` (name, budget, status) | #324 | ✅ OrgSettingsGeneralLive; admin can change name, owner-only for status+budget |
 | P1.3 | `/workspaces/:id/repos` GitHub binding UI | #324 | ✅ WorkspaceReposLive with cross-org access rejection |
-| P1.4 | `/workspaces/:id/service-accounts` | #324 | ⬜ P1b pending |
-| P1.5 | `/workspaces/:id/webhooks` | #324 | ⬜ P1b pending |
-| P1.6 | `/workspaces/:id/tool-policy` | #324 | ⬜ P1b pending |
+| P1.4 | `/workspaces/:id/service-accounts` | #324 | ✅ WorkspaceServiceAccountsLive; tokens shown once at create/rotate |
+| P1.5 | `/workspaces/:id/webhooks` | #324 | ✅ WorkspaceWebhooksLive; secret shown once at create; replay button |
+| P1.6 | `/workspaces/:id/tool-policy` | #324 | ✅ WorkspaceToolPolicyLive; inherit/allowlist/denylist + tools list |
 | P1.7 | Email delivery for invitations (real mailer, not log-only) | new | ⬜ P1c pending |
-| P1.8 | Tests: every CRUD action with ownership boundary checks | — | ✅ 12 tests in p1a_org_admin_test.exs (members/settings/repos) |
+| P1.8 | Tests: every CRUD action with ownership boundary checks | — | ✅ 22 tests (12 P1a + 10 P1b) |
 
-**P1a actual scope:** 5 files (3 LiveViews + Accounts + Router), ~800-line diff. P1b and P1c still pending.
+**P1a + P1b actual scope:** 9 files (6 LiveViews + Accounts + Router), ~1700-line diff total.
 
 **Dependencies:** P0 complete (auth gate + signup live).
 
-**Status:** 🔄 P1a complete, P1b/P1c pending
+**Status:** 🔄 P1a + P1b complete, P1c (mailer) pending
 
 ---
 
@@ -196,7 +196,7 @@ When a new gap is discovered:
 | CK-CLOUD-IDP-CONFIG-003 (#321) | high | P0.4 | ✅ closed |
 | CK-CLOUD-INVITE-AUTOLOGIN-004 (#322) | high | P0.5 | ✅ closed |
 | CK-CLOUD-SESSION-DEDUP-005 (#323) | high | P0.6 | ✅ closed |
-| CK-CLOUD-ORGADMIN-UI-006 (#324) | high | P1.1–P1.3 ✅ closed via P1a; P1.4–P1.7 still open | partial |
+| CK-CLOUD-ORGADMIN-UI-006 (#324) | high | P1.1–P1.6 ✅ closed via P1a+P1b; only P1.7 (mailer) still open | mostly closed |
 | CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (#325) | medium | P2 | open |
 | CK-CLOUD-DB-004 (#294) | medium | P3.1 | open |
 | CK-CLOUD-SDK-005 (#295) | medium | P3.2 | open |

@@ -92,6 +92,9 @@ defmodule ControlKeelWeb.Router do
       live "/org/:slug/settings/auth", OrgSettingsAuthLive, :edit
       live "/org/:slug/settings/general", OrgSettingsGeneralLive, :edit
       live "/workspaces/:id/repos", WorkspaceReposLive, :index
+      live "/workspaces/:id/service-accounts", WorkspaceServiceAccountsLive, :index
+      live "/workspaces/:id/webhooks", WorkspaceWebhooksLive, :index
+      live "/workspaces/:id/tool-policy", WorkspaceToolPolicyLive, :edit
       live "/observability", ObservabilityOverviewLive, :index
       live "/observability/loop", ObservabilityLoopLive, :index
       live "/observability/benchmarks/drafts", ObservabilityBenchmarkDraftsLive, :index
