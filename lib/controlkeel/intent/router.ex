@@ -174,11 +174,8 @@ defmodule ControlKeel.Intent.Router do
 
     key_features =
       answers["first_release"]
-      |> split_list()
-      |> case do
-        [] -> plan.session.execution_brief.key_features || []
-        values -> values
-      end
+      |> to_string()
+      |> String.trim()
 
     objective =
       plan.session.execution_brief.objective ||
@@ -213,9 +210,14 @@ defmodule ControlKeel.Intent.Router do
       "data_summary" => data_summary,
       "compliance" => preflight.compliance,
       "recommended_stack" => preflight.stack_guidance,
-      "acceptance_criteria" => acceptance_from_features(key_features),
+      "acceptance_criteria" => key_features,
       "open_questions" => open_questions_from(attrs, answers),
-      "estimated_tasks" => max(length(key_features) + 2, 3),
+      "estimated_tasks" =>
+        key_features
+        |> String.split("\n", trim: true)
+        |> length()
+        |> Kernel.+(2)
+        |> max(3),
       "budget_note" =>
         present_value(answers["constraints"]) || plan.session.execution_brief.budget_note,
       "next_step" => next_step,
@@ -233,16 +235,6 @@ defmodule ControlKeel.Intent.Router do
       {:error, changeset} ->
         emit_compiler_failure(:heuristic, changeset)
         {:error, changeset}
-    end
-  end
-
-  defp acceptance_from_features(features) do
-    features
-    |> List.wrap()
-    |> Enum.map(&"The first release supports #{String.downcase(&1)} without manual patching.")
-    |> case do
-      [] -> ["The first release completes one governed workflow end to end."]
-      values -> values
     end
   end
 

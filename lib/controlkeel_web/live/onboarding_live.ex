@@ -224,6 +224,9 @@ defmodule ControlKeelWeb.OnboardingLive do
                           placeholder="e.g., Clinic Intake Portal"
                           class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
                         />
+                        <%= if error = field_error(@errors, "project_name") do %>
+                          <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                        <% end %>
                       </div>
 
                       <div class="space-y-1.5">
@@ -304,10 +307,18 @@ defmodule ControlKeelWeb.OnboardingLive do
                         </div>
                         <div>
                           <h4 class="text-xs font-semibold text-zinc-350 uppercase tracking-wider font-mono">
-                            Recommended Stack
+                            Project Name
                           </h4>
                           <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
-                            {brief["recommended_stack"]}
+                            {@attrs["project_name"]}
+                          </p>
+                        </div>
+                        <div class="md:col-span-2">
+                          <h4 class="text-xs font-semibold text-zinc-350 uppercase tracking-wider font-mono">
+                            Core Product Prompt
+                          </h4>
+                          <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
+                            {@attrs["idea"]}
                           </p>
                         </div>
                         <div>
@@ -333,11 +344,9 @@ defmodule ControlKeelWeb.OnboardingLive do
                           <h4 class="text-xs font-semibold text-lime-400 uppercase tracking-wider font-mono mb-2">
                             Acceptance criteria
                           </h4>
-                          <ul class="text-xs text-zinc-400 space-y-1.5 list-disc list-inside">
-                            <%= for item <- brief["acceptance_criteria"] || [] do %>
-                              <li>{item}</li>
-                            <% end %>
-                          </ul>
+                          <p class="text-xs text-zinc-400 leading-relaxed whitespace-pre-line">
+                            {brief["acceptance_criteria"]}
+                          </p>
                         </div>
 
                         <div class="rounded-xl border border-zinc-800 bg-zinc-900/20 p-4">
@@ -582,6 +591,11 @@ defmodule ControlKeelWeb.OnboardingLive do
   defp validate_step(2, attrs, _questions) do
     errors =
       %{}
+      |> maybe_error(
+        "project_name",
+        blank?(attrs["project_name"]),
+        "Give the project a name."
+      )
       |> maybe_error(
         "idea",
         short_text?(attrs["idea"], 12),
