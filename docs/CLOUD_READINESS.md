@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** P2 implemented (22+ commits ahead of `origin/main`, none pushed)
+**HEAD:** `189a527` (22 commits ahead of `origin/main`, none pushed)
 **Test status:** 2065 / 2065 passing
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
@@ -65,6 +65,7 @@ Commits in chronological order. Each closed at least one critical finding.
 | `99dc316` | P1a org admin UI: OrgMembersLive, OrgSettingsGeneralLive, WorkspaceReposLive + Accounts.update_membership_role/update_org with last-owner protection | CK-CLOUD-ORGADMIN-UI-006 (P1.1, P1.2, P1.3) |
 | `adfbc08` | P1b workspace admin UI: WorkspaceServiceAccountsLive, WorkspaceWebhooksLive, WorkspaceToolPolicyLive | CK-CLOUD-ORGADMIN-UI-006 (P1.4, P1.5, P1.6) |
 | `57db1cf` | P1c Mailer module (log + test adapters) wired into OrgMembersLive | P1.7 |
+| `189a527` | P2 real-time membership eviction (PubSub broadcast + LiveAuth attach_hook) | CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (P2.1, P2.2) |
 
 ---
 
