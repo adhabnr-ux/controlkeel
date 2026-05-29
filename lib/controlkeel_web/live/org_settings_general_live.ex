@@ -96,6 +96,16 @@ defmodule ControlKeelWeb.OrgSettingsGeneralLive do
   end
 
   @impl true
+  def handle_event("sign_out_everywhere", _params, socket) do
+    if socket.assigns[:current_user] do
+      Accounts.sign_out_everywhere(socket.assigns.current_user.id)
+      {:noreply, put_flash(socket, :info, "All other sessions have been signed out.")}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
@@ -167,6 +177,23 @@ defmodule ControlKeelWeb.OrgSettingsGeneralLive do
 
           <button type="submit" class="ck-btn ck-btn-primary self-start">Save</button>
         </.form>
+
+        <%= if @is_owner do %>
+          <div class="ck-card mt-8">
+            <h2 class="text-lg font-semibold text-zinc-100 mb-2">Security</h2>
+            <p class="text-sm text-zinc-400 mb-4">
+              Sign out from all active browser sessions. You will stay signed in on this device.
+            </p>
+            <button
+              type="button"
+              phx-click="sign_out_everywhere"
+              data-confirm="This will sign out all other active sessions. Continue?"
+              class="ck-btn ck-btn-secondary"
+            >
+              Sign out everywhere
+            </button>
+          </div>
+        <% end %>
       </section>
     </Layouts.app>
     """

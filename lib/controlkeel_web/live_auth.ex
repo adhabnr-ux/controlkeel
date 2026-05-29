@@ -58,10 +58,10 @@ defmodule ControlKeelWeb.LiveAuth do
 
   defp attach_membership_eviction(socket) do
     if connected?(socket) and socket.assigns[:current_user] do
-      Phoenix.PubSub.subscribe(
-        ControlKeel.PubSub,
-        Accounts.membership_topic(socket.assigns.current_user.id)
-      )
+      uid = socket.assigns.current_user.id
+
+      Phoenix.PubSub.subscribe(ControlKeel.PubSub, Accounts.membership_topic(uid))
+      Phoenix.PubSub.subscribe(ControlKeel.PubSub, Accounts.signout_topic(uid))
 
       attach_hook(socket, :ck_membership_eviction, :handle_info, &handle_membership_event/2)
     else
@@ -87,6 +87,13 @@ defmodule ControlKeelWeb.LiveAuth do
     {:halt,
      socket
      |> put_flash(:info, "Your role changed. Please sign in again to refresh.")
+     |> push_navigate(to: "/auth/login")}
+  end
+
+  defp handle_membership_event(:sign_out_everywhere, %{assigns: %{current_user: _user}} = socket) do
+    {:halt,
+     socket
+     |> put_flash(:info, "You have been signed out from all sessions.")
      |> push_navigate(to: "/auth/login")}
   end
 
@@ -119,10 +126,62 @@ defmodule ControlKeelWeb.LiveAuth do
           if user && is_integer(org_id),
             do: Accounts.get_active_membership(user.id, org_id)
 
-        socket
-        |> assign(:current_user, user)
-        |> assign(:current_org_id, org_id)
-        |> assign(:current_membership, membership)
+        # Session idle timeout — check last_active timestamp from session.
+        # When idle exceeds the configured threshold, redirect to login.
+        # A timeout of 0 (default) disables the idle check entirely.
+        last_active =
+          Map.get(session, "session_last_active") ||
+            Map.get(session, :session_last_active)
+
+        socket =
+          socket
+          |> assign(:current_user, user)
+          |> assign(:current_org_id, org_id)
+          |> assign(:current_membership, membership)
+          |> assign(:session_last_active, parse_timestamp(last_active))
+
+        check_session_idle(socket)
     end
   end
+
+  # ── Session idle timeout ──────────────────────────────────────────
+
+  defp check_session_idle(%{assigns: %{current_user: nil}} = socket), do: socket
+
+  defp check_session_idle(socket) do
+    timeout = session_idle_timeout()
+
+    if timeout > 0 do
+      last = socket.assigns[:session_last_active] || DateTime.utc_now()
+      diff = DateTime.diff(DateTime.utc_now(), last, :second)
+
+      if diff > timeout do
+        socket
+        |> put_flash(:info, "Session expired. Please sign in again.")
+        |> push_navigate(to: "/auth/login")
+      else
+        socket
+      end
+    else
+      socket
+    end
+  end
+
+  defp session_idle_timeout do
+    case System.get_env("SESSION_IDLE_TIMEOUT_SECONDS", "0") do
+      "" -> 0
+      s -> String.to_integer(s)
+    end
+  end
+
+  defp parse_timestamp(nil), do: nil
+
+  defp parse_timestamp(binary) when is_binary(binary) do
+    case DateTime.from_iso8601(binary) do
+      {:ok, dt, _offset} -> dt
+      _ -> nil
+    end
+  end
+
+  defp parse_timestamp(other), do: other
 end

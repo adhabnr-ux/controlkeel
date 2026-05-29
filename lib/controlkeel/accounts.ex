@@ -305,6 +305,24 @@ defmodule ControlKeel.Accounts do
   @spec membership_topic(integer()) :: String.t()
   def membership_topic(user_id) when is_integer(user_id), do: "membership:user:#{user_id}"
 
+  @doc """
+  PubSub topic for sign-out-everywhere broadcasts targeting a specific user.
+  When triggered, all connected LiveViews for that user redirect to /auth/login.
+  """
+  @spec signout_topic(integer()) :: String.t()
+  def signout_topic(user_id) when is_integer(user_id), do: "signout:user:#{user_id}"
+
+  @doc """
+  Broadcast a sign-out-everywhere event to all connected LiveViews for the
+  given user. Used from the org settings "Sign out everywhere" button and can
+  also be called from a future security incident response flow.
+  """
+  @spec sign_out_everywhere(integer()) :: :ok
+  def sign_out_everywhere(user_id) when is_integer(user_id) do
+    Phoenix.PubSub.broadcast(ControlKeel.PubSub, signout_topic(user_id), :sign_out_everywhere)
+    :ok
+  end
+
   defp broadcast_membership_change(%Membership{user_id: user_id} = m)
        when is_integer(user_id) do
     Phoenix.PubSub.broadcast(

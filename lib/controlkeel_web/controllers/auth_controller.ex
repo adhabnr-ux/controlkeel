@@ -33,6 +33,7 @@ defmodule ControlKeelWeb.AuthController do
     |> delete_session(:current_org_id)
     |> delete_session(:oidc_state)
     |> delete_session(:oidc_org_id)
+    |> delete_session(:session_last_active)
     |> put_flash(:info, "Signed out")
     |> redirect(to: ~p"/")
   end
@@ -68,6 +69,7 @@ defmodule ControlKeelWeb.AuthController do
         conn
         |> put_session(:current_user_id, user_id)
         |> put_session(:current_org_id, org_id)
+        |> put_session(:session_last_active, DateTime.utc_now() |> DateTime.to_iso8601())
         |> put_flash(:info, "Welcome to ControlKeel.")
         |> redirect(to: ~p"/cloud/projects")
 
