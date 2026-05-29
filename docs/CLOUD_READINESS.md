@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `2e7fc75` (48 commits ahead of `origin/main`, none pushed)
-**Test status:** 2113 / 2113 passing + self-host smoke script + TypeScript SDK typecheck
+**HEAD:** `964262d` (43 commits ahead of `origin/main`, none pushed)
+**Test status:** 2135 / 2135 passing + self-host smoke script + TypeScript SDK typecheck
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
 
@@ -72,6 +72,13 @@ Commits in chronological order. Each closed at least one critical finding.
 | `e620b5f` | P3.2 TypeScript SDK (@aryaminus/controlkeel-sdk) | CK-CLOUD-SDK-005 (#295) |
 | `2e8b36a` | P3.6 per-org usage metering (UsageMeter + UsageEmitter + API) | P3.6 |
 | `7a0204e` | P2b session timeout + sign-out-everywhere | P2.3, P2.4 |
+| `0d12113` | P3.4 cloud-execution model ADR (hybrid local-agent + cloud-state model) | CK-CLOUD-EXEC-003 (#293) |
+| `beaa5ca` | P4.1 pricing page at `/pricing` | P4.1 |
+| `80b2e69` | P4.2 docs portal at `/docs` | P4.2 |
+| `a430244` | P4.3 marketing home page for anonymous cloud visitors | CK-CLOUD-WEB-006 (#296) |
+| `a4b5f20` | P4.4 status page + P4.5 contact form | P4.4, P4.5 |
+| `2e7fc75` | Final P0–P4 completion tracker update | tracker |
+| `964262d` | Close remaining finding rows and marketing posture question | tracker |
 
 ---
 
@@ -174,7 +181,7 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 |---|---|---|
 | P4.1 | `/pricing` LiveView | ✅ PricingLive at `/pricing` — 3 tiers (Free/Pro/Enterprise) with feature comparison. Public (no auth). CTA buttons link to signup and sales. |
 | P4.2 | `/docs` portal | ✅ DocsLive index at `/docs` + individual pages at `/docs/:name`. Reads from `docs/` dir, renders markdown via Earmark. Public (no auth). Hides internal docs. |
-| P4.3 | Marketing home page (replace governance dashboard for anonymous visitors) | Anonymous visitor sees marketing copy; auth'd user sees dashboard |
+| P4.3 | Marketing home page (replace governance dashboard for anonymous visitors) | ✅ Anonymous cloud visitors see hero + features + how-it-works + CTA. Auth'd users see dashboard. Conditional in home.html.heex. |
 | P4.4 | Status page at status.controlkeel.com | ✅ StatusLive at /status shows DB + PubSub health checks + incident history placeholder. Public (no auth). |
 | P4.5 | Support email / contact form | ✅ ContactLive at /contact with name/email/message form. Delivers via Mailer.deliver/1 to support@controlkeel.com. Public (no auth). |
 

@@ -325,7 +325,17 @@ defmodule ControlKeel.CLI.RunCloudAgentTest do
   end
 
   defp make_git_repo do
-    tmp = Path.join(System.tmp_dir!(), "ck-git-#{System.unique_integer([:positive])}")
+    suffix =
+      :crypto.strong_rand_bytes(8)
+      |> Base.url_encode64(padding: false)
+
+    tmp =
+      Path.join(
+        System.tmp_dir!(),
+        "ck-git-#{System.unique_integer([:positive, :monotonic])}-#{suffix}"
+      )
+
+    File.rm_rf!(tmp)
     File.mkdir_p!(tmp)
     {_, 0} = System.cmd("git", ["init", "-q", "-b", "main"], cd: tmp, stderr_to_stdout: true)
 

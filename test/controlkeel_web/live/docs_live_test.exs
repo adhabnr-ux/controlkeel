@@ -15,11 +15,16 @@ defmodule ControlKeelWeb.DocsLiveTest do
       assert html =~ "Getting Started"
     end
 
-    test "hides internal docs", %{conn: conn} do
+    test "hides internal docs from the index", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/docs")
       refute html =~ "CLOUD_READINESS"
       refute html =~ "cloud-parity-matrix"
       refute html =~ "TOKEN_OPTIMIZATION_GUIDE"
+    end
+
+    test "blocks direct access to hidden docs", %{conn: conn} do
+      conn = get(conn, ~p"/docs/CLOUD_READINESS")
+      refute conn.resp_body =~ "Cloud Readiness Tracker"
     end
   end
 

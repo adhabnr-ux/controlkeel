@@ -1,5 +1,5 @@
 defmodule ControlKeelWeb.P4StatusContactTest do
-  use ControlKeelWeb.ConnCase, async: true
+  use ControlKeelWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
 
@@ -37,6 +37,12 @@ defmodule ControlKeelWeb.P4StatusContactTest do
     test "submits contact form and sends email", %{conn: conn} do
       original = Application.get_env(:controlkeel, :mailer_adapter)
       Application.put_env(:controlkeel, :mailer_adapter, :test)
+      ControlKeel.Mailer.TestInbox.clear()
+
+      on_exit(fn ->
+        ControlKeel.Mailer.TestInbox.clear()
+        Application.put_env(:controlkeel, :mailer_adapter, original)
+      end)
 
       {:ok, view, _html} = live(conn, ~p"/contact")
 
@@ -55,9 +61,8 @@ defmodule ControlKeelWeb.P4StatusContactTest do
 
       # Verify email was delivered to TestInbox
       assert [{:generic, %{to: "support@controlkeel.com"}, _ts}] =
-               ControlKeel.Mailer.TestInbox.all() |> Enum.filter(fn {k, _, _} -> k == :generic end)
-
-      Application.put_env(:controlkeel, :mailer_adapter, original)
+               ControlKeel.Mailer.TestInbox.all()
+               |> Enum.filter(fn {k, _, _} -> k == :generic end)
     end
   end
 end

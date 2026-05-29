@@ -4,8 +4,9 @@ defmodule ControlKeelWeb.Plugs.CloudWorkspaceKeyAuth do
   Bearer token.
 
   On success assigns:
-    - `:cloud_workspace_id` — the string UUID from the token claims
-    - `:db_workspace_id`    — the integer Mission.Workspace.id from WorkspaceKeyRegistry
+    - `:cloud_workspace_id`    — the string UUID from the token claims
+    - `:db_workspace_id`       — the integer Mission.Workspace.id from WorkspaceKeyRegistry
+    - `:db_workspace_org_id`   — the owning org id when available
 
   Returns 401 on missing/invalid Bearer, 404 when the workspace_id has no
   enrolled key mapping on this node.
@@ -18,6 +19,8 @@ defmodule ControlKeelWeb.Plugs.CloudWorkspaceKeyAuth do
 
   alias ControlKeel.Cloud.AuthToken
   alias ControlKeel.Cloud.WorkspaceKeyRegistry
+  alias ControlKeel.Mission.Workspace
+  alias ControlKeel.Repo
 
   def init(opts), do: opts
 
@@ -25,11 +28,15 @@ defmodule ControlKeelWeb.Plugs.CloudWorkspaceKeyAuth do
     with [bearer] <- get_req_header(conn, "authorization"),
          "Bearer " <> token <- bearer,
          {:ok, %{workspace_id: ws_id}} <- AuthToken.verify(token),
-         {:ok, %{mission_workspace_id: db_id}} <- WorkspaceKeyRegistry.fetch(ws_id),
+         {:ok, key} <- WorkspaceKeyRegistry.fetch(ws_id),
+         %{mission_workspace_id: db_id} <- key,
          true <- is_integer(db_id) do
+      org_id = key.org_id || workspace_org_id(db_id)
+
       conn
       |> assign(:cloud_workspace_id, ws_id)
       |> assign(:db_workspace_id, db_id)
+      |> assign(:db_workspace_org_id, org_id)
     else
       {:error, :not_found} ->
         conn
@@ -42,6 +49,13 @@ defmodule ControlKeelWeb.Plugs.CloudWorkspaceKeyAuth do
         |> put_status(:unauthorized)
         |> Phoenix.Controller.json(%{error: "unauthorized"})
         |> halt()
+    end
+  end
+
+  defp workspace_org_id(db_id) when is_integer(db_id) do
+    case Repo.get(Workspace, db_id) do
+      %Workspace{org_id: org_id} -> org_id
+      nil -> nil
     end
   end
 end

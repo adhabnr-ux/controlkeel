@@ -15,9 +15,9 @@ defmodule ControlKeelWeb.DocsLive do
   @hidden_docs ~w(CLOUD_READINESS.md cloud-parity-matrix.md cloud-enterprise-roadmap.md cloud-execution-model.md TOKEN_OPTIMIZATION_GUIDE.md ADAPTIVE_TOOL_GROUPS.md agent-support-prd.md agent-support-requirements.md)
 
   defp docs_dir do
+    # In dev/test, the docs/ dir is at the project root.
+    # Walk up from the app priv dir to find it.
     @docs_dir_static ||
-      # In dev/test, the docs/ dir is at the project root.
-      # Walk up from the app priv dir to find it.
       [
         # Project root (dev + test)
         Path.join(File.cwd!(), "docs"),
@@ -25,9 +25,7 @@ defmodule ControlKeelWeb.DocsLive do
         Path.join([Application.app_dir(:controlkeel), "..", "..", "..", "..", "docs"])
       ]
       |> Enum.find(&File.dir?/1)
-      |> Kernel.||(
-        raise "docs/ directory not found. Set :docs_dir in config."
-      )
+      |> Kernel.||(raise "docs/ directory not found. Set :docs_dir in config.")
   end
 
   @impl true
@@ -52,7 +50,11 @@ defmodule ControlKeelWeb.DocsLive do
 
   def mount(_params, _session, socket) do
     docs = list_docs()
-    {:ok, assign(socket, :page_title, "Docs — ControlKeel") |> assign(:docs, docs) |> assign(:live_action, :index)}
+
+    {:ok,
+     assign(socket, :page_title, "Docs — ControlKeel")
+     |> assign(:docs, docs)
+     |> assign(:live_action, :index)}
   end
 
   @impl true
@@ -60,12 +62,15 @@ defmodule ControlKeelWeb.DocsLive do
     ~H"""
     <Layouts.app flash={@flash}>
       <section class="ck-shell" style="max-width: 800px; margin: 2rem auto;">
-        <.link navigate={~p"/docs"} class="text-sm text-indigo-400 hover:text-indigo-300 mb-4 inline-block">
+        <.link
+          navigate={~p"/docs"}
+          class="text-sm text-indigo-400 hover:text-indigo-300 mb-4 inline-block"
+        >
           ← All docs
         </.link>
         <h1 class="text-3xl font-bold text-white mb-8">{@doc_title}</h1>
         <div class="prose prose-invert max-w-none">
-          <%= Phoenix.HTML.raw(@doc_html) %>
+          {Phoenix.HTML.raw(@doc_html)}
         </div>
       </section>
     </Layouts.app>
@@ -112,20 +117,27 @@ defmodule ControlKeelWeb.DocsLive do
   end
 
   defp read_doc(name) do
-    # Sanitize: only allow alphanumeric, hyphens, underscores
-    if Regex.match?(~r/^[a-zA-Z0-9_-]+$/, name) do
-      path = Path.join(docs_dir(), "#{name}.md")
+    filename = "#{name}.md"
 
-      if File.exists?(path) do
-        content = File.read!(path)
-        title = doc_title(name)
-        {:ok, html, _messages} = Earmark.as_html(content)
-        {:ok, title, html}
-      else
+    cond do
+      # Sanitize: only allow alphanumeric, hyphens, underscores.
+      not Regex.match?(~r/^[a-zA-Z0-9_-]+$/, name) ->
         :not_found
-      end
-    else
-      :not_found
+
+      filename in @hidden_docs ->
+        :not_found
+
+      true ->
+        path = Path.join(docs_dir(), filename)
+
+        if File.exists?(path) do
+          content = File.read!(path)
+          title = doc_title(name)
+          {:ok, html, _messages} = Earmark.as_html(content)
+          {:ok, title, html}
+        else
+          :not_found
+        end
     end
   end
 

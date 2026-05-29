@@ -1,9 +1,23 @@
 defmodule ControlKeelWeb.P2bSessionTest do
-  use ControlKeelWeb.ConnCase, async: true
+  use ControlKeelWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
 
   alias ControlKeel.{Accounts, Repo}
+
+  setup do
+    previous_timeout = System.get_env("SESSION_IDLE_TIMEOUT_SECONDS")
+
+    on_exit(fn ->
+      if previous_timeout do
+        System.put_env("SESSION_IDLE_TIMEOUT_SECONDS", previous_timeout)
+      else
+        System.delete_env("SESSION_IDLE_TIMEOUT_SECONDS")
+      end
+    end)
+
+    :ok
+  end
 
   # ── Accounts.sign_out_everywhere/1 ──────────────────────────────────
 
@@ -65,6 +79,51 @@ defmodule ControlKeelWeb.P2bSessionTest do
 
       assert Plug.Conn.get_session(conn, :session_last_active) == nil
       assert Plug.Conn.get_session(conn, :current_user_id) == nil
+    end
+  end
+
+  describe "LoadCurrentUser sliding idle timeout" do
+    test "clears stale sessions before loading assigns", %{conn: conn} do
+      System.put_env("SESSION_IDLE_TIMEOUT_SECONDS", "1")
+      org = insert_org()
+      user = insert_user()
+      insert_active_membership(user.id, org.id, "owner")
+      stale = DateTime.utc_now() |> DateTime.add(-60, :second) |> DateTime.to_iso8601()
+
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{
+          current_user_id: user.id,
+          current_org_id: org.id,
+          session_last_active: stale
+        })
+        |> ControlKeelWeb.Plugs.LoadCurrentUser.call([])
+
+      assert conn.assigns.current_user == nil
+      assert Plug.Conn.get_session(conn, :current_user_id) == nil
+      assert Plug.Conn.get_session(conn, :session_last_active) == nil
+    end
+
+    test "refreshes session_last_active for active sessions", %{conn: conn} do
+      System.put_env("SESSION_IDLE_TIMEOUT_SECONDS", "3600")
+      org = insert_org()
+      user = insert_user()
+      insert_active_membership(user.id, org.id, "owner")
+      prior = DateTime.utc_now() |> DateTime.add(-60, :second) |> DateTime.to_iso8601()
+
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{
+          current_user_id: user.id,
+          current_org_id: org.id,
+          session_last_active: prior
+        })
+        |> ControlKeelWeb.Plugs.LoadCurrentUser.call([])
+
+      refreshed = Plug.Conn.get_session(conn, :session_last_active)
+      assert refreshed != prior
+      assert {:ok, _dt, _offset} = DateTime.from_iso8601(refreshed)
+      assert conn.assigns.current_user.id == user.id
     end
   end
 
