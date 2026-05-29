@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `88d142f` (40 commits ahead of `origin/main`, none pushed)
-**Test status:** 2088 / 2088 passing + self-host smoke script + TypeScript SDK typecheck
+**HEAD:** `a4b5f20` (48 commits ahead of `origin/main`, none pushed)
+**Test status:** 2113 / 2113 passing + self-host smoke script + TypeScript SDK typecheck
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
 
@@ -167,6 +167,8 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 ### P4 — Polish, docs, growth
 
 **Outcome:** controlkeel.com is a complete commercial product.
+
+**Status:** ✅ P4 fully complete (P4.1–P4.5).
 
 | # | Item | Acceptance |
 |---|---|---|
