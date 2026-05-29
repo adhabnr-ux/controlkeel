@@ -22,10 +22,22 @@ defmodule ControlKeelWeb.OrgSettingsGeneralLive do
 
         cond do
           is_nil(membership) or membership.org_id != org.id ->
-            {:ok, redirect_with_flash(socket, :error, "You're not a member of that organization.", ~p"/cloud/projects")}
+            {:ok,
+             redirect_with_flash(
+               socket,
+               :error,
+               "You're not a member of that organization.",
+               ~p"/cloud/projects"
+             )}
 
           not Accounts.role_at_least?(membership.role, "admin") ->
-            {:ok, redirect_with_flash(socket, :error, "Admin or owner role required.", ~p"/cloud/projects")}
+            {:ok,
+             redirect_with_flash(
+               socket,
+               :error,
+               "Admin or owner role required.",
+               ~p"/cloud/projects"
+             )}
 
           true ->
             budget_cents = Accounts.org_budget_cents(org) || 0
@@ -35,11 +47,17 @@ defmodule ControlKeelWeb.OrgSettingsGeneralLive do
              |> assign(:page_title, "Settings — #{org.name}")
              |> assign(:org, org)
              |> assign(:is_owner, membership.role == "owner")
-             |> assign(:form, to_form(%{
-               "name" => org.name,
-               "status" => org.status,
-               "budget_cents" => Integer.to_string(budget_cents)
-             }, as: :settings))
+             |> assign(
+               :form,
+               to_form(
+                 %{
+                   "name" => org.name,
+                   "status" => org.status,
+                   "budget_cents" => Integer.to_string(budget_cents)
+                 },
+                 as: :settings
+               )
+             )
              |> assign(:saved, false)
              |> assign(:error, nil)}
         end
@@ -91,19 +109,31 @@ defmodule ControlKeelWeb.OrgSettingsGeneralLive do
             </p>
           </div>
           <div>
-            <.link navigate={~p"/org/#{@org.slug}/members"} class="ck-btn ck-btn-secondary">Members</.link>
+            <.link navigate={~p"/org/#{@org.slug}/members"} class="ck-btn ck-btn-secondary">
+              Members
+            </.link>
           </div>
         </div>
 
         <.form for={@form} phx-submit="submit" class="ck-card mt-6 flex flex-col gap-4">
           <div>
             <label class="block text-sm font-medium text-zinc-300 mb-1">Organization name</label>
-            <input type="text" name="settings[name]" value={@form[:name].value} required class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+            <input
+              type="text"
+              name="settings[name]"
+              value={@form[:name].value}
+              required
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            />
           </div>
 
           <div>
             <label class="block text-sm font-medium text-zinc-300 mb-1">Status</label>
-            <select name="settings[status]" disabled={not @is_owner} class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white">
+            <select
+              name="settings[status]"
+              disabled={not @is_owner}
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            >
               <option value="active" selected={@form[:status].value == "active"}>active</option>
               <option value="disabled" selected={@form[:status].value == "disabled"}>disabled</option>
             </select>
@@ -114,7 +144,14 @@ defmodule ControlKeelWeb.OrgSettingsGeneralLive do
 
           <div>
             <label class="block text-sm font-medium text-zinc-300 mb-1">Monthly budget (cents)</label>
-            <input type="number" name="settings[budget_cents]" value={@form[:budget_cents].value || "0"} min="0" disabled={not @is_owner} class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+            <input
+              type="number"
+              name="settings[budget_cents]"
+              value={@form[:budget_cents].value || "0"}
+              min="0"
+              disabled={not @is_owner}
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            />
             <%= unless @is_owner do %>
               <p class="mt-1 text-xs text-zinc-500">Only owners can change budget.</p>
             <% end %>
@@ -139,7 +176,9 @@ defmodule ControlKeelWeb.OrgSettingsGeneralLive do
 
   defp maybe_add_owner_field(attrs, _key, _value, false), do: attrs
   defp maybe_add_owner_field(attrs, _key, nil, _is_owner), do: attrs
-  defp maybe_add_owner_field(attrs, key, value, true), do: Map.put(attrs, String.to_existing_atom(key), value)
+
+  defp maybe_add_owner_field(attrs, key, value, true),
+    do: Map.put(attrs, String.to_existing_atom(key), value)
 
   defp maybe_set_budget(org, _value, false), do: {:ok, org}
   defp maybe_set_budget(org, nil, _), do: {:ok, org}

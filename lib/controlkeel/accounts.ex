@@ -210,7 +210,8 @@ defmodule ControlKeel.Accounts do
   end
 
   @spec revoke_membership(integer()) ::
-          {:ok, Membership.t()} | {:error, :not_found | :last_owner_protected | Ecto.Changeset.t()}
+          {:ok, Membership.t()}
+          | {:error, :not_found | :last_owner_protected | Ecto.Changeset.t()}
   def revoke_membership(membership_id) do
     case Repo.get(Membership, membership_id) do
       nil ->

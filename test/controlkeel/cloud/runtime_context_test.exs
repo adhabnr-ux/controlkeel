@@ -187,6 +187,7 @@ defmodule ControlKeel.Cloud.RuntimeContextTest do
       refute RunPackage.terminal?(%RunPackage{status: "dispatched"})
     end
   end
+
   describe "tenant isolation for scoped lookups" do
     test "get_by_external_id/2 returns nil for different workspace" do
       ws_a = insert_workspace("rt-iso-a")

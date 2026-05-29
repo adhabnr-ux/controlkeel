@@ -44,8 +44,14 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
 
   test "shows session budgets when sessions exist", %{conn: conn, org: org} do
     ws = workspace_fixture(%{org_id: org.id})
+
     _session =
-      session_fixture(%{workspace: ws, title: "Budget Session", budget_cents: 10_000, spent_cents: 2_500})
+      session_fixture(%{
+        workspace: ws,
+        title: "Budget Session",
+        budget_cents: 10_000,
+        spent_cents: 2_500
+      })
 
     {:ok, _view, html} = live(conn, ~p"/policies")
 

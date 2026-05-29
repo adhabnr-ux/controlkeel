@@ -77,7 +77,14 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   end
 
   defp empty_workspace_params do
-    %{"name" => "", "slug" => "", "industry" => "software", "agent" => "claude-code", "budget_cents" => "10000", "compliance_profile" => "baseline"}
+    %{
+      "name" => "",
+      "slug" => "",
+      "industry" => "software",
+      "agent" => "claude-code",
+      "budget_cents" => "10000",
+      "compliance_profile" => "baseline"
+    }
   end
 
   defp mount_show(%{"ws_id" => ws_id}, socket) do
@@ -174,7 +181,8 @@ defmodule ControlKeelWeb.CloudProjectsLive do
         {:noreply, assign(socket, :create_error, "You must be signed in.")}
 
       not Accounts.role_at_least?(socket.assigns.current_membership.role, "admin") ->
-        {:noreply, assign(socket, :create_error, "Admin or owner role required to create workspaces.")}
+        {:noreply,
+         assign(socket, :create_error, "Admin or owner role required to create workspaces.")}
 
       true ->
         attrs = normalize_workspace_attrs(params, socket.assigns.current_org_id)
@@ -519,7 +527,9 @@ defmodule ControlKeelWeb.CloudProjectsLive do
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">Monthly budget (cents)</label>
+                <label class="block text-sm font-medium text-zinc-300 mb-1">
+                  Monthly budget (cents)
+                </label>
                 <input
                   type="number"
                   name="workspace[budget_cents]"
@@ -543,7 +553,13 @@ defmodule ControlKeelWeb.CloudProjectsLive do
             <% end %>
             <div class="flex gap-2">
               <button type="submit" class="ck-btn ck-btn-primary">Create workspace</button>
-              <button type="button" phx-click="toggle-create-workspace" class="ck-btn ck-btn-secondary">Cancel</button>
+              <button
+                type="button"
+                phx-click="toggle-create-workspace"
+                class="ck-btn ck-btn-secondary"
+              >
+                Cancel
+              </button>
             </div>
           </.form>
         <% else %>

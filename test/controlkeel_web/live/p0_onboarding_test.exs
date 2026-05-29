@@ -24,19 +24,22 @@ defmodule ControlKeelWeb.P0OnboardingTest do
   end
 
   describe "P0.2 — SignupLive (/signup) in cloud mode" do
-    test "submitting the form creates Org + User + active owner Membership and redirects to /auth/complete/:token", %{conn: conn} do
+    test "submitting the form creates Org + User + active owner Membership and redirects to /auth/complete/:token",
+         %{conn: conn} do
       {:ok, lv, _html} = live(conn, ~p"/signup")
 
       slug = "acme-#{System.unique_integer([:positive])}"
 
       result =
         lv
-        |> form("form", signup: %{
-          email: "founder@acme.test",
-          name: "Founder",
-          org_name: "Acme",
-          org_slug: slug
-        })
+        |> form("form",
+          signup: %{
+            email: "founder@acme.test",
+            name: "Founder",
+            org_name: "Acme",
+            org_slug: slug
+          }
+        )
         |> render_submit()
 
       # LiveView redirects to /auth/complete/<signed-token>.
@@ -64,12 +67,14 @@ defmodule ControlKeelWeb.P0OnboardingTest do
 
       html =
         lv
-        |> form("form", signup: %{
-          email: "exists@acme.test",
-          name: "Dup",
-          org_name: "Dup Org",
-          org_slug: slug
-        })
+        |> form("form",
+          signup: %{
+            email: "exists@acme.test",
+            name: "Dup",
+            org_name: "Dup Org",
+            org_slug: slug
+          }
+        )
         |> render_submit()
 
       assert html =~ "already exists"
@@ -79,14 +84,20 @@ defmodule ControlKeelWeb.P0OnboardingTest do
 
   describe "P0.5 — Invitation auto-login" do
     setup do
-      {:ok, org} = Accounts.create_org(%{name: "Inviting Co", slug: "inviting-co-#{System.unique_integer([:positive])}"})
+      {:ok, org} =
+        Accounts.create_org(%{
+          name: "Inviting Co",
+          slug: "inviting-co-#{System.unique_integer([:positive])}"
+        })
+
       {:ok, user} = Accounts.create_user(%{email: "invited@acme.test"})
       {:ok, _m, raw_token} = Accounts.invite_member(user.id, org.id)
 
       {:ok, org: org, user: user, raw_token: raw_token}
     end
 
-    test "accept invitation redirects to /auth/complete/:token instead of dwelling on :accepted state", %{conn: conn, raw_token: token} do
+    test "accept invitation redirects to /auth/complete/:token instead of dwelling on :accepted state",
+         %{conn: conn, raw_token: token} do
       {:ok, lv, _html} = live(conn, ~p"/cloud/invitations/#{token}")
 
       result =
@@ -101,7 +112,12 @@ defmodule ControlKeelWeb.P0OnboardingTest do
 
   describe "P0 — AuthController.complete sets session and redirects" do
     test "verifies signed token and lands on /cloud/projects", %{conn: conn} do
-      {:ok, org} = Accounts.create_org(%{name: "Complete Co", slug: "complete-co-#{System.unique_integer([:positive])}"})
+      {:ok, org} =
+        Accounts.create_org(%{
+          name: "Complete Co",
+          slug: "complete-co-#{System.unique_integer([:positive])}"
+        })
+
       {:ok, user} = Accounts.create_user(%{email: "complete@acme.test"})
 
       token = AuthController.sign_completion_token(user.id, org.id)
@@ -121,7 +137,12 @@ defmodule ControlKeelWeb.P0OnboardingTest do
 
   describe "P0.4 — OrgSettingsAuthLive IdP config" do
     setup do
-      {:ok, org} = Accounts.create_org(%{name: "IdP Co", slug: "idp-co-#{System.unique_integer([:positive])}"})
+      {:ok, org} =
+        Accounts.create_org(%{
+          name: "IdP Co",
+          slug: "idp-co-#{System.unique_integer([:positive])}"
+        })
+
       {:ok, user} = Accounts.create_user(%{email: "idpadmin@acme.test"})
 
       {:ok, _m} =
@@ -138,7 +159,11 @@ defmodule ControlKeelWeb.P0OnboardingTest do
       {:ok, org: org, user: user}
     end
 
-    test "submitting OIDC config round-trips through set_org_identity_provider", %{conn: conn, org: org, user: user} do
+    test "submitting OIDC config round-trips through set_org_identity_provider", %{
+      conn: conn,
+      org: org,
+      user: user
+    } do
       conn =
         conn
         |> Plug.Test.init_test_session(%{})
@@ -149,12 +174,14 @@ defmodule ControlKeelWeb.P0OnboardingTest do
 
       _html =
         lv
-        |> form("form", idp: %{
-          type: "oidc",
-          issuer: "https://accounts.google.com",
-          client_id: "test-client-id-123",
-          client_secret: "test-secret-xyz"
-        })
+        |> form("form",
+          idp: %{
+            type: "oidc",
+            issuer: "https://accounts.google.com",
+            client_id: "test-client-id-123",
+            client_secret: "test-secret-xyz"
+          }
+        )
         |> render_submit()
 
       idp = Accounts.get_org_identity_provider(org.id)
@@ -204,7 +231,9 @@ defmodule ControlKeelWeb.P0OnboardingTest do
       {:ok, workspace: workspace}
     end
 
-    test "creating a session twice with the same external_id returns the existing record", %{workspace: ws} do
+    test "creating a session twice with the same external_id returns the existing record", %{
+      workspace: ws
+    } do
       # Let the schema auto-generate a ULID-formatted external_id on first call.
       {:ok, session_a} =
         Mission.create_session(%{

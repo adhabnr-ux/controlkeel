@@ -37,7 +37,8 @@ defmodule ControlKeelWeb.AuthLive do
         {:noreply, assign(socket, :error, "Enter your organization slug.")}
 
       Accounts.get_org_by_slug(slug) == nil ->
-        {:noreply, assign(socket, :error, "Organization not found. Check the slug and try again.")}
+        {:noreply,
+         assign(socket, :error, "Organization not found. Check the slug and try again.")}
 
       true ->
         {:noreply, redirect(socket, external: "/auth/oidc/start?org=#{slug}")}

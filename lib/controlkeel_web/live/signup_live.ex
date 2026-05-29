@@ -74,8 +74,9 @@ defmodule ControlKeelWeb.SignupLive do
         </div>
         <div class="ck-card mt-6">
           <p>
-            To use cloud mode, set <code>CONTROLKEEL_RUNTIME_MODE=cloud</code> and configure
-            <code>:cloud_sync_endpoint</code> in your release.
+            To use cloud mode, set <code>CONTROLKEEL_RUNTIME_MODE=cloud</code>
+            and configure <code>:cloud_sync_endpoint</code>
+            in your release.
           </p>
           <.link navigate={~p"/"} class="ck-btn ck-btn-secondary mt-4">Back to dashboard</.link>
         </div>
@@ -144,7 +145,9 @@ defmodule ControlKeelWeb.SignupLive do
               placeholder="acme"
               class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-300"
             />
-            <p class="mt-1 text-xs text-zinc-500">Lowercase letters, numbers, and dashes only. This becomes your sign-in identifier.</p>
+            <p class="mt-1 text-xs text-zinc-500">
+              Lowercase letters, numbers, and dashes only. This becomes your sign-in identifier.
+            </p>
           </div>
 
           <%= if @errors != [] do %>

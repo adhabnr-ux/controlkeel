@@ -31,6 +31,11 @@ defmodule ControlKeel.Proxy do
     |> Keyword.get(:semgrep_bin, System.get_env("CONTROLKEEL_SEMGREP_BIN") || "semgrep")
   end
 
+  def aislop_bin do
+    Application.get_env(:controlkeel, __MODULE__, [])
+    |> Keyword.get(:aislop_bin, System.get_env("CONTROLKEEL_AISLOP_BIN") || "aislop")
+  end
+
   def url(%Session{proxy_token: proxy_token}, :openai, suffix) when is_binary(suffix) do
     base_url() <> "/proxy/openai/#{proxy_token}" <> suffix
   end

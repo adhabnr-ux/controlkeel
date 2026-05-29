@@ -60,7 +60,9 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
     # Prefer pre-loaded assign from LoadCurrentUser plug (production),
     # fall back to session-based resolution (test / edge cases).
     case socket.assigns[:current_membership] do
-      %ControlKeel.Accounts.Membership{} = m -> m
+      %ControlKeel.Accounts.Membership{} = m ->
+        m
+
       nil ->
         user_id = Map.get(session, "current_user_id") || Map.get(session, :current_user_id)
         org_id = Map.get(session, "current_org_id") || Map.get(session, :current_org_id)

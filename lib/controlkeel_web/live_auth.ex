@@ -60,7 +60,7 @@ defmodule ControlKeelWeb.LiveAuth do
 
       _ ->
         user_id =
-          socket.assigns[:current_user] && socket.assigns.current_user.id ||
+          (socket.assigns[:current_user] && socket.assigns.current_user.id) ||
             Map.get(session, "current_user_id") ||
             Map.get(session, :current_user_id)
 

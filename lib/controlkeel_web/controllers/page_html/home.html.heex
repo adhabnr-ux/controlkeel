@@ -8,9 +8,14 @@
   anonymous? = is_nil(@current_user) %>
 
   <%= if cloud_mode? and anonymous? do %>
-    <section class="mx-auto mb-6 flex max-w-7xl flex-col items-center justify-between gap-4 rounded-2xl border border-lime-300/30 bg-lime-300/5 px-6 py-5 lg:flex-row" id="cloud-mode-cta">
+    <section
+      class="mx-auto mb-6 flex max-w-7xl flex-col items-center justify-between gap-4 rounded-2xl border border-lime-300/30 bg-lime-300/5 px-6 py-5 lg:flex-row"
+      id="cloud-mode-cta"
+    >
       <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-lime-300">ControlKeel Cloud</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-lime-300">
+          ControlKeel Cloud
+        </p>
         <p class="mt-1 text-base font-semibold text-white">
           Sign in or create your organization to start governing missions on the cloud control plane.
         </p>

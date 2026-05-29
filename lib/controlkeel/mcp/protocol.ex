@@ -2966,7 +2966,8 @@ defmodule ControlKeel.MCP.Protocol do
           },
           "task_id" => %{
             "type" => ["integer", "string"],
-            "description" => "Task identifier. Required for checkpoint, execute, and status modes."
+            "description" =>
+              "Task identifier. Required for checkpoint, execute, and status modes."
           },
           "reason" => %{
             "type" => "string",
@@ -3062,7 +3063,14 @@ defmodule ControlKeel.MCP.Protocol do
           },
           "event_type" => %{
             "type" => "string",
-            "enum" => ["human.viewing", "human.editing", "human.approving", "human.commenting", "agent.status", "agent.progress"],
+            "enum" => [
+              "human.viewing",
+              "human.editing",
+              "human.approving",
+              "human.commenting",
+              "agent.status",
+              "agent.progress"
+            ],
             "description" => "Event type for publish mode."
           },
           "payload" => %{

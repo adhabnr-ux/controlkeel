@@ -116,7 +116,12 @@ defmodule ControlKeelWeb.OrgSettingsAuthLive do
           </div>
         </div>
 
-        <.form for={@form} phx-submit="submit" phx-change="change-type" class="ck-card mt-6 flex flex-col gap-4">
+        <.form
+          for={@form}
+          phx-submit="submit"
+          phx-change="change-type"
+          class="ck-card mt-6 flex flex-col gap-4"
+        >
           <div>
             <label class="block text-sm font-medium text-zinc-300 mb-1">Provider type</label>
             <select
@@ -131,25 +136,55 @@ defmodule ControlKeelWeb.OrgSettingsAuthLive do
           <%= if @idp_type == "oidc" do %>
             <div>
               <label class="block text-sm font-medium text-zinc-300 mb-1">Issuer</label>
-              <input type="text" name="idp[issuer]" value={Map.get(@idp, "issuer", "")} placeholder="https://accounts.google.com" required class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+              <input
+                type="text"
+                name="idp[issuer]"
+                value={Map.get(@idp, "issuer", "")}
+                placeholder="https://accounts.google.com"
+                required
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
             </div>
             <div>
               <label class="block text-sm font-medium text-zinc-300 mb-1">Client ID</label>
-              <input type="text" name="idp[client_id]" value={Map.get(@idp, "client_id", "")} required class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+              <input
+                type="text"
+                name="idp[client_id]"
+                value={Map.get(@idp, "client_id", "")}
+                required
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
             </div>
             <div>
               <label class="block text-sm font-medium text-zinc-300 mb-1">Client secret</label>
-              <input type="password" name="idp[client_secret]" value={Map.get(@idp, "client_secret", "")} class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+              <input
+                type="password"
+                name="idp[client_secret]"
+                value={Map.get(@idp, "client_secret", "")}
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
               <p class="mt-1 text-xs text-zinc-500">Leave blank to keep the existing secret.</p>
             </div>
           <% else %>
             <div>
               <label class="block text-sm font-medium text-zinc-300 mb-1">Entity ID</label>
-              <input type="text" name="idp[entity_id]" value={Map.get(@idp, "entity_id", "")} required class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+              <input
+                type="text"
+                name="idp[entity_id]"
+                value={Map.get(@idp, "entity_id", "")}
+                required
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
             </div>
             <div>
               <label class="block text-sm font-medium text-zinc-300 mb-1">IdP metadata URL</label>
-              <input type="text" name="idp[idp_metadata_url]" value={Map.get(@idp, "idp_metadata_url", "")} required class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+              <input
+                type="text"
+                name="idp[idp_metadata_url]"
+                value={Map.get(@idp, "idp_metadata_url", "")}
+                required
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
             </div>
           <% end %>
 
@@ -157,7 +192,10 @@ defmodule ControlKeelWeb.OrgSettingsAuthLive do
             <p class="ck-note ck-note-danger">{@error}</p>
           <% end %>
           <%= if @saved do %>
-            <p class="ck-note ck-note-success">Settings saved. Test sign-in at <code>/auth/login</code> with org slug <code>{@org.slug}</code>.</p>
+            <p class="ck-note ck-note-success">
+              Settings saved. Test sign-in at <code>/auth/login</code>
+              with org slug <code>{@org.slug}</code>.
+            </p>
           <% end %>
 
           <div class="flex gap-2">
@@ -206,7 +244,10 @@ defmodule ControlKeelWeb.OrgSettingsAuthLive do
 
   defp format_idp_error(:not_found), do: "Organization not found."
   defp format_idp_error(:unsupported_provider_type), do: "Unsupported provider type."
-  defp format_idp_error({:missing_fields, fields}), do: "Missing required fields: #{Enum.join(fields, ", ")}"
+
+  defp format_idp_error({:missing_fields, fields}),
+    do: "Missing required fields: #{Enum.join(fields, ", ")}"
+
   defp format_idp_error(%Ecto.Changeset{}), do: "Could not save settings."
   defp format_idp_error(other), do: "Error: #{inspect(other)}"
 end

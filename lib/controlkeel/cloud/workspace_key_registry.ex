@@ -110,7 +110,6 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
     |> Repo.all()
   end
 
-
   @doc "Refresh `last_seen_at` on the row for `workspace_id` (best-effort)."
   @spec touch_last_seen(String.t()) :: :ok
   def touch_last_seen(workspace_id) when is_binary(workspace_id) do

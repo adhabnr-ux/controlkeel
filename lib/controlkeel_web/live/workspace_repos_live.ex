@@ -109,21 +109,50 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-sm font-medium text-zinc-300 mb-1">Owner</label>
-                <input type="text" name="bind[owner]" value={@bind_form[:owner].value || ""} placeholder="acme" required class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+                <input
+                  type="text"
+                  name="bind[owner]"
+                  value={@bind_form[:owner].value || ""}
+                  placeholder="acme"
+                  required
+                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                />
               </div>
               <div>
                 <label class="block text-sm font-medium text-zinc-300 mb-1">Repo</label>
-                <input type="text" name="bind[repo]" value={@bind_form[:repo].value || ""} placeholder="payments" required class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+                <input
+                  type="text"
+                  name="bind[repo]"
+                  value={@bind_form[:repo].value || ""}
+                  placeholder="payments"
+                  required
+                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                />
               </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">Default branch (optional)</label>
-                <input type="text" name="bind[default_branch]" value={@bind_form[:default_branch].value || ""} placeholder="main" class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+                <label class="block text-sm font-medium text-zinc-300 mb-1">
+                  Default branch (optional)
+                </label>
+                <input
+                  type="text"
+                  name="bind[default_branch]"
+                  value={@bind_form[:default_branch].value || ""}
+                  placeholder="main"
+                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                />
               </div>
               <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">Installation ID (optional)</label>
-                <input type="number" name="bind[installation_id]" value={@bind_form[:installation_id].value || ""} class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+                <label class="block text-sm font-medium text-zinc-300 mb-1">
+                  Installation ID (optional)
+                </label>
+                <input
+                  type="number"
+                  name="bind[installation_id]"
+                  value={@bind_form[:installation_id].value || ""}
+                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                />
               </div>
             </div>
             <%= if @bind_error do %>
@@ -180,9 +209,13 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
 
   # ── Private ─────────────────────────────────────────────────────────
 
-  defp check_workspace_access(%Workspace{org_id: nil}, _assigns), do: {:error, "Workspace is not bound to an org yet."}
+  defp check_workspace_access(%Workspace{org_id: nil}, _assigns),
+    do: {:error, "Workspace is not bound to an org yet."}
 
-  defp check_workspace_access(%Workspace{org_id: ws_org_id}, %{current_org_id: org_id, current_membership: membership})
+  defp check_workspace_access(%Workspace{org_id: ws_org_id}, %{
+         current_org_id: org_id,
+         current_membership: membership
+       })
        when is_integer(ws_org_id) and ws_org_id == org_id do
     if membership && Accounts.role_at_least?(membership.role, "admin") do
       :ok
@@ -191,7 +224,8 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
     end
   end
 
-  defp check_workspace_access(_, _), do: {:error, "Workspace belongs to a different organization."}
+  defp check_workspace_access(_, _),
+    do: {:error, "Workspace belongs to a different organization."}
 
   defp empty_bind_params do
     %{"owner" => "", "repo" => "", "default_branch" => "", "installation_id" => ""}

@@ -67,8 +67,7 @@ defmodule ControlKeelWeb.InvitationLive do
                     membership.org_id
                   )
 
-                {:noreply,
-                 redirect(socket, to: ~p"/auth/complete/#{completion_token}")}
+                {:noreply, redirect(socket, to: ~p"/auth/complete/#{completion_token}")}
 
               {:error, :invalid_token} ->
                 {:noreply, assign(socket, :state, :invalid)}

@@ -33,9 +33,14 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
        |> assign(:create_form, to_form(%{"name" => "", "url" => ""}, as: :wh))
        |> assign(:create_error, nil)}
     else
-      :error -> {:ok, redirect_with_flash(socket, :error, "Invalid workspace id.", ~p"/cloud/projects")}
-      nil -> {:ok, redirect_with_flash(socket, :error, "Workspace not found.", ~p"/cloud/projects")}
-      {:error, reason} -> {:ok, redirect_with_flash(socket, :error, reason, ~p"/cloud/projects")}
+      :error ->
+        {:ok, redirect_with_flash(socket, :error, "Invalid workspace id.", ~p"/cloud/projects")}
+
+      nil ->
+        {:ok, redirect_with_flash(socket, :error, "Workspace not found.", ~p"/cloud/projects")}
+
+      {:error, reason} ->
+        {:ok, redirect_with_flash(socket, :error, reason, ~p"/cloud/projects")}
     end
   end
 
@@ -69,7 +74,11 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
 
           {:error, %Ecto.Changeset{} = cs} ->
             {:noreply,
-             assign(socket, :create_error, Enum.map_join(cs.errors, ", ", fn {f, {m, _}} -> "#{f}: #{m}" end))}
+             assign(
+               socket,
+               :create_error,
+               Enum.map_join(cs.errors, ", ", fn {f, {m, _}} -> "#{f}: #{m}" end)
+             )}
         end
     end
   end
@@ -107,10 +116,19 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
         </div>
 
         <%= if @new_secret do %>
-          <div class="ck-card mt-6" id="new-secret-banner" style="border-color: rgba(190, 242, 100, 0.4);">
-            <p><strong>Signing secret for {@new_secret_for}.</strong> Copy now — it will not be shown again.</p>
+          <div
+            class="ck-card mt-6"
+            id="new-secret-banner"
+            style="border-color: rgba(190, 242, 100, 0.4);"
+          >
+            <p>
+              <strong>Signing secret for {@new_secret_for}.</strong>
+              Copy now — it will not be shown again.
+            </p>
             <pre><code id="new-secret-value">{@new_secret}</code></pre>
-            <button type="button" phx-click="dismiss-secret" class="ck-btn ck-btn-secondary">Dismiss</button>
+            <button type="button" phx-click="dismiss-secret" class="ck-btn ck-btn-secondary">
+              Dismiss
+            </button>
           </div>
         <% end %>
 
@@ -119,11 +137,24 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
           <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
             <div>
               <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
-              <input type="text" name="wh[name]" value={@create_form[:name].value || ""} required class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+              <input
+                type="text"
+                name="wh[name]"
+                value={@create_form[:name].value || ""}
+                required
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
             </div>
             <div>
               <label class="block text-sm font-medium text-zinc-300 mb-1">Delivery URL</label>
-              <input type="url" name="wh[url]" value={@create_form[:url].value || ""} required placeholder="https://example.com/hooks/controlkeel" class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+              <input
+                type="url"
+                name="wh[url]"
+                value={@create_form[:url].value || ""}
+                required
+                placeholder="https://example.com/hooks/controlkeel"
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
             </div>
             <div>
               <label class="block text-sm font-medium text-zinc-300 mb-2">Events</label>
@@ -166,7 +197,14 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
                     <td><code>{IntegrationWebhook.event_list(w) |> Enum.join(", ")}</code></td>
                     <td>{w.status}</td>
                     <td>
-                      <button type="button" phx-click="replay" phx-value-id={w.id} class="ck-btn ck-btn-secondary">Replay last</button>
+                      <button
+                        type="button"
+                        phx-click="replay"
+                        phx-value-id={w.id}
+                        class="ck-btn ck-btn-secondary"
+                      >
+                        Replay last
+                      </button>
                     </td>
                   </tr>
                 <% end %>
@@ -187,16 +225,21 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
 
   defp extract_events(_), do: []
 
-  defp check_workspace_access(%Workspace{org_id: nil}, _), do: {:error, "Workspace is not bound to an org."}
+  defp check_workspace_access(%Workspace{org_id: nil}, _),
+    do: {:error, "Workspace is not bound to an org."}
 
-  defp check_workspace_access(%Workspace{org_id: ws_org}, %{current_org_id: org_id, current_membership: m})
+  defp check_workspace_access(%Workspace{org_id: ws_org}, %{
+         current_org_id: org_id,
+         current_membership: m
+       })
        when is_integer(ws_org) and ws_org == org_id do
     if m && Accounts.role_at_least?(m.role, "admin"),
       do: :ok,
       else: {:error, "Admin or owner role required."}
   end
 
-  defp check_workspace_access(_, _), do: {:error, "Workspace belongs to a different organization."}
+  defp check_workspace_access(_, _),
+    do: {:error, "Workspace belongs to a different organization."}
 
   defp redirect_with_flash(socket, kind, msg, path) do
     socket

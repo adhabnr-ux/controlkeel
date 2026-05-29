@@ -502,8 +502,11 @@ defmodule ControlKeel.Mission do
   @doc "Findings for a session, newest first."
   @spec list_findings_for_session(integer()) :: [Finding.t()]
   def list_findings_for_session(session_id) when is_integer(session_id) do
-    Repo.all(from(f in Finding, where: f.session_id == ^session_id, order_by: [desc: f.inserted_at]))
+    Repo.all(
+      from(f in Finding, where: f.session_id == ^session_id, order_by: [desc: f.inserted_at])
+    )
   end
+
   def get_finding(id), do: Repo.get(Finding, id)
   def get_finding!(id), do: Repo.get!(Finding, id)
 

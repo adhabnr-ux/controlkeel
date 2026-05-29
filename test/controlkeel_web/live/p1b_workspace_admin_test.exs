@@ -19,8 +19,14 @@ defmodule ControlKeelWeb.P1bWorkspaceAdminTest do
     Application.put_env(:controlkeel, :runtime_mode, :cloud)
     on_exit(fn -> Application.put_env(:controlkeel, :runtime_mode, previous) end)
 
-    {:ok, org} = Accounts.create_org(%{name: "WS Admin", slug: "ws-admin-#{System.unique_integer([:positive])}"})
-    {:ok, admin} = Accounts.create_user(%{email: "wsa-#{System.unique_integer([:positive])}@x.test"})
+    {:ok, org} =
+      Accounts.create_org(%{
+        name: "WS Admin",
+        slug: "ws-admin-#{System.unique_integer([:positive])}"
+      })
+
+    {:ok, admin} =
+      Accounts.create_user(%{email: "wsa-#{System.unique_integer([:positive])}@x.test"})
 
     {:ok, _m} =
       %Membership{}
@@ -56,12 +62,19 @@ defmodule ControlKeelWeb.P1bWorkspaceAdminTest do
   end
 
   describe "WorkspaceServiceAccountsLive (/workspaces/:id/service-accounts)" do
-    test "admin creates service account and sees token banner exactly once", %{conn: conn, admin: admin, org: org, workspace: ws} do
+    test "admin creates service account and sees token banner exactly once", %{
+      conn: conn,
+      admin: admin,
+      org: org,
+      workspace: ws
+    } do
       conn = sign_in(conn, admin, org)
       {:ok, lv, _html} = live(conn, ~p"/workspaces/#{ws.id}/service-accounts")
 
       lv
-      |> form("form[phx-submit=create]", sa: %{name: "ci-runner", scopes: "mcp:access findings:write"})
+      |> form("form[phx-submit=create]",
+        sa: %{name: "ci-runner", scopes: "mcp:access findings:write"}
+      )
       |> render_submit()
 
       html = render(lv)
@@ -76,9 +89,17 @@ defmodule ControlKeelWeb.P1bWorkspaceAdminTest do
       refute render(lv) =~ "new-token-banner"
     end
 
-    test "rotate generates a new token shown once", %{conn: conn, admin: admin, org: org, workspace: ws} do
+    test "rotate generates a new token shown once", %{
+      conn: conn,
+      admin: admin,
+      org: org,
+      workspace: ws
+    } do
       {:ok, %{service_account: sa, token: _t}} =
-        Platform.create_service_account(ws.id, %{"name" => "to-rotate", "scopes" => ["mcp:access"]})
+        Platform.create_service_account(ws.id, %{
+          "name" => "to-rotate",
+          "scopes" => ["mcp:access"]
+        })
 
       conn = sign_in(conn, admin, org)
       {:ok, lv, _html} = live(conn, ~p"/workspaces/#{ws.id}/service-accounts")
@@ -92,7 +113,10 @@ defmodule ControlKeelWeb.P1bWorkspaceAdminTest do
 
     test "revoke flips status to revoked", %{conn: conn, admin: admin, org: org, workspace: ws} do
       {:ok, %{service_account: sa, token: _t}} =
-        Platform.create_service_account(ws.id, %{"name" => "to-revoke", "scopes" => ["mcp:access"]})
+        Platform.create_service_account(ws.id, %{
+          "name" => "to-revoke",
+          "scopes" => ["mcp:access"]
+        })
 
       conn = sign_in(conn, admin, org)
       {:ok, lv, _html} = live(conn, ~p"/workspaces/#{ws.id}/service-accounts")
@@ -103,12 +127,21 @@ defmodule ControlKeelWeb.P1bWorkspaceAdminTest do
     end
 
     test "cross-org admin redirected", %{conn: conn, workspace: ws} do
-      {:ok, other} = Accounts.create_org(%{name: "Other", slug: "other-#{System.unique_integer([:positive])}"})
-      {:ok, other_admin} = Accounts.create_user(%{email: "oa-#{System.unique_integer([:positive])}@x.test"})
+      {:ok, other} =
+        Accounts.create_org(%{name: "Other", slug: "other-#{System.unique_integer([:positive])}"})
+
+      {:ok, other_admin} =
+        Accounts.create_user(%{email: "oa-#{System.unique_integer([:positive])}@x.test"})
 
       {:ok, _} =
         %Membership{}
-        |> Membership.changeset(%{user_id: other_admin.id, org_id: other.id, role: "admin", status: "active", accepted_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+        |> Membership.changeset(%{
+          user_id: other_admin.id,
+          org_id: other.id,
+          role: "admin",
+          status: "active",
+          accepted_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
         |> Repo.insert()
 
       conn = sign_in(conn, other_admin, other)
@@ -119,7 +152,12 @@ defmodule ControlKeelWeb.P1bWorkspaceAdminTest do
   end
 
   describe "WorkspaceWebhooksLive (/workspaces/:id/webhooks)" do
-    test "admin creates webhook and sees secret banner once", %{conn: conn, admin: admin, org: org, workspace: ws} do
+    test "admin creates webhook and sees secret banner once", %{
+      conn: conn,
+      admin: admin,
+      org: org,
+      workspace: ws
+    } do
       conn = sign_in(conn, admin, org)
       {:ok, lv, _html} = live(conn, ~p"/workspaces/#{ws.id}/webhooks")
 
@@ -140,7 +178,12 @@ defmodule ControlKeelWeb.P1bWorkspaceAdminTest do
       assert "finding.approved" in events
     end
 
-    test "replay with no prior delivery returns not_found flash", %{conn: conn, admin: admin, org: org, workspace: ws} do
+    test "replay with no prior delivery returns not_found flash", %{
+      conn: conn,
+      admin: admin,
+      org: org,
+      workspace: ws
+    } do
       {:ok, wh} =
         Platform.create_webhook(ws.id, %{
           "name" => "no-delivery",
@@ -157,12 +200,24 @@ defmodule ControlKeelWeb.P1bWorkspaceAdminTest do
     end
 
     test "cross-org admin redirected", %{conn: conn, workspace: ws} do
-      {:ok, other} = Accounts.create_org(%{name: "WHOther", slug: "whother-#{System.unique_integer([:positive])}"})
-      {:ok, oa} = Accounts.create_user(%{email: "who-#{System.unique_integer([:positive])}@x.test"})
+      {:ok, other} =
+        Accounts.create_org(%{
+          name: "WHOther",
+          slug: "whother-#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, oa} =
+        Accounts.create_user(%{email: "who-#{System.unique_integer([:positive])}@x.test"})
 
       {:ok, _} =
         %Membership{}
-        |> Membership.changeset(%{user_id: oa.id, org_id: other.id, role: "admin", status: "active", accepted_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+        |> Membership.changeset(%{
+          user_id: oa.id,
+          org_id: other.id,
+          role: "admin",
+          status: "active",
+          accepted_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
         |> Repo.insert()
 
       conn = sign_in(conn, oa, other)
@@ -173,12 +228,19 @@ defmodule ControlKeelWeb.P1bWorkspaceAdminTest do
   end
 
   describe "WorkspaceToolPolicyLive (/workspaces/:id/tool-policy)" do
-    test "admin sets allowlist policy round-trip", %{conn: conn, admin: admin, org: org, workspace: ws} do
+    test "admin sets allowlist policy round-trip", %{
+      conn: conn,
+      admin: admin,
+      org: org,
+      workspace: ws
+    } do
       conn = sign_in(conn, admin, org)
       {:ok, lv, _html} = live(conn, ~p"/workspaces/#{ws.id}/tool-policy")
 
       lv
-      |> form("form[phx-submit=submit]", policy: %{mode: "allowlist", tools: "ck_validate\nck_finding"})
+      |> form("form[phx-submit=submit]",
+        policy: %{mode: "allowlist", tools: "ck_validate\nck_finding"}
+      )
       |> render_submit()
 
       policy = Accounts.get_workspace_tool_policy(ws.id)
@@ -189,12 +251,21 @@ defmodule ControlKeelWeb.P1bWorkspaceAdminTest do
     end
 
     test "viewer is redirected with admin-required flash", %{conn: conn, workspace: ws} do
-      {:ok, org} = Accounts.create_org(%{name: "TPVwr", slug: "tpvwr-#{System.unique_integer([:positive])}"})
-      {:ok, viewer} = Accounts.create_user(%{email: "vwr-#{System.unique_integer([:positive])}@x.test"})
+      {:ok, org} =
+        Accounts.create_org(%{name: "TPVwr", slug: "tpvwr-#{System.unique_integer([:positive])}"})
+
+      {:ok, viewer} =
+        Accounts.create_user(%{email: "vwr-#{System.unique_integer([:positive])}@x.test"})
 
       {:ok, _} =
         %Membership{}
-        |> Membership.changeset(%{user_id: viewer.id, org_id: org.id, role: "viewer", status: "active", accepted_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+        |> Membership.changeset(%{
+          user_id: viewer.id,
+          org_id: org.id,
+          role: "viewer",
+          status: "active",
+          accepted_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
         |> Repo.insert()
 
       # Note: this viewer is on a DIFFERENT org, so they get the cross-org rejection,
@@ -205,12 +276,23 @@ defmodule ControlKeelWeb.P1bWorkspaceAdminTest do
                live(conn, ~p"/workspaces/#{ws.id}/tool-policy")
     end
 
-    test "viewer in same org is redirected (admin role required)", %{conn: conn, org: org, workspace: ws} do
-      {:ok, viewer} = Accounts.create_user(%{email: "vwr2-#{System.unique_integer([:positive])}@x.test"})
+    test "viewer in same org is redirected (admin role required)", %{
+      conn: conn,
+      org: org,
+      workspace: ws
+    } do
+      {:ok, viewer} =
+        Accounts.create_user(%{email: "vwr2-#{System.unique_integer([:positive])}@x.test"})
 
       {:ok, _} =
         %Membership{}
-        |> Membership.changeset(%{user_id: viewer.id, org_id: org.id, role: "viewer", status: "active", accepted_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+        |> Membership.changeset(%{
+          user_id: viewer.id,
+          org_id: org.id,
+          role: "viewer",
+          status: "active",
+          accepted_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
         |> Repo.insert()
 
       conn = sign_in(conn, viewer, org)

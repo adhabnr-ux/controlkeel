@@ -31,16 +31,27 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
        |> assign(:workspace, workspace)
        |> assign(:policy, policy)
        |> assign(:modes, WorkspaceToolPolicy.modes())
-       |> assign(:form, to_form(%{
-         "mode" => policy.mode,
-         "tools" => Enum.join(tools, "\n")
-       }, as: :policy))
+       |> assign(
+         :form,
+         to_form(
+           %{
+             "mode" => policy.mode,
+             "tools" => Enum.join(tools, "\n")
+           },
+           as: :policy
+         )
+       )
        |> assign(:saved, false)
        |> assign(:error, nil)}
     else
-      :error -> {:ok, redirect_with_flash(socket, :error, "Invalid workspace id.", ~p"/cloud/projects")}
-      nil -> {:ok, redirect_with_flash(socket, :error, "Workspace not found.", ~p"/cloud/projects")}
-      {:error, reason} -> {:ok, redirect_with_flash(socket, :error, reason, ~p"/cloud/projects")}
+      :error ->
+        {:ok, redirect_with_flash(socket, :error, "Invalid workspace id.", ~p"/cloud/projects")}
+
+      nil ->
+        {:ok, redirect_with_flash(socket, :error, "Workspace not found.", ~p"/cloud/projects")}
+
+      {:error, reason} ->
+        {:ok, redirect_with_flash(socket, :error, reason, ~p"/cloud/projects")}
     end
   end
 
@@ -73,9 +84,10 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
             <p class="ck-kicker">{@workspace.name}</p>
             <h1 class="ck-section-title">Tool policy</h1>
             <p class="ck-lead ck-lead-tight">
-              Restrict which MCP tools agents in this workspace may invoke.
-              <code>inherit</code> falls back to the global allowlist; <code>allowlist</code>
-              and <code>denylist</code> override it.
+              Restrict which MCP tools agents in this workspace may invoke. <code>inherit</code>
+              falls back to the global allowlist; <code>allowlist</code>
+              and <code>denylist</code>
+              override it.
             </p>
           </div>
         </div>
@@ -83,7 +95,10 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
         <.form for={@form} phx-submit="submit" class="ck-card mt-6 flex flex-col gap-4">
           <div>
             <label class="block text-sm font-medium text-zinc-300 mb-1">Mode</label>
-            <select name="policy[mode]" class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white">
+            <select
+              name="policy[mode]"
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            >
               <%= for m <- @modes do %>
                 <option value={m} selected={@form[:mode].value == m}>{m}</option>
               <% end %>
@@ -91,14 +106,20 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Tool names (one per line)</label>
+            <label class="block text-sm font-medium text-zinc-300 mb-1">
+              Tool names (one per line)
+            </label>
             <textarea
               name="policy[tools]"
               rows="8"
               placeholder="ck_validate&#10;ck_finding&#10;ck_context"
               class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white font-mono"
             >{@form[:tools].value || ""}</textarea>
-            <p class="mt-1 text-xs text-zinc-500">Used by <code>allowlist</code> and <code>denylist</code> modes. Ignored under <code>inherit</code>.</p>
+            <p class="mt-1 text-xs text-zinc-500">
+              Used by <code>allowlist</code>
+              and <code>denylist</code>
+              modes. Ignored under <code>inherit</code>.
+            </p>
           </div>
 
           <%= if @error do %>
@@ -127,16 +148,21 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
 
   defp parse_tools(_), do: []
 
-  defp check_workspace_access(%Workspace{org_id: nil}, _), do: {:error, "Workspace is not bound to an org."}
+  defp check_workspace_access(%Workspace{org_id: nil}, _),
+    do: {:error, "Workspace is not bound to an org."}
 
-  defp check_workspace_access(%Workspace{org_id: ws_org}, %{current_org_id: org_id, current_membership: m})
+  defp check_workspace_access(%Workspace{org_id: ws_org}, %{
+         current_org_id: org_id,
+         current_membership: m
+       })
        when is_integer(ws_org) and ws_org == org_id do
     if m && Accounts.role_at_least?(m.role, "admin"),
       do: :ok,
       else: {:error, "Admin or owner role required."}
   end
 
-  defp check_workspace_access(_, _), do: {:error, "Workspace belongs to a different organization."}
+  defp check_workspace_access(_, _),
+    do: {:error, "Workspace belongs to a different organization."}
 
   defp redirect_with_flash(socket, kind, msg, path) do
     socket

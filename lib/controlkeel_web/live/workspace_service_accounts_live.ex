@@ -32,9 +32,14 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
        |> assign(:create_form, to_form(%{"name" => "", "scopes" => ""}, as: :sa))
        |> assign(:create_error, nil)}
     else
-      :error -> {:ok, redirect_with_flash(socket, :error, "Invalid workspace id.", ~p"/cloud/projects")}
-      nil -> {:ok, redirect_with_flash(socket, :error, "Workspace not found.", ~p"/cloud/projects")}
-      {:error, reason} -> {:ok, redirect_with_flash(socket, :error, reason, ~p"/cloud/projects")}
+      :error ->
+        {:ok, redirect_with_flash(socket, :error, "Invalid workspace id.", ~p"/cloud/projects")}
+
+      nil ->
+        {:ok, redirect_with_flash(socket, :error, "Workspace not found.", ~p"/cloud/projects")}
+
+      {:error, reason} ->
+        {:ok, redirect_with_flash(socket, :error, reason, ~p"/cloud/projects")}
     end
   end
 
@@ -63,7 +68,10 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
         {:error, %Ecto.Changeset{} = cs} ->
           {:noreply,
            socket
-           |> assign(:create_error, Enum.map_join(cs.errors, ", ", fn {f, {m, _}} -> "#{f}: #{m}" end))}
+           |> assign(
+             :create_error,
+             Enum.map_join(cs.errors, ", ", fn {f, {m, _}} -> "#{f}: #{m}" end)
+           )}
       end
     end
   end
@@ -114,10 +122,18 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
         </div>
 
         <%= if @new_token do %>
-          <div class="ck-card mt-6" id="new-token-banner" style="border-color: rgba(190, 242, 100, 0.4);">
-            <p><strong>Token for {@new_token_for}.</strong> Copy it now — it will not be shown again.</p>
+          <div
+            class="ck-card mt-6"
+            id="new-token-banner"
+            style="border-color: rgba(190, 242, 100, 0.4);"
+          >
+            <p>
+              <strong>Token for {@new_token_for}.</strong> Copy it now — it will not be shown again.
+            </p>
             <pre><code id="new-token-value">{@new_token}</code></pre>
-            <button type="button" phx-click="dismiss-token" class="ck-btn ck-btn-secondary">Dismiss</button>
+            <button type="button" phx-click="dismiss-token" class="ck-btn ck-btn-secondary">
+              Dismiss
+            </button>
           </div>
         <% end %>
 
@@ -126,12 +142,28 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
           <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
             <div>
               <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
-              <input type="text" name="sa[name]" value={@create_form[:name].value || ""} required class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+              <input
+                type="text"
+                name="sa[name]"
+                value={@create_form[:name].value || ""}
+                required
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
             </div>
             <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Scopes (space or comma separated)</label>
-              <input type="text" name="sa[scopes]" value={@create_form[:scopes].value || ""} placeholder="mcp:access context:read findings:write" class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
-              <p class="mt-1 text-xs text-zinc-500">Use <code>admin</code> for full access, or scope strings like <code>mcp:access</code>.</p>
+              <label class="block text-sm font-medium text-zinc-300 mb-1">
+                Scopes (space or comma separated)
+              </label>
+              <input
+                type="text"
+                name="sa[scopes]"
+                value={@create_form[:scopes].value || ""}
+                placeholder="mcp:access context:read findings:write"
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
+              <p class="mt-1 text-xs text-zinc-500">
+                Use <code>admin</code> for full access, or scope strings like <code>mcp:access</code>.
+              </p>
             </div>
             <%= if @create_error do %>
               <p class="ck-note ck-note-danger">{@create_error}</p>
@@ -164,8 +196,23 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
                     <td>{format_dt(sa.last_used_at)}</td>
                     <td>
                       <%= if sa.status == "active" do %>
-                        <button type="button" phx-click="rotate" phx-value-id={sa.id} class="ck-btn ck-btn-secondary">Rotate</button>
-                        <button type="button" phx-click="revoke" phx-value-id={sa.id} data-confirm={"Revoke #{sa.name}?"} class="ck-btn ck-btn-danger">Revoke</button>
+                        <button
+                          type="button"
+                          phx-click="rotate"
+                          phx-value-id={sa.id}
+                          class="ck-btn ck-btn-secondary"
+                        >
+                          Rotate
+                        </button>
+                        <button
+                          type="button"
+                          phx-click="revoke"
+                          phx-value-id={sa.id}
+                          data-confirm={"Revoke #{sa.name}?"}
+                          class="ck-btn ck-btn-danger"
+                        >
+                          Revoke
+                        </button>
                       <% end %>
                     </td>
                   </tr>
@@ -190,16 +237,21 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
 
   defp parse_scopes(_), do: []
 
-  defp check_workspace_access(%Workspace{org_id: nil}, _), do: {:error, "Workspace is not bound to an org."}
+  defp check_workspace_access(%Workspace{org_id: nil}, _),
+    do: {:error, "Workspace is not bound to an org."}
 
-  defp check_workspace_access(%Workspace{org_id: ws_org}, %{current_org_id: org_id, current_membership: m})
+  defp check_workspace_access(%Workspace{org_id: ws_org}, %{
+         current_org_id: org_id,
+         current_membership: m
+       })
        when is_integer(ws_org) and ws_org == org_id do
     if m && Accounts.role_at_least?(m.role, "admin"),
       do: :ok,
       else: {:error, "Admin or owner role required."}
   end
 
-  defp check_workspace_access(_, _), do: {:error, "Workspace belongs to a different organization."}
+  defp check_workspace_access(_, _),
+    do: {:error, "Workspace belongs to a different organization."}
 
   defp format_dt(nil), do: "never"
   defp format_dt(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M UTC")

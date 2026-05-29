@@ -130,7 +130,9 @@ defmodule ControlKeelWeb.ApiScopeTest do
       refute "CK-SCOPE-TEST-001" in finding_rule_ids
     end
 
-    test "service account for workspace A sees workspace A findings but not workspace B", %{conn: conn} do
+    test "service account for workspace A sees workspace A findings but not workspace B", %{
+      conn: conn
+    } do
       ws_a = workspace!("fa2")
       ws_b = workspace!("fb2")
 

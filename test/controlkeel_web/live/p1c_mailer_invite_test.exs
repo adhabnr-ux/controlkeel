@@ -23,8 +23,14 @@ defmodule ControlKeelWeb.P1cMailerInviteTest do
   end
 
   test "admin inviting a teammate populates the test inbox", %{conn: conn} do
-    {:ok, org} = Accounts.create_org(%{name: "MailerCo", slug: "mailerco-#{System.unique_integer([:positive])}"})
-    {:ok, admin} = Accounts.create_user(%{email: "admin-#{System.unique_integer([:positive])}@x.test"})
+    {:ok, org} =
+      Accounts.create_org(%{
+        name: "MailerCo",
+        slug: "mailerco-#{System.unique_integer([:positive])}"
+      })
+
+    {:ok, admin} =
+      Accounts.create_user(%{email: "admin-#{System.unique_integer([:positive])}@x.test"})
 
     {:ok, _m} =
       %Membership{}
@@ -53,7 +59,9 @@ defmodule ControlKeelWeb.P1cMailerInviteTest do
 
     # Inbox should contain the invitation entry for the invitee
     entry = TestInbox.find_by_email(invitee_email)
-    assert entry, "expected an invitation delivery for #{invitee_email}, inbox: #{inspect(TestInbox.all())}"
+
+    assert entry,
+           "expected an invitation delivery for #{invitee_email}, inbox: #{inspect(TestInbox.all())}"
 
     {:invitation, payload, %DateTime{}} = entry
     assert payload.to == invitee_email
@@ -63,11 +71,19 @@ defmodule ControlKeelWeb.P1cMailerInviteTest do
     assert String.ends_with?(payload.url, payload.token)
   end
 
-  test "duplicate-email invite still surfaces visible token banner (mailer never blocks)", %{conn: conn} do
+  test "duplicate-email invite still surfaces visible token banner (mailer never blocks)", %{
+    conn: conn
+  } do
     # If the email validation passes but mailer somehow fails, the UI should still work.
     # This test pins the contract that token banner appears regardless of mailer outcome.
-    {:ok, org} = Accounts.create_org(%{name: "Mailer2", slug: "mailer2-#{System.unique_integer([:positive])}"})
-    {:ok, admin} = Accounts.create_user(%{email: "admin2-#{System.unique_integer([:positive])}@x.test"})
+    {:ok, org} =
+      Accounts.create_org(%{
+        name: "Mailer2",
+        slug: "mailer2-#{System.unique_integer([:positive])}"
+      })
+
+    {:ok, admin} =
+      Accounts.create_user(%{email: "admin2-#{System.unique_integer([:positive])}@x.test"})
 
     {:ok, _m} =
       %Membership{}

@@ -31,10 +31,22 @@ defmodule ControlKeelWeb.OrgMembersLive do
 
         cond do
           is_nil(membership) or membership.org_id != org.id ->
-            {:ok, redirect_with_flash(socket, :error, "You're not a member of that organization.", ~p"/cloud/projects")}
+            {:ok,
+             redirect_with_flash(
+               socket,
+               :error,
+               "You're not a member of that organization.",
+               ~p"/cloud/projects"
+             )}
 
           not Accounts.role_at_least?(membership.role, "admin") ->
-            {:ok, redirect_with_flash(socket, :error, "Admin or owner role required.", ~p"/cloud/projects")}
+            {:ok,
+             redirect_with_flash(
+               socket,
+               :error,
+               "Admin or owner role required.",
+               ~p"/cloud/projects"
+             )}
 
           true ->
             {:ok,
@@ -90,7 +102,8 @@ defmodule ControlKeelWeb.OrgMembersLive do
        |> put_flash(:info, "Membership revoked.")}
     else
       {:error, :last_owner_protected} ->
-        {:noreply, put_flash(socket, :error, "Cannot revoke the last owner of this organization.")}
+        {:noreply,
+         put_flash(socket, :error, "Cannot revoke the last owner of this organization.")}
 
       {:error, :not_found} ->
         {:noreply, put_flash(socket, :error, "Membership not found.")}
@@ -113,7 +126,8 @@ defmodule ControlKeelWeb.OrgMembersLive do
        |> put_flash(:info, "Role updated.")}
     else
       {:error, :last_owner_protected} ->
-        {:noreply, put_flash(socket, :error, "Cannot demote the last owner of this organization.")}
+        {:noreply,
+         put_flash(socket, :error, "Cannot demote the last owner of this organization.")}
 
       {:error, :invalid_role} ->
         {:noreply, put_flash(socket, :error, "Invalid role.")}
@@ -144,15 +158,26 @@ defmodule ControlKeelWeb.OrgMembersLive do
             </p>
           </div>
           <div>
-            <.link navigate={~p"/org/#{@org.slug}/settings/auth"} class="ck-btn ck-btn-secondary">Auth settings</.link>
+            <.link navigate={~p"/org/#{@org.slug}/settings/auth"} class="ck-btn ck-btn-secondary">
+              Auth settings
+            </.link>
           </div>
         </div>
 
         <%= if @invite_token do %>
-          <div class="ck-card mt-6" id="invite-token-banner" style="border-color: rgba(190, 242, 100, 0.4);">
-            <p><strong>Invitation token issued.</strong> Send this link to the invitee — the token will not be shown again.</p>
+          <div
+            class="ck-card mt-6"
+            id="invite-token-banner"
+            style="border-color: rgba(190, 242, 100, 0.4);"
+          >
+            <p>
+              <strong>Invitation token issued.</strong>
+              Send this link to the invitee — the token will not be shown again.
+            </p>
             <pre><code id="invite-token-value">/cloud/invitations/{@invite_token}</code></pre>
-            <button type="button" phx-click="dismiss-token" class="ck-btn ck-btn-secondary">Dismiss</button>
+            <button type="button" phx-click="dismiss-token" class="ck-btn ck-btn-secondary">
+              Dismiss
+            </button>
           </div>
         <% end %>
 
@@ -162,11 +187,20 @@ defmodule ControlKeelWeb.OrgMembersLive do
             <div class="grid grid-cols-3 gap-3">
               <div class="col-span-2">
                 <label class="block text-sm font-medium text-zinc-300 mb-1">Email</label>
-                <input type="email" name="invite[email]" value={@invite_form[:email].value || ""} required class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white" />
+                <input
+                  type="email"
+                  name="invite[email]"
+                  value={@invite_form[:email].value || ""}
+                  required
+                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                />
               </div>
               <div>
                 <label class="block text-sm font-medium text-zinc-300 mb-1">Role</label>
-                <select name="invite[role]" class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white">
+                <select
+                  name="invite[role]"
+                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                >
                   <option value="viewer">viewer</option>
                   <option value="member" selected>member</option>
                   <option value="admin">admin</option>
@@ -195,11 +229,14 @@ defmodule ControlKeelWeb.OrgMembersLive do
             <tbody>
               <%= for m <- @memberships do %>
                 <tr id={"membership-#{m.id}"}>
-                  <td>{m.user && m.user.email || "—"}</td>
+                  <td>{(m.user && m.user.email) || "—"}</td>
                   <td>
                     <form phx-change="change-role">
                       <input type="hidden" name="membership-id" value={m.id} />
-                      <select name="role" class="rounded-md border border-white/10 bg-zinc-900 px-2 py-1 text-sm text-white">
+                      <select
+                        name="role"
+                        class="rounded-md border border-white/10 bg-zinc-900 px-2 py-1 text-sm text-white"
+                      >
                         <option value="owner" selected={m.role == "owner"}>owner</option>
                         <option value="admin" selected={m.role == "admin"}>admin</option>
                         <option value="member" selected={m.role == "member"}>member</option>

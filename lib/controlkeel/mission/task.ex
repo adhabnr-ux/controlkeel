@@ -44,7 +44,8 @@ defmodule ControlKeel.Mission.Task do
       :metadata,
       :session_id,
       :confidence_score,
-      :lock_version, :rollback_boundary
+      :lock_version,
+      :rollback_boundary
     ])
     |> validate_required([
       :title,

@@ -425,7 +425,8 @@ defmodule ControlKeelWeb.ApiController do
   end
 
   def list_proofs(conn, params) do
-    browser = Mission.browse_proof_bundles(Map.put(params, "workspace_id", current_workspace_id(conn)))
+    browser =
+      Mission.browse_proof_bundles(Map.put(params, "workspace_id", current_workspace_id(conn)))
 
     json(conn, %{
       proofs: Enum.map(browser.entries, &proof_summary/1),

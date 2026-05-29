@@ -22,7 +22,9 @@ defmodule ControlKeelWeb.P1aOrgAdminTest do
   end
 
   defp create_org!(name) do
-    slug = "#{name |> String.downcase() |> String.replace(~r/\W+/, "-")}-#{System.unique_integer([:positive])}"
+    slug =
+      "#{name |> String.downcase() |> String.replace(~r/\W+/, "-")}-#{System.unique_integer([:positive])}"
+
     {:ok, org} = Accounts.create_org(%{name: name, slug: slug})
     org
   end
@@ -160,11 +162,13 @@ defmodule ControlKeelWeb.P1aOrgAdminTest do
 
       _html =
         lv
-        |> form("form[phx-submit=submit]", settings: %{
-          name: "Renamed Org",
-          status: "active",
-          budget_cents: "50000"
-        })
+        |> form("form[phx-submit=submit]",
+          settings: %{
+            name: "Renamed Org",
+            status: "active",
+            budget_cents: "50000"
+          }
+        )
         |> render_submit()
 
       updated = Accounts.get_org(org.id)
@@ -224,12 +228,14 @@ defmodule ControlKeelWeb.P1aOrgAdminTest do
       {:ok, lv, _html} = live(conn, ~p"/workspaces/#{ws.id}/repos")
 
       lv
-      |> form("form[phx-submit=bind]", bind: %{
-        owner: "acme",
-        repo: "payments",
-        default_branch: "main",
-        installation_id: ""
-      })
+      |> form("form[phx-submit=bind]",
+        bind: %{
+          owner: "acme",
+          repo: "payments",
+          default_branch: "main",
+          installation_id: ""
+        }
+      )
       |> render_submit()
 
       repos = Mission.list_github_repos(ws.id)

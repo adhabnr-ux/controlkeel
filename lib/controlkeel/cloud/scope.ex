@@ -89,8 +89,8 @@ defmodule ControlKeel.Cloud.Scope do
   @spec get_by_in_workspace(Ecto.Queryable.t(), keyword() | map(), integer()) ::
           Ecto.Schema.t() | nil
   def get_by_in_workspace(schema, clauses, workspace_id)
-      when is_atom(schema) and (is_list(clauses) or is_map(clauses))
-       and is_integer(workspace_id) do
+      when is_atom(schema) and (is_list(clauses) or is_map(clauses)) and
+             is_integer(workspace_id) do
     merged = add_workspace_id(clauses, workspace_id)
     Repo.get_by(schema, merged)
   end
