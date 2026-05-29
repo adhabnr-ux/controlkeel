@@ -384,11 +384,9 @@ defmodule ControlKeelWeb.OnboardingLive do
                               <span class="text-zinc-500 text-xs block mb-1 font-mono text-[10px] uppercase">
                                 Constraints
                               </span>
-                              <ul class="text-xs text-zinc-400 space-y-1 list-disc list-inside">
-                                <%= for item <- boundary_list(@compiled_boundary_summary, "constraints") do %>
-                                  <li>{item}</li>
-                                <% end %>
-                              </ul>
+                              <p class="text-xs text-zinc-400 leading-relaxed">
+                                {boundary_text(@compiled_boundary_summary, "constraints")}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -430,37 +428,24 @@ defmodule ControlKeelWeb.OnboardingLive do
                 >
                   {if @step == 3, do: "Compile brief", else: "Continue"}
                 </button>
+
+                <div :if={@step == 4} class="flex flex-wrap items-center justify-between gap-4">
+                  <button
+                    class="px-6 py-2.5 rounded-full bg-zinc-800 text-zinc-400 font-semibold text-sm hover:bg-zinc-700 hover:text-zinc-200 transition-all duration-200"
+                    phx-click="regenerate"
+                  >
+                    Regenerate
+                  </button>
+                  <button
+                    class="px-6 py-2.5 rounded-full bg-lime-400 text-zinc-950 font-bold text-sm hover:bg-lime-300 hover:shadow-[0_0_20px_rgba(196,240,66,0.3)] transition-all duration-200"
+                    type="button"
+                    phx-click="accept"
+                  >
+                    Create mission
+                  </button>
+                </div>
               </div>
             </.form>
-
-            <div
-              :if={@step == 4}
-              class="flex flex-wrap items-center justify-between gap-4 mt-8 pt-4 border-t border-zinc-800/60"
-            >
-              <div class="flex gap-2">
-                <button
-                  class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-lime-400 hover:text-lime-300 transition font-mono"
-                  type="button"
-                  phx-click="back"
-                >
-                  Edit answers
-                </button>
-                <button
-                  class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-lime-400 hover:text-lime-300 transition font-mono"
-                  type="button"
-                  phx-click="regenerate"
-                >
-                  Regenerate
-                </button>
-              </div>
-              <button
-                class="px-6 py-2.5 rounded-full bg-lime-400 text-zinc-950 font-bold text-sm hover:bg-lime-300 hover:shadow-[0_0_20px_rgba(196,240,66,0.3)] transition-all duration-200"
-                type="button"
-                phx-click="accept"
-              >
-                Create mission
-              </button>
-            </div>
           </div>
 
           <div class="lg:col-span-1 space-y-6">
@@ -568,10 +553,11 @@ defmodule ControlKeelWeb.OnboardingLive do
 
   defp boundary_value(map, key), do: Map.get(map, key) || "Not specified"
 
-  defp boundary_list(map, key) do
+  defp boundary_text(map, key) do
     case Map.get(map, key, []) do
-      [] -> ["Not specified"]
-      items -> items
+      items when is_list(items) and items != [] -> Enum.join(items, " ")
+      "" <> rest -> rest
+      _ -> "Not specified"
     end
   end
 

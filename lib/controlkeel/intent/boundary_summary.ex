@@ -59,7 +59,7 @@ defmodule ControlKeel.Intent.BoundarySummary do
 
   defp normalize_constraints(value) when is_binary(value) do
     value
-    |> String.split(~r/[\n,]/, trim: true)
+    |> String.split(~r/\r?\n/, trim: true)
     |> Enum.map(&String.trim/1)
     |> Enum.reject(&(&1 == ""))
   end
