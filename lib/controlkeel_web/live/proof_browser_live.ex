@@ -16,7 +16,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
      |> assign(:browser, empty_browser())
      |> assign(:memory_hits, [])
      |> assign(:risk_tiers, @risk_tiers)
-     |> assign(:session_options, Mission.list_recent_sessions(30))
+     |> assign(:session_options, Mission.list_recent_sessions(30, nil))
      |> assign(:form, to_form(%{}, as: :filters))}
   end
 
@@ -41,6 +41,13 @@ defmodule ControlKeelWeb.ProofBrowserLive do
   end
 
   def handle_params(params, _uri, socket) do
+    workspace_ids = org_workspace_ids(socket.assigns[:current_org_id])
+
+    params =
+      if workspace_ids != [],
+        do: Map.put(params, "workspace_ids", workspace_ids),
+        else: params
+
     browser = Mission.browse_proof_bundles(params)
 
     {:noreply,
@@ -360,4 +367,12 @@ defmodule ControlKeelWeb.ProofBrowserLive do
   defp format_domain_pack(pack), do: Intent.pack_label(pack)
   defp format_datetime(nil), do: "Not recorded"
   defp format_datetime(value), do: Calendar.strftime(value, "%Y-%m-%d %H:%M:%S UTC")
+
+  defp org_workspace_ids(nil), do: []
+
+  defp org_workspace_ids(org_id) when is_integer(org_id) do
+    org_id
+    |> ControlKeel.Accounts.list_workspaces_for_org()
+    |> Enum.map(& &1.id)
+  end
 end

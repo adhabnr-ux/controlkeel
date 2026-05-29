@@ -5454,6 +5454,7 @@ defmodule ControlKeel.Mission do
     |> maybe_filter_finding_metadata("maintainer_scope", filters.maintainer_scope)
     |> maybe_filter_session(filters.session_id)
     |> maybe_filter_finding_workspace(filters.workspace_id)
+    |> maybe_filter_finding_workspace(filters.workspace_ids)
   end
 
   defp proof_bundles_query(filters) do
@@ -5469,6 +5470,7 @@ defmodule ControlKeel.Mission do
     |> maybe_filter_proof_ready(filters.deploy_ready)
     |> maybe_filter_proof_risk(filters.risk_tier)
     |> maybe_filter_proof_workspace(filters.workspace_id)
+    |> maybe_filter_proof_workspace(filters.workspace_ids)
   end
 
   defp normalize_findings_filters(opts) do
@@ -5486,6 +5488,7 @@ defmodule ControlKeel.Mission do
       maintainer_scope: normalize_filter_value(opts["maintainer_scope"]),
       session_id: normalize_session_filter(opts["session_id"]),
       workspace_id: normalize_session_filter(opts["workspace_id"]),
+      workspace_ids: normalize_ids_filter(opts["workspace_ids"]),
       page: normalize_page(opts["page"])
     }
   end
@@ -5501,6 +5504,7 @@ defmodule ControlKeel.Mission do
       deploy_ready: normalize_boolean_filter(opts["deploy_ready"]),
       risk_tier: normalize_filter_value(opts["risk_tier"]),
       workspace_id: normalize_session_filter(opts["workspace_id"]),
+      workspace_ids: normalize_ids_filter(opts["workspace_ids"]),
       page: normalize_page(opts["page"])
     }
   end
@@ -5527,6 +5531,16 @@ defmodule ControlKeel.Mission do
       _ -> nil
     end
   end
+
+  defp normalize_ids_filter(nil), do: nil
+  defp normalize_ids_filter([]), do: nil
+
+  defp normalize_ids_filter(ids) when is_list(ids) do
+    result = Enum.filter(ids, &is_integer/1)
+    if result == [], do: nil, else: result
+  end
+
+  defp normalize_ids_filter(_), do: nil
 
   defp normalize_page(nil), do: 1
   defp normalize_page(value) when is_integer(value), do: max(value, 1)
@@ -5657,15 +5671,29 @@ defmodule ControlKeel.Mission do
   end
 
   defp maybe_filter_finding_workspace(query, nil), do: query
+  defp maybe_filter_finding_workspace(query, []), do: query
 
-  defp maybe_filter_finding_workspace(query, workspace_id) do
+  defp maybe_filter_finding_workspace(query, workspace_id) when is_integer(workspace_id) do
     from([_f, s, _w] in query, where: s.workspace_id == ^workspace_id)
   end
 
-  defp maybe_filter_proof_workspace(query, nil), do: query
+  defp maybe_filter_finding_workspace(query, workspace_ids) when is_list(workspace_ids) do
+    from([_f, s, _w] in query, where: s.workspace_id in ^workspace_ids)
+  end
 
-  defp maybe_filter_proof_workspace(query, workspace_id) do
-    from([_proof, _task, session, _workspace] in query, where: session.workspace_id == ^workspace_id)
+  defp maybe_filter_proof_workspace(query, nil), do: query
+  defp maybe_filter_proof_workspace(query, []), do: query
+
+  defp maybe_filter_proof_workspace(query, workspace_id) when is_integer(workspace_id) do
+    from([_proof, _task, session, _workspace] in query,
+      where: session.workspace_id == ^workspace_id
+    )
+  end
+
+  defp maybe_filter_proof_workspace(query, workspace_ids) when is_list(workspace_ids) do
+    from([_proof, _task, session, _workspace] in query,
+      where: session.workspace_id in ^workspace_ids
+    )
   end
 
   defp maybe_filter_proof_session(query, nil), do: query

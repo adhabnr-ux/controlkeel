@@ -26,6 +26,7 @@ defmodule ControlKeelWeb.FindingsLive do
 
   @impl true
   def handle_params(params, _uri, socket) do
+    params = inject_org_workspace_ids(params, socket.assigns[:current_org_id])
     browser = Mission.browse_findings(params)
 
     selected_finding =
@@ -308,8 +309,24 @@ defmodule ControlKeelWeb.FindingsLive do
     """
   end
 
+  defp inject_org_workspace_ids(params, nil), do: params
+
+  defp inject_org_workspace_ids(params, org_id) when is_integer(org_id) do
+    workspace_ids =
+      org_id
+      |> ControlKeel.Accounts.list_workspaces_for_org()
+      |> Enum.map(& &1.id)
+
+    if workspace_ids == [], do: params, else: Map.put(params, "workspace_ids", workspace_ids)
+  end
+
   defp refresh_browser(socket) do
-    browser = Mission.browse_findings(browser_form_params(socket.assigns.browser.filters))
+    params =
+      socket.assigns.browser.filters
+      |> browser_form_params()
+      |> inject_org_workspace_ids(socket.assigns[:current_org_id])
+
+    browser = Mission.browse_findings(params)
 
     selected_finding =
       case socket.assigns.selected_finding do

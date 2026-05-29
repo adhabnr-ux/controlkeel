@@ -12,6 +12,8 @@ defmodule ControlKeelWeb.MissionControlLive do
 
   @impl true
   def mount(%{"id" => id} = params, _session, socket) do
+    org_id = socket.assigns[:current_org_id]
+
     case Mission.get_session_context(id) do
       nil ->
         {:ok,
@@ -19,9 +21,28 @@ defmodule ControlKeelWeb.MissionControlLive do
          |> put_flash(:error, "Mission not found.")
          |> push_navigate(to: ~p"/")}
 
+      session when not is_nil(org_id) and not is_nil(session) ->
+        if session_accessible?(session, org_id) do
+          if connected?(socket), do: schedule_refresh()
+          project_root = socket.endpoint.config(:project_root) || File.cwd!()
+
+          {:ok,
+           socket
+           |> assign(:page_title, session.title)
+           |> assign(:project_root, project_root)
+           |> assign(:launched, Map.get(params, "launched") == "1")
+           |> assign(:selected_finding, nil)
+           |> assign(:selected_fix, nil)
+           |> assign_session(session)}
+        else
+          {:ok,
+           socket
+           |> put_flash(:error, "Mission not found.")
+           |> push_navigate(to: ~p"/")}
+        end
+
       session ->
         if connected?(socket), do: schedule_refresh()
-
         project_root = socket.endpoint.config(:project_root) || File.cwd!()
 
         {:ok,
@@ -1082,5 +1103,13 @@ defmodule ControlKeelWeb.MissionControlLive do
       total_findings: 0,
       blocked_findings_total: 0
     }
+  end
+
+  defp session_accessible?(_session, nil), do: true
+
+  defp session_accessible?(%{workspace_id: ws_id}, org_id) when is_integer(org_id) do
+    org_id
+    |> ControlKeel.Accounts.list_workspaces_for_org()
+    |> Enum.any?(fn ws -> ws.id == ws_id end)
   end
 end

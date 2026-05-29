@@ -61,48 +61,58 @@ defmodule ControlKeelWeb.Router do
 
     get "/", PageController, :home
     get "/getting-started", PageController, :getting_started
-    live "/start", OnboardingLive, :new
-    live "/findings", FindingsLive, :index
-    live "/benchmarks", BenchmarksLive, :index
-    live "/benchmarks/runs/:id", BenchmarksLive, :show
-    live "/benchmarks/policies/:id", BenchmarkPolicyLive, :show
-    live "/proofs", ProofBrowserLive, :index
-    live "/proofs/:id", ProofBrowserLive, :show
-    live "/reviews/:id", ReviewLive, :show
-    live "/ship", ShipLive, :index
-    live "/cloud/telemetry", CloudTelemetryLive, :index
-    live "/cloud/projects", CloudProjectsLive, :index
-    live "/cloud/projects/:ws_id", CloudProjectsLive, :show
-    live "/cloud/invitations/:token", InvitationLive, :show
+
+    # Public in all modes
+    live "/auth/login", AuthLive, :index
     get "/auth/oidc/start", OidcController, :start
     get "/auth/oidc/callback", OidcController, :callback
     get "/auth/saml/start", SamlController, :start
     get "/auth/logout", AuthController, :logout
-    live "/observability", ObservabilityOverviewLive, :index
-    live "/observability/loop", ObservabilityLoopLive, :index
-    live "/observability/benchmarks/drafts", ObservabilityBenchmarkDraftsLive, :index
-    live "/observability/benchmarks/scenarios", ObservabilityBenchmarkScenariosLive, :index
-    live "/observability/benchmarks/history", ObservabilityBenchmarkHistoryLive, :index
-    live "/observability/compare", ObservabilityCompareLive, :index
-    live "/observability/costs", ObservabilityCostsLive, :index
-    live "/observability/evals", ObservabilityEvalsLive, :index
-    live "/observability/evals/persisted", ObservabilityPersistedEvalsLive, :index
-    live "/observability/imports", ObservabilityImportsLive, :index
-    live "/observability/memory-quality", ObservabilityMemoryQualityLive, :index
-    live "/observability/recommendations", ObservabilityRecommendationsLive, :index
-    live "/observability/regressions", ObservabilityRegressionsLive, :index
-    live "/observability/trends", ObservabilityTrendsLive, :index
-    live "/observability/problems", ObservabilityProblemsLive, :index
-    live "/observability/promotions", ObservabilityPromotionsLive, :index
+    live "/cloud/invitations/:token", InvitationLive, :show
+
+    # Cloud-auth gated: in cloud/self_hosted mode requires active membership.
+    # In local mode the on_mount hook is a passthrough.
+    live_session :cloud_auth,
+      on_mount: [{ControlKeelWeb.LiveAuth, :require_cloud_auth}] do
+      live "/start", OnboardingLive, :new
+      live "/findings", FindingsLive, :index
+      live "/benchmarks", BenchmarksLive, :index
+      live "/benchmarks/runs/:id", BenchmarksLive, :show
+      live "/benchmarks/policies/:id", BenchmarkPolicyLive, :show
+      live "/proofs", ProofBrowserLive, :index
+      live "/proofs/:id", ProofBrowserLive, :show
+      live "/reviews/:id", ReviewLive, :show
+      live "/ship", ShipLive, :index
+      live "/cloud/telemetry", CloudTelemetryLive, :index
+      live "/cloud/projects", CloudProjectsLive, :index
+      live "/cloud/projects/:ws_id", CloudProjectsLive, :show
+      live "/observability", ObservabilityOverviewLive, :index
+      live "/observability/loop", ObservabilityLoopLive, :index
+      live "/observability/benchmarks/drafts", ObservabilityBenchmarkDraftsLive, :index
+      live "/observability/benchmarks/scenarios", ObservabilityBenchmarkScenariosLive, :index
+      live "/observability/benchmarks/history", ObservabilityBenchmarkHistoryLive, :index
+      live "/observability/compare", ObservabilityCompareLive, :index
+      live "/observability/costs", ObservabilityCostsLive, :index
+      live "/observability/evals", ObservabilityEvalsLive, :index
+      live "/observability/evals/persisted", ObservabilityPersistedEvalsLive, :index
+      live "/observability/imports", ObservabilityImportsLive, :index
+      live "/observability/memory-quality", ObservabilityMemoryQualityLive, :index
+      live "/observability/recommendations", ObservabilityRecommendationsLive, :index
+      live "/observability/regressions", ObservabilityRegressionsLive, :index
+      live "/observability/trends", ObservabilityTrendsLive, :index
+      live "/observability/problems", ObservabilityProblemsLive, :index
+      live "/observability/promotions", ObservabilityPromotionsLive, :index
+      live "/observability/sessions/:id/memory", ObservabilityMemoryLive, :show
+      live "/observability/sessions/:id/timeline", ObservabilityTimelineLive, :show
+      live "/observability/sessions/:id", ObservabilityLive, :show
+      live "/missions/:id", MissionControlLive, :show
+      live "/policies", PolicyStudioLive, :index
+      live "/install", InstallLive, :index
+      live "/skills", SkillsLive, :index
+      live "/deploy", DeploymentLive, :index
+    end
+
     get "/observability/sessions/:id/export.json", ObservabilityController, :export_session
-    live "/observability/sessions/:id/memory", ObservabilityMemoryLive, :show
-    live "/observability/sessions/:id/timeline", ObservabilityTimelineLive, :show
-    live "/observability/sessions/:id", ObservabilityLive, :show
-    live "/missions/:id", MissionControlLive, :show
-    live "/policies", PolicyStudioLive, :index
-    live "/install", InstallLive, :index
-    live "/skills", SkillsLive, :index
-    live "/deploy", DeploymentLive, :index
   end
 
   scope "/api/v1", ControlKeelWeb do

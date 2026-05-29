@@ -51,7 +51,7 @@ defmodule ControlKeelWeb.OidcController do
       |> put_session(:current_user_id, user.id)
       |> put_session(:current_org_id, org.id)
       |> put_flash(:info, "Signed in with SSO")
-      |> redirect(to: ~p"/cloud/telemetry")
+      |> redirect(to: ~p"/cloud/projects")
     else
       {:error, :invalid_state} ->
         text_error(conn, :forbidden, "Invalid OIDC state")

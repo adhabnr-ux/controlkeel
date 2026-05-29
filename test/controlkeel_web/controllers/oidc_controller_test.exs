@@ -95,7 +95,7 @@ defmodule ControlKeelWeb.OidcControllerTest do
           "name" => "Mallory"
         })
 
-      assert redirected_to(conn, 302) == "/cloud/telemetry"
+      assert redirected_to(conn, 302) == "/cloud/projects"
       user = Accounts.get_user_by_email("carol@example.com")
       assert get_session(conn, :current_user_id) == user.id
       assert get_session(conn, :current_org_id) == org.id
