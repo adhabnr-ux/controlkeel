@@ -199,26 +199,86 @@ defmodule ControlKeel.Cloud.Sync do
         %{action: :skip, reason: :missing_external_id, external_id: nil}
 
       true ->
-        do_upsert(schema, kind, ext_id, payload)
+        do_upsert(schema, kind, ext_id, payload, opts)
     end
   end
 
   defp upsert_payload(_, _opts),
     do: %{action: :skip, reason: :malformed_envelope, external_id: nil}
 
-  defp do_upsert(schema, kind, ext_id, payload) do
+  defp do_upsert(schema, kind, ext_id, payload, opts) do
+    allowed_workspace_id = Keyword.get(opts, :allowed_workspace_id)
+
     case Repo.get_by(schema, external_id: ext_id) do
       nil ->
-        insert_new(schema, ext_id, payload)
+        if payload_in_workspace?(schema, payload, allowed_workspace_id) do
+          insert_new(schema, ext_id, payload)
+        else
+          %{action: :skip, reason: :workspace_scope_mismatch, external_id: ext_id}
+        end
 
       existing ->
-        if editable?(kind) do
-          update_editable(existing, payload)
+        if record_in_workspace?(existing, allowed_workspace_id) do
+          if editable?(kind) do
+            update_editable(existing, payload)
+          else
+            update_append_only(existing, payload)
+          end
         else
-          update_append_only(existing, payload)
+          %{action: :skip, reason: :workspace_scope_mismatch, external_id: ext_id}
         end
     end
   end
+
+  defp record_in_workspace?(_record, nil), do: true
+
+  defp record_in_workspace?(
+         %ControlKeel.Mission.Session{workspace_id: workspace_id},
+         allowed_workspace_id
+       ),
+       do: workspace_id == allowed_workspace_id
+
+  defp record_in_workspace?(
+         %ControlKeel.Mission.WorkspaceAgent{workspace_id: workspace_id},
+         allowed_workspace_id
+       ),
+       do: workspace_id == allowed_workspace_id
+
+  defp record_in_workspace?(%{session_id: session_id}, allowed_workspace_id)
+       when is_integer(session_id) do
+    case Repo.get(ControlKeel.Mission.Session, session_id) do
+      %{workspace_id: ^allowed_workspace_id} -> true
+      _ -> false
+    end
+  end
+
+  defp record_in_workspace?(_record, _allowed_workspace_id), do: false
+
+  defp payload_in_workspace?(_schema, _payload, nil), do: true
+
+  defp payload_in_workspace?(schema, payload, allowed_workspace_id) when is_map(payload) do
+    cond do
+      schema in [ControlKeel.Mission.Session, ControlKeel.Mission.WorkspaceAgent] ->
+        payload_workspace_id(payload) == allowed_workspace_id
+
+      session_id = payload_session_id(payload) ->
+        case Repo.get(ControlKeel.Mission.Session, session_id) do
+          %{workspace_id: ^allowed_workspace_id} -> true
+          _ -> false
+        end
+
+      true ->
+        false
+    end
+  end
+
+  defp payload_in_workspace?(_schema, _payload, _allowed_workspace_id), do: false
+
+  defp payload_workspace_id(payload),
+    do: Map.get(payload, "workspace_id") || Map.get(payload, :workspace_id)
+
+  defp payload_session_id(payload),
+    do: Map.get(payload, "session_id") || Map.get(payload, :session_id)
 
   defp insert_new(schema, ext_id, payload) do
     attrs = payload_to_attrs(payload, schema) |> Map.put(:external_id, ext_id)

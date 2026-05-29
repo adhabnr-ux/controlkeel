@@ -44,7 +44,11 @@ defmodule ControlKeelWeb.CloudSyncController do
         send_error(conn, :bad_request, "batch too large", %{max: @max_batch_count})
 
       true ->
-        case Sync.upsert_batch(records, max_batch_bytes: @max_batch_bytes) do
+        case Sync.upsert_batch(records,
+               max_batch_bytes: @max_batch_bytes,
+               allowed_workspace_id: conn.assigns[:db_workspace_id],
+               target_workspace_id: conn.assigns[:db_workspace_id]
+             ) do
           {:ok, result} ->
             json(conn, %{
               accepted: result.total,

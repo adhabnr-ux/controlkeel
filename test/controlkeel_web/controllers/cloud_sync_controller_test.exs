@@ -3,6 +3,7 @@ defmodule ControlKeelWeb.CloudSyncControllerTest do
 
   alias ControlKeel.Cloud.{AuthToken, WorkspaceIdentity, WorkspaceKeyRegistry}
   alias ControlKeel.Mission
+  alias ControlKeel.Repo
 
   setup %{conn: conn} do
     tmp_home =
@@ -103,6 +104,78 @@ defmodule ControlKeelWeb.CloudSyncControllerTest do
         })
 
       assert response(conn, 400)
+    end
+
+    test "cannot update another workspace's existing record by external_id", %{
+      conn: conn,
+      token: token,
+      identity: identity
+    } do
+      {:ok, other_workspace} =
+        Mission.create_workspace(%{
+          name: "Other Tenant",
+          slug: "other-tenant-#{System.unique_integer([:positive])}",
+          industry: "software",
+          agent: "claude-code",
+          budget_cents: 10_000,
+          compliance_profile: "baseline",
+          status: "active"
+        })
+
+      {:ok, other_session} =
+        Mission.create_session(%{
+          title: "Other session",
+          objective: "tenant boundary",
+          risk_tier: "low",
+          budget_cents: 1000,
+          daily_budget_cents: 1000,
+          workspace_id: other_workspace.id
+        })
+
+      {:ok, other_finding} =
+        Mission.create_finding(%{
+          session_id: other_session.id,
+          title: "do not modify",
+          severity: "high",
+          category: "security",
+          rule_id: "CK-TENANT-SCOPE",
+          plain_message: "original",
+          status: "open",
+          metadata: %{}
+        })
+
+      newer = DateTime.add(other_finding.updated_at, 60, :second) |> DateTime.to_iso8601()
+
+      envelope = %{
+        "external_id" => other_finding.external_id,
+        "kind" => "finding",
+        "payload" => %{
+          "session_id" => other_session.id,
+          "title" => other_finding.title,
+          "severity" => other_finding.severity,
+          "category" => other_finding.category,
+          "rule_id" => other_finding.rule_id,
+          "plain_message" => "cross-tenant overwrite",
+          "status" => "blocked",
+          "auto_resolved" => false,
+          "metadata" => %{},
+          "updated_at" => newer
+        }
+      }
+
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/cloud/v1/sync/push", %{
+          workspace_id: identity.workspace_id,
+          records: [envelope]
+        })
+
+      assert %{"skipped" => 1} = json_response(conn, 200)
+
+      reloaded = Repo.get!(ControlKeel.Mission.Finding, other_finding.id)
+      assert reloaded.status == "open"
+      assert reloaded.plain_message == "original"
     end
   end
 
