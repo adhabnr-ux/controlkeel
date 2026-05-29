@@ -21,7 +21,7 @@ defmodule ControlKeelWeb.LiveAuth do
   socket.assigns (they carry the same values from the same source).
   """
 
-  import Phoenix.LiveView, only: [redirect: 2]
+  import Phoenix.LiveView, only: [redirect: 2, attach_hook: 4, put_flash: 3, push_navigate: 2, connected?: 1]
   import Phoenix.Component, only: [assign: 3]
 
   alias ControlKeel.{Accounts, RuntimeMode}
@@ -36,7 +36,7 @@ defmodule ControlKeelWeb.LiveAuth do
       socket = load_auth(socket, session)
 
       if socket.assigns[:current_membership] do
-        {:cont, socket}
+        {:cont, attach_membership_eviction(socket)}
       else
         {:halt, redirect(socket, to: "/auth/login")}
       end
@@ -47,6 +47,50 @@ defmodule ControlKeelWeb.LiveAuth do
   def on_mount(:load_if_available, _params, session, socket) do
     {:cont, load_auth(socket, session)}
   end
+
+  # ── Real-time membership eviction ─────────────────────────────────
+  #
+  # When an org owner revokes or demotes a membership, Accounts broadcasts
+  # `{:membership_changed, %Membership{}}` on `membership:user:<id>`. We
+  # subscribe per-socket here and attach a `:handle_info` hook so every
+  # cloud-mode LiveView reacts uniformly. The hook returns `{:halt, socket}`
+  # so subsequent application handlers don't fire after the redirect is queued.
+
+  defp attach_membership_eviction(socket) do
+    if connected?(socket) and socket.assigns[:current_user] do
+      Phoenix.PubSub.subscribe(
+        ControlKeel.PubSub,
+        Accounts.membership_topic(socket.assigns.current_user.id)
+      )
+
+      attach_hook(socket, :ck_membership_eviction, :handle_info, &handle_membership_event/2)
+    else
+      socket
+    end
+  end
+
+  defp handle_membership_event(
+         {:membership_changed, %{user_id: uid, status: "revoked"}},
+         %{assigns: %{current_user: %{id: uid}}} = socket
+       ) do
+    {:halt,
+     socket
+     |> put_flash(:error, "Your access has changed. Please sign in again.")
+     |> push_navigate(to: "/auth/login")}
+  end
+
+  defp handle_membership_event(
+         {:membership_changed, %{user_id: uid, role: new_role}},
+         %{assigns: %{current_user: %{id: uid}, current_membership: %{role: prev_role}}} = socket
+       )
+       when new_role != prev_role do
+    {:halt,
+     socket
+     |> put_flash(:info, "Your role changed. Please sign in again to refresh.")
+     |> push_navigate(to: "/auth/login")}
+  end
+
+  defp handle_membership_event(_msg, socket), do: {:cont, socket}
 
   # --- Private ---
 

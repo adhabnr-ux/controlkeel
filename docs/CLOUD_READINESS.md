@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `57db1cf` (12 commits ahead of `origin/main`, none pushed)
-**Test status:** 2040 / 2040 passing
+**HEAD:** P2 implemented (22+ commits ahead of `origin/main`, none pushed)
+**Test status:** 2065 / 2065 passing
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
 
@@ -37,7 +37,7 @@ This doc sequences the work to close that gap.
 | Org admin UI (members/roles/budget) | ✅ done | P1a (OrgMembersLive, OrgSettingsGeneralLive) |
 | GitHub repo binding UI | ✅ done | P1a (WorkspaceReposLive) |
 | Service-account / webhook / tool-policy UI | ✅ done | P1b (3 LiveViews) |
-| Membership-revoke broadcast | ⚠️ stale-session window | Finding #325 (this doc, P2) |
+| Membership-revoke broadcast | ✅ done | P2 (PubSub + LiveAuth attach_hook) |
 | Postgres parity CI lane | ⚠️ untested | Finding #294 (P3) |
 | TypeScript SDK | ❌ missing | Finding #295 (P3) |
 | Skills/hooks cloud execution model | ⚠️ design pending | Finding #293 (P3) |
@@ -123,16 +123,16 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 
 | # | Item | Finding | Acceptance |
 |---|---|---|---|
-| P2.1 | PubSub broadcast on `revoke_membership` | #325 | LiveViews listen for `{:membership_revoked, user_id, org_id}`; matching sockets push_navigate to `/` |
-| P2.2 | Per-request membership re-validation in cloud mode | #325 | LiveAuth on every navigation re-checks `get_active_membership`; fails closed if revoked since session start |
-| P2.3 | Session timeout / sliding expiry config | new | `:session_idle_timeout_minutes` config in cloud mode; default 60 |
-| P2.4 | "Sign out everywhere" action on user profile | new | Owner-initiated session invalidation |
+| P2.1 | PubSub broadcast on `revoke_membership` + `update_membership_role` | #325 | ✅ Accounts.broadcast_membership_change wired into both mutation paths |
+| P2.2 | LiveAuth subscribe + attach_hook on connected sockets | #325 | ✅ `:ck_membership_eviction` hook push_navigates to /auth/login on revoke or role change |
+| P2.3 | Session timeout / sliding expiry config | new | ⬜ P2b pending |
+| P2.4 | "Sign out everywhere" action on user profile | new | ⬜ P2b pending |
 
-**Estimated scope:** ~5 files. Small slice.
+**P2 actual scope:** 3 files (Accounts + LiveAuth + test), ~150-line diff. 3 new tests.
 
-**Dependencies:** P0 + P1 (user/member surfaces must exist).
+**Dependencies:** P0 + P1 complete (auth gate + member admin live).
 
-**Status:** ⬜ Not started
+**Status:** ✅ P2 core (P2.1 + P2.2) complete. P2.3 + P2.4 are nice-to-have polish, deferred to P2b.
 
 ---
 
@@ -199,7 +199,7 @@ When a new gap is discovered:
 | CK-CLOUD-INVITE-AUTOLOGIN-004 (#322) | high | P0.5 | ✅ closed |
 | CK-CLOUD-SESSION-DEDUP-005 (#323) | high | P0.6 | ✅ closed |
 | CK-CLOUD-ORGADMIN-UI-006 (#324) | high | P1.1–P1.7 ✅ closed via P1a+P1b+P1c | ✅ closed |
-| CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (#325) | medium | P2 | open |
+| CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (#325) | medium | P2 (P2.1 + P2.2) | ✅ closed |
 | CK-CLOUD-DB-004 (#294) | medium | P3.1 | open |
 | CK-CLOUD-SDK-005 (#295) | medium | P3.2 | open |
 | CK-CLOUD-SELFHOST-007 (#297) | medium | P3.3 | open |

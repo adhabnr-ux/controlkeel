@@ -221,13 +221,17 @@ defmodule ControlKeel.Accounts do
         if last_active_owner?(membership) do
           {:error, :last_owner_protected}
         else
-          membership |> Membership.changeset(%{status: "revoked"}) |> Repo.update()
+          membership
+          |> Membership.changeset(%{status: "revoked"})
+          |> Repo.update()
+          |> broadcast_on_ok()
         end
 
       membership ->
         membership
         |> Membership.changeset(%{status: "revoked"})
         |> Repo.update()
+        |> broadcast_on_ok()
     end
   end
 
@@ -260,11 +264,17 @@ defmodule ControlKeel.Accounts do
         if last_active_owner?(m) do
           {:error, :last_owner_protected}
         else
-          m |> Membership.changeset(%{role: new_role}) |> Repo.update()
+          m
+          |> Membership.changeset(%{role: new_role})
+          |> Repo.update()
+          |> broadcast_on_ok()
         end
 
       m ->
-        m |> Membership.changeset(%{role: new_role}) |> Repo.update()
+        m
+        |> Membership.changeset(%{role: new_role})
+        |> Repo.update()
+        |> broadcast_on_ok()
     end
   end
 
@@ -284,6 +294,36 @@ defmodule ControlKeel.Accounts do
     |> Org.changeset(attrs)
     |> Repo.update()
   end
+
+  # ──────────────── Real-time membership broadcasts ──────
+
+  @doc """
+  PubSub topic for membership changes affecting a specific user. LiveViews
+  subscribe to this topic in `LiveAuth.on_mount/4` so a revoke or role-change
+  evicts the user across all open tabs within a single PubSub roundtrip.
+  """
+  @spec membership_topic(integer()) :: String.t()
+  def membership_topic(user_id) when is_integer(user_id), do: "membership:user:#{user_id}"
+
+  defp broadcast_membership_change(%Membership{user_id: user_id} = m)
+       when is_integer(user_id) do
+    Phoenix.PubSub.broadcast(
+      ControlKeel.PubSub,
+      membership_topic(user_id),
+      {:membership_changed, m}
+    )
+  end
+
+  defp broadcast_membership_change(_), do: :ok
+
+  # Convenience tap on the Repo.update/1 result tuple. Broadcast on success,
+  # pass errors through unchanged.
+  defp broadcast_on_ok({:ok, %Membership{} = m} = result) do
+    broadcast_membership_change(m)
+    result
+  end
+
+  defp broadcast_on_ok(other), do: other
 
   @spec get_membership(integer()) :: Membership.t() | nil
   def get_membership(id), do: Repo.get(Membership, id)
