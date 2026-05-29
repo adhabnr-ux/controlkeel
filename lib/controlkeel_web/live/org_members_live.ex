@@ -62,6 +62,10 @@ defmodule ControlKeelWeb.OrgMembersLive do
              role: role,
              invited_by_user_id: socket.assigns.current_user.id
            ) do
+      # Best-effort email delivery. Token banner remains as visible fallback,
+      # so a mailer failure does not block the operator from completing the invite.
+      _ = ControlKeel.Mailer.deliver_invitation(%{email: user.email}, raw_token)
+
       {:noreply,
        socket
        |> assign(:memberships, load_memberships(socket.assigns.org.id))

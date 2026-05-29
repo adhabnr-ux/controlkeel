@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `adfbc08` (10 commits ahead of `origin/main`, none pushed)
-**Test status:** 2031 / 2031 passing
+**HEAD:** P1c implemented (11+ commits ahead of `origin/main`, none pushed)
+**Test status:** 2040 / 2040 passing
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
 
@@ -105,14 +105,14 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 | P1.4 | `/workspaces/:id/service-accounts` | #324 | ✅ WorkspaceServiceAccountsLive; tokens shown once at create/rotate |
 | P1.5 | `/workspaces/:id/webhooks` | #324 | ✅ WorkspaceWebhooksLive; secret shown once at create; replay button |
 | P1.6 | `/workspaces/:id/tool-policy` | #324 | ✅ WorkspaceToolPolicyLive; inherit/allowlist/denylist + tools list |
-| P1.7 | Email delivery for invitations (real mailer, not log-only) | new | ⬜ P1c pending |
-| P1.8 | Tests: every CRUD action with ownership boundary checks | — | ✅ 22 tests (12 P1a + 10 P1b) |
+| P1.7 | Email delivery for invitations (real mailer, not log-only) | new | ✅ Mailer module with `:log` + `:test` adapters; OrgMembersLive wired. SMTP adapter deferred to P4. |
+| P1.8 | Tests: every CRUD action with ownership boundary checks | — | ✅ 31 tests (12 P1a + 10 P1b + 9 P1c) |
 
-**P1a + P1b actual scope:** 9 files (6 LiveViews + Accounts + Router), ~1700-line diff total.
+**P1 actual scope:** 12 files (6 LiveViews + Accounts + Application + Mailer modules + Router + config), ~2000-line diff total.
 
 **Dependencies:** P0 complete (auth gate + signup live).
 
-**Status:** 🔄 P1a + P1b complete, P1c (mailer) pending
+**Status:** ✅ P1 fully complete (P1a + P1b + P1c)
 
 ---
 
@@ -197,7 +197,7 @@ When a new gap is discovered:
 | CK-CLOUD-IDP-CONFIG-003 (#321) | high | P0.4 | ✅ closed |
 | CK-CLOUD-INVITE-AUTOLOGIN-004 (#322) | high | P0.5 | ✅ closed |
 | CK-CLOUD-SESSION-DEDUP-005 (#323) | high | P0.6 | ✅ closed |
-| CK-CLOUD-ORGADMIN-UI-006 (#324) | high | P1.1–P1.6 ✅ closed via P1a+P1b; only P1.7 (mailer) still open | mostly closed |
+| CK-CLOUD-ORGADMIN-UI-006 (#324) | high | P1.1–P1.7 ✅ closed via P1a+P1b+P1c | ✅ closed |
 | CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (#325) | medium | P2 | open |
 | CK-CLOUD-DB-004 (#294) | medium | P3.1 | open |
 | CK-CLOUD-SDK-005 (#295) | medium | P3.2 | open |

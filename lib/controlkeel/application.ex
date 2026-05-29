@@ -80,6 +80,7 @@ defmodule ControlKeel.Application do
       ] ++
       analytics_children() ++
       cloud_emitter_children() ++
+      mailer_test_inbox_children() ++
       [
         {DNSCluster, query: Application.get_env(:controlkeel, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: ControlKeel.PubSub},
@@ -266,6 +267,14 @@ defmodule ControlKeel.Application do
   defp cloud_sender_periodic_children do
     if Application.get_env(:controlkeel, :cloud_sender_periodic_enabled, true) do
       [ControlKeel.Cloud.Sender.Periodic]
+    else
+      []
+    end
+  end
+
+  defp mailer_test_inbox_children do
+    if Application.get_env(:controlkeel, :mailer_adapter) == :test do
+      [ControlKeel.Mailer.TestInbox]
     else
       []
     end

@@ -37,3 +37,6 @@ config :phoenix,
 
 config :controlkeel, :analytics_telemetry_handler, false
 config :controlkeel, :cloud_sender_periodic_enabled, false
+
+# Mailer: capture deliveries in-memory so tests can assert on them.
+config :controlkeel, :mailer_adapter, :test
