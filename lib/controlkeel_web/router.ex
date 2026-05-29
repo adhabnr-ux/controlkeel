@@ -253,7 +253,8 @@ defmodule ControlKeelWeb.Router do
 
     post "/sync/push", CloudSyncController, :push
     post "/sync/pull", CloudSyncController, :pull
-  end
+
+     get "/orgs/:slug/usage", CloudUsageApiController, :show  end
 
   scope "/", ControlKeelWeb do
     pipe_through :saml_acs

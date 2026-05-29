@@ -152,7 +152,7 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 | P3.3 | Self-host smoke test in CI | #297 | ✅ `scripts/self_host_smoke.sh` boots `mix phx.server` with `PHX_HOST=govern.selfhost.test` against a fresh SQLite DB; asserts `/` responds, `/cloud/v1/workspaces/register` is mounted, `/cloud/v1/sync/push` requires Bearer. CI job runs after `test`. Burrito + Postgres round-trip variants deferred. |
 | P3.4 | Skills/hooks cloud-execution model decision | #293 | Architectural decision recorded in `docs/cloud-execution-model.md`: hybrid (local agent + cloud state) vs cloud sandbox per session. **Decision required before implementation.** |
 | P3.5 | Rate limiting per workspace on `/cloud/v1` | new | ✅ ETS-backed token bucket per `db_workspace_id`; plug returns 429 + Retry-After. Single-node only; multi-node coordination deferred. |
-| P3.6 | Billing/usage metering integration | new | Per-org Stripe customer; usage emitted from `Budget.spend_cents` |
+| P3.6 | Billing/usage metering integration | new | ✅ `UsageMeter` GenServer (ETS) aggregates spend per org per day; `UsageEmitter` behaviour with LogEmitter default; GET /cloud/v1/orgs/:slug/usage returns spend + budget + ratio; supervised under late_children. Stripe adapter deferred to P4. |
 
 **Estimated scope:** Each item is its own slice. P3.4 is a design decision, not code.
 
