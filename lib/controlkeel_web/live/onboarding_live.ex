@@ -25,6 +25,7 @@ defmodule ControlKeelWeb.OnboardingLive do
      |> assign(:compiled_brief, nil)
      |> assign(:compiled_boundary_summary, Intent.boundary_summary(nil))
      |> assign(:started?, false)
+     |> assign(:recent_sessions, Mission.list_recent_sessions())
      |> assign_form()}
   end
 
@@ -115,6 +116,39 @@ defmodule ControlKeelWeb.OnboardingLive do
          socket
          |> put_flash(:error, "ControlKeel could not create the mission from this brief.")
          |> assign(:step, 4)}
+    end
+  end
+
+  @impl true
+  def handle_event("select_mission", params, socket) do
+    id = params["id"] || params["recent_mission_id"]
+
+    case id do
+      "" ->
+        {:noreply, socket}
+
+      nil ->
+        {:noreply, socket}
+
+      id ->
+        session = Mission.get_session!(String.to_integer(id))
+        brief = session.execution_brief || %{}
+        interview_answers = get_in(brief, ["compiler", "interview_answers"]) || %{}
+        idea = Map.get(brief, "idea", session.objective)
+
+        attrs =
+          socket.assigns.attrs
+          |> Map.merge(%{
+            "project_name" => session.title,
+            "idea" => idea,
+            "interview_answers" => interview_answers
+          })
+
+        {:noreply,
+         socket
+         |> assign(:attrs, attrs)
+         |> assign(:interview_questions, Intent.interview_questions(attrs["occupation"]))
+         |> assign_form()}
     end
   end
 
@@ -244,6 +278,26 @@ defmodule ControlKeelWeb.OnboardingLive do
                         <% end %>
                       </div>
                     </div>
+
+                    <%= if @recent_sessions != [] do %>
+                      <div class="border-t border-zinc-800/60 pt-6">
+                        <div class="space-y-1.5">
+                          <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                            Or continue from an existing mission
+                          </label>
+                          <select
+                            name="recent_mission_id"
+                            class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                            phx-change="select_mission"
+                          >
+                            <option value="">Select a recent mission...</option>
+                            <%= for session <- @recent_sessions do %>
+                              <option value={session.id}>{session.title}</option>
+                            <% end %>
+                          </select>
+                        </div>
+                      </div>
+                    <% end %>
                   </div>
                 <% 3 -> %>
                   <div class="space-y-6">
