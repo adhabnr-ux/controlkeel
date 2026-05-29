@@ -558,18 +558,29 @@ defmodule ControlKeel.SkillsTest do
              "agent-integration",
              "agent-pattern-verification",
              "align",
+             "architect-first",
              "benchmark-operator",
+             "cli-for-agents",
              "cloudflare-agent",
              "compliance-audit",
+             "continual-learning",
              "controlkeel-governance",
              "cost-optimization",
+             "deep-code-quality-review",
+             "deslop",
              "domain-audit",
              "handoff",
+             "investigate",
+             "orchestrate-tasks",
+             "parallel-review",
              "plan-slice",
              "policy-training",
              "proof-memory",
+             "reviewable-pr",
              "security-review",
-             "ship-readiness"
+             "ship-readiness",
+             "standup-summary",
+             "tdd-bugfix"
            ]
 
     governance = Enum.find(result.skills, &(&1.name == "controlkeel-governance"))
