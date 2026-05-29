@@ -68,6 +68,7 @@ Commits in chronological order. Each closed at least one critical finding.
 | `189a527` | P2 real-time membership eviction (PubSub broadcast + LiveAuth attach_hook) | CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (P2.1, P2.2) |
 | `c795f1d` | P3.5 per-workspace rate limiting on /cloud/v1 (ETS token bucket + plug) | P3.5 |
 | `3795c7c` | P3.3 self-host smoke test in CI (scripts/self_host_smoke.sh + ci.yml job) | CK-CLOUD-SELFHOST-007 |
+| `32df8b4` | P3.1 Postgres parity CI lane (ECTO_ADAPTER env var + test-postgres CI job) | CK-CLOUD-DB-004 (#294) |
 
 ---
 
