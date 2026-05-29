@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `964262d` (43 commits ahead of `origin/main`, none pushed)
+**HEAD:** `4430719` (46 commits ahead of `origin/main`, none pushed)
 **Test status:** 2135 / 2135 passing + self-host smoke script + TypeScript SDK typecheck
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
