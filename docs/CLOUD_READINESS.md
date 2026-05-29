@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** P3.5 implemented (24+ commits ahead of `origin/main`, none pushed)
+**HEAD:** `c795f1d` (25 commits ahead of `origin/main`, none pushed)
 **Test status:** 2074 / 2074 passing
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
@@ -66,6 +66,7 @@ Commits in chronological order. Each closed at least one critical finding.
 | `adfbc08` | P1b workspace admin UI: WorkspaceServiceAccountsLive, WorkspaceWebhooksLive, WorkspaceToolPolicyLive | CK-CLOUD-ORGADMIN-UI-006 (P1.4, P1.5, P1.6) |
 | `57db1cf` | P1c Mailer module (log + test adapters) wired into OrgMembersLive | P1.7 |
 | `189a527` | P2 real-time membership eviction (PubSub broadcast + LiveAuth attach_hook) | CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (P2.1, P2.2) |
+| `c795f1d` | P3.5 per-workspace rate limiting on /cloud/v1 (ETS token bucket + plug) | P3.5 |
 
 ---
 
