@@ -177,7 +177,11 @@ defmodule ControlKeel.Cloud.RuntimeContext do
     |> Map.new()
   end
 
-  @doc "Count packages by status across all workspaces."
+  @doc """
+  Count packages by status across ALL workspaces.
+
+  **Admin only.** Use `status_counts/1` for tenant-facing surfaces.
+  """
   @spec global_status_counts() :: %{String.t() => non_neg_integer()}
   def global_status_counts do
     RunPackage
@@ -187,9 +191,13 @@ defmodule ControlKeel.Cloud.RuntimeContext do
     |> Map.new()
   end
 
-  @doc "Newest-first list of recent run packages across the deployment."
-  @spec recent(keyword()) :: [RunPackage.t()]
-  def recent(opts \\ []) do
+  @doc """
+  Newest-first list of recent run packages across ALL workspaces.
+
+  **Admin only.** Use `list_for_workspace/2` for tenant-facing surfaces.
+  """
+  @spec global_recent(keyword()) :: [RunPackage.t()]
+  def global_recent(opts \\ []) do
     limit = Keyword.get(opts, :limit, 25)
 
     RunPackage

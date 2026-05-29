@@ -110,15 +110,6 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
     |> Repo.all()
   end
 
-  @doc "All active registrations across all orgs (admin-only view)."
-  @spec list_all() :: [%WorkspaceKey{}]
-  def list_all do
-    from(k in WorkspaceKey,
-      where: is_nil(k.revoked_at),
-      order_by: [desc: k.last_seen_at, desc: k.inserted_at]
-    )
-    |> Repo.all()
-  end
 
   @doc "Refresh `last_seen_at` on the row for `workspace_id` (best-effort)."
   @spec touch_last_seen(String.t()) :: :ok

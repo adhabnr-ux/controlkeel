@@ -68,7 +68,7 @@ defmodule ControlKeel.CLI.RunCloudAgentTest do
                  File.cwd!()
                )
 
-      packages = RuntimeContext.recent(limit: 10)
+      packages = RuntimeContext.global_recent(limit: 10)
       ids = Enum.map(packages, & &1.external_id)
       assert length(Enum.uniq(ids)) == length(ids)
 

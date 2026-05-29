@@ -28,6 +28,7 @@ defmodule ControlKeel.Cloud.AuditExport do
   alias ControlKeel.Cloud.ReceivedTelemetryEvent
   alias ControlKeel.Cloud.RunPackage
   alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.WorkspaceKey
   alias ControlKeel.Mission.{Finding, Review, Session, Workspace}
   alias ControlKeel.Repo
 
@@ -72,7 +73,7 @@ defmodule ControlKeel.Cloud.AuditExport do
         "review_audit_events" => fetch_review_audit_events(workspace_ids, since_ts, until_ts),
         "mcp_tool_calls" => fetch_mcp_tool_calls(workspace_ids, since_ts, until_ts),
         "cloud_run_packages" => fetch_run_packages(workspace_ids, since_ts, until_ts),
-        "received_telemetry_events" => fetch_received_events(scope, since_ts, until_ts)
+        "received_telemetry_events" => fetch_received_events(workspace_ids, since_ts, until_ts)
       }
 
       {:ok, bundle}
@@ -283,11 +284,29 @@ defmodule ControlKeel.Cloud.AuditExport do
     end)
   end
 
-  defp fetch_received_events({:workspace, _}, _since, _until), do: []
+  defp fetch_received_events([], _since, _until), do: []
 
-  defp fetch_received_events({:org, _}, since_ts, until_ts) do
+  defp fetch_received_events(workspace_ids, since_ts, until_ts) do
+    # ReceivedTelemetryEvent.workspace_id is a string (cloud ws_id like "ws_abc"),
+    # but workspace_ids are local integer IDs. Resolve via WorkspaceKey registry.
+    cloud_ws_ids =
+      from(k in WorkspaceKey,
+        where: k.mission_workspace_id in ^workspace_ids,
+        where: is_nil(k.revoked_at),
+        select: k.workspace_id
+      )
+      |> Repo.all()
+
+    case cloud_ws_ids do
+      [] -> []
+      ids -> query_received_events(ids, since_ts, until_ts)
+    end
+  end
+
+  defp query_received_events(cloud_workspace_ids, since_ts, until_ts) do
     query =
       from e in ReceivedTelemetryEvent,
+        where: e.workspace_id in ^cloud_workspace_ids,
         where: e.received_at >= ^since_ts,
         where: e.received_at <= ^until_ts,
         order_by: [asc: e.received_at, asc: e.id]

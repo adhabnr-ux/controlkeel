@@ -207,9 +207,29 @@ defmodule ControlKeel.Cloud.Ingestion do
     Repo.aggregate(ReceivedTelemetryEvent, :count, :id)
   end
 
-  @doc "Recent received events, newest first."
-  @spec recent(keyword()) :: [ReceivedTelemetryEvent.t()]
-  def recent(opts \\ []) do
+  # --- Workspace-scoped variants (tenant-facing) ---
+
+  @doc "Recent received events for a workspace, newest first."
+  @spec recent(String.t(), keyword()) :: [ReceivedTelemetryEvent.t()]
+  def recent(workspace_id, opts \\ []) when is_binary(workspace_id) do
+    limit = Keyword.get(opts, :limit, 50)
+
+    ReceivedTelemetryEvent
+    |> where([e], e.workspace_id == ^workspace_id)
+    |> order_by([e], desc: e.received_at, desc: e.id)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  # --- Global admin variants (operator dashboard only) ---
+
+  @doc """
+  Recent received events across ALL workspaces, newest first.
+
+  **Admin only.** Use `recent(workspace_id, opts)` for tenant-facing surfaces.
+  """
+  @spec global_recent(keyword()) :: [ReceivedTelemetryEvent.t()]
+  def global_recent(opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)
 
     ReceivedTelemetryEvent
@@ -221,13 +241,7 @@ defmodule ControlKeel.Cloud.Ingestion do
   @doc "Recent received events scoped to a single enrolled workspace_id."
   @spec recent_for_workspace(String.t(), keyword()) :: [ReceivedTelemetryEvent.t()]
   def recent_for_workspace(workspace_id, opts \\ []) when is_binary(workspace_id) do
-    limit = Keyword.get(opts, :limit, 50)
-
-    ReceivedTelemetryEvent
-    |> where([e], e.workspace_id == ^workspace_id)
-    |> order_by([e], desc: e.received_at, desc: e.id)
-    |> limit(^limit)
-    |> Repo.all()
+    recent(workspace_id, opts)
   end
 
   @doc "Per-kind event counts for a single workspace_id."
@@ -242,12 +256,12 @@ defmodule ControlKeel.Cloud.Ingestion do
   end
 
   @doc """
-  Funnel metrics for the Mission Control dashboard.
+  Funnel metrics for a single workspace.
 
   Returns counts by event kind plus high-level funnel stages
-  (install → attach → first finding) and per-workspace activity.
+  (install → attach → first finding).
   """
-  @spec funnel_metrics() :: %{
+  @spec funnel_metrics(String.t()) :: %{
           total: non_neg_integer(),
           by_kind: [{String.t(), non_neg_integer()}],
           workspaces: non_neg_integer(),
@@ -256,9 +270,31 @@ defmodule ControlKeel.Cloud.Ingestion do
           first_findings: non_neg_integer(),
           last_received_at: DateTime.t() | nil
         }
-  def funnel_metrics do
+  def funnel_metrics(workspace_id) when is_binary(workspace_id) do
+    build_funnel_metrics(where(ReceivedTelemetryEvent, [e], e.workspace_id == ^workspace_id))
+  end
+
+  @doc """
+  Funnel metrics across ALL workspaces.
+
+  **Admin only.** Use `funnel_metrics(workspace_id)` for tenant-facing surfaces.
+  """
+  @spec global_funnel_metrics() :: %{
+          total: non_neg_integer(),
+          by_kind: [{String.t(), non_neg_integer()}],
+          workspaces: non_neg_integer(),
+          install_success: non_neg_integer(),
+          attach_success: non_neg_integer(),
+          first_findings: non_neg_integer(),
+          last_received_at: DateTime.t() | nil
+        }
+  def global_funnel_metrics do
+    build_funnel_metrics(ReceivedTelemetryEvent)
+  end
+
+  defp build_funnel_metrics(base_query) do
     by_kind =
-      ReceivedTelemetryEvent
+      base_query
       |> group_by([e], e.kind)
       |> select([e], {e.kind, count(e.id)})
       |> Repo.all()
@@ -268,12 +304,12 @@ defmodule ControlKeel.Cloud.Ingestion do
     total = by_kind_map |> Map.values() |> Enum.sum()
 
     workspaces =
-      ReceivedTelemetryEvent
+      base_query
       |> select([e], count(e.workspace_id, :distinct))
       |> Repo.one() || 0
 
     last_received_at =
-      ReceivedTelemetryEvent
+      base_query
       |> select([e], max(e.received_at))
       |> Repo.one()
 

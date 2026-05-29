@@ -166,7 +166,7 @@ defmodule ControlKeel.Cloud.IngestionTest do
       {:ok, _} = Ingestion.ingest(batch, identity.workspace_id)
 
       assert Ingestion.count() == 1
-      assert [%ReceivedTelemetryEvent{}] = Ingestion.recent(limit: 10)
+      assert [%ReceivedTelemetryEvent{}] = Ingestion.global_recent(limit: 10)
     end
   end
 

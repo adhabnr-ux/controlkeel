@@ -122,7 +122,7 @@ defmodule ControlKeel.Cloud.McpPolicyTest do
       assert row.outcome == "denied"
       assert row.denial_reason == "policy:tool_denied"
 
-      assert McpAuditLog.summary().denied == 1
+      assert McpAuditLog.global_summary().denied == 1
     end
   end
 

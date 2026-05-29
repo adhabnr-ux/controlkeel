@@ -126,7 +126,7 @@ defmodule ControlKeel.Cloud.McpAuditLogTest do
           denial_reason: "invalid_scope"
         })
 
-      assert McpAuditLog.summary() == %{total: 3, allowed: 2, denied: 1}
+      assert McpAuditLog.global_summary() == %{total: 3, allowed: 2, denied: 1}
     end
 
     test "counts_by_tool/0 groups by tool with outcome split" do
@@ -141,7 +141,7 @@ defmodule ControlKeel.Cloud.McpAuditLogTest do
 
       :ok = McpAuditLog.record(:allowed, %{tool_name: "ck_finding", resource: "mcp"})
 
-      counts = McpAuditLog.counts_by_tool()
+      counts = McpAuditLog.global_counts_by_tool()
       ck_context = Enum.find(counts, &(&1.tool_name == "ck_context"))
       ck_finding = Enum.find(counts, &(&1.tool_name == "ck_finding"))
 
@@ -157,9 +157,9 @@ defmodule ControlKeel.Cloud.McpAuditLogTest do
         Process.sleep(1100)
       end
 
-      [first | _] = McpAuditLog.recent(limit: 3)
+      [first | _] = McpAuditLog.global_recent(limit: 3)
       assert String.ends_with?(first.tool_name, "_5")
-      assert length(McpAuditLog.recent(limit: 3)) == 3
+      assert length(McpAuditLog.global_recent(limit: 3)) == 3
     end
   end
 end
