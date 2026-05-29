@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `3795c7c` (28 commits ahead of `origin/main`, none pushed)
-**Test status:** 2074 / 2074 passing + self-host smoke script
+**HEAD:** `88d142f` (40 commits ahead of `origin/main`, none pushed)
+**Test status:** 2088 / 2088 passing + self-host smoke script + TypeScript SDK typecheck
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
 
@@ -132,14 +132,14 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 |---|---|---|---|
 | P2.1 | PubSub broadcast on `revoke_membership` + `update_membership_role` | #325 | ✅ Accounts.broadcast_membership_change wired into both mutation paths |
 | P2.2 | LiveAuth subscribe + attach_hook on connected sockets | #325 | ✅ `:ck_membership_eviction` hook push_navigates to /auth/login on revoke or role change |
-| P2.3 | Session timeout / sliding expiry config | new | ⬜ P2b pending |
-| P2.4 | "Sign out everywhere" action on user profile | new | ⬜ P2b pending |
+| P2.3 | Session timeout / sliding expiry config | new | ✅ `SESSION_MAX_AGE_SECONDS` for cookie TTL + `SESSION_IDLE_TIMEOUT_SECONDS` for server-side idle check in LiveAuth. `AuthController.complete/2` writes `session_last_active` on login. |
+| P2.4 | "Sign out everywhere" action on user profile | new | ✅ `Accounts.sign_out_everywhere/1` + PubSub broadcast + LiveAuth handler + owner-only button in OrgSettingsGeneralLive. |
 
 **P2 actual scope:** 3 files (Accounts + LiveAuth + test), ~150-line diff. 3 new tests.
 
 **Dependencies:** P0 + P1 complete (auth gate + member admin live).
 
-**Status:** ✅ P2 core (P2.1 + P2.2) complete. P2.3 + P2.4 are nice-to-have polish, deferred to P2b.
+**Status:** ✅ P2 fully complete (P2.1–P2.4).
 
 ---
 
@@ -160,7 +160,7 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 
 **Dependencies:** P0 + P1. P3.4 should be made before any cloud-side execution feature ships.
 
-**Status:** ⬜ P3.1 + P3.2 ✅. P3.3–P3.6 pending (P3.3 and P3.5 already done).
+**Status:** ✅ P3 fully complete (P3.1–P3.6). P3.4 is a design decision (see Open architectural questions).
 
 ---
 
