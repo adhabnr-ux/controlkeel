@@ -4,7 +4,7 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `a4b5f20` (48 commits ahead of `origin/main`, none pushed)
+**HEAD:** `2e7fc75` (48 commits ahead of `origin/main`, none pushed)
 **Test status:** 2113 / 2113 passing + self-host smoke script + TypeScript SDK typecheck
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
@@ -211,9 +211,9 @@ When a new gap is discovered:
 | CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (#325) | medium | P2 (P2.1 + P2.2) | ✅ closed |
 | CK-CLOUD-DB-004 (#294) | medium | P3.1 | ✅ closed |
 | CK-CLOUD-SDK-005 (#295) | medium | P3.2 | ✅ closed |
-| CK-CLOUD-SELFHOST-007 (#297) | medium | P3.3 | open |
+| CK-CLOUD-SELFHOST-007 (#297) | medium | P3.3 | ✅ closed — self-host smoke test in CI |
 | CK-CLOUD-EXEC-003 (#293) | high-warn | P3.4 | ✅ closed — hybrid model ADR accepted |
-| CK-CLOUD-WEB-006 (#296) | medium | P4.3 | open |
+| CK-CLOUD-WEB-006 (#296) | medium | P4.3 | ✅ closed — marketing home page for anonymous visitors |
 
 ---
 
@@ -236,7 +236,7 @@ These should be answered before shipping the corresponding phase.
 
 2. **P0.4 — IdP self-serve.** Two options: (a) Force every org to bring their own OIDC provider (config UI). (b) Ship a hosted fallback (Anthropic-managed Google/GitHub OAuth) for orgs without an IdP. (b) reduces friction but increases CK's own auth burden.
 
-3. **P4.3 — Marketing site posture.** Replace the home page entirely for anonymous visitors, or keep a single dashboard that swaps content based on auth state.
+3. ~~**P4.3 — Marketing site posture.**~~ ✅ Resolved: Single dashboard with conditional rendering — anonymous cloud visitors see marketing hero + features, auth'd users see dashboard.
 
 ---
 
