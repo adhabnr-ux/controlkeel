@@ -26,6 +26,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   alias ControlKeel.Cloud.RuntimeContext
   alias ControlKeel.Cloud.WorkspaceKey
   alias ControlKeel.Cloud.WorkspaceKeyRegistry
+  alias ControlKeel.Mission
   alias ControlKeel.Repo
 
   @refresh_ms 5_000
@@ -69,7 +70,14 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     {:ok,
      socket
      |> assign(:keys, keys)
-     |> assign(:state, list_state(socket, keys))}
+     |> assign(:state, list_state(socket, keys))
+     |> assign(:show_create_form, false)
+     |> assign(:create_form, to_form(empty_workspace_params(), as: :workspace))
+     |> assign(:create_error, nil)}
+  end
+
+  defp empty_workspace_params do
+    %{"name" => "", "slug" => "", "industry" => "software", "agent" => "claude-code", "budget_cents" => "10000", "compliance_profile" => "baseline"}
   end
 
   defp mount_show(%{"ws_id" => ws_id}, socket) do
@@ -154,6 +162,76 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
     {:noreply, socket}
   end
+
+  @impl true
+  def handle_event("toggle-create-workspace", _params, socket) do
+    {:noreply, assign(socket, :show_create_form, !socket.assigns.show_create_form)}
+  end
+
+  def handle_event("create-workspace", %{"workspace" => params}, socket) do
+    cond do
+      is_nil(socket.assigns.current_membership) ->
+        {:noreply, assign(socket, :create_error, "You must be signed in.")}
+
+      not Accounts.role_at_least?(socket.assigns.current_membership.role, "admin") ->
+        {:noreply, assign(socket, :create_error, "Admin or owner role required to create workspaces.")}
+
+      true ->
+        attrs = normalize_workspace_attrs(params, socket.assigns.current_org_id)
+
+        case Mission.create_workspace(attrs) do
+          {:ok, workspace} ->
+            _ = Accounts.assign_workspace_to_org(workspace.id, socket.assigns.current_org_id)
+
+            keys =
+              socket.assigns.current_org_id
+              |> WorkspaceKeyRegistry.list_for_org()
+              |> Repo.preload(:mission_workspace)
+
+            {:noreply,
+             socket
+             |> assign(:keys, keys)
+             |> assign(:state, list_state(socket, keys))
+             |> assign(:show_create_form, false)
+             |> assign(:create_form, to_form(empty_workspace_params(), as: :workspace))
+             |> assign(:create_error, nil)
+             |> put_flash(:info, "Workspace \"#{workspace.name}\" created.")}
+
+          {:error, %Ecto.Changeset{} = cs} ->
+            errors =
+              cs.errors
+              |> Enum.map_join("; ", fn {field, {msg, _}} -> "#{field}: #{msg}" end)
+
+            {:noreply,
+             socket
+             |> assign(:create_form, to_form(params, as: :workspace))
+             |> assign(:create_error, errors)}
+        end
+    end
+  end
+
+  defp normalize_workspace_attrs(params, org_id) do
+    %{
+      name: params["name"],
+      slug: params["slug"],
+      industry: params["industry"] || "software",
+      agent: params["agent"] || "claude-code",
+      budget_cents: parse_budget(params["budget_cents"]),
+      compliance_profile: params["compliance_profile"] || "baseline",
+      status: "active",
+      org_id: org_id
+    }
+  end
+
+  defp parse_budget(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {n, _} when n >= 0 -> n
+      _ -> 10_000
+    end
+  end
+
+  defp parse_budget(value) when is_integer(value) and value >= 0, do: value
+  defp parse_budget(_), do: 10_000
 
   @impl true
   def render(%{live_action: :show, state: :show} = assigns) do
@@ -341,15 +419,17 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     ~H"""
     <div class="ck-card">
       <p>
-        No workspaces have enrolled with this org yet. From any project, run:
+        No workspaces have enrolled with this org yet. Create one below, or from any project run:
       </p>
       <pre><code>controlkeel cloud connect --enroll https://controlkeel.com --invite &lt;token&gt;</code></pre>
     </div>
+    {render_create_workspace(assigns)}
     """
   end
 
   defp render_body(%{state: :ready} = assigns) do
     ~H"""
+    {render_create_workspace(assigns)}
     <div class="ck-card">
       <table class="ck-table">
         <thead>
@@ -382,6 +462,99 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   end
 
   defp render_body(assigns), do: ~H""
+
+  defp render_create_workspace(assigns) do
+    can_create =
+      assigns.current_membership &&
+        ControlKeel.Accounts.role_at_least?(assigns.current_membership.role, "admin")
+
+    assigns = Map.put(assigns, :can_create, can_create)
+
+    ~H"""
+    <%= if @can_create do %>
+      <div class="ck-card" id="create-workspace-section">
+        <%= if @show_create_form do %>
+          <h3 class="ck-section-subtitle">New workspace</h3>
+          <.form for={@create_form} phx-submit="create-workspace" class="flex flex-col gap-3">
+            <div>
+              <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
+              <input
+                type="text"
+                name="workspace[name]"
+                value={@create_form[:name].value || ""}
+                required
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-zinc-300 mb-1">Slug</label>
+              <input
+                type="text"
+                name="workspace[slug]"
+                value={@create_form[:slug].value || ""}
+                required
+                pattern="[a-z0-9][a-z0-9\-]*"
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-zinc-300 mb-1">Industry</label>
+                <input
+                  type="text"
+                  name="workspace[industry]"
+                  value={@create_form[:industry].value || "software"}
+                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-zinc-300 mb-1">Agent</label>
+                <input
+                  type="text"
+                  name="workspace[agent]"
+                  value={@create_form[:agent].value || "claude-code"}
+                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-zinc-300 mb-1">Monthly budget (cents)</label>
+                <input
+                  type="number"
+                  name="workspace[budget_cents]"
+                  value={@create_form[:budget_cents].value || "10000"}
+                  min="0"
+                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-zinc-300 mb-1">Compliance profile</label>
+                <input
+                  type="text"
+                  name="workspace[compliance_profile]"
+                  value={@create_form[:compliance_profile].value || "baseline"}
+                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                />
+              </div>
+            </div>
+            <%= if @create_error do %>
+              <p class="ck-note ck-note-danger">{@create_error}</p>
+            <% end %>
+            <div class="flex gap-2">
+              <button type="submit" class="ck-btn ck-btn-primary">Create workspace</button>
+              <button type="button" phx-click="toggle-create-workspace" class="ck-btn ck-btn-secondary">Cancel</button>
+            </div>
+          </.form>
+        <% else %>
+          <button type="button" phx-click="toggle-create-workspace" class="ck-btn ck-btn-primary">
+            + Create workspace
+          </button>
+        <% end %>
+      </div>
+    <% end %>
+    """
+  end
 
   defp format_dt(nil), do: "never"
   defp format_dt(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M UTC")

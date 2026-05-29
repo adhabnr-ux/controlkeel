@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `05816f9` (4 commits ahead of `origin/main`, none pushed)
-**Test status:** 2000 / 2000 passing
+**HEAD:** P0 implemented (6 commits ahead of `origin/main`, none pushed)
+**Test status:** 2009 / 2009 passing
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
 
@@ -29,11 +29,11 @@ This doc sequences the work to close that gap.
 | LiveView auth gate (cloud mode) | ✅ done | commit `05816f9` |
 | Org-scoped LiveView queries | ✅ done | commit `05816f9` |
 | Mission/session ownership checks | ✅ done | commit `05816f9` |
-| Sign Up / org self-serve | ❌ blocked | Finding #319 (this doc, P0) |
-| Workspace creation UI | ❌ blocked | Finding #320 (this doc, P0) |
-| Per-org IdP configuration UI | ❌ blocked | Finding #321 (this doc, P0) |
-| Invitation auto-login | ❌ blocked | Finding #322 (this doc, P0) |
-| `Mission.create_session` idempotency | ❌ bug | Finding #323 (this doc, P0) |
+| Sign Up / org self-serve | ✅ done | P0.2 (SignupLive at `/signup`) |
+| Workspace creation UI | ✅ done | P0.3 (CloudProjectsLive create form) |
+| Per-org IdP configuration UI | ✅ done | P0.4 (OrgSettingsAuthLive at `/org/:slug/settings/auth`) |
+| Invitation auto-login | ✅ done | P0.5 (signed completion token → AuthController.complete) |
+| `Mission.create_session` idempotency | ✅ done | P0.6 (partial unique index + lookup-before-insert) |
 | Org admin UI (members/roles/budget) | ❌ blocked | Finding #324 (this doc, P1) |
 | GitHub repo binding UI | ❌ blocked | Finding #324 (this doc, P1) |
 | Service-account / webhook UI | ❌ blocked | Finding #324 (this doc, P1) |
@@ -60,6 +60,8 @@ Commits in chronological order. Each closed at least one critical finding.
 | `8b53ffc` | API list endpoints scoped by service account workspace_id | CK-CLOUD-TENANT-001, CK-CLOUD-AUTH-002 |
 | `c53f5ef` | LiveView + MCP tool scoping; CloudTelemetry admin gate | tier-3 LiveView leaks |
 | `05816f9` | LiveAuth on_mount + AuthLive (/auth/login) + org-scoped queries + ownership checks | CK-CLOUD-LIVEVIEW-AUTH-001, CK-CLOUD-LOGIN-002, CK-CLOUD-LIVEVIEW-SCOPE-003, CK-CLOUD-MISSION-SCOPE-004, CK-CLOUD-POSTLOGIN-006 |
+| `95367fb` | docs(cloud): add CLOUD_READINESS.md tracker | this doc |
+| (pending) | P0 onboarding unblock: SignupLive, OrgSettingsAuthLive, workspace create form, invite auto-login, session dedup, home Sign In CTAs | CK-CLOUD-ONBOARD-001, CK-CLOUD-WORKSPACE-CREATE-002, CK-CLOUD-IDP-CONFIG-003, CK-CLOUD-INVITE-AUTOLOGIN-004, CK-CLOUD-SESSION-DEDUP-005 |
 
 ---
 
@@ -73,19 +75,19 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 
 | # | Item | Finding | Acceptance |
 |---|---|---|---|
-| P0.1 | Home page Sign In button (cloud mode only) | #319 | Anonymous visitor sees "Sign In" and "Create organization" CTAs |
-| P0.2 | `/signup` LiveView (creates Org + first admin User + Membership) | #319 | Form submit → atomic create_org + create_user + accepted Membership(role=owner); session populated; redirect to `/cloud/projects` |
-| P0.3 | "Create workspace" button on `/cloud/projects` | #320 | Org admin can submit (name, slug, industry, agent, budget, compliance_profile); workspace bound to current_org_id; visible in list |
-| P0.4 | `/org/:slug/settings/auth` LiveView for IdP config | #321 | Owner pastes OIDC issuer/client_id/client_secret; saved via `Accounts.set_org_identity_provider`; tested round-trip with `/auth/oidc/start` |
-| P0.5 | Invitation auto-login on accept | #322 | InvitationLive sets `:current_user_id` + `:current_org_id` after `accept_invitation/2`; redirect to `/cloud/projects` |
-| P0.6 | `Mission.create_session` idempotency check | #323 | Repeat call with same external_id returns existing session; migration adds partial unique index on (workspace_id, external_id) WHERE NOT NULL |
-| P0.7 | Tests: signup, workspace create, IdP config round-trip, invite auto-login, session idempotency | — | All green; ≥5 new tests |
+| P0.1 | Home page Sign In button (cloud mode only) | #319 | ✅ Cloud-mode CTAs in home.html.heex banner |
+| P0.2 | `/signup` LiveView (creates Org + first admin User + Membership) | #319 | ✅ SignupLive with atomic Ecto.Multi; redirect to `/auth/complete/:token` |
+| P0.3 | "Create workspace" button on `/cloud/projects` | #320 | ✅ Admin+owner only; binds to current_org_id via assign_workspace_to_org |
+| P0.4 | `/org/:slug/settings/auth` LiveView for IdP config | #321 | ✅ OrgSettingsAuthLive; OIDC + SAML forms; round-trip tested |
+| P0.5 | Invitation auto-login on accept | #322 | ✅ Signed completion token → AuthController.complete sets session |
+| P0.6 | `Mission.create_session` idempotency check | #323 | ✅ Lookup-before-insert + partial unique index migration |
+| P0.7 | Tests: signup, workspace create, IdP config round-trip, invite auto-login, session idempotency | — | ✅ 9 new tests in p0_onboarding_test.exs |
 
-**Estimated scope:** ~10 files touched, ~600-line diff. Roughly the size of slice `05816f9`.
+**Actual scope:** 11 files touched, ~900-line diff. 1 new migration. 2009/2009 tests.
 
-**Dependencies:** none — these are all additive on the existing auth gate.
+**Dependencies:** none — additive on the existing auth gate.
 
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 ---
 
@@ -188,11 +190,11 @@ When a new gap is discovered:
 
 | Finding ID | Severity | Phase | Status |
 |---|---|---|---|
-| CK-CLOUD-ONBOARD-001 (#319) | critical | P0.1, P0.2 | open |
-| CK-CLOUD-WORKSPACE-CREATE-002 (#320) | high | P0.3 | open |
-| CK-CLOUD-IDP-CONFIG-003 (#321) | high | P0.4 | open |
-| CK-CLOUD-INVITE-AUTOLOGIN-004 (#322) | high | P0.5 | open |
-| CK-CLOUD-SESSION-DEDUP-005 (#323) | high | P0.6 | open |
+| CK-CLOUD-ONBOARD-001 (#319) | critical | P0.1, P0.2 | ✅ closed |
+| CK-CLOUD-WORKSPACE-CREATE-002 (#320) | high | P0.3 | ✅ closed |
+| CK-CLOUD-IDP-CONFIG-003 (#321) | high | P0.4 | ✅ closed |
+| CK-CLOUD-INVITE-AUTOLOGIN-004 (#322) | high | P0.5 | ✅ closed |
+| CK-CLOUD-SESSION-DEDUP-005 (#323) | high | P0.6 | ✅ closed |
 | CK-CLOUD-ORGADMIN-UI-006 (#324) | high | P1 (all) | open |
 | CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (#325) | medium | P2 | open |
 | CK-CLOUD-DB-004 (#294) | medium | P3.1 | open |

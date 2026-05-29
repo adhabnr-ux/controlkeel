@@ -64,10 +64,12 @@ defmodule ControlKeelWeb.Router do
 
     # Public in all modes
     live "/auth/login", AuthLive, :index
+    live "/signup", SignupLive, :new
     get "/auth/oidc/start", OidcController, :start
     get "/auth/oidc/callback", OidcController, :callback
     get "/auth/saml/start", SamlController, :start
     get "/auth/logout", AuthController, :logout
+    get "/auth/complete/:token", AuthController, :complete
     live "/cloud/invitations/:token", InvitationLive, :show
 
     # Cloud-auth gated: in cloud/self_hosted mode requires active membership.
@@ -86,6 +88,7 @@ defmodule ControlKeelWeb.Router do
       live "/cloud/telemetry", CloudTelemetryLive, :index
       live "/cloud/projects", CloudProjectsLive, :index
       live "/cloud/projects/:ws_id", CloudProjectsLive, :show
+      live "/org/:slug/settings/auth", OrgSettingsAuthLive, :edit
       live "/observability", ObservabilityOverviewLive, :index
       live "/observability/loop", ObservabilityLoopLive, :index
       live "/observability/benchmarks/drafts", ObservabilityBenchmarkDraftsLive, :index

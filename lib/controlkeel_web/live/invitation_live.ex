@@ -57,8 +57,18 @@ defmodule ControlKeelWeb.InvitationLive do
 
           true ->
             case Accounts.accept_invitation(socket.assigns.token, user_id) do
-              {:ok, _membership} ->
-                {:noreply, assign(socket, :state, :accepted)}
+              {:ok, membership} ->
+                # Auto-login: invite token was the proof of identity. Mint a
+                # signed completion token and hand off to AuthController to
+                # set session keys (LiveView can't put_session/3 directly).
+                completion_token =
+                  ControlKeelWeb.AuthController.sign_completion_token(
+                    membership.user_id,
+                    membership.org_id
+                  )
+
+                {:noreply,
+                 redirect(socket, to: ~p"/auth/complete/#{completion_token}")}
 
               {:error, :invalid_token} ->
                 {:noreply, assign(socket, :state, :invalid)}

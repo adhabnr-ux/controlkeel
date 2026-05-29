@@ -45,13 +45,31 @@ defmodule ControlKeel.Mission do
   def get_session_with_workspace(id), do: Session |> Repo.get(id) |> Repo.preload(:workspace)
 
   def create_session(attrs) do
-    %Session{}
-    |> Session.changeset(attrs)
-    |> Repo.insert()
-    |> tap(fn
-      {:ok, session} -> record_brief_memory(session)
-      _other -> :ok
-    end)
+    case lookup_existing_session(attrs) do
+      %Session{} = existing ->
+        {:ok, existing}
+
+      nil ->
+        %Session{}
+        |> Session.changeset(attrs)
+        |> Repo.insert()
+        |> tap(fn
+          {:ok, session} -> record_brief_memory(session)
+          _other -> :ok
+        end)
+    end
+  end
+
+  defp lookup_existing_session(attrs) do
+    workspace_id =
+      Map.get(attrs, :workspace_id) || Map.get(attrs, "workspace_id")
+
+    external_id =
+      Map.get(attrs, :external_id) || Map.get(attrs, "external_id")
+
+    if is_integer(workspace_id) and is_binary(external_id) and external_id != "" do
+      Repo.get_by(Session, workspace_id: workspace_id, external_id: external_id)
+    end
   end
 
   def update_session(%Session{} = session, attrs) do
