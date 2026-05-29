@@ -1,12 +1,18 @@
 defmodule ControlKeel.Runtime do
   @moduledoc false
 
-  def mode do
-    Application.get_env(:controlkeel, :runtime_mode, :local)
-  end
+  alias ControlKeel.RuntimeMode
+
+  def mode, do: RuntimeMode.current()
 
   def local?, do: mode() == :local
   def cloud?, do: mode() == :cloud
+  def self_hosted?, do: mode() == :self_hosted
+  def remote?, do: cloud?() or self_hosted?()
+
+  def placement(surface), do: RuntimeMode.placement(mode(), surface)
+  def placement_map, do: RuntimeMode.placement_map(mode())
+  def runtime_diagnostic, do: RuntimeMode.diagnostic(mode())
 
   def bus do
     Application.get_env(:controlkeel, :bus, default_bus())
@@ -29,7 +35,7 @@ defmodule ControlKeel.Runtime do
   end
 
   def cloud_repo_enabled? do
-    cloud?() and Application.get_env(:controlkeel, ControlKeel.CloudRepo, []) != []
+    remote?() and Application.get_env(:controlkeel, ControlKeel.CloudRepo, []) != []
   end
 
   def memory_store_mode do
@@ -37,6 +43,6 @@ defmodule ControlKeel.Runtime do
   end
 
   defp default_bus do
-    if cloud?(), do: :nats, else: :local
+    if remote?(), do: :nats, else: :local
   end
 end

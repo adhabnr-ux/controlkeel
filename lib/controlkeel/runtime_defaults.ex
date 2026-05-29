@@ -63,13 +63,11 @@ defmodule ControlKeel.RuntimeDefaults do
   end
 
   defp runtime_mode do
-    case System.get_env("CONTROLKEEL_RUNTIME_MODE", "local") do
-      "cloud" -> :cloud
-      _ -> :local
-    end
+    ControlKeel.RuntimeMode.current()
   end
 
   defp endpoint_defaults(:cloud), do: {"controlkeel.com", "https", 443}
+  defp endpoint_defaults(:self_hosted), do: {"localhost", "https", 443}
   defp endpoint_defaults(:local), do: {"localhost", "http", 4000}
 
   defp env_or_default(key, default) do

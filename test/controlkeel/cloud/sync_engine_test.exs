@@ -134,5 +134,65 @@ defmodule ControlKeel.Cloud.SyncEngineTest do
       assert state.endpoint == "https://cloud.example.com/cloud/v1/sync"
       GenServer.stop(pid, :normal)
     end
+
+    test "self-hosted mode refuses the canonical SaaS endpoint" do
+      previous_mode = Application.get_env(:controlkeel, :runtime_mode)
+      previous_endpoint = Application.get_env(:controlkeel, :cloud_sync_endpoint)
+      previous_env = System.get_env("CONTROLKEEL_RUNTIME_MODE")
+
+      Application.put_env(:controlkeel, :runtime_mode, :self_hosted)
+      Application.put_env(:controlkeel, :cloud_sync_endpoint, "https://controlkeel.com")
+      System.delete_env("CONTROLKEEL_RUNTIME_MODE")
+
+      on_exit(fn ->
+        if previous_mode,
+          do: Application.put_env(:controlkeel, :runtime_mode, previous_mode),
+          else: Application.delete_env(:controlkeel, :runtime_mode)
+
+        if previous_endpoint,
+          do: Application.put_env(:controlkeel, :cloud_sync_endpoint, previous_endpoint),
+          else: Application.delete_env(:controlkeel, :cloud_sync_endpoint)
+
+        if previous_env,
+          do: System.put_env("CONTROLKEEL_RUNTIME_MODE", previous_env),
+          else: System.delete_env("CONTROLKEEL_RUNTIME_MODE")
+      end)
+
+      {:ok, pid} = GenServer.start(SyncEngine, interval_ms: 60_000)
+      state = :sys.get_state(pid)
+      assert state.endpoint == nil
+      assert {:error, :not_configured} = SyncEngine.force_sync(pid)
+      GenServer.stop(pid, :normal)
+    end
+
+    test "cloud mode refuses a self-host endpoint" do
+      previous_mode = Application.get_env(:controlkeel, :runtime_mode)
+      previous_endpoint = Application.get_env(:controlkeel, :cloud_sync_endpoint)
+      previous_env = System.get_env("CONTROLKEEL_RUNTIME_MODE")
+
+      Application.put_env(:controlkeel, :runtime_mode, :cloud)
+      Application.put_env(:controlkeel, :cloud_sync_endpoint, "https://ck.example.com")
+      System.delete_env("CONTROLKEEL_RUNTIME_MODE")
+
+      on_exit(fn ->
+        if previous_mode,
+          do: Application.put_env(:controlkeel, :runtime_mode, previous_mode),
+          else: Application.delete_env(:controlkeel, :runtime_mode)
+
+        if previous_endpoint,
+          do: Application.put_env(:controlkeel, :cloud_sync_endpoint, previous_endpoint),
+          else: Application.delete_env(:controlkeel, :cloud_sync_endpoint)
+
+        if previous_env,
+          do: System.put_env("CONTROLKEEL_RUNTIME_MODE", previous_env),
+          else: System.delete_env("CONTROLKEEL_RUNTIME_MODE")
+      end)
+
+      {:ok, pid} = GenServer.start(SyncEngine, interval_ms: 60_000)
+      state = :sys.get_state(pid)
+      assert state.endpoint == nil
+      assert {:error, :not_configured} = SyncEngine.force_sync(pid)
+      GenServer.stop(pid, :normal)
+    end
   end
 end

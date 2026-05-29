@@ -50,7 +50,7 @@ defmodule ControlKeel.SelfHost do
 
   @typedoc "Repo reachability outcome."
   @type repo_check :: %{
-          mode: :local | :cloud,
+          mode: :local | :cloud | :self_hosted,
           cloud_repo_enabled?: boolean(),
           repo_reachable?: boolean(),
           error: String.t() | nil
@@ -198,7 +198,7 @@ defmodule ControlKeel.SelfHost do
     ## Boot order
 
     1. Provision Postgres and set `DATABASE_URL`.
-    2. (Optional, cloud mode) Provision NATS JetStream and set `CONTROLKEEL_NATS_URL`.
+    2. (Optional, cloud or self-hosted mode) Provision NATS JetStream and set `CONTROLKEEL_NATS_URL`.
     3. Extract this bundle.
     4. Run `bin/controlkeel eval` to confirm the release loads.
     5. Run `bin/controlkeel migrate` to apply migrations.
@@ -212,7 +212,7 @@ defmodule ControlKeel.SelfHost do
 
         controlkeel selfhost verify
 
-    Required env vars must be present and (if cloud mode) the Repo must be reachable
+    Required env vars must be present and (if cloud/self-hosted mode) the Repo must be reachable
     before serving traffic.
 
     ## Air-gapped notes
@@ -261,25 +261,34 @@ defmodule ControlKeel.SelfHost do
         }
 
       :cloud ->
-        cond do
-          not enabled? ->
-            %{
-              mode: :cloud,
-              cloud_repo_enabled?: false,
-              repo_reachable?: false,
-              error: "cloud mode requires CloudRepo configuration"
-            }
+        remote_repo_check(:cloud, enabled?, "cloud mode requires CloudRepo configuration")
 
-          true ->
-            reachable = probe_repo()
+      :self_hosted ->
+        remote_repo_check(
+          :self_hosted,
+          enabled?,
+          "self-hosted mode requires CloudRepo configuration"
+        )
+    end
+  end
 
-            %{
-              mode: :cloud,
-              cloud_repo_enabled?: true,
-              repo_reachable?: reachable,
-              error: if(reachable, do: nil, else: "Repo did not respond")
-            }
-        end
+  defp remote_repo_check(mode, enabled?, missing_message) do
+    if enabled? do
+      reachable = probe_repo()
+
+      %{
+        mode: mode,
+        cloud_repo_enabled?: true,
+        repo_reachable?: reachable,
+        error: if(reachable, do: nil, else: "Repo did not respond")
+      }
+    else
+      %{
+        mode: mode,
+        cloud_repo_enabled?: false,
+        repo_reachable?: false,
+        error: missing_message
+      }
     end
   end
 

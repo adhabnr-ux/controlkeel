@@ -164,6 +164,72 @@ defmodule ControlKeel.Cloud.SyncTest do
       assert refreshed.status == "blocked"
     end
 
+    test "imports a remote session into the target local workspace" do
+      target_ws = workspace!("target-import")
+
+      envelope = %{
+        "external_id" => "ses_legacy_#{System.unique_integer([:positive])}",
+        "kind" => "session",
+        "payload" => %{
+          "workspace_id" => 999_999,
+          "title" => "imported session",
+          "objective" => "remote migration",
+          "risk_tier" => "low",
+          "status" => "active",
+          "budget_cents" => 1000,
+          "daily_budget_cents" => 1000,
+          "spent_cents" => 0,
+          "execution_brief" => "",
+          "metadata" => %{},
+          "lock_version" => 2
+        }
+      }
+
+      assert {:ok, %{inserted: 1}} =
+               Sync.upsert_batch([envelope], target_workspace_id: target_ws.id)
+
+      imported = Repo.get_by!(ControlKeel.Mission.Session, external_id: envelope["external_id"])
+      assert imported.workspace_id == target_ws.id
+      assert imported.title == "imported session"
+    end
+
+    test "resolves session_external_id refs instead of trusting remote numeric session_id" do
+      ws = workspace!("portable-ref")
+      session = session!(ws, "local target session")
+
+      envelope = %{
+        "external_id" => "f_REMOTE_REF_#{System.unique_integer([:positive])}",
+        "kind" => "finding",
+        "refs" => %{"session_external_id" => session.external_id},
+        "payload" => %{
+          "session_id" => 999_999,
+          "title" => "portable finding",
+          "severity" => "medium",
+          "category" => "migration",
+          "rule_id" => "CK-MIGRATE-REF",
+          "plain_message" => "attached by external ref",
+          "status" => "open",
+          "auto_resolved" => false,
+          "metadata" => %{}
+        }
+      }
+
+      assert {:ok, %{inserted: 1}} = Sync.upsert_batch([envelope])
+
+      imported = Repo.get_by!(ControlKeel.Mission.Finding, external_id: envelope["external_id"])
+      assert imported.session_id == session.id
+    end
+
+    test "serialized child records include portable session refs" do
+      ws = workspace!("serialize-ref")
+      session = session!(ws, "session ref")
+      finding = finding!(session, "CK-SYNC-REF")
+
+      envelope = Sync.serialize_record({"finding", finding})
+
+      assert envelope["refs"] == %{"session_external_id" => session.external_id}
+    end
+
     test "rejects unknown kind" do
       envelope = %{
         "external_id" => "unknown_123",

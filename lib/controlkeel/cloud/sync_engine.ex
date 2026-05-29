@@ -31,6 +31,7 @@ defmodule ControlKeel.Cloud.SyncEngine do
   require Logger
 
   alias ControlKeel.Cloud.{AuthToken, Sync, WorkspaceIdentity, WorkspaceKeyRegistry}
+  alias ControlKeel.RuntimeMode
 
   @default_interval_ms 30_000
   @epoch ~U[1970-01-01 00:00:00Z]
@@ -241,12 +242,13 @@ defmodule ControlKeel.Cloud.SyncEngine do
   defp resolve_db_workspace_id(_), do: nil
 
   defp sync_endpoint do
-    base = Application.get_env(:controlkeel, :cloud_sync_endpoint)
+    base =
+      Application.get_env(:controlkeel, :cloud_sync_endpoint) ||
+        System.get_env("CONTROLKEEL_CLOUD_SYNC_ENDPOINT")
 
-    if base && base != "" do
-      String.trim_trailing(base, "/") <> "/cloud/v1/sync"
-    else
-      nil
+    case RuntimeMode.normalize_sync_endpoint(base, RuntimeMode.current()) do
+      {:ok, endpoint} -> endpoint <> "/cloud/v1/sync"
+      {:error, _reason} -> nil
     end
   end
 end

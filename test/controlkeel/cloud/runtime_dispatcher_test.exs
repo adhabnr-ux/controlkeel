@@ -34,7 +34,23 @@ defmodule ControlKeel.Cloud.RuntimeDispatcherTest do
     task = MissionFixtures.task_fixture(%{session: session})
 
     previous = Application.get_env(:controlkeel, :cloud_dispatchers, %{})
-    on_exit(fn -> Application.put_env(:controlkeel, :cloud_dispatchers, previous) end)
+    previous_mode = Application.get_env(:controlkeel, :runtime_mode)
+    previous_env_mode = System.get_env("CONTROLKEEL_RUNTIME_MODE")
+
+    Application.put_env(:controlkeel, :runtime_mode, :local)
+    System.delete_env("CONTROLKEEL_RUNTIME_MODE")
+
+    on_exit(fn ->
+      Application.put_env(:controlkeel, :cloud_dispatchers, previous)
+
+      if previous_mode,
+        do: Application.put_env(:controlkeel, :runtime_mode, previous_mode),
+        else: Application.delete_env(:controlkeel, :runtime_mode)
+
+      if previous_env_mode,
+        do: System.put_env("CONTROLKEEL_RUNTIME_MODE", previous_env_mode),
+        else: System.delete_env("CONTROLKEEL_RUNTIME_MODE")
+    end)
 
     {:ok, workspace: workspace, session: session, task: task}
   end
@@ -51,8 +67,22 @@ defmodule ControlKeel.Cloud.RuntimeDispatcherTest do
       })
 
       assert RuntimeDispatcher.for_runtime("devin") == StubOkDispatcher
-      # Other runtimes still fall back
+      # Other runtimes still fall back locally
       assert RuntimeDispatcher.for_runtime("open-swe") == RuntimeDispatcher.Manual
+    end
+
+    test "requires configured dispatcher in cloud mode" do
+      Application.put_env(:controlkeel, :runtime_mode, :cloud)
+      Application.put_env(:controlkeel, :cloud_dispatchers, %{})
+
+      assert RuntimeDispatcher.for_runtime("devin") == RuntimeDispatcher.RemoteRequired
+    end
+
+    test "requires configured dispatcher in self-hosted mode" do
+      Application.put_env(:controlkeel, :runtime_mode, :self_hosted)
+      Application.put_env(:controlkeel, :cloud_dispatchers, %{})
+
+      assert RuntimeDispatcher.for_runtime("devin") == RuntimeDispatcher.RemoteRequired
     end
   end
 
@@ -132,7 +162,60 @@ defmodule ControlKeel.Cloud.RuntimeDispatcherTest do
       assert reloaded.completed_at
     end
 
-    test "Manual default still produces a clean dispatched transition", %{
+    test "remote mode without configured dispatcher fails closed instead of manual handoff", %{
+      workspace: workspace,
+      session: session,
+      task: task
+    } do
+      Application.put_env(:controlkeel, :runtime_mode, :cloud)
+      Application.put_env(:controlkeel, :cloud_dispatchers, %{})
+
+      {:ok, package, raw_token} =
+        RuntimeContext.create_package(%{
+          workspace_id: workspace.id,
+          session_id: session.id,
+          task_id: task.id,
+          runtime_target: "devin",
+          budget_cents_allocated: 0
+        })
+
+      assert {:error, {:remote_dispatcher_required, details}} =
+               RuntimeContext.dispatch_package(package, raw_token)
+
+      assert details.runtime_target == "devin"
+      assert details.runtime_mode == :cloud
+
+      reloaded = Repo.get!(RunPackage, package.id)
+      assert reloaded.status == "failed"
+      assert reloaded.error_summary =~ "remote_dispatcher_required"
+    end
+
+    test "remote mode uses configured dispatcher when present", %{
+      workspace: workspace,
+      session: session,
+      task: task
+    } do
+      Application.put_env(:controlkeel, :runtime_mode, :self_hosted)
+
+      Application.put_env(:controlkeel, :cloud_dispatchers, %{
+        "devin" => StubOkDispatcher
+      })
+
+      {:ok, package, raw_token} =
+        RuntimeContext.create_package(%{
+          workspace_id: workspace.id,
+          session_id: session.id,
+          task_id: task.id,
+          runtime_target: "devin",
+          budget_cents_allocated: 0
+        })
+
+      assert {:ok, dispatched} = RuntimeContext.dispatch_package(package, raw_token)
+      assert dispatched.status == "dispatched"
+      assert get_in(dispatched.payload, ["dispatch_metadata", "mode"]) == "stub_ok"
+    end
+
+    test "Manual default still produces a clean dispatched transition in local mode", %{
       workspace: workspace,
       session: session,
       task: task

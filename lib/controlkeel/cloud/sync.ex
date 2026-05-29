@@ -93,6 +93,7 @@ defmodule ControlKeel.Cloud.Sync do
       "external_id" => Map.get(payload, "external_id"),
       "kind" => kind,
       "payload" => payload,
+      "refs" => portable_refs(record),
       "emitted_at" => DateTime.utc_now() |> DateTime.to_iso8601(),
       "idempotency_key" => TelemetryEnvelope.ulid(),
       "sync_protocol_version" => @sync_protocol_version,
@@ -133,7 +134,7 @@ defmodule ControlKeel.Cloud.Sync do
     max_bytes = Keyword.get(opts, :max_batch_bytes, @default_max_batch_bytes)
 
     with :ok <- check_batch_size(envelopes, max_bytes) do
-      results = upsert_in_transaction(envelopes)
+      results = upsert_in_transaction(envelopes, opts)
 
       {:ok,
        %{
@@ -148,10 +149,10 @@ defmodule ControlKeel.Cloud.Sync do
     end
   end
 
-  defp upsert_in_transaction(envelopes) do
+  defp upsert_in_transaction(envelopes, opts) do
     {:ok, results} =
       Repo.transaction(fn ->
-        Enum.map(envelopes, &upsert_single/1)
+        Enum.map(envelopes, &upsert_single(&1, opts))
       end)
 
     results
@@ -170,20 +171,25 @@ defmodule ControlKeel.Cloud.Sync do
 
   # ── Single-envelope upsert ─────────────────────────────────────────
 
-  defp upsert_single(%{"sync_protocol_version" => v} = envelope)
+  defp upsert_single(%{"sync_protocol_version" => v} = envelope, opts)
        when is_integer(v) and v != @sync_protocol_version do
     Logger.warning(
       "[Cloud.Sync] envelope protocol version #{v} differs from local #{@sync_protocol_version}; " <>
         "applying best-effort. external_id=#{inspect(envelope["external_id"])}"
     )
 
-    upsert_payload(envelope)
+    upsert_payload(envelope, opts)
   end
 
-  defp upsert_single(envelope), do: upsert_payload(envelope)
+  defp upsert_single(envelope, opts), do: upsert_payload(envelope, opts)
 
-  defp upsert_payload(%{"external_id" => ext_id, "kind" => kind, "payload" => payload}) do
+  defp upsert_payload(
+         %{"external_id" => ext_id, "kind" => kind, "payload" => payload} = envelope,
+         opts
+       ) do
     schema = kind_to_schema(kind)
+    refs = Map.get(envelope, "refs", %{})
+    payload = translate_portable_refs(payload, refs, opts)
 
     cond do
       is_nil(schema) ->
@@ -197,7 +203,7 @@ defmodule ControlKeel.Cloud.Sync do
     end
   end
 
-  defp upsert_payload(_),
+  defp upsert_payload(_, _opts),
     do: %{action: :skip, reason: :malformed_envelope, external_id: nil}
 
   defp do_upsert(schema, kind, ext_id, payload) do
@@ -296,6 +302,51 @@ defmodule ControlKeel.Cloud.Sync do
       end
     end
   end
+
+  defp portable_refs(record) do
+    %{}
+    |> maybe_put_session_ref(record)
+  end
+
+  defp maybe_put_session_ref(refs, %{session_id: session_id}) when is_integer(session_id) do
+    case Repo.get(ControlKeel.Mission.Session, session_id) do
+      %{external_id: external_id} when is_binary(external_id) ->
+        Map.put(refs, "session_external_id", external_id)
+
+      _ ->
+        refs
+    end
+  end
+
+  defp maybe_put_session_ref(refs, _record), do: refs
+
+  defp translate_portable_refs(payload, refs, opts) when is_map(payload) do
+    payload
+    |> maybe_put_target_workspace_id(opts)
+    |> maybe_put_session_id_from_ref(refs)
+  end
+
+  defp translate_portable_refs(payload, _refs, _opts), do: payload
+
+  defp maybe_put_target_workspace_id(payload, opts) do
+    case Keyword.get(opts, :target_workspace_id) do
+      id when is_integer(id) and is_map_key(payload, "workspace_id") ->
+        Map.put(payload, "workspace_id", id)
+
+      _ ->
+        payload
+    end
+  end
+
+  defp maybe_put_session_id_from_ref(payload, %{"session_external_id" => ext_id})
+       when is_binary(ext_id) do
+    case Repo.get_by(ControlKeel.Mission.Session, external_id: ext_id) do
+      %{id: id} -> Map.put(payload, "session_id", id)
+      _ -> payload
+    end
+  end
+
+  defp maybe_put_session_id_from_ref(payload, _refs), do: payload
 
   # ── Schema registry ────────────────────────────────────────────────
 
@@ -416,7 +467,8 @@ defmodule ControlKeel.Cloud.Sync do
   # The append-only update path needs the incoming `updated_at` parsed back
   # to a DateTime so the newer-wins comparison works. Other ISO-8601 fields
   # we leave to the schema's cast to coerce.
-  defp decode_value(field, v) when field in [:updated_at, :inserted_at, :synced_at, :archived_at] do
+  defp decode_value(field, v)
+       when field in [:updated_at, :inserted_at, :synced_at, :archived_at] do
     case parse_datetime(v) do
       nil -> v
       dt -> dt

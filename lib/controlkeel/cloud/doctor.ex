@@ -31,7 +31,7 @@ defmodule ControlKeel.Cloud.Doctor do
 
   @typedoc "Full doctor report."
   @type report :: %{
-          mode: :local | :cloud,
+          mode: :local | :cloud | :self_hosted,
           ok: boolean(),
           checks: [check()]
         }
@@ -86,6 +86,8 @@ defmodule ControlKeel.Cloud.Doctor do
     not_applicable(:cloud_repo, "Cloud repo", "local mode")
   end
 
+  defp cloud_repo_check(:self_hosted), do: cloud_repo_check(:cloud)
+
   defp cloud_repo_check(:cloud) do
     config = Application.get_env(:controlkeel, CloudRepo, [])
     database_url = System.get_env("DATABASE_URL")
@@ -138,7 +140,7 @@ defmodule ControlKeel.Cloud.Doctor do
 
     status =
       case {mode, bus_module, nats_url} do
-        {:cloud, ControlKeel.Bus.Nats, nil} -> :error
+        {mode, ControlKeel.Bus.Nats, nil} when mode in [:cloud, :self_hosted] -> :error
         _ -> :info
       end
 
@@ -148,6 +150,8 @@ defmodule ControlKeel.Cloud.Doctor do
   defp service_account_check(:local) do
     not_applicable(:service_accounts, "Service accounts", "local mode")
   end
+
+  defp service_account_check(:self_hosted), do: service_account_check(:cloud)
 
   defp service_account_check(:cloud) do
     accounts =
@@ -310,6 +314,39 @@ defmodule ControlKeel.Cloud.Doctor do
     not_applicable(:public_host, "Public host", "local mode")
   end
 
+  defp public_host_check(:self_hosted) do
+    phx_host = System.get_env("PHX_HOST")
+    endpoint_config = Application.get_env(:controlkeel, ControlKeelWeb.Endpoint, [])
+    url_config = Keyword.get(endpoint_config, :url, [])
+    host = phx_host || Keyword.get(url_config, :host)
+
+    cond do
+      host in [nil, ""] ->
+        %{
+          id: :public_host,
+          label: "Public host",
+          status: :error,
+          detail: "self-hosted mode requires PHX_HOST to be set to the hosted domain"
+        }
+
+      host == ControlKeel.RuntimeMode.canonical_cloud_host() ->
+        %{
+          id: :public_host,
+          label: "Public host",
+          status: :error,
+          detail: "self-hosted mode must not use controlkeel.com as PHX_HOST"
+        }
+
+      true ->
+        %{
+          id: :public_host,
+          label: "Public host",
+          status: :ok,
+          detail: "#{host} (self-host deployment)"
+        }
+    end
+  end
+
   defp public_host_check(:cloud) do
     phx_host = System.get_env("PHX_HOST")
     endpoint_config = Application.get_env(:controlkeel, ControlKeelWeb.Endpoint, [])
@@ -327,7 +364,7 @@ defmodule ControlKeel.Cloud.Doctor do
               "Self-hosters must set PHX_HOST to their own domain."
         }
 
-      host == "controlkeel.com" ->
+      host == ControlKeel.RuntimeMode.canonical_cloud_host() ->
         %{
           id: :public_host,
           label: "Public host",

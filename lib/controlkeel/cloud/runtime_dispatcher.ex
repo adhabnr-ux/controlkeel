@@ -42,8 +42,41 @@ defmodule ControlKeel.Cloud.RuntimeDispatcher do
   """
   @spec for_runtime(String.t()) :: module()
   def for_runtime(runtime_target) when is_binary(runtime_target) do
-    Application.get_env(:controlkeel, :cloud_dispatchers, %{})
-    |> Map.get(runtime_target, __MODULE__.Manual)
+    configured = Application.get_env(:controlkeel, :cloud_dispatchers, %{})
+
+    case Map.fetch(configured, runtime_target) do
+      {:ok, module} -> module
+      :error -> fallback_dispatcher()
+    end
+  end
+
+  defp fallback_dispatcher do
+    if ControlKeel.Runtime.remote?(), do: __MODULE__.RemoteRequired, else: __MODULE__.Manual
+  end
+
+  defmodule RemoteRequired do
+    @moduledoc """
+    Remote-mode fallback: refuse manual/local handoff when the selected runtime
+    mode says governed workload surfaces must execute in cloud/self-host.
+
+    Operators must configure `:cloud_dispatchers` for the runtime target before
+    dispatch can proceed. This keeps cloud/self-host modes fail-closed instead
+    of silently becoming a local/manual workflow.
+    """
+
+    @behaviour ControlKeel.Cloud.RuntimeDispatcher
+
+    @impl true
+    def dispatch(package, _opts) do
+      {:error,
+       {:remote_dispatcher_required,
+        %{
+          runtime_target: package.runtime_target,
+          runtime_mode: ControlKeel.Runtime.mode(),
+          message:
+            "Configure :cloud_dispatchers for #{package.runtime_target} before dispatching in remote mode."
+        }}}
+    end
   end
 
   defmodule Manual do
