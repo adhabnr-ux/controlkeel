@@ -5665,9 +5665,9 @@ defmodule ControlKeel.Mission do
     dynamic(
       [f],
       (is_nil(json_extract_path(f.metadata, ["patch_status"])) or
-         json_extract_path(f.metadata, ["patch_status"]) not in ["validated", "merged"]) or
+         json_extract_path(f.metadata, ["patch_status"]) not in ^["validated", "merged"]) or
         (is_nil(json_extract_path(f.metadata, ["disclosure_status"])) or
-           json_extract_path(f.metadata, ["disclosure_status"]) in [
+           json_extract_path(f.metadata, ["disclosure_status"]) in ^[
              "draft",
              "triaged",
              "reported"
