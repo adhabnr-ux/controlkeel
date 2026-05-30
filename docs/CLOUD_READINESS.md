@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** `a7f01d0` (48 commits ahead of `origin/main`, none pushed)
-**Test status:** 2135 / 2135 passing (0 failures) + self-host smoke script + TypeScript SDK typecheck
+**HEAD:** `0b4cda5` (52 commits ahead of `origin/main`, none pushed)
+**Test status:** 2150 / 2150 passing (0 failures) + 12 TypeScript SDK integration tests + self-host smoke script
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
 
@@ -17,10 +17,10 @@ This document tracks the user-visible product gaps surfaced by the cloud-readine
 
 The data layer is solid: tenant isolation, sync deduplication, OIDC token exchange, multi-tenant indices, per-workspace rate limiting, and the full audit trail are all in production shape. The TypeScript SDK, Postgres CI lane, self-host smoke test, and P4 marketing/docs/pricing surfaces are shipped.
 
-**Remaining honest gaps** (tracked below in DEPLOYMENT_SCENARIOS_STATUS.md):
-- SDK integration tests against a mock or real endpoint (types pass; HTTP round-trips untested)
-- MCP tool execution integration tests (no dedicated harness yet)
-- Cloud-agent → cloud/self-hosted CK integration tests (architecture decided; test harness not built)
+**All test gaps closed** (see DEPLOYMENT_SCENARIOS_STATUS.md for full detail):
+- ✅ SDK integration tests: 12 tests against a `node:http` mock server (sync push/pull, retry, error handling)
+- ✅ MCP tool execution: 8 in-process integration tests via `MCP.Server.dispatch_request/2`
+- ✅ Cloud-agent E2E: 7 callback-flow tests via `ConnCase` with real DB (pending → in_progress → completed)
 
 ---
 
@@ -84,6 +84,11 @@ Commits in chronological order. Each closed at least one critical finding.
 | `a4b5f20` | P4.4 status page + P4.5 contact form | P4.4, P4.5 |
 | `2e7fc75` | Final P0–P4 completion tracker update | tracker |
 | `964262d` | Close remaining finding rows and marketing posture question | tracker |
+| `bcf2766` | test(deployment): add deployment scenario test plan and 17 core integration tests | scenarios foundation |
+| `650ec25` | docs(deployment): add DEPLOYMENT_SCENARIOS_STATUS.md verification tracker | scenarios tracker |
+| `4430719` | fix(cloud): close readiness review gaps (findings #364–#368 allow) | CK findings resolved |
+| `99ab156` | docs(cloud): update tracker TL;DR, HEAD pin, open question #2, test count | tracker |
+| `0b4cda5` | test(deployment): close SDK (12), MCP (8), cloud-agent E2E (7) scenario gaps | all scenario gaps |
 
 ---
 
