@@ -17,6 +17,15 @@ Fresh sessions must reacquire CK state even if a conversation summary exists. If
 
 Keep this root file lean: only project-specific governance, commands, and critical gotchas belong here. Put reusable agent guidance in skills or focused docs. For large-codebase setup, AGENTS/CLAUDE maintenance, scoped commands, maps, hooks, and LSP patterns, see `docs/large-codebase-patterns.md`. For token cleanup, see `docs/TOKEN_OPTIMIZATION_GUIDE.md`.
 
+## Issue and PR Quality
+
+- Use evidence-based issue reporting: command run, expected behavior, actual behavior, exact error/log
+- Avoid over-confident root cause analysis without supporting evidence
+- When reviewing AI-generated contributions, use `ck_validate` with `source_type: "issue"` or `source_type: "pull_request"`
+- Prefer invariant enforcement over local workarounds for bad states
+- See `docs/issue-pr-validation-guide.md` for detailed validation patterns
+- Use `deslop` skill to clean AI-generated issue/PR text slop
+
 ## Project Commands
 
 - Run `mix precommit` after code changes and fix pending issues.

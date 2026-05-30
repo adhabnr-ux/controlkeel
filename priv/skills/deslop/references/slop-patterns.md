@@ -3,6 +3,53 @@
 Common AI-generated code patterns that should be removed during deslop. Each
 pattern includes what to look for and the subtraction rule.
 
+## Issue and PR Text Patterns
+
+### Over-confident root cause analysis without evidence
+```markdown
+# Bad: confident diagnosis without supporting evidence
+The issue is clearly caused by a race condition in the user session manager. We should add a mutex lock around the session state mutations to prevent concurrent access.
+
+# Good: stick to observed facts
+When two requests hit the session endpoint simultaneously, I see session state corruption in the logs. Here's the exact error and reproduction steps.
+```
+
+### Generic implementation strategies
+```markdown
+# Bad: generic advice without project-specific context
+The best approach would be to implement a comprehensive retry mechanism with exponential backoff, circuit breaker pattern, and extensive monitoring.
+
+# Good: specific, actionable guidance tied to the actual problem
+Add retry with exponential backoff (max 3 attempts) to the `ApiClient.post/2` function, which currently fails on network timeouts.
+```
+
+### Long lists of irrelevant error classes
+```markdown
+# Bad: enumerating possible issues without narrowing down
+This could be caused by: network timeouts, SSL certificate errors, DNS resolution failures, malformed JSON responses, rate limiting, authentication failures, or server-side bugs.
+
+# Good: specific error with context
+The specific error is `{:error, :timeout}` after 30 seconds when calling the external payment API. Here's the full stack trace.
+```
+
+### AI-generated issue expansion
+```markdown
+# Bad: expands narrow observation into broad hypotheses
+The login button doesn't work. This suggests potential problems with the authentication flow, session management, CSRF token validation, user database integrity, or frontend event handling. We should audit the entire auth subsystem.
+
+# Good: focused on the actual observation
+Clicking the login button does nothing. No network request is sent to `/auth/login` and no error appears in the console. Here are the browser devtools screenshots.
+```
+
+### Hallucinated code references
+```markdown
+# Bad: confident but wrong code references
+The bug is in `lib/my_app/auth/session_manager.ex` line 45 where the `validate_session/1` function doesn't check for expired tokens.
+
+# Good: accurate code references after actual investigation
+The issue is in `lib/my_app/web/auth_plug.ex` where the `call/2` function doesn't validate session expiration before proceeding.
+```
+
 ## Comments
 
 ### Narrative comments

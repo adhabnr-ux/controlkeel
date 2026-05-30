@@ -105,6 +105,28 @@ For any new feature, fix, or project — before writing plans or code — use th
 - Do not add abstractions, compatibility shims, or indirection unless they are justified by the current codebase. Prefer the simplest change that solves the actual task.
 - Before saying work is done, re-check proof, findings, and budget state.
 
+## Invariant Enforcement vs. Local Workarounds
+
+**Critical principle**: Prefer enforcing system invariants over adding local workarounds for bad states.
+
+- **Avoid**: "Make the system work with malformed data" (tolerant readers, fallbacks, recovery logic)
+- **Prefer**: "Make malformed data impossible" (validation at write time, strict schemas, invariants)
+
+AI-generated code often sees a local failure and adds local defenses against it. This accumulates complexity and weakens system foundations. Instead:
+
+1. **Identify the invariant**: What should always be true? (e.g., session logs are always valid, user data is always validated)
+2. **Enforce at the boundary**: Prevent invalid states from being written, not handle them after the fact
+3. **Remove workarounds**: Existing code that handles "impossible" states should be removed after invariant enforcement
+4. **Validate patterns**: Use `ck_finding` with category `architecture` and rule `CK-INVARIANT-001` when you see tolerance for bad states
+
+**Examples**:
+- ❌ Add fallback reader for corrupted session logs
+- ✅ Prevent corrupted session logs from being written (strict validation, checksums)
+- ❌ Add migration for malformed user records
+- ✅ Enforce schema constraints so malformed records cannot be created
+- ❌ Add retry logic for undefined API responses
+- ✅ Define strict API contracts and validate responses against them
+
 ## Quick reference
 
 - `ck_context` — mission, task, budget, proof, memory, workspace snapshot, transcript summary, resume context
@@ -125,3 +147,4 @@ For any new feature, fix, or project — before writing plans or code — use th
 ## Additional resources
 
 - For the full governed workflow, see [references/workflow.md](references/workflow.md)
+- For issue and PR validation patterns to combat AI-generated slop, see [docs/issue-pr-validation-guide.md](../../docs/issue-pr-validation-guide.md)
