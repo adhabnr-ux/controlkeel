@@ -148,7 +148,7 @@ defmodule ControlKeel.Cloud.TelemetryQueueTest do
           ControlKeel.Repo,
           "UPDATE cloud_telemetry_events SET sent_at = $1 WHERE id = $2",
           [
-            "2026-01-01 00:00:00",
+            ~N[2026-01-01 00:00:00],
             event.id
           ]
         )
