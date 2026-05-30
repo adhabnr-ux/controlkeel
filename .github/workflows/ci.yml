@@ -59,6 +59,8 @@ jobs:
       - run: node --check packages/npm/controlkeel/bin/controlkeel.js
       - run: node --check packages/npm/controlkeel/lib/install.js
       - run: cd packages/npm/controlkeel-sdk && npm install && npx tsc --noEmit && node --check dist/index.js
+      - name: SDK integration tests
+        run: cd packages/npm/controlkeel-sdk && npm test
   test-postgres:
     if: >-
       github.event_name != 'push' ||
