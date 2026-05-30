@@ -5677,8 +5677,8 @@ defmodule ControlKeel.Mission do
 
   defp count_vulnerability_metadata(query, key) do
     query
-    |> group_by([f, _s, _w], coalesce(json_extract_path(f.metadata, [^key]), "unknown"))
-    |> select([f, _s, _w], {coalesce(json_extract_path(f.metadata, [^key]), "unknown"), count(f.id)})
+    |> group_by([f, _s, _w], coalesce(json_extract_path(f.metadata, [^key]), ^"unknown"))
+    |> select([f, _s, _w], {coalesce(json_extract_path(f.metadata, [^key]), ^"unknown"), count(f.id)})
     |> Repo.all()
     |> Map.new()
   end
