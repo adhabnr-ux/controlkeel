@@ -26,6 +26,17 @@ Keep this root file lean: only project-specific governance, commands, and critic
 - See `docs/issue-pr-validation-guide.md` for detailed validation patterns
 - Use `deslop` skill to clean AI-generated issue/PR text slop
 
+## Planning and Architecture
+
+- Use structural planning: types/interfaces + call stacks + boundaries over prose descriptions
+- Include call graphs to show what's allowed to talk to what (boundary enforcement)
+- Apply targeted review loops (revise specific sections, don't rewrite everything)
+- Let models correct their own mistakes using validation tools in agentic loops
+- See `docs/structural-planning-guide.md` for structural artifact patterns
+- See `docs/call-graph-boundary-enforcement.md` for boundary validation
+- See `docs/targeted-review-loops.md` for iterative revision patterns
+- See `docs/agentic-self-correction-loops.md` for validation-based correction
+
 ## Project Commands
 
 - Run `mix precommit` after code changes and fix pending issues.
