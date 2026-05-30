@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.3.33 — 2026-05-30
+
+### What's changed
+
+- fix(postgres): resolve GROUP BY grouping_error in count_vulnerability_metadata
+- fix(postgres): use database-specific JSON fragments for GROUP BY clauses
+- fix(postgres): use raw SQL fragment for GROUP BY to avoid parameterization conflicts
+- fix(postgres): resolve GROUP BY and datetime parameter issues
+- fix(postgres): parameterize string literal in JSON coalesce function
+- fix(postgres): resolve JSON query parameterization and string truncation issues
+- fix(migrations): increase memory_records text fields to support longer content
+- feat(migrations): increase content size for benchmark_scenarios table in SQLite
+- fix(migrations): use PostgreSQL-compatible random function for proxy_token generation
+- feat(migrations): add proxy_token to sessions and enhance full-text search for findings and tasks
+- fix(tests): improve tampering tests for payload and signature in AuthToken verification
+- fix(database): rename ECTO_ADAPTER to CK_DB_ADAPTER for consistency across CI and configuration
+- fix(ci): update controlkeel-sdk build command to use npm run build
+- feat(agent_execution): enhance task processing with input reference management and sorting feat(ck_validate): include trust policy advisory in validation results feat(planner): add trust policy handling and aggregate task marking for releases feat(skills): add continuity skill to skills list docs(challenge): introduce new challenge skill for adversarial review of plans
+- feat(migrations): add provenance fields to findings and RLM fields to tasks feat(tools): implement ck_result_peek tool for accessing stdout of completed runs feat(agent): enhance agent execution with stdout writing and loop detection feat(agent_router): add context_window_k to agent configurations feat(ck_context_pack): support excluding IDs and counting hits in context pack feat(mission): extend findings with references to related findings
+- docs(planning): add structural planning and agentic patterns from industry insights
+- docs(governance): add AI-generated issue/PR quality controls
+- feat(skills): add continuity skill for codebase pattern registry
+- docs(deployment): move scenario docs to docs/ and bring all sections current
+- test(deployment): close SDK, MCP, and cloud-agent scenario gaps
+- docs(cloud): update stale tracker TL;DR, HEAD pin, open question, test count
+- docs(cloud): avoid stale HEAD pin in readiness tracker
+- docs(cloud): pin readiness remediation HEAD
+- fix(cloud): close readiness review gaps
+- docs(deployment): add deployment scenarios verification status
+
 ## v0.3.32 — 2026-05-28
 
 ### What's changed
