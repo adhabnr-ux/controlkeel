@@ -5637,7 +5637,7 @@ defmodule ControlKeel.Mission do
 
   defp maybe_filter_finding_metadata(query, key, value) do
     from([f, _s, _w] in query,
-      where: fragment("json_extract(?, ?)", f.metadata, ^"$.#{key}") == ^value
+      where: json_extract_path(f.metadata, [^key]) == ^value
     )
   end
 
@@ -5645,10 +5645,7 @@ defmodule ControlKeel.Mission do
     query
     |> exclude(:preload)
     |> where([f, _s, _w], f.category == "security")
-    |> where(
-      [f, _s, _w],
-      fragment("json_extract(?, '$.finding_family')", f.metadata) == "vulnerability_case"
-    )
+    |> where([f, _s, _w], json_extract_path(f.metadata, ["finding_family"]) == "vulnerability_case")
   end
 
   defp unresolved_vulnerability_cases_query(query) do
@@ -5667,28 +5664,21 @@ defmodule ControlKeel.Mission do
   defp unresolved_vulnerability_case_dynamic do
     dynamic(
       [f],
-      fragment("coalesce(json_extract(?, '$.patch_status'), 'none')", f.metadata) not in [
-        "validated",
-        "merged"
-      ] or
-        fragment("coalesce(json_extract(?, '$.disclosure_status'), 'draft')", f.metadata) in [
-          "draft",
-          "triaged",
-          "reported"
-        ]
+      (is_nil(json_extract_path(f.metadata, ["patch_status"])) or
+         json_extract_path(f.metadata, ["patch_status"]) not in ["validated", "merged"]) or
+        (is_nil(json_extract_path(f.metadata, ["disclosure_status"])) or
+           json_extract_path(f.metadata, ["disclosure_status"]) in [
+             "draft",
+             "triaged",
+             "reported"
+           ])
     )
   end
 
   defp count_vulnerability_metadata(query, key) do
     query
-    |> group_by(
-      [f, _s, _w],
-      fragment("coalesce(json_extract(?, ?), 'unknown')", f.metadata, ^"$.#{key}")
-    )
-    |> select(
-      [f, _s, _w],
-      {fragment("coalesce(json_extract(?, ?), 'unknown')", f.metadata, ^"$.#{key}"), count(f.id)}
-    )
+    |> group_by([f, _s, _w], coalesce(json_extract_path(f.metadata, [^key]), "unknown"))
+    |> select([f, _s, _w], {coalesce(json_extract_path(f.metadata, [^key]), "unknown"), count(f.id)})
     |> Repo.all()
     |> Map.new()
   end

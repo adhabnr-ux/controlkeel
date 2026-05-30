@@ -348,7 +348,7 @@ defmodule ControlKeel.MCP.Tools.CkContext do
       Session
       |> where(
         [s],
-        fragment("json_extract(?, '$.domain_pack')", s.execution_brief) == ^domain and
+        json_extract_path(s.execution_brief, ["domain_pack"]) == ^domain and
           s.id != ^current_session_id
       )
       |> order_by(desc: :inserted_at)
