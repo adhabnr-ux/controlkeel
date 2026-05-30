@@ -214,7 +214,7 @@ defmodule ControlKeel.Intent.Router do
       "open_questions" => open_questions_from(attrs, answers),
       "estimated_tasks" =>
         key_features
-        |> String.split("\n", trim: true)
+        |> String.split(~r/\r?\n/, trim: true)
         |> length()
         |> Kernel.+(2)
         |> max(3),
