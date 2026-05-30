@@ -101,8 +101,8 @@ defmodule ControlKeel.Intent.BoundarySummaryTest do
       )
 
     assert Intent.boundary_summary(brief)["constraints"] == [
-             "Local-first deploy",
-             "approval before production"
+             "Local-first deploy,",
+             "approval before production,"
            ]
 
     empty =

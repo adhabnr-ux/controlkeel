@@ -15,7 +15,7 @@ defmodule ControlKeelWeb.PageControllerTest do
     assert body =~ "Proof Coverage"
     assert body =~ "Deploy Ready Rate"
     assert body =~ "Recent Missions"
-    assert body =~ "Live Task State"
+    assert body =~ "Provider and Autonomy Status"
     assert body =~ "Delivery Flow"
     assert body =~ "Signal Preview"
     assert body =~ "New Mission"
