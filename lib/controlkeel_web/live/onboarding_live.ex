@@ -114,9 +114,14 @@ defmodule ControlKeelWeb.OnboardingLive do
       {:error, :project_name_taken, _name} ->
         {:noreply,
          socket
-         |> put_flash(:error, "A mission with this project name already exists. Choose a different name.")
+         |> put_flash(
+           :error,
+           "A mission with this project name already exists. Choose a different name."
+         )
          |> assign(:step, 2)
-         |> assign(:errors, %{"project_name" => "This project name is already used by an existing mission."})
+         |> assign(:errors, %{
+           "project_name" => "This project name is already used by an existing mission."
+         })
          |> assign_form()}
 
       {:error, _scope, _changeset} ->
@@ -139,24 +144,31 @@ defmodule ControlKeelWeb.OnboardingLive do
         {:noreply, socket}
 
       id ->
-        session = Mission.get_session!(String.to_integer(id))
-        brief = session.execution_brief || %{}
-        interview_answers = get_in(brief, ["compiler", "interview_answers"]) || %{}
-        idea = Map.get(brief, "idea", session.objective)
+        case Mission.get_session(String.to_integer(id)) do
+          nil ->
+            {:noreply,
+             socket
+             |> put_flash(:error, "Selected mission not found.")}
 
-        attrs =
-          socket.assigns.attrs
-          |> Map.merge(%{
-            "project_name" => session.title,
-            "idea" => idea,
-            "interview_answers" => interview_answers
-          })
+          session ->
+            brief = session.execution_brief || %{}
+            interview_answers = get_in(brief, ["compiler", "interview_answers"]) || %{}
+            idea = Map.get(brief, "idea", session.objective)
 
-        {:noreply,
-         socket
-         |> assign(:attrs, attrs)
-         |> assign(:interview_questions, Intent.interview_questions(attrs["occupation"]))
-         |> assign_form()}
+            attrs =
+              socket.assigns.attrs
+              |> Map.merge(%{
+                "project_name" => session.title,
+                "idea" => idea,
+                "interview_answers" => interview_answers
+              })
+
+            {:noreply,
+             socket
+             |> assign(:attrs, attrs)
+             |> assign(:interview_questions, Intent.interview_questions(attrs["occupation"]))
+             |> assign_form()}
+        end
     end
   end
 
