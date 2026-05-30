@@ -26,9 +26,10 @@ ControlKeel instance so every action is governed:
   integrations**.
 
 ## What we built for this hackathon
-1. **Gemini governed-agent app** (Python `google-genai`, Cloud Run) — uses the
-   SDK's automatic function calling so Gemini's 9 governance tool calls *really*
-   execute against ControlKeel. This is the live prototype judges interact with.
+1. **ControlKeel Studio** (Python `google-genai`, Cloud Run) — a governed Gemini
+   product assistant where users can paste repo URLs, plans, code, shell, config,
+   and PR diffs. It executes live ControlKeel governance workflows, then uses
+   Gemini to explain results and next steps. This is the live prototype judges use.
 2. **ControlKeel backend** (Elixir/Phoenix, Cloud Run) — the full governance
    platform: scanner, findings, reviews, proofs, budget, Mission Control UI.
 

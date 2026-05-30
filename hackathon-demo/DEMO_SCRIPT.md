@@ -26,9 +26,19 @@ cannot ship dangerous code, because ControlKeel blocks it first."
 
 ---
 
-### [0:30–1:30] Demo 1 — Deterministic validation (the core)
+### [0:30–1:30] Demo 1 — Govern a real project workflow
 
-In the app, click the chip **"Validate this code: eval(user_input)"** (or type it).
+In the app, click **Govern a repo** or type:
+`Govern this repo: https://github.com/example/agent-app. Create the onboarding plan and review gate.`
+
+Show that the app creates a governed onboarding plan, opens a review gate, checks budget, and tells the user to paste real files/diffs for validation. Then type:
+`Build a user registration feature with email login. Create a governed implementation plan.`
+
+This shows it is a usable governed project assistant, not just a scanner.
+
+### [1:30–2:20] Demo 2 — Deterministic validation (the core)
+
+In the app, click **Block RCE** or type `Validate this code: eval(user_input)`.
 
 **What happens (live):**
 - Gemini calls `ck_validate(content="eval(user_input)", kind="code")`
@@ -45,7 +55,7 @@ deterministic and free."
 
 ---
 
-### [1:30–2:30] Demo 2 — Security quick-fire (great for VCs)
+### [2:20–3:00] Demo 3 — Security quick-fire (great for VCs)
 
 Type each; each returns BLOCK with the rule shown in the trace:
 
@@ -63,7 +73,7 @@ Precision matters — false positives are how governance tools get turned off."
 
 ---
 
-### [2:30–3:00] Demo 3 — Budget + circuit breaker
+### [3:00–3:25] Demo 4 — Budget + circuit breaker
 
 Type: `Check the budget`
 - `ck_budget` → remaining vs spent, the session ceiling.
@@ -75,7 +85,7 @@ spent, the agent stops — it can't silently burn your money."
 
 ---
 
-### [3:00–3:40] Demo 4 — Review gate + memory
+### [3:25–4:00] Demo 5 — Review gate + memory
 
 Type: `Submit this plan for review: refactor auth to use JWT`
 - `ck_submit_review(review_type="plan")` → a **pending** review.
@@ -89,7 +99,7 @@ Type: `Remember: we decided to use JWT for auth`
 
 ---
 
-### [3:40–4:20] Demo 5 — "CK blocked our own deploy script" (the kicker)
+### [4:00–4:30] Demo 6 — "CK blocked our own deploy script" (the kicker)
 
 **Say:** "While building this, we asked the agent to validate our Cloud Run
 deploy command — and ControlKeel blocked *us* for putting the Gemini API key
@@ -102,7 +112,7 @@ Type: `Validate this shell: gcloud run deploy app --set-env-vars GEMINI_API_KEY=
 
 ---
 
-### [4:20–5:00] Demo 6 — Evidence + platform tour
+### [4:30–5:00] Demo 7 — Evidence + platform tour
 
 **Say:** "This isn't a wrapper — it's a platform." Flash through:
 `/missions/:id` (task graph), `/findings`, `/proofs`, `/ship`.

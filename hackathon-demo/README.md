@@ -78,7 +78,7 @@ on the optional Semgrep layer, so it works in the Cloud Run container.
 
 | File | Purpose |
 |---|---|
-| `app/main.py` | Gemini app — auto-executes 9 CK tools against the live API; chat UI shows the governance trace |
+| `app/main.py` | ControlKeel Studio app — executes CK governance workflows, then uses Gemini to explain results; chat UI shows the governance trace |
 | `app/Dockerfile`, `app/requirements.txt` | Cloud Run container for the app |
 | `deploy.sh` | Deploy both services to Cloud Run |
 | `deploy-ck.sh` / `deploy-app.sh` | Deploy backend / app individually |

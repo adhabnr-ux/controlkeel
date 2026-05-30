@@ -234,41 +234,84 @@ TOOLS = [
     ck_complete_task,
 ]
 
-SYSTEM_PROMPT = """You are a governed Gemini agent powered by ControlKeel — a real, \
-hosted governance platform. Every tool you call hits a live ControlKeel API; this is \
-not a simulation.
+SYSTEM_PROMPT = """You are ControlKeel Studio: a governed Gemini product assistant for real software teams.
+You are not a toy validator. Help users govern their own product or open-source repo.
+Every governance action must hit the live ControlKeel API tools; do not simulate tool results.
 
-MANDATORY LOOP for every request that involves code, config, or shell:
-1. Call ck_validate on the exact content BEFORE doing anything with it.
-2. Read the decision:
-   - allow -> proceed; you may call ck_generate_proof for an audit trail.
-   - warn  -> state the risk plainly and ask the user to confirm.
-   - block -> DO NOT proceed. Explain the finding and suggest the fix.
-3. Use ck_submit_review for plans, ck_memory_record for decisions, ck_budget to check spend.
+CORE WORKFLOWS YOU SUPPORT:
+1. Govern a repo/project: ask for GitHub URL or pasted files, infer risk tier, propose CK setup,
+   scan risky snippets, submit an implementation plan for review, record decisions in memory.
+2. Build safely: for any code/config/shell/diff, call ck_validate before recommending execution.
+3. Review safely: summarize findings by severity; critical/high means do not approve.
+4. Ship safely: check ck_budget, ck_context, ck_generate_proof, and review gates before saying ready.
+5. Preserve context: call ck_memory_record for durable product decisions and ck_memory_search when relevant.
 
-Always surface the governance decision prominently in your reply:
+MANDATORY GOVERNANCE LOOP:
+- For code/config/shell/diff: ck_validate exact content first.
+- For product plans: ck_submit_review(type=plan) before claiming execution-ready.
+- For architecture decisions: ck_memory_record.
+- For release readiness: ck_context + ck_budget + ck_generate_proof.
+
+Always surface the governance result prominently:
   ✅ GOVERNANCE: ALLOWED — <summary>
-  ⚠️ GOVERNANCE: WARNED — <findings>
-  🚫 GOVERNANCE: BLOCKED — <findings> — <suggested fix>
+  ⚠️ GOVERNANCE: WARNED — <risk and next step>
+  🚫 GOVERNANCE: BLOCKED — <rule + safe fix>
 
-Be concise and technical. You are demoing to VCs and AI researchers — show the \
-governance working, do not just describe it."""
+Be useful and concrete: produce next commands, file-level plans, review checklists, and proof links.
+If Gemini is asked to clone/fetch a repo, explain that this demo app currently accepts pasted snippets/URLs
+and creates a governed onboarding plan; do not pretend to have read remote code unless the user pasted it."""
 
 
 # ── Gemini turn ──────────────────────────────────────────────────────────────
 def run_turn(user_message: str) -> dict:
-    """Run one governed Gemini turn with automatic function calling.
+    """Run one governed turn.
 
-    Falls back to direct CK validation when Gemini is unavailable
-    (no key, rate-limited, or API error) so the demo never hard-fails.
+    Product-grade architecture: CK governance executes deterministically first,
+    then Gemini optionally synthesizes the governed result. This avoids fragile
+    model-driven tool-call serialization while still using Gemini as the agent
+    reasoning layer when quota is available. If Gemini is capped, the CK result
+    remains fully usable.
     """
-    # Try Gemini first
-    gemini_result = _try_gemini(user_message)
-    if gemini_result is not None:
-        return gemini_result
+    governed = _direct_ck_validation(user_message)
+    polished = _try_gemini_polish(user_message, governed)
+    if polished:
+        governed["response"] = polished
+        governed["degraded"] = False
+    return governed
 
-    # Fallback: direct CK validation (the governance still works!)
-    return _direct_ck_validation(user_message)
+
+def _try_gemini_polish(user_message: str, governed: dict) -> str | None:
+    """Ask Gemini to explain the already-executed CK result; no tools here."""
+    if not GEMINI_API_KEY:
+        return None
+    try:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        governed_for_prompt = {k: v for k, v in governed.items() if k != "degraded"}
+        prompt = f"""
+You are ControlKeel Studio. The live ControlKeel API has ALREADY executed the governance workflow below.
+Do not invent tool calls or claim access to files you do not have. Explain the result usefully for a software team.
+
+User request:
+{user_message}
+
+Executed governance trace/result JSON:
+{governed_for_prompt}
+
+Return a concise, product-useful answer with a clear governance status and next step.
+"""
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.2),
+        )
+        return (response.text or "").strip() or None
+    except Exception as exc:
+        import sys
+        print(f"[gemini-polish-fallback] {type(exc).__name__}: {exc}", file=sys.stderr)
+        return None
 
 
 def _try_gemini(user_message: str) -> dict | None:
@@ -313,71 +356,139 @@ def _try_gemini(user_message: str) -> dict | None:
 
 
 def _direct_ck_validation(message: str) -> dict:
-    """Direct CK validation when Gemini is unavailable.
+    """Direct CK workflows when Gemini is unavailable.
 
-    Parses the user message for common patterns (validate X, check budget, etc.)
-    and calls the right CK endpoint directly.
+    This fallback is intentionally product-shaped: judges can still try real
+    project governance flows even while the Gemini spend cap is exhausted.
     """
     msg_lower = message.lower().strip()
 
-    # Detect what the user wants
-    if any(kw in msg_lower for kw in ["validate", "check this", "scan", "safe?", "is this"]):
-        # Extract content after trigger words
+    def trace(tool: str, args: dict, result: dict) -> list[dict]:
+        return [{"tool": tool, "args": args, "result": result}]
+
+    if any(token in msg_lower for token in ["github.com/", "repo", "repository", "open source", "opensource"]):
+        ctx = ck_context()
+        budget = ck_budget()
+        review_body = (
+            "Govern an external project/repository with ControlKeel.\n\n"
+            f"User input: {message}\n\n"
+            "Plan:\n"
+            "1. Identify project language/framework and risk tier.\n"
+            "2. Scan pasted code, config, shell commands, and diffs before execution.\n"
+            "3. Add review gates for plans/diffs/completion.\n"
+            "4. Track budget and proof bundle before shipping.\n"
+            "5. Record durable architecture/security decisions in typed memory.\n"
+        )
+        review = ck_submit_review("plan", review_body, "Govern external repository")
+        response = "\n".join([
+            "🧭 GOVERNED REPO ONBOARDING PLAN",
+            "I can govern your project in two modes:",
+            "1. Paste code/diffs/shell here → I validate them live through CK.",
+            "2. Connect CK to your agent/repo host → CK gates plans, diffs, budgets, proofs.",
+            "",
+            "Recommended first slice:",
+            "- Paste package files, Dockerfile, auth code, or a PR diff.",
+            "- I will classify risk, run ck_validate, create findings, and submit a review gate.",
+            "- Before shipping, I will check budget + proof bundle.",
+            "",
+            f"Review gate created: {((review.get('review') or review).get('id', 'pending'))}",
+            f"Budget remaining: {budget.get('remaining_cents', '?')}¢",
+            "",
+            "Note: this public demo does not clone arbitrary repos server-side; paste snippets or wire CK into your repo/agent host for full coverage.",
+        ])
+        return {"response": response, "trace": trace("ck_submit_review", {"review_type": "plan"}, review) + trace("ck_budget", {}, budget), "degraded": True}
+
+    if any(kw in msg_lower for kw in ["plan", "build", "implement", "feature", "architecture", "design"]):
+        ctx = ck_context()
+        budget = ck_budget()
+        body = (
+            "Governed implementation plan request.\n\n"
+            f"User request: {message}\n\n"
+            "Execution gates:\n"
+            "- Validate all code/config/shell before execution.\n"
+            "- Submit diffs for review before merge.\n"
+            "- Generate proof bundle before completion.\n"
+        )
+        review = ck_submit_review("plan", body, "Governed implementation plan")
+        response = "\n".join([
+            "📋 GOVERNED IMPLEMENTATION PLAN CREATED",
+            "I created a review-gated plan instead of pretending to execute blindly.",
+            "Next: paste the concrete code/diff/config and I will validate it before any action.",
+            f"Review id: {((review.get('review') or review).get('id', 'pending'))}",
+            f"Budget remaining: {budget.get('remaining_cents', '?')}¢",
+            f"Active session: {((ctx.get('session') or ctx).get('id', '?') if isinstance(ctx, dict) else '?')}",
+        ])
+        return {"response": response, "trace": trace("ck_context", {}, ctx) + trace("ck_budget", {}, budget) + trace("ck_submit_review", {"review_type": "plan"}, review), "degraded": True}
+
+    if any(kw in msg_lower for kw in ["validate", "check this", "scan", "safe?", "is this", "review this", "diff"]):
         content = message
-        for trigger in ["validate this code:", "validate this shell:", "validate this config:",
-                        "validate:", "validate", "check this code:", "check:"]:
+        for trigger in ["validate this code:", "validate this shell:", "validate this config:", "review this diff:",
+                        "validate:", "validate", "check this code:", "check:", "scan:", "review this:"]:
             if trigger in msg_lower:
                 idx = msg_lower.index(trigger) + len(trigger)
                 content = message[idx:].strip()
                 break
-        result = ck_validate(content, "shell" if "shell" in msg_lower else "code")
+        kind = "shell" if "shell" in msg_lower or content.strip().startswith(("rm ", "gcloud ", "curl ", "npm ", "mix ")) else "code"
+        result = ck_validate(content, kind)
         decision = result.get("decision", "unknown")
         findings = result.get("findings", [])
         em = "🚫" if decision == "block" else "⚠️" if decision == "warn" else "✅"
+        lines = [f"{em} GOVERNANCE: {decision.upper()}"]
+        if findings:
+            for f in findings:
+                lines.append(f"- {f.get('severity', '?').upper()} {f.get('rule_id', '?')}: {f.get('plain_message', '')}")
+            lines.append("\nSafe next step: fix the findings, then resubmit the exact diff/code for validation.")
+        else:
+            lines.append("No findings. This snippet is allowed by the current CK policy pack.")
+            lines.append("Next: submit the surrounding diff/plan for review before merge.")
+        return {"response": "\n".join(lines), "trace": trace("ck_validate", {"content": content[:120], "kind": kind}, result), "degraded": True}
 
-        resp_lines = [f"{em} GOVERNANCE: {decision.upper()}"]
-        for f in findings:
-            resp_lines.append(f"  Rule: {f.get('rule_id', '?')} — {f.get('plain_message', '')[:120]}")
-        if not findings:
-            resp_lines.append("  No findings. Content is clean.")
+    if any(kw in msg_lower for kw in ["proof", "audit", "ship", "ready", "release"]):
+        ctx = ck_context()
+        budget = ck_budget()
+        proof = ck_generate_proof()
+        response = "\n".join([
+            "🚢 SHIP READINESS CHECK",
+            f"Budget remaining: {budget.get('remaining_cents', '?')}¢",
+            f"Proof status: {(proof.get('proof') or proof).get('status', 'available') if isinstance(proof, dict) else 'unknown'}",
+            "Do not claim ship-ready if high/critical findings or pending reviews remain.",
+        ])
+        return {"response": response, "trace": trace("ck_context", {}, ctx) + trace("ck_budget", {}, budget) + trace("ck_generate_proof", {}, proof), "degraded": True}
 
-        return {
-            "response": "\n".join(resp_lines),
-            "trace": [{"tool": "ck_validate", "args": {"content": content[:120], "kind": "code"}, "result": result}],
-            "degraded": True,
-        }
-
-    elif any(kw in msg_lower for kw in ["budget", "spend", "cost"]):
+    if any(kw in msg_lower for kw in ["budget", "spend", "cost"]):
         result = ck_budget()
-        return {
-            "response": f"💰 Budget: {result.get('remaining_cents', '?')}¢ remaining of {result.get('budget_cents', '?')}¢",
-            "trace": [{"tool": "ck_budget", "args": {}, "result": result}],
-            "degraded": True,
-        }
+        return {"response": f"💰 Budget: {result.get('remaining_cents', '?')}¢ remaining of {result.get('budget_cents', '?')}¢. Use this as a circuit breaker before long agent work.", "trace": trace("ck_budget", {}, result), "degraded": True}
 
-    elif any(kw in msg_lower for kw in ["remember", "record", "memory"]):
+
+
+    if any(kw in msg_lower for kw in ["remember", "record", "memory", "decision"]):
         content = message
-        for trigger in ["remember:", "remember"]:
+        for trigger in ["remember:", "remember", "record decision:", "decision:"]:
             if trigger in msg_lower:
                 idx = msg_lower.index(trigger) + len(trigger)
                 content = message[idx:].strip()
                 break
         result = ck_memory_record(content, "decision")
-        return {
-            "response": f"📝 Memory recorded (id: {result.get('memory', result).get('id', '?') if isinstance(result.get('memory'), dict) else 'ok'})",
-            "trace": [{"tool": "ck_memory_record", "args": {"memory": content[:60]}, "result": result}],
-            "degraded": True,
-        }
+        return {"response": f"📝 Durable decision recorded: {content}", "trace": trace("ck_memory_record", {"memory": content[:80]}, result), "degraded": True}
 
-    else:
-        # Default: validate the whole message as text
-        result = ck_validate(message, "text")
-        decision = result.get("decision", "unknown")
-        return {
-            "response": f"({decision}) — Gemini is currently rate-limited, showing direct CK validation.",
-            "trace": [{"tool": "ck_validate", "args": {"content": message[:120], "kind": "text"}, "result": result}],
-            "degraded": True,
-        }
+    if any(kw in msg_lower for kw in ["context", "mission", "state", "findings"]):
+        ctx = ck_context()
+        session = ctx.get("session") or ctx
+        findings = session.get("findings", []) if isinstance(session, dict) else []
+        response = "\n".join([
+            "🧠 CONTROLKEEL SESSION STATE",
+            f"Session: {session.get('id', '?') if isinstance(session, dict) else '?'} — {session.get('title', 'unknown') if isinstance(session, dict) else 'unknown'}",
+            f"Findings visible in context: {len(findings)}",
+            f"Mission Control: {CK_BASE_URL}/missions/1",
+        ])
+        return {"response": response, "trace": trace("ck_context", {}, ctx), "degraded": True}
+
+    result = ck_validate(message, "text")
+    return {
+        "response": "I can govern a repo, validate code/shell/config, submit review gates, record decisions, check budget, and generate proof. Paste a GitHub URL, code snippet, shell command, config, or PR diff to start.",
+        "trace": trace("ck_validate", {"content": message[:120], "kind": "text"}, result),
+        "degraded": True,
+    }
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -417,85 +528,50 @@ def healthz():
 UI_HTML = """<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ControlKeel × Gemini — Governed Agent</title>
+<title>ControlKeel Studio — Governed Gemini</title>
 <style>
-  :root{--bg:#0a0a0b;--panel:#141416;--border:#2a2a2e;--fg:#e8e8ec;--muted:#9a9aa2;--accent:#6366f1}
-  *{box-sizing:border-box}
-  body{font-family:Inter,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--fg);margin:0}
-  header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
-  header h1{font-size:18px;margin:0;background:linear-gradient(135deg,#e8e8ec,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .pill{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
-  main{max-width:860px;margin:0 auto;padding:20px}
-  #log{display:flex;flex-direction:column;gap:14px;min-height:50vh}
-  .msg{padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--panel);white-space:pre-wrap;line-height:1.5}
-  .msg.user{align-self:flex-end;background:#1c1c33;border-color:#33335a;max-width:80%}
-  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-right:6px}
-  .allow{background:rgba(34,197,94,.15);color:#22c55e}.warn{background:rgba(234,179,8,.15);color:#eab308}
-  .block{background:rgba(239,68,68,.15);color:#ef4444}
-  .trace{margin-top:10px;border-top:1px dashed var(--border);padding-top:10px}
-  .tool{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);margin:4px 0}
-  .tool b{color:var(--fg)}
-  form{display:flex;gap:10px;margin-top:18px;position:sticky;bottom:0;background:var(--bg);padding:12px 0}
-  input{flex:1;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--fg);font-size:15px}
-  button{padding:12px 18px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
-  button:disabled{opacity:.5;cursor:wait}
-  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
-  .chip{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);color:var(--muted);cursor:pointer}
-  .chip:hover{border-color:var(--accent);color:var(--fg)}
-  a{color:var(--accent)}
+  :root{--bg:#07080b;--panel:#11131a;--panel2:#171a23;--border:#2a2f3a;--fg:#eef2ff;--muted:#9aa4b2;--accent:#7c3aed;--green:#22c55e;--red:#ef4444;--yellow:#eab308}
+  *{box-sizing:border-box} body{font-family:Inter,-apple-system,Segoe UI,sans-serif;background:radial-gradient(circle at top left,#1e1b4b 0,#07080b 34%);color:var(--fg);margin:0}
+  header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;position:sticky;top:0;background:rgba(7,8,11,.85);backdrop-filter:blur(12px);z-index:2}
+  header h1{font-size:18px;margin:0;background:linear-gradient(135deg,#fff,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.pill{font-size:11px;padding:4px 9px;border-radius:999px;border:1px solid var(--border);color:var(--muted)} a{color:#a78bfa}
+  main{max-width:1120px;margin:0 auto;padding:22px}.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-bottom:18px}.card{background:linear-gradient(180deg,rgba(17,19,26,.96),rgba(12,14,20,.96));border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 20px 80px rgba(0,0,0,.25)}
+  h2{margin:0 0 8px;font-size:22px} h3{margin:0 0 10px;font-size:14px;color:#c4b5fd;text-transform:uppercase;letter-spacing:.08em}.muted{color:var(--muted);line-height:1.5}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.action{padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--panel2);cursor:pointer;color:#dbeafe}.action:hover{border-color:#8b5cf6;transform:translateY(-1px)}.action b{display:block;margin-bottom:4px;color:white}.action span{font-size:12px;color:var(--muted)}
+  #log{display:flex;flex-direction:column;gap:14px;min-height:38vh}.msg{padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:var(--panel);white-space:pre-wrap;line-height:1.5}.msg.user{align-self:flex-end;background:#1f1d3a;border-color:#4c1d95;max-width:82%}.badge{display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:7px;margin-right:6px}.allow{background:rgba(34,197,94,.15);color:var(--green)}.warn{background:rgba(234,179,8,.15);color:var(--yellow)}.block{background:rgba(239,68,68,.15);color:var(--red)}.trace{margin-top:10px;border-top:1px dashed var(--border);padding-top:10px}.tool{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);margin:5px 0}.tool b{color:var(--fg)}
+  form{display:flex;gap:10px;margin-top:16px;position:sticky;bottom:0;background:linear-gradient(180deg,rgba(7,8,11,0),var(--bg) 25%);padding:22px 0 4px}textarea{flex:1;min-height:56px;max-height:220px;padding:13px 14px;border-radius:12px;border:1px solid var(--border);background:var(--panel);color:var(--fg);font-size:14px;resize:vertical}button{padding:0 18px;border-radius:12px;border:0;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:wait}
+  .status{display:grid;gap:8px;font-size:13px}.status div{display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:7px}@media(max-width:860px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:1fr}main{padding:14px}}
 </style></head><body>
 <header>
-  <h1>⎈ ControlKeel × Gemini</h1>
-  <span class="pill">{{ model }}</span>
-  <span class="pill">{{ 'Gemini live' if gemini_ready else 'CK-only mode' }}</span>
+  <h1>⎈ ControlKeel Studio</h1>
+  <span class="pill">Gemini + CK governance</span><span class="pill">{{ model }}</span>
+  <span class="pill">{{ 'Gemini live' if gemini_ready else 'CK fallback' }}</span>
   <span class="pill"><a href="{{ ck_url }}" target="_blank">Mission Control ↗</a></span>
 </header>
 <main>
-  <div class="chips">
-    <span class="chip" onclick="ask(this)">Validate this code: eval(user_input)</span>
-    <span class="chip" onclick="ask(this)">Validate: api_key = 'sk-proj-abc123def456ghi789'</span>
-    <span class="chip" onclick="ask(this)">Validate this shell: rm -rf /</span>
-    <span class="chip" onclick="ask(this)">Validate this code: def health(): return {'status':'ok'}</span>
-    <span class="chip" onclick="ask(this)">Check the budget</span>
-    <span class="chip" onclick="ask(this)">Remember: we decided to use JWT for auth</span>
-  </div>
-  <div id="log"></div>
-  <form id="f" onsubmit="return send()">
-    <input id="m" placeholder="Ask the governed agent to build or validate something…" autocomplete="off"/>
-    <button id="b" type="submit">Send</button>
-  </form>
+  <section class="hero">
+    <div class="card"><h2>Govern any agent workflow before it executes.</h2><p class="muted">Paste a GitHub URL, product plan, code snippet, shell command, config, or PR diff. ControlKeel validates, creates findings, records decisions, opens review gates, tracks budget, and generates proof bundles.</p>
+      <div class="grid">
+        <div class="action" onclick="ask('Govern this repo: https://github.com/example/agent-app. Create the onboarding plan and review gate.')"><b>Govern a repo</b><span>Repo onboarding + review gate</span></div>
+        <div class="action" onclick="ask('Build a user registration feature with email login. Create a governed implementation plan.')"><b>Build safely</b><span>Plan first, then validate diffs</span></div>
+        <div class="action" onclick="ask('Validate this code: eval(user_input)')"><b>Block RCE</b><span>Deterministic fast-path scanner</span></div>
+        <div class="action" onclick="ask('Validate this shell: rm -rf /')"><b>Block bad shell</b><span>Destructive command tripwire</span></div>
+        <div class="action" onclick="ask('Check budget and ship readiness proof')"><b>Ship readiness</b><span>Budget + proof bundle</span></div>
+        <div class="action" onclick="ask('Remember: we decided to use JWT for auth and require review before merge')"><b>Memory</b><span>Durable governed decisions</span></div>
+      </div>
+    </div>
+    <div class="card"><h3>Live capabilities</h3><div class="status"><div><span>Deterministic validation</span><b>Live</b></div><div><span>Budget circuit breaker</span><b>Live</b></div><div><span>Review gates</span><b>Live</b></div><div><span>Typed memory</span><b>Live</b></div><div><span>Proof bundle</span><b>Live</b></div><div><span>Gemini spend cap</span><b>{{ 'OK' if gemini_ready else 'fallback' }}</b></div></div></div>
+  </section>
+  <div class="card"><div id="log"></div><form id="f" onsubmit="return send()"><textarea id="m" placeholder="Paste code, shell, a PR diff, a GitHub URL, or ask for a governed implementation plan…"></textarea><button id="b" type="submit">Govern</button></form></div>
 </main>
 <script>
 const log=document.getElementById('log'),inp=document.getElementById('m'),btn=document.getElementById('b');
-function el(cls,html){const d=document.createElement('div');d.className=cls;d.innerHTML=html;log.appendChild(d);log.scrollIntoView({block:'end'});return d;}
+function el(cls,html){const d=document.createElement('div');d.className=cls;d.innerHTML=html;log.appendChild(d);d.scrollIntoView({block:'end'});return d;}
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-function ask(c){inp.value=c.textContent;send();}
-function decisionBadge(t){
-  const txt=JSON.stringify(t.result||{});
-  if(/"decision":\\s*"block"/.test(txt))return '<span class="badge block">BLOCK</span>';
-  if(/"decision":\\s*"warn"/.test(txt))return '<span class="badge warn">WARN</span>';
-  if(/"decision":\\s*"allow"/.test(txt))return '<span class="badge allow">ALLOW</span>';
-  return '';
-}
-async function send(){
-  const text=inp.value.trim(); if(!text)return false;
-  el('msg user',esc(text)); inp.value=''; btn.disabled=true;
-  const wait=el('msg','<span class="tool">running governed turn…</span>');
-  try{
-    const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});
-    const d=await r.json(); wait.remove();
-    let trace='';
-    if(d.trace&&d.trace.length){
-      trace='<div class="trace">';
-      for(const t of d.trace){trace+=`<div class="tool">${decisionBadge(t)}<b>${esc(t.tool)}</b>(${esc(JSON.stringify(t.args||{}))})</div>`;}
-      trace+='</div>';
-    }
-    el('msg',esc(d.response||'(no response)')+trace);
-  }catch(e){wait.remove(); el('msg','Network error: '+esc(String(e)));}
-  btn.disabled=false; inp.focus(); return false;
-}
-</script>
-</body></html>"""
+function ask(t){inp.value=t;send();}
+function decisionBadge(t){const txt=JSON.stringify(t.result||{});if(/"decision":\s*"block"/.test(txt))return '<span class="badge block">BLOCK</span>';if(/"decision":\s*"warn"/.test(txt))return '<span class="badge warn">WARN</span>';if(/"decision":\s*"allow"/.test(txt))return '<span class="badge allow">ALLOW</span>';return '';}
+async function send(){const text=inp.value.trim(); if(!text)return false; el('msg user',esc(text)); inp.value=''; btn.disabled=true; const wait=el('msg','<span class="tool">running governed workflow…</span>'); try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})}); const d=await r.json(); wait.remove(); let trace=''; if(d.trace&&d.trace.length){trace='<div class="trace">'; for(const t of d.trace){trace+=`<div class="tool">${decisionBadge(t)}<b>${esc(t.tool)}</b>(${esc(JSON.stringify(t.args||{}))})</div>`;} trace+='</div>';} el('msg',esc(d.response||'(no response)')+trace);}catch(e){wait.remove(); el('msg','Network error: '+esc(String(e)));} btn.disabled=false; inp.focus(); return false;}
+el('msg','Welcome. Try a repo URL, product plan, code snippet, shell command, or release-readiness request. Every workflow is routed through live ControlKeel governance.');
+</script></body></html>"""
+
 
 
 if __name__ == "__main__":

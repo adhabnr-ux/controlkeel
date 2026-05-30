@@ -51,7 +51,7 @@ gcloud run deploy "$SERVICE" \
   --memory 1Gi --cpu 1 \
   --min-instances 1 --max-instances 3 \
   --timeout 300 \
-  --set-env-vars "PHX_SERVER=true,CK_MCP_MODE=0,CONTROLKEEL_RUNTIME_MODE=local,CONTROLKEEL_BUS=local,SECRET_KEY_BASE=${SECRET_KEY_BASE}" \
+  --set-env-vars "PHX_SERVER=true,CK_MCP_MODE=0,CONTROLKEEL_RUNTIME_MODE=local,CONTROLKEEL_BUS=local,SECRET_KEY_BASE=${SECRET_KEY_BASE},DATABASE_PATH=/app/data/controlkeel.db" \
   --quiet
 
 URL="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT_ID" --format 'value(status.url)')"
