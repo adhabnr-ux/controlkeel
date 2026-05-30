@@ -8,7 +8,7 @@ defmodule ControlKeelWeb.MissionsLive do
     {:ok,
      socket
      |> assign(:page_title, "Missions")
-     |> assign(:recent_sessions, Mission.list_recent_sessions())}
+     |> assign(:recent_sessions, Mission.list_all_sessions())}
   end
 
   @impl true

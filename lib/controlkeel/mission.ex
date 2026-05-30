@@ -650,6 +650,14 @@ defmodule ControlKeel.Mission do
     |> Repo.all()
   end
 
+  def list_all_sessions(workspace_id \\ nil) do
+    Session
+    |> ControlKeel.Cloud.Scope.scope_workspace(workspace_id)
+    |> order_by(desc: :inserted_at)
+    |> preload([:workspace, :tasks, :findings])
+    |> Repo.all()
+  end
+
   def get_session_with_details!(id) do
     Session
     |> Repo.get!(id)
