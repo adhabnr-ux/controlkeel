@@ -43,7 +43,7 @@ The data layer is solid: tenant isolation, sync deduplication, OIDC token exchan
 | GitHub repo binding UI | ✅ done | P1a (WorkspaceReposLive) |
 | Service-account / webhook / tool-policy UI | ✅ done | P1b (3 LiveViews) |
 | Membership-revoke broadcast | ✅ done | P2 (PubSub + LiveAuth attach_hook) |
-| Postgres parity CI lane | ✅ done | `test-postgres` job in ci.yml; ECTO_ADAPTER env var; Repo adapter configurable
+| Postgres parity CI lane | ✅ done | `test-postgres` job in ci.yml; CK_DB_ADAPTER env var; Repo adapter configurable
 | TypeScript SDK | ✅ done | `@aryaminus/controlkeel-sdk` — typed client for all /cloud/v1 endpoints |
 | Skills/hooks cloud execution model | ✅ decided | `docs/cloud-execution-model.md` — hybrid (local agent + cloud state) |
 | Self-host smoke test in CI | ✅ done | `scripts/self_host_smoke.sh` + `self-host-smoke` job in ci.yml |
@@ -73,7 +73,7 @@ Commits in chronological order. Each closed at least one critical finding.
 | `189a527` | P2 real-time membership eviction (PubSub broadcast + LiveAuth attach_hook) | CK-CLOUD-MEMBERSHIP-REVALIDATE-007 (P2.1, P2.2) |
 | `c795f1d` | P3.5 per-workspace rate limiting on /cloud/v1 (ETS token bucket + plug) | P3.5 |
 | `3795c7c` | P3.3 self-host smoke test in CI (scripts/self_host_smoke.sh + ci.yml job) | CK-CLOUD-SELFHOST-007 |
-| `32df8b4` | P3.1 Postgres parity CI lane (ECTO_ADAPTER env var + test-postgres CI job) | CK-CLOUD-DB-004 (#294) |
+| `32df8b4` | P3.1 Postgres parity CI lane (CK_DB_ADAPTER env var + test-postgres CI job) | CK-CLOUD-DB-004 (#294) |
 | `e620b5f` | P3.2 TypeScript SDK (@aryaminus/controlkeel-sdk) | CK-CLOUD-SDK-005 (#295) |
 | `2e8b36a` | P3.6 per-org usage metering (UsageMeter + UsageEmitter + API) | P3.6 |
 | `7a0204e` | P2b session timeout + sign-out-everywhere | P2.3, P2.4 |
@@ -166,7 +166,7 @@ Phases are sequenced by **dependency**, not preference. Each phase is one shippa
 
 | # | Item | Finding | Acceptance |
 |---|---|---|---|
-| P3.1 | Postgres parity CI lane | #294 | ✅ `test-postgres` CI job with Postgres 17 service container; `ECTO_ADAPTER` env var makes Repo adapter configurable at compile time; `config/test.exs` conditional on adapter choice; full suite runs against Postgres. |
+| P3.1 | Postgres parity CI lane | #294 | ✅ `test-postgres` CI job with Postgres 17 service container; `CK_DB_ADAPTER` env var makes Repo adapter configurable at compile time; `config/test.exs` conditional on adapter choice; full suite runs against Postgres. |
 | P3.2 | TypeScript SDK (npm: `@aryaminus/controlkeel-sdk`) | #295 | ✅ `@aryaminus/controlkeel-sdk` package: ControlKeelClient class with typed methods for all /cloud/v1 endpoints (sync, register, service-accounts, webhooks, tool-policy, policy-sets, telemetry, runtime-callbacks). Zero runtime deps. ESM+CJS dual output. Auto-retry on 429/5xx with Retry-After. |
 | P3.3 | Self-host smoke test in CI | #297 | ✅ `scripts/self_host_smoke.sh` boots `mix phx.server` with `PHX_HOST=govern.selfhost.test` against a fresh SQLite DB; asserts `/` responds, `/cloud/v1/workspaces/register` is mounted, `/cloud/v1/sync/push` requires Bearer. CI job runs after `test`. Burrito + Postgres round-trip variants deferred. |
 | P3.4 | Skills/hooks cloud-execution model decision | #293 | ✅ Hybrid model (local agent + cloud state) formalized in `docs/cloud-execution-model.md`. Cloud sandbox deferred. |

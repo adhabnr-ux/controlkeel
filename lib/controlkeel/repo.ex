@@ -1,5 +1,5 @@
 defmodule ControlKeel.Repo do
-  @adapter (case System.get_env("ECTO_ADAPTER", "sqlite3") do
+  @adapter (case System.get_env("CK_DB_ADAPTER", "sqlite3") do
     "postgres" -> Ecto.Adapters.Postgres
     _ -> Ecto.Adapters.SQLite3
   end)

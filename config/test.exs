@@ -6,13 +6,13 @@ import Config
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
 #
-# Set ECTO_ADAPTER=postgres to run the test suite against Postgres
+# Set CK_DB_ADAPTER=postgres to run the test suite against Postgres
 # (used in the test-postgres CI lane).
 
-if System.get_env("ECTO_ADAPTER") == "postgres" do
+if System.get_env("CK_DB_ADAPTER") == "postgres" do
   database_url =
     System.get_env("DATABASE_URL") ||
-      raise "DATABASE_URL is required when ECTO_ADAPTER=postgres"
+      raise "DATABASE_URL is required when CK_DB_ADAPTER=postgres"
 
   config :controlkeel, ControlKeel.Repo,
     url: database_url,

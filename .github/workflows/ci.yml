@@ -70,7 +70,7 @@ jobs:
     timeout-minutes: 45
     env:
       MIX_ENV: test
-      ECTO_ADAPTER: postgres
+      CK_DB_ADAPTER: postgres
       DATABASE_URL: postgres://controlkeel_test:controlkeel_test@localhost:5432/controlkeel_test
     services:
       postgres:
