@@ -4523,6 +4523,10 @@ defmodule ControlKeel.Mission do
       |> Map.merge(plan_refinement_overrides(attrs))
 
     with {:ok, phase} <- normalize_plan_phase(Map.get(raw_refinement, "phase", "ticket")),
+         {:ok, hypothesis} <-
+           optional_trimmed_string(Map.get(raw_refinement, "hypothesis"), "hypothesis"),
+         {:ok, expected_signal} <-
+           optional_trimmed_string(Map.get(raw_refinement, "expected_signal"), "expected_signal"),
          {:ok, research_summary} <-
            optional_trimmed_string(
              Map.get(raw_refinement, "research_summary"),
@@ -4567,6 +4571,8 @@ defmodule ControlKeel.Mission do
           "phase_order" => plan_phase_order(phase),
           "depth" => depth,
           "task_title" => task && task.title,
+          "hypothesis" => hypothesis,
+          "expected_signal" => expected_signal,
           "research_summary" => research_summary,
           "codebase_findings" => codebase_findings,
           "prior_art_summary" => prior_art_summary,
@@ -4607,6 +4613,8 @@ defmodule ControlKeel.Mission do
   defp plan_refinement_overrides(attrs) do
     %{}
     |> maybe_override_refinement("phase", Map.get(attrs, "plan_phase"))
+    |> maybe_override_refinement("hypothesis", Map.get(attrs, "hypothesis"))
+    |> maybe_override_refinement("expected_signal", Map.get(attrs, "expected_signal"))
     |> maybe_override_refinement("research_summary", Map.get(attrs, "research_summary"))
     |> maybe_override_refinement("codebase_findings", Map.get(attrs, "codebase_findings"))
     |> maybe_override_refinement("prior_art_summary", Map.get(attrs, "prior_art_summary"))

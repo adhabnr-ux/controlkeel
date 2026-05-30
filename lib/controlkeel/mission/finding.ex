@@ -16,6 +16,8 @@ defmodule ControlKeel.Mission.Finding do
     field :auto_resolved, :boolean, default: false
     field :metadata, :map, default: %{}
     field :synced_at, :utc_datetime
+    field :extends_finding_id, :integer
+    field :contradicts_finding_id, :integer
 
     belongs_to :session, Session
 
@@ -37,7 +39,9 @@ defmodule ControlKeel.Mission.Finding do
       :auto_resolved,
       :metadata,
       :synced_at,
-      :session_id
+      :session_id,
+      :extends_finding_id,
+      :contradicts_finding_id
     ])
     |> validate_required([
       :title,
@@ -74,6 +78,8 @@ defmodule ControlKeel.Mission.Finding do
        :status,
        :auto_resolved,
        {:redact, :metadata},
+       :extends_finding_id,
+       :contradicts_finding_id,
        :synced_at,
        :inserted_at,
        :updated_at

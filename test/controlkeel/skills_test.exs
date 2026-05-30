@@ -560,6 +560,7 @@ defmodule ControlKeel.SkillsTest do
              "align",
              "architect-first",
              "benchmark-operator",
+             "challenge",
              "cli-for-agents",
              "cloudflare-agent",
              "compliance-audit",

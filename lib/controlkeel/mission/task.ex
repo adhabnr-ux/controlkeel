@@ -17,6 +17,9 @@ defmodule ControlKeel.Mission.Task do
     field :confidence_score, :float
     field :lock_version, :integer, default: 1
     field :rollback_boundary, :string
+    field :input_refs, {:array, :string}, default: []
+    field :output_ref, :string
+    field :trust_policy, :string, default: "full"
 
     belongs_to :session, Session
     has_many :proof_bundles, ProofBundle
@@ -45,7 +48,10 @@ defmodule ControlKeel.Mission.Task do
       :session_id,
       :confidence_score,
       :lock_version,
-      :rollback_boundary
+      :rollback_boundary,
+      :input_refs,
+      :output_ref,
+      :trust_policy
     ])
     |> validate_required([
       :title,
@@ -85,6 +91,9 @@ defmodule ControlKeel.Mission.Task do
        :confidence_score,
        :lock_version,
        :rollback_boundary,
+       :input_refs,
+       :output_ref,
+       :trust_policy,
        :inserted_at,
        :updated_at
      ]}

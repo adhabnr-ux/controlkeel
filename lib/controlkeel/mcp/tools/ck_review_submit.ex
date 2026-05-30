@@ -17,7 +17,7 @@ defmodule ControlKeel.MCP.Tools.CkReviewSubmit do
     attrs =
       Map.take(
         arguments,
-        ~w(session_id task_id title review_type submission_body annotations feedback_notes submitted_by metadata previous_review_id plan_phase research_summary codebase_findings prior_art_summary alignment_context consulted_roles options_considered selected_option rejected_options implementation_steps validation_plan code_snippets scope_estimate)
+        ~w(session_id task_id title review_type submission_body annotations feedback_notes submitted_by metadata previous_review_id plan_phase hypothesis expected_signal research_summary codebase_findings prior_art_summary alignment_context consulted_roles options_considered selected_option rejected_options implementation_steps validation_plan code_snippets scope_estimate)
       )
 
     case Mission.submit_review(attrs) do

@@ -394,6 +394,9 @@ defmodule ControlKeel.AgentExecution do
           ] ++ validation_checks(validation)
         )
 
+      result_ref = write_stdout_ref(package_root, output)
+      maybe_emit_loop_finding(task, session, output)
+
       case Platform.report_task(task.id, service_account_context[:service_account], %{
              status: status,
              output: Map.merge(payload, %{"stdout" => String.slice(output, 0, 8_000)}),
@@ -401,6 +404,7 @@ defmodule ControlKeel.AgentExecution do
                "executor_mode" => "embedded",
                "command" => [command | args],
                "validation" => validation,
+               "result_ref" => result_ref,
                "execution_sandbox" =>
                  ExecutionSandbox.adapter_name(sandbox: Process.get(:ck_execution_sandbox))
              }
@@ -410,7 +414,8 @@ defmodule ControlKeel.AgentExecution do
             record_delegate_result(task, integration, status, %{
               "mode" => "embedded",
               "package_root" => package_root,
-              "command" => [command | args]
+              "command" => [command | args],
+              "result_ref" => result_ref
             })
 
           {:ok,
@@ -421,6 +426,8 @@ defmodule ControlKeel.AgentExecution do
              "mode" => "embedded",
              "status" => status,
              "package_root" => package_root,
+             "result_ref" => result_ref,
+             "result_length" => byte_size(output),
              "command" => [command | args],
              "validation" => validation,
              "metadata" => %{
@@ -973,4 +980,48 @@ defmodule ControlKeel.AgentExecution do
   defp hosted_scopes do
     ["a2a:access" | ControlKeel.ProtocolInterop.hosted_mcp_scopes()]
   end
+
+  # Writes the full stdout to package_root/stdout.txt and returns a
+  # content-addressed ref (first 16 hex chars of SHA256).
+  defp write_stdout_ref(package_root, output) when is_binary(output) and output != "" do
+    ref = output |> then(&:crypto.hash(:sha256, &1)) |> Base.encode16(case: :lower) |> binary_part(0, 16)
+    path = Path.join(package_root, "stdout.txt")
+    _ = File.write(path, output)
+    ref
+  end
+
+  defp write_stdout_ref(_package_root, _output), do: nil
+
+  # Emits an agent-loop finding when stdout shows repetitive verification
+  # patterns (≥3 occurrences of "verify" or "check" in close succession).
+  @loop_verify_threshold 3
+
+  defp maybe_emit_loop_finding(task, session, output) when is_binary(output) do
+    verify_count =
+      output
+      |> String.downcase()
+      |> then(fn s -> length(Regex.scan(~r/\b(verify|re-verify|re_verify|double.check)\b/, s)) end)
+
+    if verify_count >= @loop_verify_threshold do
+      _ =
+        Mission.create_finding(%{
+          title: "Verification loop detected in embedded agent output",
+          severity: "high",
+          category: "agent-loop",
+          rule_id: "rlm.verification_loop",
+          plain_message:
+            "Agent output contains #{verify_count} verification signals. " <>
+              "This matches the RLM verification-loop failure pattern: the agent may be re-verifying " <>
+              "instead of committing to a result. Surface the last partial result and terminate if looping continues.",
+          status: "open",
+          auto_resolved: false,
+          metadata: %{"verify_count" => verify_count, "task_id" => task.id, "source" => "rlm_loop_detector"},
+          session_id: session.id
+        })
+    end
+
+    :ok
+  end
+
+  defp maybe_emit_loop_finding(_task, _session, _output), do: :ok
 end

@@ -56,6 +56,7 @@ defmodule ControlKeel.MCP.Protocol do
     CkCheckpointCreate,
     CkCheckpointRestore,
     CkCheckpointList,
+    CkResultPeek,
     CkGitDiff,
     CkGitCommit,
     CkGitStatus,
@@ -303,6 +304,7 @@ defmodule ControlKeel.MCP.Protocol do
       "ck_memory_search",
       "ck_memory_archive",
       "ck_delegate",
+      "ck_result_peek",
       "ck_cost_optimizer",
       "ck_deployment_advisor",
       "ck_outcome_tracker",
@@ -392,6 +394,7 @@ defmodule ControlKeel.MCP.Protocol do
         ck_budget_tool(),
         ck_route_tool(),
         ck_delegate_tool(),
+        ck_result_peek_tool(),
         ck_cost_optimizer_tool(),
         ck_deployment_advisor_tool(),
         ck_outcome_tracker_tool(),
@@ -541,6 +544,7 @@ defmodule ControlKeel.MCP.Protocol do
     do: CkCheckpointRestore.call(arguments)
 
   defp do_dispatch_tool("ck_checkpoint_list", arguments), do: CkCheckpointList.call(arguments)
+  defp do_dispatch_tool("ck_result_peek", arguments), do: CkResultPeek.call(arguments)
   defp do_dispatch_tool("ck_git_diff", arguments), do: CkGitDiff.call(arguments)
   defp do_dispatch_tool("ck_git_commit", arguments), do: CkGitCommit.call(arguments)
   defp do_dispatch_tool("ck_git_status", arguments), do: CkGitStatus.call(arguments)
@@ -2228,6 +2232,36 @@ defmodule ControlKeel.MCP.Protocol do
             "description" => "Operation mode that determines the tool behavior and return shape."
           },
           "project_root" => %{"type" => "string"}
+        }
+      }
+    }
+  end
+
+  defp ck_result_peek_tool do
+    %{
+      "name" => "ck_result_peek",
+      "description" =>
+        "Peek at the full stdout of a previously completed ck_delegate embedded run without loading it all into context. " <>
+          "Use result_ref and package_root returned by ck_delegate to locate the stored output. " <>
+          "Supports byte-range reads: pass peek_bytes to limit how much to load, and offset to skip ahead. " <>
+          "Use result_length (returned by ck_delegate) to decide whether to peek, pass the ref downstream, or skip loading entirely. " <>
+          "This is the RLM variable-encapsulation pattern: treat large sub-agent outputs as named references, not inline blobs.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["package_root"],
+        "properties" => %{
+          "package_root" => %{
+            "type" => "string",
+            "description" => "package_root returned by ck_delegate for the completed embedded run."
+          },
+          "peek_bytes" => %{
+            "type" => ["integer", "string"],
+            "description" => "How many bytes to read (default 2000, max 32000)."
+          },
+          "offset" => %{
+            "type" => ["integer", "string"],
+            "description" => "Byte offset to start reading from (default 0)."
+          }
         }
       }
     }
