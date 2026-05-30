@@ -1,41 +1,72 @@
 # Google AI Studio Setup — ControlKeel Studio
 
-This is the hackathon "AI Studio sharing mechanics" artifact. The actual hosted
-prototype is the Cloud Run app:
+Use this to create the AI Studio share link required for the "Code Repository"
+submission field.
 
+**The live prototype (what judges actually use):**
 https://ck-gemini-834811228927.us-central1.run.app
 
-## Create the AI Studio prompt
+---
+
+## Setup steps
 
 1. Open https://aistudio.google.com
-2. Create a new prompt using Gemini 2.5 Flash.
-3. Paste `MASTER_PROMPT.md` as the **System instruction**.
-4. Add the function declarations from `functions.json`.
-5. In the prompt body, paste this starter message:
+2. Create a new prompt → select **Gemini 2.5 Flash**
+3. **System instructions** → paste the full contents of `MASTER_PROMPT.md`
+4. **Tools** → add function declarations → paste the contents of `functions.json`
+5. In the prompt body paste this starter:
 
-```text
-You are ControlKeel Studio. Help me govern a real software project.
-Start by asking for one of: a GitHub URL, package files, Dockerfile, auth code,
-a shell command, config, or PR diff. For any code/config/shell/diff, call
-ck_validate before recommending execution. For plans, submit a review gate. For
-release readiness, check budget and generate a proof bundle.
+   ```
+   You are ControlKeel Studio. Govern a real software project or validate code.
+
+   Try one of:
+   - Govern this repo: https://github.com/langchain-ai/langchain
+   - Validate this code: eval(user_input)
+   - Build a user auth system. Create a governed implementation plan.
+   - Check budget and generate a proof bundle before shipping.
+   ```
+
+6. Click **Share → Publish** → set to **"Anyone with the link can view"**
+7. Copy the share URL — this is your code repo / AI Studio link for submission
+
+---
+
+## Important: what AI Studio shows vs what the app executes
+
+| | Raw AI Studio | Cloud Run app |
+|---|---|---|
+| Function calls | Gemini returns `functionCall` — you paste responses manually | Python `google-genai` SDK auto-executes each call |
+| Hits real CK API | ❌ Not automatically | ✅ Yes, every tool call |
+| Purpose | Shows agent design + tool surface for judges to review | The actual live prototype |
+
+When demoing to judges, drive the demo from the **Cloud Run app**. Use the AI
+Studio link as the "code repo" submission item.
+
+---
+
+## Good demo prompts for AI Studio
+
+These show the agent design clearly (even without live execution):
+
 ```
+Govern this open source repo: https://github.com/langchain-ai/langchain
+```
+→ Gemini issues `ck_validate_github_repo` — shows the governance tool surface
 
-6. Click **Share / Publish** and set access to **Anyone with the link can view**.
-7. Use that AI Studio share URL as the "Code Repository / AI Studio share" link.
+```
+Validate this code: eval(user_input)
+```
+→ Gemini issues `ck_validate(content="eval(user_input)", kind="code")` → explain you'd see `decision: block, rule: security.code_execution`
 
-## Important note for judges
+```
+I want to add a payment integration. Create a governed implementation plan.
+```
+→ Gemini issues `ck_context`, then `ck_submit_review(type="plan", ...)` → shows the review gate workflow
 
-Raw AI Studio returns function calls; it does not execute CK HTTP calls by itself.
-The Cloud Run app is the executor: Python `google-genai` runs the tool calls and
-sends them to the live ControlKeel API. The AI Studio prompt shows the same
-agent design and tool surface for review/share.
+```
+We're ready to ship. Check budget and generate a proof bundle.
+```
+→ Gemini issues `ck_context`, `ck_budget`, `ck_generate_proof` → shows the ship-readiness workflow
 
-## What to demonstrate in AI Studio
-
-- Ask: `Govern this repo: https://github.com/example/agent-app`
-- Ask: `Validate this code: eval(user_input)`
-- Ask: `Create a governed plan for adding registration and checkout`
-- Ask: `Before shipping, check budget and proof readiness`
-
-Then point judges to the Cloud Run prototype to see the tools execute live.
+Then direct judges to https://ck-gemini-834811228927.us-central1.run.app to
+see the same tool calls **actually execute** against the live ControlKeel backend.
