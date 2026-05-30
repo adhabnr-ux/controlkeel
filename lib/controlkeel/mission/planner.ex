@@ -498,6 +498,7 @@ defmodule ControlKeel.Mission.Planner do
           estimated_cost_cents: 35,
           validation_gate: validation_gate(risk_tier),
           position: index,
+          trust_policy: trust_policy_for(risk_tier),
           metadata: %{
             "track" => "feature",
             "stack" => stack,
@@ -508,6 +509,15 @@ defmodule ControlKeel.Mission.Planner do
         }
       end)
 
+    # Mark the release task as an aggregate when there are 2+ feature tasks
+    # so run_session/2 injects completed feature output_refs before it runs.
+    release_meta = %{
+      "track" => "release",
+      "stack" => stack,
+      "decomposition" => Decomposition.default_metadata_for_task("release", nil),
+      "aggregate_task" => length(feature_tasks) >= 2
+    }
+
     [
       %{
         title: "Lock the architecture, data model, and deploy plan",
@@ -515,6 +525,7 @@ defmodule ControlKeel.Mission.Planner do
         estimated_cost_cents: 15,
         validation_gate: "Decision brief approved",
         position: 1,
+        trust_policy: "full",
         metadata: %{
           "track" => "architecture",
           "stack" => stack,
@@ -533,17 +544,17 @@ defmodule ControlKeel.Mission.Planner do
           estimated_cost_cents: 20,
           validation_gate: "Tests, scans, and rollback notes complete",
           position: length(feature_tasks) + 2,
-          metadata: %{
-            "track" => "release",
-            "stack" => stack,
-            "decomposition" => Decomposition.default_metadata_for_task("release", nil)
-          },
+          trust_policy: trust_policy_for(risk_tier),
+          metadata: release_meta,
           confidence_score: task_confidence("verify", risk_tier),
           rollback_boundary:
             task_rollback("verify", "Run verification, proof bundle, and release checklist")
         }
       ]
   end
+
+  defp trust_policy_for(risk_tier) when risk_tier in ["critical", "high"], do: "spot_check"
+  defp trust_policy_for(_risk_tier), do: "full"
 
   defp task_confidence(track, risk_tier) do
     base =

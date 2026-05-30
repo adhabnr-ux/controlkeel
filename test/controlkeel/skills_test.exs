@@ -565,6 +565,7 @@ defmodule ControlKeel.SkillsTest do
              "cloudflare-agent",
              "compliance-audit",
              "continual-learning",
+             "continuity",
              "controlkeel-governance",
              "cost-optimization",
              "deep-code-quality-review",
