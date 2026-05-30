@@ -257,46 +257,127 @@ governance working, do not just describe it."""
 
 # ── Gemini turn ──────────────────────────────────────────────────────────────
 def run_turn(user_message: str) -> dict:
-    """Run one Gemini turn with automatic function calling against live CK."""
+    """Run one governed Gemini turn with automatic function calling.
+
+    Falls back to direct CK validation when Gemini is unavailable
+    (no key, rate-limited, or API error) so the demo never hard-fails.
+    """
+    # Try Gemini first
+    gemini_result = _try_gemini(user_message)
+    if gemini_result is not None:
+        return gemini_result
+
+    # Fallback: direct CK validation (the governance still works!)
+    return _direct_ck_validation(user_message)
+
+
+def _try_gemini(user_message: str) -> dict | None:
+    """Attempt a Gemini turn. Returns None on any failure (caller falls back)."""
     if not GEMINI_API_KEY:
-        # Graceful degradation: no Gemini key -> still prove CK is live by
-        # validating the message directly, so the demo never hard-fails.
-        result = ck_validate(user_message, "text")
+        return None
+
+    try:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=user_message,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                tools=TOOLS,  # SDK auto-executes these and loops until a final answer
+                temperature=0.2,
+            ),
+        )
+
+        # Reconstruct the tool-call trace from the automatic function-calling history.
+        trace = []
+        for entry in getattr(response, "automatic_function_calling_history", None) or []:
+            for part in getattr(entry, "parts", None) or []:
+                fc = getattr(part, "function_call", None)
+                fr = getattr(part, "function_response", None)
+                if fc:
+                    trace.append({"tool": fc.name, "args": dict(fc.args or {}), "result": None})
+                elif fr and trace:
+                    resp = fr.response
+                    trace[-1]["result"] = resp.get("result", resp) if isinstance(resp, dict) else resp
+
+        return {"response": (response.text or "").strip() or "Agent completed.", "trace": trace, "degraded": False}
+
+    except Exception as exc:
+        # Log but don't crash — the fallback will handle it
+        import sys
+        print(f"[gemini-fallback] {type(exc).__name__}: {exc}", file=sys.stderr)
+        return None
+
+
+def _direct_ck_validation(message: str) -> dict:
+    """Direct CK validation when Gemini is unavailable.
+
+    Parses the user message for common patterns (validate X, check budget, etc.)
+    and calls the right CK endpoint directly.
+    """
+    msg_lower = message.lower().strip()
+
+    # Detect what the user wants
+    if any(kw in msg_lower for kw in ["validate", "check this", "scan", "safe?", "is this"]):
+        # Extract content after trigger words
+        content = message
+        for trigger in ["validate this code:", "validate this shell:", "validate this config:",
+                        "validate:", "validate", "check this code:", "check:"]:
+            if trigger in msg_lower:
+                idx = msg_lower.index(trigger) + len(trigger)
+                content = message[idx:].strip()
+                break
+        result = ck_validate(content, "shell" if "shell" in msg_lower else "code")
         decision = result.get("decision", "unknown")
+        findings = result.get("findings", [])
+        em = "🚫" if decision == "block" else "⚠️" if decision == "warn" else "✅"
+
+        resp_lines = [f"{em} GOVERNANCE: {decision.upper()}"]
+        for f in findings:
+            resp_lines.append(f"  Rule: {f.get('rule_id', '?')} — {f.get('plain_message', '')[:120]}")
+        if not findings:
+            resp_lines.append("  No findings. Content is clean.")
+
         return {
-            "response": f"(No GEMINI_API_KEY set — direct CK validation shown.) Decision: {decision}",
-            "trace": [{"tool": "ck_validate", "args": {"content": user_message[:120], "kind": "text"}, "result": result}],
+            "response": "\n".join(resp_lines),
+            "trace": [{"tool": "ck_validate", "args": {"content": content[:120], "kind": "code"}, "result": result}],
             "degraded": True,
         }
 
-    from google import genai
-    from google.genai import types
+    elif any(kw in msg_lower for kw in ["budget", "spend", "cost"]):
+        result = ck_budget()
+        return {
+            "response": f"💰 Budget: {result.get('remaining_cents', '?')}¢ remaining of {result.get('budget_cents', '?')}¢",
+            "trace": [{"tool": "ck_budget", "args": {}, "result": result}],
+            "degraded": True,
+        }
 
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=user_message,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            tools=TOOLS,  # SDK auto-executes these and loops until a final answer
-            temperature=0.2,
-        ),
-    )
+    elif any(kw in msg_lower for kw in ["remember", "record", "memory"]):
+        content = message
+        for trigger in ["remember:", "remember"]:
+            if trigger in msg_lower:
+                idx = msg_lower.index(trigger) + len(trigger)
+                content = message[idx:].strip()
+                break
+        result = ck_memory_record(content, "decision")
+        return {
+            "response": f"📝 Memory recorded (id: {result.get('memory', result).get('id', '?') if isinstance(result.get('memory'), dict) else 'ok'})",
+            "trace": [{"tool": "ck_memory_record", "args": {"memory": content[:60]}, "result": result}],
+            "degraded": True,
+        }
 
-    # Reconstruct the tool-call trace from the automatic function-calling history.
-    trace = []
-    for entry in getattr(response, "automatic_function_calling_history", None) or []:
-        for part in getattr(entry, "parts", None) or []:
-            fc = getattr(part, "function_call", None)
-            fr = getattr(part, "function_response", None)
-            if fc:
-                trace.append({"tool": fc.name, "args": dict(fc.args or {}), "result": None})
-            elif fr and trace:
-                resp = fr.response
-                # google-genai wraps function results as {"result": <value>}
-                trace[-1]["result"] = resp.get("result", resp) if isinstance(resp, dict) else resp
-
-    return {"response": (response.text or "").strip() or "Agent completed.", "trace": trace, "degraded": False}
+    else:
+        # Default: validate the whole message as text
+        result = ck_validate(message, "text")
+        decision = result.get("decision", "unknown")
+        return {
+            "response": f"({decision}) — Gemini is currently rate-limited, showing direct CK validation.",
+            "trace": [{"tool": "ck_validate", "args": {"content": message[:120], "kind": "text"}, "result": result}],
+            "degraded": True,
+        }
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
