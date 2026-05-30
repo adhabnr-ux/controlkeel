@@ -77,7 +77,9 @@ defmodule ControlKeel.Cloud.AuthTokenTest do
       [payload_b64, sig_b64] = String.split(token, ".")
 
       tampered_payload = payload_b64 |> Base.url_decode64!(padding: false)
-      tampered = String.replace(tampered_payload, ~r/^./, "X")
+      first = :binary.first(tampered_payload)
+      flip = if first == ?X, do: ?Y, else: ?X
+      tampered = <<flip>> <> binary_part(tampered_payload, 1, byte_size(tampered_payload) - 1)
       tampered_b64 = Base.url_encode64(tampered, padding: false)
 
       assert {:error, reason} = AuthToken.verify("#{tampered_b64}.#{sig_b64}")
@@ -88,7 +90,9 @@ defmodule ControlKeel.Cloud.AuthTokenTest do
       {:ok, token} = AuthToken.sign(identity)
       [payload_b64, sig_b64] = String.split(token, ".")
 
-      tampered_sig = String.replace(sig_b64, ~r/^./, "A")
+      first = String.first(sig_b64)
+      replacement = if first == "A", do: "B", else: "A"
+      tampered_sig = replacement <> String.slice(sig_b64, 1..-1//1)
 
       assert {:error, reason} = AuthToken.verify("#{payload_b64}.#{tampered_sig}")
       assert reason in [:bad_signature, :malformed]
