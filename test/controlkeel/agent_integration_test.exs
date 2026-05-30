@@ -30,7 +30,8 @@ defmodule ControlKeel.AgentIntegrationTest do
     assert "kiro-cli" in ids
     assert "roo" in ids
     assert "jcode" in ids
-    assert "antigravity" in ids
+    assert "antigravity-cli" in ids
+    assert "antigravity-ide" in ids
     assert "clawdbot" in ids
     assert "kilo" in ids
     assert "nous-research" in ids
@@ -414,7 +415,6 @@ defmodule ControlKeel.AgentIntegrationTest do
 
   test "skills-compatible agent names stay honest about support tier" do
     jcode = AgentIntegration.get("jcode")
-    antigravity = AgentIntegration.get("antigravity")
     clawdbot = AgentIntegration.get("clawdbot")
     nous = AgentIntegration.get("nous-research")
     trae = AgentIntegration.get("trae")
@@ -436,7 +436,7 @@ defmodule ControlKeel.AgentIntegrationTest do
                  "raw.githubusercontent.com/1jehuang/jcode/master/scripts/install.sh")
            )
 
-    for integration <- [antigravity, clawdbot, nous, trae] do
+    for integration <- [clawdbot, nous, trae] do
       assert integration.support_class == "unverified"
       assert integration.preferred_target == "open-standard"
       assert integration.export_targets == ["open-standard"]
@@ -629,5 +629,29 @@ defmodule ControlKeel.AgentIntegrationTest do
     assert opencode.experience_profile.token_pressure == "host_quota_sensitive"
     assert copilot.auth_mode == "agent_runtime"
     assert copilot.runtime_transport == "hook_session_parser"
+  end
+
+  describe "mcp_install_command/1" do
+    test "returns the Claude CLI one-liner for claude-code" do
+      cmd = AgentIntegration.mcp_install_command("claude-code")
+      assert cmd =~ "claude mcp add-json controlkeel"
+      assert cmd =~ ~s({"command":"controlkeel","args":["mcp"]})
+    end
+
+    test "returns the OpenCode one-liner" do
+      assert AgentIntegration.mcp_install_command("opencode") ==
+               "opencode mcp add controlkeel controlkeel mcp"
+    end
+
+    test "returns the Cursor JSON snippet" do
+      cmd = AgentIntegration.mcp_install_command("cursor")
+      assert cmd =~ "mcpServers"
+      assert cmd =~ "controlkeel"
+    end
+
+    test "returns nil for hosts without a canonical one-liner" do
+      assert AgentIntegration.mcp_install_command("aider") == nil
+      assert AgentIntegration.mcp_install_command("not-a-host") == nil
+    end
   end
 end

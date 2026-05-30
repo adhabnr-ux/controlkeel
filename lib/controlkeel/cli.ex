@@ -40,9 +40,12 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Observability
   alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
   alias ControlKeel.Observability.Workshop, as: ObservabilityWorkshop
+  alias ControlKeel.Accounts
+  alias ControlKeel.Accounts.WorkspaceToolPolicy
   alias ControlKeel.Platform
   alias ControlKeel.PolicyTraining
   alias ControlKeel.ProviderBroker
+  alias ControlKeel.ProviderConfig
   alias ControlKeel.ProtocolAccess
   alias ControlKeel.ProjectBinding
   alias ControlKeel.ProjectRoot
@@ -253,8 +256,92 @@ defmodule ControlKeel.CLI do
     project_root: :string
   ]
   @govern_install_switches [project_root: :string]
+  @govern_bind_github_switches [
+    workspace_id: :integer,
+    owner: :string,
+    repo: :string,
+    default_branch: :string,
+    installation_id: :string
+  ]
+  @govern_unbind_github_switches [
+    workspace_id: :integer,
+    owner: :string,
+    repo: :string
+  ]
+  @govern_list_github_switches [workspace_id: :integer]
   @plugin_switches [project_root: :string, scope: :string, mode: :string]
   @agents_doctor_switches [project_root: :string]
+  @cloud_doctor_switches [project_root: :string]
+  @cloud_connect_switches [
+    project_root: :string,
+    rotate: :boolean,
+    enroll: :string,
+    name: :string,
+    invite: :string
+  ]
+  @cloud_sync_push_switches [project_root: :string, workspace: :string]
+  @cloud_sync_pull_switches [project_root: :string, workspace: :string]
+  @cloud_sync_migrate_switches [project_root: :string]
+  @telemetry_status_switches [project_root: :string]
+  @telemetry_enable_switches [project_root: :string, level: :string]
+  @telemetry_disable_switches [project_root: :string]
+  @telemetry_queue_switches [project_root: :string, limit: :integer]
+  @telemetry_flush_switches [project_root: :string, limit: :integer]
+  @mcp_registry_list_switches [project_root: :string]
+  @mcp_registry_check_switches [project_root: :string, attested: :boolean]
+  @mcp_guardrails_switches [project_root: :string]
+  @user_create_switches [project_root: :string, email: :string, name: :string]
+  @org_create_switches [project_root: :string, name: :string, slug: :string]
+  @org_list_switches [project_root: :string]
+  @org_budget_set_switches [project_root: :string, cents: :integer, clear: :boolean]
+  @org_budget_show_switches [project_root: :string]
+  @org_invite_switches [project_root: :string, email: :string, role: :string]
+  @org_members_switches [project_root: :string]
+  @org_idp_set_switches [
+    project_root: :string,
+    type: :string,
+    issuer: :string,
+    client_id: :string,
+    entity_id: :string,
+    idp_metadata_url: :string,
+    clear: :boolean
+  ]
+  @org_idp_show_switches [project_root: :string]
+  @run_cloud_agent_switches [
+    project_root: :string,
+    runtime: :string,
+    budget_cents: :integer,
+    scopes: :string,
+    note: :string,
+    user_id: :integer,
+    repo_url: :string,
+    branch: :string,
+    commit_sha: :string,
+    dispatch: :boolean
+  ]
+  @eval_list_switches [project_root: :string]
+  @eval_run_switches [project_root: :string, suite: :string]
+  @audit_export_switches [
+    project_root: :string,
+    workspace: :string,
+    org: :string,
+    since: :string,
+    until: :string,
+    out: :string,
+    template: :string,
+    sign: :boolean,
+    signing_key_env: :string
+  ]
+  @baseline_compute_switches [workspace_id: :integer, window_days: :integer]
+  @workspace_tool_policy_get_switches [workspace_id: :integer]
+  @workspace_tool_policy_set_switches [workspace_id: :integer, mode: :string, tools: :string]
+  @selfhost_switches [project_root: :string]
+  @selfhost_pack_switches [project_root: :string, output: :string]
+  @agents_discover_switches [
+    project_root: :string,
+    max_depth: :integer,
+    json: :boolean
+  ]
   @agents_list_switches [project_root: :string, format: :string, json: :boolean]
   @route_agent_switches [
     task: :string,
@@ -356,6 +443,15 @@ defmodule ControlKeel.CLI do
       ["govern", "install", "github" | rest] ->
         parse_with_switches(:govern_install_github, rest, @govern_install_switches)
 
+      ["govern", "bind", "github" | rest] ->
+        parse_with_switches(:govern_bind_github, rest, @govern_bind_github_switches)
+
+      ["govern", "unbind", "github" | rest] ->
+        parse_with_switches(:govern_unbind_github, rest, @govern_unbind_github_switches)
+
+      ["govern", "list", "github" | rest] ->
+        parse_with_switches(:govern_list_github, rest, @govern_list_github_switches)
+
       ["plugin", "export", plugin | rest] ->
         parse_plugin_command(:plugin_export, plugin, rest)
 
@@ -364,6 +460,93 @@ defmodule ControlKeel.CLI do
 
       ["agents", "doctor" | rest] ->
         parse_with_switches(:agents_doctor, rest, @agents_doctor_switches)
+
+      ["cloud", "doctor" | rest] ->
+        parse_with_switches(:cloud_doctor, rest, @cloud_doctor_switches)
+
+      ["cloud", "connect" | rest] ->
+        parse_with_switches(:cloud_connect, rest, @cloud_connect_switches)
+
+      ["cloud", "push" | rest] ->
+        parse_with_switches(:cloud_sync_push, rest, @cloud_sync_push_switches)
+
+      ["cloud", "pull" | rest] ->
+        parse_with_switches(:cloud_sync_pull, rest, @cloud_sync_pull_switches)
+
+      ["cloud", "migrate" | rest] ->
+        parse_with_switches(:cloud_sync_migrate, rest, @cloud_sync_migrate_switches)
+
+      ["telemetry", "status" | rest] ->
+        parse_with_switches(:telemetry_status, rest, @telemetry_status_switches)
+
+      ["telemetry", "enable" | rest] ->
+        parse_with_switches(:telemetry_enable, rest, @telemetry_enable_switches)
+
+      ["telemetry", "disable" | rest] ->
+        parse_with_switches(:telemetry_disable, rest, @telemetry_disable_switches)
+
+      ["telemetry", "queue" | rest] ->
+        parse_with_switches(:telemetry_queue, rest, @telemetry_queue_switches)
+
+      ["telemetry", "flush" | rest] ->
+        parse_with_switches(:telemetry_flush, rest, @telemetry_flush_switches)
+
+      ["mcp", "registry", "list" | rest] ->
+        parse_with_switches(:mcp_registry_list, rest, @mcp_registry_list_switches)
+
+      ["mcp", "guardrails", "list" | rest] ->
+        parse_with_switches(:mcp_guardrails_list, rest, @mcp_guardrails_switches)
+
+      ["user", "create" | rest] ->
+        parse_with_switches(:user_create, rest, @user_create_switches)
+
+      ["org", "create" | rest] ->
+        parse_with_switches(:org_create, rest, @org_create_switches)
+
+      ["org", "list" | rest] ->
+        parse_with_switches(:org_list, rest, @org_list_switches)
+
+      ["org", "budget", "set", slug | rest] ->
+        case parse_with_switches(:org_budget_set, rest, @org_budget_set_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
+      ["org", "budget", "show", slug | rest] ->
+        case parse_with_switches(:org_budget_show, rest, @org_budget_show_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
+      ["org", "invite", slug | rest] ->
+        case parse_with_switches(:org_invite, rest, @org_invite_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
+      ["org", "members", slug | rest] ->
+        case parse_with_switches(:org_members, rest, @org_members_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
+      ["org", "idp", "set", slug | rest] ->
+        case parse_with_switches(:org_idp_set, rest, @org_idp_set_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
+      ["org", "idp", "show", slug | rest] ->
+        case parse_with_switches(:org_idp_show, rest, @org_idp_show_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
+          err -> err
+        end
+
+      ["mcp", "registry", "check", server_name | rest] ->
+        case parse_with_switches(:mcp_registry_check, rest, @mcp_registry_check_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [server_name])}
+          err -> err
+        end
 
       ["agents", "list" | rest] ->
         parse_with_switches(:agents_list, rest, @agents_list_switches)
@@ -389,8 +572,56 @@ defmodule ControlKeel.CLI do
       ["run", "task", task_id | rest] ->
         parse_run_command(:run_task, task_id, rest)
 
+      ["run", "cloud-agent", task_id | rest] ->
+        case parse_with_switches(:run_cloud_agent, rest, @run_cloud_agent_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [task_id])}
+          err -> err
+        end
+
+      ["eval", "list" | rest] ->
+        parse_with_switches(:eval_list, rest, @eval_list_switches)
+
+      ["eval", "run" | rest] ->
+        parse_with_switches(:eval_run, rest, @eval_run_switches)
+
+      ["audit", "export" | rest] ->
+        parse_with_switches(:audit_export, rest, @audit_export_switches)
+
+      ["workspace", "tool-policy", "get" | rest] ->
+        parse_with_switches(:workspace_tool_policy_get, rest, @workspace_tool_policy_get_switches)
+
+      ["workspace", "tool-policy", "set" | rest] ->
+        parse_with_switches(:workspace_tool_policy_set, rest, @workspace_tool_policy_set_switches)
+
+      ["baseline", "compute" | rest] ->
+        parse_with_switches(:baseline_compute, rest, @baseline_compute_switches)
+
+      ["selfhost", "pack" | rest] ->
+        parse_with_switches(:selfhost_pack, rest, @selfhost_pack_switches)
+
+      ["selfhost", "verify" | rest] ->
+        parse_with_switches(:selfhost_verify, rest, @selfhost_switches)
+
+      ["selfhost", "manifest" | rest] ->
+        parse_with_switches(:selfhost_manifest, rest, @selfhost_switches)
+
+      ["selfhost", "install-guide" | rest] ->
+        parse_with_switches(:selfhost_install_guide, rest, @selfhost_switches)
+
+      ["agents", "discover", path | rest] ->
+        case parse_with_switches(:agents_discover, rest, @agents_discover_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [path])}
+          err -> err
+        end
+
       ["run", "session", session_id | rest] ->
         parse_run_command(:run_session, session_id, rest)
+
+      ["session", "list"] ->
+        {:ok, %{command: :session_list, options: %{}, args: []}}
+
+      ["session", "switch", session_id] ->
+        {:ok, %{command: :session_switch, options: %{}, args: [session_id]}}
 
       ["registry", "sync", "acp"] ->
         {:ok, %{command: :registry_sync_acp, options: %{}, args: []}}
@@ -647,6 +878,9 @@ defmodule ControlKeel.CLI do
       ["provider", "set-model", provider | rest] ->
         parse_provider_set_model(provider, rest)
 
+      ["provider", "set-fallback-chain" | rest] ->
+        parse_provider_set_fallback_chain(rest)
+
       ["bootstrap" | rest] ->
         parse_with_switches(:bootstrap, rest, @bootstrap_switches)
 
@@ -763,6 +997,61 @@ defmodule ControlKeel.CLI do
   end
 
   def usage_text, do: Help.usage_text()
+
+  defp format_default_branch(nil), do: ""
+  defp format_default_branch(""), do: ""
+  defp format_default_branch(branch), do: " (default branch: #{branch})"
+
+  defp format_installation(nil), do: ""
+  defp format_installation(""), do: ""
+  defp format_installation(id), do: " (installation #{id})"
+
+  defp maybe_put_kw(opts, _key, nil), do: opts
+  defp maybe_put_kw(opts, _key, ""), do: opts
+  defp maybe_put_kw(opts, key, value), do: Keyword.put(opts, key, value)
+
+  defp response_summary(%{status: status, body: body}) when is_map(body) do
+    "#{status} workspace=#{Map.get(body, "workspace_id") || Map.get(body, :workspace_id) || "?"}"
+  end
+
+  defp response_summary(%{status: status}), do: "#{status}"
+
+  defp enroll_remote(identity, base_url, opts) do
+    alias ControlKeel.Cloud.Enrollment
+
+    register_url = String.trim_trailing(base_url, "/") <> "/cloud/v1/workspaces/register"
+
+    with {:ok, envelope} <- Enrollment.build(identity, opts),
+         {:ok, response} <- post_enrollment(register_url, envelope) do
+      {:ok,
+       [
+         "Enrolled with: #{base_url}",
+         "Server response: #{response_summary(response)}"
+       ]}
+    else
+      {:error, reason} -> {:error, inspect(reason)}
+    end
+  end
+
+  defp post_enrollment(url, envelope) do
+    http_module = Application.get_env(:controlkeel, :cloud_enrollment_http_module, Req)
+
+    case http_module.post(url, json: envelope, receive_timeout: 10_000) do
+      {:ok, %{status: status, body: body}} when status in 200..299 ->
+        {:ok, %{status: status, body: body}}
+
+      {:ok, %{status: status, body: body}} ->
+        {:error, "server returned #{status}: #{inspect(body)}"}
+
+      {:error, %{__exception__: true} = error} ->
+        {:error, Exception.message(error)}
+
+      {:error, reason} ->
+        {:error, inspect(reason)}
+    end
+  rescue
+    error -> {:error, Exception.message(error)}
+  end
 
   def run_command(%{command: :serve}, _project_root), do: :ok
   def run_command(%{command: :help, args: args}, _project_root), do: {:ok, [Help.render(args)]}
@@ -957,12 +1246,13 @@ defmodule ControlKeel.CLI do
     end
   end
 
-  def run_command(%{command: :attach, args: ["codex-cli"], options: options}, project_root) do
+  def run_command(%{command: :attach, args: [agent], options: options}, project_root)
+      when agent in ["codex-cli", "codex-app-server", "t3code"] do
     root = options[:project_root] || project_root
 
     with {:ok, binding, _session, _mode} <-
-           ensure_attach_project(root, %{"agent" => "codex-cli"}),
-         {:ok, scope} <- validate_attach_scope("codex-cli", options),
+           ensure_attach_project(root, %{"agent" => agent}),
+         {:ok, scope} <- validate_attach_scope(agent, options),
          command_spec <- ProjectBinding.mcp_command_spec(root),
          config_path <- CodexConfig.path_for_scope(root, scope),
          {:ok, _} <- CodexConfig.write(config_path, command_spec),
@@ -970,7 +1260,7 @@ defmodule ControlKeel.CLI do
          attached <-
            %{
              "server_name" => "controlkeel",
-             "ide" => "codex-cli",
+             "ide" => agent,
              "config_path" => config_path,
              "scope" => scope,
              "target" => "codex",
@@ -983,23 +1273,24 @@ defmodule ControlKeel.CLI do
              "attached_at" =>
                DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
            },
-         updated <- ProjectBinding.update_attached_agent(binding, "codex-cli", attached),
+         updated <- ProjectBinding.update_attached_agent(binding, agent, attached),
          {:ok, _} <-
            ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
       {:ok,
        [
-         "Attached ControlKeel to Codex CLI.",
+         "Attached ControlKeel to #{display_attach_agent(agent)}.",
          "MCP server written to #{config_path}.",
-         "Restart Codex CLI to activate."
+         "Restart #{display_attach_agent(agent)} to activate."
        ] ++
          bootstrap_lines(root) ++
-         codex_attach_install_lines(install_result) ++ attach_guidance_lines("codex-cli")}
+         codex_attach_install_lines(install_result) ++ attach_guidance_lines(agent)}
     else
       {:error, message} when is_binary(message) ->
         {:error, message}
 
       {:error, reason} ->
-        {:error, "Failed to attach ControlKeel to Codex CLI: #{inspect(reason)}"}
+        {:error,
+         "Failed to attach ControlKeel to #{display_attach_agent(agent)}: #{inspect(reason)}"}
     end
   end
 
@@ -1155,7 +1446,10 @@ defmodule ControlKeel.CLI do
              "pi",
              "letta-code",
              "devin-terminal",
-             "warp"
+             "warp",
+             "multica",
+             "antigravity-cli",
+             "antigravity-ide"
            ] do
     root = options[:project_root] || project_root
 
@@ -1169,7 +1463,10 @@ defmodule ControlKeel.CLI do
         "pi" => "pi-native",
         "letta-code" => "letta-code-native",
         "devin-terminal" => "devin-terminal-native",
-        "warp" => "warp-native"
+        "warp" => "warp-native",
+        "multica" => "multica-native",
+        "antigravity-cli" => "antigravity-cli-native",
+        "antigravity-ide" => "antigravity-cli-native"
       }[agent]
 
     with {:ok, binding, _session, _mode} <-
@@ -1650,6 +1947,77 @@ defmodule ControlKeel.CLI do
     end
   end
 
+  def run_command(%{command: :govern_bind_github, options: options}, _project_root) do
+    alias ControlKeel.Mission
+
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id"),
+         {:ok, owner} <- require_string_option(options[:owner], "owner"),
+         {:ok, repo} <- require_string_option(options[:repo], "repo") do
+      opts =
+        []
+        |> maybe_put_kw(:default_branch, options[:default_branch])
+        |> maybe_put_kw(:installation_id, options[:installation_id])
+
+      case Mission.bind_github_repo(workspace_id, owner, repo, opts) do
+        {:ok, binding} ->
+          {:ok,
+           [
+             "Bound GitHub repository to workspace #{workspace_id}.",
+             "Repo: #{binding.owner}/#{binding.repo}",
+             "URL:  https://github.com/#{binding.owner}/#{binding.repo}",
+             "Default branch: #{binding.default_branch || "(unset)"}",
+             "Installation: #{binding.installation_id || "(unauthenticated)"}"
+           ]}
+
+        {:error, %Ecto.Changeset{} = cs} ->
+          {:error, "Failed to bind repo: #{format_changeset_errors(cs)}"}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+      {:error, msg} when is_binary(msg) -> {:error, msg}
+    end
+  end
+
+  def run_command(%{command: :govern_unbind_github, options: options}, _project_root) do
+    alias ControlKeel.Mission
+
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id"),
+         {:ok, owner} <- require_string_option(options[:owner], "owner"),
+         {:ok, repo} <- require_string_option(options[:repo], "repo") do
+      case Mission.unbind_github_repo(workspace_id, owner, repo) do
+        {:ok, _} ->
+          {:ok, ["Unbound #{owner}/#{repo} from workspace #{workspace_id}."]}
+
+        {:error, :not_found} ->
+          {:error, "No binding found for #{owner}/#{repo} on workspace #{workspace_id}."}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+      {:error, msg} when is_binary(msg) -> {:error, msg}
+    end
+  end
+
+  def run_command(%{command: :govern_list_github, options: options}, _project_root) do
+    alias ControlKeel.Mission
+
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id") do
+      case Mission.list_github_repos(workspace_id) do
+        [] ->
+          {:ok, ["No GitHub repos bound to workspace #{workspace_id}."]}
+
+        bindings ->
+          rows =
+            Enum.map(bindings, fn b ->
+              "  #{b.owner}/#{b.repo}#{format_default_branch(b.default_branch)}#{format_installation(b.installation_id)}"
+            end)
+
+          {:ok, ["GitHub repos bound to workspace #{workspace_id}:" | rows]}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+    end
+  end
+
   def run_command(%{command: :plugin_export, args: [plugin], options: options}, project_root) do
     root = options[:project_root] || project_root
 
@@ -1702,6 +2070,978 @@ defmodule ControlKeel.CLI do
       {:error, reason} ->
         {:error, "Failed to install plugin bundle: #{format_cli_error(reason)}"}
     end
+  end
+
+  def run_command(%{command: :cloud_doctor, options: _options}, _project_root) do
+    report = ControlKeel.Cloud.Doctor.report()
+    lines = ControlKeel.Cloud.Doctor.format(report)
+
+    if report.ok do
+      {:ok, lines}
+    else
+      {:error, Enum.join(lines, "\n")}
+    end
+  end
+
+  def run_command(%{command: :cloud_connect, options: options}, _project_root) do
+    force? = Map.get(options, :rotate, false)
+    enroll_url = Map.get(options, :enroll)
+    name = Map.get(options, :name)
+    invite = Map.get(options, :invite)
+
+    case ControlKeel.Cloud.WorkspaceIdentity.ensure(force: force?) do
+      {:ok, identity, outcome} ->
+        action =
+          case outcome do
+            :existing -> "Already connected"
+            :created -> "Workspace identity created"
+            :rotated -> "Workspace identity rotated"
+          end
+
+        base = [
+          action,
+          "Workspace ID: #{identity.workspace_id}",
+          "Algorithm: #{identity.algorithm}",
+          "Fingerprint: #{ControlKeel.Cloud.WorkspaceIdentity.short_fingerprint(identity)}...",
+          "Created at: #{DateTime.to_iso8601(identity.created_at)}",
+          "Identity path: #{identity.path}"
+        ]
+
+        case enroll_url do
+          nil ->
+            {:ok,
+             base ++
+               [
+                 "Note: this is a local identity primitive. Pass --enroll <url> to register with a control plane."
+               ]}
+
+          url when is_binary(url) and url != "" ->
+            case enroll_remote(identity, url, name: name, invite_token: invite) do
+              {:ok, summary_lines} -> {:ok, base ++ summary_lines}
+              {:error, reason} -> {:error, "Enrolment failed: #{reason}"}
+            end
+        end
+
+      {:error, reason} ->
+        {:error, "Failed to generate workspace identity: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :cloud_sync_push, options: _options}, _project_root) do
+    case ControlKeel.Cloud.SyncEngine.force_sync() do
+      {:ok, %{push: %{pushed: n}}} ->
+        {:ok, ["Pushed #{n} record(s) to cloud."]}
+
+      {:error, :not_configured} ->
+        {:error, "Cloud sync endpoint not configured. Set cloud_sync_endpoint first."}
+
+      {:error, :not_enrolled} ->
+        {:error, "Cloud sync not configured. Run `controlkeel cloud connect` first."}
+
+      {:error, :already_syncing} ->
+        {:error, "Sync already in progress. Try again in a moment."}
+
+      {:error, reason} ->
+        {:error, "Cloud push failed: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :cloud_sync_pull, options: _options}, _project_root) do
+    case ControlKeel.Cloud.SyncEngine.force_sync() do
+      {:ok, %{pull: pull_result}} ->
+        applied = Map.get(pull_result, :inserted, 0) + Map.get(pull_result, :updated, 0)
+        {:ok, ["Pulled and applied #{applied} record(s) from cloud."]}
+
+      {:error, :not_configured} ->
+        {:error, "Cloud sync endpoint not configured. Set cloud_sync_endpoint first."}
+
+      {:error, :not_enrolled} ->
+        {:error, "Cloud sync not configured. Run `controlkeel cloud connect` first."}
+
+      {:error, :already_syncing} ->
+        {:error, "Sync already in progress. Try again in a moment."}
+
+      {:error, reason} ->
+        {:error, "Cloud pull failed: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :cloud_sync_migrate, options: _options}, _project_root) do
+    {:ok,
+     [
+       "Cloud sync schema migrations (external_id, synced_at, lock_version) are managed by Ecto.",
+       "Run `mix ecto.migrate` to apply any pending migrations.",
+       "Run `mix ecto.migrations` to see current status."
+     ]}
+  end
+
+  def run_command(%{command: :telemetry_enable, options: options}, _project_root) do
+    alias ControlKeel.Cloud.TelemetryConfig
+
+    with {:ok, raw_level} <- require_string_option(options[:level], "level"),
+         {:ok, level} <- parse_telemetry_level(raw_level),
+         {:ok, state} <- TelemetryConfig.enable(level) do
+      {:ok,
+       [
+         "Cloud telemetry enabled",
+         "Level: #{state.level}",
+         "Workspace: #{state.workspace_id}",
+         "Redaction policy version: #{state.redaction_policy_version}",
+         "Config path: #{state.path}",
+         "Note: this writes local state only. No remote sync is performed until the sync pipeline ships."
+       ]}
+    else
+      {:error, {:missing_option, option}} ->
+        {:error, "Missing required option --#{option}. Levels: #{telemetry_level_list_text()}"}
+
+      {:error, :invalid_level} ->
+        {:error, "Invalid level. Choose one of: #{telemetry_level_list_text()}"}
+
+      {:error, :not_connected} ->
+        {:error,
+         "Workspace identity not found. Run `controlkeel cloud connect` first to generate a local identity."}
+
+      {:error, {:write_failed, reason}} ->
+        {:error, "Failed to persist telemetry config: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :telemetry_disable, options: _options}, _project_root) do
+    case ControlKeel.Cloud.TelemetryConfig.disable() do
+      {:ok, state} ->
+        {:ok,
+         [
+           "Cloud telemetry disabled",
+           "Level: #{state.level}",
+           "Config path: #{state.path}"
+         ]}
+
+      {:error, {:write_failed, reason}} ->
+        {:error, "Failed to persist telemetry config: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :baseline_compute, options: options}, _project_root) do
+    workspace_id = options[:workspace_id]
+    window_days = options[:window_days] || 7
+
+    workspace_ids =
+      if workspace_id do
+        [workspace_id]
+      else
+        ControlKeel.Mission.list_workspaces()
+        |> Enum.map(& &1.id)
+      end
+
+    if workspace_ids == [] do
+      {:ok, ["No workspaces found."]}
+    else
+      results =
+        Enum.map(workspace_ids, fn ws_id ->
+          case ControlKeel.Cloud.BaselineAnalyzer.compute_and_store(ws_id,
+                 window_days: window_days
+               ) do
+            {:ok, baseline} ->
+              "workspace #{ws_id}: #{baseline.sample_sessions} sample sessions, #{baseline_tool_count(baseline)} tools, window #{window_days}d"
+
+            {:error, reason} ->
+              "workspace #{ws_id}: error — #{inspect(reason)}"
+          end
+        end)
+
+      {:ok, ["Behavioral baselines computed:"] ++ results}
+    end
+  end
+
+  def run_command(%{command: :selfhost_pack, options: options}, project_root) do
+    root = resolve_project_root(options, project_root)
+    pack_opts = Enum.reject([output: options[:output]], fn {_, v} -> is_nil(v) end)
+
+    case ControlKeel.SelfHost.pack(root, pack_opts) do
+      {:ok, %{path: path, sha256: sha256}} ->
+        {:ok,
+         [
+           "Air-gapped bundle written: #{path}",
+           "SHA256: #{sha256}",
+           "",
+           "Ship this file to your air-gapped host. See INSTALL.md for boot instructions."
+         ]}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def run_command(%{command: :selfhost_verify, options: _options}, _project_root) do
+    result = ControlKeel.SelfHost.verify_environment()
+
+    header = [
+      "ControlKeel self-host verify",
+      "Ready: #{result.ready?}",
+      "Runtime mode: #{result.repo.mode}",
+      "Cloud repo enabled: #{result.repo.cloud_repo_enabled?}",
+      "Repo reachable: #{result.repo.repo_reachable?}#{format_repo_error(result.repo.error)}",
+      "",
+      "Required environment:"
+    ]
+
+    required_rows =
+      Enum.map(result.required_env, fn check ->
+        badge = if check.present?, do: "ok  ", else: "MISS"
+        "  [#{badge}] #{check.name}#{format_value_hint(check.value_hint)}"
+      end)
+
+    recommended_rows =
+      ["", "Recommended environment:"] ++
+        Enum.map(result.recommended_env, fn check ->
+          badge = if check.present?, do: "ok  ", else: "-   "
+          "  [#{badge}] #{check.name}#{format_value_hint(check.value_hint)}"
+        end)
+
+    lines = header ++ required_rows ++ recommended_rows
+
+    if result.ready? do
+      {:ok, lines}
+    else
+      {:error, Enum.join(lines, "\n")}
+    end
+  end
+
+  def run_command(%{command: :selfhost_manifest, options: _options}, _project_root) do
+    paths = ControlKeel.SelfHost.bundle_manifest()
+    {:ok, ["Air-gapped bundle manifest:"] ++ Enum.map(paths, &"  #{&1}")}
+  end
+
+  def run_command(%{command: :selfhost_install_guide, options: _options}, _project_root) do
+    {:ok, [ControlKeel.SelfHost.install_guide()]}
+  end
+
+  def run_command(%{command: :agents_discover, options: options, args: [path]}, _project_root) do
+    alias ControlKeel.Cloud.AgentInventory
+
+    scan_opts =
+      case options[:max_depth] do
+        n when is_integer(n) -> [max_depth: n]
+        _ -> []
+      end
+
+    case AgentInventory.scan(path, scan_opts) do
+      {:error, :not_found} ->
+        {:error, "Path not found: #{path}"}
+
+      {:error, :not_a_directory} ->
+        {:error, "Not a directory: #{path}"}
+
+      {:ok, hits} ->
+        if Map.get(options, :json, false) do
+          summary = AgentInventory.summarize(hits)
+          {:ok, [Jason.encode!(%{hits: hits, summary: summary}, pretty: true)]}
+        else
+          summary = AgentInventory.summarize(hits)
+
+          header = [
+            "Agent inventory scan",
+            "Root: #{Path.expand(path)}",
+            "Total hits: #{summary.total}",
+            ""
+          ]
+
+          rows =
+            if summary.by_host == [] do
+              ["No agent host evidence found."]
+            else
+              ["By host:"] ++
+                Enum.map(summary.by_host, fn h ->
+                  "  #{h.host}\t(#{h.count}) — #{Enum.join(h.evidence, ", ")}"
+                end) ++
+                ["", "Hits:"] ++
+                Enum.map(hits, fn hit ->
+                  "  #{hit.host}\t#{hit.path}\t#{hit.kind}\t#{hit.evidence}"
+                end)
+            end
+
+          {:ok, header ++ rows}
+        end
+    end
+  end
+
+  def run_command(%{command: :audit_export, options: options}, _project_root) do
+    alias ControlKeel.Cloud.AuditExport
+    alias ControlKeel.Cloud.ComplianceTemplate
+
+    with {:ok, scope_opts} <- resolve_audit_scope(options),
+         {:ok, since_opt} <- parse_optional_datetime(options[:since], "since"),
+         {:ok, until_opt} <- parse_optional_datetime(options[:until], "until"),
+         build_opts <-
+           scope_opts
+           |> maybe_append(:since, since_opt)
+           |> maybe_append(:until, until_opt),
+         {:ok, bundle} <- AuditExport.build(build_opts),
+         {:ok, export_payload} <- maybe_render_compliance_template(bundle, options[:template]),
+         {:ok, final_payload} <- maybe_sign_audit_export(export_payload, options) do
+      json = Jason.encode!(final_payload, pretty: true)
+
+      case options[:out] do
+        nil ->
+          {:ok, [json]}
+
+        path ->
+          case File.write(path, json) do
+            :ok ->
+              {:ok,
+               [
+                 "Audit export written",
+                 "Path: #{path}",
+                 "Scope: #{bundle["scope"]["type"]}/#{bundle["scope"]["id"]}",
+                 "Template: #{options[:template] || "raw"}",
+                 "Findings: #{length(bundle["findings"])}",
+                 "Reviews: #{length(bundle["reviews"])}",
+                 "MCP calls: #{length(bundle["mcp_tool_calls"])}"
+               ]}
+
+            {:error, reason} ->
+              {:error, "Failed to write #{path}: #{inspect(reason)}"}
+          end
+      end
+    else
+      {:error, :scope_required} ->
+        {:error, "Provide --workspace <slug> or --org <slug>"}
+
+      {:error, :scope_conflict} ->
+        {:error, "Pass exactly one of --workspace or --org"}
+
+      {:error, :unknown_workspace} ->
+        {:error, "Workspace not found"}
+
+      {:error, :unknown_org} ->
+        {:error, "Org not found"}
+
+      {:error, {:invalid_datetime, name}} ->
+        {:error, "--#{name} must be an ISO8601 timestamp (e.g. 2026-01-01T00:00:00Z)"}
+
+      {:error, :unsupported_template} ->
+        {:error,
+         "--template must be one of: " <>
+           Enum.join(ComplianceTemplate.supported_templates(), ", ")}
+
+      {:error, :missing_signing_key_env} ->
+        {:error, "--sign requires --signing-key-env <ENV>"}
+
+      {:error, {:missing_signing_key, env}} ->
+        {:error, "Signing key environment variable is not set: #{env}"}
+
+      {:error, reason} ->
+        {:error, "Failed: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :eval_list, options: _options}, _project_root) do
+    alias ControlKeel.Cloud.EvalRunner
+
+    suites = EvalRunner.list_suites()
+
+    rows =
+      if suites == [] do
+        ["No eval suites available."]
+      else
+        ["Eval suites:"] ++
+          Enum.map(suites, fn s ->
+            "  #{s.slug}\t(#{s.case_count} cases)\t#{s.title}"
+          end)
+      end
+
+    {:ok, rows}
+  end
+
+  def run_command(%{command: :eval_run, options: options}, _project_root) do
+    alias ControlKeel.Cloud.EvalRunner
+
+    slug = options[:suite] || "governance-regression"
+
+    case EvalRunner.run(slug) do
+      :not_found ->
+        {:error, "Unknown eval suite: #{slug}"}
+
+      {:ok, result} ->
+        header = [
+          "Eval suite: #{result.title} (#{result.slug})",
+          "Total: #{result.total}",
+          "Passed: #{result.passed}",
+          "Failed: #{result.failed}"
+        ]
+
+        case_rows =
+          Enum.map(result.cases, fn c ->
+            badge = if c.status == :pass, do: "PASS", else: "FAIL"
+
+            extras =
+              cond do
+                c.missing_rule_ids != [] ->
+                  " missing=#{Enum.join(c.missing_rule_ids, ",")}"
+
+                c.unexpected_block_rule_ids != [] ->
+                  " unexpected_block=#{Enum.join(c.unexpected_block_rule_ids, ",")}"
+
+                true ->
+                  ""
+              end
+
+            "  [#{badge}] #{c.name} decision=#{c.decision}#{extras}"
+          end)
+
+        lines = header ++ case_rows
+
+        if result.failed == 0 do
+          {:ok, lines}
+        else
+          {:error, Enum.join(lines, "\n")}
+        end
+    end
+  end
+
+  def run_command(
+        %{command: :run_cloud_agent, options: options, args: [task_id_str]},
+        project_root
+      ) do
+    alias ControlKeel.Cloud.RuntimeContext
+    alias ControlKeel.Mission
+
+    with {:ok, task_id} <- parse_integer_arg(task_id_str, "task-id"),
+         {:ok, runtime} <- require_string_option(options[:runtime], "runtime"),
+         :ok <- validate_runtime_target(runtime),
+         {:ok, budget} <- validate_budget_cents(options[:budget_cents]),
+         %{} = task <- Mission.get_task(task_id) do
+      session = Mission.get_session(task.session_id)
+      workspace_id = session && session.workspace_id
+
+      cond do
+        workspace_id == nil ->
+          {:error, "Task #{task_id} has no associated workspace"}
+
+        true ->
+          root = options[:project_root] || project_root
+          git = capture_git_metadata(root, options)
+
+          attrs =
+            %{
+              workspace_id: workspace_id,
+              session_id: session.id,
+              task_id: task.id,
+              runtime_target: runtime,
+              budget_cents_allocated: budget,
+              scopes: parse_scopes(options[:scopes]),
+              payload: build_cloud_payload(task, options),
+              user_id: options[:user_id]
+            }
+            |> Map.merge(git)
+
+          case RuntimeContext.create_package(attrs) do
+            {:ok, package, raw_token} ->
+              dispatch? = options[:dispatch] == true
+
+              {final_package, dispatch_lines} =
+                if dispatch? do
+                  case RuntimeContext.dispatch_package(package, raw_token) do
+                    {:ok, dispatched} ->
+                      meta = get_in(dispatched.payload, ["dispatch_metadata"]) || %{}
+
+                      {dispatched,
+                       [
+                         "Dispatched via: #{Map.get(meta, "mode", "(unknown)")}",
+                         "Dispatch note: #{Map.get(meta, "note", "")}"
+                       ]}
+
+                    {:error, reason} ->
+                      {package, ["Dispatch failed: #{inspect(reason)}"]}
+                  end
+                else
+                  {package, []}
+                end
+
+              {:ok,
+               [
+                 "Cloud run package created",
+                 "Package: #{final_package.external_id}",
+                 "Task: #{task.id} — #{task.title}",
+                 "Runtime: #{final_package.runtime_target}",
+                 "Budget allocated (cents): #{final_package.budget_cents_allocated}",
+                 "Scopes: #{final_package.scopes || "(none)"}",
+                 "Repo: #{final_package.repo_url || "(none)"}",
+                 "Branch: #{final_package.branch || "(none)"}",
+                 "Commit: #{final_package.commit_sha || "(none)"}",
+                 "Callback token (deliver out of band): #{raw_token}",
+                 "Status: #{final_package.status}"
+               ] ++ dispatch_lines}
+
+            {:error, :unauthorized} ->
+              {:error,
+               "Cloud execution unauthorized: workspace belongs to an org and no valid membership was found. Provide --user-id with an active org member."}
+
+            {:error, :org_suspended} ->
+              {:error, "Cloud execution unauthorized: workspace org is suspended."}
+
+            {:error, :not_found} ->
+              {:error, "Cloud execution unauthorized: workspace not found."}
+
+            {:error, changeset} ->
+              {:error, "Failed to create package: #{format_changeset_errors(changeset)}"}
+          end
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+      {:error, msg} when is_binary(msg) -> {:error, msg}
+      nil -> {:error, "Task not found: #{task_id_str}"}
+    end
+  end
+
+  def run_command(%{command: :user_create, options: options}, _project_root) do
+    alias ControlKeel.Accounts
+
+    with {:ok, email} <- require_string_option(options[:email], "email") do
+      attrs = %{email: email, name: options[:name]}
+
+      case Accounts.create_user(attrs) do
+        {:ok, user} ->
+          {:ok,
+           [
+             "User created",
+             "ID: #{user.id}",
+             "Email: #{user.email}",
+             "Name: #{user.name || "(none)"}"
+           ]}
+
+        {:error, changeset} ->
+          {:error, "Failed to create user: #{format_changeset_errors(changeset)}"}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+    end
+  end
+
+  def run_command(%{command: :org_create, options: options}, _project_root) do
+    alias ControlKeel.Accounts
+
+    with {:ok, name} <- require_string_option(options[:name], "name"),
+         {:ok, slug} <- require_string_option(options[:slug], "slug") do
+      case Accounts.create_org(%{name: name, slug: slug}) do
+        {:ok, org} ->
+          {:ok,
+           [
+             "Org created",
+             "ID: #{org.id}",
+             "Name: #{org.name}",
+             "Slug: #{org.slug}",
+             "Status: #{org.status}"
+           ]}
+
+        {:error, changeset} ->
+          {:error, "Failed to create org: #{format_changeset_errors(changeset)}"}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+    end
+  end
+
+  def run_command(%{command: :org_list, options: _options}, _project_root) do
+    alias ControlKeel.Accounts
+
+    orgs = Accounts.list_orgs()
+
+    if orgs == [] do
+      {:ok, ["No orgs configured."]}
+    else
+      header = ["Orgs:"]
+
+      rows =
+        Enum.map(orgs, fn o ->
+          budget = Accounts.org_budget_cents(o) || "uncapped"
+          "  #{o.slug}\t#{o.name}\tbudget=#{budget}\tstatus=#{o.status}"
+        end)
+
+      {:ok, header ++ rows}
+    end
+  end
+
+  def run_command(%{command: :org_budget_set, options: options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    case Accounts.get_org_by_slug(slug) do
+      nil ->
+        {:error, "Org not found: #{slug}"}
+
+      org ->
+        cents =
+          cond do
+            Map.get(options, :clear, false) -> nil
+            is_integer(options[:cents]) -> options[:cents]
+            true -> :unset
+          end
+
+        case cents do
+          :unset ->
+            {:error, "Provide either --cents N or --clear"}
+
+          value ->
+            case Accounts.set_org_budget_cents(org.id, value) do
+              {:ok, _} ->
+                {:ok,
+                 [
+                   "Org budget updated",
+                   "Org: #{org.slug}",
+                   "Budget: #{value || "uncapped"}"
+                 ]}
+
+              {:error, reason} ->
+                {:error, "Failed: #{inspect(reason)}"}
+            end
+        end
+    end
+  end
+
+  def run_command(%{command: :org_budget_show, options: _options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    case Accounts.get_org_by_slug(slug) do
+      nil ->
+        {:error, "Org not found: #{slug}"}
+
+      org ->
+        status = Accounts.org_budget_status(org.id)
+        breakdown = Accounts.org_workspace_breakdown(org.id)
+
+        header = [
+          "Org: #{org.slug}",
+          "Budget: #{status.budget_cents || "uncapped"}",
+          "Spent: #{status.spent_cents}",
+          "Remaining: #{status.remaining_cents || "—"}",
+          "Workspaces: #{status.workspace_count}",
+          "Over cap: #{status.over_cap?}"
+        ]
+
+        rows =
+          case breakdown do
+            [] ->
+              []
+
+            ws ->
+              ["Workspace breakdown:"] ++
+                Enum.map(ws, &"  #{&1.workspace_slug}\t#{&1.spent_cents}")
+          end
+
+        {:ok, header ++ rows}
+    end
+  end
+
+  def run_command(%{command: :org_invite, options: options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    with {:ok, email} <- require_string_option(options[:email], "email"),
+         org when not is_nil(org) <- Accounts.get_org_by_slug(slug) do
+      user =
+        Accounts.get_user_by_email(email) ||
+          case Accounts.create_user(%{email: email}) do
+            {:ok, u} -> u
+            _ -> nil
+          end
+
+      cond do
+        user == nil ->
+          {:error, "Could not find or create user for #{email}"}
+
+        true ->
+          role = options[:role] || "member"
+
+          case Accounts.invite_member(user.id, org.id, role: role) do
+            {:ok, membership, raw_token} ->
+              {:ok,
+               [
+                 "Invitation created",
+                 "Org: #{org.slug}",
+                 "User: #{user.email}",
+                 "Role: #{membership.role}",
+                 "Invitation token (deliver out of band): #{raw_token}"
+               ]}
+
+            {:error, changeset} ->
+              {:error, "Failed to invite: #{format_changeset_errors(changeset)}"}
+          end
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+      nil -> {:error, "Org not found: #{slug}"}
+    end
+  end
+
+  def run_command(%{command: :org_idp_set, options: options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    case Accounts.get_org_by_slug(slug) do
+      nil ->
+        {:error, "Org not found: #{slug}"}
+
+      org ->
+        cond do
+          Map.get(options, :clear, false) ->
+            case Accounts.set_org_identity_provider(org.id, nil) do
+              {:ok, _} ->
+                {:ok, ["Identity provider cleared for #{org.slug}"]}
+
+              {:error, reason} ->
+                {:error, "Failed: #{inspect(reason)}"}
+            end
+
+          true ->
+            attrs =
+              %{
+                "type" => options[:type],
+                "issuer" => options[:issuer],
+                "client_id" => options[:client_id],
+                "entity_id" => options[:entity_id],
+                "idp_metadata_url" => options[:idp_metadata_url]
+              }
+              |> Enum.reject(fn {_k, v} -> is_nil(v) or v == "" end)
+              |> Map.new()
+
+            case Accounts.set_org_identity_provider(org.id, attrs) do
+              {:ok, _} ->
+                {:ok,
+                 [
+                   "Identity provider configured",
+                   "Org: #{org.slug}",
+                   "Type: #{options[:type]}"
+                 ]}
+
+              {:error, :unsupported_provider_type} ->
+                {:error, "Provide --type oidc or --type saml"}
+
+              {:error, {:missing_fields, fields}} ->
+                {:error,
+                 "Missing required field(s) for #{options[:type]}: " <> Enum.join(fields, ", ")}
+
+              {:error, reason} ->
+                {:error, "Failed: #{inspect(reason)}"}
+            end
+        end
+    end
+  end
+
+  def run_command(%{command: :org_idp_show, options: _options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    case Accounts.get_org_by_slug(slug) do
+      nil ->
+        {:error, "Org not found: #{slug}"}
+
+      org ->
+        case Accounts.get_org_identity_provider(org) do
+          nil ->
+            {:ok, ["Org: #{org.slug}", "Identity provider: (none)"]}
+
+          %{} = idp ->
+            header = ["Org: #{org.slug}", "Type: #{idp["type"]}"]
+
+            extras =
+              idp
+              |> Map.delete("type")
+              |> Enum.sort_by(&elem(&1, 0))
+              |> Enum.map(fn {k, v} -> "  #{k}: #{v}" end)
+
+            {:ok, header ++ extras}
+        end
+    end
+  end
+
+  def run_command(%{command: :org_members, options: _options, args: [slug]}, _project_root) do
+    alias ControlKeel.Accounts
+
+    case Accounts.get_org_by_slug(slug) do
+      nil ->
+        {:error, "Org not found: #{slug}"}
+
+      org ->
+        memberships = Accounts.list_memberships_for_org(org.id)
+
+        rows =
+          if memberships == [] do
+            ["No members."]
+          else
+            Enum.map(memberships, fn m ->
+              user = Accounts.get_user(m.user_id)
+              email = if(user, do: user.email, else: "(deleted)")
+              "  #{email}\trole=#{m.role}\tstatus=#{m.status}"
+            end)
+          end
+
+        {:ok, ["Members of #{org.slug}:" | rows]}
+    end
+  end
+
+  def run_command(%{command: :mcp_guardrails_list, options: _options}, _project_root) do
+    alias ControlKeel.Cloud.Guardrails
+
+    summary = Guardrails.summary()
+
+    header = [
+      "Cloud MCP content guardrails",
+      "Enabled: #{summary.enabled}",
+      "Active patterns: #{summary.pattern_count}",
+      ""
+    ]
+
+    pattern_rows =
+      if summary.patterns == [] do
+        ["No patterns active."]
+      else
+        ["Patterns:"] ++ Enum.map(summary.patterns, &"  #{&1}")
+      end
+
+    allow_rows =
+      if summary.allow_for_tools == [] do
+        []
+      else
+        ["", "Allow-for-tools (skipped from scanning):"] ++
+          Enum.map(summary.allow_for_tools, &"  #{&1}")
+      end
+
+    {:ok, header ++ pattern_rows ++ allow_rows}
+  end
+
+  def run_command(%{command: :mcp_registry_list, options: _options}, _project_root) do
+    alias ControlKeel.Cloud.McpRegistry
+
+    summary = McpRegistry.summary()
+    entries = McpRegistry.entries()
+    denylist = McpRegistry.denylist()
+
+    header = [
+      "Cloud MCP server registry",
+      "Default policy: #{summary.default_policy}",
+      "Allowlisted: #{summary.allowlist_count} (#{summary.requires_attestation} require attestation)",
+      "Denylisted:  #{summary.denylist_count}",
+      ""
+    ]
+
+    allow_rows =
+      if entries == [] do
+        ["Allowlist: (empty)"]
+      else
+        ["Allowlist:"] ++
+          Enum.map(entries, fn e ->
+            "  #{e.name}  attestation=#{e.attestation}#{format_url(e.url)}#{format_note(e.note)}"
+          end)
+      end
+
+    deny_rows =
+      if denylist == [] do
+        ["Denylist: (empty)"]
+      else
+        ["Denylist:"] ++ Enum.map(denylist, &"  #{&1}")
+      end
+
+    {:ok, header ++ allow_rows ++ [""] ++ deny_rows}
+  end
+
+  def run_command(
+        %{command: :mcp_registry_check, options: options, args: [server_name]},
+        _project_root
+      ) do
+    alias ControlKeel.Cloud.McpRegistry
+
+    attested? = Map.get(options, :attested, false)
+    disposition = McpRegistry.lookup(server_name, attested?: attested?)
+
+    line =
+      case disposition do
+        :allowed ->
+          "ALLOWED: #{server_name}#{if attested?, do: " (attestation provided)", else: ""}"
+
+        {:denied, reason} ->
+          "DENIED:  #{server_name} (#{reason})"
+      end
+
+    {:ok, [line]}
+  end
+
+  def run_command(%{command: :telemetry_flush, options: options}, _project_root) do
+    alias ControlKeel.Cloud.Sender
+
+    limit_opts = if options[:limit], do: [limit: options[:limit]], else: []
+
+    case Sender.flush(limit_opts) do
+      {:ok, :no_endpoint, 0} ->
+        {:ok,
+         [
+           "Cloud telemetry flush: skipped (no endpoint configured)",
+           "Set :controlkeel, :cloud_telemetry_endpoint to enable upstream sync."
+         ]}
+
+      {:ok, :no_pending, 0} ->
+        {:ok, ["Cloud telemetry flush: queue is empty"]}
+
+      {:ok, :sent, count} ->
+        {:ok, ["Cloud telemetry flush: sent #{count} event(s)"]}
+
+      {:error, :not_connected, _} ->
+        {:error,
+         "Cloud telemetry flush failed: workspace not connected. Run `controlkeel cloud connect` first."}
+
+      {:error, :network, count} ->
+        {:error,
+         "Cloud telemetry flush failed: network error (#{count} event(s) marked failed and will retry)"}
+
+      {:error, {:server, status}, count} ->
+        {:error,
+         "Cloud telemetry flush failed: server returned #{status} (#{count} event(s) marked failed)"}
+    end
+  end
+
+  def run_command(%{command: :telemetry_queue, options: options}, _project_root) do
+    alias ControlKeel.Cloud.TelemetryQueue
+
+    limit = Map.get(options, :limit, 20)
+    pending = TelemetryQueue.pending(limit: limit)
+    total = TelemetryQueue.pending_count()
+
+    header = [
+      "ControlKeel cloud telemetry queue",
+      "Pending events: #{total}",
+      "Showing: #{length(pending)}/#{total} (limit=#{limit})"
+    ]
+
+    rows =
+      if pending == [] do
+        ["  (queue is empty)"]
+      else
+        Enum.map(pending, fn event ->
+          "  #{event.event_id}  #{event.kind}  workspace=#{event.workspace_id}  attempts=#{event.send_attempts}  queued_at=#{DateTime.to_iso8601(event.queued_at)}"
+        end)
+      end
+
+    {:ok, header ++ rows}
+  end
+
+  def run_command(%{command: :telemetry_status, options: _options}, _project_root) do
+    state = ControlKeel.Cloud.TelemetryConfig.load()
+    enabled? = ControlKeel.Cloud.TelemetryConfig.enabled?(state)
+
+    base = [
+      "ControlKeel cloud telemetry",
+      "Status: #{if enabled?, do: "enabled", else: "disabled"}",
+      "Level: #{state.level}",
+      "Source: #{state.source}",
+      "Config path: #{state.path}",
+      "Redaction policy version: #{state.redaction_policy_version}",
+      "Schema version: #{state.schema_version}"
+    ]
+
+    workspace_line = if state.workspace_id, do: ["Workspace: #{state.workspace_id}"], else: []
+
+    enabled_at_line =
+      if state.enabled_at, do: ["Enabled at: #{DateTime.to_iso8601(state.enabled_at)}"], else: []
+
+    error_line = if state.load_error, do: ["Load error: #{state.load_error}"], else: []
+
+    {:ok, base ++ workspace_line ++ enabled_at_line ++ error_line}
   end
 
   def run_command(%{command: :agents_doctor, options: options}, project_root) do
@@ -1986,6 +3326,50 @@ defmodule ControlKeel.CLI do
 
       {:error, reason} ->
         {:error, "Failed to run session: #{format_cli_error(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :session_list}, _project_root) do
+    sessions = Mission.list_recent_sessions(20)
+
+    lines =
+      if sessions == [] do
+        ["No missions found. Start one with: controlkeel init"]
+      else
+        ["Recent missions:"] ++
+          Enum.map(sessions, fn session ->
+            "##{session.id} #{session.title} — #{session.risk_tier} risk — workspace ##{session.workspace_id}"
+          end)
+      end
+
+    {:ok, lines}
+  end
+
+  def run_command(%{command: :session_switch, args: [session_id]}, project_root) do
+    with {:ok, parsed_id} <- parse_id(session_id),
+         %{} = target <- Mission.get_session(parsed_id),
+         {:ok, binding, _current_session, _mode} <- ensure_local_project(project_root),
+         updated <-
+           binding
+           |> Map.put("session_id", target.id)
+           |> Map.put("workspace_id", target.workspace_id),
+         {:ok, written} <-
+           ProjectBinding.write_effective(updated, project_root,
+             mode: binding_write_mode(binding)
+           ),
+         {:ok, _updated_session} <-
+           Mission.attach_session_runtime_context(target.id, %{
+             "project_root" => ProjectRoot.resolve(project_root)
+           }) do
+      {:ok,
+       [
+         "Switched ControlKeel project binding to mission ##{target.id}: #{target.title}.",
+         "Project root: #{written["project_root"]}."
+       ]}
+    else
+      {:error, :invalid_id} -> {:error, "Invalid mission id: #{session_id}"}
+      nil -> {:error, "Mission not found: #{session_id}"}
+      {:error, reason} -> {:error, "Could not switch mission: #{format_cli_error(reason)}"}
     end
   end
 
@@ -3292,8 +4676,8 @@ defmodule ControlKeel.CLI do
 
   def run_command(%{command: :service_account_revoke, args: [id]}, _project_root) do
     with {:ok, parsed_id} <- parse_id(id),
-         {:ok, account} <- Platform.revoke_service_account(parsed_id) do
-      {:ok, ["Revoked service account ##{account.id}."]}
+         {:ok, account} <- Platform.revoke_agent_identity(parsed_id) do
+      {:ok, ["Revoked service account ##{account.id}. Audit event recorded."]}
     else
       {:error, :invalid_id} ->
         {:error, "Service account id must be an integer."}
@@ -3309,10 +4693,10 @@ defmodule ControlKeel.CLI do
   def run_command(%{command: :service_account_rotate, args: [id]}, _project_root) do
     with {:ok, parsed_id} <- parse_id(id),
          {:ok, %{service_account: account, token: token}} <-
-           Platform.rotate_service_account(parsed_id) do
+           Platform.rotate_agent_identity_token(parsed_id) do
       {:ok,
        [
-         "Rotated service account ##{account.id}.",
+         "Rotated service account ##{account.id}. Audit event recorded.",
          "OAuth client id: #{ProtocolAccess.oauth_client_id(account)}",
          "Token: #{token}"
        ]}
@@ -3325,6 +4709,60 @@ defmodule ControlKeel.CLI do
 
       {:error, reason} ->
         {:error, "Failed to rotate service account: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :workspace_tool_policy_get, options: options}, _project_root) do
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id") do
+      policy = Accounts.get_workspace_tool_policy(workspace_id)
+      mode = (policy && policy.mode) || "inherit"
+      tools = (policy && WorkspaceToolPolicy.decode_tools(policy)) || []
+
+      lines = [
+        "Tool policy for workspace ##{workspace_id}:",
+        "  Mode: #{mode}"
+      ]
+
+      lines =
+        if tools == [] do
+          lines
+        else
+          lines ++ ["  Tools: #{Enum.join(tools, ", ")}"]
+        end
+
+      {:ok, lines}
+    else
+      {:error, {:missing_option, option}} ->
+        {:error, "Missing required option --#{option}"}
+    end
+  end
+
+  def run_command(%{command: :workspace_tool_policy_set, options: options}, _project_root) do
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id"),
+         {:ok, mode} <- require_string_option(options[:mode], "mode") do
+      tools =
+        case options[:tools] do
+          nil -> []
+          t -> String.split(t, ",") |> Enum.map(&String.trim/1)
+        end
+
+      case Accounts.set_workspace_tool_policy(workspace_id, mode, tools) do
+        {:ok, policy} ->
+          decoded = WorkspaceToolPolicy.decode_tools(policy)
+
+          {:ok,
+           [
+             "Tool policy updated for workspace ##{workspace_id}.",
+             "  Mode: #{policy.mode}",
+             "  Tools: #{if decoded == [], do: "(none)", else: Enum.join(decoded, ", ")}"
+           ]}
+
+        {:error, changeset} ->
+          {:error, "Failed to set tool policy: #{inspect(changeset)}"}
+      end
+    else
+      {:error, {:missing_option, option}} ->
+        {:error, "Missing required option --#{option}"}
     end
   end
 
@@ -3732,6 +5170,29 @@ defmodule ControlKeel.CLI do
     end
   end
 
+  def run_command(
+        %{command: :provider_set_fallback_chain, args: providers},
+        _project_root
+      )
+      when providers != [] do
+    case ProviderConfig.set_fallback_chain(providers) do
+      {:ok, _config} ->
+        {:ok, ["Fallback chain set: #{Enum.join(providers, " → ")}"]}
+
+      {:error, {:unknown_providers, bad}} ->
+        {:error,
+         "Unknown provider(s): #{Enum.join(bad, ", ")}. Allowed: #{Enum.join(ProviderConfig.allowed_providers(), ", ")}"}
+
+      {:error, reason} ->
+        {:error, "Failed to set fallback chain: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :provider_set_fallback_chain, args: []}, _project_root) do
+    {:error,
+     "Provide at least one provider: controlkeel provider set-fallback-chain <p1> [p2 ...]"}
+  end
+
   def run_command(%{command: :bootstrap, options: options}, project_root) do
     root = resolve_project_root(options, project_root)
     overrides = %{"agent" => options[:agent] || "claude"}
@@ -3989,7 +5450,7 @@ defmodule ControlKeel.CLI do
           "⚠️  TOKEN OPTIMIZATION WARNING:",
           "  Found #{duplicate_copy_count} duplicate skill copies wasting tokens.",
           "  Run 'controlkeel token audit' for detailed analysis and recommendations.",
-          "  Run 'controlkeel token audit mode=skills' to see skill-specific optimization guidance."
+          "  Run 'controlkeel token audit --mode skills' to see skill-specific optimization guidance."
         ]
       else
         []
@@ -4713,8 +6174,10 @@ defmodule ControlKeel.CLI do
       "full" ->
         rule_files = result["rule_files"] || []
         skills = result["skills"] || []
-        duplicates = result["duplicates"] || []
-        recommendations = result["recommendations"] || []
+        duplicates = result["skill_duplicates"] || result["duplicates"] || []
+
+        recommendations =
+          (result["recommendations"] || []) ++ (result["skill_recommendations"] || [])
 
         [
           "Token Audit Results",
@@ -4724,21 +6187,23 @@ defmodule ControlKeel.CLI do
           "Total estimated tokens: #{result["estimated_tokens"]}",
           "Rule files: #{length(rule_files)}",
           "Skills: #{length(skills)}",
-          "Duplicates: #{length(duplicates)}",
+          "Skill tokens: #{result["total_skill_tokens"] || 0}",
+          "Duplicate skill groups: #{length(duplicates)}",
+          "Duplicate skill tokens: #{result["duplicate_token_count"] || 0}",
           "",
           "Rule files:"
         ] ++
-          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{rf["tokens"]} tokens)" end) ++
+          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{token_count(rf)} tokens)" end) ++
           [
             "",
             "Skills:"
           ] ++
-          Enum.map(skills, fn s -> "  - #{s["name"]} (#{s["tokens"]} tokens)" end) ++
+          Enum.map(skills, fn s -> "  - #{s["name"]} (#{token_count(s)} tokens)" end) ++
           [
             "",
-            "Duplicates:"
+            "Duplicate skill groups:"
           ] ++
-          Enum.map(duplicates, fn d -> "  - #{d["path"]} (duplicate of #{d["original"]})" end) ++
+          Enum.map(duplicates, &format_skill_duplicate/1) ++
           [
             "",
             "Recommendations:"
@@ -4757,7 +6222,7 @@ defmodule ControlKeel.CLI do
           "Rule files: #{length(rule_files)}",
           ""
         ] ++
-          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{rf["tokens"]} tokens)" end)
+          Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{token_count(rf)} tokens)" end)
 
       "skills" ->
         skills = result["skills"] || []
@@ -4768,17 +6233,23 @@ defmodule ControlKeel.CLI do
           "====================",
           "",
           "Project root: #{result["project_root"]}",
-          "Total skill tokens: #{result["estimated_tokens"]}",
+          "Total skill tokens: #{result["total_skill_tokens"] || result["estimated_tokens"] || 0}",
+          "Duplicate skill tokens: #{result["duplicate_token_count"] || 0}",
           "Skills: #{length(skills)}",
-          "Duplicates: #{length(duplicates)}",
+          "Duplicate skill groups: #{length(duplicates)}",
           ""
         ] ++
-          Enum.map(skills, fn s -> "  - #{s["name"]} (#{s["tokens"]} tokens)" end) ++
+          Enum.map(skills, fn s -> "  - #{s["name"]} (#{token_count(s)} tokens)" end) ++
           [
             "",
-            "Duplicates:"
+            "Duplicate skill groups:"
           ] ++
-          Enum.map(duplicates, fn d -> "  - #{d["path"]} (duplicate of #{d["original"]})" end)
+          Enum.map(duplicates, &format_skill_duplicate/1) ++
+          [
+            "",
+            "Recommendations:"
+          ] ++
+          Enum.map(result["recommendations"] || [], fn r -> "  - #{r}" end)
 
       "tools" ->
         tools = result["tools"] || []
@@ -4788,16 +6259,38 @@ defmodule ControlKeel.CLI do
           "===================",
           "",
           "Project root: #{result["project_root"]}",
-          "Total tool tokens: #{result["estimated_tokens"]}",
+          "Total tool tokens: #{result["total_tokens"] || result["estimated_tokens"] || 0}",
           "Tools: #{length(tools)}",
           ""
         ] ++
-          Enum.map(tools, fn t -> "  - #{t["name"]} (#{t["tokens"]} tokens)" end)
+          Enum.map(tools, fn t -> "  - #{t["name"]} (#{token_count(t)} tokens)" end) ++
+          [
+            "",
+            "Recommendations:"
+          ] ++
+          Enum.map(result["recommendations"] || [], fn r -> "  - #{r}" end)
     end
   end
 
   defp format_token_audit(result, _mode, "json") do
     [Jason.encode!(result, pretty: true)]
+  end
+
+  defp token_count(item) when is_map(item) do
+    item["tokens"] || item["estimated_tokens"] || item["total_tokens"] || 0
+  end
+
+  defp format_skill_duplicate(%{"name" => name} = duplicate) do
+    locations =
+      duplicate
+      |> Map.get("locations", [])
+      |> Enum.join(", ")
+
+    "  - #{name}: #{duplicate["count"] || 0} copies, #{duplicate["total_tokens"] || 0} tokens (#{locations})"
+  end
+
+  defp format_skill_duplicate(duplicate) when is_map(duplicate) do
+    "  - #{duplicate["path"] || "unknown"} (duplicate of #{duplicate["original"] || "unknown"})"
   end
 
   defp format_tool_groups_suggest(groups, reason, stats, "text") do
@@ -5077,6 +6570,16 @@ defmodule ControlKeel.CLI do
 
       _ ->
         {:error, usage_text()}
+    end
+  end
+
+  defp parse_provider_set_fallback_chain(argv) do
+    case OptionParser.parse(argv, strict: []) do
+      {_options, providers, []} when providers != [] ->
+        {:ok, %{command: :provider_set_fallback_chain, options: %{}, args: providers}}
+
+      _ ->
+        {:ok, %{command: :provider_set_fallback_chain, options: %{}, args: []}}
     end
   end
 
@@ -6768,6 +8271,245 @@ defmodule ControlKeel.CLI do
   defp require_string_option("", option), do: {:error, {:missing_option, option}}
   defp require_string_option(value, _option), do: {:ok, to_string(value)}
 
+  defp parse_telemetry_level(value) do
+    case ControlKeel.Cloud.TelemetryConfig.parse_level(value) do
+      {:ok, :disabled} -> {:error, :invalid_level}
+      {:ok, level} -> {:ok, level}
+      :error -> {:error, :invalid_level}
+    end
+  end
+
+  defp maybe_render_compliance_template(bundle, nil), do: {:ok, bundle}
+  defp maybe_render_compliance_template(bundle, ""), do: {:ok, bundle}
+
+  defp maybe_render_compliance_template(bundle, template) do
+    ControlKeel.Cloud.ComplianceTemplate.render(bundle, template)
+  end
+
+  defp maybe_sign_audit_export(payload, %{sign: true} = options) do
+    case options[:signing_key_env] do
+      nil ->
+        {:error, :missing_signing_key_env}
+
+      "" ->
+        {:error, :missing_signing_key_env}
+
+      env ->
+        case System.get_env(env) do
+          nil -> {:error, {:missing_signing_key, env}}
+          "" -> {:error, {:missing_signing_key, env}}
+          key -> {:ok, ControlKeel.Cloud.AuditExportSigner.sign(payload, key, key_id: env)}
+        end
+    end
+  end
+
+  defp maybe_sign_audit_export(payload, _options), do: {:ok, payload}
+
+  defp baseline_tool_count(baseline) do
+    baseline
+    |> ControlKeel.Cloud.WorkspaceBaseline.decode()
+    |> map_size()
+  end
+
+  defp format_repo_error(nil), do: ""
+  defp format_repo_error(msg), do: " — " <> msg
+
+  defp format_value_hint(nil), do: ""
+  defp format_value_hint(hint), do: " " <> hint
+
+  defp resolve_audit_scope(options) do
+    workspace_slug = options[:workspace]
+    org_slug = options[:org]
+
+    cond do
+      workspace_slug && org_slug ->
+        {:error, :scope_conflict}
+
+      workspace_slug ->
+        case ControlKeel.Repo.get_by(ControlKeel.Mission.Workspace, slug: workspace_slug) do
+          nil -> {:error, :unknown_workspace}
+          ws -> {:ok, [workspace_id: ws.id]}
+        end
+
+      org_slug ->
+        case ControlKeel.Accounts.get_org_by_slug(org_slug) do
+          nil -> {:error, :unknown_org}
+          org -> {:ok, [org_id: org.id]}
+        end
+
+      true ->
+        {:error, :scope_required}
+    end
+  end
+
+  defp parse_optional_datetime(nil, _name), do: {:ok, nil}
+  defp parse_optional_datetime("", _name), do: {:ok, nil}
+
+  defp parse_optional_datetime(value, name) when is_binary(value) do
+    case DateTime.from_iso8601(value) do
+      {:ok, dt, _} -> {:ok, DateTime.truncate(dt, :second)}
+      _ -> {:error, {:invalid_datetime, name}}
+    end
+  end
+
+  defp maybe_append(opts, _key, nil), do: opts
+  defp maybe_append(opts, key, value), do: Keyword.put(opts, key, value)
+
+  defp parse_integer_arg(value, name) do
+    case Integer.parse(to_string(value)) do
+      {n, ""} -> {:ok, n}
+      _ -> {:error, "Invalid #{name}: #{value}"}
+    end
+  end
+
+  defp validate_runtime_target(runtime) do
+    if runtime in ControlKeel.Cloud.RunPackage.valid_runtimes() do
+      :ok
+    else
+      {:error,
+       "Unknown runtime '#{runtime}'. Valid runtimes: " <>
+         Enum.join(ControlKeel.Cloud.RunPackage.valid_runtimes(), ", ")}
+    end
+  end
+
+  defp validate_budget_cents(nil), do: {:ok, 0}
+  defp validate_budget_cents(n) when is_integer(n) and n >= 0, do: {:ok, n}
+  defp validate_budget_cents(_), do: {:error, "--budget-cents must be a non-negative integer"}
+
+  defp parse_scopes(nil), do: nil
+  defp parse_scopes(""), do: nil
+  defp parse_scopes(value) when is_binary(value), do: value
+
+  defp build_cloud_payload(task, options) do
+    base = %{
+      "task_title" => task.title,
+      "validation_gate" => task.validation_gate,
+      "note" => options[:note]
+    }
+
+    base = Enum.reject(base, fn {_k, v} -> v in [nil, ""] end) |> Map.new()
+
+    case cloud_github_bindings(task) do
+      [] -> base
+      bindings -> Map.put(base, "github_repos", bindings)
+    end
+  end
+
+  defp cloud_github_bindings(task) do
+    alias ControlKeel.Mission
+
+    case Mission.get_session(task.session_id) do
+      %{workspace_id: ws_id} when is_integer(ws_id) ->
+        ws_id
+        |> Mission.list_github_repos()
+        |> Enum.map(fn b ->
+          %{
+            "owner" => b.owner,
+            "repo" => b.repo,
+            "default_branch" => b.default_branch,
+            "installation_id" => b.installation_id,
+            "url" => "https://github.com/#{b.owner}/#{b.repo}"
+          }
+          |> Enum.reject(fn {_k, v} -> v in [nil, ""] end)
+          |> Map.new()
+        end)
+
+      _ ->
+        []
+    end
+  end
+
+  @doc false
+  # Capture git remote/branch/commit_sha for the cloud handoff.
+  #
+  # Explicit CLI overrides win. Otherwise we shell out to git in the given
+  # project_root. Missing or non-git roots return nil for each field — the
+  # cloud server treats nil as "no provable revision" and the operator can
+  # decide whether to accept that for their runtime.
+  def capture_git_metadata(project_root, options) do
+    %{
+      repo_url: options[:repo_url] || detect_git_remote(project_root),
+      branch: options[:branch] || detect_git_branch(project_root),
+      commit_sha: options[:commit_sha] || detect_git_commit_sha(project_root)
+    }
+  end
+
+  defp detect_git_remote(nil), do: nil
+
+  defp detect_git_remote(project_root) do
+    case System.cmd("git", ["remote", "get-url", "origin"],
+           cd: project_root,
+           stderr_to_stdout: true
+         ) do
+      {url, 0} -> String.trim(url)
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp detect_git_branch(nil), do: nil
+
+  defp detect_git_branch(project_root) do
+    case System.cmd("git", ["rev-parse", "--abbrev-ref", "HEAD"],
+           cd: project_root,
+           stderr_to_stdout: true
+         ) do
+      {branch, 0} ->
+        case String.trim(branch) do
+          "" -> nil
+          "HEAD" -> nil
+          name -> name
+        end
+
+      _ ->
+        nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp detect_git_commit_sha(nil), do: nil
+
+  defp detect_git_commit_sha(project_root) do
+    case System.cmd("git", ["rev-parse", "HEAD"],
+           cd: project_root,
+           stderr_to_stdout: true
+         ) do
+      {sha, 0} ->
+        case String.trim(sha) do
+          "" -> nil
+          trimmed -> trimmed
+        end
+
+      _ ->
+        nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp format_changeset_errors(%Ecto.Changeset{errors: errors}) do
+    errors
+    |> Enum.map(fn {field, {msg, _}} -> "#{field}: #{msg}" end)
+    |> Enum.join("; ")
+  end
+
+  defp format_changeset_errors(other), do: inspect(other)
+
+  defp format_url(nil), do: ""
+  defp format_url(url), do: "  url=#{url}"
+
+  defp format_note(nil), do: ""
+  defp format_note(""), do: ""
+  defp format_note(note), do: "  note=#{note}"
+
+  defp telemetry_level_list_text do
+    ControlKeel.Cloud.TelemetryConfig.opt_in_levels()
+    |> Enum.map(&Atom.to_string/1)
+    |> Enum.join(" | ")
+  end
+
   defp selected_base_url(%{"provider_chain" => [resolution | _]}) do
     resolution["base_url"] || "default"
   end
@@ -6915,7 +8657,29 @@ defmodule ControlKeel.CLI do
           integration.upstream_docs_url && "Upstream docs: #{integration.upstream_docs_url}"
         ]
         |> Enum.reject(&is_nil/1)
+        |> Kernel.++(cloud_guidance_lines())
         |> Kernel.++(Distribution.current_install_lines())
+    end
+  end
+
+  defp cloud_guidance_lines do
+    case ControlKeel.Cloud.WorkspaceIdentity.load() do
+      {:ok, identity} ->
+        [
+          "",
+          "Cloud — already connected (workspace #{identity.workspace_id}).",
+          "  controlkeel cloud doctor              # verify the cloud-mode boundary",
+          "  controlkeel telemetry status          # check sync state and queue depth"
+        ]
+
+      _ ->
+        [
+          "",
+          "Cloud — optional next step (sync findings, proofs, and approvals across a team):",
+          "  controlkeel cloud connect --enroll https://controlkeel.com",
+          "  # or your self-host URL, e.g. https://govern.acme.com (see docs/self-hosting.md)",
+          "  controlkeel cloud doctor              # verify the cloud-mode boundary"
+        ]
     end
   end
 

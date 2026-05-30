@@ -234,6 +234,19 @@ For UI flows, unit tests alone often miss regressions. The most reliable pattern
 
 Pi subagent extensions such as `pi-subagents` fit a similar companion pattern inside the Pi host rather than a new CK dependency. The useful parts for CK are the delegation contracts they make visible: narrow child roles, chain or parallel runs, foreground/background status, recursion guards, fresh or forked context, clarification channels, and optional worktree isolation. Use `controlkeel attach pi` or the published `@aryaminus/controlkeel-pi-extension` so Pi parent and child sessions can reach the repo-local CK MCP, skills, and commands as appropriate; benchmark those runs with explicit delegation-surface evidence instead of a vague multi-agent label.
 
+## Cloud-agent roadmap
+
+The current agent integration model is local-first: agents connect to a repo-local ControlKeel instance through stdio MCP, native attach flows, or runtime exports. Cloud-hosted agents that run against a shared CK instance are a roadmap branch documented in [cloud-enterprise-roadmap.md](cloud-enterprise-roadmap.md).
+
+The key enablers for cloud-agent execution already exist as code surfaces:
+
+- `Runtime.mode` switches between `:local` and `:cloud`
+- `CloudRepo` provides a Postgres adapter for cloud-mode persistence
+- `Bus.Nats` enables distributed event coordination
+- Hosted MCP and A2A already support remote agent access through service accounts
+
+The roadmap phases sequence cloud-agent capabilities after team coordination surfaces are in place, so that cloud agents inherit the same governance, approval, and evidence controls that local agents use today.
+
 ## Protocol interop
 
 ControlKeel exposes three protocol surfaces around the integration catalog:

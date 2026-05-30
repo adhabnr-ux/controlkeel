@@ -1,5 +1,244 @@
 # Changelog
 
+## v0.3.32 — 2026-05-28
+
+### What's changed
+
+- fix(cloud-sync): hardening pass closing all 10 post-merge findings
+
+## v0.3.31 — 2026-05-28
+
+### What's changed
+
+Cloud-sync hardening — closes four high-severity blocking findings and six
+medium issues raised in post-merge review of v0.3.30's `Cloud.Sync`,
+`Cloud.SyncEngine`, and `CloudSyncController`.
+
+- fix(cloud-sync, security): close `CK-CLOUD-SYNC-001`. `Cloud.Sync.serialize_record/1`
+  now uses a per-schema `sync_fields/0` allowlist instead of `Map.drop` on
+  preloads — anything not in the allowlist never ships. Free-form fields
+  (`Memory.Record.body`, `Finding.plain_message`, `Review.submission_body`,
+  task/agent `metadata`, etc.) are tagged `{:redact, _}` and pass through
+  `Cloud.Redactor.redact_value/1`, which scrubs Anthropic/OpenAI `sk-*` keys,
+  GitHub PATs, `Authorization: Bearer` headers, and env-style
+  `token=`/`secret=`/`api_key=` assignments. Envelopes now stamp both
+  `sync_protocol_version` and `redaction_policy_version`.
+- fix(cloud-sync, correctness): close `CK-CLOUD-SYNC-002`. Migration
+  `20260528270000` adds `external_id` (`ses_<ulid>`) and `synced_at` to the
+  `sessions` table, backfilling existing rows with `ses_legacy_<id>`. Without
+  this, every other syncable kind's foreign-key chain was broken.
+- fix(cloud-sync, correctness): close `CK-CLOUD-SYNC-003`. `do_upsert` for
+  append-only kinds now compares the incoming `updated_at` against
+  `local.updated_at` instead of skipping on `synced_at != nil`. Cloud-side
+  status changes (e.g., `open → blocked`) finally propagate to local.
+- fix(cloud-sync, correctness): close `CK-CLOUD-SYNC-004`. `WorkspaceAgent.changeset`
+  now casts `:lock_version` (it was missing from the cast list, which silently
+  dropped every bump). Optimistic concurrency on agents is real now.
+- fix(cloud-sync): close `CK-CLOUD-SYNC-005`/`006`/`007`/`008`. `SyncEngine`
+  state-machine rewrite: `state.syncing` actually flips during do_sync so the
+  `:already_syncing` guard isn't dead code; the first-ever pull uses the unix
+  epoch as the cursor (was: skipped entirely); `last_synced_at` only advances
+  on `{:ok, _}` from `do_sync` (was: advanced on failure, leaking records);
+  workspace resolution goes through `WorkspaceKeyRegistry.fetch/1` instead of
+  `Workspace |> limit(1)`. Unmapped workspaces return `:workspace_not_enrolled`.
+- fix(cloud-sync): close `CK-CLOUD-SYNC-009`. `CloudSyncController` drops the
+  string-id silent-empty guard. The token's cloud `workspace_id` (string) is
+  now resolved to a local `mission_workspace_id` via `WorkspaceKeyRegistry.fetch/1`
+  in a new `resolve_db_workspace_id` plug; unmapped tokens get a 404 with a
+  clear error. Pull now collects **all four** append-only kinds (findings,
+  reviews, session_digests, memory_records) instead of just findings.
+- fix(cloud-sync): close `CK-CLOUD-SYNC-010`. `payload_to_attrs` now collects
+  unknown fields and logs them at warning level instead of silently dropping
+  via `String.to_existing_atom` rescue. Envelope-protocol version mismatch is
+  surfaced via `Logger.warning` so version skew is visible.
+- fix(cloud-sync): wrap `upsert_batch/2` in `Repo.transaction` so partial
+  batch failures roll back; replace per-record changeset writes in `mark_synced/1`
+  with a grouped `Repo.update_all` (one round-trip per schema, not per record);
+  enforce `max_batch_bytes` (default 8 MB) via JSON-encoded size check.
+- test: 24 new tests covering each of the above fixes — round-trip status
+  propagation, redactor pattern coverage, workspace_agent lock_version actually
+  bumps in the DB, syncing-flag guard fires, first-tick pull uses epoch,
+  cursor doesn't advance on failure, unmapped workspace 404s, protocol-version
+  mismatch logs. 1951/1951 tests, 0 failures.
+
+### Migration notes
+
+`mix ecto.migrate` applies `20260528270000_add_external_id_to_sessions.exs`.
+Backfill happens inline; no manual step required.
+
+## v0.3.30 — 2026-05-28
+
+### What's changed
+
+- feat(cloud-sync): bidirectional cloud sync for governance records.
+  New `Cloud.Sync` module collects unsynced findings, memory records,
+  reviews, and session digests; serializes them into idempotent envelopes
+  keyed by `external_id`; pushes to the cloud endpoint; and pulls remote
+  records with local upsert. `Cloud.SyncEngine` GenServer orchestrates
+  periodic push/pull (dormant when no `cloud_sync_endpoint` is configured).
+  `CloudSyncController` exposes `POST /cloud/v1/sync/push` and
+  `POST /cloud/v1/sync/pull` with bearer token auth and 500-record batch limit.
+- feat(cloud-sync): workspace-scoped PubSub via `CopilotChannel.subscribe_workspace/1`
+  and `broadcast_workspace/3` — topic `ck_workspace:<id>` enables multi-user
+  realtime without session-level scoping.
+- feat(cli): three new CLI commands — `controlkeel cloud push`,
+  `controlkeel cloud pull`, `controlkeel cloud migrate` — for manual sync
+  trigger and migration check.
+- feat(db): migrations `20260528250000` and `20260528260000` add `external_id`
+  (ULID-prefixed: `f_`, `rev_`, `sd_`, `mem_`) + `synced_at` to findings,
+  memory_records, session_digests, and reviews; `lock_version` (optimistic
+  concurrency) on sessions, tasks, and workspace_agents.
+
+### Migration notes
+
+Run `mix ecto.migrate` to apply the two new migrations. Existing records
+receive auto-generated `external_id` values and `lock_version` defaults to 1.
+No data loss; columns are nullable during transition.
+
+## v0.3.29 — 2026-05-28
+
+### What's changed
+
+- feat(digest): new `ck_session_digest` MCP tool and `SessionDigest` module.
+  Generates condensed, human-scannable digests of what happened in a session —
+  tasks completed, findings raised, budget spent, reviews pending, and notable
+  highlights. Three digest types: session, daily, shift_change. Sets
+  `needs_attention` flag when blocked findings, pending reviews, >80% budget
+  consumption, or tech-debt accumulation signals are detected. Also exposes
+  `avg_task_duration_seconds` and `tasks_per_hour` in `metadata` so operators
+  can observe time-gained vs output-gained without CK pushing either dimension.
+- feat(techdebt): new `Governance.TechDebtDetector` and `CK-TECHDEBT-001/002`
+  rule family surfaced through `ck_session_digest`. Detects (1) repeated
+  patches on the same `Finding.metadata["path"]` across recent sessions
+  without an intervening refactor/cleanup commit on that path, and (2) the
+  same `rule_id` recurring across ≥3 sessions in the workspace. No new MCP
+  tool, no schema migration — reuses `Finding.metadata` and the existing
+  `SessionDigest.metadata` map. Inspired by Dax Raad's observation that AI
+  code generation mutes the "guilt" of writing a hack, so the muted signal
+  has to come from somewhere else.
+- feat(rollback): new `ck_rollback` MCP tool and `RollbackExecutor` module.
+  Makes rollback executable, not just advisory. Records a git checkpoint
+  (commit SHA) before each task via `checkpoint` mode, and provides `execute`
+  mode to revert an agent's work with a single action. Safety-checked: refuses
+  if downstream completed tasks depend on the changes. Creates an audit finding
+  (`CK-ROLLBACK-001`) on every rollback. Inspired by "you need easy rollback."
+- feat(agents): new `ck_workspace_agent` MCP tool and workspace agent roles.
+  Formalizes agent-role scoping for orgs adopting a forward-deployed-engineer
+  pattern, without asserting that pattern as inevitable: `primary` (a single
+  maintained agent per workspace), `specialized` (domain-scoped, multiple
+  allowed), and `ephemeral` (short-lived task runners). Health monitoring,
+  budget tracking, and retirement lifecycle.
+- feat(copilot): new `ck_copilot` MCP tool and `CopilotChannel` GenServer.
+  Real-time collaborative channel where human actions (viewing, editing,
+  approving, commenting) stream to the agent via PubSub without polling. ETS-
+  backed event history with auto-pruning. Added to supervision tree. Inspired
+  by "build software for humans and agents to use together."
+- feat(saas): new `ck_external_service` MCP tool and `ExternalServiceTracker`.
+  Tracks and governs agent interactions with external SaaS APIs. Per-service
+  rate limiting, cost attribution, latency tracking, and automatic PII
+  redaction (tokens, emails) from endpoints. Summary, rate_limit_status, and
+  top_services views. Inspired by "agents will create massive new demand for
+  SaaS."
+- fix(mcp): eliminate 4 compile warnings that were leaking to stdout and
+  causing intermittent MCP handshake issues (grouped `run_command/2` clauses
+  in cli.ex, grouped `write_target/5` clauses in exporter.ex, removed unused
+  default in cloud_runtime_callback_controller.ex).
+- fix(agents): replace the over-broad `(workspace_id, role)` unique index on
+  `workspace_agents` with a partial unique index scoped to active `primary`
+  agents. The original constraint silently blocked the documented case of
+  registering multiple specialized or ephemeral agents per workspace.
+- fix(db): apply pending migrations for `external_id` on tasks and
+  `workspace_github_repos`.
+
+- fix(mcp): update `ck_review_submit` description to name the structured planning fields
+  (`research_summary`, `options_considered`, `selected_option`, etc.) that the plan-quality
+  scorer evaluates — agents reading the tool description will no longer package everything
+  into `submission_body` and get scored weak on first attempts (CK-REVIEW-SCHEMA-002).
+
+## v0.3.28 — 2026-05-28
+
+### What's changed
+
+- feat(cloud): authorize cloud run package creation by org/role
+  (`Accounts.authorize_cloud_execution/2`); CLI accepts `--user-id`.
+- feat(cloud): link enrolled cloud workspaces to mission workspaces via
+  invitation binding. `controlkeel cloud connect --enroll` now reports
+  `mission_workspace_id`; `WorkspaceKeyRegistry.fetch_by_mission_workspace/1`.
+- feat(cloud): capture git remote/branch/commit_sha on cloud run packages.
+  `controlkeel run cloud-agent` shells out to git and accepts
+  `--repo-url` / `--branch` / `--commit-sha` overrides.
+- feat(cloud): runtime dispatcher seam. New `RuntimeDispatcher` behavior +
+  `Manual` default; runtime modules register via `:cloud_dispatchers`
+  application config. `controlkeel run cloud-agent --dispatch` chains
+  create and dispatch in one command.
+- feat(cloud): cloud runtime callbacks accept an optional `findings[]`
+  array. `RuntimeContext.ingest_findings/2` persists each finding on the
+  package's session tagged with cloud provenance metadata.
+- feat(cloud): observable run packages on `/cloud/projects/:ws_id` — new
+  "Cloud run packages" card listing each package's status, runtime,
+  revision, budget, and timestamps.
+- feat(cloud): stable user-facing identifiers — `pkg_<ulid>` on cloud run
+  packages, `task_<ulid>` on tasks. Both auto-generated, caller-
+  overridable, unique-enforced. Lookup helpers
+  `RuntimeContext.get_by_external_id/1` and
+  `Mission.get_task_by_external_id/1`.
+- feat(cloud): workspace ↔ GitHub repo bindings. New
+  `workspace_github_repos` schema + Mission API + CLI (`controlkeel
+  govern bind/unbind/list github`). Bound repos ride along in the run
+  package payload so downstream runtimes know which repositories to
+  fetch.
+- feat(cloud): cross-org isolation regression test pins the boundary
+  across authz, `list_for_org`, `list_for_workspace`, and the cloud
+  projects LiveView.
+- fix(cloud): cloud projects table head/body column mismatch and an
+  awkward `if/do:` pipe in `mount_index` / `handle_info`.
+- chore(format): apply mix format to drift across migrations and tests.
+- docs(cloud): callback token lifecycle moduledocs aligned with the
+  valid-until-terminal implementation; telemetry controller docs describe
+  signed ed25519 AuthToken verification.
+- docs(cloud): new `docs/cloud-parity-matrix.md` user-perspective audit
+  of every cloud surface with status markers and finding cross-refs.
+
+## v0.3.27 — 2026-05-26
+
+### What's changed
+
+- feat(antigravity): add Antigravity CLI and IDE support with governance bundles
+- feat(host-parity): fix crashes and close surface gaps across 26 attachable hosts
+- feat(cloud): expand hosted governance surfaces
+- feat(setup): strengthen one-line ControlKeel attach flow
+- test: update assertions for Claude settings in skills test
+
+## v0.3.26 — 2026-05-25
+
+### What's changed
+
+- feat: implement multi-tenant workspace key management
+- feat: enhance findings and policy studio live views with rejection handling and tool policies
+- feat(api): add workspace tool policy management and NHI audit event endpoints
+- feat: implement JetStream adapter for durable pub/sub queues and add visibility to memory records
+- feat: implement Tier 2 deferred items — behavioral baselining, air-gapped pack, NHI lifecycle
+- feat: implement Tier 1 deferred items — fallback chain, compliance templates, workspace tool policies
+- feat(cloud): update cloud enterprise roadmap with shipped status and deferred items
+- feat(agents): add 'agents discover' command for scanning agent-host configurations
+- feat(saml): implement SAML authentication flow with controller, client, and CLI support
+- feat(auth): implement OIDC authentication flow with session management
+- feat: Implement org identity provider configuration and audit export functionality
+- feat(cloud): implement runtime context for cloud run packages
+- Add comprehensive tests for CLI commands, cloud guardrails, MCP audit logs, policies, and invitation handling
+- feat: Add CloudTelemetryLive for monitoring telemetry ingestion health and funnel metrics
+- feat: Implement cloud telemetry ingestion and authentication
+- Add tests for ControlKeel Cloud components
+- feat(docs): enhance cloud enterprise roadmap with positioning, priority elevation, and market validation updates
+- feat(docs): expand cloud enterprise roadmap with governance framework and security gates
+- feat(docs): update architectural decisions section with resolved defaults and implications
+- feat(docs): add open questions and phase acceptance gates to cloud enterprise roadmap
+- feat(docs): add cloud-capable runtime surfaces section to support matrix
+- feat(docs): enhance cloud and team governance documentation with roadmap and telemetry sync details
+- feat(tests): add skill directory name assertion and helper function
+- feat: add session list and switch commands with corresponding help documentation
+- chore: remove stale research and strategy docs
+
 ## v0.3.25 — 2026-05-22
 
 ### What's changed

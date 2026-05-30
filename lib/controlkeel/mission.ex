@@ -25,7 +25,8 @@ defmodule ControlKeel.Mission do
     Session,
     Task,
     TaskCheckpoint,
-    Workspace
+    Workspace,
+    WorkspaceGithubRepo
   }
 
   alias ControlKeel.Scanner
@@ -44,13 +45,31 @@ defmodule ControlKeel.Mission do
   def get_session_with_workspace(id), do: Session |> Repo.get(id) |> Repo.preload(:workspace)
 
   def create_session(attrs) do
-    %Session{}
-    |> Session.changeset(attrs)
-    |> Repo.insert()
-    |> tap(fn
-      {:ok, session} -> record_brief_memory(session)
-      _other -> :ok
-    end)
+    case lookup_existing_session(attrs) do
+      %Session{} = existing ->
+        {:ok, existing}
+
+      nil ->
+        %Session{}
+        |> Session.changeset(attrs)
+        |> Repo.insert()
+        |> tap(fn
+          {:ok, session} -> record_brief_memory(session)
+          _other -> :ok
+        end)
+    end
+  end
+
+  defp lookup_existing_session(attrs) do
+    workspace_id =
+      Map.get(attrs, :workspace_id) || Map.get(attrs, "workspace_id")
+
+    external_id =
+      Map.get(attrs, :external_id) || Map.get(attrs, "external_id")
+
+    if is_integer(workspace_id) and is_binary(external_id) and external_id != "" do
+      Repo.get_by(Session, workspace_id: workspace_id, external_id: external_id)
+    end
   end
 
   def update_session(%Session{} = session, attrs) do
@@ -102,6 +121,63 @@ defmodule ControlKeel.Mission do
   def get_task(id), do: Repo.get(Task, id)
   def get_task!(id), do: Repo.get!(Task, id)
 
+  @doc "Look up a task by its user-facing task_<ulid> external_id."
+  @spec get_task_by_external_id(String.t()) :: Task.t() | nil
+  def get_task_by_external_id(external_id) when is_binary(external_id) do
+    Repo.get_by(Task, external_id: external_id)
+  end
+
+  # ───────────── Workspace ↔ GitHub repo bindings (CK-CLOUD-GIT-001) ─────────────
+
+  @doc """
+  Bind a GitHub repository to a workspace.
+
+  Pass `:installation_id` if the operator has a GitHub App installation
+  available; nil is fine and represents a declared-but-unauthenticated
+  binding. `:default_branch` is optional and informational.
+  """
+  @spec bind_github_repo(integer(), String.t(), String.t(), keyword()) ::
+          {:ok, WorkspaceGithubRepo.t()} | {:error, Ecto.Changeset.t()}
+  def bind_github_repo(workspace_id, owner, repo, opts \\ [])
+      when is_integer(workspace_id) and is_binary(owner) and is_binary(repo) do
+    attrs = %{
+      workspace_id: workspace_id,
+      owner: owner,
+      repo: repo,
+      default_branch: Keyword.get(opts, :default_branch),
+      installation_id: Keyword.get(opts, :installation_id),
+      metadata: Keyword.get(opts, :metadata, %{})
+    }
+
+    %WorkspaceGithubRepo{}
+    |> WorkspaceGithubRepo.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc "Remove a workspace↔repo binding."
+  @spec unbind_github_repo(integer(), String.t(), String.t()) ::
+          {:ok, WorkspaceGithubRepo.t()} | {:error, :not_found}
+  def unbind_github_repo(workspace_id, owner, repo)
+      when is_integer(workspace_id) and is_binary(owner) and is_binary(repo) do
+    case Repo.get_by(WorkspaceGithubRepo, workspace_id: workspace_id, owner: owner, repo: repo) do
+      nil -> {:error, :not_found}
+      %WorkspaceGithubRepo{} = binding -> Repo.delete(binding)
+    end
+  end
+
+  @doc "List all GitHub repo bindings for a workspace."
+  @spec list_github_repos(integer()) :: [WorkspaceGithubRepo.t()]
+  def list_github_repos(workspace_id) when is_integer(workspace_id) do
+    WorkspaceGithubRepo
+    |> where([r], r.workspace_id == ^workspace_id)
+    |> order_by([r], asc: r.owner, asc: r.repo)
+    |> Repo.all()
+  end
+
+  @doc "Generate a user-facing task_<ulid> identifier."
+  @spec generate_task_external_id() :: String.t()
+  def generate_task_external_id, do: "task_" <> ControlKeel.Cloud.TelemetryEnvelope.ulid()
+
   def task_assurance_summary(nil), do: nil
 
   def task_assurance_summary(%Task{} = task) do
@@ -140,6 +216,8 @@ defmodule ControlKeel.Mission do
   end
 
   def create_task(attrs) do
+    attrs = put_default_task_external_id(attrs)
+
     %Task{}
     |> Task.changeset(attrs)
     |> Repo.insert()
@@ -147,6 +225,18 @@ defmodule ControlKeel.Mission do
       {:ok, task} -> record_task_memory(:created, task)
       _other -> :ok
     end)
+  end
+
+  defp put_default_task_external_id(%{external_id: id} = attrs) when is_binary(id) and id != "",
+    do: attrs
+
+  defp put_default_task_external_id(%{"external_id" => id} = attrs)
+       when is_binary(id) and id != "",
+       do: attrs
+
+  defp put_default_task_external_id(attrs) when is_map(attrs) do
+    key = if Map.has_key?(attrs, "title"), do: "external_id", else: :external_id
+    Map.put(attrs, key, generate_task_external_id())
   end
 
   # Task Checkpoint functions
@@ -408,6 +498,15 @@ defmodule ControlKeel.Mission do
   end
 
   def list_findings, do: Repo.all(Finding)
+
+  @doc "Findings for a session, newest first."
+  @spec list_findings_for_session(integer()) :: [Finding.t()]
+  def list_findings_for_session(session_id) when is_integer(session_id) do
+    Repo.all(
+      from(f in Finding, where: f.session_id == ^session_id, order_by: [desc: f.inserted_at])
+    )
+  end
+
   def get_finding(id), do: Repo.get(Finding, id)
   def get_finding!(id), do: Repo.get!(Finding, id)
 
@@ -542,8 +641,9 @@ defmodule ControlKeel.Mission do
     |> Repo.one()
   end
 
-  def list_recent_sessions(limit \\ 6) do
+  def list_recent_sessions(limit \\ 6, workspace_id \\ nil) do
     Session
+    |> ControlKeel.Cloud.Scope.scope_workspace(workspace_id)
     |> order_by(desc: :inserted_at)
     |> preload([:workspace, :tasks, :findings])
     |> limit(^limit)
@@ -4460,6 +4560,10 @@ defmodule ControlKeel.Mission do
       |> Map.merge(plan_refinement_overrides(attrs))
 
     with {:ok, phase} <- normalize_plan_phase(Map.get(raw_refinement, "phase", "ticket")),
+         {:ok, hypothesis} <-
+           optional_trimmed_string(Map.get(raw_refinement, "hypothesis"), "hypothesis"),
+         {:ok, expected_signal} <-
+           optional_trimmed_string(Map.get(raw_refinement, "expected_signal"), "expected_signal"),
          {:ok, research_summary} <-
            optional_trimmed_string(
              Map.get(raw_refinement, "research_summary"),
@@ -4504,6 +4608,8 @@ defmodule ControlKeel.Mission do
           "phase_order" => plan_phase_order(phase),
           "depth" => depth,
           "task_title" => task && task.title,
+          "hypothesis" => hypothesis,
+          "expected_signal" => expected_signal,
           "research_summary" => research_summary,
           "codebase_findings" => codebase_findings,
           "prior_art_summary" => prior_art_summary,
@@ -4544,6 +4650,8 @@ defmodule ControlKeel.Mission do
   defp plan_refinement_overrides(attrs) do
     %{}
     |> maybe_override_refinement("phase", Map.get(attrs, "plan_phase"))
+    |> maybe_override_refinement("hypothesis", Map.get(attrs, "hypothesis"))
+    |> maybe_override_refinement("expected_signal", Map.get(attrs, "expected_signal"))
     |> maybe_override_refinement("research_summary", Map.get(attrs, "research_summary"))
     |> maybe_override_refinement("codebase_findings", Map.get(attrs, "codebase_findings"))
     |> maybe_override_refinement("prior_art_summary", Map.get(attrs, "prior_art_summary"))
@@ -5411,6 +5519,8 @@ defmodule ControlKeel.Mission do
     |> maybe_filter_finding_metadata("disclosure_status", filters.disclosure_status)
     |> maybe_filter_finding_metadata("maintainer_scope", filters.maintainer_scope)
     |> maybe_filter_session(filters.session_id)
+    |> maybe_filter_finding_workspace(filters.workspace_id)
+    |> maybe_filter_finding_workspace(filters.workspace_ids)
   end
 
   defp proof_bundles_query(filters) do
@@ -5425,6 +5535,8 @@ defmodule ControlKeel.Mission do
     |> maybe_filter_proof_task(filters.task_id)
     |> maybe_filter_proof_ready(filters.deploy_ready)
     |> maybe_filter_proof_risk(filters.risk_tier)
+    |> maybe_filter_proof_workspace(filters.workspace_id)
+    |> maybe_filter_proof_workspace(filters.workspace_ids)
   end
 
   defp normalize_findings_filters(opts) do
@@ -5441,6 +5553,8 @@ defmodule ControlKeel.Mission do
       disclosure_status: normalize_filter_value(opts["disclosure_status"]),
       maintainer_scope: normalize_filter_value(opts["maintainer_scope"]),
       session_id: normalize_session_filter(opts["session_id"]),
+      workspace_id: normalize_session_filter(opts["workspace_id"]),
+      workspace_ids: normalize_ids_filter(opts["workspace_ids"]),
       page: normalize_page(opts["page"])
     }
   end
@@ -5455,6 +5569,8 @@ defmodule ControlKeel.Mission do
       task_id: normalize_session_filter(opts["task_id"]),
       deploy_ready: normalize_boolean_filter(opts["deploy_ready"]),
       risk_tier: normalize_filter_value(opts["risk_tier"]),
+      workspace_id: normalize_session_filter(opts["workspace_id"]),
+      workspace_ids: normalize_ids_filter(opts["workspace_ids"]),
       page: normalize_page(opts["page"])
     }
   end
@@ -5481,6 +5597,16 @@ defmodule ControlKeel.Mission do
       _ -> nil
     end
   end
+
+  defp normalize_ids_filter(nil), do: nil
+  defp normalize_ids_filter([]), do: nil
+
+  defp normalize_ids_filter(ids) when is_list(ids) do
+    result = Enum.filter(ids, &is_integer/1)
+    if result == [], do: nil, else: result
+  end
+
+  defp normalize_ids_filter(_), do: nil
 
   defp normalize_page(nil), do: 1
   defp normalize_page(value) when is_integer(value), do: max(value, 1)
@@ -5548,7 +5674,7 @@ defmodule ControlKeel.Mission do
 
   defp maybe_filter_finding_metadata(query, key, value) do
     from([f, _s, _w] in query,
-      where: fragment("json_extract(?, ?)", f.metadata, ^"$.#{key}") == ^value
+      where: json_extract_path(f.metadata, [^key]) == ^value
     )
   end
 
@@ -5556,10 +5682,7 @@ defmodule ControlKeel.Mission do
     query
     |> exclude(:preload)
     |> where([f, _s, _w], f.category == "security")
-    |> where(
-      [f, _s, _w],
-      fragment("json_extract(?, '$.finding_family')", f.metadata) == "vulnerability_case"
-    )
+    |> where([f, _s, _w], json_extract_path(f.metadata, ["finding_family"]) == "vulnerability_case")
   end
 
   defp unresolved_vulnerability_cases_query(query) do
@@ -5578,36 +5701,65 @@ defmodule ControlKeel.Mission do
   defp unresolved_vulnerability_case_dynamic do
     dynamic(
       [f],
-      fragment("coalesce(json_extract(?, '$.patch_status'), 'none')", f.metadata) not in [
-        "validated",
-        "merged"
-      ] or
-        fragment("coalesce(json_extract(?, '$.disclosure_status'), 'draft')", f.metadata) in [
-          "draft",
-          "triaged",
-          "reported"
-        ]
+      (is_nil(json_extract_path(f.metadata, ["patch_status"])) or
+         json_extract_path(f.metadata, ["patch_status"]) not in ^["validated", "merged"]) or
+        (is_nil(json_extract_path(f.metadata, ["disclosure_status"])) or
+           json_extract_path(f.metadata, ["disclosure_status"]) in ^[
+             "draft",
+             "triaged",
+             "reported"
+           ])
     )
   end
 
-  defp count_vulnerability_metadata(query, key) do
-    query
-    |> group_by(
-      [f, _s, _w],
-      fragment("coalesce(json_extract(?, ?), 'unknown')", f.metadata, ^"$.#{key}")
-    )
-    |> select(
-      [f, _s, _w],
-      {fragment("coalesce(json_extract(?, ?), 'unknown')", f.metadata, ^"$.#{key}"), count(f.id)}
-    )
-    |> Repo.all()
-    |> Map.new()
+  if ControlKeel.Repo.__adapter__() == Ecto.Adapters.Postgres do
+    defp count_vulnerability_metadata(query, key) do
+      query
+      |> group_by([f, _s, _w], fragment("coalesce(?#>>array[?]::text[], 'unknown')", f.metadata, ^key))
+      |> select([f, _s, _w], {fragment("coalesce(?#>>array[?]::text[], 'unknown')", f.metadata, ^key), count(f.id)})
+      |> Repo.all()
+      |> Map.new()
+    end
+  else
+    defp count_vulnerability_metadata(query, key) do
+      query
+      |> group_by([f, _s, _w], fragment("coalesce(json_extract(?, ?), 'unknown')", f.metadata, ^"$.#{key}"))
+      |> select([f, _s, _w], {fragment("coalesce(json_extract(?, ?), 'unknown')", f.metadata, ^"$.#{key}"), count(f.id)})
+      |> Repo.all()
+      |> Map.new()
+    end
   end
 
   defp maybe_filter_session(query, nil), do: query
 
   defp maybe_filter_session(query, session_id) do
     from([f, _s, _w] in query, where: f.session_id == ^session_id)
+  end
+
+  defp maybe_filter_finding_workspace(query, nil), do: query
+  defp maybe_filter_finding_workspace(query, []), do: query
+
+  defp maybe_filter_finding_workspace(query, workspace_id) when is_integer(workspace_id) do
+    from([_f, s, _w] in query, where: s.workspace_id == ^workspace_id)
+  end
+
+  defp maybe_filter_finding_workspace(query, workspace_ids) when is_list(workspace_ids) do
+    from([_f, s, _w] in query, where: s.workspace_id in ^workspace_ids)
+  end
+
+  defp maybe_filter_proof_workspace(query, nil), do: query
+  defp maybe_filter_proof_workspace(query, []), do: query
+
+  defp maybe_filter_proof_workspace(query, workspace_id) when is_integer(workspace_id) do
+    from([_proof, _task, session, _workspace] in query,
+      where: session.workspace_id == ^workspace_id
+    )
+  end
+
+  defp maybe_filter_proof_workspace(query, workspace_ids) when is_list(workspace_ids) do
+    from([_proof, _task, session, _workspace] in query,
+      where: session.workspace_id in ^workspace_ids
+    )
   end
 
   defp maybe_filter_proof_session(query, nil), do: query

@@ -23,6 +23,7 @@ defmodule ControlKeel.MCP.Tools.CkRoute do
       |> maybe_put(:risk_tier, Map.get(arguments, "risk_tier"))
       |> maybe_put(:budget_remaining_cents, Map.get(arguments, "budget_remaining_cents"))
       |> maybe_put(:allowed_agents, Map.get(arguments, "allowed_agents"))
+      |> maybe_put(:token_overhead_k, Map.get(arguments, "token_overhead_k"))
 
     case AgentRouter.route(task, opts) do
       {:ok, recommendation} ->

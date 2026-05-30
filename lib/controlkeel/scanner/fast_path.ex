@@ -8,7 +8,7 @@ defmodule ControlKeel.Scanner.FastPath do
   alias ControlKeel.Policy.PackLoader
   alias ControlKeel.Policy.Rule
   alias ControlKeel.Scanner
-  alias ControlKeel.Scanner.{Advisory, Entropy, Patterns, Semgrep}
+  alias ControlKeel.Scanner.{Advisory, Aislop, Entropy, Patterns, Semgrep}
   alias ControlKeel.SecurityWorkflow
   alias ControlKeel.TrustBoundary
   alias ControlKeel.Validation.Matchers.Scanner, as: MatcherScanner
@@ -86,6 +86,16 @@ defmodule ControlKeel.Scanner.FastPath do
         []
       end
 
+    layer2b =
+      if aislop_enabled?() and Aislop.available?() and Aislop.code_like?(normalized) do
+        case Aislop.scan(normalized, timeout_ms: 8_000) do
+          {:ok, %{status: :ok, findings: af}} -> af
+          _ -> []
+        end
+      else
+        []
+      end
+
     layer3 =
       if matcher_system_enabled?() and code_content?(normalized) do
         MatcherScanner.scan(
@@ -98,7 +108,7 @@ defmodule ControlKeel.Scanner.FastPath do
         []
       end
 
-    combined = uniq_findings(layer1 ++ layer2 ++ layer3)
+    combined = uniq_findings(layer1 ++ layer2 ++ layer2b ++ layer3)
 
     layer4 = Advisory.scan(normalized, combined)
     merged = uniq_findings(combined ++ layer4)
@@ -548,6 +558,11 @@ defmodule ControlKeel.Scanner.FastPath do
 
   defp deepsec_enabled? do
     Application.get_env(:controlkeel, :deepsec, [])
+    |> Keyword.get(:enabled, false)
+  end
+
+  defp aislop_enabled? do
+    Application.get_env(:controlkeel, :aislop, [])
     |> Keyword.get(:enabled, false)
   end
 

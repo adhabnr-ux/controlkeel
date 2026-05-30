@@ -1883,7 +1883,7 @@ defmodule ControlKeel.Observability do
     |> join(:inner, [s], suite in assoc(s, :suite))
     |> where(
       [s, _suite],
-      fragment("json_extract(?, ?) = ?", s.metadata, "$.source", "observability_benchmark_draft")
+      json_extract_path(s.metadata, ["source"]) == "observability_benchmark_draft"
     )
     |> maybe_filter_observability_scenario_workspace(Keyword.get(opts, :workspace_id))
     |> preload([_s, suite], suite: suite)
@@ -1897,7 +1897,7 @@ defmodule ControlKeel.Observability do
     |> join(:inner, [s], suite in assoc(s, :suite))
     |> where(
       [s, _suite],
-      fragment("json_extract(?, ?) = ?", s.metadata, "$.source", "observability_benchmark_draft")
+      json_extract_path(s.metadata, ["source"]) == "observability_benchmark_draft"
     )
     |> maybe_filter_observability_scenario_workspace(Keyword.get(opts, :workspace_id))
     |> Repo.aggregate(:count, :id)
@@ -1915,7 +1915,7 @@ defmodule ControlKeel.Observability do
     where(
       query,
       [s, _suite],
-      fragment("json_extract(?, ?)", s.metadata, "$.benchmark_draft_id") in ^draft_ids
+      json_extract_path(s.metadata, ["benchmark_draft_id"]) in ^draft_ids
     )
   end
 

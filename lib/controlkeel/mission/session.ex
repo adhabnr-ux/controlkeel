@@ -2,6 +2,7 @@ defmodule ControlKeel.Mission.Session do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias ControlKeel.Cloud.TelemetryEnvelope
   alias ControlKeel.Memory.Record
 
   alias ControlKeel.Mission.{
@@ -17,7 +18,10 @@ defmodule ControlKeel.Mission.Session do
 
   alias ControlKeel.Platform.{AuditExport, TaskEdge, TaskRun}
 
+  @external_id_prefix "ses_"
+
   schema "sessions" do
+    field :external_id, :string
     field :title, :string
     field :objective, :string
     field :risk_tier, :string
@@ -28,6 +32,8 @@ defmodule ControlKeel.Mission.Session do
     field :proxy_token, :string
     field :execution_brief, :map, default: %{}
     field :metadata, :map, default: %{}
+    field :synced_at, :utc_datetime
+    field :lock_version, :integer, default: 1
 
     belongs_to :workspace, Workspace
     has_many :tasks, Task
@@ -48,6 +54,7 @@ defmodule ControlKeel.Mission.Session do
   def changeset(session, attrs) do
     session
     |> cast(attrs, [
+      :external_id,
       :title,
       :objective,
       :risk_tier,
@@ -58,6 +65,8 @@ defmodule ControlKeel.Mission.Session do
       :proxy_token,
       :execution_brief,
       :metadata,
+      :synced_at,
+      :lock_version,
       :workspace_id
     ])
     |> ensure_proxy_token()
@@ -76,8 +85,49 @@ defmodule ControlKeel.Mission.Session do
     |> validate_number(:budget_cents, greater_than_or_equal_to: 0)
     |> validate_number(:daily_budget_cents, greater_than_or_equal_to: 0)
     |> validate_number(:spent_cents, greater_than_or_equal_to: 0)
+    |> validate_format(:external_id, ~r/^ses_[0-9A-Z]{26}$|^ses_legacy_[0-9]+$/,
+      message: "must be ses_<ulid> or ses_legacy_<id>"
+    )
+    |> maybe_generate_external_id()
+    |> unique_constraint(:external_id)
     |> unique_constraint(:proxy_token)
     |> assoc_constraint(:workspace)
+  end
+
+  @doc """
+  Allowlist of fields safe to ship via cloud sync. Anything not listed here
+  is dropped from the serialized payload.
+  """
+  def sync_fields do
+    {:include,
+     [
+       :id,
+       :external_id,
+       :workspace_id,
+       :title,
+       :objective,
+       :risk_tier,
+       :status,
+       :budget_cents,
+       :daily_budget_cents,
+       :spent_cents,
+       :execution_brief,
+       :metadata,
+       :synced_at,
+       :lock_version,
+       :inserted_at,
+       :updated_at
+     ]}
+  end
+
+  defp maybe_generate_external_id(changeset) do
+    case get_field(changeset, :external_id) do
+      nil ->
+        put_change(changeset, :external_id, @external_id_prefix <> TelemetryEnvelope.ulid())
+
+      _ ->
+        changeset
+    end
   end
 
   defp ensure_proxy_token(changeset) do

@@ -232,6 +232,26 @@ This creates a systems problem:
 CK's stance is not "just store it in a spreadsheet". Use the local observability and benchmark workflow to keep the evidence portable, reviewable, and promotable into regression protection.
 
 
+## Opt-in telemetry sync levels
+
+When teams need shared observability across multiple ControlKeel instances, telemetry sync becomes valuable. The opt-in levels are cumulative and strictly increasing:
+
+| Level | What syncs | When to use |
+| --- | --- | --- |
+| **Health** | Heartbeat, version, workspace ID | Fleet monitoring; no governance content |
+| **Governance metadata** | Finding counts, review status, budget summaries | Team dashboards; no source code or diffs |
+| **Evidence sync** | Proof bundles, review packets, memory citations (redacted) | Cross-host coordination; shared audit trail |
+| **Full enterprise audit** | Complete session transcripts (redacted), benchmark results, policy change history | Regulated environments; SOC 2 / GDPR compliance audit |
+
+Key boundaries:
+
+- Telemetry sync is off by default. Operators must explicitly enable it per-workspace.
+- The local observability loop works fully without any telemetry sync. Local evidence, benchmarks, eval candidates, and promotion candidates remain the primary surfaces.
+- Sync applies the same redaction rules as proof bundles and audit exports before data leaves the node.
+- There is no automatic escalation between levels.
+
+The phased build path for these sync levels is documented in [cloud-enterprise-roadmap.md](cloud-enterprise-roadmap.md).
+
 ## Learning loop status
 
 Use `controlkeel obs loop` or the read-only MCP `ck_observability` report `loop_status` when an agent or operator needs the whole self-improvement picture in one place. The loop status combines active problems, derived and saved eval candidates, benchmark drafts, materialized scenarios, benchmark history, promotion readiness, blockers, and next actions.

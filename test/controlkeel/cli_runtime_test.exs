@@ -104,6 +104,221 @@ defmodule ControlKeel.CLIRuntimeTest do
     assert message =~ "controlkeel help codx attach"
   end
 
+  test "session list and switch expose mission switching for a bound project", %{tmp_dir: tmp_dir} do
+    first = session_fixture(%{title: "First local mission", risk_tier: "low"})
+    second = session_fixture(%{title: "Second local mission", risk_tier: "high"})
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => first.workspace_id,
+                 "session_id" => first.id,
+                 "agent" => "claude",
+                 "attached_agents" => %{}
+               },
+               tmp_dir
+             )
+
+    assert {:ok, %{command: :session_list}} = CLI.parse(["session", "list"])
+
+    assert {:ok, %{command: :session_switch, args: [id]}} =
+             CLI.parse(["session", "switch", Integer.to_string(second.id)])
+
+    assert id == Integer.to_string(second.id)
+
+    list_output =
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :session_list, options: %{}, args: []},
+                   project_root: tmp_dir
+                 )
+      end)
+
+    assert list_output =~ "Recent missions"
+    assert list_output =~ "First local mission"
+    assert list_output =~ "Second local mission"
+
+    switch_output =
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(
+                   %{
+                     command: :session_switch,
+                     options: %{},
+                     args: [Integer.to_string(second.id)]
+                   },
+                   project_root: tmp_dir
+                 )
+      end)
+
+    assert switch_output =~ "Switched ControlKeel project binding to mission ##{second.id}"
+
+    assert {:ok, updated_binding} = ProjectBinding.read(tmp_dir)
+    assert updated_binding["session_id"] == second.id
+    assert updated_binding["workspace_id"] == second.workspace_id
+
+    status_output =
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{command: :status, options: %{}, args: []}, project_root: tmp_dir)
+      end)
+
+    assert status_output =~ "Second local mission"
+    refute status_output =~ "First local mission"
+  end
+
+  test "session switch reports missing missions without changing the binding", %{tmp_dir: tmp_dir} do
+    first = session_fixture(%{title: "Only local mission"})
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => first.workspace_id,
+                 "session_id" => first.id,
+                 "agent" => "claude",
+                 "attached_agents" => %{}
+               },
+               tmp_dir
+             )
+
+    switch_output =
+      capture_io(:stderr, fn ->
+        assert 1 ==
+                 CLI.execute(
+                   %{command: :session_switch, options: %{}, args: ["99999999"]},
+                   project_root: tmp_dir
+                 )
+      end)
+
+    assert switch_output =~ "Mission not found: 99999999"
+    assert {:ok, binding} = ProjectBinding.read(tmp_dir)
+    assert binding["session_id"] == first.id
+  end
+
+  test "guided help explains session switching" do
+    help_output =
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(%{
+                   command: :help,
+                   options: %{},
+                   args: ["switch", "mission"]
+                 })
+      end)
+
+    assert help_output =~ "Matched topic: Sessions and mission switching"
+    assert help_output =~ "controlkeel session list"
+    assert help_output =~ "controlkeel session switch <mission-id>"
+  end
+
+  test "session switch works from a nested folder and writes the project root binding", %{
+    tmp_dir: tmp_dir
+  } do
+    first = session_fixture(%{title: "Nested first mission"})
+    second = session_fixture(%{title: "Nested second mission"})
+    nested_dir = Path.join(tmp_dir, "apps/web/lib")
+    File.mkdir_p!(nested_dir)
+    File.write!(Path.join(tmp_dir, "mix.exs"), "defmodule Nested.MixProject do\nend\n")
+
+    assert {:ok, _binding} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => first.workspace_id,
+                 "session_id" => first.id,
+                 "agent" => "claude",
+                 "attached_agents" => %{}
+               },
+               tmp_dir
+             )
+
+    output =
+      capture_io(fn ->
+        assert 0 ==
+                 CLI.execute(
+                   %{
+                     command: :session_switch,
+                     options: %{},
+                     args: [Integer.to_string(second.id)]
+                   },
+                   project_root: nested_dir
+                 )
+      end)
+
+    assert output =~ "Nested second mission"
+    assert {:ok, binding} = ProjectBinding.read(tmp_dir)
+    assert binding["session_id"] == second.id
+    assert binding["project_root"] == ProjectRoot.resolve(tmp_dir)
+  end
+
+  test "session switch keeps unrelated folder bindings isolated", %{tmp_dir: tmp_dir} do
+    first_root = Path.join(tmp_dir, "project-a")
+    second_root = Path.join(tmp_dir, "project-b")
+    File.mkdir_p!(first_root)
+    File.mkdir_p!(second_root)
+    File.write!(Path.join(first_root, "mix.exs"), "defmodule A.MixProject do\nend\n")
+    File.write!(Path.join(second_root, "mix.exs"), "defmodule B.MixProject do\nend\n")
+
+    first = session_fixture(%{title: "Project A mission"})
+    second = session_fixture(%{title: "Project B mission"})
+    target = session_fixture(%{title: "Project A switched mission"})
+
+    assert {:ok, _} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => first.workspace_id,
+                 "session_id" => first.id,
+                 "agent" => "claude",
+                 "attached_agents" => %{}
+               },
+               first_root
+             )
+
+    assert {:ok, _} =
+             ProjectBinding.write(
+               %{
+                 "workspace_id" => second.workspace_id,
+                 "session_id" => second.id,
+                 "agent" => "claude",
+                 "attached_agents" => %{}
+               },
+               second_root
+             )
+
+    capture_io(fn ->
+      assert 0 ==
+               CLI.execute(
+                 %{command: :session_switch, options: %{}, args: [Integer.to_string(target.id)]},
+                 project_root: first_root
+               )
+    end)
+
+    assert {:ok, first_binding} = ProjectBinding.read(first_root)
+    assert {:ok, second_binding} = ProjectBinding.read(second_root)
+    assert first_binding["session_id"] == target.id
+    assert second_binding["session_id"] == second.id
+  end
+
+  test "session switch reports corrupt project bindings", %{tmp_dir: tmp_dir} do
+    target = session_fixture(%{title: "Target mission"})
+    File.mkdir_p!(Path.join(tmp_dir, "controlkeel"))
+    File.write!(Path.join(tmp_dir, "controlkeel/project.json"), "not-json")
+
+    output =
+      capture_io(:stderr, fn ->
+        assert 1 ==
+                 CLI.execute(
+                   %{
+                     command: :session_switch,
+                     options: %{},
+                     args: [Integer.to_string(target.id)]
+                   },
+                   project_root: tmp_dir
+                 )
+      end)
+
+    assert output =~ "Could not switch mission"
+  end
+
   test "skills list supports json output", %{tmp_dir: tmp_dir} do
     assert {:ok, skills_list} = CLI.parse(["skills", "list", "--json"])
 

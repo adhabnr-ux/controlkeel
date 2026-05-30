@@ -12,6 +12,8 @@ defmodule ControlKeelWeb.MissionControlLive do
 
   @impl true
   def mount(%{"id" => id} = params, _session, socket) do
+    org_id = socket.assigns[:current_org_id]
+
     case Mission.get_session_context(id) do
       nil ->
         {:ok,
@@ -19,9 +21,28 @@ defmodule ControlKeelWeb.MissionControlLive do
          |> put_flash(:error, "Mission not found.")
          |> push_navigate(to: ~p"/")}
 
+      session when not is_nil(org_id) and not is_nil(session) ->
+        if session_accessible?(session, org_id) do
+          if connected?(socket), do: schedule_refresh()
+          project_root = socket.endpoint.config(:project_root) || File.cwd!()
+
+          {:ok,
+           socket
+           |> assign(:page_title, session.title)
+           |> assign(:project_root, project_root)
+           |> assign(:launched, Map.get(params, "launched") == "1")
+           |> assign(:selected_finding, nil)
+           |> assign(:selected_fix, nil)
+           |> assign_session(session)}
+        else
+          {:ok,
+           socket
+           |> put_flash(:error, "Mission not found.")
+           |> push_navigate(to: ~p"/")}
+        end
+
       session ->
         if connected?(socket), do: schedule_refresh()
-
         project_root = socket.endpoint.config(:project_root) || File.cwd!()
 
         {:ok,
@@ -102,10 +123,16 @@ defmodule ControlKeelWeb.MissionControlLive do
   end
 
   @impl true
-  def handle_event("reject_finding", %{"id" => id}, socket) do
+  def handle_event("reject_finding", params, socket) do
+    id = params["id"]
+
+    reason =
+      params["reason"]
+      |> then(&if is_binary(&1) and String.trim(&1) != "", do: String.trim(&1), else: nil)
+
     with {:ok, finding_id} <- parse_id(id),
          %{} = finding <- Enum.find(socket.assigns.session.findings, &(&1.id == finding_id)),
-         {:ok, _updated} <- Mission.reject_finding(finding) do
+         {:ok, _updated} <- Mission.reject_finding(finding, reason) do
       case Mission.get_session_context(socket.assigns.session.id) do
         nil ->
           {:noreply, socket}
@@ -198,6 +225,29 @@ defmodule ControlKeelWeb.MissionControlLive do
             <span class="ck-pill ck-pill-neutral">{@workspace.compliance_profile}</span>
           </div>
         </div>
+
+        <%= if @other_sessions != [] do %>
+          <div id="mission-switcher" class="ck-card" style="margin-bottom: 1rem;">
+            <div class="ck-section-header" style="margin-bottom: 0.75rem;">
+              <div>
+                <p class="ck-mini-label">Mission switcher</p>
+                <h2 style="margin: 0; font-size: 1.1rem;">Open another mission</h2>
+                <p class="ck-note" style="margin: 0.25rem 0 0;">
+                  These links use persisted mission data; use
+                  <code>controlkeel session switch &lt;id&gt;</code>
+                  in a project folder when the CLI binding should follow one of them.
+                </p>
+              </div>
+            </div>
+            <div class="ck-tag-list">
+              <%= for other <- @other_sessions do %>
+                <.link navigate={~p"/missions/#{other.id}"} class="ck-tag">
+                  #{other.id} · {other.title}
+                </.link>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
 
         <div class="ck-stat-grid">
           <div class="ck-card ck-stat-card">
@@ -874,6 +924,9 @@ defmodule ControlKeelWeb.MissionControlLive do
       compliance_score: compliance_score(session.findings),
       latest_proofs: Mission.latest_proof_bundles_for_session(session.id),
       observability: Observability.session_run(session),
+      other_sessions:
+        Mission.list_recent_sessions(10)
+        |> Enum.reject(&(&1.id == session.id)),
       current_proof_summary: current_task(session.tasks) |> Mission.proof_summary_for_task(),
       current_memory_hits: current_memory_hits(session),
       current_workspace_context: Mission.workspace_context(session),
@@ -1050,5 +1103,13 @@ defmodule ControlKeelWeb.MissionControlLive do
       total_findings: 0,
       blocked_findings_total: 0
     }
+  end
+
+  defp session_accessible?(_session, nil), do: true
+
+  defp session_accessible?(%{workspace_id: ws_id}, org_id) when is_integer(org_id) do
+    org_id
+    |> ControlKeel.Accounts.list_workspaces_for_org()
+    |> Enum.any?(fn ws -> ws.id == ws_id end)
   end
 end

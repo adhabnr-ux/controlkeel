@@ -109,7 +109,10 @@ defmodule ControlKeelWeb.FindingsLiveTest do
     assert render(view) =~ "Finding approved."
     assert Mission.get_finding!(actionable.id).status == "approved"
 
+    # Clicking reject now shows the reason input panel first
     render_click(element(view, "button[phx-click=\"reject\"][phx-value-id=\"#{rejectable.id}\"]"))
+    # Confirm the rejection (without a reason)
+    render_click(element(view, "button[phx-click=\"confirm_reject\"]"))
     assert Mission.get_finding!(rejectable.id).status == "rejected"
   end
 

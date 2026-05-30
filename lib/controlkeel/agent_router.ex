@@ -51,6 +51,7 @@ defmodule ControlKeel.AgentRouter do
       cost_tier: :medium,
       security_tier: :high,
       swe_bench_score: 0.72,
+      context_window_k: 200,
       local: true
     },
     "cursor" => %{
@@ -59,6 +60,7 @@ defmodule ControlKeel.AgentRouter do
       cost_tier: :medium,
       security_tier: :high,
       swe_bench_score: 0.65,
+      context_window_k: 200,
       local: true
     },
     "windsurf" => %{
@@ -67,6 +69,7 @@ defmodule ControlKeel.AgentRouter do
       cost_tier: :medium,
       security_tier: :high,
       swe_bench_score: 0.63,
+      context_window_k: 128,
       local: true
     },
     "kiro" => %{
@@ -75,6 +78,7 @@ defmodule ControlKeel.AgentRouter do
       cost_tier: :medium,
       security_tier: :high,
       swe_bench_score: 0.60,
+      context_window_k: 128,
       local: true
     },
     "augment" => %{
@@ -83,6 +87,7 @@ defmodule ControlKeel.AgentRouter do
       cost_tier: :medium,
       security_tier: :high,
       swe_bench_score: 0.58,
+      context_window_k: 200,
       local: true
     },
     "amp" => %{
@@ -91,6 +96,7 @@ defmodule ControlKeel.AgentRouter do
       cost_tier: :medium,
       security_tier: :high,
       swe_bench_score: 0.60,
+      context_window_k: 200,
       local: true
     },
     # ── Category B: Local CLIs ───────────────────────────────────────────────
@@ -108,6 +114,7 @@ defmodule ControlKeel.AgentRouter do
       cost_tier: :free,
       security_tier: :critical,
       swe_bench_score: 0.52,
+      context_window_k: 200,
       local: true
     },
     "codex-cli" => %{
@@ -116,6 +123,7 @@ defmodule ControlKeel.AgentRouter do
       cost_tier: :low,
       security_tier: :high,
       swe_bench_score: 0.64,
+      context_window_k: 128,
       local: true
     },
     "antigravity" => %{
@@ -614,6 +622,7 @@ defmodule ControlKeel.AgentRouter do
     budget_remaining = Keyword.get(opts, :budget_remaining_cents)
     allowed = Keyword.get(opts, :allowed_agents, Map.keys(@agents))
     domain_pack = Keyword.get(opts, :domain_pack, "software")
+    token_overhead_k = Keyword.get(opts, :token_overhead_k)
 
     candidates =
       @agents
@@ -621,6 +630,7 @@ defmodule ControlKeel.AgentRouter do
       |> Enum.filter(fn {_, agent} -> security_ok?(agent, risk_tier) end)
       |> Enum.filter(fn {_, agent} -> capability_match?(agent, task_type) end)
       |> Enum.filter(fn {_, agent} -> budget_ok?(agent, budget_remaining) end)
+      |> Enum.filter(fn {_, agent} -> context_window_ok?(agent, token_overhead_k) end)
 
     case candidates do
       [] ->
@@ -713,6 +723,14 @@ defmodule ControlKeel.AgentRouter do
       true ->
         :backend
     end
+  end
+
+  # If no overhead provided, never exclude on context window.
+  # If overhead_k is given, require agent context_window_k >= overhead_k.
+  # Agents without a context_window_k field assume a 128k window.
+  defp context_window_ok?(_agent, nil), do: true
+  defp context_window_ok?(agent, overhead_k) do
+    Map.get(agent, :context_window_k, 128) >= overhead_k
   end
 
   defp security_ok?(%{security_tier: :critical}, _risk), do: true

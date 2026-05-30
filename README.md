@@ -21,7 +21,7 @@ If you're using an AI agent today, you probably have an `*.md` telling it how to
 - **Portability:** Move between OpenCode, Claude Code, Cursor, or any supported host without losing your task state with task continuity and resume context.
 - **Persistence:** Typed memory with citations and "proof bundles" with policy packs mean your agent remembers *why* decisions were made, even weeks later as findings become living knowledge with workspace snapshots.
 - **Governance:** Built-in review gates, approval flows, and budget controls that work the same way regardless of which host you use.
-- **Observability:** Local loop that turns governance evidence into human-gated regression testing and evidence-driven improvement without sending telemetry to a hosted service.
+- **Observability:** Local loop that turns governance evidence into human-gated regression testing and evidence-driven improvement. No telemetry is sent by default; cloud telemetry sync is opt-in when teams need shared dashboards.
 
 ControlKeel transforms your domain knowledge from "shelfware" documentation into a living system that remembers, enforces, and evolves.
 
@@ -34,7 +34,7 @@ ControlKeel transforms your domain knowledge from "shelfware" documentation into
 Copy/paste this into your agent (OpenCode, Codex, Claude, or another supported host):
 
 ```text
-Set up ControlKeel end-to-end for this repository with minimal user action: read and follow https://raw.githubusercontent.com/aryaminus/controlkeel/main/README.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/getting-started.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/direct-host-installs.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/support-matrix.md, and https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/agent-integrations.md; detect this host's capabilities, install ControlKeel if missing, run controlkeel setup in the repo, then attach the strongest active supported host path first (attach additional configured hosts only when they add real value for this workspace) with plugin and MCP plus skills/hooks/agents as available; run controlkeel attach doctor, controlkeel provider doctor, controlkeel status, controlkeel findings, controlkeel me, and the host-specific MCP check, and if a fix is safe and local apply it then re-verify; if the host requires a trusted project/workspace, restart after attach/plugin changes, needs manual provider configuration, or a plan review cannot auto-wait to approved, pause and ask the user to take that step before continuing; redact proxy tokens/secrets from any shared logs; for Codex ensure the project is trusted and restart Codex after attach/plugin changes.
+Set up ControlKeel for this repository. Read and follow https://raw.githubusercontent.com/aryaminus/controlkeel/main/README.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/getting-started.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/one-line-install.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/direct-host-installs.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/support-matrix.md, and https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/agent-integrations.md. Detect this host, install CK if missing, run controlkeel setup, then attach the strongest useful host path with plugin and MCP plus skills/hooks/agents as available. If CK was added only as MCP, call ck_attach for this host to install the missing hooks, skills, commands, and agent profiles. Run controlkeel attach doctor, provider doctor, status, findings, controlkeel me, and the host-specific MCP check; apply only safe local fixes and re-verify. Redact proxy tokens and secrets from shared logs. Pause and ask before continuing if the host needs trust, manual provider config, a restart after attach/plugin changes, or a plan-review approval that cannot auto-wait. For Codex, ensure the project is trusted and restart Codex after attach/plugin changes.
 ```
 
 ### Install ControlKeel
@@ -58,6 +58,8 @@ curl -fsSL https://github.com/aryaminus/controlkeel/releases/latest/download/ins
 ```powershell
 irm https://github.com/aryaminus/controlkeel/releases/latest/download/install.ps1 | iex
 ```
+
+For host-specific one-liners and MCP-only copy/paste setup, see [docs/one-line-install.md](docs/one-line-install.md). If a user starts with MCP-only setup, the agent can call `ck_attach` to add the repo-local hooks, skills, commands, and companion agents without leaving the session.
 
 ### First governed run
 
@@ -339,6 +341,7 @@ Reference:
 
 Architecture and release operations:
 
+- [docs/cloud-enterprise-roadmap.md](docs/cloud-enterprise-roadmap.md)
 - [docs/control-plane-architecture.md](docs/control-plane-architecture.md)
 - [docs/host-surface-parity.md](docs/host-surface-parity.md)
 - [docs/how-controlkeel-works.md](docs/how-controlkeel-works.md)

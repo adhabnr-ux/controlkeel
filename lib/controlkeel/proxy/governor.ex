@@ -1,9 +1,11 @@
 defmodule ControlKeel.Proxy.Governor do
   @moduledoc false
 
+  alias ControlKeel.Accounts
   alias ControlKeel.Budget
   alias ControlKeel.Mission
   alias ControlKeel.Mission.Session
+  alias ControlKeel.ProviderBroker.FallbackChain
   alias ControlKeel.Scanner
   alias ControlKeel.Scanner.{FastPath, Semgrep}
 
@@ -34,13 +36,23 @@ defmodule ControlKeel.Proxy.Governor do
         _other -> []
       end
 
+    org_cap_findings = org_cap_findings(session, provider, tool)
+
     scan = scan_content(extracted.text, opts[:path], opts[:kind] || "text", opts)
-    findings = uniq_findings(budget_findings ++ scan.findings)
+    findings = uniq_findings(budget_findings ++ org_cap_findings ++ scan.findings)
     decision = final_decision(budget, findings)
     summary = summary_for(decision, budget, findings)
 
     persist_findings(session, findings, opts, "request")
     emit_decision(provider, "request", decision, session.id, length(findings))
+
+    fallback_provider =
+      if decision == "block" and only_budget_blocked?(findings) do
+        estimated_cost = budget_estimated_cost(budget)
+        provider_str = Atom.to_string(provider)
+        project_root = opts[:project_root] || File.cwd!()
+        FallbackChain.select(project_root, session.id, estimated_cost, provider_str)
+      end
 
     {:ok,
      %{
@@ -48,7 +60,8 @@ defmodule ControlKeel.Proxy.Governor do
        allowed: decision != "block",
        summary: summary,
        findings: findings,
-       budget: budget
+       budget: budget,
+       fallback_provider: fallback_provider
      }}
   end
 
@@ -172,6 +185,37 @@ defmodule ControlKeel.Proxy.Governor do
     }
   end
 
+  defp org_cap_findings(%Session{workspace_id: workspace_id}, provider, tool)
+       when is_integer(workspace_id) do
+    case Accounts.workspace_org_cap_status(workspace_id) do
+      :ok ->
+        []
+
+      {:over_cap, status} ->
+        [
+          %Scanner.Finding{
+            id: "org_budget_" <> Integer.to_string(System.unique_integer([:positive])),
+            severity: "high",
+            category: "cost",
+            rule_id: "cost.org_budget_cap_exceeded",
+            decision: "block",
+            plain_message:
+              "Org budget cap exceeded: spent #{status.spent_cents} of #{status.budget_cents} cents",
+            location: %{"path" => "/proxy/#{provider}#{tool}", "kind" => "text"},
+            metadata: %{
+              "scanner" => "org_budget",
+              "org_id" => status.org_id,
+              "budget_cents" => status.budget_cents,
+              "spent_cents" => status.spent_cents,
+              "remaining_cents" => status.remaining_cents
+            }
+          }
+        ]
+    end
+  end
+
+  defp org_cap_findings(_session, _provider, _tool), do: []
+
   defp budget_findings(%{"decision" => "allow"}, _provider, _tool), do: []
 
   defp budget_findings(result, provider, tool) do
@@ -287,4 +331,12 @@ defmodule ControlKeel.Proxy.Governor do
 
   defp estimated_cost({:ok, estimate}), do: estimate["estimated_cost_cents"]
   defp estimated_cost(_preflight), do: 0
+
+  defp only_budget_blocked?(findings) do
+    blocking = Enum.filter(findings, &(&1.decision == "block"))
+    blocking != [] and Enum.all?(blocking, &(&1.category == "cost"))
+  end
+
+  defp budget_estimated_cost({:ok, estimate}), do: estimate["estimated_cost_cents"] || 0
+  defp budget_estimated_cost(_), do: 0
 end

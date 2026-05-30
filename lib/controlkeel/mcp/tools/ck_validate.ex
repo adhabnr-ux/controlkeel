@@ -69,7 +69,8 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
     with {:ok, normalized} <- normalize(arguments) do
       result = FastPath.scan(normalized)
       maybe_persist(normalized, result.findings)
-      {:ok, public_result(result)}
+      trust_advisory = trust_policy_advisory(normalized["task_id"])
+      {:ok, public_result(result, trust_advisory)}
     end
   end
 
@@ -217,7 +218,7 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
     :ok
   end
 
-  defp public_result(%Scanner.Result{} = result) do
+  defp public_result(%Scanner.Result{} = result, trust_advisory) do
     fix_prompts =
       result.findings
       |> Enum.filter(&(&1.decision == "block"))
@@ -234,6 +235,12 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
       end)
       |> Enum.reject(&is_nil(&1["agent_prompt"]))
 
+    advisory =
+      case trust_advisory do
+        nil -> result.advisory
+        msg -> Enum.join(Enum.reject([result.advisory, msg], &is_nil/1), " ")
+      end
+
     %{
       "allowed" => result.allowed,
       "decision" => result.decision,
@@ -241,8 +248,26 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
       "findings" => Enum.map(result.findings, &finding_to_map/1),
       "fix_prompts" => fix_prompts,
       "scanned_at" => result.scanned_at,
-      "advisory" => result.advisory
+      "advisory" => advisory,
+      "trust_policy_advisory" => trust_advisory
     }
+  end
+
+  defp trust_policy_advisory(nil), do: nil
+
+  defp trust_policy_advisory(task_id) do
+    case Mission.get_task(task_id) do
+      %{trust_policy: "spot_check"} ->
+        "trust_policy=spot_check: independently verify a representative sample of this result before accepting it. " <>
+          "Do not rely solely on this scan — spot-check the output against the task's stated hypothesis."
+
+      %{trust_policy: "re_verify"} ->
+        "trust_policy=re_verify: this task requires an independent re-verification pass. " <>
+          "Re-run validation on the full output with a fresh context before treating this result as final."
+
+      _ ->
+        nil
+    end
   end
 
   defp finding_to_map(%Scanner.Finding{} = finding) do

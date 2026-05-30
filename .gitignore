@@ -98,6 +98,7 @@ session-ses_*.md
 /.mcp.json
 /.mcp.hosted.json
 /gemini-extension.json
+/hooks.json
 /pi-extension.json
 /GEMINI.md
 /AUGMENT.md
@@ -114,6 +115,7 @@ session-ses_*.md
 /.github/agents/
 /.github/skills/
 /.github/commands/
+/.github/hooks/
 /.github/mcp.json
 /.github/copilot-instructions.md
 

@@ -1,0 +1,275 @@
+defmodule ControlKeel.Cloud.SyncTest do
+  use ControlKeel.DataCase
+
+  alias ControlKeel.Cloud.Sync
+  alias ControlKeel.Mission
+
+  defp workspace!(seed) do
+    {:ok, ws} =
+      Mission.create_workspace(%{
+        name: "Sync-#{seed}",
+        slug: "sync-#{seed}-#{:rand.uniform(99_999)}",
+        industry: "software",
+        agent: "claude-code",
+        budget_cents: 10_000,
+        compliance_profile: "baseline",
+        status: "active"
+      })
+
+    ws
+  end
+
+  defp session!(ws, title) do
+    {:ok, s} =
+      Mission.create_session(%{
+        title: title,
+        objective: "sync test",
+        risk_tier: "low",
+        budget_cents: 10_000,
+        daily_budget_cents: 5_000,
+        workspace_id: ws.id
+      })
+
+    s
+  end
+
+  defp finding!(session, rule_id, path \\ "lib/foo.ex") do
+    {:ok, f} =
+      Mission.create_finding(%{
+        session_id: session.id,
+        title: "test finding",
+        severity: "medium",
+        category: "code_quality",
+        rule_id: rule_id,
+        plain_message: "test",
+        status: "open",
+        metadata: %{"path" => path}
+      })
+
+    f
+  end
+
+  describe "collect_unsynced/2" do
+    test "returns unsynced findings for a workspace" do
+      ws = workspace!("collect")
+      s = session!(ws, "S1")
+      f = finding!(s, "CK-SYNC-001")
+
+      result = Sync.collect_unsynced(ws.id)
+      assert result.total >= 1
+
+      {kind, record} = Enum.find(result.records, fn {k, _} -> k == "finding" end)
+      assert kind == "finding"
+      assert record.id == f.id
+      assert record.external_id != nil
+      assert String.starts_with?(record.external_id, "f_")
+    end
+
+    test "excludes already-synced records" do
+      ws = workspace!("synced")
+      s = session!(ws, "S1")
+      f = finding!(s, "CK-SYNC-002")
+
+      # Mark as synced
+      f.__struct__.changeset(f, %{synced_at: DateTime.utc_now()})
+      |> Repo.update!()
+
+      result = Sync.collect_unsynced(ws.id)
+      finding_records = Enum.filter(result.records, fn {k, _} -> k == "finding" end)
+      assert Enum.find(finding_records, fn {_, r} -> r.id == f.id end) == nil
+    end
+
+    test "returns empty for workspace with no sessions" do
+      ws = workspace!("empty")
+      result = Sync.collect_unsynced(ws.id)
+      assert result.total == 0
+    end
+  end
+
+  describe "serialize_record/1" do
+    test "produces a valid sync envelope" do
+      ws = workspace!("serialize")
+      s = session!(ws, "S1")
+      f = finding!(s, "CK-SYNC-003")
+
+      envelope = Sync.serialize_record({"finding", f})
+
+      assert envelope["external_id"] == f.external_id
+      assert envelope["kind"] == "finding"
+      assert is_map(envelope["payload"])
+      assert envelope["idempotency_key"] != nil
+    end
+  end
+
+  describe "upsert_batch/1" do
+    test "inserts new records from cloud" do
+      ws = workspace!("upsert")
+      s = session!(ws, "S1")
+
+      envelope = %{
+        "external_id" => "f_TESTINSERT#{:rand.uniform(99_999)}",
+        "kind" => "finding",
+        "payload" => %{
+          "title" => "from cloud",
+          "severity" => "high",
+          "category" => "security",
+          "rule_id" => "CK-CLOUD-001",
+          "plain_message" => "cloud finding",
+          "status" => "open",
+          "auto_resolved" => false,
+          "metadata" => %{},
+          "session_id" => s.id
+        }
+      }
+
+      assert {:ok, result} = Sync.upsert_batch([envelope])
+      assert result.inserted == 1
+      assert result.skipped == 0
+
+      # Second upsert with no updated_at: append-only "not newer" → no_change
+      assert {:ok, result2} = Sync.upsert_batch([envelope])
+      assert result2.no_change == 1
+    end
+
+    test "applies cloud-side update when payload's updated_at is newer (closes CK-CLOUD-SYNC-003)" do
+      ws = workspace!("update")
+      s = session!(ws, "S1")
+      f = finding!(s, "CK-SYNC-UPDATE")
+
+      # Push once so the record has a known updated_at, then simulate cloud
+      # mutating status with a strictly newer updated_at.
+      newer = DateTime.add(f.updated_at, 60, :second) |> DateTime.to_iso8601()
+
+      envelope = %{
+        "external_id" => f.external_id,
+        "kind" => "finding",
+        "payload" => %{
+          "title" => f.title,
+          "severity" => f.severity,
+          "category" => f.category,
+          "rule_id" => f.rule_id,
+          "plain_message" => f.plain_message,
+          "status" => "blocked",
+          "auto_resolved" => false,
+          "metadata" => %{},
+          "session_id" => s.id,
+          "updated_at" => newer
+        }
+      }
+
+      assert {:ok, result} = Sync.upsert_batch([envelope])
+      assert result.updated == 1
+
+      refreshed = Repo.get!(ControlKeel.Mission.Finding, f.id)
+      assert refreshed.status == "blocked"
+    end
+
+    test "imports a remote session into the target local workspace" do
+      target_ws = workspace!("target-import")
+
+      envelope = %{
+        "external_id" => "ses_legacy_#{System.unique_integer([:positive])}",
+        "kind" => "session",
+        "payload" => %{
+          "workspace_id" => 999_999,
+          "title" => "imported session",
+          "objective" => "remote migration",
+          "risk_tier" => "low",
+          "status" => "active",
+          "budget_cents" => 1000,
+          "daily_budget_cents" => 1000,
+          "spent_cents" => 0,
+          "execution_brief" => "",
+          "metadata" => %{},
+          "lock_version" => 2
+        }
+      }
+
+      assert {:ok, %{inserted: 1}} =
+               Sync.upsert_batch([envelope], target_workspace_id: target_ws.id)
+
+      imported = Repo.get_by!(ControlKeel.Mission.Session, external_id: envelope["external_id"])
+      assert imported.workspace_id == target_ws.id
+      assert imported.title == "imported session"
+    end
+
+    test "resolves session_external_id refs instead of trusting remote numeric session_id" do
+      ws = workspace!("portable-ref")
+      session = session!(ws, "local target session")
+
+      envelope = %{
+        "external_id" => "f_REMOTE_REF_#{System.unique_integer([:positive])}",
+        "kind" => "finding",
+        "refs" => %{"session_external_id" => session.external_id},
+        "payload" => %{
+          "session_id" => 999_999,
+          "title" => "portable finding",
+          "severity" => "medium",
+          "category" => "migration",
+          "rule_id" => "CK-MIGRATE-REF",
+          "plain_message" => "attached by external ref",
+          "status" => "open",
+          "auto_resolved" => false,
+          "metadata" => %{}
+        }
+      }
+
+      assert {:ok, %{inserted: 1}} = Sync.upsert_batch([envelope])
+
+      imported = Repo.get_by!(ControlKeel.Mission.Finding, external_id: envelope["external_id"])
+      assert imported.session_id == session.id
+    end
+
+    test "serialized child records include portable session refs" do
+      ws = workspace!("serialize-ref")
+      session = session!(ws, "session ref")
+      finding = finding!(session, "CK-SYNC-REF")
+
+      envelope = Sync.serialize_record({"finding", finding})
+
+      assert envelope["refs"] == %{"session_external_id" => session.external_id}
+    end
+
+    test "rejects unknown kind" do
+      envelope = %{
+        "external_id" => "unknown_123",
+        "kind" => "nonexistent",
+        "payload" => %{}
+      }
+
+      assert {:ok, result} = Sync.upsert_batch([envelope])
+      assert result.skipped == 1
+    end
+
+    test "rejects batch exceeding max_batch_bytes" do
+      big = String.duplicate("x", 64)
+
+      envelopes =
+        for i <- 1..50 do
+          %{
+            "external_id" => "f_BIG#{i}",
+            "kind" => "finding",
+            "payload" => %{"blob" => String.duplicate(big, 256)}
+          }
+        end
+
+      assert {:error, {:batch_too_large, %{bytes: _, max: _}}} =
+               Sync.upsert_batch(envelopes, max_batch_bytes: 1024)
+    end
+  end
+
+  describe "mark_synced/1" do
+    test "sets synced_at on records" do
+      ws = workspace!("mark")
+      s = session!(ws, "S1")
+      f = finding!(s, "CK-SYNC-004")
+
+      assert f.synced_at == nil
+
+      Sync.mark_synced([{"finding", f}])
+
+      refreshed = Repo.get!(ControlKeel.Mission.Finding, f.id)
+      assert refreshed.synced_at != nil
+    end
+  end
+end

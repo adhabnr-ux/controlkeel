@@ -4,12 +4,18 @@ defmodule ControlKeelWeb.Endpoint do
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
+  session_max_age =
+    case System.get_env("SESSION_MAX_AGE_SECONDS", "0") do
+      "0" -> nil
+      s -> String.to_integer(s)
+    end
+
   @session_options [
     store: :cookie,
     key: "_controlkeel_key",
     signing_salt: "0M+fMgUN",
     same_site: "Lax"
-  ]
+  ] ++ if(session_max_age, do: [max_age: session_max_age], else: [])
 
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [connect_info: [session: @session_options]],

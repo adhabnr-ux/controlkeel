@@ -262,6 +262,24 @@ Registry support in the product currently means:
 
 Registry data never creates new attach targets and never mutates shipped install behavior.
 
+## Cloud-capable runtime surfaces
+
+Runtime surfaces that already support hosted MCP, A2A, or service-account-driven remote access are marked cloud-capable. These surfaces can run against a shared CK instance without requiring a local binary once the cloud-agent runtime loop is shipped (see [cloud-enterprise-roadmap.md](cloud-enterprise-roadmap.md)).
+
+| Runtime | Export command | Cloud protocol support | Status |
+| --- | --- | --- | --- |
+| `devin` | `controlkeel runtime export devin` | Hosted MCP, A2A | Shipped (headless runtime) |
+| `open-swe` | `controlkeel runtime export open-swe` | Hosted MCP, A2A | Shipped (headless runtime) |
+| `warp-oz` | `controlkeel runtime export warp-oz` | Hosted MCP, native skills, rules | Shipped (headless runtime) |
+| `executor` | `controlkeel runtime export executor` | Hosted MCP, A2A | Shipped (headless runtime) |
+| `virtual-bash` | `controlkeel runtime export virtual-bash` | Hosted MCP, commands | Shipped (headless runtime) |
+| `cloudflare-workers` | `controlkeel runtime export cloudflare-workers` | Hosted MCP | Shipped (headless runtime) |
+| `forge` | `controlkeel attach forge` | Hosted MCP, A2A | Shipped (attach client) |
+
+Attach clients that use only local stdio MCP (`local_mcp` only) are local-first and do not require cloud connectivity. They can participate in cloud governance through the hybrid mode described in the roadmap (local agents + hosted governance sync).
+
+The phased build path for full cloud-agent compatibility is documented in [cloud-enterprise-roadmap.md](cloud-enterprise-roadmap.md).
+
 ## Hosted protocol interop
 
 ControlKeel now exposes both local stdio MCP and hosted interop surfaces.

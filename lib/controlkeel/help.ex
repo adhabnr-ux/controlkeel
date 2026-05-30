@@ -201,6 +201,36 @@ defmodule ControlKeel.Help do
       related: ["findings", "review", "attach"]
     },
     %{
+      id: "sessions",
+      title: "Sessions and mission switching",
+      summary:
+        "Use session commands when a project binding should point at a different mission without reinitializing the folder.",
+      keywords: [
+        "session",
+        "sessions",
+        "mission",
+        "missions",
+        "switch",
+        "active",
+        "project",
+        "folder",
+        "binding"
+      ],
+      phrases: ["switch mission", "change active mission", "list missions", "different folder"],
+      commands: [
+        "controlkeel session list",
+        "controlkeel session switch <mission-id>",
+        "controlkeel status",
+        "controlkeel context --json"
+      ],
+      next_steps: [
+        "Run `controlkeel session list` to see recent missions available to bind.",
+        "Run `controlkeel session switch <mission-id>` inside the project folder that should use that mission.",
+        "Run `controlkeel status` to confirm the active mission, budget, findings, and proof state now match."
+      ],
+      related: ["getting-started", "run", "findings"]
+    },
+    %{
       id: "skills",
       title: "Skills, bundles, and plugins",
       summary:
@@ -446,6 +476,55 @@ defmodule ControlKeel.Help do
       controlkeel plugin install codex|claude|copilot|openclaw [--scope user|project] [--mode local|hosted]
                                       Install a plugin bundle with local and hosted MCP templates
       controlkeel agents doctor       Show bidirectional execution and install readiness
+      controlkeel cloud doctor        Show cloud-mode boundary status (runtime mode, cloud repo,
+                                      bus, service accounts, hosted MCP/A2A, telemetry sync)
+      controlkeel cloud connect [--rotate] [--enroll URL] [--name N] [--invite TOKEN]
+                                      Generate (or rotate) a local workspace identity keypair.
+                                      With --enroll, posts a proof-of-possession envelope to
+                                      <URL>/cloud/v1/workspaces/register so the control plane
+                                      (e.g. https://controlkeel.com) accepts subsequent telemetry.
+                                      --invite binds the workspace to an org via an invitation token.
+       controlkeel cloud push           Push unsynced governance records (findings, memory, reviews,
+                                       digests) to the configured cloud endpoint. Idempotent by external_id.
+       controlkeel cloud pull           Pull remote governance records from the cloud endpoint and
+                                       upsert locally. Conflicts on editable records use lock_version.
+       controlkeel cloud migrate        Check and apply cloud sync migrations (external_id, lock_version).
+      controlkeel telemetry status    Show opt-in cloud telemetry sync state (disabled by default)
+      controlkeel telemetry enable --level health|governance|evidence|full_audit
+                                      Opt in to cloud telemetry at the specified level.
+                                      Requires `controlkeel cloud connect` first.
+                                      Writes local state only; no remote sync until pipeline ships.
+      controlkeel telemetry disable   Opt out of cloud telemetry. Workspace identity is preserved.
+      controlkeel telemetry queue [--limit N]
+                                      Inspect pending telemetry events queued for upstream sync.
+      controlkeel telemetry flush [--limit N]
+                                      Drain queued telemetry events to the configured endpoint.
+                                      No-op when no endpoint is set; events stay queued.
+      controlkeel mcp registry list   List vetted downstream MCP servers (allowlist + denylist)
+      controlkeel mcp registry check <server-name> [--attested]
+                                      Show whether a downstream MCP server is allowed
+      controlkeel mcp guardrails list Show active content guardrails (secret/PII patterns)
+                                      that scan inbound tool arguments at the hosted gateway
+      controlkeel user create --email <email> [--name <name>]
+                                      Create a cloud user
+      controlkeel org create --name <name> --slug <slug>
+                                      Create a cloud org
+      controlkeel org list            List active orgs with budget and status
+      controlkeel org budget set <slug> --cents N
+      controlkeel org budget set <slug> --clear
+                                      Set or clear an org-level budget cap
+      controlkeel org budget show <slug>
+                                      Show org budget rollup and per-workspace breakdown
+      controlkeel org invite <slug> --email <email> [--role owner|admin|member|viewer]
+                                      Invite a user to an org. Prints the raw invitation
+                                      token; deliver it to the invitee out of band
+      controlkeel org members <slug>  List members of an org
+      controlkeel org idp set <slug> --type oidc --issuer <url> --client-id <id>
+      controlkeel org idp set <slug> --type saml --entity-id <id> --idp-metadata-url <url>
+      controlkeel org idp set <slug> --clear
+                                      Configure or clear the org's identity provider.
+                                      Client secrets are intentionally NOT stored here.
+      controlkeel org idp show <slug> Display the org's identity provider configuration
       controlkeel agents list [--json]
                                       List runnable/attached agent integrations
       controlkeel route-agent --task "..." [--risk-tier low|medium|high|critical] [--budget-remaining-cents N] [--allowed-agents a,b] [--domain-pack software] [--json]
@@ -462,6 +541,32 @@ defmodule ControlKeel.Help do
                                       Report task run outcome/output metadata
       controlkeel run task <id> [--agent auto|<id>] [--mode auto|embedded|handoff|runtime] [--sandbox local|docker|e2b|nono]
                                       Run or hand off a governed task through a supported agent
+      controlkeel eval list             List available eval suites
+      controlkeel selfhost verify       Check required/recommended env vars + Repo reachability
+                                        for an air-gapped/self-host deployment. Exits non-zero
+                                        when required env vars are missing or the Repo is down.
+      controlkeel selfhost manifest     List paths that belong in an air-gapped install bundle
+      controlkeel selfhost install-guide
+                                        Print the INSTALL.md content for this release
+      controlkeel agents discover <path> [--max-depth N] [--json]
+                                        Scan a directory tree for agent-host config files
+                                        (.cursor/, .codex/, .claude/, AGENTS.md, CLAUDE.md, etc.)
+                                        Closes the "shadow AI" enterprise inventory gap.
+      controlkeel audit export --workspace <slug>|--org <slug>
+                                        [--since ISO8601] [--until ISO8601] [--template soc2|gdpr] [--sign --signing-key-env ENV] [--out FILE]
+                                        Export an audit bundle (findings, reviews, audit events,
+                                        MCP tool calls, cloud-agent runs, received telemetry) for
+                                        SOC 2 / GDPR procurement. Prints JSON to stdout or --out.
+      controlkeel eval run [--suite <slug>]
+                                        Run an eval suite against ck_validate fixtures.
+                                        Exits non-zero on regression. Default suite:
+                                        governance-regression.
+      controlkeel run cloud-agent <task-id> --runtime <runtime> [--budget-cents N] [--scopes "a,b,c"] [--note "..."]
+                                      Create a cloud-runtime handoff package for a task.
+                                      Runtimes: devin, open-swe, cursor-cloud-agents, replit-agent,
+                                      warp-oz, executor, virtual-bash, cloudflare-workers,
+                                      codex-app-server, enterprise-internal. Prints the raw
+                                      callback token; deliver out of band to the cloud runtime.
       controlkeel run session <id> [--agent auto|<id>] [--mode auto|embedded|handoff|runtime] [--sandbox local|docker|e2b|nono]
                                       Run all ready tasks for a governed session
       controlkeel sandbox status       Show execution sandbox adapter availability

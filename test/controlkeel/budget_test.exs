@@ -163,4 +163,94 @@ defmodule ControlKeel.BudgetTest do
     assert warning["decision"] == "warn"
     assert warning["hint_source"] in ["heuristic", "learned"]
   end
+
+  describe "amplification_ratios/1" do
+    test "returns empty list when no invocations exist" do
+      assert [] = Budget.amplification_ratios()
+    end
+
+    test "computes ratio for a session with token data" do
+      session = session_fixture(%{budget_cents: 10_000, spent_cents: 0})
+
+      Repo.insert!(%Invocation{
+        source: "proxy",
+        tool: "chat",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        input_tokens: 100,
+        output_tokens: 400,
+        estimated_cost_cents: 10,
+        decision: "allow",
+        metadata: %{},
+        session_id: session.id
+      })
+
+      ratios = Budget.amplification_ratios(since_hours: 1)
+      assert length(ratios) >= 1
+
+      row = Enum.find(ratios, &(&1.session_id == session.id))
+      assert row.input_tokens == 100
+      assert row.output_tokens == 400
+      assert row.ratio == 4.0
+    end
+
+    test "orders results by descending ratio" do
+      s1 = session_fixture(%{budget_cents: 10_000, spent_cents: 0})
+      s2 = session_fixture(%{budget_cents: 10_000, spent_cents: 0})
+
+      Repo.insert!(%Invocation{
+        source: "proxy",
+        tool: "chat",
+        provider: "openai",
+        model: "gpt-4",
+        input_tokens: 100,
+        output_tokens: 1_000,
+        estimated_cost_cents: 5,
+        decision: "allow",
+        metadata: %{},
+        session_id: s1.id
+      })
+
+      Repo.insert!(%Invocation{
+        source: "proxy",
+        tool: "chat",
+        provider: "openai",
+        model: "gpt-4",
+        input_tokens: 200,
+        output_tokens: 200,
+        estimated_cost_cents: 5,
+        decision: "allow",
+        metadata: %{},
+        session_id: s2.id
+      })
+
+      ratios = Budget.amplification_ratios(since_hours: 1)
+      filtered = Enum.filter(ratios, &(&1.session_id in [s1.id, s2.id]))
+
+      assert length(filtered) == 2
+      [first | _] = filtered
+      assert first.session_id == s1.id
+      assert first.ratio == 10.0
+    end
+
+    test "respects the since_hours window" do
+      session = session_fixture(%{budget_cents: 10_000, spent_cents: 0})
+
+      Repo.insert!(%Invocation{
+        source: "proxy",
+        tool: "chat",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        input_tokens: 50,
+        output_tokens: 50,
+        estimated_cost_cents: 1,
+        decision: "allow",
+        metadata: %{},
+        session_id: session.id,
+        inserted_at: ~U[2000-01-01 00:00:00Z]
+      })
+
+      assert [] = Budget.amplification_ratios(since_hours: 1)
+    end
+  end
 end

@@ -1,0 +1,75 @@
+# fly.self-host.toml — ControlKeel self-host template
+#
+# This is a copy of the canonical `fly.toml` with placeholders for self-hosters.
+# Replace every value tagged `# CHANGE` and copy this file to your project root
+# as `fly.toml` before running `fly deploy`.
+#
+# What ships in self-host mode:
+#   - Same Phoenix release as controlkeel.com
+#   - Multi-tenant workspace_keys registry — your fly app verifies tokens from
+#     all your team's laptops, not just the receiver's own identity
+#   - SSO/OIDC + SAML, audit export, compliance templates, NHI lifecycle,
+#     hosted MCP gateway, behavioral baselining — every Phase 1–6 surface
+#   - Org-scoped /cloud/projects dashboard for your team
+#
+# Quickstart:
+#   cp deploy/fly.self-host.toml fly.toml
+#   $EDITOR fly.toml  # change app name, region, host
+#   fly launch --no-deploy --copy-config --name <your-app>     # CHANGE
+#   fly postgres create --name <your-app>-db
+#   fly postgres attach <your-app>-db
+#   fly secrets set \
+#     SECRET_KEY_BASE="$(mix phx.gen.secret)" \
+#     AUDIT_EXPORT_SIGNING_KEY="$(openssl rand -hex 32)"
+#   fly certs create <your-host>                                # CHANGE
+#   fly deploy
+#
+# Then from any laptop on your team:
+#   controlkeel cloud connect --enroll https://<your-host> --invite <token>
+#   controlkeel telemetry enable --level governance
+#   controlkeel telemetry flush
+#
+# Full walkthrough: docs/self-hosting.md
+
+app = "controlkeel-acme"            # CHANGE — your fly app name
+primary_region = "iad"              # CHANGE — closest fly region to your team
+kill_signal = "SIGTERM"
+kill_timeout = "10s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[deploy]
+  release_command = "/app/bin/controlkeel eval \"ControlKeel.Release.migrate()\""
+  strategy = "rolling"
+
+[env]
+  CONTROLKEEL_RUNTIME_MODE = "cloud"
+  CONTROLKEEL_BUS = "local"          # change to "nats" if you front a JetStream cluster
+  PHX_SERVER = "true"
+  PHX_HOST = "govern.acme.com"       # CHANGE — public hostname for your instance
+  PORT = "8080"
+  POOL_SIZE = "10"
+  ECTO_USE_SSL = "true"
+  LOGGER_LEVEL = "info"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "get"
+    path = "/"
+
+[[vm]]
+  size = "shared-cpu-1x"             # bump to shared-cpu-2x for larger teams
+  memory = "512mb"                   # bump to 1gb+ for sustained ingestion
+  cpu_kind = "shared"
+  cpus = 1

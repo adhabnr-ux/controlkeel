@@ -800,7 +800,7 @@ defmodule ControlKeel.Deployment.Advisor do
     FROM python:3.12-slim AS build
     WORKDIR /app
     COPY requirements.txt .
-    RUN pip install --no-cache-dir -r requirements.txt gunicorn
+    RUN pip install --no-cache-dir -r requirements.txt gunicorn==23.0.0
     COPY . .
 
     FROM python:3.12-slim AS runtime

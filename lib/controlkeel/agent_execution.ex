@@ -146,13 +146,22 @@ defmodule ControlKeel.AgentExecution do
         |> Mission.get_session_context()
         |> Map.get(:tasks, [])
         |> Enum.filter(&(&1.status in ["ready", "queued"]))
+        |> Enum.sort_by(& &1.position)
 
-      results =
-        Enum.map(tasks, fn task ->
-          case run_task(task.id, Keyword.put(opts, :project_root, project_root)) do
-            {:ok, result} -> result
-            {:error, reason} -> %{task_id: task.id, status: "failed", error: inspect(reason)}
-          end
+      # Accumulate {result_ref => package_root} as tasks complete so
+      # downstream aggregate tasks can reference prior outputs.
+      {results, _ref_map} =
+        Enum.reduce(tasks, {[], %{}}, fn task, {acc, ref_map} ->
+          task = maybe_inject_input_refs(task, ref_map)
+
+          result =
+            case run_task(task.id, Keyword.put(opts, :project_root, project_root)) do
+              {:ok, r} -> r
+              {:error, reason} -> %{"task_id" => task.id, "status" => "failed", "error" => inspect(reason)}
+            end
+
+          new_ref_map = maybe_persist_output_ref(task, result, ref_map)
+          {acc ++ [result], new_ref_map}
         end)
 
       {:ok,
@@ -167,6 +176,38 @@ defmodule ControlKeel.AgentExecution do
       {:error, _reason} = error -> error
     end
   end
+
+  # If this task is an aggregate (or already has input_refs), stamp all
+  # accumulated refs into its input_refs and metadata before execution so
+  # task.json contains the full ref map the agent needs.
+  defp maybe_inject_input_refs(task, ref_map) when map_size(ref_map) == 0, do: task
+
+  defp maybe_inject_input_refs(%{metadata: meta} = task, ref_map) do
+    is_aggregate = Map.get(meta || %{}, "aggregate_task") == true
+    has_refs = task.input_refs != []
+
+    if is_aggregate or has_refs do
+      new_refs = Map.keys(ref_map) |> Enum.sort()
+      new_meta = Map.put(meta || %{}, "input_ref_map", ref_map)
+
+      case Mission.update_task(task, %{input_refs: new_refs, metadata: new_meta}) do
+        {:ok, updated} -> updated
+        _ -> task
+      end
+    else
+      task
+    end
+  end
+
+  # After an embedded run completes, persist output_ref and accumulate the
+  # ref → package_root mapping for downstream tasks.
+  defp maybe_persist_output_ref(task, %{"result_ref" => ref, "package_root" => pkg}, ref_map)
+       when is_binary(ref) do
+    _ = Mission.update_task(task, %{output_ref: ref})
+    Map.put(ref_map, ref, pkg)
+  end
+
+  defp maybe_persist_output_ref(_task, _result, ref_map), do: ref_map
 
   def delegate(arguments, project_root \\ File.cwd!()) when is_map(arguments) do
     opts =
@@ -394,6 +435,9 @@ defmodule ControlKeel.AgentExecution do
           ] ++ validation_checks(validation)
         )
 
+      result_ref = write_stdout_ref(package_root, output)
+      maybe_emit_loop_finding(task, session, output)
+
       case Platform.report_task(task.id, service_account_context[:service_account], %{
              status: status,
              output: Map.merge(payload, %{"stdout" => String.slice(output, 0, 8_000)}),
@@ -401,6 +445,7 @@ defmodule ControlKeel.AgentExecution do
                "executor_mode" => "embedded",
                "command" => [command | args],
                "validation" => validation,
+               "result_ref" => result_ref,
                "execution_sandbox" =>
                  ExecutionSandbox.adapter_name(sandbox: Process.get(:ck_execution_sandbox))
              }
@@ -410,7 +455,8 @@ defmodule ControlKeel.AgentExecution do
             record_delegate_result(task, integration, status, %{
               "mode" => "embedded",
               "package_root" => package_root,
-              "command" => [command | args]
+              "command" => [command | args],
+              "result_ref" => result_ref
             })
 
           {:ok,
@@ -421,6 +467,8 @@ defmodule ControlKeel.AgentExecution do
              "mode" => "embedded",
              "status" => status,
              "package_root" => package_root,
+             "result_ref" => result_ref,
+             "result_length" => byte_size(output),
              "command" => [command | args],
              "validation" => validation,
              "metadata" => %{
@@ -654,7 +702,11 @@ defmodule ControlKeel.AgentExecution do
       "validation_gate" => task.validation_gate,
       "session_id" => task.session_id,
       "agent_id" => integration.id,
-      "execution_mode" => execution_mode
+      "execution_mode" => execution_mode,
+      "trust_policy" => task.trust_policy || "full",
+      "input_refs" => task.input_refs || [],
+      "output_ref" => task.output_ref,
+      "input_ref_map" => get_in(task.metadata || %{}, ["input_ref_map"]) || %{}
     }
   end
 
@@ -725,9 +777,26 @@ defmodule ControlKeel.AgentExecution do
       {"CONTROLKEEL_SESSION_JSON", Path.join(package_root, "session.json")},
       {"CONTROLKEEL_WORKSPACE_CONTEXT_JSON", Path.join(package_root, "workspace_context.json")},
       {"CONTROLKEEL_RECENT_EVENTS_JSON", Path.join(package_root, "recent_events.json")},
-      {"CONTROLKEEL_RESULT_PATH", result_path}
+      {"CONTROLKEEL_RESULT_PATH", result_path},
+      {"CONTROLKEEL_INPUT_REFS", build_input_refs_env(task)}
     ]
   end
+
+  defp build_input_refs_env(%{input_refs: []}), do: "[]"
+
+  defp build_input_refs_env(%{input_refs: refs, metadata: meta}) do
+    ref_map = get_in(meta || %{}, ["input_ref_map"]) || %{}
+
+    entries =
+      Enum.map(refs, fn ref ->
+        pkg = Map.get(ref_map, ref)
+        %{"ref" => ref, "package_root" => pkg, "stdout_path" => pkg && Path.join(pkg, "stdout.txt")}
+      end)
+
+    Jason.encode!(entries)
+  end
+
+  defp build_input_refs_env(_task), do: "[]"
 
   defp direct_command_available?(agent_id) do
     configured_command(agent_id) != nil
@@ -973,4 +1042,48 @@ defmodule ControlKeel.AgentExecution do
   defp hosted_scopes do
     ["a2a:access" | ControlKeel.ProtocolInterop.hosted_mcp_scopes()]
   end
+
+  # Writes the full stdout to package_root/stdout.txt and returns a
+  # content-addressed ref (first 16 hex chars of SHA256).
+  defp write_stdout_ref(package_root, output) when is_binary(output) and output != "" do
+    ref = output |> then(&:crypto.hash(:sha256, &1)) |> Base.encode16(case: :lower) |> binary_part(0, 16)
+    path = Path.join(package_root, "stdout.txt")
+    _ = File.write(path, output)
+    ref
+  end
+
+  defp write_stdout_ref(_package_root, _output), do: nil
+
+  # Emits an agent-loop finding when stdout shows repetitive verification
+  # patterns (≥3 occurrences of "verify" or "check" in close succession).
+  @loop_verify_threshold 3
+
+  defp maybe_emit_loop_finding(task, session, output) when is_binary(output) do
+    verify_count =
+      output
+      |> String.downcase()
+      |> then(fn s -> length(Regex.scan(~r/\b(verify|re-verify|re_verify|double.check)\b/, s)) end)
+
+    if verify_count >= @loop_verify_threshold do
+      _ =
+        Mission.create_finding(%{
+          title: "Verification loop detected in embedded agent output",
+          severity: "high",
+          category: "agent-loop",
+          rule_id: "rlm.verification_loop",
+          plain_message:
+            "Agent output contains #{verify_count} verification signals. " <>
+              "This matches the RLM verification-loop failure pattern: the agent may be re-verifying " <>
+              "instead of committing to a result. Surface the last partial result and terminate if looping continues.",
+          status: "open",
+          auto_resolved: false,
+          metadata: %{"verify_count" => verify_count, "task_id" => task.id, "source" => "rlm_loop_detector"},
+          session_id: session.id
+        })
+    end
+
+    :ok
+  end
+
+  defp maybe_emit_loop_finding(_task, _session, _output), do: :ok
 end

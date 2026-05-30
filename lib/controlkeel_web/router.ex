@@ -5,6 +5,7 @@ defmodule ControlKeelWeb.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
+    plug ControlKeelWeb.Plugs.LoadCurrentUser
     plug :put_root_layout, html: {ControlKeelWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
@@ -24,6 +25,15 @@ defmodule ControlKeelWeb.Router do
     plug ControlKeelWeb.Plugs.ProtocolAccessAuth, resource: "mcp"
   end
 
+  pipeline :cloud_telemetry_ingest do
+    plug :accepts, ["json"]
+  end
+
+  pipeline :cloud_api_auth do
+    plug ControlKeelWeb.Plugs.CloudWorkspaceKeyAuth
+    plug ControlKeelWeb.Plugs.CloudRateLimit
+  end
+
   pipeline :hosted_a2a do
     plug :accepts, ["json"]
 
@@ -35,46 +45,90 @@ defmodule ControlKeelWeb.Router do
   pipeline :proxy_api do
   end
 
+  # SAML IdPs POST the assertion to /auth/saml/acs from outside our app, which
+  # cannot include our CSRF token. Use a dedicated pipeline that keeps session +
+  # current-user loading but skips protect_from_forgery.
+  pipeline :saml_acs do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug ControlKeelWeb.Plugs.LoadCurrentUser
+    plug :put_root_layout, html: {ControlKeelWeb.Layouts, :root}
+    plug :put_secure_browser_headers
+  end
+
   scope "/", ControlKeelWeb do
     pipe_through :browser
 
     get "/", PageController, :home
     get "/getting-started", PageController, :getting_started
-    live "/missions", MissionsLive, :index
+
+    # Public in all modes
+    live "/auth/login", AuthLive, :index
+    live "/pricing", PricingLive, :index
+    live "/docs", DocsLive, :index
+    live "/docs/:name", DocsLive, :show
+    live "/status", StatusLive, :index
+    live "/contact", ContactLive, :index
+    live "/signup", SignupLive, :new
+    get "/auth/oidc/start", OidcController, :start
+    get "/auth/oidc/callback", OidcController, :callback
+    get "/auth/saml/start", SamlController, :start
+    get "/auth/logout", AuthController, :logout
+    get "/auth/complete/:token", AuthController, :complete
+    live "/cloud/invitations/:token", InvitationLive, :show
+
+    # Cloud-auth gated: in cloud/self_hosted mode requires active membership.
+    # In local mode the on_mount hook is a passthrough.
+    live_session :cloud_auth,
+      on_mount: [{ControlKeelWeb.LiveAuth, :require_cloud_auth}] do
+      live "/missions", MissionsLive, :index
     live "/missions/start", OnboardingLive, :new
-    live "/findings", FindingsLive, :index
-    live "/benchmarks", BenchmarksLive, :index
-    live "/benchmarks/runs/:id", BenchmarksLive, :show
-    live "/benchmarks/policies/:id", BenchmarkPolicyLive, :show
-    live "/proofs", ProofBrowserLive, :index
-    live "/proofs/:id", ProofBrowserLive, :show
-    live "/reviews/:id", ReviewLive, :show
-    live "/ship", ShipLive, :index
-    live "/observability", ObservabilityOverviewLive, :index
-    live "/observability/loop", ObservabilityLoopLive, :index
-    live "/observability/benchmarks/drafts", ObservabilityBenchmarkDraftsLive, :index
-    live "/observability/benchmarks/scenarios", ObservabilityBenchmarkScenariosLive, :index
-    live "/observability/benchmarks/history", ObservabilityBenchmarkHistoryLive, :index
-    live "/observability/compare", ObservabilityCompareLive, :index
-    live "/observability/costs", ObservabilityCostsLive, :index
-    live "/observability/evals", ObservabilityEvalsLive, :index
-    live "/observability/evals/persisted", ObservabilityPersistedEvalsLive, :index
-    live "/observability/imports", ObservabilityImportsLive, :index
-    live "/observability/memory-quality", ObservabilityMemoryQualityLive, :index
-    live "/observability/recommendations", ObservabilityRecommendationsLive, :index
-    live "/observability/regressions", ObservabilityRegressionsLive, :index
-    live "/observability/trends", ObservabilityTrendsLive, :index
-    live "/observability/problems", ObservabilityProblemsLive, :index
-    live "/observability/promotions", ObservabilityPromotionsLive, :index
+      live "/findings", FindingsLive, :index
+      live "/benchmarks", BenchmarksLive, :index
+      live "/benchmarks/runs/:id", BenchmarksLive, :show
+      live "/benchmarks/policies/:id", BenchmarkPolicyLive, :show
+      live "/proofs", ProofBrowserLive, :index
+      live "/proofs/:id", ProofBrowserLive, :show
+      live "/reviews/:id", ReviewLive, :show
+      live "/ship", ShipLive, :index
+      live "/cloud/telemetry", CloudTelemetryLive, :index
+      live "/cloud/projects", CloudProjectsLive, :index
+      live "/cloud/projects/:ws_id", CloudProjectsLive, :show
+      live "/org/:slug/members", OrgMembersLive, :index
+      live "/org/:slug/settings/auth", OrgSettingsAuthLive, :edit
+      live "/org/:slug/settings/general", OrgSettingsGeneralLive, :edit
+      live "/workspaces/:id/repos", WorkspaceReposLive, :index
+      live "/workspaces/:id/service-accounts", WorkspaceServiceAccountsLive, :index
+      live "/workspaces/:id/webhooks", WorkspaceWebhooksLive, :index
+      live "/workspaces/:id/tool-policy", WorkspaceToolPolicyLive, :edit
+      live "/observability", ObservabilityOverviewLive, :index
+      live "/observability/loop", ObservabilityLoopLive, :index
+      live "/observability/benchmarks/drafts", ObservabilityBenchmarkDraftsLive, :index
+      live "/observability/benchmarks/scenarios", ObservabilityBenchmarkScenariosLive, :index
+      live "/observability/benchmarks/history", ObservabilityBenchmarkHistoryLive, :index
+      live "/observability/compare", ObservabilityCompareLive, :index
+      live "/observability/costs", ObservabilityCostsLive, :index
+      live "/observability/evals", ObservabilityEvalsLive, :index
+      live "/observability/evals/persisted", ObservabilityPersistedEvalsLive, :index
+      live "/observability/imports", ObservabilityImportsLive, :index
+      live "/observability/memory-quality", ObservabilityMemoryQualityLive, :index
+      live "/observability/recommendations", ObservabilityRecommendationsLive, :index
+      live "/observability/regressions", ObservabilityRegressionsLive, :index
+      live "/observability/trends", ObservabilityTrendsLive, :index
+      live "/observability/problems", ObservabilityProblemsLive, :index
+      live "/observability/promotions", ObservabilityPromotionsLive, :index
+      live "/observability/sessions/:id/memory", ObservabilityMemoryLive, :show
+      live "/observability/sessions/:id/timeline", ObservabilityTimelineLive, :show
+      live "/observability/sessions/:id", ObservabilityLive, :show
+      live "/missions/:id", MissionControlLive, :show
+      live "/policies", PolicyStudioLive, :index
+      live "/install", InstallLive, :index
+      live "/skills", SkillsLive, :index
+      live "/deploy", DeploymentLive, :index
+    end
+
     get "/observability/sessions/:id/export.json", ObservabilityController, :export_session
-    live "/observability/sessions/:id/memory", ObservabilityMemoryLive, :show
-    live "/observability/sessions/:id/timeline", ObservabilityTimelineLive, :show
-    live "/observability/sessions/:id", ObservabilityLive, :show
-    live "/missions/:id", MissionControlLive, :show
-    live "/policies", PolicyStudioLive, :index
-    live "/install", InstallLive, :index
-    live "/skills", SkillsLive, :index
-    live "/deploy", DeploymentLive, :index
   end
 
   scope "/api/v1", ControlKeelWeb do
@@ -100,7 +154,11 @@ defmodule ControlKeelWeb.Router do
     post "/workspaces/:id/policy-sets/:policy_set_id/apply", ApiController, :apply_policy_set
     get "/workspaces/:id/webhooks", ApiController, :list_webhooks
     post "/workspaces/:id/webhooks", ApiController, :create_webhook
+    get "/workspaces/:id/tool-policy", ApiController, :get_workspace_tool_policy
+    put "/workspaces/:id/tool-policy", ApiController, :set_workspace_tool_policy
     post "/service-accounts/:id/rotate", ApiController, :rotate_service_account
+    delete "/service-accounts/:id", ApiController, :revoke_service_account
+    get "/service-accounts/:id/events", ApiController, :list_nhi_audit_events
     post "/webhooks/:id/replay", ApiController, :replay_webhook
     get "/providers", ApiController, :list_providers
     get "/providers/status", ApiController, :provider_status
@@ -186,6 +244,28 @@ defmodule ControlKeelWeb.Router do
     pipe_through :hosted_a2a
 
     post "/a2a", ProtocolController, :a2a
+  end
+
+  scope "/cloud/v1", ControlKeelWeb do
+    pipe_through :cloud_telemetry_ingest
+
+    post "/telemetry", CloudTelemetryController, :ingest
+    post "/runtime/callbacks", CloudRuntimeCallbackController, :update
+    post "/workspaces/register", CloudWorkspaceController, :register
+  end
+
+  scope "/cloud/v1", ControlKeelWeb do
+    pipe_through [:cloud_telemetry_ingest, :cloud_api_auth]
+
+    post "/sync/push", CloudSyncController, :push
+    post "/sync/pull", CloudSyncController, :pull
+
+     get "/orgs/:slug/usage", CloudUsageApiController, :show  end
+
+  scope "/", ControlKeelWeb do
+    pipe_through :saml_acs
+
+    post "/auth/saml/acs", SamlController, :acs
   end
 
   if Application.compile_env(:controlkeel, :dev_routes) do

@@ -14,14 +14,16 @@ defmodule ControlKeel.MCP.Tools.CkContextPack do
            Arguments.optional_top_k(arguments, default: @default_top_k, max: @max_top_k),
          {:ok, session} <- Arguments.fetch_session(arguments, preload_context: true),
          {:ok, task} <- resolve_task(session, task_id),
-         {:ok, pack} <- build_pack(arguments, session, task, top_k) do
+         {:ok, exclude_ids} <- normalize_exclude_ids(Map.get(arguments, "exclude_ids")),
+         count_only = Map.get(arguments, "count_only") == true,
+         {:ok, pack} <- build_pack(arguments, session, task, top_k, exclude_ids, count_only) do
       {:ok, pack}
     end
   end
 
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
 
-  defp build_pack(arguments, session, task, top_k) do
+  defp build_pack(arguments, session, task, top_k, exclude_ids, count_only) do
     query = normalize_query(arguments, session, task)
     detail_level = normalize_detail_level(Map.get(arguments, "detail_level"))
     excerpt_limit = excerpt_limit(detail_level)
@@ -37,28 +39,71 @@ defmodule ControlKeel.MCP.Tools.CkContextPack do
         include_body: true
       )
 
-    proof_summary = Mission.proof_summary_for_task(task)
-    resume_packet = build_resume_packet(task)
+    entries =
+      search_result.entries
+      |> Enum.reject(&(&1.id in exclude_ids))
 
-    {:ok,
-     %{
-       "session_id" => session.id,
-       "task_id" => task && task.id,
-       "query" => query,
-       "generated_at" => DateTime.utc_now() |> DateTime.to_iso8601(),
-       "factual_only" => true,
-       "detail_level" => detail_level,
-       "semantic_available" => search_result.semantic_available,
-       "retrieval_strategy" => search_result[:retrieval_strategy],
-       "context_pack" => %{
-         "task" => task_facts(session, task),
-         "proof" => proof_facts(proof_summary),
-         "resume" => resume_facts(resume_packet),
-         "memory" => Enum.map(search_result.entries, &memory_entry(&1, excerpt_limit)),
-         "citations" => citations(task, proof_summary, resume_packet, search_result.entries)
-       }
-     }}
+    if count_only do
+      tag_dist = Enum.frequencies_by(entries, fn e -> List.first(e.tags || []) end)
+
+      {:ok,
+       %{
+         "session_id" => session.id,
+         "task_id" => task && task.id,
+         "query" => query,
+         "count_only" => true,
+         "hit_count" => length(entries),
+         "tag_distribution" => tag_dist,
+         "semantic_available" => search_result.semantic_available
+       }}
+    else
+      proof_summary = Mission.proof_summary_for_task(task)
+      resume_packet = build_resume_packet(task)
+
+      {:ok,
+       %{
+         "session_id" => session.id,
+         "task_id" => task && task.id,
+         "query" => query,
+         "generated_at" => DateTime.utc_now() |> DateTime.to_iso8601(),
+         "factual_only" => true,
+         "detail_level" => detail_level,
+         "semantic_available" => search_result.semantic_available,
+         "retrieval_strategy" => search_result[:retrieval_strategy],
+         "excluded_ids_count" => length(exclude_ids),
+         "context_pack" => %{
+           "task" => task_facts(session, task),
+           "proof" => proof_facts(proof_summary),
+           "resume" => resume_facts(resume_packet),
+           "memory" => Enum.map(entries, &memory_entry(&1, excerpt_limit)),
+           "citations" => citations(task, proof_summary, resume_packet, entries)
+         }
+       }}
+    end
   end
+
+  defp normalize_exclude_ids(nil), do: {:ok, []}
+  defp normalize_exclude_ids(ids) when is_list(ids) do
+    parsed =
+      Enum.reduce_while(ids, [], fn id, acc ->
+        cond do
+          is_integer(id) -> {:cont, [id | acc]}
+          is_binary(id) ->
+            case Integer.parse(id) do
+              {n, ""} -> {:cont, [n | acc]}
+              _ -> {:halt, :error}
+            end
+          true -> {:halt, :error}
+        end
+      end)
+
+    case parsed do
+      :error -> {:error, {:invalid_arguments, "`exclude_ids` must be a list of integers"}}
+      ids -> {:ok, ids}
+    end
+  end
+
+  defp normalize_exclude_ids(_), do: {:error, {:invalid_arguments, "`exclude_ids` must be a list"}}
 
   defp resolve_task(session, nil) do
     task =

@@ -7,6 +7,7 @@ defmodule ControlKeel.Mission.Task do
   alias ControlKeel.Platform.{TaskCheckResult, TaskEdge, TaskRun}
 
   schema "tasks" do
+    field :external_id, :string
     field :title, :string
     field :status, :string, default: "queued"
     field :estimated_cost_cents, :integer, default: 0
@@ -14,7 +15,11 @@ defmodule ControlKeel.Mission.Task do
     field :position, :integer
     field :metadata, :map, default: %{}
     field :confidence_score, :float
+    field :lock_version, :integer, default: 1
     field :rollback_boundary, :string
+    field :input_refs, {:array, :string}, default: []
+    field :output_ref, :string
+    field :trust_policy, :string, default: "full"
 
     belongs_to :session, Session
     has_many :proof_bundles, ProofBundle
@@ -33,6 +38,7 @@ defmodule ControlKeel.Mission.Task do
   def changeset(task, attrs) do
     task
     |> cast(attrs, [
+      :external_id,
       :title,
       :status,
       :estimated_cost_cents,
@@ -41,7 +47,11 @@ defmodule ControlKeel.Mission.Task do
       :metadata,
       :session_id,
       :confidence_score,
-      :rollback_boundary
+      :lock_version,
+      :rollback_boundary,
+      :input_refs,
+      :output_ref,
+      :trust_policy
     ])
     |> validate_required([
       :title,
@@ -54,6 +64,38 @@ defmodule ControlKeel.Mission.Task do
     ])
     |> validate_number(:estimated_cost_cents, greater_than_or_equal_to: 0)
     |> validate_number(:position, greater_than_or_equal_to: 0)
+    |> validate_format(:external_id, ~r/^task_[0-9A-Z]{26}$|^task_legacy_[0-9]+$/,
+      message: "must look like task_<ulid>"
+    )
     |> assoc_constraint(:session)
+    |> unique_constraint(:external_id)
+  end
+
+  @doc """
+  Allowlist of fields safe to ship via cloud sync. Task titles and metadata
+  are passed through the redactor — agents sometimes embed credentials in task
+  metadata for context.
+  """
+  def sync_fields do
+    {:include,
+     [
+       :id,
+       :external_id,
+       :session_id,
+       {:redact, :title},
+       :status,
+       :estimated_cost_cents,
+       :validation_gate,
+       :position,
+       {:redact, :metadata},
+       :confidence_score,
+       :lock_version,
+       :rollback_boundary,
+       :input_refs,
+       :output_ref,
+       :trust_policy,
+       :inserted_at,
+       :updated_at
+     ]}
   end
 end

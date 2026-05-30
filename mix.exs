@@ -4,7 +4,7 @@ defmodule ControlKeel.MixProject do
   def project do
     [
       app: :controlkeel,
-      version: "0.3.25",
+      version: "0.3.32",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -78,6 +78,7 @@ defmodule ControlKeel.MixProject do
       {:gnat, "~> 1.10"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
+      {:earmark, "~> 1.4"},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:yaml_elixir, "~> 2.11"},

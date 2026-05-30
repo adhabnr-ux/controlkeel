@@ -168,7 +168,7 @@ defmodule ControlKeel.ProviderBroker do
     end
   end
 
-  defp resolution_chain(project_root, opts) do
+  def resolution_chain(project_root, opts) do
     root = Path.expand(project_root)
     binding = effective_binding(root)
 

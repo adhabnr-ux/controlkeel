@@ -49,6 +49,19 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
     assert html =~ "mission-task-checklist"
   end
 
+  test "mission control links to other persisted missions", %{conn: conn} do
+    current = session_fixture(%{title: "Current mission"})
+    other = session_fixture(%{title: "Other mission"})
+
+    {:ok, _view, html} = live(conn, ~p"/missions/#{current.id}")
+
+    assert html =~ "mission-switcher"
+    assert html =~ "Open another mission"
+    assert html =~ "Other mission"
+    assert html =~ "/missions/#{other.id}"
+    refute html =~ "#{current.id} · Current mission"
+  end
+
   test "mission control renders review decision prompts", %{conn: conn} do
     session = session_fixture()
     task = task_fixture(%{session: session, status: "queued", title: "Risky plan"})

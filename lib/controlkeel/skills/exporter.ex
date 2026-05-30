@@ -264,6 +264,27 @@ defmodule ControlKeel.Skills.Exporter do
     settings_path = Path.join(root, ".claude/settings.json")
     File.write!(settings_path, Jason.encode!(claude_manual_settings(), pretty: true) <> "\n")
 
+    review_command_path = Path.join(root, ".claude/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Claude Code", "claude-code"))
+
+    submit_command_path = Path.join(root, ".claude/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Claude Code", "claude-code", ".claude/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".claude/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Claude Code", "claude-code", ".claude/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".claude/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Claude Code"))
+
     with_common_assets(
       root,
       project_root,
@@ -271,6 +292,10 @@ defmodule ControlKeel.Skills.Exporter do
       [
         %{"path" => skill_root, "kind" => "skills"},
         %{"path" => agent_path, "kind" => "agent"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => mcp_path, "kind" => "mcp"},
         %{"path" => claude_md, "kind" => "instructions"},
         %{"path" => settings_path, "kind" => "hooks"}
@@ -793,6 +818,27 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("letta-code", project_root, opts))
 
+    review_command_path = Path.join(root, ".letta/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Letta", "letta"))
+
+    submit_command_path = Path.join(root, ".letta/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Letta", "letta", ".letta/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".letta/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Letta", "letta", ".letta/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".letta/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Letta"))
+
     with_common_assets(
       root,
       project_root,
@@ -805,6 +851,10 @@ defmodule ControlKeel.Skills.Exporter do
         %{"path" => session_hook_path, "kind" => "hook"},
         %{"path" => mcp_helper_path, "kind" => "mcp"},
         %{"path" => readme_path, "kind" => "instructions"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => mcp_path, "kind" => "mcp"},
         %{"path" => agents_path, "kind" => "instructions"}
       ],
@@ -958,7 +1008,10 @@ defmodule ControlKeel.Skills.Exporter do
     )
   end
 
-  defp write_target(%SkillTarget{id: "goose-native"}, root, project_root, _skills, opts) do
+  defp write_target(%SkillTarget{id: "goose-native"}, root, project_root, skills, opts) do
+    skill_root = Path.join(root, "goose/skills")
+    write_skill_tree(skills, skill_root)
+
     hints_path = Path.join(root, ".goosehints")
     File.write!(hints_path, goose_hints_contents())
 
@@ -998,6 +1051,7 @@ defmodule ControlKeel.Skills.Exporter do
       project_root,
       opts,
       [
+        %{"path" => skill_root, "kind" => "skills"},
         %{"path" => hints_path, "kind" => "instructions"},
         %{"path" => workflow_path, "kind" => "workflow"},
         %{"path" => command_path, "kind" => "command"},
@@ -1026,12 +1080,37 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("hermes-agent", project_root, opts))
 
+    review_command_path = Path.join(root, ".hermes/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Hermes", "hermes"))
+
+    submit_command_path = Path.join(root, ".hermes/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Hermes", "hermes", ".hermes/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".hermes/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Hermes", "hermes", ".hermes/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".hermes/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Hermes"))
+
     with_common_assets(
       root,
       project_root,
       opts,
       [
         %{"path" => skill_root, "kind" => "skills"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => mcp_path, "kind" => "mcp"},
         %{"path" => agents_path, "kind" => "instructions"}
       ],
@@ -1053,12 +1132,37 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("multica", project_root, opts))
 
+    review_command_path = Path.join(root, ".multica/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Multica", "multica"))
+
+    submit_command_path = Path.join(root, ".multica/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Multica", "multica", ".multica/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".multica/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Multica", "multica", ".multica/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".multica/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Multica"))
+
     with_common_assets(
       root,
       project_root,
       opts,
       [
         %{"path" => compat_skill_root, "kind" => "skills"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => config_path, "kind" => "mcp"},
         %{"path" => agents_path, "kind" => "instructions"}
       ],
@@ -1147,12 +1251,37 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("openclaw", project_root, opts))
 
+    review_command_path = Path.join(root, ".openclaw/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("OpenClaw", "openclaw"))
+
+    submit_command_path = Path.join(root, ".openclaw/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("OpenClaw", "openclaw", ".openclaw/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".openclaw/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("OpenClaw", "openclaw", ".openclaw/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".openclaw/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("OpenClaw"))
+
     with_common_assets(
       root,
       project_root,
       opts,
       [
         %{"path" => skill_root, "kind" => "skills"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => config_path, "kind" => "settings"},
         %{"path" => agents_path, "kind" => "instructions"}
       ],
@@ -1575,12 +1704,37 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("forge", project_root, opts))
 
+    review_command_path = Path.join(root, ".forge/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Forge", "forge"))
+
+    submit_command_path = Path.join(root, ".forge/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Forge", "forge", ".forge/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".forge/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Forge", "forge", ".forge/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".forge/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Forge"))
+
     with_common_assets(
       root,
       project_root,
       opts,
       [
         %{"path" => skill_root, "kind" => "skills"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => acp_path, "kind" => "settings"},
         %{"path" => mcp_path, "kind" => "mcp"},
         %{"path" => agents_path, "kind" => "instructions"}
@@ -1711,7 +1865,12 @@ defmodule ControlKeel.Skills.Exporter do
     File.mkdir_p!(Path.dirname(skill_path))
     File.write!(skill_path, gemini_skill_contents())
 
-    # 4. GEMINI.md context
+    # 4. MCP config
+    mcp_path = Path.join(root, ".gemini/mcp.json")
+    File.mkdir_p!(Path.dirname(mcp_path))
+    File.write!(mcp_path, Jason.encode!(mcp_payload(project_root, opts), pretty: true) <> "\n")
+
+    # 5. GEMINI.md context
     gemini_md_path = Path.join(root, "GEMINI.md")
     File.write!(gemini_md_path, instructions_only_contents("gemini-cli", project_root, opts))
 
@@ -1729,6 +1888,7 @@ defmodule ControlKeel.Skills.Exporter do
         %{"path" => annotate_command_path, "kind" => "command"},
         %{"path" => last_command_path, "kind" => "command"},
         %{"path" => skill_path, "kind" => "skills"},
+        %{"path" => mcp_path, "kind" => "mcp"},
         %{"path" => gemini_md_path, "kind" => "instructions"},
         %{"path" => extension_readme_path, "kind" => "instructions"}
       ],
@@ -1739,7 +1899,11 @@ defmodule ControlKeel.Skills.Exporter do
     )
   end
 
-  defp write_target(%SkillTarget{id: "kiro-native"}, root, project_root, _skills, opts) do
+  defp write_target(%SkillTarget{id: "kiro-native"}, root, project_root, skills, opts) do
+    # 0. Skill tree
+    skill_root = Path.join(root, ".kiro/skills")
+    write_skill_tree(skills, skill_root)
+
     # 1. Agent Hook — post-tool validation
     hook_path = Path.join(root, ".kiro/hooks/controlkeel-validate.json")
     File.mkdir_p!(Path.dirname(hook_path))
@@ -1809,6 +1973,7 @@ defmodule ControlKeel.Skills.Exporter do
       project_root,
       opts,
       [
+        %{"path" => skill_root, "kind" => "skills"},
         %{"path" => hook_path, "kind" => "hook"},
         %{"path" => review_hook_path, "kind" => "hook"},
         %{"path" => nudge_validate_hook_path, "kind" => "hook"},
@@ -2193,6 +2358,27 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("warp", project_root, opts))
 
+    review_command_path = Path.join(root, ".warp/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Warp", "warp"))
+
+    submit_command_path = Path.join(root, ".warp/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Warp", "warp", ".warp/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".warp/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Warp", "warp", ".warp/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".warp/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Warp"))
+
     with_common_assets(
       root,
       project_root,
@@ -2200,6 +2386,10 @@ defmodule ControlKeel.Skills.Exporter do
       [
         %{"path" => compat_skill_root, "kind" => "skills"},
         %{"path" => native_skill_root, "kind" => "skills"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => config_path, "kind" => "mcp"},
         %{"path" => readme_path, "kind" => "runtime"},
         %{"path" => agents_path, "kind" => "instructions"}
@@ -2253,6 +2443,27 @@ defmodule ControlKeel.Skills.Exporter do
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, instructions_only_contents("devin-terminal", project_root, opts))
 
+    review_command_path = Path.join(root, ".devin/commands/controlkeel-review.md")
+    File.mkdir_p!(Path.dirname(review_command_path))
+    File.write!(review_command_path, host_review_command_contents("Devin", "devin"))
+
+    submit_command_path = Path.join(root, ".devin/commands/controlkeel-submit-plan.md")
+
+    File.write!(
+      submit_command_path,
+      host_submit_plan_command_contents("Devin", "devin", ".devin/review-plan.md")
+    )
+
+    annotate_command_path = Path.join(root, ".devin/commands/controlkeel-annotate.md")
+
+    File.write!(
+      annotate_command_path,
+      host_annotate_command_contents("Devin", "devin", ".devin/annotate.md")
+    )
+
+    last_command_path = Path.join(root, ".devin/commands/controlkeel-last.md")
+    File.write!(last_command_path, host_last_command_contents("Devin"))
+
     with_common_assets(
       root,
       project_root,
@@ -2263,6 +2474,10 @@ defmodule ControlKeel.Skills.Exporter do
         %{"path" => agent_path, "kind" => "agent"},
         %{"path" => hook_manifest_path, "kind" => "hooks"},
         %{"path" => hook_dir, "kind" => "hooks"},
+        %{"path" => review_command_path, "kind" => "command"},
+        %{"path" => submit_command_path, "kind" => "command"},
+        %{"path" => annotate_command_path, "kind" => "command"},
+        %{"path" => last_command_path, "kind" => "command"},
         %{"path" => config_path, "kind" => "mcp"},
         %{"path" => readme_path, "kind" => "runtime"},
         %{"path" => agents_path, "kind" => "instructions"}
@@ -2661,6 +2876,163 @@ defmodule ControlKeel.Skills.Exporter do
       [
         "Use these templates with `controlkeel provider set-key`, `set-base-url`, `set-model`, and `default` flows.",
         "OpenAI-compatible backends such as vLLM, SGLang, LM Studio, Hugging Face, and Codestral use the CK OpenAI provider path with a custom base URL."
+      ]
+    )
+  end
+
+  defp write_target(%SkillTarget{id: "antigravity-cli-native"}, root, project_root, skills, opts) do
+    # 1. Plugin bundle — the richest surface Antigravity supports
+    plugin_root = Path.join(root, ".agents/plugins/controlkeel")
+    File.mkdir_p!(plugin_root)
+
+    # Plugin manifest
+    plugin_manifest = Path.join(plugin_root, "plugin.json")
+    File.write!(plugin_manifest, Jason.encode!(%{"name" => "controlkeel"}, pretty: true) <> "\n")
+
+    # Plugin skills (inside plugin bundle)
+    plugin_skill_root = Path.join(plugin_root, "skills")
+    write_skill_tree(skills, plugin_skill_root)
+
+    # Plugin agents
+    agent_path = Path.join(plugin_root, "agents/controlkeel-operator.md")
+    File.mkdir_p!(Path.dirname(agent_path))
+    File.write!(agent_path, antigravity_agent_contents())
+
+    # Plugin rules
+    rules_dir = Path.join(plugin_root, "rules")
+    File.mkdir_p!(rules_dir)
+    File.write!(Path.join(rules_dir, "controlkeel.md"), antigravity_rules_contents())
+
+    # Plugin hooks — governance gate
+    plugin_hooks_path = Path.join(plugin_root, "hooks.json")
+
+    File.write!(
+      plugin_hooks_path,
+      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # Plugin MCP config
+    plugin_mcp_path = Path.join(plugin_root, "mcp_config.json")
+
+    File.write!(
+      plugin_mcp_path,
+      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # 2. Workspace-level skills (for agents that discover .agents/skills/)
+    ws_skill_root = Path.join(root, ".agents/skills")
+    write_skill_tree(skills, ws_skill_root)
+
+    # 3. Workspace-level rules
+    ws_rules_dir = Path.join(root, ".agents/rules")
+    File.mkdir_p!(ws_rules_dir)
+    File.write!(Path.join(ws_rules_dir, "controlkeel.md"), antigravity_rules_contents())
+
+    # 4. Workspace-level hooks
+    ws_hooks_path = Path.join(root, ".agents/hooks.json")
+
+    File.write!(
+      ws_hooks_path,
+      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # 5. Workspace-level MCP config
+    ws_mcp_path = Path.join(root, ".agents/mcp_config.json")
+
+    File.write!(
+      ws_mcp_path,
+      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
+    )
+
+    # 6. Context files
+    gemini_md = Path.join(root, "GEMINI.md")
+    File.write!(gemini_md, instructions_only_contents("antigravity-cli", project_root, opts))
+
+    agents_md = Path.join(root, "AGENTS.md")
+    File.write!(agents_md, instructions_only_contents("antigravity-cli", project_root, opts))
+
+    with_common_assets(
+      root,
+      project_root,
+      opts,
+      [
+        %{"path" => plugin_root, "kind" => "plugin"},
+        %{"path" => plugin_manifest, "kind" => "settings"},
+        %{"path" => plugin_skill_root, "kind" => "skills"},
+        %{"path" => agent_path, "kind" => "agent"},
+        %{"path" => Path.join(rules_dir, "controlkeel.md"), "kind" => "rules"},
+        %{"path" => plugin_hooks_path, "kind" => "hooks"},
+        %{"path" => plugin_mcp_path, "kind" => "mcp"},
+        %{"path" => ws_skill_root, "kind" => "skills"},
+        %{"path" => Path.join(ws_rules_dir, "controlkeel.md"), "kind" => "rules"},
+        %{"path" => ws_hooks_path, "kind" => "hooks"},
+        %{"path" => ws_mcp_path, "kind" => "mcp"},
+        %{"path" => gemini_md, "kind" => "instructions"},
+        %{"path" => agents_md, "kind" => "instructions"}
+      ],
+      [
+        "The plugin bundle at `.agents/plugins/controlkeel/` contains skills, agents, rules, hooks, and MCP config as a single installable unit.",
+        "Antigravity CLI discovers workspace plugins automatically from `.agents/plugins/`.",
+        "To install globally, copy the plugin to `~/.gemini/config/plugins/controlkeel/`.",
+        "Workspace skills, rules, hooks, and MCP config in `.agents/` are also auto-discovered.",
+        "Run `agy plugin list` to verify the controlkeel plugin is loaded."
+      ]
+    )
+  end
+
+  defp write_target(%SkillTarget{id: "antigravity-cli-plugin"}, root, project_root, skills, opts) do
+    # Portable plugin bundle for global install or marketplace distribution
+    plugin_root = Path.join(root, "controlkeel")
+    File.mkdir_p!(plugin_root)
+
+    plugin_manifest = Path.join(plugin_root, "plugin.json")
+    File.write!(plugin_manifest, Jason.encode!(%{"name" => "controlkeel"}, pretty: true) <> "\n")
+
+    skill_root = Path.join(plugin_root, "skills")
+    write_skill_tree(skills, skill_root)
+
+    agent_path = Path.join(plugin_root, "agents/controlkeel-operator.md")
+    File.mkdir_p!(Path.dirname(agent_path))
+    File.write!(agent_path, antigravity_agent_contents())
+
+    rules_dir = Path.join(plugin_root, "rules")
+    File.mkdir_p!(rules_dir)
+    File.write!(Path.join(rules_dir, "controlkeel.md"), antigravity_rules_contents())
+
+    hooks_path = Path.join(plugin_root, "hooks.json")
+
+    File.write!(
+      hooks_path,
+      Jason.encode!(antigravity_hooks_manifest(project_root, opts), pretty: true) <> "\n"
+    )
+
+    mcp_path = Path.join(plugin_root, "mcp_config.json")
+
+    File.write!(
+      mcp_path,
+      Jason.encode!(antigravity_mcp_config(project_root, opts), pretty: true) <> "\n"
+    )
+
+    readme_path = Path.join(root, "README.md")
+    File.write!(readme_path, antigravity_plugin_readme_contents())
+
+    with_common_assets(
+      root,
+      project_root,
+      opts,
+      [
+        %{"path" => plugin_manifest, "kind" => "settings"},
+        %{"path" => skill_root, "kind" => "skills"},
+        %{"path" => agent_path, "kind" => "agent"},
+        %{"path" => Path.join(rules_dir, "controlkeel.md"), "kind" => "rules"},
+        %{"path" => hooks_path, "kind" => "hooks"},
+        %{"path" => mcp_path, "kind" => "mcp"},
+        %{"path" => readme_path, "kind" => "instructions"}
+      ],
+      [
+        "Install globally: copy the `controlkeel/` directory to `~/.gemini/config/plugins/controlkeel/`.",
+        "Or install per-workspace: copy to `.agents/plugins/controlkeel/`.",
+        "Run `agy plugin list` to verify."
       ]
     )
   end
@@ -4031,7 +4403,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "controlkeel context --json >/dev/null 2>&1 || true; printf '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"ControlKeel available. Start with ck_context to load mission state.\"}}' ",
+                  "controlkeel context --json >/dev/null 2>&1 || true; printf '{\"systemMessage\":\"ControlKeel available. Start with ck_context to load mission state.\"}' ",
                 "statusMessage" => "Loading ControlKeel context",
                 "timeout" => 10
               }
@@ -4045,7 +4417,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "TOOL_INPUT=$(cat); if command -v jq >/dev/null 2>&1; then CMD=$(printf '%s' \"$TOOL_INPUT\" | jq -r '.command // empty' 2>/dev/null); else CMD=$(printf '%s' \"$TOOL_INPUT\"); fi; printf '%s' \"$CMD\" | grep -qiE '(deploy|fly |wrangler publish|mix release|docker push|heroku|git push origin)' && printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"Deploy-like command detected. Confirm ck_validate and ck_review_submit were called this turn before proceeding.\"}}' || true",
+                  "TOOL_INPUT=$(cat); if command -v jq >/dev/null 2>&1; then CMD=$(printf '%s' \"$TOOL_INPUT\" | jq -r '.tool_input.command // .command // empty' 2>/dev/null); else CMD=$(printf '%s' \"$TOOL_INPUT\" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get(\"tool_input\",{}).get(\"command\") or d.get(\"command\", \"\"))' 2>/dev/null || true); fi; printf '%s' \"$CMD\" | grep -qiE '(deploy|fly |wrangler publish|mix release|docker push|heroku|git push origin)' && printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"Deploy-like command detected. Confirm ck_validate and ck_review_submit were called this turn before proceeding.\"}}' || true",
                 "statusMessage" => "Checking Bash command with ControlKeel",
                 "timeout" => 10
               }
@@ -4082,7 +4454,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PostCompact\",\"additionalContext\":\"Context was compacted. You are in a ControlKeel-governed session: always call ck_context before proceeding, ck_validate before code or shell changes, and ck_finding for any issues you discover.\"}}' ",
+                  "printf '{\"systemMessage\":\"Context was compacted. You are in a ControlKeel-governed session: always call ck_context before proceeding, ck_validate before code or shell changes, and ck_finding for any issues you discover.\"}' ",
                 "statusMessage" => "Re-initializing ControlKeel governance context",
                 "timeout" => 5
               }
@@ -4095,7 +4467,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"SubagentStart\",\"additionalContext\":\"You are in a ControlKeel-governed session. Call ck_context before proceeding with any task, ck_validate before code or shell changes, and ck_finding for issues you discover.\"}}' ",
+                  "printf '{\"systemMessage\":\"You are in a ControlKeel-governed session. Call ck_context before proceeding with any task, ck_validate before code or shell changes, and ck_finding for issues you discover.\"}' ",
                 "timeout" => 5
               }
             ]
@@ -4107,7 +4479,7 @@ defmodule ControlKeel.Skills.Exporter do
               %{
                 "type" => "command",
                 "command" =>
-                  "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"ConfigChange\",\"additionalContext\":\"Configuration changed. Governance constraints and hooks may have been updated. Call ck_context to refresh your governance state if needed.\"}}' ",
+                  "printf '{\"systemMessage\":\"Configuration changed. Governance constraints and hooks may have been updated. Call ck_context to refresh your governance state if needed.\"}' ",
                 "timeout" => 5
               }
             ]
@@ -4328,7 +4700,7 @@ defmodule ControlKeel.Skills.Exporter do
     #!/usr/bin/env sh
     set -u
 
-    printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PostCompact","additionalContext":"Context was compacted. You are in a ControlKeel-governed session: always call ck_context before proceeding, ck_validate before code or shell changes, and ck_finding for any issues you discover. Resume any in-progress work only after re-loading governance state."}}'
+    printf '%s\n' '{"systemMessage":"Context was compacted. You are in a ControlKeel-governed session: always call ck_context before proceeding, ck_validate before code or shell changes, and ck_finding for any issues you discover. Resume any in-progress work only after re-loading governance state."}'
     exit 0
     """
   end
@@ -4358,7 +4730,7 @@ defmodule ControlKeel.Skills.Exporter do
     #!/usr/bin/env sh
     set -u
 
-    printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"SubagentStart","additionalContext":"You are in a ControlKeel-governed session. Call ck_context before proceeding with any task, ck_validate before code or shell changes, and ck_finding for issues you discover. Follow all governance constraints from the parent session."}}'
+    printf '%s\n' '{"systemMessage":"You are in a ControlKeel-governed session. Call ck_context before proceeding with any task, ck_validate before code or shell changes, and ck_finding for issues you discover. Follow all governance constraints from the parent session."}'
     exit 0
     """
   end
@@ -4397,7 +4769,7 @@ defmodule ControlKeel.Skills.Exporter do
       source=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('source','unknown'))" 2>/dev/null || echo "unknown")
     fi
 
-    printf '{"hookSpecificOutput":{"hookEventName":"ConfigChange","additionalContext":"Configuration changed (source: %s). Governance constraints and hooks may have been updated. Call ck_context to refresh your governance state if the change affects your current task."}}\n' "$source"
+    printf '{"systemMessage":"Configuration changed (source: %s). Governance constraints and hooks may have been updated. Call ck_context to refresh your governance state if the change affects your current task."}\n' "$source"
     exit 0
     """
   end
@@ -4418,7 +4790,7 @@ defmodule ControlKeel.Skills.Exporter do
 
     # Surface the denied tool so Claude can adjust its approach.
     # We do not retry by default — governance rules should be respected.
-    printf '{"hookSpecificOutput":{"hookEventName":"PermissionDenied","additionalContext":"Tool call denied: %s. This is a governance or safety constraint. Do not retry the same action. If unintended, call ck_context to review active governance rules or check ck_finding for active blocks."}}\n' "$tool_name"
+    printf '{"systemMessage":"Tool call denied: %s. This is a governance or safety constraint. Do not retry the same action. If unintended, call ck_context to review active governance rules or check ck_finding for active blocks."}\n' "$tool_name"
     exit 0
     """
   end
@@ -4627,7 +4999,7 @@ defmodule ControlKeel.Skills.Exporter do
 
     ck_run context --session-id "${session_id:-1}" --json >/dev/null 2>&1 || true
 
-    printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"ControlKeel available. Start with ck_context to load mission state, call ck_validate before risky edits, ck_budget before expensive operations, and ck_route before delegation."}}'
+    printf '%s\n' '{"systemMessage":"ControlKeel available. Start with ck_context to load mission state, call ck_validate before risky edits, ck_budget before expensive operations, and ck_route before delegation."}'
     exit 0
     """
   end
@@ -8890,6 +9262,159 @@ defmodule ControlKeel.Skills.Exporter do
     2. Run `controlkeel review plan submit --body-file <file> --submitted-by aider --json`.
     3. Wait with `controlkeel review plan wait --id <review_id> --json`.
     4. Summarize blocked findings and proof status before completion.
+    """
+  end
+
+  defp antigravity_agent_contents do
+    """
+    ---
+    name: controlkeel-operator
+    description: |
+      Governed code review and validation agent. Use for pre-commit validation,
+      security review, policy checks, and governed commit flows.
+      Invoke when code changes need governance review before merging.
+    ---
+
+    # ControlKeel Governance Operator
+
+    You are a governed code review and validation agent operating inside Antigravity.
+
+    ## Core Workflow
+
+    1. **Context First**: Call `ck_context` at the start of every review session.
+    2. **Validate Before Action**: Use `ck_validate` on all proposed code changes, shell commands, and config edits.
+    3. **Record Findings**: Use `ck_finding` for any security, compliance, or quality issues discovered.
+    4. **Review Gates**: Submit plans via `ck_review_submit` before broad mutations. Poll `ck_review_status` until approved.
+    5. **Budget Awareness**: Check `ck_budget` before expensive multi-phase work.
+    6. **Commit Governance**: Use `ck_git_commit` instead of raw git commit.
+
+    ## Available Tools
+
+    All 48 ControlKeel MCP tools are available through the CK MCP server:
+    - Governance: ck_validate, ck_context, ck_finding, ck_review_submit, ck_review_status
+    - Memory: ck_memory_record, ck_memory_search, ck_memory_archive
+    - Git: ck_git_status, ck_git_diff, ck_git_commit
+    - Budget: ck_budget, ck_cost_optimizer, ck_route
+    - Execution: ck_execute_code (sandboxed), ck_delegate
+
+    ## Constraints
+
+    - Never proceed past blocked critical or high findings.
+    - Always wait for review approval before implementing.
+    - Record all decisions and findings for audit trail.
+    - Respect budget limits and escalate when approaching limits.
+    """
+  end
+
+  defp antigravity_hooks_manifest(_project_root, _opts) do
+    ck_bin = "controlkeel"
+
+    %{
+      "controlkeel-governance" => %{
+        "PreToolUse" => [
+          %{
+            "matcher" => "run_command",
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" => "#{ck_bin} hook pre-tool-use --project-root ${workspacePaths[0]}",
+                "timeout" => 15
+              }
+            ]
+          }
+        ],
+        "PostToolUse" => [
+          %{
+            "matcher" => "write_to_file|replace_file_content|multi_replace_file_content",
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" => "#{ck_bin} hook post-tool-use --project-root ${workspacePaths[0]}",
+                "timeout" => 15
+              }
+            ]
+          }
+        ],
+        "Stop" => [
+          %{
+            "hooks" => [
+              %{
+                "type" => "command",
+                "command" => "#{ck_bin} hook stop --project-root ${workspacePaths[0]}",
+                "timeout" => 10
+              }
+            ]
+          }
+        ]
+      }
+    }
+  end
+
+  defp antigravity_mcp_config(project_root, opts) do
+    %{
+      "mcpServers" => %{
+        "controlkeel" => mcp_payload(project_root, opts)
+      }
+    }
+  end
+
+  defp antigravity_rules_contents do
+    """
+    # ControlKeel Governance Rules
+
+    ## Pre-commit Governance
+    - Always call `ck_validate` before shell commands, file writes, or config changes.
+    - Run `ck_context` at session start to reacquire governance state.
+    - Use `ck_review_submit` before broad mutations; wait for approval before proceeding.
+
+    ## Security
+    - Never commit secrets, API keys, or tokens.
+    - Use `ck_finding` to record any security issues discovered during work.
+    - Check `ck_budget` before expensive multi-phase or delegated work.
+
+    ## Code Quality
+    - Run `ck_git_diff` before committing to validate changes against policy.
+    - Use `ck_git_commit` instead of raw git commit to validate commit messages.
+
+    ## Review Gates
+    - Submit plans via `ck_review_submit` for human approval before implementation.
+    - Poll `ck_review_status` until approved/denied before proceeding.
+    - Record outcomes with `ck_outcome_tracker` before ending the session.
+    """
+  end
+
+  defp antigravity_plugin_readme_contents do
+    """
+    # ControlKeel Governance Plugin for Antigravity
+
+    This plugin brings full ControlKeel governance to Antigravity CLI and IDE.
+
+    ## What's Included
+
+    - **Skills**: Governance workflows (review, validate, commit, deploy)
+    - **Agent**: `controlkeel-operator` — guided governance agent profile
+    - **Rules**: Security, code quality, and review gate policies
+    - **Hooks**: Pre-tool-use governance gates and post-write validation
+    - **MCP**: ControlKeel MCP server for tool access
+
+    ## Installation
+
+    ### Global (all workspaces)
+    Copy the `controlkeel/` directory to `~/.gemini/config/plugins/controlkeel/`.
+
+    ### Per-workspace
+    Copy the `controlkeel/` directory to `.agents/plugins/controlkeel/` in your project.
+
+    ## Verification
+
+    Run `agy plugin list` and confirm `controlkeel` appears.
+
+    ## Usage
+
+    The plugin auto-loads when Antigravity starts. Use `ck_validate`, `ck_review_submit`,
+    `ck_finding`, and other governance tools through the Antigravity agent.
+
+    For full documentation, see https://github.com/aryaminus/controlkeel.
     """
   end
 

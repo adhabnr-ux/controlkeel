@@ -90,6 +90,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "ck_budget",
              "ck_route",
              "ck_delegate",
+             "ck_result_peek",
              "ck_cost_optimizer",
              "ck_deployment_advisor",
              "ck_outcome_tracker",
@@ -97,6 +98,12 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "ck_load_resources",
              "ck_mcp_discover",
              "ck_token_audit",
+             "ck_attach",
+             "ck_session_digest",
+             "ck_rollback",
+             "ck_workspace_agent",
+             "ck_copilot",
+             "ck_external_service",
              "ck_skill_list",
              "ck_skill_load",
              "ck_skill_validate"
@@ -128,8 +135,23 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert "ck_validate" in names
     assert "ck_context" in names
     assert "ck_budget" in names
+    # ck_attach is core because one-line-MCP-install users need it to wire
+    # hooks/skills without leaving the agent session.
+    assert "ck_attach" in names
     refute "ck_observability" in names
     refute "ck_finding" in names
+  end
+
+  test "ck_attach tool schema is exposed with the host required field" do
+    tools = Protocol.tool_schemas(tool_groups: :all)
+    attach = Enum.find(tools, &(&1["name"] == "ck_attach"))
+
+    assert attach != nil
+    assert attach["inputSchema"]["required"] == ["host"]
+    assert get_in(attach, ["inputSchema", "properties", "host", "type"]) == "string"
+    # Description must mention the one-line-install gap so LLMs know when to call it.
+    assert attach["description"] =~ "one-line"
+    assert attach["description"] =~ "host"
   end
 
   test "tool_schemas/1 with explicit tool_groups option overrides env var" do

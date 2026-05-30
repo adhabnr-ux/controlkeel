@@ -326,7 +326,8 @@ defmodule ControlKeelWeb.ShipLive do
   end
 
   defp assign_metrics(socket) do
-    detailed_sessions = Mission.list_recent_sessions(10)
+    workspace_id = get_current_workspace_id(socket)
+    detailed_sessions = Mission.list_recent_sessions(10, workspace_id)
 
     assign(socket,
       benchmark_summary: Benchmark.benchmark_summary(),
@@ -384,5 +385,23 @@ defmodule ControlKeelWeb.ShipLive do
     mix
     |> Enum.sort_by(fn {label, count} -> {-count, label} end)
     |> Enum.map_join(", ", fn {label, count} -> "#{label}: #{count}" end)
+  end
+
+  # Returns a single representative workspace_id for the current org.
+  # In local mode (no org) returns nil, preserving unscoped behavior.
+  defp get_current_workspace_id(socket) do
+    case socket.assigns[:current_org_id] do
+      nil ->
+        nil
+
+      org_id ->
+        org_id
+        |> ControlKeel.Accounts.list_workspaces_for_org()
+        |> List.first()
+        |> case do
+          nil -> nil
+          ws -> ws.id
+        end
+    end
   end
 end

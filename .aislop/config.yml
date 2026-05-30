@@ -1,0 +1,21 @@
+# ControlKeel aislop configuration
+# aislop detects AI-generated "slop" code patterns.
+# This config tunes aislop for CK's Elixir codebase.
+
+engines:
+  ai-slop: true
+  code-quality: true
+  security: true
+  format: false        # CK uses mix format
+  lint: false          # CK uses credo/dialyzer
+  architecture: false  # No custom rules yet
+
+exclude:
+  - "_build/**"
+  - "deps/**"
+  - ".elixir_ls/**"
+  - "priv/**"
+  - "test/**"
+
+telemetry:
+  enabled: false

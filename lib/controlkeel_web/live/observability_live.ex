@@ -5,12 +5,21 @@ defmodule ControlKeelWeb.ObservabilityLive do
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
+    org_id = socket.assigns[:current_org_id]
+
     case Observability.session_run(id) do
       {:ok, run} ->
-        {:ok,
-         socket
-         |> assign(:page_title, "Observability — #{run.session.title}")
-         |> assign(:run, run)}
+        if org_owns_session?(org_id, run.session) do
+          {:ok,
+           socket
+           |> assign(:page_title, "Observability — #{run.session.title}")
+           |> assign(:run, run)}
+        else
+          {:ok,
+           socket
+           |> put_flash(:error, "Session observability not found.")
+           |> push_navigate(to: ~p"/")}
+        end
 
       {:error, _reason} ->
         {:ok,
@@ -19,6 +28,16 @@ defmodule ControlKeelWeb.ObservabilityLive do
          |> push_navigate(to: ~p"/")}
     end
   end
+
+  defp org_owns_session?(nil, _session), do: true
+
+  defp org_owns_session?(org_id, %{workspace_id: ws_id}) when is_integer(org_id) do
+    org_id
+    |> ControlKeel.Accounts.list_workspaces_for_org()
+    |> Enum.any?(fn ws -> ws.id == ws_id end)
+  end
+
+  defp org_owns_session?(_org_id, _session), do: true
 
   @impl true
   def render(assigns) do

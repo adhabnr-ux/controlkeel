@@ -11,6 +11,7 @@ defmodule ControlKeel.MCP.Protocol do
     CkBudget,
     CkContext,
     CkContextPack,
+    CkCopilot,
     CkExecuteCode,
     CkDelegate,
     CkExperienceIndex,
@@ -44,13 +45,18 @@ defmodule ControlKeel.MCP.Protocol do
     CkDeploymentAdvisor,
     CkEngineerMirror,
     CkOutcomeTracker,
+    CkRollback,
+    CkSessionDigest,
     CkTokenAudit,
     CkToolHealth,
     CkWorktreeList,
     CkWorktreeSwitch,
+    CkExternalService,
+    CkWorkspaceAgent,
     CkCheckpointCreate,
     CkCheckpointRestore,
     CkCheckpointList,
+    CkResultPeek,
     CkGitDiff,
     CkGitCommit,
     CkGitStatus,
@@ -284,7 +290,8 @@ defmodule ControlKeel.MCP.Protocol do
       "ck_budget",
       "ck_route",
       "ck_mcp_discover",
-      "ck_token_audit"
+      "ck_token_audit",
+      "ck_attach"
     ],
     "governance" => [
       "ck_review_submit",
@@ -297,10 +304,16 @@ defmodule ControlKeel.MCP.Protocol do
       "ck_memory_search",
       "ck_memory_archive",
       "ck_delegate",
+      "ck_result_peek",
       "ck_cost_optimizer",
       "ck_deployment_advisor",
       "ck_outcome_tracker",
-      "ck_engineer_mirror"
+      "ck_engineer_mirror",
+      "ck_session_digest",
+      "ck_rollback",
+      "ck_workspace_agent",
+      "ck_copilot",
+      "ck_external_service"
     ],
     "observability" => [
       "ck_observability",
@@ -381,13 +394,20 @@ defmodule ControlKeel.MCP.Protocol do
         ck_budget_tool(),
         ck_route_tool(),
         ck_delegate_tool(),
+        ck_result_peek_tool(),
         ck_cost_optimizer_tool(),
         ck_deployment_advisor_tool(),
         ck_outcome_tracker_tool(),
         ck_engineer_mirror_tool(),
         ck_load_resources_tool(),
         ck_mcp_discover_tool(),
-        ck_token_audit_tool()
+        ck_token_audit_tool(),
+        ck_attach_tool(),
+        ck_session_digest_tool(),
+        ck_rollback_tool(),
+        ck_workspace_agent_tool(),
+        ck_copilot_tool(),
+        ck_external_service_tool()
       ]
 
       # Always expose ck_skill_list / ck_skill_load / ck_skill_validate. Do not call Registry here: a full
@@ -524,6 +544,7 @@ defmodule ControlKeel.MCP.Protocol do
     do: CkCheckpointRestore.call(arguments)
 
   defp do_dispatch_tool("ck_checkpoint_list", arguments), do: CkCheckpointList.call(arguments)
+  defp do_dispatch_tool("ck_result_peek", arguments), do: CkResultPeek.call(arguments)
   defp do_dispatch_tool("ck_git_diff", arguments), do: CkGitDiff.call(arguments)
   defp do_dispatch_tool("ck_git_commit", arguments), do: CkGitCommit.call(arguments)
   defp do_dispatch_tool("ck_git_status", arguments), do: CkGitStatus.call(arguments)
@@ -552,6 +573,15 @@ defmodule ControlKeel.MCP.Protocol do
 
   defp do_dispatch_tool("ck_outcome_tracker", arguments), do: CkOutcomeTracker.call(arguments)
   defp do_dispatch_tool("ck_token_audit", arguments), do: CkTokenAudit.call(arguments)
+
+  defp do_dispatch_tool("ck_attach", arguments),
+    do: ControlKeel.MCP.Tools.CkAttach.call(arguments)
+
+  defp do_dispatch_tool("ck_session_digest", arguments), do: CkSessionDigest.call(arguments)
+  defp do_dispatch_tool("ck_rollback", arguments), do: CkRollback.call(arguments)
+  defp do_dispatch_tool("ck_workspace_agent", arguments), do: CkWorkspaceAgent.call(arguments)
+  defp do_dispatch_tool("ck_copilot", arguments), do: CkCopilot.call(arguments)
+  defp do_dispatch_tool("ck_external_service", arguments), do: CkExternalService.call(arguments)
 
   defp do_dispatch_tool(unknown, _arguments),
     do: {:error, {:invalid_arguments, "Unknown tool: #{unknown}"}}
@@ -1530,6 +1560,7 @@ defmodule ControlKeel.MCP.Protocol do
           "review_type controls what is being submitted: plan (before implementation), diff (before merging), or completion (task done). " <>
           "submission_body is the full content: plan text, diff, or completion description. " <>
           "For iterative plan refinement, pass previous_review_id and plan_phase (ticket → research_packet → design_options → narrowed_decision → implementation_plan → code_backed_plan). " <>
+          "The plan-quality scorer evaluates structured fields, not just submission_body — populate research_summary, options_considered, selected_option, rejected_options, implementation_steps, validation_plan, code_snippets, alignment_context, consulted_roles, codebase_findings, prior_art_summary, and scope_estimate for a strong score. " <>
           "Returns review_id, status (pending), and a URL where the human reviewer can approve or deny. " <>
           "After submission, poll ck_review_status until the decision is approved or denied before proceeding. " <>
           "Use ck_review_feedback (human-facing) to record a decision on an existing review.",
@@ -2206,6 +2237,36 @@ defmodule ControlKeel.MCP.Protocol do
     }
   end
 
+  defp ck_result_peek_tool do
+    %{
+      "name" => "ck_result_peek",
+      "description" =>
+        "Peek at the full stdout of a previously completed ck_delegate embedded run without loading it all into context. " <>
+          "Use result_ref and package_root returned by ck_delegate to locate the stored output. " <>
+          "Supports byte-range reads: pass peek_bytes to limit how much to load, and offset to skip ahead. " <>
+          "Use result_length (returned by ck_delegate) to decide whether to peek, pass the ref downstream, or skip loading entirely. " <>
+          "This is the RLM variable-encapsulation pattern: treat large sub-agent outputs as named references, not inline blobs.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["package_root"],
+        "properties" => %{
+          "package_root" => %{
+            "type" => "string",
+            "description" => "package_root returned by ck_delegate for the completed embedded run."
+          },
+          "peek_bytes" => %{
+            "type" => ["integer", "string"],
+            "description" => "How many bytes to read (default 2000, max 32000)."
+          },
+          "offset" => %{
+            "type" => ["integer", "string"],
+            "description" => "Byte offset to start reading from (default 0)."
+          }
+        }
+      }
+    }
+  end
+
   defp ck_cost_optimizer_tool do
     %{
       "name" => "ck_cost_optimizer",
@@ -2540,6 +2601,44 @@ defmodule ControlKeel.MCP.Protocol do
     }
   end
 
+  defp ck_attach_tool do
+    %{
+      "name" => "ck_attach",
+      "description" =>
+        "Wire ControlKeel into the current agent host (Claude Code, Cursor, Codex, OpenCode, etc.). " <>
+          "Closes the gap for users who installed ControlKeel via a one-line MCP-add command but skipped " <>
+          "`controlkeel attach <host>`. Installs the host-specific hooks (SessionStart, PreToolUse, " <>
+          "PostToolUse, UserPromptSubmit), skills directory, slash commands, AGENTS.md/CLAUDE.md preamble, " <>
+          "and subagent profiles for the requested host. Idempotent — re-running refreshes artifacts to " <>
+          "the current version. Writes only inside `project_root`; no network egress. " <>
+          "Call this once after a one-line MCP install when the host lacks ControlKeel hooks/skills. " <>
+          "Use `ck_mcp_discover` first if unsure which host ID to pass.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["host"],
+        "properties" => %{
+          "host" => %{
+            "type" => "string",
+            "description" =>
+              "Agent host ID to attach. One of: claude-code, codex-cli, cursor, opencode, augment, " <>
+                "continue, aider, cline, roo-code, kiro, goose, gemini-cli, letta-code, windsurf, " <>
+                "vscode, copilot, pi."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path to the project root. Defaults to CK_PROJECT_ROOT or the MCP server's working directory."
+          },
+          "scope" => %{
+            "type" => "string",
+            "enum" => ["project", "user"],
+            "description" => "Attach scope. Defaults to project."
+          }
+        }
+      }
+    }
+  end
+
   defp current_skill_names do
     Registry.names(stdio_project_root(), trust_project_skills: true)
   end
@@ -2850,6 +2949,246 @@ defmodule ControlKeel.MCP.Protocol do
       "jsonrpc" => "2.0",
       "id" => id,
       "error" => %{"code" => code, "message" => message}
+    }
+  end
+
+  def ck_session_digest_tool do
+    %{
+      "name" => "ck_session_digest",
+      "description" =>
+        "Generate a condensed, human-scannable digest of what happened in a session — tasks completed, findings raised, budget spent, reviews pending, and notable highlights. Three modes: generate (create a new digest), latest (return the most recent), list (paginated history). Designed for the forward-deployed engineer who needs an 'inbox that summarizes what happened' without reading raw event streams.",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["session_id"],
+        "properties" => %{
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["generate", "latest", "list"],
+            "description" => "Operation mode. Defaults to generate."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Session identifier."
+          },
+          "digest_type" => %{
+            "type" => "string",
+            "enum" => ["session", "daily", "shift_change"],
+            "description" => "Type of digest to generate. Defaults to session."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_rollback_tool do
+    %{
+      "name" => "ck_rollback",
+      "description" =>
+        "Execute a governed rollback of an agent's work. Records a git checkpoint before each task and provides a single action to revert. Safety-checked: refuses if downstream tasks depend on the changes. Creates an audit finding on every rollback. Modes: checkpoint (capture git HEAD before task), execute (revert agent's changes), status (check snapshot state), list (all snapshots for session).",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["session_id"],
+        "properties" => %{
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["checkpoint", "execute", "status", "list"],
+            "description" => "Operation mode. Defaults to status."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Session identifier."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Task identifier. Required for checkpoint, execute, and status modes."
+          },
+          "reason" => %{
+            "type" => "string",
+            "description" => "Reason for rollback. Recorded in audit finding."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" => "Absolute path to the project root."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_workspace_agent_tool do
+    %{
+      "name" => "ck_workspace_agent",
+      "description" =>
+        "Manage workspace agent roles: one primary 'super-agent' per workspace maintained by a forward-deployed engineer, specialized agents for specific domains, and ephemeral agents for short-lived tasks. Modes: register (create agent, only one primary per workspace), update (change scope/budget/status), list (all agents for workspace), health (aggregated health indicator), retire (deactivate agent).",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => [],
+        "properties" => %{
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["register", "update", "list", "health", "retire"],
+            "description" => "Operation mode. Defaults to list."
+          },
+          "workspace_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Workspace identifier."
+          },
+          "agent_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Agent identifier. Required for update, health, and retire modes."
+          },
+          "name" => %{
+            "type" => "string",
+            "description" => "Human-readable agent name."
+          },
+          "role" => %{
+            "type" => "string",
+            "enum" => ["primary", "specialized", "ephemeral"],
+            "description" => "Agent role. Only one primary per workspace."
+          },
+          "agent_type" => %{
+            "type" => "string",
+            "description" => "Agent adapter type (e.g., claude-code, cursor, opencode)."
+          },
+          "status" => %{
+            "type" => "string",
+            "enum" => ["active", "paused", "retired"],
+            "description" => "Agent status."
+          },
+          "scope" => %{
+            "type" => "object",
+            "description" => "Scoped capabilities and policies for this agent."
+          },
+          "budget_cents" => %{
+            "type" => ["integer", "string"],
+            "description" => "Budget allocation in cents."
+          },
+          "maintainer_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "User ID of the human who maintains this agent."
+          },
+          "policy_overrides" => %{
+            "type" => "object",
+            "description" => "Policy overrides for this agent."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_copilot_tool do
+    %{
+      "name" => "ck_copilot",
+      "description" =>
+        "Real-time collaborative channel where human actions stream to the agent. Build software for humans and agents to use together — agents can see when a human is viewing, editing, or approving. Modes: subscribe (receive events), publish (emit an event), presence (who is active), history (recent events).",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["session_id"],
+        "properties" => %{
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["subscribe", "publish", "presence", "history"],
+            "description" => "Operation mode. Defaults to history."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Session identifier."
+          },
+          "event_type" => %{
+            "type" => "string",
+            "enum" => [
+              "human.viewing",
+              "human.editing",
+              "human.approving",
+              "human.commenting",
+              "agent.status",
+              "agent.progress"
+            ],
+            "description" => "Event type for publish mode."
+          },
+          "payload" => %{
+            "type" => "object",
+            "description" => "Event payload."
+          },
+          "actor" => %{
+            "type" => "string",
+            "description" => "Actor identifier (e.g., 'human', 'agent')."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier for scoping the event."
+          },
+          "limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Max events to return in history mode. Default: 50."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_external_service_tool do
+    %{
+      "name" => "ck_external_service",
+      "description" =>
+        "Track and govern agent interactions with external SaaS APIs. Rate limits per service, cost attribution, and PII redaction. Modes: record (log an interaction with auto-redaction), summary (aggregated view per service), rate_limit_status (current rates against limits), top_services (ranked by volume and cost).",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["session_id"],
+        "properties" => %{
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["record", "summary", "rate_limit_status", "top_services"],
+            "description" => "Operation mode. Defaults to summary."
+          },
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Session identifier."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier for scoping the interaction."
+          },
+          "service_name" => %{
+            "type" => "string",
+            "description" => "External service name (e.g., github, slack, jira)."
+          },
+          "interaction_type" => %{
+            "type" => "string",
+            "enum" => ["api_call", "webhook", "browser_action"],
+            "description" => "Type of interaction. Defaults to api_call."
+          },
+          "method" => %{
+            "type" => "string",
+            "description" => "HTTP method (GET, POST, etc.)."
+          },
+          "endpoint" => %{
+            "type" => "string",
+            "description" => "Sanitized endpoint path. PII is auto-redacted."
+          },
+          "status_code" => %{
+            "type" => ["integer", "string"],
+            "description" => "HTTP status code or result code."
+          },
+          "latency_ms" => %{
+            "type" => ["integer", "string"],
+            "description" => "Request latency in milliseconds."
+          },
+          "cost_cents" => %{
+            "type" => ["integer", "string"],
+            "description" => "Estimated cost in cents."
+          },
+          "limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Max results for top_services mode. Default: 10."
+          },
+          "metadata" => %{
+            "type" => "object",
+            "description" => "Additional metadata."
+          }
+        }
+      }
     }
   end
 end

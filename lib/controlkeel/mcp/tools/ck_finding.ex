@@ -20,6 +20,8 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
          "requires_human" => finding.status in ["blocked", "escalated"],
          "resolved_finding_ids" => resolved_ids,
          "resolved_findings_count" => length(resolved_ids),
+         "extends_finding_id" => finding.extends_finding_id,
+         "contradicts_finding_id" => finding.contradicts_finding_id,
          "summary" =>
            "Recorded #{finding.severity} #{finding.category} finding for #{finding.title}."
        }}
@@ -33,7 +35,9 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
          {:ok, severity} <- required_binary(arguments, "severity"),
          {:ok, rule_id} <- required_binary(arguments, "rule_id"),
          {:ok, plain_message} <- required_binary(arguments, "plain_message"),
-         {:ok, decision} <- optional_decision(arguments) do
+         {:ok, decision} <- optional_decision(arguments),
+         {:ok, extends_finding_id} <- optional_integer(arguments, "extends_finding_id"),
+         {:ok, contradicts_finding_id} <- optional_integer(arguments, "contradicts_finding_id") do
       title =
         case Map.get(arguments, "title") do
           value when is_binary(value) and value != "" -> value
@@ -46,27 +50,32 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
         |> Map.put_new("source", "mcp")
         |> maybe_put("task_id", task_id)
 
-      {:ok,
-       %{
-         title: title,
-         severity: severity,
-         category: category,
-         rule_id: rule_id,
-         plain_message: plain_message,
-         status: status_for_decision(decision),
-         auto_resolved: decision == "allow",
-         metadata: metadata,
-         session_id: session_id
-       }}
+      attrs =
+        %{
+          title: title,
+          severity: severity,
+          category: category,
+          rule_id: rule_id,
+          plain_message: plain_message,
+          status: status_for_decision(decision),
+          auto_resolved: decision == "allow",
+          metadata: metadata,
+          session_id: session_id
+        }
+        |> maybe_put(:extends_finding_id, extends_finding_id)
+        |> maybe_put(:contradicts_finding_id, contradicts_finding_id)
+
+      {:ok, attrs}
     end
   end
 
   defp resolve_matching_findings(%{session_id: session_id, status: "approved"} = attrs) do
+    # Use scoped query instead of loading all findings into memory
+    findings = Mission.list_findings_for_session(session_id)
+
     query =
-      Mission.list_findings()
-      |> Enum.filter(fn finding ->
-        finding.session_id == session_id and
-          finding.rule_id == attrs.rule_id and
+      Enum.filter(findings, fn finding ->
+        finding.rule_id == attrs.rule_id and
           finding.category == attrs.category and
           finding.status in ["open", "blocked"]
       end)
