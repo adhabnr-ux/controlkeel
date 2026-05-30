@@ -5676,8 +5676,9 @@ defmodule ControlKeel.Mission do
   end
 
   defp count_vulnerability_metadata(query, key) do
+    # Use raw SQL fragment for GROUP BY to avoid parameterization conflicts
     query
-    |> group_by([f, _s, _w], coalesce(json_extract_path(f.metadata, [^key]), fragment("?", "unknown")))
+    |> group_by([f, _s, _w], fragment("coalesce(?, 'unknown')", json_extract_path(f.metadata, [^key])))
     |> select([f, _s, _w], {coalesce(json_extract_path(f.metadata, [^key]), ^"unknown"), count(f.id)})
     |> Repo.all()
     |> Map.new()
