@@ -297,18 +297,6 @@ defmodule ControlKeel.Intent.Router do
   defp maybe_append_question(list, true, question), do: list ++ [question]
   defp maybe_append_question(list, false, _question), do: list
 
-  defp split_list(nil), do: []
-
-  defp split_list(value) when is_binary(value) do
-    value
-    |> String.split(~r/[\n,]/, trim: true)
-    |> Enum.map(&String.trim/1)
-    |> Enum.reject(&(&1 == ""))
-  end
-
-  defp split_list(value) when is_list(value), do: Enum.map(value, &to_string/1)
-  defp split_list(_value), do: []
-
   defp present_value(value) do
     value = to_string(value || "") |> String.trim()
     if value == "", do: nil, else: value
