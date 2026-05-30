@@ -181,6 +181,7 @@ defmodule ControlKeelWeb.Router do
     post "/tasks/:id/report", ApiController, :report_task
     post "/validate", ApiController, :validate
     get "/findings", ApiController, :list_findings
+    post "/findings", ApiController, :create_finding
     post "/findings/:id/action", ApiController, :finding_action
     get "/proofs", ApiController, :list_proofs
     get "/proofs/:id", ApiController, :get_proof
@@ -197,6 +198,7 @@ defmodule ControlKeelWeb.Router do
     get "/budget", ApiController, :get_budget
     get "/proof/:task_id", ApiController, :proof_bundle
     get "/memory/search", ApiController, :search_memory
+    post "/memory", ApiController, :create_memory
     delete "/memory/:id", ApiController, :archive_memory
     post "/route-agent", ApiController, :route_agent
     get "/skills", ApiController, :list_skills

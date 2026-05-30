@@ -351,6 +351,36 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
+  def create_finding(conn, params) do
+    session_id = normalize_integer_param(params["session_id"])
+
+    decision = Map.get(params, "decision", "warn")
+    status = if decision == "block", do: "blocked", else: "open"
+
+    attrs = %{
+      "session_id" => session_id,
+      "task_id" => normalize_integer_param(params["task_id"]),
+      "category" => Map.get(params, "category", "security"),
+      "severity" => Map.get(params, "severity", "medium"),
+      "rule_id" => Map.get(params, "rule_id", "agent.manual_review"),
+      "plain_message" => Map.get(params, "plain_message", ""),
+      "title" => Map.get(params, "title", Map.get(params, "rule_id", "Finding")),
+      "status" => status,
+      "auto_resolved" => false,
+      "metadata" => Map.get(params, "metadata", %{})
+    }
+
+    case Mission.create_finding(attrs) do
+      {:ok, finding} ->
+        conn |> put_status(:created) |> json(%{finding: finding_summary(finding)})
+
+      {:error, changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "invalid finding", details: changeset_errors(changeset)})
+    end
+  end
+
   # ─── Budget ──────────────────────────────────────────────────────────────────
 
   def get_budget(conn, params) do
@@ -661,6 +691,41 @@ defmodule ControlKeelWeb.ApiController do
 
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "memory record not found"})
+    end
+  end
+
+  def create_memory(conn, params) do
+    session_id = normalize_integer_param(params["session_id"])
+    body = Map.get(params, "memory", Map.get(params, "body", ""))
+
+    case session_id && Mission.get_session(session_id) do
+      %{} = session ->
+        attrs = %{
+          "workspace_id" => session.workspace_id,
+          "session_id" => session_id,
+          "task_id" => normalize_integer_param(params["task_id"]),
+          "record_type" => Map.get(params, "record_type", "decision"),
+          "title" => Map.get(params, "title", String.slice(body, 0, 80)),
+          "summary" => Map.get(params, "summary", body),
+          "body" => body,
+          "tags" => Map.get(params, "tags", []),
+          "source_type" => "user"
+        }
+
+        case Memory.record(attrs) do
+          {:ok, record} ->
+            conn
+            |> put_status(:created)
+            |> json(%{memory: %{id: record.id, record_type: record.record_type, title: record.title}})
+
+          {:error, changeset} ->
+            conn
+            |> put_status(:unprocessable_entity)
+            |> json(%{error: "invalid memory", details: changeset_errors(changeset)})
+        end
+
+      _ ->
+        conn |> put_status(:not_found) |> json(%{error: "session not found"})
     end
   end
 
