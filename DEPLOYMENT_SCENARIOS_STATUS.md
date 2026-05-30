@@ -248,10 +248,10 @@ This document provides the current verification status for all ControlKeel deplo
 ## Test Suite Health
 
 **Current Test Status:**
-- Total tests: 2130
-- Passing: 2130
-- Failing: 1 (known flaky test: `run_cloud_agent_cli_test.exs:236`)
-- Flaky test passes on re-run: ✅
+- Total tests: 2135
+- Passing: 2135
+- Failing: 0
+- Previous flaky test (`run_cloud_agent_cli_test.exs` git temp-dir collision) fixed in `4430719`
 
 **Test Execution Time:**
 - Full suite: ~238 seconds

@@ -4,8 +4,8 @@
 
 **Last updated:** 2026-05-29
 **Authoritative branch:** `main`
-**HEAD:** current local `main` HEAD (not pushed; run `git log -1 --oneline` for the exact SHA)
-**Test status:** 2135 / 2135 passing + self-host smoke script + TypeScript SDK typecheck
+**HEAD:** `a7f01d0` (48 commits ahead of `origin/main`, none pushed)
+**Test status:** 2135 / 2135 passing (0 failures) + self-host smoke script + TypeScript SDK typecheck
 
 This document tracks the user-visible product gaps surfaced by the cloud-readiness audits in sessions ses_1900 and ses_2696. It complements (does **not** replace) `cloud-enterprise-roadmap.md`, which tracks backend foundations.
 
@@ -13,9 +13,14 @@ This document tracks the user-visible product gaps surfaced by the cloud-readine
 
 ## TL;DR
 
-The data layer is solid (tenant isolation, sync dedup, OIDC verification, audit trail, multi-tenant indices). The browser-facing onboarding is broken: a new visitor to `controlkeel.com` literally cannot sign up, create an org, configure auth, or create a workspace without first installing the CLI. **Every administrative action requires shell access.**
+**All P0–P4 slices complete.** A new visitor to `controlkeel.com` can now self-serve sign up, create an org, configure OIDC/SAML auth, create a workspace, invite teammates, and manage their entire tenant from the browser — no CLI required for onboarding or day-to-day administration.
 
-This doc sequences the work to close that gap.
+The data layer is solid: tenant isolation, sync deduplication, OIDC token exchange, multi-tenant indices, per-workspace rate limiting, and the full audit trail are all in production shape. The TypeScript SDK, Postgres CI lane, self-host smoke test, and P4 marketing/docs/pricing surfaces are shipped.
+
+**Remaining honest gaps** (tracked below in DEPLOYMENT_SCENARIOS_STATUS.md):
+- SDK integration tests against a mock or real endpoint (types pass; HTTP round-trips untested)
+- MCP tool execution integration tests (no dedicated harness yet)
+- Cloud-agent → cloud/self-hosted CK integration tests (architecture decided; test harness not built)
 
 ---
 
@@ -241,7 +246,7 @@ These should be answered before shipping the corresponding phase.
 
 1. ~~**P3.4 — Skills/hooks cloud-execution model.**~~ ✅ Decided: hybrid model. See `docs/cloud-execution-model.md`.
 
-2. **P0.4 — IdP self-serve.** Two options: (a) Force every org to bring their own OIDC provider (config UI). (b) Ship a hosted fallback (Anthropic-managed Google/GitHub OAuth) for orgs without an IdP. (b) reduces friction but increases CK's own auth burden.
+2. ~~**P0.4 — IdP self-serve.**~~ ✅ Resolved: OrgSettingsAuthLive at `/org/:slug/settings/auth` lets org owners paste their OIDC issuer/client_id/client_secret via the browser. SAML also supported. No hosted fallback (Anthropic OAuth) needed for v1.
 
 3. ~~**P4.3 — Marketing site posture.**~~ ✅ Resolved: Single dashboard with conditional rendering — anonymous cloud visitors see marketing hero + features, auth'd users see dashboard.
 
