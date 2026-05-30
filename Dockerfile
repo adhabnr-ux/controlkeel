@@ -65,7 +65,7 @@ RUN mix release
 FROM debian:bookworm-slim AS app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      libstdc++ openssl ca-certificates \
+      libstdc++6 libssl3 ca-certificates libncurses6 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

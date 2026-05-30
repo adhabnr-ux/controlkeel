@@ -1,7 +1,7 @@
 # ControlKeel × Gemini — Governed AI Agents
 
 ## Team
-**ControlKeel** — [names]
+**ControlKeel** — [Your Name]
 
 ## One-liner
 The enforcement layer that makes AI agents safe for production — a governed
@@ -54,7 +54,8 @@ agents in regulated industries. Moat: deterministic enforcement (not LLM
 suggestions), cross-agent portability, compliance-grade proof bundles.
 
 ## Links
-- **Hosted prototype (Cloud Run):** [Gemini app URL]
-- **Mission Control:** [CK Cloud Run URL]/missions/1
-- **Code:** [repo / AI Studio share]
+- **Hosted prototype (Cloud Run):** https://ck-gemini-834811228927.us-central1.run.app
+- **Mission Control:** https://controlkeel-834811228927.us-central1.run.app/missions/1
+- **Findings:** https://controlkeel-834811228927.us-central1.run.app/findings
+- **Code:** [GitHub / AI Studio share]
 - **Video:** [YouTube]
