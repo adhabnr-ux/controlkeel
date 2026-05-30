@@ -15,7 +15,7 @@ defmodule ControlKeel.Repo.Migrations.AddProxyTokenToSessions do
     else
       execute("""
       UPDATE sessions
-      SET proxy_token = encode(gen_random_bytes(24), 'hex')
+      SET proxy_token = substr(md5(random()::text) || md5(random()::text) || md5(random()::text), 1, 48)
       WHERE proxy_token IS NULL
       """)
     end
