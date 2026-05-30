@@ -5675,22 +5675,17 @@ defmodule ControlKeel.Mission do
     )
   end
 
-  if ControlKeel.Repo.__adapter__() == Ecto.Adapters.Postgres do
-    defp count_vulnerability_metadata(query, key) do
+  defp count_vulnerability_metadata(query, key) do
+    rows =
       query
-      |> group_by([f, _s, _w], fragment("coalesce(?#>>array[?]::text[], 'unknown')", f.metadata, ^key))
-      |> select([f, _s, _w], {fragment("coalesce(?#>>array[?]::text[], 'unknown')", f.metadata, ^key), count(f.id)})
+      |> select([f, _s, _w], f.metadata)
       |> Repo.all()
-      |> Map.new()
-    end
-  else
-    defp count_vulnerability_metadata(query, key) do
-      query
-      |> group_by([f, _s, _w], fragment("coalesce(json_extract(?, ?), 'unknown')", f.metadata, ^"$.#{key}"))
-      |> select([f, _s, _w], {fragment("coalesce(json_extract(?, ?), 'unknown')", f.metadata, ^"$.#{key}"), count(f.id)})
-      |> Repo.all()
-      |> Map.new()
-    end
+
+    rows
+    |> Enum.reduce(%{}, fn metadata, acc ->
+      value = get_in(metadata, [key]) || "unknown"
+      Map.update(acc, value, 1, &(&1 + 1))
+    end)
   end
 
   defp maybe_filter_session(query, nil), do: query
