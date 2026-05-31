@@ -366,7 +366,9 @@ def _try_gemini(user_message: str, history: list[dict] | None = None) -> dict | 
             ),
         )
 
-        # Extract tool-call trace from automatic function calling history
+        # Extract tool-call trace from automatic function calling history.
+        # In google-genai >=1.20, fr.response is a protobuf MapComposite/Struct,
+        # not a plain dict — convert explicitly so .get() and JSON serialisation work.
         trace = []
         for entry in getattr(response, "automatic_function_calling_history", None) or []:
             for part in getattr(entry, "parts", None) or []:
@@ -375,8 +377,14 @@ def _try_gemini(user_message: str, history: list[dict] | None = None) -> dict | 
                 if fc:
                     trace.append({"tool": fc.name, "args": dict(fc.args or {}), "result": None})
                 elif fr and trace:
-                    resp = fr.response
-                    trace[-1]["result"] = resp.get("result", resp) if isinstance(resp, dict) else resp
+                    raw = fr.response
+                    # Convert protobuf MapComposite / Struct to a plain Python dict
+                    try:
+                        resp = dict(raw) if not isinstance(raw, dict) and hasattr(raw, "items") else (raw if isinstance(raw, dict) else {})
+                    except Exception:
+                        resp = {}
+                    # SDK wraps function results as {"result": <value>} in some versions
+                    trace[-1]["result"] = resp.get("result", resp) if "result" in resp else resp
 
         text = (response.text or "").strip()
         return {"response": text or "Governance workflow complete.", "trace": trace, "degraded": False}
