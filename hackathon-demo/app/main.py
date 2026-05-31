@@ -279,6 +279,116 @@ def ck_complete_task() -> dict:
     return _ck_post(f"/api/v1/tasks/{tid}/complete", {"session_id": sid})
 
 
+def ck_platform_overview() -> dict:
+    """Return a compact cross-platform snapshot: mission state, budget, findings,
+    proofs, benchmarks, policies, providers, skills, and key Mission Control URLs."""
+    sid, _ = _ensure_session()
+    return {
+        "session": _ck_get(f"/api/v1/sessions/{sid}") if sid else {"error": "no session"},
+        "budget": ck_budget(),
+        "findings": _ck_get("/api/v1/findings", {"session_id": sid}) if sid else {},
+        "proofs": _ck_get("/api/v1/proofs", {"session_id": sid}) if sid else {},
+        "benchmarks": _ck_get("/api/v1/benchmarks"),
+        "policies": _ck_get("/api/v1/policies"),
+        "providers": _ck_get("/api/v1/providers/status"),
+        "skills": _ck_get("/api/v1/skills"),
+        "urls": {
+            "mission_control": f"{CK_BASE_URL}/missions/1",
+            "observability": f"{CK_BASE_URL}/observability",
+            "policies": f"{CK_BASE_URL}/policies",
+            "benchmarks": f"{CK_BASE_URL}/benchmarks",
+            "ship": f"{CK_BASE_URL}/ship",
+            "proofs": f"{CK_BASE_URL}/proofs",
+            "findings": f"{CK_BASE_URL}/findings",
+            "skills": f"{CK_BASE_URL}/skills",
+            "deploy": f"{CK_BASE_URL}/deploy",
+        },
+    }
+
+
+def ck_observability_summary() -> dict:
+    """Return observability and continuous-improvement signals: improvement loop,
+    audit log, task graph, provider health, and observability URLs."""
+    sid, _ = _ensure_session()
+    return {
+        "improvement": _ck_get("/api/v1/improvement", {"session_id": sid}),
+        "audit_log": _ck_get(f"/api/v1/sessions/{sid}/audit-log", {"limit": 20}) if sid else {},
+        "graph": _ck_get(f"/api/v1/sessions/{sid}/graph") if sid else {},
+        "provider_status": _ck_get("/api/v1/providers/status"),
+        "urls": {
+            "overview": f"{CK_BASE_URL}/observability",
+            "loop": f"{CK_BASE_URL}/observability/loop",
+            "costs": f"{CK_BASE_URL}/observability/costs",
+            "trends": f"{CK_BASE_URL}/observability/trends",
+            "regressions": f"{CK_BASE_URL}/observability/regressions",
+            "recommendations": f"{CK_BASE_URL}/observability/recommendations",
+        },
+    }
+
+
+def ck_policy_summary() -> dict:
+    """Return active policy surfaces: policy packs, domains, workspace tool policy,
+    and policy studio URLs."""
+    sid, _ = _ensure_session()
+    session = (ck_context().get("session") or {}) if sid else {}
+    workspace = session.get("workspace") or {}
+    workspace_id = workspace.get("id") or session.get("workspace_id")
+    return {
+        "domains": _ck_get("/api/v1/domains"),
+        "policies": _ck_get("/api/v1/policies"),
+        "workspace_policy_sets": _ck_get(f"/api/v1/workspaces/{workspace_id}/policy-sets") if workspace_id else {},
+        "tool_policy": _ck_get(f"/api/v1/workspaces/{workspace_id}/tool-policy") if workspace_id else {},
+        "urls": {
+            "policy_studio": f"{CK_BASE_URL}/policies",
+            "tool_policy": f"{CK_BASE_URL}/workspaces/{workspace_id}/tool-policy" if workspace_id else f"{CK_BASE_URL}/policies",
+        },
+    }
+
+
+def ck_learning_summary(query: str = "architecture decisions security findings governance memory") -> dict:
+    """Return typed memory and self-learning surfaces: semantic memory hits,
+    session context, and memory quality observability URL."""
+    return {
+        "memory_hits": ck_memory_search(query),
+        "context": ck_context(),
+        "urls": {
+            "memory_quality": f"{CK_BASE_URL}/observability/memory-quality",
+            "session_memory": f"{CK_BASE_URL}/observability/sessions/1/memory",
+        },
+    }
+
+
+def ck_benchmark_summary() -> dict:
+    """Return benchmark/eval/regression surfaces and URLs."""
+    return {
+        "benchmarks": _ck_get("/api/v1/benchmarks"),
+        "urls": {
+            "benchmarks": f"{CK_BASE_URL}/benchmarks",
+            "history": f"{CK_BASE_URL}/observability/benchmarks/history",
+            "scenarios": f"{CK_BASE_URL}/observability/benchmarks/scenarios",
+            "evals": f"{CK_BASE_URL}/observability/evals",
+            "regressions": f"{CK_BASE_URL}/observability/regressions",
+            "promotions": f"{CK_BASE_URL}/observability/promotions",
+        },
+    }
+
+
+def ck_integration_summary() -> dict:
+    """Return host/skill/deploy integration surfaces."""
+    return {
+        "agents": _ck_get("/api/v1/agents"),
+        "skills": _ck_get("/api/v1/skills"),
+        "providers": _ck_get("/api/v1/providers"),
+        "provider_status": _ck_get("/api/v1/providers/status"),
+        "urls": {
+            "install": f"{CK_BASE_URL}/install",
+            "skills": f"{CK_BASE_URL}/skills",
+            "deploy": f"{CK_BASE_URL}/deploy",
+            "providers": f"{CK_BASE_URL}/observability/costs",
+        },
+    }
+
+
 TOOLS = [
     ck_validate,
     ck_validate_github_repo,
@@ -290,6 +400,12 @@ TOOLS = [
     ck_memory_search,
     ck_generate_proof,
     ck_complete_task,
+    ck_platform_overview,
+    ck_observability_summary,
+    ck_policy_summary,
+    ck_learning_summary,
+    ck_benchmark_summary,
+    ck_integration_summary,
 ]
 
 SYSTEM_PROMPT = f"""You are **ControlKeel Studio** — a governed Gemini product assistant for real software teams.
@@ -303,6 +419,11 @@ This is a real product. Every tool call executes against the hosted ControlKeel 
 3. **Build safely** — create implementation plans with `ck_submit_review(type="plan", ...)`.
 4. **Record decisions** — `ck_memory_record(memory, record_type)` for durable cross-session context.
 5. **Ship safely** — `ck_context()`, `ck_budget()`, `ck_generate_proof()` before release.
+6. **Observe and improve** — `ck_observability_summary()` for audit log, improvement loop, costs, trends, regressions.
+7. **Operate policies** — `ck_policy_summary()` for policy packs, domain controls, workspace tool policy.
+8. **Learn continuously** — `ck_learning_summary(query)` for typed memory, prior decisions, memory quality.
+9. **Benchmark/evaluate** — `ck_benchmark_summary()` for suites, evals, regressions, promotions.
+10. **Integrate/deploy** — `ck_integration_summary()` for agents, skills, providers, install and deploy surfaces.
 
 ## Mandatory governance loop
 
@@ -460,6 +581,100 @@ def _direct_ck(message: str) -> dict:
             lines.append("No issues found. Snippet passes CK policy.")
             lines.append("Next: paste the surrounding diff for a full review gate before merge.")
         return {"response": "\n".join(lines), "trace": tr("ck_validate", {"content": content[:120], "kind": kind}, result), "degraded": True}
+
+    # Platform / observability / policies / learning / integrations
+    if any(kw in msg for kw in ["platform overview", "all features", "everything", "full platform", "what can controlkeel do"]):
+        result = ck_platform_overview()
+        urls = result.get("urls", {})
+        lines = [
+            "🧭 **CONTROLKEEL PLATFORM OVERVIEW**",
+            "ControlKeel is more than validation: it is the control plane for agent-built software.",
+            "",
+            "**Live surfaces:**",
+            f"- Mission Control: {urls.get('mission_control')}",
+            f"- Observability: {urls.get('observability')}",
+            f"- Policy Studio: {urls.get('policies')}",
+            f"- Benchmarks/Evals: {urls.get('benchmarks')}",
+            f"- Ship Readiness: {urls.get('ship')}",
+            f"- Proof Bundles: {urls.get('proofs')}",
+            f"- Skills/Integrations: {urls.get('skills')}",
+            "",
+            "Ask for: observability, policies, self-learning memory, benchmarks, cost routing, integrations, or ship readiness.",
+        ]
+        return {"response": "\n".join(lines), "trace": tr("ck_platform_overview", {}, result), "degraded": True}
+
+    if any(kw in msg for kw in ["benchmark", "benchmarks", "eval", "evals", "quality", "false positive", "catch rate", "promotion"]):
+        result = ck_benchmark_summary()
+        urls = result.get("urls", {})
+        lines = [
+            "🧪 **BENCHMARKS + EVALS + POLICY PROMOTION**",
+            "CK turns evidence into evals: findings → scenarios → benchmark runs → policy promotion/rollback.",
+            f"- Benchmarks: {urls.get('benchmarks')}",
+            f"- History: {urls.get('history')}",
+            f"- Scenarios: {urls.get('scenarios')}",
+            f"- Evals: {urls.get('evals')}",
+            f"- Regressions: {urls.get('regressions')}",
+            "Use this to prove scanner quality, catch-rate, false-positive behavior, and agent improvement over time.",
+        ]
+        return {"response": "\n".join(lines), "trace": tr("ck_benchmark_summary", {}, result), "degraded": True}
+
+    if any(kw in msg for kw in ["observability", "observe", "improvement loop", "audit log", "trends", "regression", "recommendations"]):
+        result = ck_observability_summary()
+        urls = result.get("urls", {})
+        lines = [
+            "📈 **OBSERVABILITY + CONTINUOUS IMPROVEMENT**",
+            "CK records events, findings, reviews, budget, task graph, provider health, and improvement signals.",
+            f"- Overview: {urls.get('overview')}",
+            f"- Improvement loop: {urls.get('loop')}",
+            f"- Costs: {urls.get('costs')}",
+            f"- Trends: {urls.get('trends')}",
+            f"- Regressions: {urls.get('regressions')}",
+            "Next: use findings/proofs to create regression scenarios, promote policies, and track whether agents improve over time.",
+        ]
+        return {"response": "\n".join(lines), "trace": tr("ck_observability_summary", {}, result), "degraded": True}
+
+    if any(kw in msg for kw in ["policy", "policies", "domain pack", "compliance", "gdpr", "hipaa", "tool policy", "rules"]):
+        result = ck_policy_summary()
+        urls = result.get("urls", {})
+        domains = result.get("domains", {}).get("domains") or result.get("domains", {}).get("data") or []
+        lines = [
+            "⚖️ **POLICY + COMPLIANCE CONTROL PLANE**",
+            "CK supports baseline, software, security, cost, GDPR, healthcare/HIPAA, finance, legal, HR, marketing, sales, real estate, government, insurance, ecommerce, logistics, manufacturing, nonprofit, and education policy packs.",
+            f"- Policy Studio: {urls.get('policy_studio')}",
+            f"- Workspace tool policy: {urls.get('tool_policy')}",
+            f"- Domains discovered: {len(domains) if isinstance(domains, list) else 'available'}",
+            "Next: choose the domain pack for the project, validate code/config/shell against it, and gate high-risk actions with review.",
+        ]
+        return {"response": "\n".join(lines), "trace": tr("ck_policy_summary", {}, result), "degraded": True}
+
+    if any(kw in msg for kw in ["self learning", "self-learning", "learn", "memory", "prior decisions", "remembered", "continuous learning"]):
+        query = message
+        result = ck_learning_summary(query)
+        urls = result.get("urls", {})
+        lines = [
+            "🧠 **SELF-LEARNING + TYPED MEMORY**",
+            "CK stores durable briefs, decisions, findings, proofs, goals, checkpoints, and incidents so future agents inherit governed context.",
+            f"- Memory quality: {urls.get('memory_quality')}",
+            f"- Session memory: {urls.get('session_memory')}",
+            "Next: record architecture/security/product decisions with `remember: ...`, then search them before future work.",
+        ]
+        return {"response": "\n".join(lines), "trace": tr("ck_learning_summary", {"query": query[:100]}, result), "degraded": True}
+
+
+
+    if any(kw in msg for kw in ["integration", "integrations", "install", "skills", "providers", "models", "route", "deploy"]):
+        result = ck_integration_summary()
+        urls = result.get("urls", {})
+        lines = [
+            "🔌 **INTEGRATIONS + PROVIDERS + DEPLOYMENT**",
+            "CK attaches to agent hosts, exposes skills/MCP tools, tracks provider health/cost, and supports Cloud Run/self-host deploys.",
+            f"- Install: {urls.get('install')}",
+            f"- Skills: {urls.get('skills')}",
+            f"- Deploy: {urls.get('deploy')}",
+            f"- Provider/cost observability: {urls.get('providers')}",
+            "Next: choose your host (Claude Code, Cursor, Codex, Copilot, OpenCode, Gemini, etc.) and attach CK governance.",
+        ]
+        return {"response": "\n".join(lines), "trace": tr("ck_integration_summary", {}, result), "degraded": True}
 
     # Implementation plan
     if any(kw in msg for kw in ["build", "implement", "add feature", "create", "plan", "architecture", "design"]):
@@ -739,6 +954,14 @@ textarea::placeholder{color:var(--muted)}
       <button class="action-btn" onclick="ask('Remember: we decided to use JWT for auth, RSA-256 signing, 24h expiry, refresh token rotation.')"><strong>Record decision</strong><span>Durable typed memory</span></button>
     </div>
     <div class="sidebar-section">
+      <div class="sidebar-label">Platform value</div>
+      <button class="action-btn" onclick="ask('Show me the full ControlKeel platform overview: governance, observability, policies, self-learning, benchmarks, integrations.')"><strong>Full platform</strong><span>Everything CK controls</span></button>
+      <button class="action-btn" onclick="ask('Show observability, audit log, improvement loop, trends, and regressions.')"><strong>Observability</strong><span>Audit + feedback loop</span></button>
+      <button class="action-btn" onclick="ask('Show policies, domain packs, compliance controls, and tool policy.')"><strong>Policies</strong><span>Domain/compliance packs</span></button>
+      <button class="action-btn" onclick="ask('Show self-learning memory and prior decisions.')"><strong>Self-learning</strong><span>Typed memory + recall</span></button>
+      <button class="action-btn" onclick="ask('Show benchmarks, evals, regressions, and policy promotion.')"><strong>Benchmarks</strong><span>Evals + quality proof</span></button>
+    </div>
+    <div class="sidebar-section">
       <div class="sidebar-label">Mission Control</div>
       <div class="link-list" style="padding:0;gap:5px">
         <a class="mc-link" href="{{ ck_url }}/missions/1" target="_blank"><span class="dot"></span>Mission Control</a>
@@ -756,7 +979,8 @@ textarea::placeholder{color:var(--muted)}
         <h2>Govern any agent workflow.</h2>
         <p>Paste a GitHub URL, code snippet, shell command, config, or PR diff.
         ControlKeel validates it, creates findings, opens review gates, tracks budget,
-        and generates proof bundles — all in real time.</p>
+        observes the workflow, learns durable memory, applies policy packs,
+        benchmarks quality, and generates proof bundles — all in real time.</p>
       </div>
     </div>
     <div class="input-area">

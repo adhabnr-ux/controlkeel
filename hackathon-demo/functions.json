@@ -5,11 +5,38 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "content": {"type": "string", "description": "Content to validate: source code, config, shell command, or text."},
-        "kind": {"type": "string", "enum": ["code","config","shell","text"], "description": "Content kind."},
-        "source_type": {"type": "string", "enum": ["developer","generated","tool_output","human_review","web","issue","pull_request"], "description": "Content origin. 'generated' gets stricter scrutiny."}
+        "content": {
+          "type": "string",
+          "description": "Content to validate: source code, config, shell command, or text."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "code",
+            "config",
+            "shell",
+            "text"
+          ],
+          "description": "Content kind."
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "developer",
+            "generated",
+            "tool_output",
+            "human_review",
+            "web",
+            "issue",
+            "pull_request"
+          ],
+          "description": "Content origin. 'generated' gets stricter scrutiny."
+        }
       },
-      "required": ["content","kind"]
+      "required": [
+        "content",
+        "kind"
+      ]
     }
   },
   {
@@ -18,9 +45,14 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "github_url": {"type": "string", "description": "Full GitHub URL, e.g. https://github.com/langchain-ai/langchain"}
+        "github_url": {
+          "type": "string",
+          "description": "Full GitHub URL, e.g. https://github.com/langchain-ai/langchain"
+        }
       },
-      "required": ["github_url"]
+      "required": [
+        "github_url"
+      ]
     }
   },
   {
@@ -45,11 +77,28 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "review_type": {"type": "string", "enum": ["plan","diff","completion"], "description": "What is being reviewed."},
-        "submission_body": {"type": "string", "description": "Full submission content: plan text, diff, or completion description."},
-        "title": {"type": "string", "description": "Short review title shown in Mission Control."}
+        "review_type": {
+          "type": "string",
+          "enum": [
+            "plan",
+            "diff",
+            "completion"
+          ],
+          "description": "What is being reviewed."
+        },
+        "submission_body": {
+          "type": "string",
+          "description": "Full submission content: plan text, diff, or completion description."
+        },
+        "title": {
+          "type": "string",
+          "description": "Short review title shown in Mission Control."
+        }
       },
-      "required": ["review_type","submission_body"]
+      "required": [
+        "review_type",
+        "submission_body"
+      ]
     }
   },
   {
@@ -58,13 +107,49 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "category": {"type": "string", "enum": ["security","compliance","performance","operations","decision-hygiene"]},
-        "severity": {"type": "string", "enum": ["critical","high","medium","low"]},
-        "rule_id": {"type": "string", "description": "Policy rule ID, e.g. 'security.missing_rate_limit'."},
-        "plain_message": {"type": "string", "description": "Human-readable description of the issue."},
-        "decision": {"type": "string", "enum": ["allow","warn","block","escalate_to_human"]}
+        "category": {
+          "type": "string",
+          "enum": [
+            "security",
+            "compliance",
+            "performance",
+            "operations",
+            "decision-hygiene"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "rule_id": {
+          "type": "string",
+          "description": "Policy rule ID, e.g. 'security.missing_rate_limit'."
+        },
+        "plain_message": {
+          "type": "string",
+          "description": "Human-readable description of the issue."
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "allow",
+            "warn",
+            "block",
+            "escalate_to_human"
+          ]
+        }
       },
-      "required": ["category","severity","rule_id","plain_message"]
+      "required": [
+        "category",
+        "severity",
+        "rule_id",
+        "plain_message"
+      ]
     }
   },
   {
@@ -73,10 +158,27 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "memory": {"type": "string", "description": "Content to save."},
-        "record_type": {"type": "string", "enum": ["brief","decision","finding","proof","goal","checkpoint","incident"], "description": "Record type for retrieval filtering."}
+        "memory": {
+          "type": "string",
+          "description": "Content to save."
+        },
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "brief",
+            "decision",
+            "finding",
+            "proof",
+            "goal",
+            "checkpoint",
+            "incident"
+          ],
+          "description": "Record type for retrieval filtering."
+        }
       },
-      "required": ["memory"]
+      "required": [
+        "memory"
+      ]
     }
   },
   {
@@ -85,9 +187,14 @@
     "parameters": {
       "type": "object",
       "properties": {
-        "query": {"type": "string", "description": "Search query, e.g. 'auth decisions' or 'security findings'."}
+        "query": {
+          "type": "string",
+          "description": "Search query, e.g. 'auth decisions' or 'security findings'."
+        }
       },
-      "required": ["query"]
+      "required": [
+        "query"
+      ]
     }
   },
   {
@@ -104,6 +211,65 @@
     "parameters": {
       "type": "object",
       "properties": {}
+    }
+  },
+  {
+    "name": "ck_platform_overview",
+    "description": "Return a compact ControlKeel platform snapshot: mission state, budget, findings, proofs, benchmarks, policies, providers, skills, and key Mission Control URLs.",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  },
+  {
+    "name": "ck_observability_summary",
+    "description": "Return observability and continuous-improvement signals: improvement loop, audit log, task graph, provider health, costs/trends/regressions URLs.",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  },
+  {
+    "name": "ck_policy_summary",
+    "description": "Return active policy surfaces: policy packs, domains, workspace policy sets, workspace tool policy, and policy studio URLs.",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  },
+  {
+    "name": "ck_learning_summary",
+    "description": "Return typed memory and self-learning surfaces: semantic memory hits, session context, and memory quality URLs.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Memory search query, e.g. architecture decisions or security findings."
+        }
+      },
+      "required": []
+    }
+  },
+  {
+    "name": "ck_benchmark_summary",
+    "description": "Return benchmark/eval/regression surfaces and URLs for scanner quality, false-positive tracking, promotions, and policy regression testing.",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  },
+  {
+    "name": "ck_integration_summary",
+    "description": "Return host/skill/provider/deploy integration surfaces: agents, skills, providers, provider status, install/deploy URLs.",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
     }
   }
 ]
