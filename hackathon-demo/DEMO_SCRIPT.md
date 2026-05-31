@@ -1,200 +1,145 @@
-# ControlKeel Studio — 5-Minute Demo Script
+# ControlKeel Studio — Recording Scripts
 
-> Every step runs against a live ControlKeel. Tool calls in the Gemini app
-> **actually execute** against the API — nothing is mocked.
-
-## Before you start — have these tabs open
-
-| Tab | URL |
-|-----|-----|
-| AI Studio app (prototype) | https://controlkeel-studio-834811228927.us-west1.run.app |
-| Mission Control | https://controlkeel-834811228927.us-central1.run.app/missions/1 |
-| Findings | https://controlkeel-834811228927.us-central1.run.app/findings |
-
-Click each tab once to wake them (min-instances=1 keeps them warm).
-
-> Drive everything from the **Gemini app** — not raw AI Studio. AI Studio won't
-> execute the tool calls; the Cloud Run app does.
+> App URL: <https://controlkeel-studio-834811228927.us-west1.run.app>
+> Mission Control: <https://controlkeel-834811228927.us-central1.run.app/missions/1>
+> Open both tabs before recording. Click each once to warm them.
 
 ---
 
-## [0:00–0:30] Hook
+## Playcast — 1-Minute Demo (record this first, post to YouTube public)
 
-**Say:** "42% of enterprises have AI agents in production. Almost none have
-governance — a markdown rules file is a *promise* to the model, not enforcement.
-ControlKeel is the enforcement layer. This Gemini agent physically cannot ship
-dangerous code, because ControlKeel blocks it before execution."
+Screen-record the app. Narrate over it. No typing needed — click the sidebar chips.
 
-**Show:** the Gemini app, then flip to Mission Control.
+### [0:00–0:10] Hook
 
----
+Open the app. Stay on the welcome screen for a beat.
 
-## [0:30–1:20] Demo 1 — Govern a real AI project
+> "42% of enterprises have AI agents in production. Almost none have governance.
+> A rules file in a system prompt is a suggestion. ControlKeel makes it a hard block."
 
-In the app sidebar click **LangChain (AI agents)**, or type:
+### [0:10–0:28] Govern a real repo
 
-```text
-Govern this open source repo: https://github.com/langchain-ai/langchain
-```
+Click sidebar chip **LangChain (AI agents)** under "Govern a project".
 
-**What happens:**
+Wait for the response. Show the decision badge and Mission Control link in the response.
 
-- `ck_validate_github_repo` fetches the real README, setup.cfg, etc. from GitHub
-- CK scans the fetched files through the governance scanner
-- A review gate opens in Mission Control
-- Gemini explains risk tier and next steps
+> "This fetches the actual repo files from GitHub and runs real-time governance.
+> A review gate just opened in Mission Control."
 
-**Say:** "This fetches the actual repository files and runs real-time governance
-analysis. Judges can try any public repo."
+Flip to the Mission Control tab for 2 seconds. Flip back.
 
-**Flip to Mission Control** — show the pending review.
+### [0:28–0:45] Block dangerous code
 
----
+Click sidebar chip **Block RCE** under "Validate code".
 
-## [1:20–2:10] Demo 2 — Deterministic validation (the core)
+Wait for the red BLOCK badge in the trace.
 
-Click **Block RCE** in the sidebar, or type:
+> "50 milliseconds. Zero LLM tokens. Deterministic, not probabilistic. Same
+> result every single time."
 
-```text
-Validate this code: eval(user_input)
-```
+Click sidebar chip **Allow safe code**.
 
-**What happens:**
+Wait for green ALLOW badge.
 
-- `ck_validate(content="eval(user_input)", kind="code")` → `decision: block`
-- Finding: `security.code_execution` (CRITICAL)
-- Red **BLOCK** badge; Gemini explains the RCE risk and safe fix
+> "And it doesn't over-block. A clean health-check function — zero findings, green
+> ALLOW. False positives are how governance gets turned off. Precision matters as
+> much as recall."
 
-Now type:
+### [0:45–0:55] Platform depth
 
-```text
-Validate this code: def health(): return {"status": "ok"}
-```
+Click sidebar chip **Full platform** under "Platform value".
 
-→ `decision: allow`, 0 findings → green **ALLOW** badge.
+Scroll the response briefly to show the depth.
 
-**Say:** "~50 milliseconds, zero LLM tokens. Pattern, not prompt — deterministic
-and free. Same result every time."
+> "Proof bundles, budget circuit breakers, human review gates, typed memory,
+> policy packs for GDPR, HIPAA, finance. 40-plus host integrations."
 
-**Flip to** `/findings` — the blocked finding is there.
+### [0:55–1:00] Close
+
+Cut to you on camera or narrate over the app.
+
+> "I've been working on this problem for a while. ControlKeel is already built.
+> Go to controlkeel.com — you can attach it to any agent you're running today,
+> your subscription and telemetry live on your machine."
 
 ---
 
-## [2:10–2:50] Demo 3 — Security quick-fire
+## Team Intro — 2-Minute Solo Video (record second, post to YouTube public)
 
-Type each; each returns BLOCK with the rule shown in the trace:
+On camera. Relaxed, direct. No slide deck needed.
 
-| Type this | Catches |
-|---|---|
-| `Validate: api_key = 'sk-proj-abc123def456ghi789'` | hardcoded secret — entropy detection |
-| `Validate this shell: rm -rf /` | destructive shell tripwire |
-| `Validate: SELECT * FROM users WHERE id = '' OR 1=1` | SQL injection pattern |
+### [0:00–0:25] Who you are and the problem
 
-**Then prove precision — no false positives:**
+> "I'm Bibek. I've been building ControlKeel because I kept running into the same
+> problem: 42% of enterprises have AI agents in production. Almost none have
+> governance. A markdown rules file in a system prompt is not enforcement. When the
+> agent writes code that touches your database, or spends your budget, or touches
+> patient data, you need a real control, not a suggestion."
 
-```text
-Validate this code: model.eval()
-```
+### [0:25–1:00] What it does (show the app or screen-share clip)
 
-→ **ALLOW**. PyTorch method call, not an execution sink.
+> "So ControlKeel sits between the agent and execution. Every tool call gets
+> validated before anything happens.
+>
+> I built this demo using Gemini 2.5 Flash and Google AI Studio, hosted on Cloud
+> Run. When I ask it to govern a real GitHub repo, it fetches the actual files,
+> runs a 6-layer deterministic scanner in about 50 milliseconds, zero LLM tokens,
+> and creates a review gate in Mission Control.
+>
+> When code with eval() comes in, it's blocked. Hardcoded secrets, blocked.
+> Destructive shell commands, blocked. But model.eval() — PyTorch's method — is
+> allowed, because precision matters as much as recall."
 
-**Say:** "It catches `eval(` but not `model.eval()`. False positives are how
-governance gets turned off — precision matters as much as recall."
+### [1:00–1:35] Platform, proof, and market
 
----
+> "Beyond validation: proof bundles for SOC 2 and GDPR, budget circuit breakers
+> so agents can't silently run up cost, typed cross-session memory that survives
+> host switches, policy packs for healthcare, finance, and legal workflows.
+>
+> In a documented run on a 12-scenario unsafe-code suite, a raw GPT-5.5 agent
+> caught 1 of 12. ControlKeel's deterministic scanner caught 12 of 12 in ~50
+> milliseconds, zero tokens. Those catches are reproducible — you just watched
+> four of them live.
+>
+> And while building this prototype, ControlKeel blocked our own deploy command
+> for putting the Gemini API key inline in an env var. That's how the deploy
+> script actually works now — it governs the people building the agent too.
+>
+> The AI governance market is $8.4 billion by 2028. Teams shipping agents in
+> regulated industries have no good answer to 'how do you prove the agent followed
+> the rules.' ControlKeel is the answer: deterministic, auditable, portable."
 
-## [2:50–3:15] Demo 4 — Budget circuit breaker
+### [1:35–2:00] Call to action
 
-Type: `Check the budget`
-
-- `ck_budget` → remaining vs spent, session ceiling
-
-**Say:** "Per-session cost tracking with a circuit breaker. When the budget is
-spent, the agent stops — it cannot silently run up a bill."
-
-Show the budget line on Mission Control.
-
----
-
-## [3:15–3:45] Demo 5 — Review gate + memory
-
-Type:
-
-```text
-Build a user auth system with JWT tokens and email verification. Create a governed implementation plan.
-```
-
-- `ck_submit_review(type="plan")` → pending review in Mission Control
-
-**Flip to Mission Control** — show the pending review → approve it.
-
-**Say:** "Human-in-the-loop. Plans must be approved before execution."
-
-Type:
-
-```text
-Remember: we decided to use JWT, RSA-256 signing, 24-hour expiry, refresh token rotation
-```
-
-- `ck_memory_record` → persisted, survives sessions and host switches
+> "ControlKeel is the trust infrastructure for the agent era: deterministic
+> enforcement, human review gates, proof bundles, budget control, 40-plus host
+> integrations. If you're funding the paved path for enterprise AI, this is it.
+>
+> Go to controlkeel.com. You can attach it to any agent you're running today —
+> Claude Code, Cursor, your own tool loop — subscription and telemetry live on
+> your machine. Thank you."
 
 ---
 
-## [3:45–4:15] Demo 6 — "CK blocked our own deploy script"
-
-**Say:** "While building this, we validated our own deploy command — and
-ControlKeel blocked us for putting the Gemini API key inline as an env var."
-
-Type:
-
-```text
-Validate this shell: gcloud run deploy app --set-env-vars GEMINI_API_KEY=AIzaSyD-realkey123
-```
-
-→ **BLOCK** `secret.high_entropy_token` — fix: use Secret Manager.
-
-**Say:** "That's now how the deploy script actually works. It governs the people
-building the agent too."
-
----
-
-## [4:15–5:00] Demo 7 — Platform tour + close
-
-Flash through the CK web UI: `/missions/1` · `/findings` · `/proofs` · `/ship`
-
-**On benchmarks — say exactly this:**
-
-> "In a documented run on a 12-scenario unsafe-code suite, a raw OpenCode +
-> GPT-5.5 agent caught **1 of 12**. ControlKeel's deterministic scanner caught
-> **12 of 12** in ~50 ms, 0 tokens. You just watched eval, a hardcoded secret,
-> destructive shell, and SQL injection blocked live — those catches are
-> reproducible. Full methodology is in `docs/benchmark-evidence.md`."
-
-**Close:**
-
-> "ControlKeel is the trust infrastructure for the agent era — deterministic
-> enforcement, human review, proof bundles, budget control, 40+ host integrations.
-> If you're funding the paved path for enterprise AI, this is it. Thank you."
-
----
-
-## Numbers you can defend live
+## Numbers you can defend
 
 | Claim | Evidence |
 |---|---|
-| `eval(user_input)` → BLOCK | Happened on stage, reproducible |
-| `model.eval()` → ALLOW | Happened on stage — proves precision |
-| ~50 ms, 0 tokens | Visible in the trace panel |
-| 1/12 vs 12/12 | `docs/benchmark-evidence.md` — cite the methodology caveat |
-| 40+ host integrations | CK platform docs |
-| SOC 2, GDPR, EU AI Act | Compliance packs in CK |
+| `eval(user_input)` → BLOCK | Live in the app, reproducible on demand |
+| `model.eval()` → ALLOW | Live in the app — proves no false positives |
+| ~50 ms, 0 tokens | Visible in the trace panel below each response |
+| 1/12 vs 12/12 on unsafe-code suite | `docs/benchmark-evidence.md` (host_comparison_v1, runs #29/#31). Caveat: raw baseline was not a clean no-CK isolation — full methodology in the doc |
+| 40+ host integrations | CK platform |
+| SOC 2, GDPR, EU AI Act compliance packs | CK policy studio |
 
-## If something fails live
+---
+
+## If something breaks during recording
 
 | Problem | Fix |
 |---|---|
-| App slow on first hit | Cold start — click once to warm, then demo |
-| Tool call errors | App degrades gracefully, CK decision still shows |
-| GitHub fetch times out | Try another repo or paste a snippet directly |
-| CK backend down | Redeploy with `deploy-ck.sh`; show recorded Playcast |
-| Everything broken | Play the recorded 1-min video — never debug on stage |
+| App slow on first click | Cold start. Click once to warm, wait 10s, then record |
+| Chip sends wrong message | You can also type directly in the input box |
+| GitHub fetch times out | Try the Next.js chip instead, or paste a snippet directly |
+| CK backend down | `./hackathon-demo/deploy-ck.sh` then retry |
+| Everything down | Re-record just the 1-min Playcast after fixing — platform tour is optional |
