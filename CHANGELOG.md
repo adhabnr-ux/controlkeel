@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.3.34 — 2026-05-31
+
+### What's changed
+
+- refactor: update demo script for clarity and conciseness
+- fix: update checklist and one-pager formatting for clarity and consistency
+- feat: update URLs and improve documentation for ControlKeel Studio AI app
+- feat: update environment configuration and improve error handling in ControlKeel Studio
+- feat: initialize ControlKeel Studio with React, Tailwind CSS, and Vite
+- feat(hackathon): surface full ControlKeel platform in Studio
+- fix: handle protobuf response conversion in tool-call trace extraction
+- fix(hackathon): make AI Studio prompt build-ready and app CK-first
+- chore(hackathon): align all demo files to ControlKeel Studio
+- feat(hackathon): make ControlKeel Studio robust and product-ready
+- fix: Mission Control pages work on Cloud Run
+- feat(hackathon): make ControlKeel Studio robust and product-ready
+- fix(hackathon): Dockerfile runtime deps + ONE_PAGER with live Cloud Run URLs
+- fix(hackathon): graceful fallback when Gemini rate-limited
+- feat(hackathon): add GDG Stanford hackathon demo for Cloud Run + Gemini
+- feat(api): add endpoints for creating findings and memory records
+
 ## v0.3.33 — 2026-05-30
 
 ### What's changed
