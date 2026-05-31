@@ -16,9 +16,10 @@ set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "$0")/app" && pwd)"
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/null || true)}"
-REGION="${REGION:-us-central1}"
-SERVICE="${APP_SERVICE:-ck-gemini}"
-SECRET_NAME="${SECRET_NAME:-ck-gemini-key}"
+REGION="${REGION:-us-west1}"
+SERVICE="${APP_SERVICE:-controlkeel-studio}"
+SECRET_NAME="${SECRET_NAME:-controlkeel-studio-gemini-key}"
+APP_URL="${APP_URL:-https://controlkeel-studio-834811228927.us-west1.run.app}"
 
 [ -z "$PROJECT_ID" ] && { echo "❌ Set GOOGLE_CLOUD_PROJECT"; exit 1; }
 : "${CK_BASE_URL:?❌ Set CK_BASE_URL to your deployed ControlKeel URL}"
@@ -45,26 +46,76 @@ gcloud secrets add-iam-policy-binding "$SECRET_NAME" \
   --role roles/secretmanager.secretAccessor \
   --project "$PROJECT_ID" --quiet >/dev/null 2>&1 || true
 
-echo "🚀 Deploying service (Python build ~2 min)…"
-gcloud run deploy "$SERVICE" \
-  --source "$APP_DIR" \
-  --region "$REGION" \
-  --project "$PROJECT_ID" \
-  --allow-unauthenticated \
-  --platform managed \
-  --memory 512Mi --cpu 1 \
-  --min-instances 1 --max-instances 3 \
-  --timeout 120 \
-  --set-env-vars "CK_BASE_URL=${CK_BASE_URL},GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}" \
-  --set-secrets "GEMINI_API_KEY=${SECRET_NAME}:latest" \
-  --quiet
+echo "🚀 Building container image…"
+IMAGE="gcr.io/${PROJECT_ID}/${SERVICE}:$(date +%Y%m%d%H%M%S)"
+gcloud builds submit "$APP_DIR" --tag "$IMAGE" --project "$PROJECT_ID" --quiet
+
+# AI Studio-created Cloud Run services carry source/base-image annotations that can
+# reject normal image deploys. Apply a clean service spec so the live URL keeps
+# working while runtime config comes from real env/Secret Manager values.
+TMP_YAML="$(mktemp)"
+cat > "$TMP_YAML" <<YAML
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    generativelanguage.googleapis.com/type: fullstack-applet
+    run.googleapis.com/ingress: all
+    run.googleapis.com/invoker-iam-disabled: "true"
+    run.googleapis.com/urls: '["${APP_URL}"]'
+  labels:
+    cloud.googleapis.com/location: ${REGION}
+    managed-by: google-ai-studio
+  name: ${SERVICE}
+  namespace: "${PROJECT_NUMBER}"
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        run.googleapis.com/cpu-throttling: "true"
+        run.googleapis.com/sessionAffinity: "false"
+    spec:
+      containerConcurrency: 80
+      containers:
+      - env:
+        - name: CK_BASE_URL
+          value: ${CK_BASE_URL}
+        - name: APP_URL
+          value: ${APP_URL}
+        - name: GEMINI_MODEL
+          value: ${GEMINI_MODEL:-gemini-2.5-flash}
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ${SECRET_NAME}
+              key: latest
+        image: ${IMAGE}
+        name: app-container
+        ports:
+        - containerPort: 8080
+          name: http1
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+      serviceAccountName: ${RUNTIME_SA}
+      timeoutSeconds: 120
+  traffic:
+  - latestRevision: true
+    percent: 100
+YAML
+
+echo "🚀 Deploying service from clean Cloud Run spec…"
+gcloud run services replace "$TMP_YAML" --region "$REGION" --project "$PROJECT_ID" --quiet
+rm -f "$TMP_YAML"
 
 URL="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT_ID" --format 'value(status.url)')"
 
 echo ""
-echo "✅ Gemini app live: $URL"
+echo "✅ ControlKeel Studio live: $URL"
 echo "🔎 Health:"
-curl -s "$URL/healthz" || echo "   (warming up — retry in ~10s)"
+curl -s "$URL/health" || echo "   (warming up — retry in ~10s)"
 echo ""
 echo "🎤 This URL is your hackathon 'Hosted Prototype' link. Open it and try:"
 echo "      Validate this code: eval(user_input)"

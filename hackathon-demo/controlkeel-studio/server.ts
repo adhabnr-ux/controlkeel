@@ -4,7 +4,8 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
+const CK_BASE_URL = (process.env.CK_BASE_URL || "https://controlkeel-834811228927.us-central1.run.app").replace(/\/$/, "");
 
 app.use(express.json());
 
@@ -244,217 +245,222 @@ function getAI() {
   return ai;
 }
 
-const mockResponses: Record<string, any> = {
-  ck_validate: {
-    decision: "allow",
-    findings: []
-  },
-  ck_validate_github_repo: {
-    decision: "warn",
-    findings: [{ severity: "medium", rule_id: "ops.no_budget_guard", plain_message: "No per-session cost tracking found in repo" }]
-  },
-  ck_context: {
-    active_findings: 0,
-    budget_remaining: 100,
-    tasks_completed: 0
-  },
-  ck_budget: {
-    budget_remaining: 100,
-    spend_history: []
-  },
-  ck_submit_review: {
-    review: { id: "REV-" + Math.floor(Math.random() * 10000), status: "pending", url: "https://controlkeel-834811228927.us-central1.run.app/missions/1/reviews/1" }
-  },
-  ck_record_finding: {
-    success: true,
-    message: "Finding recorded successfully."
-  },
-  ck_memory_record: {
-    success: true,
-    message: "Memory recorded successfully."
-  },
-  ck_memory_search: {
-    hits: [
-        { memory: "We decided to use JWT for auth, RSA-256 signing, 24h expiry", type: "decision" }
-    ]
-  },
-  ck_complete_task: {
-    success: true,
-    proof_id: "PF-9999"
-  },
-  ck_generate_proof: {
-    proof_id: "PF-" + Math.floor(Math.random() * 10000),
-    verification_score: 100
-  },
-  ck_platform_overview: {
-    overview: "ControlKeel is the control plane for agent-built software.",
-    urls: {
-      mission_control: "https://controlkeel-834811228927.us-central1.run.app/missions/1",
-      observability: "https://controlkeel-834811228927.us-central1.run.app/observability",
-      policies: "https://controlkeel-834811228927.us-central1.run.app/policies",
-      benchmarks: "https://controlkeel-834811228927.us-central1.run.app/benchmarks",
-      ship: "https://controlkeel-834811228927.us-central1.run.app/ship",
-      proofs: "https://controlkeel-834811228927.us-central1.run.app/proofs",
-      skills: "https://controlkeel-834811228927.us-central1.run.app/skills"
-    }
-  },
-  ck_observability_summary: {
-    urls: {
-      overview: "https://controlkeel-834811228927.us-central1.run.app/observability",
-      loop: "https://controlkeel-834811228927.us-central1.run.app/observability/loop",
-      costs: "https://controlkeel-834811228927.us-central1.run.app/observability/costs",
-      trends: "https://controlkeel-834811228927.us-central1.run.app/observability/trends",
-      regressions: "https://controlkeel-834811228927.us-central1.run.app/observability/regressions",
-      recommendations: "https://controlkeel-834811228927.us-central1.run.app/observability/recommendations"
-    }
-  },
-  ck_policy_summary: {
-    urls: {
-      policy_studio: "https://controlkeel-834811228927.us-central1.run.app/policies",
-      tool_policy: "https://controlkeel-834811228927.us-central1.run.app/policies"
-    }
-  },
-  ck_learning_summary: {
-    urls: {
-      memory_quality: "https://controlkeel-834811228927.us-central1.run.app/observability/memory-quality",
-      session_memory: "https://controlkeel-834811228927.us-central1.run.app/observability/sessions/1/memory"
-    }
-  },
-  ck_benchmark_summary: {
-    urls: {
-      benchmarks: "https://controlkeel-834811228927.us-central1.run.app/benchmarks",
-      history: "https://controlkeel-834811228927.us-central1.run.app/observability/benchmarks/history",
-      scenarios: "https://controlkeel-834811228927.us-central1.run.app/observability/benchmarks/scenarios",
-      evals: "https://controlkeel-834811228927.us-central1.run.app/observability/evals",
-      regressions: "https://controlkeel-834811228927.us-central1.run.app/observability/regressions",
-      promotions: "https://controlkeel-834811228927.us-central1.run.app/observability/promotions"
-    }
-  },
-  ck_integration_summary: {
-    urls: {
-      install: "https://controlkeel-834811228927.us-central1.run.app/install",
-      skills: "https://controlkeel-834811228927.us-central1.run.app/skills",
-      deploy: "https://controlkeel-834811228927.us-central1.run.app/deploy",
-      providers: "https://controlkeel-834811228927.us-central1.run.app/observability/costs"
-    }
+type ChatMessage = { role: "user" | "model" | "assistant"; content: string };
+
+type ToolTrace = { tool: string; args: Record<string, any>; result: any };
+
+const state: { sessionId?: number; taskId?: number } = {};
+
+async function ckGet(path: string, params?: Record<string, any>) {
+  const url = new URL(`${CK_BASE_URL}${path}`);
+  for (const [key, value] of Object.entries(params || {})) {
+    if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
   }
-};
+  const response = await fetch(url, { headers: { "Accept": "application/json" } });
+  return readJson(response);
+}
+
+async function ckPost(path: string, body?: Record<string, any>) {
+  const response = await fetch(`${CK_BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  return readJson(response);
+}
+
+async function readJson(response: Response) {
+  const text = await response.text();
+  let data: any;
+  try { data = text ? JSON.parse(text) : {}; } catch { data = { body: text.slice(0, 500) }; }
+  if (!response.ok) {
+    return { ...data, _status: response.status, error: data.error || `HTTP ${response.status}` };
+  }
+  return { ...data, _status: response.status };
+}
+
+async function ensureSession() {
+  if (state.sessionId) return state;
+  const boot = await ckPost("/api/v1/bootstrap", { project_name: "controlkeel-studio-ai-studio", agent: "gemini" });
+  const session = boot.session || boot;
+  state.sessionId = session?.id;
+  if (state.sessionId) {
+    const detail = await ckGet(`/api/v1/sessions/${state.sessionId}`);
+    const tasks = (detail.session || detail).tasks || [];
+    const active = tasks.find((t: any) => ["in_progress", "queued"].includes(t.status)) || tasks[0];
+    state.taskId = active?.id;
+  }
+  return state;
+}
+
+function githubUrlFrom(message: string) {
+  const match = message.match(/https?:\/\/github\.com\/[^\s)]+/i);
+  return match?.[0]?.replace(/[.,]$/, "");
+}
+
+async function fetchGithubContext(githubUrl: string) {
+  const match = githubUrl.match(/github\.com\/([^/\s]+)\/([^/\s]+)/i);
+  if (!match) return { error: "Could not parse GitHub URL.", github_url: githubUrl };
+  const owner = match[1];
+  const repo = match[2].replace(/\.git$/, "").replace(/[.,]$/, "");
+  const metaResp = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+    headers: { "Accept": "application/vnd.github+json", "User-Agent": "controlkeel-studio" },
+  });
+  if (!metaResp.ok) return { error: `Could not fetch GitHub metadata: HTTP ${metaResp.status}`, github_url: githubUrl };
+  const meta: any = await metaResp.json();
+  const branch = meta.default_branch || "main";
+  const candidates = ["README.md", "package.json", "Dockerfile", "docker-compose.yml", "requirements.txt", "pyproject.toml", "go.mod", "Cargo.toml", "mix.exs", ".env.example", ".github/workflows/ci.yml", ".github/workflows/deploy.yml"];
+  const fetched: { path: string; bytes: number; decision?: string; findings?: any[] }[] = [];
+  const allFindings: any[] = [];
+  for (const file of candidates) {
+    const raw = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${file}`;
+    try {
+      const r = await fetch(raw);
+      if (!r.ok) continue;
+      const content = (await r.text()).slice(0, 20000);
+      if (!content.trim()) continue;
+      const kind = /\.(json|ya?ml|toml|exs)$/.test(file) || file.includes("Dockerfile") ? "config" : "code";
+      const result = await ckPost("/api/v1/validate", { content, kind, source_type: "repository" });
+      fetched.push({ path: file, bytes: content.length, decision: result.decision, findings: result.findings || [] });
+      for (const finding of (result.findings || []).slice(0, 4)) allFindings.push({ path: file, ...finding });
+      if (fetched.length >= 8) break;
+    } catch (_) {}
+  }
+  const blocked = fetched.filter(f => f.decision === "block").length;
+  const warned = fetched.filter(f => f.decision === "warn").length;
+  const decision = blocked ? "block" : warned || allFindings.length ? "warn" : "allow";
+  return { github_url: githubUrl, repo: `${owner}/${repo}`, default_branch: branch, decision, files_fetched: fetched, findings: allFindings.slice(0, 12), summary: { blocked, warned, allowed: fetched.filter(f => f.decision === "allow").length, findings: allFindings.length } };
+}
+
+function trace(tool: string, args: Record<string, any>, result: any): ToolTrace[] {
+  return [{ tool, args, result }];
+}
+
+async function runCkWorkflow(message: string) {
+  const msg = message.toLowerCase();
+  const { sessionId, taskId } = await ensureSession();
+
+  if (githubUrlFrom(message)) {
+    const url = githubUrlFrom(message)!;
+    const repo = await fetchGithubContext(url);
+    const review = await ckPost("/api/v1/reviews", { session_id: sessionId, task_id: taskId, review_type: "plan", title: `Repo governance: ${repo.repo || url}`, submission_body: `Govern repository ${url}. Decision: ${repo.decision}. Findings: ${(repo.findings || []).length}.` });
+    const findings = repo.findings || [];
+    const lines = [`🧭 **REPO GOVERNANCE ANALYSIS: ${repo.repo || url}**`, `Decision: **${String(repo.decision || "unknown").toUpperCase()}**`, `Files scanned: ${(repo.files_fetched || []).length}`, `Findings: ${findings.length}`];
+    for (const finding of findings.slice(0, 5)) lines.push(`- **${String(finding.severity || "?").toUpperCase()}** ${finding.path || "repo"}: \`${finding.rule_id || "unknown"}\` — ${finding.plain_message || ""}`);
+    lines.push("", `Review gate: ${(review.review || review).id || "created"}`, `Mission Control: ${CK_BASE_URL}/missions/1`, "Next: paste a PR diff, Dockerfile, auth code, or deployment command and I will validate it live.");
+    return { message: lines.join("\n"), trace: [...trace("ck_validate_github_repo", { github_url: url }, repo), ...trace("ck_submit_review", { review_type: "plan" }, review)] };
+  }
+
+  if (/(validate|check this|scan|is this safe|review this|diff)/i.test(message) || /eval\(|exec\(|rm -rf|SELECT \*/i.test(message)) {
+    let content = message;
+    for (const trigger of ["validate this code:", "validate this shell:", "validate this config:", "validate:", "check this:", "scan:", "review this diff:"]) {
+      const idx = message.toLowerCase().indexOf(trigger);
+      if (idx >= 0) content = message.slice(idx + trigger.length).trim();
+    }
+    const kind = /rm |gcloud |kubectl |npm run|curl |\$ /.test(content) ? "shell" : "code";
+    const result = await ckPost("/api/v1/validate", { content, kind, source_type: "generated" });
+    const decision = String(result.decision || "unknown").toUpperCase();
+    const findings = result.findings || [];
+    const icon = result.decision === "block" ? "🚫" : result.decision === "warn" ? "⚠️" : "✅";
+    const lines = [`${icon} **GOVERNANCE: ${decision}**`];
+    if (findings.length) {
+      for (const f of findings) lines.push(`- **${String(f.severity || "?").toUpperCase()}** \`${f.rule_id || "unknown"}\`: ${f.plain_message || ""}`);
+      lines.push("", "Safe next step: fix findings, then paste the corrected code/diff for validation.");
+    } else {
+      lines.push("No issues found. Snippet passes CK policy.");
+    }
+    return { message: lines.join("\n"), trace: trace("ck_validate", { content: content.slice(0, 120), kind }, result) };
+  }
+
+  if (/(platform overview|all features|everything|full platform|what can controlkeel do)/i.test(message)) {
+    const result = await platformOverview(sessionId);
+    return { message: `🧭 **CONTROLKEEL PLATFORM OVERVIEW**\n\nControlKeel covers governance, observability, self-learning memory, policy packs, benchmarks/evals, integrations, budget, proof bundles, and ship readiness.\n\n- Mission Control: ${CK_BASE_URL}/missions/1\n- Observability: ${CK_BASE_URL}/observability\n- Policies: ${CK_BASE_URL}/policies\n- Benchmarks: ${CK_BASE_URL}/benchmarks\n- Ship Readiness: ${CK_BASE_URL}/ship\n- Skills: ${CK_BASE_URL}/skills`, trace: trace("ck_platform_overview", {}, result) };
+  }
+
+  if (/(benchmark|benchmarks|eval|evals|quality|false positive|catch rate|promotion)/i.test(message)) {
+    const result = await ckGet("/api/v1/benchmarks");
+    return { message: `🧪 **BENCHMARKS + EVALS**\n\nControlKeel turns findings into scenarios, benchmark runs, regression checks, and policy promotion/rollback evidence.\n\n- Benchmarks: ${CK_BASE_URL}/benchmarks\n- History: ${CK_BASE_URL}/observability/benchmarks/history\n- Evals: ${CK_BASE_URL}/observability/evals\n- Regressions: ${CK_BASE_URL}/observability/regressions\n- Promotions: ${CK_BASE_URL}/observability/promotions`, trace: trace("ck_benchmark_summary", {}, result) };
+  }
+
+  if (/(observability|observe|improvement loop|audit log|trends|regression|recommendations)/i.test(message)) {
+    const result = { improvement: await ckGet("/api/v1/improvement", { session_id: sessionId }), audit_log: await ckGet(`/api/v1/sessions/${sessionId}/audit-log`, { limit: 20 }), graph: await ckGet(`/api/v1/sessions/${sessionId}/graph`) };
+    return { message: `📈 **OBSERVABILITY + IMPROVEMENT LOOP**\n\nCK records audit logs, task graph, findings, reviews, budget, provider status, costs, trends, regressions, and recommendations.\n\n- Overview: ${CK_BASE_URL}/observability\n- Loop: ${CK_BASE_URL}/observability/loop\n- Costs: ${CK_BASE_URL}/observability/costs\n- Trends: ${CK_BASE_URL}/observability/trends\n- Regressions: ${CK_BASE_URL}/observability/regressions`, trace: trace("ck_observability_summary", {}, result) };
+  }
+
+  if (/(policy|policies|domain pack|compliance|gdpr|hipaa|tool policy|rules)/i.test(message)) {
+    const result = { domains: await ckGet("/api/v1/domains"), policies: await ckGet("/api/v1/policies") };
+    return { message: `⚖️ **POLICY + COMPLIANCE CONTROL PLANE**\n\nCK supports baseline/software/security/cost plus domain packs: GDPR, healthcare/HIPAA, finance, legal, HR, marketing, sales, real estate, government, insurance, ecommerce, logistics, manufacturing, nonprofit, education.\n\n- Policy Studio: ${CK_BASE_URL}/policies\n- Tool Policy: ${CK_BASE_URL}/workspaces/1/tool-policy`, trace: trace("ck_policy_summary", {}, result) };
+  }
+
+  if (/(self learning|self-learning|learn|memory|prior decisions|remembered|continuous learning)/i.test(message)) {
+    const result = await ckGet("/api/v1/memory/search", { session_id: sessionId, query: message });
+    return { message: `🧠 **SELF-LEARNING + TYPED MEMORY**\n\nCK stores durable briefs, decisions, findings, proofs, goals, checkpoints, and incidents so future agents retrieve governed context instead of relying on hidden provider memory.\n\n- Memory quality: ${CK_BASE_URL}/observability/memory-quality\n- Session memory: ${CK_BASE_URL}/observability/sessions/1/memory\n\nSay: \`remember: <decision>\` to persist a new decision.`, trace: trace("ck_learning_summary", { query: message }, result) };
+  }
+
+  if (/(integration|integrations|install|skills|providers|models|route|deploy)/i.test(message)) {
+    const result = { agents: await ckGet("/api/v1/agents"), skills: await ckGet("/api/v1/skills"), providers: await ckGet("/api/v1/providers/status") };
+    return { message: `🔌 **INTEGRATIONS + PROVIDERS + DEPLOYMENT**\n\nCK attaches to agent hosts, exposes MCP/API/skill surfaces, tracks provider health and cost, and supports Cloud Run/self-host deployment.\n\n- Install: ${CK_BASE_URL}/install\n- Skills: ${CK_BASE_URL}/skills\n- Deploy: ${CK_BASE_URL}/deploy\n- Provider costs: ${CK_BASE_URL}/observability/costs`, trace: trace("ck_integration_summary", {}, result) };
+  }
+
+  if (/(ship|proof|audit|release|ready to merge|ready to deploy)/i.test(message)) {
+    const budget = await ckGet("/api/v1/budget", { session_id: sessionId });
+    const proof = taskId ? await ckGet(`/api/v1/proof/${taskId}`, { session_id: sessionId }) : { error: "no task" };
+    return { message: `🚢 **SHIP READINESS CHECK**\n\nBudget remaining: ${budget.remaining_cents ?? "?"}¢\nProof status: ${(proof.proof || proof).status || "available"}\n\nDo not ship if high/critical findings or pending reviews remain.\n\n- Proofs: ${CK_BASE_URL}/proofs\n- Findings: ${CK_BASE_URL}/findings\n- Ship: ${CK_BASE_URL}/ship`, trace: [...trace("ck_budget", {}, budget), ...trace("ck_generate_proof", {}, proof)] };
+  }
+
+  if (/(budget|cost|spend|tokens)/i.test(message)) {
+    const result = await ckGet("/api/v1/budget", { session_id: sessionId });
+    return { message: `💰 **Budget**: ${result.remaining_cents ?? "?"}¢ of ${result.budget_cents ?? "?"}¢ remaining. CK circuit breaker prevents silent budget burn.`, trace: trace("ck_budget", {}, result) };
+  }
+
+  if (/(remember|record decision|save this|memory)/i.test(message)) {
+    const memory = message.replace(/^(remember:|record decision:|save:)/i, "").trim();
+    const result = await ckPost("/api/v1/memory", { session_id: sessionId, memory, record_type: "decision" });
+    return { message: `📝 **Decision recorded** in durable CK memory:\n> ${memory}`, trace: trace("ck_memory_record", { memory: memory.slice(0, 80) }, result) };
+  }
+
+  if (/(build|implement|add feature|create|plan|architecture|design)/i.test(message)) {
+    const ctx = await ckGet(`/api/v1/sessions/${sessionId}`);
+    const review = await ckPost("/api/v1/reviews", { session_id: sessionId, task_id: taskId, review_type: "plan", title: `Plan: ${message.slice(0, 60)}`, submission_body: `Governed build request:\n\n${message}\n\nRequired gates: validate code/config/shell before execution, submit diffs for review, check budget, generate proof before shipping.` });
+    return { message: `📋 **GOVERNED IMPLEMENTATION PLAN**\n\nReview gate created: ${(review.review || review).id || "pending"}.\n\nI can build a complete project packet: requirements, architecture, file tree, full source files, tests, Dockerfile, Cloud Run deploy commands, Secret Manager plan, smoke tests, and rollback notes.\n\nBefore execution: validate generated code/config/shell and approve the review gate in Mission Control.\n\nMission Control: ${CK_BASE_URL}/missions/1`, trace: [...trace("ck_context", {}, ctx), ...trace("ck_submit_review", { review_type: "plan" }, review)] };
+  }
+
+
+
+  const result = await ckPost("/api/v1/validate", { content: message, kind: "text", source_type: "generated" });
+  return { message: `**ControlKeel Studio** governs real software workflows. Try a GitHub URL, code/shell/config, build plan, ship readiness, observability, policies, self-learning, benchmarks, or integrations.`, trace: trace("ck_validate", { content: message.slice(0, 80), kind: "text" }, result) };
+}
+
+async function platformOverview(sessionId?: number) {
+  return { session: sessionId ? await ckGet(`/api/v1/sessions/${sessionId}`) : {}, budget: sessionId ? await ckGet("/api/v1/budget", { session_id: sessionId }) : {}, findings: await ckGet("/api/v1/findings", { session_id: sessionId }), proofs: await ckGet("/api/v1/proofs", { session_id: sessionId }), benchmarks: await ckGet("/api/v1/benchmarks"), policies: await ckGet("/api/v1/policies"), providers: await ckGet("/api/v1/providers/status"), skills: await ckGet("/api/v1/skills") };
+}
+
+async function maybePolishWithGemini(userMessage: string, governed: { message: string; trace: ToolTrace[] }) {
+  if (!process.env.GEMINI_API_KEY) return governed.message;
+  try {
+    const aiClient = getAI();
+    const response = await aiClient.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{ role: "user", parts: [{ text: `Explain this already-executed ControlKeel result concisely. Do not invent tool calls or claim deployment happened.\n\nUser: ${userMessage}\n\nResult: ${JSON.stringify(governed).slice(0, 12000)}` }] }],
+      config: { systemInstruction: SYSTEM_INSTRUCTION, temperature: 0.2 }
+    });
+    return response.text || governed.message;
+  } catch (err) {
+    console.warn("Gemini polish failed; returning CK result", err);
+    return governed.message;
+  }
+}
 
 app.post("/api/chat", async (req, res) => {
   try {
     const { messages } = req.body;
-    const aiClient = getAI();
-    
-    // We only use the last message for the chat, but ideally we'd pass history.
-    // For simplicity, passing full message history as content array.
-    const formattedMessages = messages.map((m: any) => ({
-      role: m.role,
-      parts: [{ text: m.content }]
-    }));
-
-    async function generateWithRetry(options: any, maxRetries = 3) {
-      for (let i = 0; i < maxRetries; i++) {
-        try {
-          return await aiClient.models.generateContent(options);
-        } catch (err: any) {
-          if (err?.status === 503 || err?.message?.includes("503") || err?.message?.includes("high demand")) {
-            if (i === maxRetries - 1) throw err;
-            await new Promise(resolve => setTimeout(resolve, 1500 * Math.pow(2, i)));
-          } else {
-            throw err;
-          }
-        }
-      }
-    }
-
-    const response = await generateWithRetry({
-      model: "gemini-2.5-flash",
-      contents: formattedMessages,
-      config: {
-         systemInstruction: SYSTEM_INSTRUCTION,
-         tools: [{ functionDeclarations: CK_TOOLS as any }],
-         temperature: 0.2
-      }
-    });
-
-    // Simple mock function execution if the model decides to call functions
-    let returnedText = "";
-    let trace: any[] = [];
-
-    if (response.functionCalls && response.functionCalls.length > 0) {
-      // Model wanted to call tools
-      let followUpCalls = [];
-      
-      for (const call of response.functionCalls) {
-        const functionName = call.name;
-        let mockResult = mockResponses[functionName] || { success: true };
-        
-        if (functionName === "ck_validate" && call.args) {
-          const content = String(call.args.content || "");
-          if (content.includes("eval(") && !content.includes("model.eval(")) {
-            mockResult = {
-              decision: "block",
-              findings: [{ severity: "critical", rule_id: "security.code_execution", plain_message: "eval() with user-controlled input allows Remote Code Execution." }]
-            };
-          } else if (content.includes("rm -rf")) {
-            mockResult = {
-              decision: "block",
-              findings: [{ severity: "critical", rule_id: "shell.destructive_rm", plain_message: "Destructive shell command detected." }]
-            };
-          } else if (content.includes("api_key =") || content.includes("GEMINI_API_KEY=")) {
-            mockResult = {
-              decision: "block",
-              findings: [{ severity: "critical", rule_id: "secret.high_entropy_token", plain_message: "Hardcoded secret detected." }]
-            };
-          } else if (content.includes("SELECT * FROM") && content.includes("OR 1=1")) {
-             mockResult = {
-              decision: "block",
-              findings: [{ severity: "critical", rule_id: "security.sql_injection", plain_message: "SQL injection pattern detected." }]
-            };
-          }
-        }
-
-        trace.push({
-          tool: functionName,
-          args: call.args,
-          result: mockResult
-        });
-
-        followUpCalls.push({
-           functionResponse: {
-               name: functionName,
-               response: mockResult
-           }
-        });
-      }
-
-      // We make a second request with the tool responses if needed, or just append raw mock output for demonstration.
-      const secondResponse = await generateWithRetry({
-        model: "gemini-2.5-flash",
-        contents: [
-            ...formattedMessages,
-            { role: "model", parts: response.functionCalls.map(c => ({ functionCall: c })) },
-            { role: "user", parts: followUpCalls }
-        ],
-        config: {
-            systemInstruction: SYSTEM_INSTRUCTION,
-            tools: [{ functionDeclarations: CK_TOOLS as any }],
-            temperature: 0.2
-        }
-      });
-      returnedText = secondResponse.text || "Processed function blocks.";
-    } else {
-        returnedText = response.text || "";
-    }
-
-    res.json({ message: returnedText, trace });
+    const latest = Array.isArray(messages) ? messages[messages.length - 1]?.content || "" : "";
+    const governed = await runCkWorkflow(latest);
+    const message = await maybePolishWithGemini(latest, governed);
+    res.json({ message, trace: governed.trace });
   } catch (err: any) {
     console.error("Chat Error:", err);
-    if (err?.status === 503 || err?.message?.includes("503") || err?.message?.includes("high demand")) {
-      res.json({ message: "The model is currently experiencing high demand. Please try again in 5-10 seconds.", trace: [] });
-    } else {
-      res.status(500).json({ error: err.message });
-    }
+    res.status(200).json({ message: `🚫 **GOVERNANCE: ERROR**\n\nUnable to connect to Mission Control or run the workflow.\n\nDetails: ${err?.message || String(err)}\n\nCheck CK_BASE_URL (${CK_BASE_URL}) and try again.`, trace: [] });
   }
 });
 

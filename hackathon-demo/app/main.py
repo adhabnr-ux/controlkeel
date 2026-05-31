@@ -19,7 +19,7 @@ Fallback path: when Gemini is rate-limited or unavailable, direct CK workflows s
 Routes:
   GET  /          main chat UI
   POST /chat      { message, history? } → { response, trace, degraded }
-  GET  /healthz   liveness
+  GET  /health    liveness (also /healthz/)
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ import requests
 from flask import Flask, jsonify, render_template_string, request
 
 # ── Config ──────────────────────────────────────────────────────────────────
-CK_BASE_URL = os.environ.get("CK_BASE_URL", "http://localhost:4000").rstrip("/")
+CK_BASE_URL = os.environ.get("CK_BASE_URL", "https://controlkeel-834811228927.us-central1.run.app").rstrip("/")
 CK_API_KEY  = os.environ.get("CK_API_KEY", "").strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL   = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
@@ -795,10 +795,14 @@ Return a concise answer with governance status and next step.
 def run_turn(user_message: str, history: list[dict] | None = None) -> dict:
     """
     Run one governed agent turn.
-    CK governance executes deterministically first. Gemini optionally polishes the
-    result without tools, so product workflows do not break on SDK tool schemas.
+    CK governance executes deterministically first. Gemini may explain broader
+    workflows, but validation decisions stay verbatim so BLOCK/WARN/ALLOW labels
+    cannot be softened or misreported by model prose.
     """
     governed = _direct_ck(user_message)
+    first_tool = (governed.get("trace") or [{}])[0].get("tool")
+    if first_tool == "ck_validate":
+        return governed
     polished = _try_gemini_polish(user_message, governed)
     if polished:
         governed["response"] = polished
@@ -825,11 +829,17 @@ def chat():
         return jsonify({"response": f"Error: {exc}", "trace": [], "error": str(exc)}), 200
 
 
-@app.route("/healthz")
-def healthz():
+def _health_payload():
     sid, tid = _ensure_session()
     ck_alive = _ck_get("/").get("_status", 500) < 500
     return jsonify({"ok": True, "ck_alive": ck_alive, "session_id": sid, "task_id": tid, "gemini": bool(GEMINI_API_KEY)})
+
+
+@app.route("/health")
+@app.route("/healthz")
+@app.route("/healthz/", strict_slashes=False)
+def healthz():
+    return _health_payload()
 
 
 # ── UI ────────────────────────────────────────────────────────────────────────

@@ -46,7 +46,7 @@ export default function App() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get response");
+        throw new Error(`Failed to get response: ${response.status}`);
       }
 
       const data = await response.json();
@@ -55,7 +55,7 @@ export default function App() {
       console.error(error);
       setMessages((prev) => [
         ...prev,
-        { role: "model", content: "🚫 GOVERNANCE: ERROR — Unable to connect to Mission Control." },
+        { role: "model", content: `🚫 GOVERNANCE: ERROR — Unable to connect to Mission Control. ${error instanceof Error ? error.message : ""}` },
       ]);
     } finally {
       setIsLoading(false);
@@ -85,7 +85,7 @@ export default function App() {
            <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
            <div className="flex flex-col items-end hidden sm:flex">
              <span className="text-slate-500 uppercase text-[9px]">Budget Remaining</span>
-             <span className="text-blue-400">$45.88</span>
+             <span className="text-blue-400">Live CK</span>
            </div>
            <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
            <div className="flex items-center gap-1.5 border border-green-500/30 bg-green-500/10 px-2 py-1 rounded-full">
