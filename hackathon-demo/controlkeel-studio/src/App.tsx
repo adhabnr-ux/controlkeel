@@ -80,7 +80,7 @@ export default function App() {
         <div className="flex items-center gap-2 sm:gap-6 text-[11px] font-mono">
            <div className="flex flex-col items-end hidden sm:flex">
              <span className="text-slate-500 uppercase text-[9px]">Project ID</span>
-             <span className="text-slate-300">ck-gemini</span>
+             <span className="text-slate-300">ControlKeel Studio</span>
            </div>
            <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
            <div className="flex flex-col items-end hidden sm:flex">

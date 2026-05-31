@@ -7,7 +7,7 @@
 
 | Tab | URL |
 |-----|-----|
-| Gemini app (prototype) | https://ck-gemini-834811228927.us-central1.run.app |
+| AI Studio app (prototype) | https://controlkeel-studio-834811228927.us-west1.run.app |
 | Mission Control | https://controlkeel-834811228927.us-central1.run.app/missions/1 |
 | Findings | https://controlkeel-834811228927.us-central1.run.app/findings |
 

@@ -25,7 +25,7 @@
 
       Expected: `block  security.code_execution`
 
-- [ ] Open <https://ck-gemini-834811228927.us-central1.run.app>
+- [ ] Open <https://controlkeel-studio-834811228927.us-west1.run.app>
       → type `Validate this code: eval(user_input)` → red **BLOCK** badge ✓
 - [ ] Open <https://controlkeel-834811228927.us-central1.run.app/missions/1> → loads ✓
 - [ ] Open <https://controlkeel-834811228927.us-central1.run.app/findings> → loads ✓
@@ -73,7 +73,7 @@ Expected outcomes:
 
 | Item | Link |
 | --- | --- |
-| Hosted prototype | <https://ck-gemini-834811228927.us-central1.run.app> |
+| Hosted prototype | <https://controlkeel-studio-834811228927.us-west1.run.app> |
 | Mission Control | <https://controlkeel-834811228927.us-central1.run.app/missions/1> |
 | Code repo / AI Studio | _(fill in after sharing in AI Studio)_ |
 | 2-min team video | _(fill in)_ |
@@ -88,7 +88,7 @@ Expected outcomes:
 | App slow on first click | Cold start — click once to warm, then present |
 | A tool call errors | App degrades gracefully, CK decision still shows; keep going |
 | GitHub fetch times out | Try a smaller repo or paste a snippet directly |
-| CK backend down | `./hackathon-demo/deploy-ck.sh`; or swap `CK_BASE_URL` on the ck-gemini service |
+| CK backend down | `./hackathon-demo/deploy-ck.sh`; or swap `CK_BASE_URL` on the controlkeel-studio service |
 | Everything broken | Play the recorded Playcast — never debug on stage |
 
 ---

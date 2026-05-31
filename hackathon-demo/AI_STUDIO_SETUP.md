@@ -4,7 +4,7 @@ Use this to create the AI Studio share link required for the "Code Repository"
 submission field.
 
 **The live prototype (what judges actually use):**
-https://ck-gemini-834811228927.us-central1.run.app
+https://controlkeel-studio-834811228927.us-west1.run.app
 
 ---
 
@@ -35,7 +35,7 @@ https://ck-gemini-834811228927.us-central1.run.app
 
 | | Raw AI Studio | Cloud Run app |
 |---|---|---|
-| Function calls | Gemini returns `functionCall` — you paste responses manually | Python `google-genai` SDK auto-executes each call |
+| Function calls | Gemini can return `functionCall` objects | Node Cloud Run app executes CK workflows server-side, then Gemini optionally polishes results |
 | Hits real CK API | ❌ Not automatically | ✅ Yes, every tool call |
 | Purpose | Shows agent design + tool surface for judges to review | The actual live prototype |
 
@@ -68,5 +68,5 @@ We're ready to ship. Check budget and generate a proof bundle.
 ```
 → Gemini issues `ck_context`, `ck_budget`, `ck_generate_proof` → shows the ship-readiness workflow
 
-Then direct judges to https://ck-gemini-834811228927.us-central1.run.app to
+Then direct judges to https://controlkeel-studio-834811228927.us-west1.run.app to
 see the same tool calls **actually execute** against the live ControlKeel backend.

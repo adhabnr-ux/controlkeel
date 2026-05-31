@@ -10,9 +10,9 @@
 Judge's browser
       │
       ▼
-ck-gemini (Cloud Run · Python google-genai)      ← the "Hosted Prototype"
-  Gemini 2.5 Flash + 10 CK governance tools
-  Auto-executes tool calls · chat UI · GitHub repo analysis
+controlkeel-studio (Cloud Run · Node/Vite AI Studio app)      ← the "Hosted Prototype"
+  Gemini 2.5 Flash + live CK governance workflows
+  Server-executes CK calls · chat UI · GitHub repo analysis
       │  real HTTP calls to /api/v1/*
       ▼
 controlkeel (Cloud Run · Elixir/Phoenix)
@@ -24,17 +24,14 @@ controlkeel (Cloud Run · Elixir/Phoenix)
 
 | Service | URL |
 | --- | --- |
-| Gemini app (prototype) | <https://ck-gemini-834811228927.us-central1.run.app> |
+| AI Studio app (prototype) | <https://controlkeel-studio-834811228927.us-west1.run.app> |
 | Mission Control | <https://controlkeel-834811228927.us-central1.run.app/missions/1> |
 | Findings | <https://controlkeel-834811228927.us-central1.run.app/findings> |
 | Proofs | <https://controlkeel-834811228927.us-central1.run.app/proofs> |
 
 ## Why Cloud Run, not raw AI Studio
 
-Google AI Studio's playground does **not** execute function declarations —
-Gemini returns a `functionCall` and you paste responses manually. Only the
-`google-genai` Python SDK auto-executes them. So the live prototype is a small
-Python app (`app/`) that uses SDK automatic function calling: every CK tool call
+Google AI Studio can design the app and expose function declarations, but raw playground responses do not by themselves execute arbitrary CK HTTP calls. The live prototype is a Node AI Studio app (`controlkeel-studio/`) that executes CK workflows server-side: every CK action
 really hits the live ControlKeel API. Both services run on Cloud Run, satisfying
 the hackathon hosting requirement.
 
@@ -47,7 +44,7 @@ export GEMINI_API_KEY="..."        # https://aistudio.google.com/apikey
 ```
 
 Runs `deploy-ck.sh` (backend, ~20–25 min first build) then `deploy-app.sh`
-(Gemini app, ~2 min). **Run it the night before** — the CK image builds OTP
+(AI Studio app, ~2 min). **Run it the night before** — the CK image builds OTP
 from source. Subsequent deploys reuse the image and take ~2 min.
 
 Deploy individually if needed:
@@ -92,8 +89,8 @@ rule is in the deterministic baseline policy pack — no Semgrep required.
 
 | File | Purpose |
 | --- | --- |
-| `app/main.py` | Gemini app — SDK auto function calling, GitHub repo fetch, chat UI |
-| `app/Dockerfile`, `app/requirements.txt` | Cloud Run container for the app |
+| `controlkeel-studio/server.ts` | AI Studio app server — live CK workflows, Gemini polish, GitHub repo fetch |
+| `controlkeel-studio/Dockerfile`, `package.json` | Cloud Run container for the AI Studio app |
 | `deploy.sh` | Deploy both services in order |
 | `deploy-ck.sh`, `deploy-app.sh` | Deploy each service individually |
 | `MASTER_PROMPT.md` | Paste into AI Studio as System Instruction |

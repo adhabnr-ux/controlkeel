@@ -35,7 +35,7 @@ time:
 
 ## What we built
 
-1. **ControlKeel Studio** (Python `google-genai`, Cloud Run) — a governed Gemini
+1. **ControlKeel Studio** (Node/Vite/Express AI Studio app, Cloud Run) — a governed Gemini
    product assistant. Users paste GitHub URLs, code, shell, config, or PR diffs;
    the app runs live ControlKeel governance workflows then uses Gemini to explain
    results and next steps. Real tool execution — not mocked.
@@ -47,7 +47,7 @@ time:
 
 - Google **Gemini 2.5 Flash** + Google **AI Studio** (function declarations)
 - Google **Cloud Run** (both services)
-- ControlKeel (Elixir/Phoenix/SQLite) + Python `google-genai`
+- ControlKeel (Elixir/Phoenix/SQLite) + Node/Vite/Express + Gemini
 
 ## Live demo
 
@@ -76,7 +76,7 @@ suggestions), cross-agent portability, compliance-grade proof bundles.
 
 | Item | URL |
 | --- | --- |
-| **Hosted prototype** | <https://ck-gemini-834811228927.us-central1.run.app> |
+| **Hosted prototype** | <https://controlkeel-studio-834811228927.us-west1.run.app> |
 | **Mission Control** | <https://controlkeel-834811228927.us-central1.run.app/missions/1> |
 | **Code / AI Studio** | _(add AI Studio share link)_ |
 | **2-min video** | _(add YouTube link)_ |

@@ -9,9 +9,16 @@ const CK_BASE_URL = (process.env.CK_BASE_URL || "https://controlkeel-83481122892
 
 app.use(express.json());
 
+app.get("/health", async (_req, res) => {
+  const ck = await ckGet("/api/v1/findings");
+  res.json({ ok: true, ck_alive: !ck.error && (ck._status || 200) < 500, ck_base_url: CK_BASE_URL, gemini: Boolean(process.env.GEMINI_API_KEY) });
+});
+
+app.get("/healthz", (_req, res) => res.redirect(307, "/health"));
+
 const SYSTEM_INSTRUCTION = `You are **ControlKeel Studio**: a governed Gemini product assistant for real software teams. You help users govern their own product, open-source repo, or AI agent workflow using a live, hosted ControlKeel governance platform.
 
-**Hosted prototype (live executor):** https://ck-gemini-834811228927.us-central1.run.app
+**Hosted prototype (live AI Studio app):** https://controlkeel-studio-834811228927.us-west1.run.app
 **Mission Control:** https://controlkeel-834811228927.us-central1.run.app/missions/1
 **Findings:** https://controlkeel-834811228927.us-central1.run.app/findings
 
@@ -436,6 +443,8 @@ async function platformOverview(sessionId?: number) {
 }
 
 async function maybePolishWithGemini(userMessage: string, governed: { message: string; trace: ToolTrace[] }) {
+  const firstTool = governed.trace?.[0]?.tool;
+  if (firstTool === "ck_validate") return governed.message;
   if (!process.env.GEMINI_API_KEY) return governed.message;
   try {
     const aiClient = getAI();
