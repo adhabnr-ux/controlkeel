@@ -312,10 +312,15 @@ For every code/config/shell/diff request:
 3. For decisions: call `ck_memory_record` — persist durably.
 4. For release: call `ck_context` + `ck_budget` + `ck_generate_proof`.
 
-Always surface the governance decision prominently:
-- ✅ **GOVERNANCE: ALLOWED** — safe to proceed
-- ⚠️ **GOVERNANCE: WARNED** — explain risk, ask confirmation
-- 🚫 **GOVERNANCE: BLOCKED** — do NOT proceed; explain rule + exact safe fix
+## STRICT governance response rule
+
+When `ck_validate` returns `decision`, you MUST use the matching label — no exceptions:
+- `"block"` → start with **🚫 GOVERNANCE: BLOCKED** — do NOT proceed; show rule_id + plain_message + exact safe fix
+- `"warn"`  → start with **⚠️ GOVERNANCE: WARNED** — explain risk, ask confirmation
+- `"allow"` → start with **✅ GOVERNANCE: ALLOWED** — safe to proceed
+
+Never use WARNED for a block decision. Never use BLOCKED for an allow decision.
+The `decision` field in the tool result is the ground truth — always honour it.
 
 ## Tone
 
@@ -530,16 +535,52 @@ def _direct_ck(message: str) -> dict:
 
 
 # ── Turn entry point ─────────────────────────────────────────────────────────
+def _try_gemini_polish(user_message: str, governed: dict) -> str | None:
+    """Use Gemini to explain the already-executed CK result; no tool calls."""
+    if not GEMINI_API_KEY:
+        return None
+    try:
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        governed_for_prompt = {k: v for k, v in governed.items() if k != "degraded"}
+        prompt = f"""
+You are ControlKeel Studio. The live ControlKeel API has ALREADY executed this governance workflow.
+Do not invent tool calls. Do not claim deployment happened unless the trace says so.
+Explain the result usefully and concretely for a software team.
+
+User request:
+{user_message}
+
+Executed CK result:
+{governed_for_prompt}
+
+Return a concise answer with governance status and next step.
+"""
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.2),
+        )
+        return (response.text or "").strip() or None
+    except Exception as exc:
+        import sys
+        print(f"[gemini-polish-fallback] {type(exc).__name__}: {exc}", file=sys.stderr)
+        return None
+
+
 def run_turn(user_message: str, history: list[dict] | None = None) -> dict:
     """
     Run one governed agent turn.
-    Primary: Gemini 2.5 Flash with automatic function calling (tools execute live).
-    Fallback: direct CK workflows (works even when Gemini is unavailable).
+    CK governance executes deterministically first. Gemini optionally polishes the
+    result without tools, so product workflows do not break on SDK tool schemas.
     """
-    result = _try_gemini(user_message, history)
-    if result:
-        return result
-    return _direct_ck(user_message)
+    governed = _direct_ck(user_message)
+    polished = _try_gemini_polish(user_message, governed)
+    if polished:
+        governed["response"] = polished
+        governed["degraded"] = False
+    return governed
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
