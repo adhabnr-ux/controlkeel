@@ -1,83 +1,82 @@
 # Demo-Day Checklist — GDG Stanford / DeepMind Hackathon
 
-**Event:** May 31, 2026 · 10 AM–6 PM PT · submit by **2:30 PM sharp**
+**Event:** May 31, 2026 · Online track · deadline end of day PT
 
-**Deliverables:** one-pager · hosted prototype (Cloud Run) · 2-min team video ·
+**Solo presenter:** Bibek Aryal
+
+**Deliverables:** one-pager · hosted prototype (Cloud Run) · 2-min solo video ·
 1-min Playcast (public YouTube) · code repo / AI Studio share link
 
----
-
-## Night before (do NOT leave these for the morning)
-
-- [ ] `gcloud auth login` — confirm account is `sunim.54@gmail.com`
-- [ ] `gcloud config set project fluted-torus-424408-s6`
-- [ ] `export GEMINI_API_KEY=<your-key>`
-- [ ] **`./hackathon-demo/deploy.sh`** — CK builds OTP from source (~20–25 min first time).
-      Run this early. Subsequent redeploys reuse the cached image (~2 min).
-- [ ] Smoke-test CK:
-
-      ```bash
-      curl -s -X POST https://controlkeel-834811228927.us-central1.run.app/api/v1/validate \
-        -H 'Content-Type: application/json' \
-        -d '{"content":"eval(user_input)","kind":"code"}' \
-        | python3 -c "import sys,json;d=json.load(sys.stdin);print(d['decision'],d['findings'][0]['rule_id'])"
-      ```
-
-      Expected: `block  security.code_execution`
-
-- [ ] Open <https://controlkeel-studio-834811228927.us-west1.run.app>
-      → type `Validate this code: eval(user_input)` → red **BLOCK** badge ✓
-- [ ] Open <https://controlkeel-834811228927.us-central1.run.app/missions/1> → loads ✓
-- [ ] Open <https://controlkeel-834811228927.us-central1.run.app/findings> → loads ✓
-- [ ] **Record 1-min Playcast** (public YouTube):
-      GitHub repo governance → BLOCK eval → ALLOW safe code → proof bundle.
-      This is also your live-demo fallback if anything breaks.
-- [ ] Record 2-min team intro video.
-- [ ] Fill video + repo links into `submission/ONE_PAGER.md`.
-- [ ] Run through `DEMO_SCRIPT.md` once end-to-end on the live app.
+The submission form for the online track will be shared by the organizers before end of day. Same format as in-person.
 
 ---
 
-## Morning of
+## Before you record
 
-- [ ] Re-warm both URLs with one click each.
-- [ ] Confirm YouTube Playcast is set to **public** (engagement counts toward score).
-- [ ] Have `DEMO_SCRIPT.md` open on second monitor or phone.
+- [ ] Open <https://controlkeel-studio-834811228927.us-west1.run.app> — click once to warm it up
+- [ ] Open <https://controlkeel-834811228927.us-central1.run.app/missions/1> — confirm it loads
+- [ ] Smoke test in the app: click **Block RCE** chip → confirm red BLOCK badge appears
 
----
+If the smoke test fails:
 
-## The 8 lines to type (all verified to work)
-
-```text
-1.  Govern this open source repo: https://github.com/langchain-ai/langchain
-2.  Validate this code: eval(user_input)
-3.  Validate this code: def health(): return {"status": "ok"}
-4.  Validate: api_key = 'sk-proj-abc123def456ghi789'
-5.  Validate this shell: rm -rf /
-6.  Validate this code: model.eval()
-7.  Build a user auth system with JWT. Create a governed implementation plan.
-8.  Remember: we decided to use JWT, RSA-256 signing, 24-hour expiry
+```bash
+curl -s -X POST https://controlkeel-834811228927.us-central1.run.app/api/v1/validate \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"eval(user_input)","kind":"code"}' \
+  | python3 -c "import sys,json;d=json.load(sys.stdin);print(d['decision'],d['findings'][0]['rule_id'])"
 ```
 
-Expected outcomes:
+Expected: `block  security.code_execution`
 
-- **Line 1** → GitHub files fetched + risk assessment + review gate in Mission Control
-- **Lines 2, 4, 5** → 🚫 BLOCK with rule shown in trace
-- **Lines 3, 6** → ✅ ALLOW (line 6 proves no false positive on `model.eval()`)
-- **Line 7** → plan submitted, review gate visible in Mission Control
-- **Line 8** → `ck_memory_record` → decision persisted in typed memory
+If CK backend is down: `./hackathon-demo/deploy-ck.sh`
 
 ---
 
-## Submission links (fill in before 2:30 PM)
+## Recording order
+
+### 1. Record the 1-min Playcast first (this is the scored video)
+
+Follow `DEMO_SCRIPT.md` → Playcast section. Key chip clicks in order:
+
+| Chip | Section | Expected result |
+| --- | --- | --- |
+| **LangChain (AI agents)** | Govern a project | Risk assessment + review gate |
+| **Block RCE** | Validate code | 🚫 BLOCK — `security.code_execution` |
+| **Allow safe code** | Validate code | ✅ ALLOW — 0 findings |
+| **Full platform** | Platform value | Platform depth overview |
+
+End with: *"Go to controlkeel.com — attach it to any agent you're running today."*
+
+Upload to YouTube → set **Public** immediately. Every hour it's live counts toward Phase 2 engagement scoring.
+
+### 2. Record the 2-min solo intro video
+
+Follow `DEMO_SCRIPT.md` → Team Intro section. On camera, straight to the problem.
+
+Upload to YouTube → set **Public**.
+
+### 3. Create the AI Studio share link (5 min)
+
+1. Go to [aistudio.google.com](https://aistudio.google.com) → New prompt → Gemini 2.5 Flash
+2. System instructions → paste all of `hackathon-demo/MASTER_PROMPT.md`
+3. Tools → paste all of `hackathon-demo/functions.json`
+4. Share → "Anyone with the link" → copy URL
+
+### 4. Fill in submission links
+
+Open `submission/ONE_PAGER.md` and add the three links:
 
 | Item | Link |
 | --- | --- |
 | Hosted prototype | <https://controlkeel-studio-834811228927.us-west1.run.app> |
 | Mission Control | <https://controlkeel-834811228927.us-central1.run.app/missions/1> |
-| Code repo / AI Studio | _(fill in after sharing in AI Studio)_ |
-| 2-min team video | _(fill in)_ |
-| 1-min Playcast | _(fill in)_ |
+| Code / AI Studio | *(paste AI Studio share link)* |
+| 2-min video | *(paste YouTube link)* |
+| 1-min Playcast | *(paste YouTube link)* |
+
+### 5. Submit
+
+Wait for the organizer to post the online track Google Form link (by end of day). Fill it out with all five deliverables.
 
 ---
 
@@ -85,18 +84,19 @@ Expected outcomes:
 
 | Problem | Fix |
 | --- | --- |
-| App slow on first click | Cold start — click once to warm, then present |
-| A tool call errors | App degrades gracefully, CK decision still shows; keep going |
-| GitHub fetch times out | Try a smaller repo or paste a snippet directly |
-| CK backend down | `./hackathon-demo/deploy-ck.sh`; or swap `CK_BASE_URL` on the controlkeel-studio service |
-| Everything broken | Play the recorded Playcast — never debug on stage |
+| App slow on first chip click | Cold start — wait 10s and click again |
+| Chip fires but no badge appears | Type directly in the input box instead |
+| GitHub fetch times out | Click **Next.js app** chip instead, or paste a snippet |
+| CK backend down | `./hackathon-demo/deploy-ck.sh` then retry |
+| App won't load at all | Redeploy: `export GEMINI_API_KEY=... && ./hackathon-demo/deploy-app.sh` |
 
 ---
 
 ## Claims discipline (judges include DeepMind / OpenAI researchers)
 
-- **Lead with live catches** — eval, secret, rm -rf /, SQLi are reproducible on stage.
+- Lead with live catches — eval, secret, rm -rf /, SQLi are all reproducible on demand.
 - For "1/12 vs 12/12": cite `docs/benchmark-evidence.md` (host_comparison_v1 runs
-  \#29/\#31) and add: *"the raw baseline wasn't a perfectly clean no-CK isolation —
-  full methodology is in the doc."*
-- `/benchmarks` on a fresh deploy is empty — do not click into it live.
+  #29/#31). Add: *"the raw baseline wasn't a perfectly clean no-CK isolation — full methodology is in the doc."*
+- Do not click into `/benchmarks` in the live app — it is empty on a fresh deploy.
+
+Phase 2 judging tracks Playcast YouTube engagement metrics for two weeks post-event. Post early, share the link.
