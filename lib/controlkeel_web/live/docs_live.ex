@@ -12,7 +12,7 @@ defmodule ControlKeelWeb.DocsLive do
   @docs_dir_static Application.compile_env(:controlkeel, :docs_dir, nil)
 
   # Docs that are internal/admin-only and should not appear in the portal.
-  @hidden_docs ~w(CLOUD_READINESS.md cloud-parity-matrix.md cloud-enterprise-roadmap.md cloud-execution-model.md TOKEN_OPTIMIZATION_GUIDE.md ADAPTIVE_TOOL_GROUPS.md agent-support-prd.md agent-support-requirements.md)
+  @hidden_docs ~w(cloud-parity-matrix.md cloud-enterprise-roadmap.md cloud-execution-model.md TOKEN_OPTIMIZATION_GUIDE.md ADAPTIVE_TOOL_GROUPS.md agent-support-prd.md agent-support-requirements.md)
 
   defp docs_dir do
     # In dev/test, the docs/ dir is at the project root.

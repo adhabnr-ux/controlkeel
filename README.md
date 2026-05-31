@@ -345,8 +345,6 @@ Architecture and release operations:
 - [docs/control-plane-architecture.md](docs/control-plane-architecture.md)
 - [docs/host-surface-parity.md](docs/host-surface-parity.md)
 - [docs/how-controlkeel-works.md](docs/how-controlkeel-works.md)
-- [docs/integration-validation-checklist.md](docs/integration-validation-checklist.md)
-- [docs/release-verification.md](docs/release-verification.md)
 
 ---
 

@@ -38,13 +38,5 @@ Use this page to decide where to read next.
 ## Maintainer and release docs
 
 - [host-surface-parity.md](host-surface-parity.md): host-surface rollout rationale and parity mapping
-- [integration-validation-checklist.md](integration-validation-checklist.md): validation checklist for shipped integrations
-- [release-verification.md](release-verification.md): release and publish verification steps
 - [agent-support-prd.md](agent-support-prd.md): product intent behind the support catalog
 - [agent-support-requirements.md](agent-support-requirements.md): support requirements and acceptance criteria
-
-## Internal planning
-
-The `docs/idea/` directory contains working product and research notes. Those files are useful for maintainers, but they are not the primary user docs and should not be treated as the shipped support contract.
-
-Start with [idea/controlkeel-product-strategy-plan.md](idea/controlkeel-product-strategy-plan.md) when you need the current product thesis, including the governed engineering game-loop framing for mission, boundaries, bounded agent attempts, proof/score, and human judgment gates.
