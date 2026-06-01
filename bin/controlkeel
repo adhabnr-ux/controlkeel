@@ -25,5 +25,14 @@ elif [ "$CMD" = "finding" ]; then
 else
   # Use execute/1 (not run_command/2) to ensure the JSON success envelope
   # interceptor applies for --json and --format json output.
-  mix run -e "System.halt(ControlKeel.CLI.execute(ControlKeel.CLI.parse(System.argv()) |> elem(1), []))" -- "$@"
+  mix run -e '
+    case ControlKeel.CLI.parse(System.argv()) do
+      {:ok, parsed} ->
+        System.halt(ControlKeel.CLI.execute(parsed, []))
+
+      {:error, message} ->
+        IO.puts(:stderr, message)
+        System.halt(1)
+    end
+  ' -- "$@"
 fi
