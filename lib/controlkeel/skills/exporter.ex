@@ -285,6 +285,8 @@ defmodule ControlKeel.Skills.Exporter do
     last_command_path = Path.join(root, ".claude/commands/controlkeel-last.md")
     File.write!(last_command_path, host_last_command_contents("Claude Code"))
 
+    hook_assets = ControlKeel.Skills.ClaudeHooks.write_hooks(root)
+
     with_common_assets(
       root,
       project_root,
@@ -298,8 +300,8 @@ defmodule ControlKeel.Skills.Exporter do
         %{"path" => last_command_path, "kind" => "command"},
         %{"path" => mcp_path, "kind" => "mcp"},
         %{"path" => claude_md, "kind" => "instructions"},
-        %{"path" => settings_path, "kind" => "hooks"}
-      ],
+        %{"path" => settings_path, "kind" => "settings"}
+      ] ++ hook_assets,
       [
         "Copy .claude/skills, .claude/agents into your project or home .claude directory.",
         "Merge .claude/settings.json hooks into your existing settings.json (or copy if absent).",
@@ -4402,8 +4404,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "controlkeel context --json >/dev/null 2>&1 || true; printf '{\"systemMessage\":\"ControlKeel available. Start with ck_context to load mission state.\"}' ",
+                "command" => "sh .claude/hooks/session-start.sh",
                 "statusMessage" => "Loading ControlKeel context",
                 "timeout" => 10
               }
@@ -4416,8 +4417,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "TOOL_INPUT=$(cat); if command -v jq >/dev/null 2>&1; then CMD=$(printf '%s' \"$TOOL_INPUT\" | jq -r '.tool_input.command // .command // empty' 2>/dev/null); else CMD=$(printf '%s' \"$TOOL_INPUT\" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get(\"tool_input\",{}).get(\"command\") or d.get(\"command\", \"\"))' 2>/dev/null || true); fi; printf '%s' \"$CMD\" | grep -qiE '(deploy|fly |wrangler publish|mix release|docker push|heroku|git push origin)' && printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"Deploy-like command detected. Confirm ck_validate and ck_review_submit were called this turn before proceeding.\"}}' || true",
+                "command" => "sh .claude/hooks/pre-tool-use-bash.sh",
                 "statusMessage" => "Checking Bash command with ControlKeel",
                 "timeout" => 10
               }
@@ -4428,8 +4428,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "fp=$(cat | python3 -c 'import sys,json; print(json.load(sys.stdin).get(\"tool_input\",{}).get(\"file_path\",\"\"))' 2>/dev/null || true); [ -z \"$fp\" ] && exit 0; printf '%s' \"$fp\" | grep -qiE '(\\.env$|credentials|secret|\\.pem$|\\.key$|id_rsa|passw)' && printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"Writing to potentially sensitive file: %s. Verify ck_validate approved this change.\"}}'\"\\n\" \"$fp\" || true",
+                "command" => "sh .claude/hooks/pre-tool-use-write.sh",
                 "statusMessage" => "Validating file write with ControlKeel",
                 "timeout" => 10
               }
@@ -4441,8 +4440,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "blocked=$(controlkeel context --json 2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin).get(\"active_findings\",{}).get(\"blocked\",0))' 2>/dev/null || echo 0); [ \"$blocked\" = \"0\" ] && exit 0; printf '{\"decision\":\"block\",\"reason\":\"ControlKeel has blocked findings. Call ck_context, resolve them, then complete the turn.\"}'",
+                "command" => "sh .claude/hooks/stop.sh",
                 "timeout" => 10
               }
             ]
@@ -4453,8 +4451,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "printf '{\"systemMessage\":\"Context was compacted. You are in a ControlKeel-governed session: always call ck_context before proceeding, ck_validate before code or shell changes, and ck_finding for any issues you discover.\"}' ",
+                "command" => "sh .claude/hooks/post-compact.sh",
                 "statusMessage" => "Re-initializing ControlKeel governance context",
                 "timeout" => 5
               }
@@ -4466,8 +4463,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "printf '{\"systemMessage\":\"You are in a ControlKeel-governed session. Call ck_context before proceeding with any task, ck_validate before code or shell changes, and ck_finding for issues you discover.\"}' ",
+                "command" => "sh .claude/hooks/subagent-start.sh",
                 "timeout" => 5
               }
             ]
@@ -4478,8 +4474,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "printf '{\"systemMessage\":\"Configuration changed. Governance constraints and hooks may have been updated. Call ck_context to refresh your governance state if needed.\"}' ",
+                "command" => "sh .claude/hooks/config-change.sh",
                 "timeout" => 5
               }
             ]
@@ -4491,8 +4486,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "TOOL_INPUT=$(cat); FAILED=$(printf '%s' \"$TOOL_INPUT\" | python3 -c 'import sys,json; d=json.load(sys.stdin); r=d.get(\"tool_response\",{}); ec=r.get(\"exitCode\",r.get(\"exit_code\",0)); st=str(r.get(\"status\",\"\")).lower(); print(\"true\" if (isinstance(ec,(int,float)) and int(ec)!=0) or st in (\"failed\",\"error\") else \"false\")' 2>/dev/null || echo \"false\"); [ \"$FAILED\" != \"true\" ] && exit 0; CMD=$(printf '%s' \"$TOOL_INPUT\" | python3 -c 'import sys,json; print(json.load(sys.stdin).get(\"tool_input\",{}).get(\"command\",\"\"))' 2>/dev/null || echo \"\"); printf '%s' \"$CMD\" | grep -qiE '(mix[[:space:]]+test|npm[[:space:]]+test|pytest|pnpm[[:space:]]+test|yarn[[:space:]]+test)' && printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Test run failed. Summarize failures clearly before moving on.\"}}' || printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Shell command failed. Re-check the result and run ck_validate again if the next step changes code or config.\"}}'; exit 0",
+                "command" => "sh .claude/hooks/post-tool-use-bash.sh",
                 "statusMessage" => "Reviewing Bash output with ControlKeel",
                 "timeout" => 15
               }
@@ -4504,8 +4498,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "input=$(cat); prompt=$(printf '%s' \"$input\" | python3 -c 'import sys,json; print(json.load(sys.stdin).get(\"prompt\",\"\"))' 2>/dev/null || echo \"\"); [ -z \"$prompt\" ] && exit 0; printf '%s' \"$prompt\" | grep -qE '(AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}|BEGIN (RSA|OPENSSH|PGP) PRIVATE KEY)' && printf '{\"decision\":\"block\",\"reason\":\"Potential secret in prompt. Remove credentials before continuing.\"}' && exit 0; blocked=$(controlkeel context --json 2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin).get(\"active_findings\",{}).get(\"blocked\",0))' 2>/dev/null || echo 0); [ \"${blocked:-0}\" != \"0\" ] && [ \"${blocked:-0}\" != \"\" ] && printf '{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"WARNING: %s blocked finding(s) active. Call ck_context and resolve them before proceeding.\"}}' \"$blocked\" || true",
+                "command" => "sh .claude/hooks/user-prompt-submit.sh",
                 "timeout" => 10
               }
             ]
@@ -4517,7 +4510,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "controlkeel review plan submit --stdin --submitted-by claude-code"
+                "command" => "sh .claude/hooks/permission-request.sh"
               }
             ]
           }
