@@ -2252,7 +2252,8 @@ defmodule ControlKeel.MCP.Protocol do
         "properties" => %{
           "package_root" => %{
             "type" => "string",
-            "description" => "package_root returned by ck_delegate for the completed embedded run."
+            "description" =>
+              "package_root returned by ck_delegate for the completed embedded run."
           },
           "peek_bytes" => %{
             "type" => ["integer", "string"],

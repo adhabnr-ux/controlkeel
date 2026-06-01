@@ -115,7 +115,8 @@ defmodule ControlKeelWeb.MissionControlLive do
           {:noreply, socket}
 
         session ->
-          {:noreply, socket |> put_flash(:info, "Finding approved.") |> safe_assign_session(session)}
+          {:noreply,
+           socket |> put_flash(:info, "Finding approved.") |> safe_assign_session(session)}
       end
     else
       _error -> {:noreply, put_flash(socket, :error, "Could not approve finding.")}
@@ -138,7 +139,8 @@ defmodule ControlKeelWeb.MissionControlLive do
           {:noreply, socket}
 
         session ->
-          {:noreply, socket |> put_flash(:info, "Finding rejected.") |> safe_assign_session(session)}
+          {:noreply,
+           socket |> put_flash(:info, "Finding rejected.") |> safe_assign_session(session)}
       end
     else
       _error -> {:noreply, put_flash(socket, :error, "Could not reject finding.")}
@@ -151,7 +153,8 @@ defmodule ControlKeelWeb.MissionControlLive do
          {:ok, _proof} <- Mission.generate_proof_bundle(task_id),
          session when not is_nil(session) <-
            Mission.get_session_context(socket.assigns.session.id) do
-      {:noreply, socket |> put_flash(:info, "Proof bundle generated.") |> safe_assign_session(session)}
+      {:noreply,
+       socket |> put_flash(:info, "Proof bundle generated.") |> safe_assign_session(session)}
     else
       _error -> {:noreply, put_flash(socket, :error, "Could not generate proof bundle.")}
     end
@@ -898,12 +901,19 @@ defmodule ControlKeelWeb.MissionControlLive do
     e ->
       require Logger
       Logger.warning("MissionControlLive assign_session rescued: #{inspect(e)}")
+
       socket
       |> assign(:session, session)
       |> assign(:workspace, session.workspace)
       |> assign(:page_title, session.title)
-      |> assign(:active_findings, Enum.count(session.findings || [], &(&1.status in ["open", "blocked"])))
-      |> assign(:active_tasks, Enum.count(session.tasks || [], &(&1.status in ["queued", "in_progress"])))
+      |> assign(
+        :active_findings,
+        Enum.count(session.findings || [], &(&1.status in ["open", "blocked"]))
+      )
+      |> assign(
+        :active_tasks,
+        Enum.count(session.tasks || [], &(&1.status in ["queued", "in_progress"]))
+      )
       |> assign(:task_graph, %{tasks: session.tasks || [], edges: []})
   end
 

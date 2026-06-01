@@ -16,7 +16,6 @@ defmodule ControlKeelWeb.ApiController do
   alias ControlKeel.MCP.Tools.CkContext
   alias ControlKeel.Mission
   alias ControlKeel.Platform
-  alias ControlKeel.PolicyTraining
   alias ControlKeel.ProviderBroker
   alias ControlKeel.ProtocolAccess
   alias ControlKeel.Repo
@@ -587,82 +586,6 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  def list_policies(conn, params) do
-    artifacts =
-      PolicyTraining.list_artifacts(%{
-        "artifact_type" => params["type"] || params["artifact_type"],
-        "status" => params["status"],
-        "limit" => params["limit"]
-      })
-
-    json(conn, %{
-      policies: Enum.map(artifacts, &policy_artifact_summary/1),
-      active: %{
-        router: maybe_policy_artifact_summary(PolicyTraining.active_artifact("router")),
-        budget_hint: maybe_policy_artifact_summary(PolicyTraining.active_artifact("budget_hint"))
-      },
-      training_runs: Enum.map(PolicyTraining.list_training_runs(), &policy_training_run_summary/1)
-    })
-  end
-
-  def train_policy(conn, params) do
-    case PolicyTraining.start_training(%{"type" => params["type"]}) do
-      {:ok, artifact} ->
-        conn
-        |> put_status(:created)
-        |> json(%{policy: policy_artifact_detail(artifact)})
-
-      {:error, :unknown_artifact_type} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "artifact type must be `router` or `budget_hint`"})
-
-      {:error, reason} ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
-    end
-  end
-
-  def get_policy(conn, %{"id" => id}) do
-    case PolicyTraining.get_artifact(id) do
-      nil ->
-        conn |> put_status(:not_found) |> json(%{error: "policy artifact not found"})
-
-      artifact ->
-        json(conn, %{policy: policy_artifact_detail(artifact)})
-    end
-  end
-
-  def promote_policy(conn, %{"id" => id}) do
-    case PolicyTraining.promote_artifact(id) do
-      {:ok, artifact} ->
-        json(conn, %{policy: policy_artifact_detail(artifact)})
-
-      {:error, :not_found} ->
-        conn |> put_status(:not_found) |> json(%{error: "policy artifact not found"})
-
-      {:error, {:promotion_failed, reasons}} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "promotion gate failed", reasons: List.wrap(reasons)})
-
-      {:error, reason} ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
-    end
-  end
-
-  def archive_policy(conn, %{"id" => id}) do
-    case PolicyTraining.archive_artifact(id) do
-      {:ok, artifact} ->
-        json(conn, %{policy: policy_artifact_detail(Repo.preload(artifact, :training_run))})
-
-      {:error, :not_found} ->
-        conn |> put_status(:not_found) |> json(%{error: "policy artifact not found"})
-
-      {:error, reason} ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
-    end
-  end
-
   # ─── Memory ──────────────────────────────────────────────────────────────────
 
   def search_memory(conn, params) do
@@ -716,7 +639,9 @@ defmodule ControlKeelWeb.ApiController do
           {:ok, record} ->
             conn
             |> put_status(:created)
-            |> json(%{memory: %{id: record.id, record_type: record.record_type, title: record.title}})
+            |> json(%{
+              memory: %{id: record.id, record_type: record.record_type, title: record.title}
+            })
 
           {:error, changeset} ->
             conn
@@ -1863,60 +1788,6 @@ defmodule ControlKeelWeb.ApiController do
               end)
           }
         end)
-    })
-  end
-
-  defp maybe_policy_artifact_summary(nil), do: nil
-  defp maybe_policy_artifact_summary(artifact), do: policy_artifact_summary(artifact)
-
-  defp policy_training_run_summary(run) do
-    artifacts =
-      if Ecto.assoc_loaded?(run.artifacts) do
-        run.artifacts
-      else
-        []
-      end
-
-    %{
-      id: run.id,
-      artifact_type: run.artifact_type,
-      status: run.status,
-      training_scope: run.training_scope,
-      dataset_summary: run.dataset_summary,
-      training_metrics: run.training_metrics,
-      validation_metrics: run.validation_metrics,
-      held_out_metrics: run.held_out_metrics,
-      failure_reason: run.failure_reason,
-      inserted_at: run.inserted_at,
-      finished_at: run.finished_at,
-      artifact_ids: Enum.map(artifacts, & &1.id)
-    }
-  end
-
-  defp policy_artifact_summary(artifact) do
-    %{
-      id: artifact.id,
-      artifact_type: artifact.artifact_type,
-      version: artifact.version,
-      status: artifact.status,
-      model_family: artifact.model_family,
-      metrics: artifact.metrics,
-      activated_at: artifact.activated_at,
-      archived_at: artifact.archived_at,
-      training_run_id: artifact.training_run_id
-    }
-  end
-
-  defp policy_artifact_detail(artifact) do
-    Map.merge(policy_artifact_summary(artifact), %{
-      feature_spec: artifact.feature_spec,
-      artifact: artifact.artifact,
-      metadata: artifact.metadata,
-      training_run:
-        if(Ecto.assoc_loaded?(artifact.training_run),
-          do: policy_training_run_summary(artifact.training_run),
-          else: nil
-        )
     })
   end
 

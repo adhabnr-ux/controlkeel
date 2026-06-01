@@ -4,7 +4,6 @@ defmodule ControlKeelWeb.ApiControllerTest do
   import ControlKeel.BenchmarkFixtures
   import ControlKeel.IntentFixtures
   import ControlKeel.MissionFixtures
-  import ControlKeel.PolicyTrainingFixtures
   import ControlKeel.PlatformFixtures
 
   alias ControlKeel.Mission
@@ -1010,50 +1009,6 @@ defmodule ControlKeelWeb.ApiControllerTest do
 
       conn = build_conn() |> get(~p"/api/v1/benchmarks/runs/#{run.id}/export?format=csv")
       assert response(conn, 200) =~ "run_id,suite_slug,scenario_slug"
-    end
-  end
-
-  describe "policy API" do
-    test "lists and fetches policy artifacts", %{conn: conn} do
-      artifact = policy_artifact_fixture(%{artifact_type: "router", status: "active"})
-
-      conn = get(conn, ~p"/api/v1/policies")
-      body = json_response(conn, 200)
-
-      assert Enum.any?(body["policies"], &(&1["id"] == artifact.id))
-      assert body["active"]["router"]["id"] == artifact.id
-
-      conn = build_conn() |> get(~p"/api/v1/policies/#{artifact.id}")
-      assert %{"policy" => fetched} = json_response(conn, 200)
-      assert fetched["id"] == artifact.id
-      assert fetched["artifact_type"] == "router"
-    end
-
-    test "trains, promotes, and archives a policy artifact", %{conn: conn} do
-      benchmark_run_fixture(%{
-        "suite" => "vibe_failures_v1",
-        "subjects" => "controlkeel_validate",
-        "baseline_subject" => "controlkeel_validate",
-        "scenario_slugs" => "hardcoded_api_key_python_webhook"
-      })
-
-      conn = post(conn, ~p"/api/v1/policies/train", %{type: "router"})
-      assert %{"policy" => policy} = json_response(conn, 201)
-      assert policy["artifact_type"] == "router"
-
-      promotable =
-        policy_artifact_fixture(%{
-          artifact_type: "budget_hint",
-          metrics: %{"gates" => %{"eligible" => true, "reasons" => []}}
-        })
-
-      conn = build_conn() |> post(~p"/api/v1/policies/#{promotable.id}/promote", %{})
-      assert %{"policy" => promoted} = json_response(conn, 200)
-      assert promoted["status"] == "active"
-
-      conn = build_conn() |> post(~p"/api/v1/policies/#{promotable.id}/archive", %{})
-      assert %{"policy" => archived} = json_response(conn, 200)
-      assert archived["status"] == "archived"
     end
   end
 

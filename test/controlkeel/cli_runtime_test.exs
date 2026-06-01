@@ -4,7 +4,6 @@ defmodule ControlKeel.CLIRuntimeTest do
   import ControlKeel.BenchmarkFixtures
   import ExUnit.CaptureIO
   import ControlKeel.MissionFixtures
-  import ControlKeel.PolicyTrainingFixtures
   import ControlKeel.PlatformFixtures
 
   alias ControlKeel.Analytics
@@ -1589,78 +1588,6 @@ defmodule ControlKeel.CLIRuntimeTest do
       end)
 
     assert import_output =~ "Imported benchmark output for manual_subject"
-  end
-
-  test "runtime policy commands list, train, show, promote, and archive" do
-    benchmark_run_fixture(%{
-      "suite" => "vibe_failures_v1",
-      "subjects" => "controlkeel_validate",
-      "baseline_subject" => "controlkeel_validate",
-      "scenario_slugs" => "hardcoded_api_key_python_webhook"
-    })
-
-    list_output =
-      capture_io(fn ->
-        assert 0 == CLI.execute(%{command: :policy_list, options: %{}, args: []})
-      end)
-
-    assert list_output =~ "Active artifacts:"
-
-    train_output =
-      capture_io(fn ->
-        assert 0 ==
-                 CLI.execute(%{
-                   command: :policy_train,
-                   options: [type: "router"],
-                   args: []
-                 })
-      end)
-
-    assert train_output =~ "Policy artifact"
-
-    artifact = policy_artifact_fixture(%{artifact_type: "budget_hint"})
-
-    show_output =
-      capture_io(fn ->
-        assert 0 ==
-                 CLI.execute(%{
-                   command: :policy_show,
-                   options: %{},
-                   args: [Integer.to_string(artifact.id)]
-                 })
-      end)
-
-    assert show_output =~ "Policy artifact ##{artifact.id}"
-
-    promotable =
-      policy_artifact_fixture(%{
-        artifact_type: "router",
-        metrics: %{"gates" => %{"eligible" => true, "reasons" => []}}
-      })
-
-    promote_output =
-      capture_io(fn ->
-        assert 0 ==
-                 CLI.execute(%{
-                   command: :policy_promote,
-                   options: %{},
-                   args: [Integer.to_string(promotable.id)]
-                 })
-      end)
-
-    assert promote_output =~ "Promoted policy artifact"
-
-    archive_output =
-      capture_io(fn ->
-        assert 0 ==
-                 CLI.execute(%{
-                   command: :policy_archive,
-                   options: %{},
-                   args: [Integer.to_string(promotable.id)]
-                 })
-      end)
-
-    assert archive_output =~ "Archived policy artifact"
   end
 
   test "runtime platform commands manage service accounts, graphs, and audit exports", %{

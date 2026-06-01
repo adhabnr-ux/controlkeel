@@ -43,7 +43,6 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Accounts
   alias ControlKeel.Accounts.WorkspaceToolPolicy
   alias ControlKeel.Platform
-  alias ControlKeel.PolicyTraining
   alias ControlKeel.ProviderBroker
   alias ControlKeel.ProviderConfig
   alias ControlKeel.ProtocolAccess
@@ -151,7 +150,6 @@ defmodule ControlKeel.CLI do
   ]
   @benchmark_list_switches [domain_pack: :string, format: :string]
   @benchmark_export_switches [format: :string]
-  @policy_train_switches [type: :string]
   @watch_switches [interval: :integer, status: :boolean]
   @obs_switches [
     by: :string,
@@ -802,21 +800,6 @@ defmodule ControlKeel.CLI do
 
       ["benchmark", "export", run_id | rest] ->
         parse_benchmark_export(run_id, rest)
-
-      ["policy", "list"] ->
-        {:ok, %{command: :policy_list, options: %{}, args: []}}
-
-      ["policy", "train" | rest] ->
-        parse_with_switches(:policy_train, rest, @policy_train_switches)
-
-      ["policy", "show", id] ->
-        {:ok, %{command: :policy_show, options: %{}, args: [id]}}
-
-      ["policy", "promote", id] ->
-        {:ok, %{command: :policy_promote, options: %{}, args: [id]}}
-
-      ["policy", "archive", id] ->
-        {:ok, %{command: :policy_archive, options: %{}, args: [id]}}
 
       ["service-account", "create" | rest] ->
         parse_with_switches(:service_account_create, rest, @service_account_create_switches)
@@ -4494,134 +4477,6 @@ defmodule ControlKeel.CLI do
 
       {:error, :not_found} ->
         {:error, "Benchmark run was not found."}
-    end
-  end
-
-  def run_command(%{command: :policy_list}, _project_root) do
-    artifacts = PolicyTraining.list_artifacts(%{"limit" => 10})
-    training_runs = PolicyTraining.list_training_runs()
-    active = PolicyTraining.active_artifacts_summary()
-
-    artifact_lines =
-      if artifacts == [] do
-        ["No policy artifacts recorded yet."]
-      else
-        [
-          "Policy artifacts:"
-          | Enum.map(artifacts, fn artifact ->
-              "  ##{artifact.id} #{artifact.artifact_type} v#{artifact.version} [#{artifact.status}] #{artifact.model_family}"
-            end)
-        ]
-      end
-
-    active_lines =
-      [
-        "",
-        "Active artifacts:",
-        "  router: #{format_active_artifact(active["router"])}",
-        "  budget_hint: #{format_active_artifact(active["budget_hint"])}"
-      ]
-
-    training_lines =
-      if training_runs == [] do
-        ["", "No training runs recorded yet."]
-      else
-        [
-          "",
-          "Recent training runs:"
-          | Enum.map(training_runs, fn run ->
-              "  ##{run.id} #{run.artifact_type} [#{run.status}]"
-            end)
-        ]
-      end
-
-    {:ok, artifact_lines ++ active_lines ++ training_lines}
-  end
-
-  def run_command(%{command: :policy_train, options: options}, _project_root) do
-    case PolicyTraining.start_training(%{"type" => options[:type] || "router"}) do
-      {:ok, artifact} ->
-        {:ok,
-         [
-           "Policy artifact ##{artifact.id} trained.",
-           "Type: #{artifact.artifact_type}",
-           "Version: #{artifact.version}",
-           "Model family: #{artifact.model_family}",
-           "Eligible for promotion: #{get_in(artifact.metrics, ["gates", "eligible"]) == true}"
-         ]}
-
-      {:error, :unknown_artifact_type} ->
-        {:error, "Artifact type must be `router` or `budget_hint`."}
-
-      {:error, reason} ->
-        {:error, "Failed to train policy artifact: #{inspect(reason)}"}
-    end
-  end
-
-  def run_command(%{command: :policy_show, args: [id]}, _project_root) do
-    with {:ok, parsed_id} <- parse_id(id),
-         %{} = artifact <- PolicyTraining.get_artifact(parsed_id) do
-      {:ok,
-       [
-         "Policy artifact ##{artifact.id}",
-         "Type: #{artifact.artifact_type}",
-         "Version: #{artifact.version}",
-         "Status: #{artifact.status}",
-         "Model family: #{artifact.model_family}",
-         "Promotion eligible: #{get_in(artifact.metrics, ["gates", "eligible"]) == true}",
-         Jason.encode!(artifact.metrics, pretty: true)
-       ]}
-    else
-      {:error, :invalid_id} ->
-        {:error, "Policy artifact id must be an integer."}
-
-      nil ->
-        {:error, "Policy artifact not found."}
-    end
-  end
-
-  def run_command(%{command: :policy_promote, args: [id]}, _project_root) do
-    with {:ok, parsed_id} <- parse_id(id),
-         {:ok, artifact} <- PolicyTraining.promote_artifact(parsed_id) do
-      {:ok,
-       [
-         "Promoted policy artifact ##{artifact.id}.",
-         "Type: #{artifact.artifact_type}",
-         "Version: #{artifact.version}"
-       ]}
-    else
-      {:error, :invalid_id} ->
-        {:error, "Policy artifact id must be an integer."}
-
-      {:error, :not_found} ->
-        {:error, "Policy artifact not found."}
-
-      {:error, {:promotion_failed, reasons}} ->
-        {:error, "Promotion gate failed: #{Enum.join(List.wrap(reasons), "; ")}"}
-
-      {:error, reason} ->
-        {:error, "Failed to promote policy artifact: #{inspect(reason)}"}
-    end
-  end
-
-  def run_command(%{command: :policy_archive, args: [id]}, _project_root) do
-    with {:ok, parsed_id} <- parse_id(id),
-         {:ok, artifact} <- PolicyTraining.archive_artifact(parsed_id) do
-      {:ok,
-       [
-         "Archived policy artifact ##{artifact.id}.",
-         "Type: #{artifact.artifact_type}",
-         "Version: #{artifact.version}"
-       ]}
-    else
-      {:error, :invalid_id} ->
-        {:error, "Policy artifact id must be an integer."}
-
-      {:error, :not_found} ->
-        {:error, "Policy artifact not found."}
-
-      {:error, reason} ->
-        {:error, "Failed to archive policy artifact: #{inspect(reason)}"}
     end
   end
 
@@ -8589,9 +8444,6 @@ defmodule ControlKeel.CLI do
 
   defp format_ms(nil), do: "Not recorded"
   defp format_ms(value), do: "#{value}ms"
-
-  defp format_active_artifact(nil), do: "heuristic"
-  defp format_active_artifact(artifact), do: "v#{artifact.version} (##{artifact.id})"
 
   defp format_provider_bridge(%{supported: true, provider: provider, mode: mode}),
     do: "#{mode}: #{provider}"

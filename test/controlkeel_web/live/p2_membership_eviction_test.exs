@@ -18,10 +18,12 @@ defmodule ControlKeelWeb.P2MembershipEvictionTest do
     Application.put_env(:controlkeel, :runtime_mode, :cloud)
     on_exit(fn -> Application.put_env(:controlkeel, :runtime_mode, previous) end)
 
-    {:ok, org} = Accounts.create_org(%{name: "Evict", slug: "evict-#{System.unique_integer([:positive])}"})
+    {:ok, org} =
+      Accounts.create_org(%{name: "Evict", slug: "evict-#{System.unique_integer([:positive])}"})
 
     # A separate owner so revoke/demote of the test user doesn't trip last-owner protection
-    {:ok, owner} = Accounts.create_user(%{email: "owner-#{System.unique_integer([:positive])}@x.test"})
+    {:ok, owner} =
+      Accounts.create_user(%{email: "owner-#{System.unique_integer([:positive])}@x.test"})
 
     {:ok, _} =
       %Membership{}
@@ -34,7 +36,8 @@ defmodule ControlKeelWeb.P2MembershipEvictionTest do
       })
       |> Repo.insert()
 
-    {:ok, victim} = Accounts.create_user(%{email: "victim-#{System.unique_integer([:positive])}@x.test"})
+    {:ok, victim} =
+      Accounts.create_user(%{email: "victim-#{System.unique_integer([:positive])}@x.test"})
 
     {:ok, victim_membership} =
       %Membership{}
@@ -85,7 +88,8 @@ defmodule ControlKeelWeb.P2MembershipEvictionTest do
   test "broadcast does not affect a different user's LiveView",
        %{conn: conn, org: org, victim: _victim, victim_membership: m} do
     # Sign in as a different admin and open a LiveView
-    {:ok, bystander} = Accounts.create_user(%{email: "bystander-#{System.unique_integer([:positive])}@x.test"})
+    {:ok, bystander} =
+      Accounts.create_user(%{email: "bystander-#{System.unique_integer([:positive])}@x.test"})
 
     {:ok, _} =
       %Membership{}
@@ -107,7 +111,9 @@ defmodule ControlKeelWeb.P2MembershipEvictionTest do
     # Give PubSub a beat to flush
     Process.sleep(100)
 
-    assert Process.alive?(lv.pid), "bystander LiveView should still be alive after another user's revoke"
+    assert Process.alive?(lv.pid),
+           "bystander LiveView should still be alive after another user's revoke"
+
     assert render(lv) =~ "Members"
   end
 end

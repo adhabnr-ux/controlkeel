@@ -729,6 +729,7 @@ defmodule ControlKeel.AgentRouter do
   # If overhead_k is given, require agent context_window_k >= overhead_k.
   # Agents without a context_window_k field assume a 128k window.
   defp context_window_ok?(_agent, nil), do: true
+
   defp context_window_ok?(agent, overhead_k) do
     Map.get(agent, :context_window_k, 128) >= overhead_k
   end

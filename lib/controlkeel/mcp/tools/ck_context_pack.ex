@@ -83,17 +83,22 @@ defmodule ControlKeel.MCP.Tools.CkContextPack do
   end
 
   defp normalize_exclude_ids(nil), do: {:ok, []}
+
   defp normalize_exclude_ids(ids) when is_list(ids) do
     parsed =
       Enum.reduce_while(ids, [], fn id, acc ->
         cond do
-          is_integer(id) -> {:cont, [id | acc]}
+          is_integer(id) ->
+            {:cont, [id | acc]}
+
           is_binary(id) ->
             case Integer.parse(id) do
               {n, ""} -> {:cont, [n | acc]}
               _ -> {:halt, :error}
             end
-          true -> {:halt, :error}
+
+          true ->
+            {:halt, :error}
         end
       end)
 
@@ -103,7 +108,8 @@ defmodule ControlKeel.MCP.Tools.CkContextPack do
     end
   end
 
-  defp normalize_exclude_ids(_), do: {:error, {:invalid_arguments, "`exclude_ids` must be a list"}}
+  defp normalize_exclude_ids(_),
+    do: {:error, {:invalid_arguments, "`exclude_ids` must be a list"}}
 
   defp resolve_task(session, nil) do
     task =

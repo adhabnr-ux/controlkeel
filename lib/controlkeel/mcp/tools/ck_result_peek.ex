@@ -36,7 +36,9 @@ defmodule ControlKeel.MCP.Tools.CkResultPeek do
            }}
 
         {:error, :enoent} ->
-          {:error, {:invalid_arguments, "No stdout.txt found at package_root — result may not have been written yet"}}
+          {:error,
+           {:invalid_arguments,
+            "No stdout.txt found at package_root — result may not have been written yet"}}
 
         {:error, reason} ->
           {:error, "Could not read result: #{inspect(reason)}"}
@@ -63,7 +65,8 @@ defmodule ControlKeel.MCP.Tools.CkResultPeek do
     end
   end
 
-  defp normalize_peek_bytes(_), do: {:error, {:invalid_arguments, "`peek_bytes` must be a positive integer"}}
+  defp normalize_peek_bytes(_),
+    do: {:error, {:invalid_arguments, "`peek_bytes` must be a positive integer"}}
 
   defp normalize_offset(nil), do: {:ok, 0}
   defp normalize_offset(n) when is_integer(n) and n >= 0, do: {:ok, n}
@@ -75,5 +78,6 @@ defmodule ControlKeel.MCP.Tools.CkResultPeek do
     end
   end
 
-  defp normalize_offset(_), do: {:error, {:invalid_arguments, "`offset` must be a non-negative integer"}}
+  defp normalize_offset(_),
+    do: {:error, {:invalid_arguments, "`offset` must be a non-negative integer"}}
 end

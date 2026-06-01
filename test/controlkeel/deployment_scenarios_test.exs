@@ -18,6 +18,7 @@ defmodule ControlKeel.DeploymentScenariosTest do
     # Save original environment
     original_runtime_mode = Application.get_env(:controlkeel, :runtime_mode)
     original_sync_endpoint = Application.get_env(:controlkeel, :cloud_sync_endpoint)
+
     original_env = %{
       "CONTROLKEEL_RUNTIME_MODE" => System.get_env("CONTROLKEEL_RUNTIME_MODE"),
       "CONTROLKEEL_CLOUD_SYNC_ENDPOINT" => System.get_env("CONTROLKEEL_CLOUD_SYNC_ENDPOINT"),
@@ -233,7 +234,18 @@ defmodule ControlKeel.DeploymentScenariosTest do
       assert RuntimeMode.placement(:self_hosted, :cli) == :thin_client
 
       # All other surfaces follow the mode pattern
-      for surface <- [:db, :mcp, :skills, :hooks, :web, :memory, :policy, :telemetry, :observability, :sdk] do
+      for surface <- [
+            :db,
+            :mcp,
+            :skills,
+            :hooks,
+            :web,
+            :memory,
+            :policy,
+            :telemetry,
+            :observability,
+            :sdk
+          ] do
         assert RuntimeMode.placement(:local, surface) == :local
         assert RuntimeMode.placement(:cloud, surface) == :cloud
         assert RuntimeMode.placement(:self_hosted, surface) == :self_hosted

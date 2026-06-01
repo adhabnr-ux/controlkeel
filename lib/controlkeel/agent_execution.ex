@@ -156,8 +156,11 @@ defmodule ControlKeel.AgentExecution do
 
           result =
             case run_task(task.id, Keyword.put(opts, :project_root, project_root)) do
-              {:ok, r} -> r
-              {:error, reason} -> %{"task_id" => task.id, "status" => "failed", "error" => inspect(reason)}
+              {:ok, r} ->
+                r
+
+              {:error, reason} ->
+                %{"task_id" => task.id, "status" => "failed", "error" => inspect(reason)}
             end
 
           new_ref_map = maybe_persist_output_ref(task, result, ref_map)
@@ -790,7 +793,12 @@ defmodule ControlKeel.AgentExecution do
     entries =
       Enum.map(refs, fn ref ->
         pkg = Map.get(ref_map, ref)
-        %{"ref" => ref, "package_root" => pkg, "stdout_path" => pkg && Path.join(pkg, "stdout.txt")}
+
+        %{
+          "ref" => ref,
+          "package_root" => pkg,
+          "stdout_path" => pkg && Path.join(pkg, "stdout.txt")
+        }
       end)
 
     Jason.encode!(entries)
@@ -1046,7 +1054,12 @@ defmodule ControlKeel.AgentExecution do
   # Writes the full stdout to package_root/stdout.txt and returns a
   # content-addressed ref (first 16 hex chars of SHA256).
   defp write_stdout_ref(package_root, output) when is_binary(output) and output != "" do
-    ref = output |> then(&:crypto.hash(:sha256, &1)) |> Base.encode16(case: :lower) |> binary_part(0, 16)
+    ref =
+      output
+      |> then(&:crypto.hash(:sha256, &1))
+      |> Base.encode16(case: :lower)
+      |> binary_part(0, 16)
+
     path = Path.join(package_root, "stdout.txt")
     _ = File.write(path, output)
     ref
@@ -1062,7 +1075,9 @@ defmodule ControlKeel.AgentExecution do
     verify_count =
       output
       |> String.downcase()
-      |> then(fn s -> length(Regex.scan(~r/\b(verify|re-verify|re_verify|double.check)\b/, s)) end)
+      |> then(fn s ->
+        length(Regex.scan(~r/\b(verify|re-verify|re_verify|double.check)\b/, s))
+      end)
 
     if verify_count >= @loop_verify_threshold do
       _ =
@@ -1077,7 +1092,11 @@ defmodule ControlKeel.AgentExecution do
               "instead of committing to a result. Surface the last partial result and terminate if looping continues.",
           status: "open",
           auto_resolved: false,
-          metadata: %{"verify_count" => verify_count, "task_id" => task.id, "source" => "rlm_loop_detector"},
+          metadata: %{
+            "verify_count" => verify_count,
+            "task_id" => task.id,
+            "source" => "rlm_loop_detector"
+          },
           session_id: session.id
         })
     end

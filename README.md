@@ -33,8 +33,7 @@ ControlKeel transforms your domain knowledge from "shelfware" documentation into
 
 Copy/paste this into your agent (OpenCode, Codex, Claude, or another supported host):
 
-```text
-Set up ControlKeel for this repository. Read and follow https://raw.githubusercontent.com/aryaminus/controlkeel/main/README.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/getting-started.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/one-line-install.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/direct-host-installs.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/support-matrix.md, and https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/agent-integrations.md. Detect this host, install CK if missing, run controlkeel setup, then attach the strongest useful host path with plugin and MCP plus skills/hooks/agents as available. If CK was added only as MCP, call ck_attach for this host to install the missing hooks, skills, commands, and agent profiles. Run controlkeel attach doctor, provider doctor, status, findings, controlkeel me, and the host-specific MCP check; apply only safe local fixes and re-verify. Redact proxy tokens and secrets from shared logs. Pause and ask before continuing if the host needs trust, manual provider config, a restart after attach/plugin changes, or a plan-review approval that cannot auto-wait. For Codex, ensure the project is trusted and restart Codex after attach/plugin changes.
+Set up ControlKeel for this repository. Read and follow https://raw.githubusercontent.com/aryaminus/controlkeel/main/README.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/getting-started.md, https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/support-matrix.md, and https://raw.githubusercontent.com/aryaminus/controlkeel/main/docs/agent-integrations.md. Detect this host, install CK if missing, run controlkeel setup, then attach the strongest useful host path with plugin and MCP plus skills/hooks/agents as available. If CK was added only as MCP, call ck_attach for this host to install the missing hooks, skills, commands, and agent profiles. Run controlkeel attach doctor, provider doctor, status, findings, controlkeel me, and the host-specific MCP check; apply only safe local fixes and re-verify. Redact proxy tokens and secrets from shared logs. Pause and ask before continuing if the host needs trust, manual provider config, a restart after attach/plugin changes, or a plan-review approval that cannot auto-wait. For Codex, ensure the project is trusted and restart Codex after attach/plugin changes.
 ```
 
 ### Install ControlKeel
@@ -59,7 +58,7 @@ curl -fsSL https://github.com/aryaminus/controlkeel/releases/latest/download/ins
 irm https://github.com/aryaminus/controlkeel/releases/latest/download/install.ps1 | iex
 ```
 
-For host-specific one-liners and MCP-only copy/paste setup, see [docs/one-line-install.md](docs/one-line-install.md). If a user starts with MCP-only setup, the agent can call `ck_attach` to add the repo-local hooks, skills, commands, and companion agents without leaving the session.
+For MCP-only copy/paste setup, the agent can call `ck_attach` to add the repo-local hooks, skills, commands, and companion agents without leaving the session.
 
 ### First governed run
 
@@ -86,13 +85,13 @@ controlkeel help opencode
 controlkeel help "how do i attach codex"
 ```
 
-For a full first-run walkthrough, see [docs/getting-started.md](docs/getting-started.md). For large codebase deployment patterns, see [docs/large-codebase-patterns.md](docs/large-codebase-patterns.md).
+For host-specific installation details, see [docs/agent-integrations.md](docs/agent-integrations.md). For large codebase deployment patterns, see [docs/large-codebase-patterns.md](docs/large-codebase-patterns.md).
 
 ---
 
 ## Why use ControlKeel? Benchmark-backed comparison
 
-ControlKeel adds a governance layer around agent output: fast deterministic checks, optional in-agent CK validation, review gates, proof, and budget visibility. The table below is intentionally user-facing: it shows what a team gets from each level of CK integration without requiring you to run the benchmark yourself. Full reproducibility details and caveats live in [docs/benchmark-evidence.md](docs/benchmark-evidence.md).
+ControlKeel adds a governance layer around agent output: fast deterministic checks, optional in-agent CK validation, review gates, proof, and budget visibility. The table below is intentionally user-facing: it shows what a team gets from each level of CK integration without requiring you to run the benchmark yourself. Full reproducibility details and caveats live in [docs/benchmarks.md](docs/benchmarks.md).
 
 ### OpenCode / GPT-5.5 comparison (`host_comparison_v1`, 12 risky scenarios)
 
@@ -120,7 +119,7 @@ What users should take away:
 | Claude Code | Raw / no CK | `host_comparison_v1` | TBD | TBD |
 | Claude Code | CK-attached | `host_comparison_v1` | TBD | TBD |
 
-To run a host comparison: `controlkeel benchmark run --suite host_comparison_v1 --subjects controlkeel_validate,<host>_manual`. See [docs/benchmark-guide.md](docs/benchmark-guide.md).
+To run a host comparison: `controlkeel benchmark run --suite host_comparison_v1 --subjects controlkeel_validate,<host>_manual`. See [docs/benchmarks.md](docs/benchmarks.md).
 
 ---
 
@@ -215,7 +214,7 @@ Validation is the most visible part. CK also provides:
 
 **Local observability and learning loop** — a local-first cockpit (web, CLI, and MCP) that reconstructs session runs, timelines, memory quality, cost trends, and benchmark history from governance evidence. Operators can save eval candidates, draft and approve benchmark suites, detect regressions, and review promotion candidates — all human-gated, all local, no telemetry sent to a hosted service. Use `controlkeel obs loop` for a canonical learning-loop status report. See [docs/observability-feedback-loop.md](docs/observability-feedback-loop.md).
 
-**Governance for company context graphs** — as the industry moves from retrieval-based agents to synthesized "company brains," ControlKeel provides the governance layer that makes context graphs trustworthy, auditable, and portable. CK validates synthesized context, tracks proof bundles for auditability, ensures cross-host portability, and provides typed memory that captures accumulated understanding. See [docs/explaining-controlkeel.md](docs/explaining-controlkeel.md) for details.
+**Governance for company context graphs** — as the industry moves from retrieval-based agents to synthesized "company brains," ControlKeel provides the governance layer that makes context graphs trustworthy, auditable, and portable. CK validates synthesized context, tracks proof bundles for auditability, ensures cross-host portability, and provides typed memory that captures accumulated understanding.
 
 **Adaptive tool groups** — automatic tool selection optimization that learns usage patterns over time and provides 40-60% token reduction without manual configuration. Smart defaults based on project type detection, per-project preference persistence, and seamless integration across all CK paths (MCP, CLI, skills, web, hooks, plugins). See [docs/ADAPTIVE_TOOL_GROUPS.md](docs/ADAPTIVE_TOOL_GROUPS.md) for details.
 
@@ -264,7 +263,6 @@ Common attach targets today:
 
 Use the docs below for the precise truth per host:
 
-- [docs/direct-host-installs.md](docs/direct-host-installs.md)
 - [docs/support-matrix.md](docs/support-matrix.md)
 - [docs/agent-integrations.md](docs/agent-integrations.md)
 
@@ -317,14 +315,10 @@ For MCP tool details, hosted protocol access, and the exact `ck_context` contrac
 
 ---
 
-## Docs
-
 Start here:
 
 - [docs/README.md](docs/README.md)
 - [docs/getting-started.md](docs/getting-started.md)
-- [docs/direct-host-installs.md](docs/direct-host-installs.md)
-- [docs/explaining-controlkeel.md](docs/explaining-controlkeel.md)
 
 Reference:
 
@@ -335,16 +329,11 @@ Reference:
 - [docs/ADAPTIVE_TOOL_GROUPS.md](docs/ADAPTIVE_TOOL_GROUPS.md)
 - [docs/autonomy-and-findings.md](docs/autonomy-and-findings.md)
 - [docs/benchmarks.md](docs/benchmarks.md)
-- [docs/benchmark-guide.md](docs/benchmark-guide.md)
-- [docs/benchmark-evidence.md](docs/benchmark-evidence.md)
 - [docs/cost-governance.md](docs/cost-governance.md)
 
 Architecture and release operations:
 
-- [docs/cloud-enterprise-roadmap.md](docs/cloud-enterprise-roadmap.md)
 - [docs/control-plane-architecture.md](docs/control-plane-architecture.md)
-- [docs/host-surface-parity.md](docs/host-surface-parity.md)
-- [docs/how-controlkeel-works.md](docs/how-controlkeel-works.md)
 
 ---
 
@@ -369,6 +358,6 @@ controlkeel benchmark run --suite benign_baseline_v1 --subjects controlkeel_vali
 controlkeel benchmark export <RUN_ID> --format json
 ```
 
-See [docs/benchmark-guide.md](docs/benchmark-guide.md) for multi-host comparison setup and how to add Codex or OpenCode as subjects.
+See [docs/benchmarks.md](docs/benchmarks.md) for multi-host comparison setup and how to add Codex or OpenCode as subjects.
 
 Local observability web cockpit includes `/observability` for workspace overview and `/observability/loop` for the read-only human-gated learning loop.
