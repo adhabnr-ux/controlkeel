@@ -23,7 +23,7 @@ elif [ "$CMD" = "finding" ]; then
   shift
   mix ck.findings "$@"
 else
-  # Generic fallback to Elixir script execution if task doesn't exist
-  # This is a source-checkout wrapper, so we can use `mix run`
-  mix run -e "ControlKeel.CLI.parse(System.argv()) |> case do {:ok, p} -> ControlKeel.CLI.run_command(p, File.cwd!()) |> case do {:ok, lines} -> Enum.each(lines, &IO.puts/1); {:error, msg} -> IO.puts(:stderr, msg); System.halt(1) end; {:error, msg} -> IO.puts(:stderr, msg); System.halt(1) end" -- "$@"
+  # Use execute/1 (not run_command/2) to ensure the JSON success envelope
+  # interceptor applies for --json and --format json output.
+  mix run -e "System.halt(ControlKeel.CLI.execute(ControlKeel.CLI.parse(System.argv()) |> elem(1), []))" -- "$@"
 fi

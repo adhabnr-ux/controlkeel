@@ -1018,7 +1018,7 @@ defmodule ControlKeel.CLI do
 
       if is_binary(line) and String.starts_with?(line, "{") do
         case Jason.decode(line) do
-          {:ok, %{"status" => status}} when status in ["ok", "error"] ->
+          {:ok, %{"status" => status, "data" => _}} when status in ["ok", "error"] ->
             lines
 
           {:ok, payload} ->
