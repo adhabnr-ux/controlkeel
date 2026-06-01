@@ -20,8 +20,6 @@ defmodule ControlKeel.AgentRouter do
   Observability / ops: agentops, vellum, promptflow
   """
 
-
-
   # ── Capability key reference ─────────────────────────────────────────────────
   # :repo_edit         — can read/write repository files
   # :file_write        — general file write
