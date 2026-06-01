@@ -1496,8 +1496,8 @@ defmodule ControlKeel.SkillsTest do
     assert claude_install_agent =~ "controlkeel update --json"
 
     claude_settings = File.read!(Path.join(tmp_dir, ".claude/settings.json"))
-    assert claude_settings =~ ".tool_input.command // .command // empty"
-    assert claude_settings =~ "Deploy-like command detected"
+    assert claude_settings =~ "sh .claude/hooks/pre-tool-use-bash.sh"
+    assert claude_settings =~ "sh .claude/hooks/pre-tool-use-write.sh"
 
     assert {:ok, github_install} = Skills.install("github-repo", tmp_dir, scope: "project")
     assert github_install.destination == Path.join(tmp_dir, ".github/skills")
@@ -1886,6 +1886,7 @@ defmodule ControlKeel.SkillsTest do
         env: [
           {"CK_TEST_INPUT", payload},
           {"CK_HOOK_PATH", hook_path},
+          {"CK_PROJECT_ROOT", tmp_dir},
           {"PATH", "#{bin_dir}:#{System.get_env("PATH")}"}
         ]
       )
