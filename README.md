@@ -85,7 +85,7 @@ controlkeel help opencode
 controlkeel help "how do i attach codex"
 ```
 
-For host-specific installation details, see [docs/agent-integrations.md](docs/agent-integrations.md). For large codebase deployment patterns, see [docs/large-codebase-patterns.md](docs/large-codebase-patterns.md).
+For host-specific installation details, see [docs/agent-integrations.md](docs/agent-integrations.md).
 
 ---
 

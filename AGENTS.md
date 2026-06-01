@@ -15,7 +15,7 @@ Before shell, code, config, deploy, or broad cleanup work:
 
 Fresh sessions must reacquire CK state even if a conversation summary exists. If MCP is unavailable, manually check risk, findings, budget, and security implications before changing files, then leave clear session notes.
 
-Keep this root file lean: only project-specific governance, commands, and critical gotchas belong here. Put reusable agent guidance in skills or focused docs. For large-codebase setup, AGENTS/CLAUDE maintenance, scoped commands, maps, hooks, and LSP patterns, see `docs/large-codebase-patterns.md`. For token cleanup, see `docs/TOKEN_OPTIMIZATION_GUIDE.md`.
+Keep this root file lean: only project-specific governance, commands, and critical gotchas belong here. Put reusable agent guidance in skills or focused docs.
 
 ## Issue and PR Quality
 
