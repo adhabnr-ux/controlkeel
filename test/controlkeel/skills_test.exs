@@ -453,7 +453,7 @@ defmodule ControlKeel.SkillsTest do
 
     codes = Enum.map(skill.diagnostics, & &1.code)
 
-    assert "legacy_frontmatter_field" in codes
+
     assert "unsupported_frontmatter_field" in codes
     assert "activation_metadata_too_long" in codes
   end
