@@ -4404,7 +4404,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .claude/hooks/session-start.sh",
+                "command" => repo_hook_command(".claude/hooks/session-start.sh"),
                 "statusMessage" => "Loading ControlKeel context",
                 "timeout" => 10
               }
@@ -4417,7 +4417,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .claude/hooks/pre-tool-use-bash.sh",
+                "command" => repo_hook_command(".claude/hooks/pre-tool-use-bash.sh"),
                 "statusMessage" => "Checking Bash command with ControlKeel",
                 "timeout" => 10
               }
@@ -4428,7 +4428,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .claude/hooks/pre-tool-use-write.sh",
+                "command" => repo_hook_command(".claude/hooks/pre-tool-use-write.sh"),
                 "statusMessage" => "Validating file write with ControlKeel",
                 "timeout" => 10
               }
@@ -4440,7 +4440,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .claude/hooks/stop.sh",
+                "command" => repo_hook_command(".claude/hooks/stop.sh"),
                 "timeout" => 10
               }
             ]
@@ -4451,7 +4451,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .claude/hooks/post-compact.sh",
+                "command" => repo_hook_command(".claude/hooks/post-compact.sh"),
                 "statusMessage" => "Re-initializing ControlKeel governance context",
                 "timeout" => 5
               }
@@ -4463,7 +4463,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .claude/hooks/subagent-start.sh",
+                "command" => repo_hook_command(".claude/hooks/subagent-start.sh"),
                 "timeout" => 5
               }
             ]
@@ -4474,7 +4474,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .claude/hooks/config-change.sh",
+                "command" => repo_hook_command(".claude/hooks/config-change.sh"),
                 "timeout" => 5
               }
             ]
@@ -4486,7 +4486,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .claude/hooks/post-tool-use-bash.sh",
+                "command" => repo_hook_command(".claude/hooks/post-tool-use-bash.sh"),
                 "statusMessage" => "Reviewing Bash output with ControlKeel",
                 "timeout" => 15
               }
@@ -4498,7 +4498,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .claude/hooks/user-prompt-submit.sh",
+                "command" => repo_hook_command(".claude/hooks/user-prompt-submit.sh"),
                 "timeout" => 10
               }
             ]
@@ -4510,7 +4510,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .claude/hooks/permission-request.sh"
+                "command" => repo_hook_command(".claude/hooks/permission-request.sh")
               }
             ]
           }
@@ -5742,28 +5742,28 @@ defmodule ControlKeel.Skills.Exporter do
       "hooks" => %{
         "sessionStart" => [
           %{
-            "command" => ".cursor/hooks/ck-session-start.sh",
+            "command" => repo_hook_command(".cursor/hooks/ck-session-start.sh"),
             "timeout" => 10,
             "failClosed" => false
           }
         ],
         "sessionEnd" => [
           %{
-            "command" => ".cursor/hooks/ck-session-end.sh",
+            "command" => repo_hook_command(".cursor/hooks/ck-session-end.sh"),
             "timeout" => 10,
             "failClosed" => false
           }
         ],
         "beforeShellExecution" => [
           %{
-            "command" => ".cursor/hooks/ck-validate-shell.sh",
+            "command" => repo_hook_command(".cursor/hooks/ck-validate-shell.sh"),
             "timeout" => 15,
             "failClosed" => false
           }
         ],
         "preToolUse" => [
           %{
-            "command" => ".cursor/hooks/ck-validate-write.sh",
+            "command" => repo_hook_command(".cursor/hooks/ck-validate-write.sh"),
             "matcher" => "Write|StrReplace|Delete",
             "timeout" => 15,
             "failClosed" => false
@@ -5771,7 +5771,7 @@ defmodule ControlKeel.Skills.Exporter do
         ],
         "beforeMCPExecution" => [
           %{
-            "command" => ".cursor/hooks/ck-mcp-gate.sh",
+            "command" => repo_hook_command(".cursor/hooks/ck-mcp-gate.sh"),
             "timeout" => 15,
             "failClosed" => false
           }
@@ -5779,27 +5779,27 @@ defmodule ControlKeel.Skills.Exporter do
         "afterMCPExecution" => [
           %{
             "matcher" => "mcp__controlkeel__ck_validate",
-            "command" => ".cursor/hooks/ck-nudge-validate.sh",
+            "command" => repo_hook_command(".cursor/hooks/ck-nudge-validate.sh"),
             "timeout" => 5,
             "failClosed" => false
           },
           %{
             "matcher" => "mcp__controlkeel__ck_finding",
-            "command" => ".cursor/hooks/ck-nudge-finding.sh",
+            "command" => repo_hook_command(".cursor/hooks/ck-nudge-finding.sh"),
             "timeout" => 5,
             "failClosed" => false
           }
         ],
         "subagentStart" => [
           %{
-            "command" => ".cursor/hooks/ck-subagent-start.sh",
+            "command" => repo_hook_command(".cursor/hooks/ck-subagent-start.sh"),
             "timeout" => 15,
             "failClosed" => false
           }
         ],
         "stop" => [
           %{
-            "command" => ".cursor/hooks/ck-stop.sh",
+            "command" => repo_hook_command(".cursor/hooks/ck-stop.sh"),
             "timeout" => 10,
             "loop_limit" => 1,
             "failClosed" => false
@@ -5815,28 +5815,28 @@ defmodule ControlKeel.Skills.Exporter do
       "hooks" => %{
         "sessionStart" => [
           %{
-            "command" => ".cursor-plugin/hooks/ck-session-start.sh",
+            "command" => repo_hook_command(".cursor-plugin/hooks/ck-session-start.sh"),
             "timeout" => 10,
             "failClosed" => false
           }
         ],
         "sessionEnd" => [
           %{
-            "command" => ".cursor-plugin/hooks/ck-session-end.sh",
+            "command" => repo_hook_command(".cursor-plugin/hooks/ck-session-end.sh"),
             "timeout" => 10,
             "failClosed" => false
           }
         ],
         "beforeShellExecution" => [
           %{
-            "command" => ".cursor-plugin/hooks/ck-validate-shell.sh",
+            "command" => repo_hook_command(".cursor-plugin/hooks/ck-validate-shell.sh"),
             "timeout" => 15,
             "failClosed" => false
           }
         ],
         "preToolUse" => [
           %{
-            "command" => ".cursor-plugin/hooks/ck-validate-write.sh",
+            "command" => repo_hook_command(".cursor-plugin/hooks/ck-validate-write.sh"),
             "matcher" => "Write|StrReplace|Delete",
             "timeout" => 15,
             "failClosed" => false
@@ -5844,7 +5844,7 @@ defmodule ControlKeel.Skills.Exporter do
         ],
         "beforeMCPExecution" => [
           %{
-            "command" => ".cursor-plugin/hooks/ck-mcp-gate.sh",
+            "command" => repo_hook_command(".cursor-plugin/hooks/ck-mcp-gate.sh"),
             "timeout" => 15,
             "failClosed" => false
           }
@@ -5852,27 +5852,27 @@ defmodule ControlKeel.Skills.Exporter do
         "afterMCPExecution" => [
           %{
             "matcher" => "mcp__controlkeel__ck_validate",
-            "command" => ".cursor-plugin/hooks/ck-nudge-validate.sh",
+            "command" => repo_hook_command(".cursor-plugin/hooks/ck-nudge-validate.sh"),
             "timeout" => 5,
             "failClosed" => false
           },
           %{
             "matcher" => "mcp__controlkeel__ck_finding",
-            "command" => ".cursor-plugin/hooks/ck-nudge-finding.sh",
+            "command" => repo_hook_command(".cursor-plugin/hooks/ck-nudge-finding.sh"),
             "timeout" => 5,
             "failClosed" => false
           }
         ],
         "subagentStart" => [
           %{
-            "command" => ".cursor-plugin/hooks/ck-subagent-start.sh",
+            "command" => repo_hook_command(".cursor-plugin/hooks/ck-subagent-start.sh"),
             "timeout" => 15,
             "failClosed" => false
           }
         ],
         "stop" => [
           %{
-            "command" => ".cursor-plugin/hooks/ck-stop.sh",
+            "command" => repo_hook_command(".cursor-plugin/hooks/ck-stop.sh"),
             "timeout" => 10,
             "loop_limit" => 1,
             "failClosed" => false
@@ -5880,6 +5880,10 @@ defmodule ControlKeel.Skills.Exporter do
         ]
       }
     }
+  end
+
+  defp repo_hook_command(relative_path) do
+    "sh -c 'root=${CK_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}; exec sh \"$root/#{relative_path}\"'"
   end
 
   defp cursor_hook_scripts do

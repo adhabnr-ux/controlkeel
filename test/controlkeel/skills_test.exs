@@ -1494,8 +1494,9 @@ defmodule ControlKeel.SkillsTest do
     assert claude_install_agent =~ "controlkeel update --json"
 
     claude_settings = File.read!(Path.join(tmp_dir, ".claude/settings.json"))
-    assert claude_settings =~ "sh .claude/hooks/pre-tool-use-bash.sh"
-    assert claude_settings =~ "sh .claude/hooks/pre-tool-use-write.sh"
+    assert claude_settings =~ "CK_PROJECT_ROOT"
+    assert claude_settings =~ ".claude/hooks/pre-tool-use-bash.sh"
+    assert claude_settings =~ ".claude/hooks/pre-tool-use-write.sh"
 
     assert {:ok, github_install} = Skills.install("github-repo", tmp_dir, scope: "project")
     assert github_install.destination == Path.join(tmp_dir, ".github/skills")
