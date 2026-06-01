@@ -57,9 +57,10 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
 
   @impl true
   def handle_cast({:reset_project, project_root}, state) do
-    project_key = project_root <> ":*"
+    project_root
+    |> project_entries()
+    |> Enum.each(fn {key, _timestamp, _count} -> :ets.delete(@table_name, key) end)
 
-    :ets.select_delete(@table_name, [{{project_key, :_, :_}, [], [true]}])
     {:noreply, state}
   end
 
@@ -88,14 +89,19 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
     "#{project_root}:#{tool_name}"
   end
 
-  defp collect_usage_stats(project_root) do
-    pattern = project_root <> ":*"
+  defp project_entries(project_root) do
+    prefix = project_root <> ":"
 
-    # Select returns the full {key, timestamp, count} records
-    entries =
-      :ets.select(@table_name, [
-        {{pattern, :_, :_}, [], [:"$_"]}
-      ])
+    @table_name
+    |> :ets.tab2list()
+    |> Enum.filter(fn
+      {key, _timestamp, _count} when is_binary(key) -> String.starts_with?(key, prefix)
+      _entry -> false
+    end)
+  end
+
+  defp collect_usage_stats(project_root) do
+    entries = project_entries(project_root)
 
     if entries == [] do
       %{total_calls: 0, unique_tools: 0}
@@ -110,13 +116,8 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
   end
 
   defp suggest_optimal_groups(project_root) do
-    pattern = project_root <> ":*"
-
-    # Select returns the full {key, timestamp, count} records
     used_tools =
-      :ets.select(@table_name, [
-        {{pattern, :_, :_}, [], [:"$_"]}
-      ])
+      project_entries(project_root)
       |> Enum.map(fn {key, _timestamp, _count} ->
         # Extract tool name from "project_root:tool_name" key
         String.replace_prefix(key, project_root <> ":", "")
