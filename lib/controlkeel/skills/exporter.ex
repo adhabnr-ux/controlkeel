@@ -4568,8 +4568,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-session-start.sh\"",
+                "command" => "sh .codex/hooks/ck-session-start.sh",
                 "statusMessage" => "Loading ControlKeel context",
                 "timeout" => 10
               }
@@ -4582,8 +4581,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-validate-shell.sh\"",
+                "command" => "sh .codex/hooks/ck-validate-shell.sh",
                 "statusMessage" => "Checking Bash command with ControlKeel",
                 "timeout" => 15
               }
@@ -4596,8 +4594,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-post-tool-use.sh\"",
+                "command" => "sh .codex/hooks/ck-post-tool-use.sh",
                 "statusMessage" => "Reviewing Bash output with ControlKeel",
                 "timeout" => 15
               }
@@ -4608,8 +4605,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-nudge-validate.sh\"",
+                "command" => "sh .codex/hooks/ck-nudge-validate.sh",
                 "statusMessage" => "ControlKeel validation nudge",
                 "timeout" => 5
               }
@@ -4620,8 +4616,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-nudge-finding.sh\"",
+                "command" => "sh .codex/hooks/ck-nudge-finding.sh",
                 "statusMessage" => "ControlKeel finding nudge",
                 "timeout" => 5
               }
@@ -4633,8 +4628,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-user-prompt-submit.sh\"",
+                "command" => "sh .codex/hooks/ck-user-prompt-submit.sh",
                 "timeout" => 10
               }
             ]
@@ -4645,8 +4639,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" =>
-                  "sh \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/ck-stop.sh\"",
+                "command" => "sh .codex/hooks/ck-stop.sh",
                 "timeout" => 10
               }
             ]
