@@ -21,15 +21,7 @@ defmodule ControlKeel.Intent.Router do
     try_providers(resolutions, prompt, attrs, fallback_chain, opts)
   end
 
-  def provider_options do
-    Enum.map(@providers, fn {provider, _module} -> Atom.to_string(provider) end)
-  end
-
   def provider_module(provider), do: Map.fetch!(@providers, provider)
-
-  def ordered_providers(attrs, opts) do
-    ordered_resolutions(attrs, opts) |> Enum.map(&String.to_atom(&1.provider))
-  end
 
   defp ordered_resolutions(attrs, opts) do
     preflight = Domains.preflight_context(attrs)

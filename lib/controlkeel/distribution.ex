@@ -81,7 +81,6 @@ defmodule ControlKeel.Distribution do
   def homebrew_tap, do: @homebrew_tap
   def homebrew_repo, do: @homebrew_repo
   def npm_package, do: @npm_package
-  def checksum_filename, do: "controlkeel-checksums.txt"
   def required_mcp_tools, do: @core_mcp_tools
   def install_channels, do: @install_channels
 
@@ -105,20 +104,10 @@ defmodule ControlKeel.Distribution do
     |> Enum.map(fn channel -> "#{channel.label}: #{channel.command}" end)
   end
 
-  def install_markdown do
-    Enum.map_join(current_install_channels(), "\n", fn channel ->
-      "- #{channel.label}: `#{channel.command}`"
-    end)
-  end
-
   def install_markdown_all do
     Enum.map_join(@install_channels, "\n", fn channel ->
       "- #{channel.label}: `#{channel.command}`"
     end)
-  end
-
-  def install_summary do
-    "Install or upgrade ControlKeel via Homebrew, the npm bootstrapper, direct install scripts, or GitHub Releases."
   end
 
   def raw_binary_asset_name("linux", "x86_64"), do: "controlkeel-linux-x86_64"
@@ -135,39 +124,9 @@ defmodule ControlKeel.Distribution do
   def binary_archive_name("windows", "x86_64"), do: "controlkeel-windows-x86_64.zip"
   def binary_archive_name(_, _), do: nil
 
-  def bundle_archive_name(target) when is_binary(target) do
-    "controlkeel-#{target}.tar.gz"
-  end
-
-  def latest_binary_download_url(os, arch) do
-    case raw_binary_asset_name(os, arch) do
-      nil -> nil
-      filename -> latest_download_base_url() <> "/" <> filename
-    end
-  end
-
-  def latest_binary_archive_download_url(os, arch) do
-    case binary_archive_name(os, arch) do
-      nil -> nil
-      filename -> latest_download_base_url() <> "/" <> filename
-    end
-  end
-
-  def latest_bundle_download_url(target) when is_binary(target) do
-    latest_download_base_url() <> "/" <> bundle_archive_name(target)
-  end
-
   def latest_installer_url("sh"), do: latest_download_base_url() <> "/install.sh"
   def latest_installer_url("ps1"), do: latest_download_base_url() <> "/install.ps1"
   def latest_installer_url(_), do: nil
-
-  def raw_installer_url("sh"),
-    do: "https://raw.githubusercontent.com/#{github_repo_slug()}/main/scripts/install.sh"
-
-  def raw_installer_url("ps1"),
-    do: "https://raw.githubusercontent.com/#{github_repo_slug()}/main/scripts/install.ps1"
-
-  def raw_installer_url(_), do: nil
 
   def portable_project_root, do: "."
 

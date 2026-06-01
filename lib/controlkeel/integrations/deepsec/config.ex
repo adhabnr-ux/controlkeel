@@ -24,14 +24,6 @@ defmodule ControlKeel.Integrations.Deepsec.Config do
   end
 
   @doc """
-  Returns whether AI investigation is enabled.
-  """
-  def ai_investigation_enabled? do
-    Application.get_env(:controlkeel, :ai_investigation, [])
-    |> Keyword.get(:enabled, false)
-  end
-
-  @doc """
   Returns whether deepsec should be used for security domain validation.
   """
   def use_for_security_domain? do
@@ -49,15 +41,6 @@ defmodule ControlKeel.Integrations.Deepsec.Config do
   end
 
   @doc """
-  Returns whether to block on security findings from deepsec.
-  When true, deepsec findings with decision will be "block" instead of "warn".
-  """
-  def block_on_security_findings? do
-    Application.get_env(:controlkeel, :deepsec, [])
-    |> Keyword.get(:block_on_security_findings, false)
-  end
-
-  @doc """
   Returns the maximum budget (in cents) allowed for deepsec scans.
   """
   def max_scan_budget_cents do
@@ -72,22 +55,6 @@ defmodule ControlKeel.Integrations.Deepsec.Config do
   def workspace_path do
     Application.get_env(:controlkeel, :deepsec, [])
     |> Keyword.get(:workspace_path, ".deepsec")
-  end
-
-  @doc """
-  Returns whether to automatically create proof bundles for deepsec scans.
-  """
-  def auto_create_proof_bundles? do
-    Application.get_env(:controlkeel, :deepsec, [])
-    |> Keyword.get(:auto_create_proof_bundles, true)
-  end
-
-  @doc """
-  Returns custom matchers configuration.
-  """
-  def custom_matchers do
-    Application.get_env(:controlkeel, :deepsec, [])
-    |> Keyword.get(:custom_matchers, [])
   end
 
   @doc """
@@ -122,15 +89,9 @@ defmodule ControlKeel.Integrations.Deepsec.Config do
       deepsec_enabled: enabled?(),
       use_for_security_domain: use_for_security_domain?(),
       min_severity_for_investigation: min_severity_for_investigation(),
-      block_on_security_findings: block_on_security_findings?(),
       max_scan_budget_cents: max_scan_budget_cents(),
       workspace_path: workspace_path(),
-      auto_create_proof_bundles: auto_create_proof_bundles?(),
-      custom_matchers_count: length(custom_matchers()),
-      # Matcher system config
-      matcher_system_enabled: matcher_system_enabled?(),
-      # AI investigation config
-      ai_investigation_enabled: ai_investigation_enabled?()
+      matcher_system_enabled: matcher_system_enabled?()
     }
   end
 end

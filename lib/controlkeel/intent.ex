@@ -21,7 +21,6 @@ defmodule ControlKeel.Intent do
   def pack_label(domain_pack), do: Domains.pack_label(domain_pack)
   def interview_questions(occupation_id), do: Domains.questions_for_occupation(occupation_id)
   def preflight_context(attrs), do: Domains.preflight_context(attrs)
-  def provider_options, do: Router.provider_options()
 
   def to_brief_map(%ExecutionBrief{} = brief), do: ExecutionBrief.to_map(brief)
   def boundary_summary(brief_or_map, opts \\ []), do: BoundarySummary.build(brief_or_map, opts)

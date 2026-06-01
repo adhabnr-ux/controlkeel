@@ -319,7 +319,6 @@ defmodule ControlKeel.Mission.Planner do
     }
   end
 
-  def industries, do: @industry_profiles
   def agent_labels, do: @agent_labels
 
   defp value(attrs, key, default \\ "") do

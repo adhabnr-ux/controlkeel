@@ -135,8 +135,6 @@ defmodule ControlKeel.Platform do
     |> Repo.all()
   end
 
-  def get_policy_set(id), do: Repo.get(PolicySet, id)
-
   def create_policy_set(attrs) do
     attrs =
       attrs

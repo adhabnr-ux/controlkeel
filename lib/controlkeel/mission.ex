@@ -92,7 +92,6 @@ defmodule ControlKeel.Mission do
   end
 
   def delete_session(%Session{} = session), do: Repo.delete(session)
-  def change_session(%Session{} = session, attrs \\ %{}), do: Session.changeset(session, attrs)
 
   def list_workspaces, do: Repo.all(Workspace)
   def get_workspace!(id), do: Repo.get!(Workspace, id)
@@ -106,18 +105,6 @@ defmodule ControlKeel.Mission do
     |> Repo.insert()
   end
 
-  def update_workspace(%Workspace{} = workspace, attrs) do
-    workspace
-    |> Workspace.changeset(attrs)
-    |> Repo.update()
-  end
-
-  def delete_workspace(%Workspace{} = workspace), do: Repo.delete(workspace)
-
-  def change_workspace(%Workspace{} = workspace, attrs \\ %{}),
-    do: Workspace.changeset(workspace, attrs)
-
-  def list_tasks, do: Repo.all(Task)
   def get_task(id), do: Repo.get(Task, id)
   def get_task!(id), do: Repo.get!(Task, id)
 
@@ -258,14 +245,6 @@ defmodule ControlKeel.Mission do
     |> Repo.all()
   end
 
-  def update_task_checkpoint(%TaskCheckpoint{} = checkpoint, attrs) do
-    checkpoint
-    |> TaskCheckpoint.changeset(attrs)
-    |> Repo.update()
-  end
-
-  def delete_task_checkpoint(%TaskCheckpoint{} = checkpoint), do: Repo.delete(checkpoint)
-
   def update_task(%Task{} = task, attrs) do
     task
     |> Task.changeset(attrs)
@@ -289,10 +268,6 @@ defmodule ControlKeel.Mission do
     update_task(task, %{metadata: merge_runtime_context(task.metadata || %{}, context)})
   end
 
-  def delete_task(%Task{} = task), do: Repo.delete(task)
-  def change_task(%Task{} = task, attrs \\ %{}), do: Task.changeset(task, attrs)
-
-  def list_reviews, do: Repo.all(Review)
   def get_review(id), do: Repo.get(Review, id)
   def get_review!(id), do: Repo.get!(Review, id)
 
@@ -551,11 +526,6 @@ defmodule ControlKeel.Mission do
     |> Repo.update()
   end
 
-  def delete_finding(%Finding{} = finding), do: Repo.delete(finding)
-  def change_finding(%Finding{} = finding, attrs \\ %{}), do: Finding.changeset(finding, attrs)
-
-  def list_invocations, do: Repo.all(Invocation)
-
   def create_invocation(attrs) do
     %Invocation{}
     |> Invocation.changeset(attrs)
@@ -589,10 +559,6 @@ defmodule ControlKeel.Mission do
          "evidence" => normalized["evidence"]
        }}
     end
-  end
-
-  def list_proof_bundles do
-    Repo.all(ProofBundle)
   end
 
   def get_proof_bundle(id), do: Repo.get(ProofBundle, id)
@@ -631,14 +597,6 @@ defmodule ControlKeel.Mission do
     %TaskCheckpoint{}
     |> TaskCheckpoint.changeset(attrs)
     |> Repo.insert()
-  end
-
-  def latest_task_checkpoint(task_id) when is_integer(task_id) do
-    TaskCheckpoint
-    |> where([checkpoint], checkpoint.task_id == ^task_id)
-    |> order_by([checkpoint], desc: checkpoint.inserted_at, desc: checkpoint.id)
-    |> limit(1)
-    |> Repo.one()
   end
 
   def list_recent_sessions(limit \\ 6, workspace_id \\ nil) do
@@ -886,31 +844,6 @@ defmodule ControlKeel.Mission do
     end
   end
 
-  def change_launch(attrs \\ %{}) do
-    {%{},
-     %{
-       project_name: :string,
-       industry: :string,
-       agent: :string,
-       idea: :string,
-       users: :string,
-       data: :string,
-       features: :string,
-       budget: :string
-     }}
-    |> Ecto.Changeset.cast(attrs, [
-      :project_name,
-      :industry,
-      :agent,
-      :idea,
-      :users,
-      :data,
-      :features,
-      :budget
-    ])
-    |> Ecto.Changeset.validate_required([:industry, :agent, :idea, :features])
-  end
-
   def create_launch(%{"execution_brief" => %ExecutionBrief{} = brief} = attrs) do
     attrs
     |> Map.delete("execution_brief")
@@ -970,7 +903,6 @@ defmodule ControlKeel.Mission do
     end
   end
 
-  def industries, do: Planner.industries()
   def agent_labels, do: Planner.agent_labels()
 
   def list_session_findings(session_id, opts \\ %{}) do
@@ -5645,7 +5577,10 @@ defmodule ControlKeel.Mission do
     query
     |> exclude(:preload)
     |> where([f, _s, _w], f.category == "security")
-    |> where([f, _s, _w], json_extract_path(f.metadata, ["finding_family"]) == "vulnerability_case")
+    |> where(
+      [f, _s, _w],
+      json_extract_path(f.metadata, ["finding_family"]) == "vulnerability_case"
+    )
   end
 
   defp unresolved_vulnerability_cases_query(query) do
@@ -5664,8 +5599,8 @@ defmodule ControlKeel.Mission do
   defp unresolved_vulnerability_case_dynamic do
     dynamic(
       [f],
-      (is_nil(json_extract_path(f.metadata, ["patch_status"])) or
-         json_extract_path(f.metadata, ["patch_status"]) not in ^["validated", "merged"]) or
+      is_nil(json_extract_path(f.metadata, ["patch_status"])) or
+        json_extract_path(f.metadata, ["patch_status"]) not in ^["validated", "merged"] or
         (is_nil(json_extract_path(f.metadata, ["disclosure_status"])) or
            json_extract_path(f.metadata, ["disclosure_status"]) in ^[
              "draft",

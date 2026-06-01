@@ -50,16 +50,6 @@ defmodule ControlKeel.MCP.Discovery do
     end
   end
 
-  @doc """
-  Validate that a server URL is accessible and responds to MCP protocol.
-  """
-  def validate_server(server_url, opts \\ []) do
-    case discover(server_url, opts) do
-      {:ok, _result} -> :ok
-      error -> error
-    end
-  end
-
   defp detect_transport(url) when is_binary(url) do
     cond do
       String.starts_with?(url, "http://") or String.starts_with?(url, "https://") ->

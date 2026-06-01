@@ -21,10 +21,6 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
     GenServer.cast(__MODULE__, {:track_usage, project_root, tool_name})
   end
 
-  def get_usage_stats(project_root) do
-    GenServer.call(__MODULE__, {:get_stats, project_root})
-  end
-
   def suggest_groups(project_root) do
     GenServer.call(__MODULE__, {:suggest_groups, project_root})
   end

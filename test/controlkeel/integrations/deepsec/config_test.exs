@@ -45,20 +45,6 @@ defmodule ControlKeel.Integrations.Deepsec.ConfigTest do
     end
   end
 
-  describe "block_on_security_findings?/0" do
-    test "returns false by default" do
-      assert Config.block_on_security_findings?() == false
-    end
-
-    test "returns configured value" do
-      Application.put_env(:controlkeel, :deepsec, block_on_security_findings: true)
-
-      assert Config.block_on_security_findings?() == true
-
-      Application.delete_env(:controlkeel, :deepsec)
-    end
-  end
-
   describe "max_scan_budget_cents/0" do
     test "returns 10000 by default" do
       assert Config.max_scan_budget_cents() == 10_000
@@ -82,35 +68,6 @@ defmodule ControlKeel.Integrations.Deepsec.ConfigTest do
       Application.put_env(:controlkeel, :deepsec, workspace_path: "/custom/path")
 
       assert Config.workspace_path() == "/custom/path"
-
-      Application.delete_env(:controlkeel, :deepsec)
-    end
-  end
-
-  describe "auto_create_proof_bundles?/0" do
-    test "returns true by default" do
-      assert Config.auto_create_proof_bundles?() == true
-    end
-
-    test "returns configured value" do
-      Application.put_env(:controlkeel, :deepsec, auto_create_proof_bundles: false)
-
-      assert Config.auto_create_proof_bundles?() == false
-
-      Application.delete_env(:controlkeel, :deepsec)
-    end
-  end
-
-  describe "custom_matchers/0" do
-    test "returns empty list by default" do
-      assert Config.custom_matchers() == []
-    end
-
-    test "returns configured value" do
-      matchers = [%{name: "custom", pattern: "test"}]
-      Application.put_env(:controlkeel, :deepsec, custom_matchers: matchers)
-
-      assert Config.custom_matchers() == matchers
 
       Application.delete_env(:controlkeel, :deepsec)
     end
@@ -148,13 +105,9 @@ defmodule ControlKeel.Integrations.Deepsec.ConfigTest do
       assert Map.has_key?(config, :deepsec_enabled)
       assert Map.has_key?(config, :use_for_security_domain)
       assert Map.has_key?(config, :min_severity_for_investigation)
-      assert Map.has_key?(config, :block_on_security_findings)
       assert Map.has_key?(config, :max_scan_budget_cents)
       assert Map.has_key?(config, :workspace_path)
-      assert Map.has_key?(config, :auto_create_proof_bundles)
-      assert Map.has_key?(config, :custom_matchers_count)
       assert Map.has_key?(config, :matcher_system_enabled)
-      assert Map.has_key?(config, :ai_investigation_enabled)
     end
   end
 end

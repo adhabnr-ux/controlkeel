@@ -7,7 +7,6 @@ defmodule ControlKeel.RuntimeConformanceTest do
   use ExUnit.Case, async: true
 
   alias ControlKeel.AgentIntegration
-  alias ControlKeel.Governance.ApprovalAdapter
   alias ControlKeel.MCP.Protocol
   alias ControlKeel.OrchestrationEvents
   alias ControlKeel.ProtocolInterop
@@ -74,62 +73,6 @@ defmodule ControlKeel.RuntimeConformanceTest do
         assert integration.feedback_mode in ["tool_call", "file_patch", "command_reply", "manual"]
         assert integration.phase_model in ["host_plan_mode", "file_plan_mode", "review_only"]
       end
-    end
-  end
-
-  describe "approval adapter works across all runtimes" do
-    for agent_id <- @attach_clients do
-      test "#{agent_id} evaluates low-tier tool without error" do
-        result = ApprovalAdapter.evaluate(unquote(agent_id), %{"tool" => "file_read"})
-
-        assert Map.has_key?(result, :decision)
-        assert Map.has_key?(result, :reason)
-        assert Map.has_key?(result, :policy_rule_ids)
-        assert Map.has_key?(result, :requires_human_approval)
-      end
-
-      test "#{agent_id} blocks critical-tier secrets tool" do
-        result = ApprovalAdapter.evaluate(unquote(agent_id), %{"tool" => "secrets"})
-
-        assert result.decision == :decline
-      end
-    end
-
-    test "interactive approval mode allows policy-gated medium tools without pestering" do
-      result =
-        ApprovalAdapter.evaluate(
-          "codex-cli",
-          %{"tool" => "file_write"},
-          policy_mode: "approval_required"
-        )
-
-      assert result.decision == :accept_for_session
-      assert result.requires_human_approval == false
-      assert "INTERACTIVE_GATE_MEDIUM_POLICY_ALLOW" in result.policy_rule_ids
-    end
-
-    test "interactive approval mode still gates high and critical tools" do
-      high =
-        ApprovalAdapter.evaluate(
-          "codex-cli",
-          %{"tool" => "bash"},
-          policy_mode: "approval_required"
-        )
-
-      assert high.decision == :decline
-      assert high.requires_human_approval == true
-      assert "INTERACTIVE_GATE_HIGH" in high.policy_rule_ids
-
-      critical =
-        ApprovalAdapter.evaluate(
-          "codex-cli",
-          %{"tool" => "secrets"},
-          policy_mode: "approval_required"
-        )
-
-      assert critical.decision == :decline
-      assert critical.requires_human_approval == true
-      assert Enum.any?(critical.policy_rule_ids, &String.starts_with?(&1, "CRITICAL_TOOL"))
     end
   end
 

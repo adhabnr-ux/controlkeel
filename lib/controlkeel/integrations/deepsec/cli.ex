@@ -119,25 +119,6 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
   end
 
   @doc """
-  Runs a complete deepsec workflow: scan → process → revalidate → export.
-  """
-  def run_full_workflow(opts \\ []) do
-    with {:ok, _} <- init(opts),
-         {:ok, scan_output} <- scan(opts),
-         {:ok, process_output} <- process(opts),
-         {:ok, results} <- maybe_revalidate(opts, scan_output, process_output),
-         {:ok, export_output} <- export(Keyword.get(opts, :export_format, :md_dir), opts) do
-      {:ok,
-       %{
-         scan: scan_output,
-         process: process_output,
-         revalidate: Keyword.get(results, :revalidate),
-         export: export_output
-       }}
-    end
-  end
-
-  @doc """
   Checks if deepsec CLI is available in the system.
 
   Checks binary existence without running a potentially slow download.
@@ -213,20 +194,6 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
     else
       bin = System.find_executable(configured) || configured
       {bin, sub_args}
-    end
-  end
-
-  defp maybe_revalidate(opts, scan_output, process_output) do
-    if Keyword.get(opts, :skip_revalidate, false) do
-      {:ok, %{scan: scan_output, process: process_output, revalidate: nil}}
-    else
-      case revalidate(opts) do
-        {:ok, revalidate_output} ->
-          {:ok, %{scan: scan_output, process: process_output, revalidate: revalidate_output}}
-
-        {:error, reason} ->
-          {:ok, %{scan: scan_output, process: process_output, revalidate: "Skipped: #{reason}"}}
-      end
     end
   end
 

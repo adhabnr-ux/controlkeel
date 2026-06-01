@@ -1792,8 +1792,6 @@ defmodule ControlKeel.AgentIntegration do
     Enum.filter(catalog(), &(&1.support_class == "headless_runtime"))
   end
 
-  def runtime_export_ids, do: Enum.map(runtime_export_catalog(), & &1.id)
-
   def get(id) do
     id = normalize_id(id)
     Enum.find(catalog(), &(&1.id == id))
@@ -1828,19 +1826,6 @@ defmodule ControlKeel.AgentIntegration do
     support_classes()
   end
 
-  def execution_classes do
-    [
-      {"direct",
-       "ControlKeel can launch the agent through a documented or configured local command."},
-      {"handoff",
-       "ControlKeel prepares a governed run package and waits for the agent or operator to continue."},
-      {"runtime",
-       "ControlKeel hands work to a remote or hosted runtime rather than a local CLI."},
-      {"inbound_only",
-       "The agent can use ControlKeel, but ControlKeel does not claim an outbound run surface."}
-    ]
-  end
-
   def install_channels(id \\ nil)
 
   def install_channels(nil), do: Distribution.install_channels()
@@ -1854,9 +1839,6 @@ defmodule ControlKeel.AgentIntegration do
 
   def attachable?(%__MODULE__{support_class: "attach_client"}), do: true
   def attachable?(_integration), do: false
-
-  def runtime_exportable?(%__MODULE__{support_class: "headless_runtime"}), do: true
-  def runtime_exportable?(_integration), do: false
 
   def auth_owner(%__MODULE__{provider_bridge: %{supported: true, owner: owner}})
       when is_binary(owner),

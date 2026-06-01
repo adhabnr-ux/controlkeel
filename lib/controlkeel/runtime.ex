@@ -12,7 +12,6 @@ defmodule ControlKeel.Runtime do
 
   def placement(surface), do: RuntimeMode.placement(mode(), surface)
   def placement_map, do: RuntimeMode.placement_map(mode())
-  def runtime_diagnostic, do: RuntimeMode.diagnostic(mode())
 
   def bus do
     Application.get_env(:controlkeel, :bus, default_bus())
