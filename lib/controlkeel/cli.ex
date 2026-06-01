@@ -6706,8 +6706,8 @@ defmodule ControlKeel.CLI do
 
     candidate =
       cond do
-        is_binary(runtime_root) and runtime_root != "" -> runtime_root
         is_binary(project_root) and project_root != "" -> project_root
+        is_binary(runtime_root) and runtime_root != "" -> runtime_root
         true -> File.cwd!()
       end
 
