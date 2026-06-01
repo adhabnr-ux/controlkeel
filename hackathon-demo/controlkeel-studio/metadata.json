@@ -1,6 +1,0 @@
-{
-  "name": "ControlKeel Studio",
-  "description": "A governed Gemini product assistant for real software teams. Live dashboard for governance validation and execution planning.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
