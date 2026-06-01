@@ -576,7 +576,6 @@ defmodule ControlKeel.SkillsTest do
              "orchestrate-tasks",
              "parallel-review",
              "plan-slice",
-             "policy-training",
              "proof-memory",
              "reviewable-pr",
              "security-review",
@@ -593,7 +592,7 @@ defmodule ControlKeel.SkillsTest do
 
   test "built-in skills include observability loop guidance" do
     root = Path.expand("../..", __DIR__)
-    skills = ["benchmark-operator", "policy-training", "proof-memory", "ship-readiness"]
+    skills = ["benchmark-operator", "proof-memory", "ship-readiness"]
 
     for skill <- skills do
       contents = File.read!(Path.join([root, "priv/skills", skill, "SKILL.md"]))

@@ -2,7 +2,7 @@ import Config
 
 # Configure your database
 config :controlkeel, ControlKeel.Repo,
-  database: Path.expand("../controlkeel_dev.db", __DIR__),
+  database: Path.expand("../priv/repo/controlkeel_dev.db", __DIR__),
   pool_size: 10,
   # Avoid long waits when another process (e.g. phx.server + MCP) holds SQLite.
   busy_timeout: 15_000,
