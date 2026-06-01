@@ -330,6 +330,8 @@ Reference:
 - [docs/autonomy-and-findings.md](docs/autonomy-and-findings.md)
 - [docs/benchmarks.md](docs/benchmarks.md)
 - [docs/cost-governance.md](docs/cost-governance.md)
+- [docs/api-reference.md](docs/api-reference.md)
+- [docs/cli-reference.md](docs/cli-reference.md)
 
 Architecture and release operations:
 
