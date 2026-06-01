@@ -23,6 +23,13 @@ defmodule ControlKeelWeb.ApiController do
   alias ControlKeel.Skills
   alias ControlKeel.Skills.Registry
 
+  def action(conn, _opts) do
+    agent_json? = agent_json_requested?(conn)
+    conn = apply(__MODULE__, action_name(conn), [conn, conn.params])
+
+    if agent_json?, do: wrap_agent_json_response(conn), else: conn
+  end
+
   # ─── Sessions ────────────────────────────────────────────────────────────────
 
   def list_sessions(conn, _params) do
@@ -1899,6 +1906,80 @@ defmodule ControlKeelWeb.ApiController do
       summary: check.summary,
       payload: check.payload
     }
+  end
+
+  defp agent_json_requested?(conn) do
+    raw_query_format_agent?(conn.query_string) or
+      Map.get(conn.query_params, "format") == "agent" or
+      Map.get(conn.params, "format") == "agent" or
+      Enum.any?(conn.req_headers, fn {key, value} ->
+        String.downcase(to_string(key)) == "accept" and
+          String.contains?(to_string(value), "application/vnd.controlkeel.agent+json")
+      end)
+  end
+
+  defp raw_query_format_agent?(query_string) when is_binary(query_string) do
+    query_string
+    |> URI.decode_query()
+    |> Map.get("format")
+    |> Kernel.==("agent")
+  end
+
+  defp raw_query_format_agent?(_query_string), do: false
+
+  defp wrap_agent_json_response(%{resp_body: body} = conn) when is_binary(body) do
+    case Jason.decode(body) do
+      {:ok, decoded} -> %{conn | resp_body: Jason.encode!(agent_envelope(conn, decoded))}
+      {:error, _} -> conn
+    end
+  end
+
+  defp wrap_agent_json_response(conn), do: conn
+
+  defp agent_envelope(_conn, %{"status" => "ok", "data" => _} = decoded), do: decoded
+  defp agent_envelope(_conn, %{"status" => "error", "error" => _} = decoded), do: decoded
+
+  defp agent_envelope(conn, decoded) when conn.status < 400 do
+    %{
+      status: "ok",
+      command: api_command(conn),
+      data: decoded,
+      version: app_version()
+    }
+  end
+
+  defp agent_envelope(conn, decoded) do
+    %{
+      status: "error",
+      command: api_command(conn),
+      error: api_error_message(decoded, conn.status),
+      code: api_error_code(decoded, conn.status),
+      details: decoded,
+      version: app_version()
+    }
+  end
+
+  defp api_command(conn) do
+    conn.private
+    |> Map.get(:phoenix_action, "api")
+    |> to_string()
+  end
+
+  defp api_error_message(%{"error" => error}, _status) when is_binary(error), do: error
+  defp api_error_message(%{"message" => message}, _status) when is_binary(message), do: message
+  defp api_error_message(_decoded, status), do: Plug.Conn.Status.reason_phrase(status)
+
+  defp api_error_code(%{"code" => code}, _status) when is_binary(code), do: code
+
+  defp api_error_code(_decoded, status),
+    do:
+      status |> Plug.Conn.Status.reason_phrase() |> String.downcase() |> String.replace(" ", "_")
+
+  defp app_version do
+    :controlkeel
+    |> Application.spec(:vsn)
+    |> Kernel.||("0.1.0")
+    |> to_string()
   end
 
   defp changeset_errors(changeset) do

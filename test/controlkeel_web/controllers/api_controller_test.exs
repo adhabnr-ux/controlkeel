@@ -18,6 +18,40 @@ defmodule ControlKeelWeb.ApiControllerTest do
 
   # ─── Sessions ────────────────────────────────────────────────────────────────
 
+  describe "agent JSON envelope" do
+    test "preserves default API response shape", %{conn: conn} do
+      conn = get(conn, ~p"/api/v1/sessions")
+
+      assert %{"sessions" => []} = json_response(conn, 200)
+      refute Map.has_key?(json_response(conn, 200), "status")
+    end
+
+    test "wraps success responses when format=agent", %{conn: conn} do
+      conn = get(conn, ~p"/api/v1/sessions?format=agent")
+      body = json_response(conn, 200)
+
+      assert body["status"] == "ok"
+      assert body["command"] == "list_sessions"
+      assert body["version"]
+      assert %{"sessions" => []} = body["data"]
+    end
+
+    test "wraps error responses for the agent media type", %{conn: conn} do
+      conn =
+        conn
+        |> put_req_header("accept", "application/vnd.controlkeel.agent+json")
+        |> get(~p"/api/v1/sessions/99999999")
+
+      body = json_response(conn, 404)
+
+      assert body["status"] == "error"
+      assert body["command"] == "get_session"
+      assert body["code"] == "not_found"
+      assert body["error"] == "session not found"
+      assert body["details"] == %{"error" => "session not found"}
+    end
+  end
+
   describe "GET /api/v1/sessions" do
     test "returns empty list when no sessions exist", %{conn: conn} do
       conn = get(conn, ~p"/api/v1/sessions")
