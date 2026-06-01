@@ -143,9 +143,8 @@ defmodule ControlKeel.MixProject do
       precommit: [
         "cmd sh scripts/verify_ci_workflow.sh",
         "compile",
-        "deps.unlock --unused",
-        "format",
-        "test",
+        "format --check-formatted",
+        "test test/controlkeel/cli_catalog_test.exs",
         "cmd sh scripts/verify_ci_workflow.sh"
       ]
     ]

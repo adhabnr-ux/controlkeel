@@ -22,6 +22,29 @@ for _rel in .. ../..; do
   fi
 done
 
+# Prevent multiple MCP server instances for the same project
+LOCK_FILE="${TMPDIR:-/tmp}/controlkeel-mcp-${PROJECT_ROOT##*/}.lock"
+if [ -f "$LOCK_FILE" ]; then
+  # Check if the lock is stale (older than 5 minutes)
+  if [ "$(find "$LOCK_FILE" -mmin +5 2>/dev/null)" ]; then
+    rm -f "$LOCK_FILE"
+  else
+    # Try to get the PID from the lock file
+    LOCK_PID=$(cat "$LOCK_FILE" 2>/dev/null)
+    if [ -n "$LOCK_PID" ] && kill -0 "$LOCK_PID" 2>/dev/null; then
+      echo "ControlKeel MCP server already running (PID: $LOCK_PID)" >&2
+      exit 1
+    else
+      # Stale lock file, remove it
+      rm -f "$LOCK_FILE"
+    fi
+  fi
+fi
+
+# Write our PID to the lock file
+echo $$ > "$LOCK_FILE"
+trap 'rm -f "$LOCK_FILE"' EXIT HUP INT TERM
+
 exec_mix_ck_mcp_filtered() {
   fifo=$(mktemp "${TMPDIR:-/tmp}/controlkeel-mcp.XXXXXX")
   rm -f "$fifo"

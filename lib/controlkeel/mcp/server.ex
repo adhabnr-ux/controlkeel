@@ -23,7 +23,9 @@ defmodule ControlKeel.MCP.Server do
     state = %{
       input: Keyword.get(opts, :input, :stdio),
       output: Keyword.get(opts, :output, :stdio),
-      read_task: nil
+      read_task: nil,
+      start_time: System.monotonic_time(:millisecond),
+      request_count: 0
     }
 
     state =
@@ -33,6 +35,9 @@ defmodule ControlKeel.MCP.Server do
         state
       end
 
+    # Send initialization notification to confirm server is ready
+    send(self(), :server_ready)
+
     {:ok, state}
   end
 
@@ -41,7 +46,10 @@ defmodule ControlKeel.MCP.Server do
     try do
       # Include project_root in opts for adaptive tool group behavior
       opts = [project_root: stdio_project_root()]
-      {:reply, Protocol.handle_request(request, opts), state}
+      response = Protocol.handle_request(request, opts)
+      # Track request count for monitoring
+      new_state = %{state | request_count: state.request_count + 1}
+      {:reply, response, new_state}
     rescue
       e ->
         require Logger
@@ -58,6 +66,14 @@ defmodule ControlKeel.MCP.Server do
         Logger.error("MCP dispatch threw: #{inspect(e)}")
         {:reply, {:error, "Internal server error"}, state}
     end
+  end
+
+  @impl true
+  def handle_info(:server_ready, state) do
+    require Logger
+    uptime = System.monotonic_time(:millisecond) - state.start_time
+    Logger.debug("ControlKeel MCP server ready after #{uptime}ms")
+    {:noreply, state}
   end
 
   @impl true
