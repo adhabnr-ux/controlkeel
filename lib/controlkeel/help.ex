@@ -2,6 +2,8 @@ defmodule ControlKeel.Help do
   @moduledoc false
 
   alias ControlKeel.AgentIntegration
+  alias ControlKeel.CLI.Catalog
+  alias ControlKeel.CLI.Output
 
   @topics [
     %{
@@ -732,10 +734,15 @@ defmodule ControlKeel.Help do
       |> Enum.join(" ")
       |> String.trim()
 
-    if query == "" do
-      general_help()
-    else
-      query_help(query)
+    cond do
+      query == "" ->
+        general_help()
+
+      entry = Catalog.for_path_query(query) ->
+        command_help(entry)
+
+      true ->
+        query_help(query)
     end
   end
 
@@ -753,6 +760,96 @@ defmodule ControlKeel.Help do
       "  controlkeel version"
     ]
     |> Enum.join("\n")
+  end
+
+  def command_parse_error(command, invalid, remainder, argv \\ []) do
+    entry = Catalog.for_command(command)
+    invalid_flags = Enum.map(invalid, fn {flag, _value} -> flag end)
+
+    {reason, code, details} =
+      cond do
+        invalid_flags != [] ->
+          {"Unknown option(s): #{Enum.join(invalid_flags, ", ")}", :invalid_option,
+           %{"invalid_options" => invalid_flags}}
+
+        remainder != [] ->
+          {"Unexpected argument(s): #{Enum.join(remainder, " ")}", :unexpected_argument,
+           %{"unexpected_arguments" => remainder}}
+
+        true ->
+          {"Invalid arguments", :invalid_arguments, %{}}
+      end
+
+    case entry do
+      nil ->
+        usage_text()
+
+      entry ->
+        message = "#{reason} for controlkeel #{entry.path}"
+
+        if Output.json_requested?(argv) do
+          Output.error_json(message, code, entry, details)
+        else
+          [
+            message,
+            "",
+            "Use:",
+            Enum.map(entry.examples, &"  #{&1}"),
+            "",
+            "Help:",
+            "  controlkeel #{entry.path} --help",
+            "  controlkeel help #{entry.help_topic}"
+          ]
+          |> List.flatten()
+          |> Enum.join("\n")
+        end
+    end
+  end
+
+  defp command_help(entry) do
+    [
+      "ControlKeel command help",
+      "",
+      "Command: controlkeel #{entry.path}",
+      "Family: #{entry.family}",
+      "",
+      entry.summary,
+      "",
+      "Examples:",
+      Enum.map(entry.examples, &"  #{&1}"),
+      "",
+      "Inputs: #{format_atoms(entry.inputs)}",
+      "Outputs: #{format_atoms(entry.outputs)}",
+      "Safety: #{format_safety(entry.safety)}",
+      related_lines("Related MCP tools", entry.related_mcp_tools),
+      related_lines("Related skills", entry.related_skills),
+      related_lines("Related hooks", entry.related_hooks),
+      related_lines("Related plugins", entry.related_plugins),
+      "",
+      "Related help:",
+      "  controlkeel help #{entry.help_topic}"
+    ]
+    |> List.flatten()
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join("\n")
+  end
+
+  defp format_atoms(values), do: values |> Enum.map(&to_string/1) |> Enum.join(", ")
+
+  defp format_safety(safety) do
+    safety
+    |> Enum.filter(fn {_key, value} -> value == true end)
+    |> Enum.map(fn {key, _value} -> to_string(key) end)
+    |> case do
+      [] -> "read-only metadata/no special risk flags"
+      values -> Enum.join(values, ", ")
+    end
+  end
+
+  defp related_lines(_label, []), do: nil
+
+  defp related_lines(label, values) do
+    ["", "#{label}:", Enum.map(values, &"  - #{&1}")]
   end
 
   defp general_help do

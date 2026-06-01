@@ -79,6 +79,8 @@ defmodule ControlKeel.CLI do
     scope: :string
   ]
   @status_switches [format: :string, json: :boolean]
+  @doctor_switches [project_root: :string, format: :string, json: :boolean]
+  @capabilities_switches [format: :string, json: :boolean]
   @update_switches [
     apply: :boolean,
     sync_attached: :boolean,
@@ -370,6 +372,27 @@ defmodule ControlKeel.CLI do
   end
 
   def parse(argv) when is_list(argv) do
+    case scoped_help_args(argv) do
+      {:help, args} ->
+        {:ok, %{command: :help, options: %{}, args: args}}
+
+      :not_help ->
+        parse_command(argv)
+    end
+  end
+
+  defp scoped_help_args([flag]) when flag in ["--help", "-h"], do: {:help, []}
+
+  defp scoped_help_args(argv) do
+    if Enum.any?(argv, &(&1 in ["--help", "-h"])) do
+      args = Enum.reject(argv, &(&1 in ["--help", "-h"]))
+      {:help, args}
+    else
+      :not_help
+    end
+  end
+
+  defp parse_command(argv) do
     case argv do
       [] ->
         {:ok, %{command: :serve, options: %{}, args: []}}
@@ -391,6 +414,12 @@ defmodule ControlKeel.CLI do
 
       ["serve"] ->
         {:ok, %{command: :serve, options: %{}, args: []}}
+
+      ["doctor" | rest] ->
+        parse_with_switches(:doctor, rest, @doctor_switches)
+
+      ["capabilities" | rest] ->
+        parse_with_switches(:capabilities, rest, @capabilities_switches)
 
       ["me" | rest] ->
         parse_with_switches(:me, rest, @me_switches)
@@ -1037,6 +1066,30 @@ defmodule ControlKeel.CLI do
   end
 
   def run_command(%{command: :serve}, _project_root), do: :ok
+
+  def run_command(%{command: :capabilities, options: options}, _project_root) do
+    with {:ok, format} <- effective_cli_format(options) do
+      payload = ControlKeel.CLI.Capabilities.payload()
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(payload)]}
+        _ -> {:ok, ControlKeel.CLI.Capabilities.lines(payload)}
+      end
+    end
+  end
+
+  def run_command(%{command: :doctor, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options) do
+      root = resolve_project_root(options, project_root)
+      payload = ControlKeel.CLI.Doctor.payload(root, version())
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(payload)]}
+        _ -> {:ok, ControlKeel.CLI.Doctor.lines(payload)}
+      end
+    end
+  end
+
   def run_command(%{command: :help, args: args}, _project_root), do: {:ok, [Help.render(args)]}
   def run_command(%{command: :version}, _project_root), do: {:ok, ["ControlKeel #{version()}"]}
 
@@ -6326,10 +6379,10 @@ defmodule ControlKeel.CLI do
 
     cond do
       invalid != [] ->
-        {:error, usage_text()}
+        {:error, Help.command_parse_error(command, invalid, remainder, argv)}
 
       remainder != [] ->
-        {:error, usage_text()}
+        {:error, Help.command_parse_error(command, invalid, remainder, argv)}
 
       true ->
         {:ok, %{command: command, options: options, args: []}}
@@ -6341,10 +6394,10 @@ defmodule ControlKeel.CLI do
 
     cond do
       invalid != [] ->
-        {:error, usage_text()}
+        {:error, Help.command_parse_error(:attach, invalid, remainder, argv)}
 
       remainder != [] ->
-        {:error, usage_text()}
+        {:error, Help.command_parse_error(:attach, invalid, remainder, argv)}
 
       true ->
         case validate_attach_scope(agent, options) do
@@ -8850,8 +8903,6 @@ defmodule ControlKeel.CLI do
     end || %{}
   end
 
-
-
   defp ensure_stdio_server_running(timeout_ms) do
     case wait_for_stdio_server(timeout_ms) do
       pid when is_pid(pid) ->
@@ -8944,8 +8995,6 @@ defmodule ControlKeel.CLI do
   defp opencode_mcp_config_path do
     Path.join([user_home(), ".config", "opencode", "opencode.json"])
   end
-
-
 
   defp gemini_cli_config_path do
     Path.join([user_home(), ".gemini", "settings.json"])
