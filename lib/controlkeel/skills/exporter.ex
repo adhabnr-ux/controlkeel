@@ -4568,7 +4568,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .codex/hooks/ck-session-start.sh",
+                "command" => repo_hook_command(".codex/hooks/ck-session-start.sh"),
                 "statusMessage" => "Loading ControlKeel context",
                 "timeout" => 10
               }
@@ -4581,7 +4581,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .codex/hooks/ck-validate-shell.sh",
+                "command" => repo_hook_command(".codex/hooks/ck-validate-shell.sh"),
                 "statusMessage" => "Checking Bash command with ControlKeel",
                 "timeout" => 15
               }
@@ -4594,7 +4594,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .codex/hooks/ck-post-tool-use.sh",
+                "command" => repo_hook_command(".codex/hooks/ck-post-tool-use.sh"),
                 "statusMessage" => "Reviewing Bash output with ControlKeel",
                 "timeout" => 15
               }
@@ -4605,7 +4605,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .codex/hooks/ck-nudge-validate.sh",
+                "command" => repo_hook_command(".codex/hooks/ck-nudge-validate.sh"),
                 "statusMessage" => "ControlKeel validation nudge",
                 "timeout" => 5
               }
@@ -4616,7 +4616,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .codex/hooks/ck-nudge-finding.sh",
+                "command" => repo_hook_command(".codex/hooks/ck-nudge-finding.sh"),
                 "statusMessage" => "ControlKeel finding nudge",
                 "timeout" => 5
               }
@@ -4628,7 +4628,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .codex/hooks/ck-user-prompt-submit.sh",
+                "command" => repo_hook_command(".codex/hooks/ck-user-prompt-submit.sh"),
                 "timeout" => 10
               }
             ]
@@ -4639,7 +4639,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "sh .codex/hooks/ck-stop.sh",
+                "command" => repo_hook_command(".codex/hooks/ck-stop.sh"),
                 "timeout" => 10
               }
             ]
@@ -6260,7 +6260,7 @@ defmodule ControlKeel.Skills.Exporter do
         %{
           "event" => "ExitPlanMode",
           "type" => "command",
-          "command" => "./controlkeel-review.sh",
+          "command" => repo_hook_command(".windsurf/hooks/controlkeel-review.sh"),
           "timeoutSec" => 345_600
         }
       ]
@@ -6274,7 +6274,7 @@ defmodule ControlKeel.Skills.Exporter do
         %{
           "event" => "ExitPlanMode",
           "type" => "command",
-          "command" => "./hooks/controlkeel-review.sh",
+          "command" => repo_hook_command(".windsurf/hooks/controlkeel-review.sh"),
           "timeoutSec" => 345_600
         }
       ]
@@ -6406,7 +6406,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "./.letta/hooks/controlkeel-session-start.sh",
+                "command" => repo_hook_command(".letta/hooks/controlkeel-session-start.sh"),
                 "timeout" => 5_000
               }
             ]
@@ -6418,7 +6418,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "./.letta/hooks/controlkeel-findings.sh",
+                "command" => repo_hook_command(".letta/hooks/controlkeel-findings.sh"),
                 "timeout" => 5_000
               }
             ]
@@ -6430,7 +6430,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => "./.letta/hooks/controlkeel-findings.sh",
+                "command" => repo_hook_command(".letta/hooks/controlkeel-findings.sh"),
                 "timeout" => 5_000
               }
             ]

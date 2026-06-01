@@ -710,6 +710,12 @@ defmodule ControlKeel.SkillsTest do
     assert Map.has_key?(codex_hooks["hooks"], "PostToolUse")
     assert Map.has_key?(codex_hooks["hooks"], "UserPromptSubmit")
 
+    codex_hooks_json = Jason.encode!(codex_hooks)
+    assert codex_hooks_json =~ "CK_PROJECT_ROOT"
+    assert codex_hooks_json =~ ".codex/hooks/ck-session-start.sh"
+    assert codex_hooks_json =~ ".codex/hooks/ck-user-prompt-submit.sh"
+    refute codex_hooks_json =~ "sh .codex/hooks"
+
     codex_prompt_hook = Path.join(codex_plan.output_dir, ".codex/hooks/ck-user-prompt-submit.sh")
 
     assert prompt_hook_output(codex_prompt_hook, "Use task-scoped review context") == ""
@@ -1055,6 +1061,12 @@ defmodule ControlKeel.SkillsTest do
     assert letta_findings_hook =~ "ck_run findings"
     assert letta_findings_hook =~ "CONTROLKEEL_HOOK_TIMEOUT_SECONDS"
     refute letta_findings_hook =~ "set -eu"
+
+    letta_settings = File.read!(Path.join(letta_plan.output_dir, ".letta/settings.json"))
+    assert letta_settings =~ "CK_PROJECT_ROOT"
+    assert letta_settings =~ ".letta/hooks/controlkeel-session-start.sh"
+    assert letta_settings =~ ".letta/hooks/controlkeel-findings.sh"
+    refute letta_settings =~ "./.letta/hooks"
 
     assert {:ok, opencode_plan} = Skills.export("opencode-native", tmp_dir, scope: "export")
     assert File.exists?(Path.join(opencode_plan.output_dir, "package.json"))
@@ -1748,6 +1760,18 @@ defmodule ControlKeel.SkillsTest do
     assert File.exists?(Path.join(tmp_dir, ".windsurf/hooks.json"))
     assert File.exists?(Path.join(tmp_dir, ".windsurf/hooks/controlkeel-review.json"))
     assert File.exists?(Path.join(tmp_dir, ".windsurf/mcp.json"))
+
+    windsurf_hooks = File.read!(Path.join(tmp_dir, ".windsurf/hooks.json"))
+    assert windsurf_hooks =~ "CK_PROJECT_ROOT"
+    assert windsurf_hooks =~ ".windsurf/hooks/controlkeel-review.sh"
+    refute windsurf_hooks =~ "./hooks/controlkeel-review.sh"
+
+    windsurf_review_hook =
+      File.read!(Path.join(tmp_dir, ".windsurf/hooks/controlkeel-review.json"))
+
+    assert windsurf_review_hook =~ "CK_PROJECT_ROOT"
+    assert windsurf_review_hook =~ ".windsurf/hooks/controlkeel-review.sh"
+    refute windsurf_review_hook =~ "./controlkeel-review.sh"
 
     assert {:ok, continue_install} = Skills.install("continue-native", tmp_dir, scope: "project")
     assert continue_install.destination == Path.join(tmp_dir, ".continue")
