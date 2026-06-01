@@ -20,7 +20,7 @@ defmodule ControlKeel.AgentRouter do
   Observability / ops: agentops, vellum, promptflow
   """
 
-  alias ControlKeel.PolicyTraining
+
 
   # ── Capability key reference ─────────────────────────────────────────────────
   # :repo_edit         — can read/write repository files
@@ -770,44 +770,18 @@ defmodule ControlKeel.AgentRouter do
   defp budget_ok?(%{cost_tier: :high}, remaining) when remaining > 1000, do: true
   defp budget_ok?(_, _), do: false
 
-  defp rank_candidates(candidates, task_type, risk_tier, budget_remaining, domain_pack) do
-    active_artifact = PolicyTraining.active_artifact("router")
+  defp rank_candidates(candidates, task_type, risk_tier, budget_remaining, _domain_pack) do
     budget_tier = budget_tier(budget_remaining)
 
     Enum.map(candidates, fn {id, agent} ->
-      learned_score =
-        case active_artifact do
-          %{artifact: _artifact} = artifact ->
-            PolicyTraining.score_router_candidate(artifact, id, agent, %{
-              "task_type" => task_type,
-              "risk_tier" => risk_tier,
-              "domain_pack" => domain_pack,
-              "budget_tier" => budget_tier
-            })
-
-          _ ->
-            {:error, :no_active_artifact}
-        end
-
-      case learned_score do
-        {:ok, learned} ->
-          %{
-            id: id,
-            agent: agent,
-            score: learned.score,
-            policy_source: learned.policy_source,
-            artifact_version: learned.artifact_version
-          }
-
-        {:error, _reason} ->
-          %{
-            id: id,
-            agent: agent,
-            score: score(agent, task_type, risk_tier),
-            policy_source: "heuristic",
-            artifact_version: nil
-          }
-      end
+      %{
+        id: id,
+        agent: agent,
+        score: score(agent, task_type, risk_tier),
+        policy_source: "heuristic",
+        artifact_version: nil,
+        budget_tier: budget_tier
+      }
     end)
     |> Enum.sort_by(& &1.score, :desc)
   end
