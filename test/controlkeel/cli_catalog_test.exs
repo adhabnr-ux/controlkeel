@@ -209,7 +209,6 @@ defmodule ControlKeel.CLI.CatalogTest do
     assert_raise Jason.DecodeError, fn -> Jason.decode!(message) end
   end
 
-
   # Unwrap the CLI success envelope for test assertions.
   # The execute/1 interceptor wraps all JSON output in:
   #   {"status" => "ok", "command" => "...", "data" => <payload>, "version" => "..."}

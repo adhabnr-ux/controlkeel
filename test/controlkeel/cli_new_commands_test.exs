@@ -42,7 +42,6 @@ defmodule ControlKeel.CLI.NewCommandsTest do
     {:ok, tmp_dir: tmp_dir}
   end
 
-
   # Unwrap the CLI success envelope for test assertions.
   # The execute/1 interceptor wraps all JSON output in:
   #   {"status" => "ok", "command" => "...", "data" => <payload>, "version" => "..."}

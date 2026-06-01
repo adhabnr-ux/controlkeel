@@ -419,7 +419,7 @@ defmodule ControlKeel.CLIRuntimeTest do
       end)
 
     assert {:ok, ctx_envelope} = Jason.decode(String.trim(ctx_output))
-      ctx_payload = ctx_envelope["data"]
+    ctx_payload = ctx_envelope["data"]
     assert ctx_payload["session_id"] == session.id
 
     assert {:ok, val} =
@@ -438,7 +438,7 @@ defmodule ControlKeel.CLIRuntimeTest do
       end)
 
     assert {:ok, val_envelope} = Jason.decode(String.trim(val_output))
-      val_payload = val_envelope["data"]
+    val_payload = val_envelope["data"]
     assert is_binary(val_payload["decision"])
   end
 
@@ -873,7 +873,6 @@ defmodule ControlKeel.CLIRuntimeTest do
                "/controlkeel/bin/controlkeel-mcp"
              )
 
-
     assert {:ok, opencode_attach} = CLI.parse(["attach", "opencode"])
 
     opencode_output =
@@ -901,10 +900,7 @@ defmodule ControlKeel.CLIRuntimeTest do
 
     assert hd(opencode_cmd) == "controlkeel" or
              String.ends_with?(hd(opencode_cmd), "/controlkeel/bin/controlkeel-mcp")
-
   end
-
-
 
   test "codex attach supports mcp-only mode without native bundle install", %{tmp_dir: tmp_dir} do
     assert {:ok, init} = CLI.parse(["init", "--no-attach"])
@@ -1760,8 +1756,6 @@ defmodule ControlKeel.CLIRuntimeTest do
     ])
   end
 
-
-
   defp kilo_config_path do
     Path.join([
       System.get_env("HOME") || System.user_home!(),
@@ -1770,7 +1764,6 @@ defmodule ControlKeel.CLIRuntimeTest do
       "kilo.json"
     ])
   end
-
 
   # Unwrap the CLI success envelope for test assertions.
   # The execute/1 interceptor wraps all JSON output in:

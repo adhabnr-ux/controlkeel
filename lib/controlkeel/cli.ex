@@ -1043,7 +1043,6 @@ defmodule ControlKeel.CLI do
     end
   end
 
-
   def version do
     Application.spec(:controlkeel, :vsn)
     |> Kernel.||("0.1.0")
