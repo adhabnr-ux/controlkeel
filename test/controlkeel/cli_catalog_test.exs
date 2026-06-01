@@ -183,7 +183,7 @@ defmodule ControlKeel.CLI.CatalogTest do
              "examples" => examples,
              "help_topic" => "review",
              "details" => %{"invalid_options" => ["--not-a-real-flag"]}
-           } = Jason.decode!(message)
+           } = decode_cli_json(message)
 
     assert error =~ "Unknown option(s): --not-a-real-flag"
     assert "controlkeel review plan submit --stdin --json" in examples
@@ -197,7 +197,7 @@ defmodule ControlKeel.CLI.CatalogTest do
              "command" => "route-agent",
              "help_topic" => "run",
              "details" => %{"invalid_options" => ["--bad"]}
-           } = Jason.decode!(message)
+           } = decode_cli_json(message)
   end
 
   test "text parse errors remain human-readable by default" do
@@ -207,6 +207,21 @@ defmodule ControlKeel.CLI.CatalogTest do
     assert message =~ "Use:"
     assert message =~ "Help:"
     assert_raise Jason.DecodeError, fn -> Jason.decode!(message) end
+  end
+
+
+  # Unwrap the CLI success envelope for test assertions.
+  # The execute/1 interceptor wraps all JSON output in:
+  #   {"status" => "ok", "command" => "...", "data" => <payload>, "version" => "..."}
+  # This helper extracts the data payload so tests can assert on the original structure.
+  defp decode_cli_json(output) do
+    decoded = Jason.decode!(output)
+
+    case decoded do
+      %{"status" => "ok", "data" => data} -> data
+      %{"status" => "error"} -> decoded
+      other -> other
+    end
   end
 
   describe "doctor command" do
@@ -245,7 +260,7 @@ defmodule ControlKeel.CLI.CatalogTest do
                    )
         end)
 
-      payload = Jason.decode!(output)
+      payload = decode_cli_json(output)
 
       assert payload["status"] == "ok"
       assert payload["version"]
@@ -289,7 +304,7 @@ defmodule ControlKeel.CLI.CatalogTest do
           assert 0 == CLI.execute(%{command: :capabilities, options: %{json: true}, args: []})
         end)
 
-      payload = Jason.decode!(output)
+      payload = decode_cli_json(output)
 
       assert is_list(payload["commands"])
       assert is_list(payload["families"])
@@ -313,7 +328,7 @@ defmodule ControlKeel.CLI.CatalogTest do
           assert 0 == CLI.execute(%{command: :capabilities, options: %{json: true}, args: []})
         end)
 
-      host_ids = output |> Jason.decode!() |> Map.fetch!("hosts") |> Enum.map(& &1["id"])
+      host_ids = decode_cli_json(output) |> Map.fetch!("hosts") |> Enum.map(& &1["id"])
 
       for agent <- AgentIntegration.attachable_ids() do
         assert agent in host_ids

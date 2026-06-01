@@ -326,7 +326,7 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(skills_list, project_root: tmp_dir)
       end)
 
-    payload = Jason.decode!(output)
+    payload = decode_cli_json(output)
 
     assert payload["project_root"] == ProjectRoot.resolve(tmp_dir)
     assert is_list(payload["skills"])
@@ -404,7 +404,8 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(status_json, project_root: tmp_dir)
       end)
 
-    assert {:ok, status_payload} = Jason.decode(String.trim(status_json_output))
+    assert {:ok, status_envelope} = Jason.decode(String.trim(status_json_output))
+    status_payload = status_envelope["data"]
     assert get_in(status_payload, ["session", "title"]) == "Runtime CLI session"
     assert get_in(status_payload, ["autonomy_profile", "mode"])
     assert is_list(status_payload["suggested_next_steps"])
@@ -417,7 +418,8 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(ctx, project_root: tmp_dir)
       end)
 
-    assert {:ok, ctx_payload} = Jason.decode(String.trim(ctx_output))
+    assert {:ok, ctx_envelope} = Jason.decode(String.trim(ctx_output))
+      ctx_payload = ctx_envelope["data"]
     assert ctx_payload["session_id"] == session.id
 
     assert {:ok, val} =
@@ -435,7 +437,8 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(val, project_root: tmp_dir)
       end)
 
-    assert {:ok, val_payload} = Jason.decode(String.trim(val_output))
+    assert {:ok, val_envelope} = Jason.decode(String.trim(val_output))
+      val_payload = val_envelope["data"]
     assert is_binary(val_payload["decision"])
   end
 
@@ -489,7 +492,8 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(findings_json, project_root: tmp_dir)
       end)
 
-    assert {:ok, findings_payload} = Jason.decode(String.trim(findings_json_output))
+    assert {:ok, findings_envelope} = Jason.decode(String.trim(findings_json_output))
+    findings_payload = findings_envelope["data"]
     assert get_in(findings_payload, ["summary", "matched"]) == 1
     assert [%{"title" => "Patch validation missing"}] = findings_payload["entries"]
   end
@@ -1331,7 +1335,8 @@ defmodule ControlKeel.CLIRuntimeTest do
                  )
       end)
 
-    assert {:ok, proofs_payload} = Jason.decode(String.trim(proofs_json_output))
+    assert {:ok, proofs_envelope} = Jason.decode(String.trim(proofs_json_output))
+    proofs_payload = proofs_envelope["data"]
     assert get_in(proofs_payload, ["summary", "matched"]) == 1
     assert [%{"task_title" => "CLI proof task"}] = proofs_payload["entries"]
 
@@ -1462,7 +1467,8 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(list_json, project_root: tmp_dir)
       end)
 
-    assert {:ok, list_payload} = Jason.decode(String.trim(list_json_output))
+    assert {:ok, list_envelope} = Jason.decode(String.trim(list_json_output))
+    list_payload = list_envelope["data"]
     assert get_in(list_payload, ["summary", "suite_count"]) >= 1
     assert Enum.any?(list_payload["subjects"], &(&1["id"] == "manual_subject"))
 
@@ -1763,6 +1769,21 @@ defmodule ControlKeel.CLIRuntimeTest do
       "kilo",
       "kilo.json"
     ])
+  end
+
+
+  # Unwrap the CLI success envelope for test assertions.
+  # The execute/1 interceptor wraps all JSON output in:
+  #   {"status" => "ok", "command" => "...", "data" => <payload>, "version" => "..."}
+  # This helper extracts the data payload so tests can assert on the original structure.
+  defp decode_cli_json(output) do
+    decoded = Jason.decode!(output)
+
+    case decoded do
+      %{"status" => "ok", "data" => data} -> data
+      %{"status" => "error"} -> decoded
+      other -> other
+    end
   end
 
   describe "sandbox commands" do

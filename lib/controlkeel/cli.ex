@@ -28,6 +28,7 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Governance.CircuitBreaker
   alias ControlKeel.Governance.PreCommitHook
   alias ControlKeel.Governance.Socket, as: GovernanceSocket
+  alias ControlKeel.CLI.Catalog
   alias ControlKeel.Help
   alias ControlKeel.Intent
   alias ControlKeel.Findings.PlainEnglish
@@ -990,6 +991,7 @@ defmodule ControlKeel.CLI do
 
     case run_command(parsed, project_root) do
       {:ok, lines} ->
+        lines = maybe_wrap_success_envelope(parsed, lines)
         Enum.each(List.wrap(lines), printer)
         0
 
@@ -1001,6 +1003,46 @@ defmodule ControlKeel.CLI do
         1
     end
   end
+
+  # Commands whose JSON output is machine-to-machine data (export/import round-trips)
+  # and should NOT be wrapped in the success envelope.
+  @skip_envelope_commands ~w(obs_export obs_import audit_export)a
+
+  defp maybe_wrap_success_envelope(parsed, lines) do
+    options = Map.get(parsed, :options, %{})
+    json? = options[:json] == true or options[:format] == "json"
+    skip? = parsed.command in @skip_envelope_commands
+
+    if json? and not skip? and is_list(lines) and length(lines) == 1 do
+      [line] = lines
+
+      if is_binary(line) and String.starts_with?(line, "{") do
+        case Jason.decode(line) do
+          {:ok, %{"status" => status}} when status in ["ok", "error"] ->
+            lines
+
+          {:ok, payload} ->
+            command_path = catalog_path_for_command(parsed.command)
+            [ControlKeel.CLI.Output.success_json(command_path, payload, version: version())]
+
+          {:error, _} ->
+            lines
+        end
+      else
+        lines
+      end
+    else
+      lines
+    end
+  end
+
+  defp catalog_path_for_command(command) when is_atom(command) do
+    case Catalog.for_command(command) do
+      nil -> command |> Atom.to_string() |> String.replace("_", " ")
+      entry -> entry.path
+    end
+  end
+
 
   def version do
     Application.spec(:controlkeel, :vsn)

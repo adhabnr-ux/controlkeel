@@ -42,6 +42,21 @@ defmodule ControlKeel.CLI.NewCommandsTest do
     {:ok, tmp_dir: tmp_dir}
   end
 
+
+  # Unwrap the CLI success envelope for test assertions.
+  # The execute/1 interceptor wraps all JSON output in:
+  #   {"status" => "ok", "command" => "...", "data" => <payload>, "version" => "..."}
+  # This helper extracts the data payload so tests can assert on the original structure.
+  defp decode_cli_json(output) do
+    decoded = Jason.decode!(output)
+
+    case decoded do
+      %{"status" => "ok", "data" => data} -> data
+      %{"status" => "error"} -> decoded
+      other -> other
+    end
+  end
+
   describe "deploy commands" do
     test "deploy analyze parses and runs", %{tmp_dir: tmp_dir} do
       File.write!(Path.join(tmp_dir, "mix.exs"), "defmodule My.App do\nuse Mix.Project\nend")
@@ -341,7 +356,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  outside_dir
                )
 
-      payload = Jason.decode!(submit_json)
+      payload = decode_cli_json(submit_json)
       assert get_in(payload, ["review", "session_id"]) == session.id
       assert is_integer(get_in(payload, ["review", "id"]))
     end
@@ -363,7 +378,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  tmp_dir
                )
 
-      payload = Jason.decode!(submit_json)
+      payload = decode_cli_json(submit_json)
       review_id = get_in(payload, ["review", "id"])
 
       assert is_integer(review_id)
@@ -416,7 +431,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  tmp_dir
                )
 
-      payload = Jason.decode!(submit_json)
+      payload = decode_cli_json(submit_json)
       review_id = get_in(payload, ["review", "id"])
 
       assert is_integer(review_id)
@@ -429,7 +444,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  tmp_dir
                )
 
-      open_payload = Jason.decode!(open_json)
+      open_payload = decode_cli_json(open_json)
       assert open_payload["browser_url"] =~ "/reviews/#{review_id}"
       assert open_payload["open_target"] == "manual"
       assert open_payload["opened"] == false
@@ -457,7 +472,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  tmp_dir
                )
 
-      wait_payload = Jason.decode!(wait_json)
+      wait_payload = decode_cli_json(wait_json)
       assert get_in(wait_payload, ["review", "status"]) == "approved"
     end
 
@@ -477,7 +492,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  tmp_dir
                )
 
-      review_id = get_in(Jason.decode!(submit_json), ["review", "id"])
+      review_id = get_in(decode_cli_json(submit_json), ["review", "id"])
 
       assert {:ok, [_respond_json]} =
                CLI.run_command(
@@ -499,7 +514,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  tmp_dir
                )
 
-      wait_payload = Jason.decode!(wait_json)
+      wait_payload = decode_cli_json(wait_json)
       assert get_in(wait_payload, ["review", "status"]) == "denied"
       assert wait_payload["agent_feedback"] =~ "YOUR PLAN WAS NOT APPROVED"
       assert wait_payload["agent_feedback"] =~ "Add tests first"
@@ -525,7 +540,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  tmp_dir
                )
 
-      wait_payload = Jason.decode!(wait_json)
+      wait_payload = decode_cli_json(wait_json)
       assert wait_payload["message"] == "timeout"
       assert wait_payload["timed_out"] == true
       assert wait_payload["status"] == "pending"
@@ -694,7 +709,8 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                    )
         end)
 
-      assert {:ok, payload} = Jason.decode(String.trim(json_output))
+      assert {:ok, envelope} = Jason.decode(String.trim(json_output))
+      payload = envelope["data"]
       assert payload["session_id"] == session.id
       assert get_in(payload, ["current_task", "title"]) == "Live task"
     end
@@ -1093,7 +1109,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  tmp_dir
                )
 
-      decoded = Jason.decode!(payload)
+      decoded = decode_cli_json(payload)
       assert is_list(decoded["agents"])
       assert Enum.any?(decoded["agents"], &(&1["id"] == "opencode"))
     end
@@ -1112,7 +1128,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  tmp_dir
                )
 
-      decoded = Jason.decode!(payload)
+      decoded = decode_cli_json(payload)
       recommendation = decoded["recommendation"]
       assert is_binary(recommendation["agent"])
       assert is_list(recommendation["rationale"])
@@ -1381,7 +1397,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                "by" => "provider",
                "totals" => %{"invocations" => 1, "estimated_cost_cents" => 7},
                "groups" => [%{"name" => "anthropic"}]
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
     end
 
     test "obs imports renders persisted snapshots", %{tmp_dir: tmp_dir} do
@@ -1460,7 +1476,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                "count" => 1,
                "by_integrity" => %{"verified" => 1},
                "recent" => [%{"original_session_id" => original_session_id, "mutation" => "none"}]
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
 
       assert original_session_id == session.id
     end
@@ -1525,7 +1541,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                "days" => 3,
                "totals" => %{"runs" => 1},
                "series" => series
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
 
       assert length(series) == 3
     end
@@ -1582,7 +1598,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                    )
         end)
 
-      assert %{"count" => count, "actions" => actions} = Jason.decode!(output)
+      assert %{"count" => count, "actions" => actions} = decode_cli_json(output)
       assert count >= 1
       assert Enum.any?(actions, &(&1["title"] == "Regression eval for review.recommend"))
     end
@@ -1622,7 +1638,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                "candidates" => [
                  %{"readiness" => "needs_draft", "rule_id" => "security.cli_promotion"}
                ]
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
     end
 
     test "obs benchmarks history reports readiness as json", %{tmp_dir: tmp_dir} do
@@ -1662,7 +1678,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                    )
         end)
 
-      %{"drafts" => [%{"id" => draft_id}]} = Jason.decode!(draft_output)
+      %{"drafts" => [%{"id" => draft_id}]} = decode_cli_json(draft_output)
 
       capture_io(fn ->
         assert 0 ==
@@ -1690,7 +1706,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert %{
                "coverage" => %{"materialized_scenarios" => 1, "benchmark_runs" => 0},
                "readiness" => %{"status" => "yellow"}
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
     end
 
     test "obs benchmarks run dry-run previews without creating runs", %{tmp_dir: tmp_dir} do
@@ -1731,7 +1747,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                    )
         end)
 
-      %{"drafts" => [%{"id" => draft_id}]} = Jason.decode!(draft_output)
+      %{"drafts" => [%{"id" => draft_id}]} = decode_cli_json(draft_output)
 
       capture_io(fn ->
         assert 0 ==
@@ -1823,7 +1839,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                    )
         end)
 
-      %{"drafts" => [%{"id" => draft_id}]} = Jason.decode!(draft_output)
+      %{"drafts" => [%{"id" => draft_id}]} = decode_cli_json(draft_output)
 
       capture_io(fn ->
         assert 0 ==
@@ -1883,7 +1899,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                    )
         end)
 
-      %{"drafts" => [%{"id" => draft_id}]} = Jason.decode!(draft_output)
+      %{"drafts" => [%{"id" => draft_id}]} = decode_cli_json(draft_output)
 
       capture_io(fn ->
         assert 0 ==
@@ -1911,7 +1927,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert %{
                "count" => 1,
                "scenarios" => [%{"expected_rules" => ["review.cli_scenario"]}]
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
     end
 
     test "obs benchmarks draft generates local drafts", %{tmp_dir: tmp_dir} do
@@ -1992,7 +2008,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                "count" => 1,
                "by_status" => %{"draft" => 1},
                "drafts" => [%{"status" => "draft", "human_gate_required" => true}]
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
     end
 
     test "obs benchmarks approve updates a local draft status", %{tmp_dir: tmp_dir} do
@@ -2076,7 +2092,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert %{
                "benchmark_runs" => %{"count" => count, "recent" => [_ | _]},
                "health" => %{"status" => _}
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
 
       assert count >= 1
     end
@@ -2146,7 +2162,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                "candidates" => [
                  %{"rule_id" => "review.cli_saved_eval", "human_gate_required" => true}
                ]
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
     end
 
     test "obs evals renders advisory eval candidates", %{tmp_dir: tmp_dir} do
@@ -2202,7 +2218,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
         end)
 
       assert %{"count" => 1, "candidates" => [%{"rule_id" => "review.eval_json"}]} =
-               Jason.decode!(output)
+               decode_cli_json(output)
     end
 
     test "obs compare renders invocation comparison", %{tmp_dir: tmp_dir} do
@@ -2274,7 +2290,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert %{
                "by" => "model",
                "groups" => [%{"name" => "claude-sonnet", "decisions" => %{"warn" => 1}}]
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
     end
 
     test "obs timeline renders current session events", %{tmp_dir: tmp_dir} do
@@ -2337,7 +2353,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert %{
                "session" => %{"id" => id},
                "events" => [%{"event_type" => "review_submitted"} | _]
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
 
       assert id == session.id
     end
@@ -2396,7 +2412,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                "stale_days" => 7,
                "totals" => %{"records" => records},
                "distributions" => %{"by_source" => %{"agent" => agent_records}}
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
 
       assert records >= 1
       assert agent_records >= 1
@@ -2454,7 +2470,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert %{
                "session" => %{"id" => id},
                "memory" => %{"active" => active, "recent" => recent}
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
 
       assert id == session.id
       assert active >= 1
@@ -2485,7 +2501,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
         end)
 
       assert %{"count" => 1, "problems" => [%{"rule_id" => "review.required"}]} =
-               Jason.decode!(output)
+               decode_cli_json(output)
     end
 
     test "obs run supports json output", %{tmp_dir: _tmp_dir} do
@@ -2501,7 +2517,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                    )
         end)
 
-      assert %{"session" => %{"id" => id}, "health" => %{"status" => _}} = Jason.decode!(output)
+      assert %{"session" => %{"id" => id}, "health" => %{"status" => _}} = decode_cli_json(output)
       assert id == session.id
     end
 
@@ -2525,7 +2541,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  "import_mutation_allowed" => false,
                  "payload_sha256" => payload_sha256
                }
-             } = Jason.decode!(output)
+             } = decode_cli_json(output)
 
       assert id == session.id
       assert payload_sha256 =~ ~r/^[a-f0-9]{64}$/
