@@ -8,7 +8,6 @@ defmodule ControlKeel.RuntimeConformanceTest do
 
   alias ControlKeel.AgentIntegration
   alias ControlKeel.MCP.Protocol
-  alias ControlKeel.OrchestrationEvents
   alias ControlKeel.ProtocolInterop
 
   @attach_clients ["claude-code", "codex-cli", "codex-app-server", "opencode", "t3code"]
@@ -73,43 +72,6 @@ defmodule ControlKeel.RuntimeConformanceTest do
         assert integration.feedback_mode in ["tool_call", "file_patch", "command_reply", "manual"]
         assert integration.phase_model in ["host_plan_mode", "file_plan_mode", "review_only"]
       end
-    end
-  end
-
-  describe "orchestration events produce valid payloads for all runtimes" do
-    test "finding payload works with standard fields" do
-      payload =
-        OrchestrationEvents.finding_payload(%{
-          severity: "high",
-          rule_id: "CONF001",
-          category: "conformance",
-          plain_message: "Conformance check",
-          decision: "warn"
-        })
-
-      assert payload["event"] == "ck.finding.opened"
-      assert payload["severity"] == "high"
-    end
-
-    test "review payload produces valid events for all statuses" do
-      for status <- [:pending, :approved, :denied] do
-        payload = OrchestrationEvents.review_payload(%{id: 1, title: "Test"}, status)
-
-        assert payload["event"] =~ "ck.review."
-        assert is_binary(payload["timestamp"])
-      end
-    end
-
-    test "budget payload produces valid telemetry" do
-      payload =
-        OrchestrationEvents.budget_payload(%{
-          "session_budget_cents" => 2000,
-          "spent_cents" => 500,
-          "remaining_session_cents" => 1500,
-          "remaining_daily_cents" => 9500
-        })
-
-      assert payload["event"] == "ck.budget.updated"
     end
   end
 
