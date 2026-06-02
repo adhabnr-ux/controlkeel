@@ -174,11 +174,12 @@ defmodule ControlKeel.CLI do
       %{family: family} ->
         module = dispatch_module(family)
         module.run_command(parsed, project_root)
+
       nil ->
         {:error, "Unknown command: #{command}"}
     end
   end
-  
+
   def run_command(_parsed, _project_root) do
     {:error, "Invalid command payload"}
   end
@@ -194,11 +195,16 @@ defmodule ControlKeel.CLI do
   defp dispatch_module(:skills_plugins_hooks), do: ControlKeel.CLI.Dispatch.SkillsPluginsHooks
   defp dispatch_module(:cloud_selfhost), do: ControlKeel.CLI.Dispatch.CloudSelfhost
   defp dispatch_module(:providers_budget), do: ControlKeel.CLI.Dispatch.ProvidersBudget
-  defp dispatch_module(:sandbox_security_code_mode), do: ControlKeel.CLI.Dispatch.SandboxSecurityCodeMode
-  defp dispatch_module(:benchmarks_harness), do: ControlKeel.CLI.Dispatch.BenchmarksHarness
-  defp dispatch_module(:deployment_portability), do: ControlKeel.CLI.Dispatch.DeploymentPortability
-  defp dispatch_module(:learning_loop), do: ControlKeel.CLI.Dispatch.LearningLoop
 
+  defp dispatch_module(:sandbox_security_code_mode),
+    do: ControlKeel.CLI.Dispatch.SandboxSecurityCodeMode
+
+  defp dispatch_module(:benchmarks_harness), do: ControlKeel.CLI.Dispatch.BenchmarksHarness
+
+  defp dispatch_module(:deployment_portability),
+    do: ControlKeel.CLI.Dispatch.DeploymentPortability
+
+  defp dispatch_module(:learning_loop), do: ControlKeel.CLI.Dispatch.LearningLoop
 
   def format_default_branch(nil), do: ""
   def format_default_branch(""), do: ""
@@ -1970,7 +1976,7 @@ defmodule ControlKeel.CLI do
   def review_feedback_lines(_review), do: []
 
   def format_review_feedback_error(%{feedback_notes: notes})
-       when is_binary(notes) and notes != "" do
+      when is_binary(notes) and notes != "" do
     " Feedback: #{notes}"
   end
 
@@ -2654,18 +2660,18 @@ defmodule ControlKeel.CLI do
   end
 
   def native_attach_lines(agent, project_root, options)
-       when agent in [
-              "cursor",
-              "windsurf",
-              "kiro",
-              "kilo",
-              "amp",
-              "augment",
-              "opencode",
-              "gemini-cli",
-              "continue",
-              "aider"
-            ] do
+      when agent in [
+             "cursor",
+             "windsurf",
+             "kiro",
+             "kilo",
+             "amp",
+             "augment",
+             "opencode",
+             "gemini-cli",
+             "continue",
+             "aider"
+           ] do
     if native_attach_skipped?(options) do
       []
     else

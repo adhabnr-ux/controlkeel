@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.Core do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :serve}, _project_root), do: :ok
 
   def run_command(%{command: :capabilities, options: options}, _project_root) do
@@ -353,5 +353,4 @@ defmodule ControlKeel.CLI.Dispatch.Core do
       end
     end
   end
-
 end

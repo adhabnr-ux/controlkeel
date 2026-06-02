@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.Governance do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :release_ready, options: options}, project_root) do
     root = options[:project_root] || project_root
 
@@ -529,5 +529,4 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
       {:ok, ["Findings in plain English:", "" | tl(lines)]}
     end
   end
-
 end

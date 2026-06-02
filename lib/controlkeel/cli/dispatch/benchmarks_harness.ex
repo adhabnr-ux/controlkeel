@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.BenchmarksHarness do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.BenchmarksHarness do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :eval_list, options: _options}, _project_root) do
     alias ControlKeel.Cloud.EvalRunner
 
@@ -347,5 +347,4 @@ defmodule ControlKeel.CLI.Dispatch.BenchmarksHarness do
         {:error, "Benchmark run was not found."}
     end
   end
-
 end

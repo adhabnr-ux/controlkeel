@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.MemoryContinuity do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.MemoryContinuity do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :session_list}, _project_root) do
     sessions = Mission.list_recent_sessions(20)
 
@@ -123,5 +123,4 @@ defmodule ControlKeel.CLI.Dispatch.MemoryContinuity do
         {:error, "Failed to load local project: #{inspect(reason)}"}
     end
   end
-
 end

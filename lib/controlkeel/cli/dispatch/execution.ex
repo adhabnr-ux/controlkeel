@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.Execution do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.Execution do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(
         %{command: :run_cloud_agent, options: options, args: [task_id_str]},
         project_root
@@ -407,5 +407,4 @@ defmodule ControlKeel.CLI.Dispatch.Execution do
         {:error, "Missing required option --#{option}"}
     end
   end
-
 end

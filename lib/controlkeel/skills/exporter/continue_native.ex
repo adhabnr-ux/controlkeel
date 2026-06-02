@@ -38,7 +38,11 @@ defmodule ControlKeel.Skills.Exporter.ContinueNative do
     File.write!(last_command_path, E.host_last_command_contents("Continue"))
 
     config_path = Path.join(root, ".continue/mcp.json")
-    File.write!(config_path, Jason.encode!(E.mcp_payload(project_root, opts), pretty: true) <> "\n")
+
+    File.write!(
+      config_path,
+      Jason.encode!(E.mcp_payload(project_root, opts), pretty: true) <> "\n"
+    )
 
     mcp_server_path = Path.join(root, ".continue/mcpServers/controlkeel.yaml")
     File.mkdir_p!(Path.dirname(mcp_server_path))

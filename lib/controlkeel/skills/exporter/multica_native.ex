@@ -9,7 +9,11 @@ defmodule ControlKeel.Skills.Exporter.MulticaNative do
 
     config_path = Path.join(root, ".multica/controlkeel-mcp.json")
     File.mkdir_p!(Path.dirname(config_path))
-    File.write!(config_path, Jason.encode!(E.mcp_payload(project_root, opts), pretty: true) <> "\n")
+
+    File.write!(
+      config_path,
+      Jason.encode!(E.mcp_payload(project_root, opts), pretty: true) <> "\n"
+    )
 
     agents_path = Path.join(root, "AGENTS.md")
     File.write!(agents_path, E.instructions_only_contents("multica", project_root, opts))

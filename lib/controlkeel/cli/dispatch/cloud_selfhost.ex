@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :cloud_doctor, options: _options}, _project_root) do
     report = ControlKeel.Cloud.Doctor.report()
     lines = ControlKeel.Cloud.Doctor.format(report)
@@ -690,5 +690,4 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
         {:error, "Failed to replay webhook: #{inspect(reason)}"}
     end
   end
-
 end

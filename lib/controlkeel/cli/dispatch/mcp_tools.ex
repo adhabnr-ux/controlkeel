@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.McpTools do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.McpTools do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :mcp_guardrails_list, options: _options}, _project_root) do
     alias ControlKeel.Cloud.Guardrails
 
@@ -216,5 +216,4 @@ defmodule ControlKeel.CLI.Dispatch.McpTools do
       end
     end)
   end
-
 end

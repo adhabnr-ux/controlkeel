@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.DeploymentPortability do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.DeploymentPortability do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :runtime_export, args: ["open-swe"], options: options}, project_root) do
     root = resolve_project_root(options, project_root)
     snapshot = SetupAdvisor.snapshot(root)
@@ -338,5 +338,4 @@ defmodule ControlKeel.CLI.Dispatch.DeploymentPortability do
       {:ok, lines}
     end
   end
-
 end

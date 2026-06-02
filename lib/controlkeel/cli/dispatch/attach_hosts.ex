@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :attach, args: ["claude-code"], options: options}, project_root) do
     root = options[:project_root] || project_root
 
@@ -563,5 +563,4 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
       end
     end
   end
-
 end

@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.SandboxSecurityCodeMode do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.SandboxSecurityCodeMode do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :sandbox_status}, _project_root) do
     adapters = ExecutionSandbox.supported_adapters()
 
@@ -256,5 +256,4 @@ defmodule ControlKeel.CLI.Dispatch.SandboxSecurityCodeMode do
       end
     end
   end
-
 end

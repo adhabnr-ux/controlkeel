@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.LearningLoop do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.LearningLoop do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :outcome_record, args: [session_id, outcome]}, _project_root) do
     with {sid, ""} <- Integer.parse(session_id),
          {:ok, outcome_atom} <-
@@ -110,5 +110,4 @@ defmodule ControlKeel.CLI.Dispatch.LearningLoop do
         {:ok, ["Agent Leaderboard:", "" | lines]}
     end
   end
-
 end

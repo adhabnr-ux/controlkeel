@@ -790,7 +790,6 @@ defmodule ControlKeel.SkillsTest do
       File.read!(Path.join(claude_plan.output_dir, "agents/controlkeel-operator.md"))
 
     assert claude_export_agent =~ "controlkeel update --json"
-
   end
 
   test "export and claude install stay idempotent with pre-existing dist and partial skill trees",

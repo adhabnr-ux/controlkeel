@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.ProvidersBudget do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.ProvidersBudget do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :workspace_tool_policy_get, options: options}, _project_root) do
     with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id") do
       policy = Accounts.get_workspace_tool_policy(workspace_id)
@@ -323,5 +323,4 @@ defmodule ControlKeel.CLI.Dispatch.ProvidersBudget do
         {:ok, ["Agent cost comparison (#{tokens} tokens):", "" | lines] ++ savings}
     end
   end
-
 end

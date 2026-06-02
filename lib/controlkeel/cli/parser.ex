@@ -444,6 +444,7 @@ defmodule ControlKeel.CLI.Parser do
 
       ["release-ready" | rest] ->
         parse_with_switches(:release_ready, rest, @release_ready_switches)
+
       ["plugin", "export", plugin | rest] ->
         parse_plugin_command(:plugin_export, plugin, rest)
 
@@ -458,11 +459,13 @@ defmodule ControlKeel.CLI.Parser do
 
       ["cloud", "connect" | rest] ->
         parse_with_switches(:cloud_connect, rest, @cloud_connect_switches)
+
       ["telemetry", "enable" | rest] ->
         parse_with_switches(:telemetry_enable, rest, @telemetry_enable_switches)
 
       ["telemetry", "disable" | rest] ->
         parse_with_switches(:telemetry_disable, rest, @telemetry_disable_switches)
+
       ["mcp", "registry", "list" | rest] ->
         parse_with_switches(:mcp_registry_list, rest, @mcp_registry_list_switches)
 
@@ -567,6 +570,7 @@ defmodule ControlKeel.CLI.Parser do
 
       ["baseline", "compute" | rest] ->
         parse_with_switches(:baseline_compute, rest, @baseline_compute_switches)
+
       ["agents", "discover", path | rest] ->
         case parse_with_switches(:agents_discover, rest, @agents_discover_switches) do
           {:ok, parsed} -> {:ok, Map.put(parsed, :args, [path])}

@@ -33,11 +33,19 @@ defmodule ControlKeel.Skills.Exporter.GithubRepo do
     File.write!(last_command_path, E.host_last_command_contents("GitHub Copilot"))
 
     github_mcp = Path.join(root, ".github/mcp.json")
-    File.write!(github_mcp, Jason.encode!(E.mcp_payload(project_root, opts), pretty: true) <> "\n")
+
+    File.write!(
+      github_mcp,
+      Jason.encode!(E.mcp_payload(project_root, opts), pretty: true) <> "\n"
+    )
 
     vscode_mcp = Path.join(root, ".vscode/mcp.json")
     File.mkdir_p!(Path.dirname(vscode_mcp))
-    File.write!(vscode_mcp, Jason.encode!(E.mcp_payload(project_root, opts), pretty: true) <> "\n")
+
+    File.write!(
+      vscode_mcp,
+      Jason.encode!(E.mcp_payload(project_root, opts), pretty: true) <> "\n"
+    )
 
     vscode_extensions = Path.join(root, ".vscode/extensions.json")
 

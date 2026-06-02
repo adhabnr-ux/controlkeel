@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :plugin_export, args: [plugin], options: options}, project_root) do
     root = options[:project_root] || project_root
 
@@ -347,5 +347,4 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
         {:error, ["Failed to suggest tool groups"]}
     end
   end
-
 end

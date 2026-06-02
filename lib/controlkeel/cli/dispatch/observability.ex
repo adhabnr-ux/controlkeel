@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.Observability do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :telemetry_enable, options: options}, _project_root) do
     alias ControlKeel.Cloud.TelemetryConfig
 
@@ -605,5 +605,4 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
         {:error, "Workshop snapshot must contain runs or a run with optional spans/live_events."}
     end
   end
-
 end

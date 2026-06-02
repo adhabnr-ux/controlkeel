@@ -1,6 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.Review do
   @moduledoc false
-  
+
   require Logger
   alias ControlKeel.ACPRegistry
   alias ControlKeel.AgentExecution
@@ -55,7 +55,7 @@ defmodule ControlKeel.CLI.Dispatch.Review do
   alias ControlKeel.WorkspaceContext
   alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
-  
+
   def run_command(%{command: :review_diff, options: options}, project_root) do
     root = options[:project_root] || project_root
 
@@ -282,5 +282,4 @@ defmodule ControlKeel.CLI.Dispatch.Review do
         cli_error("Failed to respond to plan review", reason, options)
     end
   end
-
 end
