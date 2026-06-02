@@ -52,6 +52,33 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
       assert Map.has_key?(props, "detail_level")
     end
 
+    test "ck_context schema matches nullable and object-shaped runtime fields" do
+      props = OutputSchemas.schema_for("ck_context")["properties"]
+
+      assert props["attach_advisory"]["type"] == "object"
+      assert props["past_patterns"]["type"] == ["object", "array"]
+      assert props["proof_summary"]["type"] == ["object", "null"]
+      assert props["current_task"]["type"] == ["object", "null"]
+      assert props["workspace_cache_key"]["type"] == ["string", "null"]
+    end
+
+    test "ck_validate schema allows nullable scanner fields" do
+      props = OutputSchemas.schema_for("ck_validate")["properties"]
+      finding_props = get_in(props, ["findings", "items", "properties"])
+
+      assert props["advisory"]["type"] == ["string", "null"]
+      assert props["trust_policy_advisory"]["type"] == ["string", "null"]
+      assert finding_props["id"]["type"] == ["string", "null"]
+      assert finding_props["location"]["type"] == ["string", "null"]
+    end
+
+    test "ck_finding schema allows nullable relationship fields" do
+      props = OutputSchemas.schema_for("ck_finding")["properties"]
+
+      assert props["extends_finding_id"]["type"] == ["integer", "null"]
+      assert props["contradicts_finding_id"]["type"] == ["integer", "null"]
+    end
+
     test "ck_finding schema has specific properties" do
       schema = OutputSchemas.schema_for("ck_finding")
       props = schema["properties"]

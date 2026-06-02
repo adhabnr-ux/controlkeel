@@ -1,6 +1,10 @@
 defmodule ControlKeel.MCP.OutputSchemas do
   @moduledoc false
 
+  @nullable_string %{"type" => ["string", "null"]}
+  @nullable_integer %{"type" => ["integer", "null"]}
+  @nullable_object %{"type" => ["object", "null"]}
+
   @schemas %{
     "ck_validate" => %{
       "type" => "object",
@@ -13,13 +17,13 @@ defmodule ControlKeel.MCP.OutputSchemas do
           "items" => %{
             "type" => "object",
             "properties" => %{
-              "id" => %{"type" => "string"},
+              "id" => @nullable_string,
               "severity" => %{"type" => "string"},
               "category" => %{"type" => "string"},
               "rule_id" => %{"type" => "string"},
               "decision" => %{"type" => "string"},
               "plain_message" => %{"type" => "string"},
-              "location" => %{"type" => "string"},
+              "location" => @nullable_string,
               "metadata" => %{"type" => "object"}
             }
           }
@@ -38,8 +42,8 @@ defmodule ControlKeel.MCP.OutputSchemas do
           }
         },
         "scanned_at" => %{"type" => "string"},
-        "advisory" => %{"type" => "string"},
-        "trust_policy_advisory" => %{"type" => "string"}
+        "advisory" => @nullable_string,
+        "trust_policy_advisory" => @nullable_string
       }
     },
     "ck_execute_code" => %{
@@ -70,22 +74,22 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "improvement_loop" => %{"type" => "object"},
         "budget_summary" => %{"type" => "object"},
         "boundary_summary" => %{"type" => "object"},
-        "current_task" => %{"type" => "object"},
-        "past_patterns" => %{"type" => "array", "items" => %{"type" => "object"}},
-        "proof_summary" => %{"type" => "object"},
+        "current_task" => @nullable_object,
+        "past_patterns" => %{"type" => ["object", "array"], "items" => %{"type" => "object"}},
+        "proof_summary" => @nullable_object,
         "planning_context" => %{"type" => "object"},
         "task_augmentation" => %{"type" => "object"},
         "memory_hits" => %{"type" => "array", "items" => %{"type" => "object"}},
         "resume_packet" => %{"type" => "object"},
         "workspace_context" => %{"type" => "object"},
-        "workspace_cache_key" => %{"type" => "string"},
+        "workspace_cache_key" => @nullable_string,
         "context_reacquisition" => %{"type" => "object"},
         "instruction_hierarchy" => %{"type" => "object"},
         "recent_events" => %{"type" => "array", "items" => %{"type" => "object"}},
         "transcript_summary" => %{"type" => "object"},
         "provider_status" => %{"type" => "object"},
-        "bootstrap_status" => %{"type" => "object"},
-        "attach_advisory" => %{"type" => "string"},
+        "bootstrap_status" => @nullable_object,
+        "attach_advisory" => %{"type" => "object"},
         "detail_level" => %{"type" => "string"}
       }
     },
@@ -137,8 +141,8 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "requires_human" => %{"type" => "boolean"},
         "resolved_finding_ids" => %{"type" => "array", "items" => %{"type" => "integer"}},
         "resolved_findings_count" => %{"type" => "integer"},
-        "extends_finding_id" => %{"type" => "integer"},
-        "contradicts_finding_id" => %{"type" => "integer"},
+        "extends_finding_id" => @nullable_integer,
+        "contradicts_finding_id" => @nullable_integer,
         "summary" => %{"type" => "string"}
       }
     },
