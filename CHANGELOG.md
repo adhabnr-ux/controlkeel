@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.38 — 2026-06-02
+
+### What's changed
+
+- docs: add text fence to README bootstrap snippet
+- Merge branch 'main' of https://github.com/aryaminus/controlkeel
+- feat: slices 7+9+11+12 - CLI parser, exporter targets, plugin registry, sandbox preflight
+- feat: slices 4+6+partial-7 - persist tool groups, task/session MCP tools, CLI parser module
+- feat: slices 1+3 - MCP outputSchema for all 54 tools, --json consistency
+- feat: slices 2+5 - JSON error envelopes, log suppression, shared tool group mapping
+
 ## v0.3.37 — 2026-06-02
 
 ### What's changed
