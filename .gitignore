@@ -159,3 +159,6 @@ Thumbs.db
 
 # Internal governance documentation (not for distribution)
 docs/governance-failure-*.md
+
+# Local tool usage telemetry (per-machine runtime state, rebuilt from scratch)
+.controlkeel/tool_usage.json
