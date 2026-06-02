@@ -94,8 +94,8 @@ defmodule ControlKeel.Skills.Exporter do
     ControlKeel.Skills.Exporter.ClaudeCode.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "claude-sdk"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.ClaudeSdk.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "claude-sdk"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.ClaudeSdk.write(root, project_root, skills, opts)
   end
 
   defp write_target(%SkillTarget{id: "cline-native"}, root, project_root, skills, opts) do
@@ -138,8 +138,8 @@ defmodule ControlKeel.Skills.Exporter do
     ControlKeel.Skills.Exporter.MulticaNative.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "multica-cloud-runtime"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.MulticaCloudRuntime.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "multica-cloud-runtime"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.MulticaCloudRuntime.write(root, project_root, skills, opts)
   end
 
   defp write_target(%SkillTarget{id: "openclaw-native"}, root, project_root, skills, opts) do
@@ -162,8 +162,8 @@ defmodule ControlKeel.Skills.Exporter do
     ControlKeel.Skills.Exporter.GithubRepo.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "vscode-companion"}, root, _project_root, _skills, _opts) do
-    ControlKeel.Skills.Exporter.VscodeCompanion.write(root, _project_root, _skills, _opts)
+  defp write_target(%SkillTarget{id: "vscode-companion"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.VscodeCompanion.write(root, project_root, skills, opts)
   end
 
   defp write_target(%SkillTarget{id: "droid-bundle"}, root, project_root, skills, opts) do
@@ -182,8 +182,8 @@ defmodule ControlKeel.Skills.Exporter do
     ControlKeel.Skills.Exporter.OpenCode.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "gemini-cli-native"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.GeminiCliNative.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "gemini-cli-native"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.GeminiCliNative.write(root, project_root, skills, opts)
   end
 
   defp write_target(%SkillTarget{id: "kiro-native"}, root, project_root, skills, opts) do
@@ -194,24 +194,24 @@ defmodule ControlKeel.Skills.Exporter do
     ControlKeel.Skills.Exporter.KiloNative.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "amp-native"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.AmpNative.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "amp-native"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.AmpNative.write(root, project_root, skills, opts)
   end
 
   defp write_target(%SkillTarget{id: "augment-native"}, root, project_root, skills, opts) do
     ControlKeel.Skills.Exporter.AugmentNative.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "instructions-only"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.InstructionsOnly.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "instructions-only"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.InstructionsOnly.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "open-swe-runtime"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.OpenSweRuntime.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "open-swe-runtime"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.OpenSweRuntime.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "devin-runtime"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.DevinRuntime.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "devin-runtime"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.DevinRuntime.write(root, project_root, skills, opts)
   end
 
   defp write_target(%SkillTarget{id: "warp-native"}, root, project_root, skills, opts) do
@@ -222,16 +222,16 @@ defmodule ControlKeel.Skills.Exporter do
     ControlKeel.Skills.Exporter.DevinTerminalNative.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "warp-oz-runtime"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.WarpOzRuntime.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "warp-oz-runtime"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.WarpOzRuntime.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "executor-runtime"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.ExecutorRuntime.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "executor-runtime"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.ExecutorRuntime.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "virtual-bash-runtime"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.VirtualBashRuntime.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "virtual-bash-runtime"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.VirtualBashRuntime.write(root, project_root, skills, opts)
   end
 
   defp write_target(
@@ -348,12 +348,12 @@ defmodule ControlKeel.Skills.Exporter do
     )
   end
 
-  defp write_target(%SkillTarget{id: "framework-adapter"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.FrameworkAdapter.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "framework-adapter"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.FrameworkAdapter.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "provider-profile"}, root, project_root, _skills, opts) do
-    ControlKeel.Skills.Exporter.ProviderProfile.write(root, project_root, _skills, opts)
+  defp write_target(%SkillTarget{id: "provider-profile"}, root, project_root, skills, opts) do
+    ControlKeel.Skills.Exporter.ProviderProfile.write(root, project_root, skills, opts)
   end
 
   defp write_target(%SkillTarget{id: "antigravity-cli-native"}, root, project_root, skills, opts) do

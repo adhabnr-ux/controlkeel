@@ -1,59 +1,11 @@
 defmodule ControlKeel.CLI.Dispatch.ProvidersBudget do
   @moduledoc false
 
-  require Logger
-  alias ControlKeel.ACPRegistry
-  alias ControlKeel.AgentExecution
-  alias ControlKeel.AgentIntegration
-  alias ControlKeel.AgentRouter
-  alias ControlKeel.AttachedAgentSync
-  alias ControlKeel.Analytics
-  alias ControlKeel.AutonomyLoop
-  alias ControlKeel.Benchmark
-  alias ControlKeel.Budget
   alias ControlKeel.Budget.CostOptimizer
-  alias ControlKeel.ClaudeCLI
-  alias ControlKeel.CodexConfig
-  alias ControlKeel.Distribution
-  alias ControlKeel.Deployment.Advisor
-  alias ControlKeel.Deployment.HostingCost
-  alias ControlKeel.Governance
-  alias ControlKeel.Governance.AgentMonitor
-  alias ControlKeel.Governance.CircuitBreaker
-  alias ControlKeel.Governance.PreCommitHook
-  alias ControlKeel.Governance.Socket, as: GovernanceSocket
-  alias ControlKeel.CLI.Catalog
-  alias ControlKeel.CLI.Parser
-  alias ControlKeel.Help
-  alias ControlKeel.Intent
-  alias ControlKeel.Findings.PlainEnglish
-  alias ControlKeel.Learning.OutcomeTracker
-  alias ControlKeel.LocalProject
-  alias ControlKeel.Memory
-  alias ControlKeel.MCP.Tools.CkContext
-  alias ControlKeel.MCP.Tools.CkValidate
-  alias ControlKeel.Mission
-  alias ControlKeel.Observability
-  alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
-  alias ControlKeel.Observability.Workshop, as: ObservabilityWorkshop
   alias ControlKeel.Accounts
   alias ControlKeel.Accounts.WorkspaceToolPolicy
-  alias ControlKeel.Platform
   alias ControlKeel.ProviderBroker
   alias ControlKeel.ProviderConfig
-  alias ControlKeel.ProtocolAccess
-  alias ControlKeel.ProjectBinding
-  alias ControlKeel.ProjectRoot
-  alias ControlKeel.ReviewBridge
-  alias ControlKeel.Updater
-  alias ControlKeel.ExecutionSandbox
-  alias ControlKeel.Proxy
-  alias ControlKeel.RuntimePaths
-  alias ControlKeel.SetupAdvisor
-  alias ControlKeel.Skills
-  alias ControlKeel.TaskAugmentation
-  alias ControlKeel.WorkspaceContext
-  alias ControlKeelWeb.Endpoint
   import ControlKeel.CLI, except: [run_command: 2]
 
   def run_command(%{command: :workspace_tool_policy_get, options: options}, _project_root) do

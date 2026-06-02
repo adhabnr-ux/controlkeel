@@ -240,7 +240,6 @@ defmodule ControlKeel.CLI.Parser do
     project_root: :string,
     json: :boolean
   ]
-  @govern_install_switches [project_root: :string, json: :boolean]
   @plugin_switches [project_root: :string, scope: :string, mode: :string, json: :boolean]
   @agents_doctor_switches [project_root: :string, json: :boolean]
   @cloud_doctor_switches [project_root: :string, json: :boolean]

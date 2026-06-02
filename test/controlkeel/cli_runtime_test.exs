@@ -834,6 +834,154 @@ defmodule ControlKeel.CLIRuntimeTest do
     assert release_output =~ "Release readiness: blocked"
   end
 
+  test "runtime export emits the Open SWE headless bundle", %{tmp_dir: tmp_dir} do
+    assert {:ok, export} = CLI.parse(["runtime", "export", "open-swe", "--project-root", tmp_dir])
+
+    output =
+      capture_io(fn ->
+        assert 0 == CLI.execute(export, project_root: tmp_dir)
+      end)
+
+    resolved_root = ProjectRoot.resolve(tmp_dir)
+
+    assert output =~ "Prepared Open SWE runtime export."
+    assert output =~ "Project root: #{resolved_root}"
+    assert File.exists?(Path.join(tmp_dir, "controlkeel/dist/open-swe-runtime/AGENTS.md"))
+
+    assert File.exists?(
+             Path.join(tmp_dir, "controlkeel/dist/open-swe-runtime/open-swe/README.md")
+           )
+  end
+
+  test "runtime export emits the Devin headless bundle", %{tmp_dir: tmp_dir} do
+    assert {:ok, export} = CLI.parse(["runtime", "export", "devin", "--project-root", tmp_dir])
+
+    output =
+      capture_io(fn ->
+        assert 0 == CLI.execute(export, project_root: tmp_dir)
+      end)
+
+    resolved_root = ProjectRoot.resolve(tmp_dir)
+
+    assert output =~ "Prepared Devin runtime export."
+    assert output =~ "Project root: #{resolved_root}"
+    assert File.exists?(Path.join(tmp_dir, "controlkeel/dist/devin-runtime/AGENTS.md"))
+    assert File.exists?(Path.join(tmp_dir, "controlkeel/dist/devin-runtime/devin/README.md"))
+
+    assert File.exists?(
+             Path.join(tmp_dir, "controlkeel/dist/devin-runtime/devin/controlkeel-mcp.json")
+           )
+  end
+
+  test "runtime export emits the Executor headless bundle", %{tmp_dir: tmp_dir} do
+    assert {:ok, export} = CLI.parse(["runtime", "export", "executor", "--project-root", tmp_dir])
+
+    output =
+      capture_io(fn ->
+        assert 0 == CLI.execute(export, project_root: tmp_dir)
+      end)
+
+    resolved_root = ProjectRoot.resolve(tmp_dir)
+
+    assert output =~ "Prepared Executor runtime export."
+    assert output =~ "Project root: #{resolved_root}"
+    assert File.exists?(Path.join(tmp_dir, "controlkeel/dist/executor-runtime/AGENTS.md"))
+
+    assert File.exists?(
+             Path.join(tmp_dir, "controlkeel/dist/executor-runtime/executor/README.md")
+           )
+
+    assert File.exists?(
+             Path.join(
+               tmp_dir,
+               "controlkeel/dist/executor-runtime/executor/controlkeel-sources.example.ts"
+             )
+           )
+  end
+
+  test "runtime export emits the Warp Oz headless bundle", %{tmp_dir: tmp_dir} do
+    assert {:ok, export} = CLI.parse(["runtime", "export", "warp-oz", "--project-root", tmp_dir])
+
+    output =
+      capture_io(fn ->
+        assert 0 == CLI.execute(export, project_root: tmp_dir)
+      end)
+
+    resolved_root = ProjectRoot.resolve(tmp_dir)
+
+    assert output =~ "Prepared Warp Oz runtime export."
+    assert output =~ "Project root: #{resolved_root}"
+    assert File.exists?(Path.join(tmp_dir, "controlkeel/dist/warp-oz-runtime/AGENTS.md"))
+    assert File.exists?(Path.join(tmp_dir, "controlkeel/dist/warp-oz-runtime/warp-oz/README.md"))
+
+    assert File.exists?(
+             Path.join(
+               tmp_dir,
+               "controlkeel/dist/warp-oz-runtime/warp-oz/controlkeel-agent-config.json"
+             )
+           )
+  end
+
+  test "runtime export emits the Cloudflare Workers headless bundle", %{tmp_dir: tmp_dir} do
+    assert {:ok, export} =
+             CLI.parse(["runtime", "export", "cloudflare-workers", "--project-root", tmp_dir])
+
+    output =
+      capture_io(fn ->
+        assert 0 == CLI.execute(export, project_root: tmp_dir)
+      end)
+
+    resolved_root = ProjectRoot.resolve(tmp_dir)
+
+    assert output =~ "Prepared Cloudflare Workers runtime export."
+    assert output =~ "Project root: #{resolved_root}"
+
+    assert File.exists?(
+             Path.join(tmp_dir, "controlkeel/dist/cloudflare-workers-runtime/AGENTS.md")
+           )
+
+    assert File.exists?(
+             Path.join(
+               tmp_dir,
+               "controlkeel/dist/cloudflare-workers-runtime/cloudflare-workers/README.md"
+             )
+           )
+
+    assert File.exists?(
+             Path.join(
+               tmp_dir,
+               "controlkeel/dist/cloudflare-workers-runtime/cloudflare-workers/wrangler.toml"
+             )
+           )
+  end
+
+  test "runtime export emits the virtual bash headless bundle", %{tmp_dir: tmp_dir} do
+    assert {:ok, export} =
+             CLI.parse(["runtime", "export", "virtual-bash", "--project-root", tmp_dir])
+
+    output =
+      capture_io(fn ->
+        assert 0 == CLI.execute(export, project_root: tmp_dir)
+      end)
+
+    resolved_root = ProjectRoot.resolve(tmp_dir)
+
+    assert output =~ "Prepared virtual bash runtime export."
+    assert output =~ "Project root: #{resolved_root}"
+    assert File.exists?(Path.join(tmp_dir, "controlkeel/dist/virtual-bash-runtime/AGENTS.md"))
+
+    assert File.exists?(
+             Path.join(tmp_dir, "controlkeel/dist/virtual-bash-runtime/virtual-bash/README.md")
+           )
+
+    assert File.exists?(
+             Path.join(
+               tmp_dir,
+               "controlkeel/dist/virtual-bash-runtime/virtual-bash/controlkeel-runtime.json"
+             )
+           )
+  end
+
   test "runtime proofs, pause, resume, and memory search operate on the bound session", %{
     tmp_dir: tmp_dir
   } do
@@ -1246,28 +1394,6 @@ defmodule ControlKeel.CLIRuntimeTest do
 
   defp project_codex_config_path(project_root) do
     Path.join([project_root, ".codex", "config.toml"])
-  end
-
-  defp goose_config_path do
-    Path.join([System.get_env("HOME") || System.user_home!(), ".config", "goose", "config.yaml"])
-  end
-
-  defp opencode_canonical_config_path do
-    Path.join([
-      System.get_env("HOME") || System.user_home!(),
-      ".config",
-      "opencode",
-      "opencode.json"
-    ])
-  end
-
-  defp kilo_config_path do
-    Path.join([
-      System.get_env("HOME") || System.user_home!(),
-      ".config",
-      "kilo",
-      "kilo.json"
-    ])
   end
 
   # Unwrap the CLI success envelope for test assertions.
