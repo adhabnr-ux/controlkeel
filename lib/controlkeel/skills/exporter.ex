@@ -4568,7 +4568,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => repo_hook_command(".codex/hooks/ck-session-start.sh"),
+                "command" => global_hook_command(".codex/hooks/ck-session-start.sh"),
                 "statusMessage" => "Loading ControlKeel context",
                 "timeout" => 10
               }
@@ -4581,7 +4581,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => repo_hook_command(".codex/hooks/ck-validate-shell.sh"),
+                "command" => global_hook_command(".codex/hooks/ck-validate-shell.sh"),
                 "statusMessage" => "Checking Bash command with ControlKeel",
                 "timeout" => 15
               }
@@ -4594,7 +4594,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => repo_hook_command(".codex/hooks/ck-post-tool-use.sh"),
+                "command" => global_hook_command(".codex/hooks/ck-post-tool-use.sh"),
                 "statusMessage" => "Reviewing Bash output with ControlKeel",
                 "timeout" => 15
               }
@@ -4605,7 +4605,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => repo_hook_command(".codex/hooks/ck-nudge-validate.sh"),
+                "command" => global_hook_command(".codex/hooks/ck-nudge-validate.sh"),
                 "statusMessage" => "ControlKeel validation nudge",
                 "timeout" => 5
               }
@@ -4616,7 +4616,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => repo_hook_command(".codex/hooks/ck-nudge-finding.sh"),
+                "command" => global_hook_command(".codex/hooks/ck-nudge-finding.sh"),
                 "statusMessage" => "ControlKeel finding nudge",
                 "timeout" => 5
               }
@@ -4628,7 +4628,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => repo_hook_command(".codex/hooks/ck-user-prompt-submit.sh"),
+                "command" => global_hook_command(".codex/hooks/ck-user-prompt-submit.sh"),
                 "timeout" => 10
               }
             ]
@@ -4639,7 +4639,7 @@ defmodule ControlKeel.Skills.Exporter do
             "hooks" => [
               %{
                 "type" => "command",
-                "command" => repo_hook_command(".codex/hooks/ck-stop.sh"),
+                "command" => global_hook_command(".codex/hooks/ck-stop.sh"),
                 "timeout" => 10
               }
             ]
@@ -5884,6 +5884,10 @@ defmodule ControlKeel.Skills.Exporter do
 
   defp repo_hook_command(relative_path) do
     "sh -c 'root=${CK_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}; exec sh \"$root/#{relative_path}\"'"
+  end
+
+  defp global_hook_command(relative_path) do
+    "sh -c 'exec sh \"$HOME/#{relative_path}\"'"
   end
 
   defp cursor_hook_scripts do

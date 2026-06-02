@@ -711,7 +711,7 @@ defmodule ControlKeel.SkillsTest do
     assert Map.has_key?(codex_hooks["hooks"], "UserPromptSubmit")
 
     codex_hooks_json = Jason.encode!(codex_hooks)
-    assert codex_hooks_json =~ "CK_PROJECT_ROOT"
+    assert codex_hooks_json =~ "$HOME"
     assert codex_hooks_json =~ ".codex/hooks/ck-session-start.sh"
     assert codex_hooks_json =~ ".codex/hooks/ck-user-prompt-submit.sh"
     refute codex_hooks_json =~ "sh .codex/hooks"
