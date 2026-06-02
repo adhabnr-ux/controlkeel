@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.36 — 2026-06-02
+
+### What's changed
+
+- fix(ci): update workflow versions and resolve vs code extension warnings
+
 ## v0.3.35 — 2026-06-02
 
 ### What's changed
