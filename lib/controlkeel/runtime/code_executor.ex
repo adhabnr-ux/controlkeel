@@ -31,6 +31,7 @@ defmodule ControlKeel.Runtime.CodeExecutor do
     language = arguments |> Map.get("language", "javascript") |> to_string() |> String.downcase()
     sandbox = arguments |> Map.get("sandbox", "docker") |> to_string() |> String.downcase()
     dry_run = Map.get(arguments, "dry_run", false) == true
+    force = Map.get(arguments, "force", false) == true
     requested_capabilities = normalize_list(Map.get(arguments, "requested_capabilities", []))
     network_allowlist = normalize_list(Map.get(arguments, "network_allowlist", []))
     risk_tier = arguments |> Map.get("risk_tier", "medium") |> to_string()
@@ -63,6 +64,7 @@ defmodule ControlKeel.Runtime.CodeExecutor do
            language: language,
            sandbox: sandbox,
            dry_run: dry_run,
+           force: force,
            requested_capabilities: requested_capabilities,
            network_allowlist: network_allowlist,
            risk_tier: risk_tier,
@@ -163,11 +165,17 @@ defmodule ControlKeel.Runtime.CodeExecutor do
     else
       {command, args} = command_for(normalized)
 
-      case ExecutionSandbox.run(command, args,
-             sandbox: "docker",
-             timeout: div(normalized.timeout_ms, 1000),
-             allowed_env_vars: normalized.allowed_env_vars
-           ) do
+      sandbox_opts =
+        [
+          sandbox: "docker",
+          timeout: div(normalized.timeout_ms, 1000),
+          allowed_env_vars: normalized.allowed_env_vars,
+          session_id: normalized.session_id,
+          requested_capabilities: normalized.requested_capabilities,
+          force: normalized.force
+        ]
+
+      case ExecutionSandbox.run(command, args, sandbox_opts) do
         {:ok, %{output: output, exit_status: status}} ->
           {:ok,
            %{

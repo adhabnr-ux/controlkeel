@@ -16,6 +16,27 @@ defmodule ControlKeel.ExecutionSandbox do
   end
 
   def run(command, args, opts \\ []) do
+    session_id = Keyword.get(opts, :session_id)
+    requested_capabilities = Keyword.get(opts, :requested_capabilities, [])
+    force = Keyword.get(opts, :force, false)
+
+    case ControlKeel.ExecutionSandbox.Preflight.check(
+           session_id,
+           requested_capabilities,
+           force: force
+         ) do
+      {:ok, :proceed} ->
+        dispatch_run(command, args, opts)
+
+      {:warn, _message, _findings} ->
+        dispatch_run(command, args, opts)
+
+      {:error, {:blocked, reason, _findings}} ->
+        {:error, {:blocked_by_policy, reason}}
+    end
+  end
+
+  defp dispatch_run(command, args, opts) do
     adapter = resolve_adapter(opts)
     adapter.run(command, args, opts)
   end
