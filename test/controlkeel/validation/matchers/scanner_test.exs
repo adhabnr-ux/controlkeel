@@ -142,27 +142,4 @@ defmodule ControlKeel.Validation.Matchers.ScannerTest do
       end
     end
   end
-
-  describe "deepsec_full_scan/1" do
-    test "accepts skip_revalidate option" do
-      # Test that the function accepts the option
-      result = Scanner.deepsec_full_scan(skip_revalidate: true)
-
-      case result do
-        {:ok, _} -> assert true
-        {:error, _} -> assert true
-        _ -> flunk("Unexpected result: #{inspect(result)}")
-      end
-    end
-
-    test "accepts session_id and task_id options" do
-      result = Scanner.deepsec_full_scan(session_id: 123, task_id: 456)
-
-      case result do
-        {:ok, _} -> assert true
-        {:error, _} -> assert true
-        _ -> flunk("Unexpected result: #{inspect(result)}")
-      end
-    end
-  end
 end

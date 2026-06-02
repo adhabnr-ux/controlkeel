@@ -25,7 +25,7 @@ jobs:
       vars.CONTROLKEEL_RELEASE_AUTOTAG_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: main

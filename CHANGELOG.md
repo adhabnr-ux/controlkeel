@@ -1,5 +1,92 @@
 # Changelog
 
+## v0.3.36 — 2026-06-02
+
+### What's changed
+
+- fix(ci): update workflow versions and resolve vs code extension warnings
+
+## v0.3.35 — 2026-06-02
+
+### What's changed
+
+- fix(tests): format project_root assignment for improved readability
+- fix(hooks): update codex hook generation to use global path instead of repo path
+- Revert "fix: improve MCP connection stability and optimize precommit performance"
+- fix: improve MCP connection stability and optimize precommit performance
+- fix: update hook commands to use repo_hook_command for consistency
+- fix: update hook commands to use repo_hook_command for consistency
+- feat: add opt-in agent envelope for web API
+- fix: handle bin/controlkeel parse errors cleanly
+- fix: make adaptive MCP tool groups learn usage
+- chore: clean whitespace, add CK companion instructions to AGENTS.md
+- fix: envelope interceptor requires both status+data, bin uses execute/1
+- feat: standardize --json success output with stable envelope
+- feat: add CLI catalog, scoped help, JSON error envelope, doctor, and capabilities
+- refactor: simplify CLI config handling and remove legacy support; update tests accordingly
+- feat: add documentation for adaptive tool groups, API reference, CLI reference, autonomy and findings, control plane architecture, large codebase patterns, and QA validation guide; update .gitignore for antigravitycli
+- Refactor agent_router.ex by removing unnecessary blank lines; add "ck_tool_health" capability to protocol_interop.ex
+- fix: reorder condition in candidate assignment for clarity
+- chore: align structure to standard elixir conventions, move local dbs to priv/repo
+- docs: remove links to deleted documentation files
+- chore(cleanup): remove remaining dead code and policy training references
+- chore(cleanup): remove unused ck.policy mix task
+- test(cleanup): remove redundant tests while maintaining essential coverage
+- chore(cleanup): remove non-essential documentation and restore web modules
+- chore: aggressive cleanup of unused modules, dead marketing pages, and policy training subsystem
+- test(hooks): fix skills test to assert on generated hook paths and isolate bin environment
+
+## v0.3.34 — 2026-05-31
+
+### What's changed
+
+- refactor: update demo script for clarity and conciseness
+- fix: update checklist and one-pager formatting for clarity and consistency
+- feat: update URLs and improve documentation for ControlKeel Studio AI app
+- feat: update environment configuration and improve error handling in ControlKeel Studio
+- feat: initialize ControlKeel Studio with React, Tailwind CSS, and Vite
+- feat(hackathon): surface full ControlKeel platform in Studio
+- fix: handle protobuf response conversion in tool-call trace extraction
+- fix(hackathon): make AI Studio prompt build-ready and app CK-first
+- chore(hackathon): align all demo files to ControlKeel Studio
+- feat(hackathon): make ControlKeel Studio robust and product-ready
+- fix: Mission Control pages work on Cloud Run
+- feat(hackathon): make ControlKeel Studio robust and product-ready
+- fix(hackathon): Dockerfile runtime deps + ONE_PAGER with live Cloud Run URLs
+- fix(hackathon): graceful fallback when Gemini rate-limited
+- feat(hackathon): add GDG Stanford hackathon demo for Cloud Run + Gemini
+- feat(api): add endpoints for creating findings and memory records
+
+## v0.3.33 — 2026-05-30
+
+### What's changed
+
+- fix(postgres): resolve GROUP BY grouping_error in count_vulnerability_metadata
+- fix(postgres): use database-specific JSON fragments for GROUP BY clauses
+- fix(postgres): use raw SQL fragment for GROUP BY to avoid parameterization conflicts
+- fix(postgres): resolve GROUP BY and datetime parameter issues
+- fix(postgres): parameterize string literal in JSON coalesce function
+- fix(postgres): resolve JSON query parameterization and string truncation issues
+- fix(migrations): increase memory_records text fields to support longer content
+- feat(migrations): increase content size for benchmark_scenarios table in SQLite
+- fix(migrations): use PostgreSQL-compatible random function for proxy_token generation
+- feat(migrations): add proxy_token to sessions and enhance full-text search for findings and tasks
+- fix(tests): improve tampering tests for payload and signature in AuthToken verification
+- fix(database): rename ECTO_ADAPTER to CK_DB_ADAPTER for consistency across CI and configuration
+- fix(ci): update controlkeel-sdk build command to use npm run build
+- feat(agent_execution): enhance task processing with input reference management and sorting feat(ck_validate): include trust policy advisory in validation results feat(planner): add trust policy handling and aggregate task marking for releases feat(skills): add continuity skill to skills list docs(challenge): introduce new challenge skill for adversarial review of plans
+- feat(migrations): add provenance fields to findings and RLM fields to tasks feat(tools): implement ck_result_peek tool for accessing stdout of completed runs feat(agent): enhance agent execution with stdout writing and loop detection feat(agent_router): add context_window_k to agent configurations feat(ck_context_pack): support excluding IDs and counting hits in context pack feat(mission): extend findings with references to related findings
+- docs(planning): add structural planning and agentic patterns from industry insights
+- docs(governance): add AI-generated issue/PR quality controls
+- feat(skills): add continuity skill for codebase pattern registry
+- docs(deployment): move scenario docs to docs/ and bring all sections current
+- test(deployment): close SDK, MCP, and cloud-agent scenario gaps
+- docs(cloud): update stale tracker TL;DR, HEAD pin, open question, test count
+- docs(cloud): avoid stale HEAD pin in readiness tracker
+- docs(cloud): pin readiness remediation HEAD
+- fix(cloud): close readiness review gaps
+- docs(deployment): add deployment scenarios verification status
+
 ## v0.3.32 — 2026-05-28
 
 ### What's changed

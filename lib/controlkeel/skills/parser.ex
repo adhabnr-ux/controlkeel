@@ -30,7 +30,6 @@ defmodule ControlKeel.Skills.Parser do
     user-invocable
     when_to_use
   )
-  @legacy_frontmatter_fields ~w(triggers version dspy-compatibility dspy-version)
   @daemon_frontmatter_fields ~w(id purpose watch routines deny schedule)
 
   def parse(skill_path, scope) do
@@ -338,25 +337,11 @@ defmodule ControlKeel.Skills.Parser do
         |> Enum.map(&to_string/1)
         |> Enum.reject(&(&1 in @supported_frontmatter_fields))
 
-      legacy = Enum.filter(unsupported, &(&1 in @legacy_frontmatter_fields))
       daemon = Enum.filter(unsupported, &(&1 in @daemon_frontmatter_fields))
 
       unsupported =
         unsupported
-        |> Enum.reject(&(&1 in legacy))
         |> Enum.reject(&(&1 in daemon))
-
-      legacy_diagnostics =
-        Enum.map(legacy, fn field ->
-          %SkillDiagnostic{
-            level: "warn",
-            code: "legacy_frontmatter_field",
-            message:
-              "Frontmatter field #{field} is a legacy or ignored skill field. Move versioning to plugin metadata and describe activation with description/when_to_use.",
-            path: skill_path,
-            skill_name: skill_name
-          }
-        end)
 
       unsupported_diagnostics =
         Enum.map(unsupported, fn field ->
@@ -400,8 +385,7 @@ defmodule ControlKeel.Skills.Parser do
             []
         end
 
-      legacy_diagnostics ++
-        unsupported_diagnostics ++ daemon_diagnostics ++ activation_diagnostics
+      unsupported_diagnostics ++ daemon_diagnostics ++ activation_diagnostics
     end
   end
 

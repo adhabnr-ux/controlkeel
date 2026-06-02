@@ -43,11 +43,6 @@ defmodule ControlKeel.ProviderBroker do
     }
   end
 
-  def intent_chain(project_root \\ File.cwd!(), opts \\ []) do
-    resolution_chain(project_root, Keyword.put(opts, :feature, :intent))
-    |> Enum.filter(&provider_supported_for_feature?(&1.provider, :intent))
-  end
-
   def advisory_chain(project_root \\ File.cwd!(), opts \\ []) do
     resolution_chain(project_root, Keyword.put(opts, :feature, :advisory))
     |> Enum.filter(&provider_supported_for_feature?(&1.provider, :advisory))

@@ -451,8 +451,8 @@ defmodule ControlKeel.Deployment.Advisor do
               --health-timeout 5s
               --health-retries 5
         steps:
-          - uses: actions/checkout@v6
-          - uses: erlef/setup-beam@v1.23.0
+          - uses: actions/checkout@v4
+          - uses: erlef/setup-beam@v1
             with:
               elixir-version: "1.19.5"
               otp-version: "27.3.4.3"

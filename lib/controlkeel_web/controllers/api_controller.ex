@@ -16,13 +16,19 @@ defmodule ControlKeelWeb.ApiController do
   alias ControlKeel.MCP.Tools.CkContext
   alias ControlKeel.Mission
   alias ControlKeel.Platform
-  alias ControlKeel.PolicyTraining
   alias ControlKeel.ProviderBroker
   alias ControlKeel.ProtocolAccess
   alias ControlKeel.Repo
   alias ControlKeel.Scanner.FastPath
   alias ControlKeel.Skills
   alias ControlKeel.Skills.Registry
+
+  def action(conn, _opts) do
+    agent_json? = agent_json_requested?(conn)
+    conn = apply(__MODULE__, action_name(conn), [conn, conn.params])
+
+    if agent_json?, do: wrap_agent_json_response(conn), else: conn
+  end
 
   # ─── Sessions ────────────────────────────────────────────────────────────────
 
@@ -351,6 +357,36 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
+  def create_finding(conn, params) do
+    session_id = normalize_integer_param(params["session_id"])
+
+    decision = Map.get(params, "decision", "warn")
+    status = if decision == "block", do: "blocked", else: "open"
+
+    attrs = %{
+      "session_id" => session_id,
+      "task_id" => normalize_integer_param(params["task_id"]),
+      "category" => Map.get(params, "category", "security"),
+      "severity" => Map.get(params, "severity", "medium"),
+      "rule_id" => Map.get(params, "rule_id", "agent.manual_review"),
+      "plain_message" => Map.get(params, "plain_message", ""),
+      "title" => Map.get(params, "title", Map.get(params, "rule_id", "Finding")),
+      "status" => status,
+      "auto_resolved" => false,
+      "metadata" => Map.get(params, "metadata", %{})
+    }
+
+    case Mission.create_finding(attrs) do
+      {:ok, finding} ->
+        conn |> put_status(:created) |> json(%{finding: finding_summary(finding)})
+
+      {:error, changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "invalid finding", details: changeset_errors(changeset)})
+    end
+  end
+
   # ─── Budget ──────────────────────────────────────────────────────────────────
 
   def get_budget(conn, params) do
@@ -557,82 +593,6 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  def list_policies(conn, params) do
-    artifacts =
-      PolicyTraining.list_artifacts(%{
-        "artifact_type" => params["type"] || params["artifact_type"],
-        "status" => params["status"],
-        "limit" => params["limit"]
-      })
-
-    json(conn, %{
-      policies: Enum.map(artifacts, &policy_artifact_summary/1),
-      active: %{
-        router: maybe_policy_artifact_summary(PolicyTraining.active_artifact("router")),
-        budget_hint: maybe_policy_artifact_summary(PolicyTraining.active_artifact("budget_hint"))
-      },
-      training_runs: Enum.map(PolicyTraining.list_training_runs(), &policy_training_run_summary/1)
-    })
-  end
-
-  def train_policy(conn, params) do
-    case PolicyTraining.start_training(%{"type" => params["type"]}) do
-      {:ok, artifact} ->
-        conn
-        |> put_status(:created)
-        |> json(%{policy: policy_artifact_detail(artifact)})
-
-      {:error, :unknown_artifact_type} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "artifact type must be `router` or `budget_hint`"})
-
-      {:error, reason} ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
-    end
-  end
-
-  def get_policy(conn, %{"id" => id}) do
-    case PolicyTraining.get_artifact(id) do
-      nil ->
-        conn |> put_status(:not_found) |> json(%{error: "policy artifact not found"})
-
-      artifact ->
-        json(conn, %{policy: policy_artifact_detail(artifact)})
-    end
-  end
-
-  def promote_policy(conn, %{"id" => id}) do
-    case PolicyTraining.promote_artifact(id) do
-      {:ok, artifact} ->
-        json(conn, %{policy: policy_artifact_detail(artifact)})
-
-      {:error, :not_found} ->
-        conn |> put_status(:not_found) |> json(%{error: "policy artifact not found"})
-
-      {:error, {:promotion_failed, reasons}} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "promotion gate failed", reasons: List.wrap(reasons)})
-
-      {:error, reason} ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
-    end
-  end
-
-  def archive_policy(conn, %{"id" => id}) do
-    case PolicyTraining.archive_artifact(id) do
-      {:ok, artifact} ->
-        json(conn, %{policy: policy_artifact_detail(Repo.preload(artifact, :training_run))})
-
-      {:error, :not_found} ->
-        conn |> put_status(:not_found) |> json(%{error: "policy artifact not found"})
-
-      {:error, reason} ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
-    end
-  end
-
   # ─── Memory ──────────────────────────────────────────────────────────────────
 
   def search_memory(conn, params) do
@@ -661,6 +621,43 @@ defmodule ControlKeelWeb.ApiController do
 
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "memory record not found"})
+    end
+  end
+
+  def create_memory(conn, params) do
+    session_id = normalize_integer_param(params["session_id"])
+    body = Map.get(params, "memory", Map.get(params, "body", ""))
+
+    case session_id && Mission.get_session(session_id) do
+      %{} = session ->
+        attrs = %{
+          "workspace_id" => session.workspace_id,
+          "session_id" => session_id,
+          "task_id" => normalize_integer_param(params["task_id"]),
+          "record_type" => Map.get(params, "record_type", "decision"),
+          "title" => Map.get(params, "title", String.slice(body, 0, 80)),
+          "summary" => Map.get(params, "summary", body),
+          "body" => body,
+          "tags" => Map.get(params, "tags", []),
+          "source_type" => "user"
+        }
+
+        case Memory.record(attrs) do
+          {:ok, record} ->
+            conn
+            |> put_status(:created)
+            |> json(%{
+              memory: %{id: record.id, record_type: record.record_type, title: record.title}
+            })
+
+          {:error, changeset} ->
+            conn
+            |> put_status(:unprocessable_entity)
+            |> json(%{error: "invalid memory", details: changeset_errors(changeset)})
+        end
+
+      _ ->
+        conn |> put_status(:not_found) |> json(%{error: "session not found"})
     end
   end
 
@@ -1801,60 +1798,6 @@ defmodule ControlKeelWeb.ApiController do
     })
   end
 
-  defp maybe_policy_artifact_summary(nil), do: nil
-  defp maybe_policy_artifact_summary(artifact), do: policy_artifact_summary(artifact)
-
-  defp policy_training_run_summary(run) do
-    artifacts =
-      if Ecto.assoc_loaded?(run.artifacts) do
-        run.artifacts
-      else
-        []
-      end
-
-    %{
-      id: run.id,
-      artifact_type: run.artifact_type,
-      status: run.status,
-      training_scope: run.training_scope,
-      dataset_summary: run.dataset_summary,
-      training_metrics: run.training_metrics,
-      validation_metrics: run.validation_metrics,
-      held_out_metrics: run.held_out_metrics,
-      failure_reason: run.failure_reason,
-      inserted_at: run.inserted_at,
-      finished_at: run.finished_at,
-      artifact_ids: Enum.map(artifacts, & &1.id)
-    }
-  end
-
-  defp policy_artifact_summary(artifact) do
-    %{
-      id: artifact.id,
-      artifact_type: artifact.artifact_type,
-      version: artifact.version,
-      status: artifact.status,
-      model_family: artifact.model_family,
-      metrics: artifact.metrics,
-      activated_at: artifact.activated_at,
-      archived_at: artifact.archived_at,
-      training_run_id: artifact.training_run_id
-    }
-  end
-
-  defp policy_artifact_detail(artifact) do
-    Map.merge(policy_artifact_summary(artifact), %{
-      feature_spec: artifact.feature_spec,
-      artifact: artifact.artifact,
-      metadata: artifact.metadata,
-      training_run:
-        if(Ecto.assoc_loaded?(artifact.training_run),
-          do: policy_training_run_summary(artifact.training_run),
-          else: nil
-        )
-    })
-  end
-
   defp memory_hit_summary(hit) do
     %{
       id: hit.id,
@@ -1963,6 +1906,80 @@ defmodule ControlKeelWeb.ApiController do
       summary: check.summary,
       payload: check.payload
     }
+  end
+
+  defp agent_json_requested?(conn) do
+    raw_query_format_agent?(conn.query_string) or
+      Map.get(conn.query_params, "format") == "agent" or
+      Map.get(conn.params, "format") == "agent" or
+      Enum.any?(conn.req_headers, fn {key, value} ->
+        String.downcase(to_string(key)) == "accept" and
+          String.contains?(to_string(value), "application/vnd.controlkeel.agent+json")
+      end)
+  end
+
+  defp raw_query_format_agent?(query_string) when is_binary(query_string) do
+    query_string
+    |> URI.decode_query()
+    |> Map.get("format")
+    |> Kernel.==("agent")
+  end
+
+  defp raw_query_format_agent?(_query_string), do: false
+
+  defp wrap_agent_json_response(%{resp_body: body} = conn) when is_binary(body) do
+    case Jason.decode(body) do
+      {:ok, decoded} -> %{conn | resp_body: Jason.encode!(agent_envelope(conn, decoded))}
+      {:error, _} -> conn
+    end
+  end
+
+  defp wrap_agent_json_response(conn), do: conn
+
+  defp agent_envelope(_conn, %{"status" => "ok", "data" => _} = decoded), do: decoded
+  defp agent_envelope(_conn, %{"status" => "error", "error" => _} = decoded), do: decoded
+
+  defp agent_envelope(conn, decoded) when conn.status < 400 do
+    %{
+      status: "ok",
+      command: api_command(conn),
+      data: decoded,
+      version: app_version()
+    }
+  end
+
+  defp agent_envelope(conn, decoded) do
+    %{
+      status: "error",
+      command: api_command(conn),
+      error: api_error_message(decoded, conn.status),
+      code: api_error_code(decoded, conn.status),
+      details: decoded,
+      version: app_version()
+    }
+  end
+
+  defp api_command(conn) do
+    conn.private
+    |> Map.get(:phoenix_action, "api")
+    |> to_string()
+  end
+
+  defp api_error_message(%{"error" => error}, _status) when is_binary(error), do: error
+  defp api_error_message(%{"message" => message}, _status) when is_binary(message), do: message
+  defp api_error_message(_decoded, status), do: Plug.Conn.Status.reason_phrase(status)
+
+  defp api_error_code(%{"code" => code}, _status) when is_binary(code), do: code
+
+  defp api_error_code(_decoded, status),
+    do:
+      status |> Plug.Conn.Status.reason_phrase() |> String.downcase() |> String.replace(" ", "_")
+
+  defp app_version do
+    :controlkeel
+    |> Application.spec(:vsn)
+    |> Kernel.||("0.1.0")
+    |> to_string()
   end
 
   defp changeset_errors(changeset) do

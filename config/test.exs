@@ -20,7 +20,7 @@ if System.get_env("CK_DB_ADAPTER") == "postgres" do
     pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
 else
   config :controlkeel, ControlKeel.Repo,
-    database: Path.expand("../controlkeel_test.db", __DIR__),
+    database: Path.expand("../priv/repo/controlkeel_test.db", __DIR__),
     busy_timeout: 15_000,
     # SQLite-backed tests are more stable with a single pooled connection because
     # LiveView and benchmark flows can otherwise compete for overlapping write locks.

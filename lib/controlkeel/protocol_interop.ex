@@ -18,6 +18,7 @@ defmodule ControlKeel.ProtocolInterop do
     "ck_experience_read" => ["mcp:access", "context:read"],
     "ck_trace_packet" => ["mcp:access", "context:read"],
     "ck_failure_clusters" => ["mcp:access", "context:read"],
+    "ck_tool_health" => ["mcp:access", "context:read"],
     "ck_skill_evolution" => ["mcp:access", "context:read"],
     "ck_fs_ls" => ["mcp:access", "context:read"],
     "ck_fs_read" => ["mcp:access", "context:read"],

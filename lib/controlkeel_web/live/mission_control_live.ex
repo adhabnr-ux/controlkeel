@@ -33,7 +33,7 @@ defmodule ControlKeelWeb.MissionControlLive do
            |> assign(:launched, Map.get(params, "launched") == "1")
            |> assign(:selected_finding, nil)
            |> assign(:selected_fix, nil)
-           |> assign_session(session)}
+           |> safe_assign_session(session)}
         else
           {:ok,
            socket
@@ -52,7 +52,7 @@ defmodule ControlKeelWeb.MissionControlLive do
          |> assign(:launched, Map.get(params, "launched") == "1")
          |> assign(:selected_finding, nil)
          |> assign(:selected_fix, nil)
-         |> assign_session(session)}
+         |> safe_assign_session(session)}
     end
   end
 
@@ -115,7 +115,8 @@ defmodule ControlKeelWeb.MissionControlLive do
           {:noreply, socket}
 
         session ->
-          {:noreply, socket |> put_flash(:info, "Finding approved.") |> assign_session(session)}
+          {:noreply,
+           socket |> put_flash(:info, "Finding approved.") |> safe_assign_session(session)}
       end
     else
       _error -> {:noreply, put_flash(socket, :error, "Could not approve finding.")}
@@ -138,7 +139,8 @@ defmodule ControlKeelWeb.MissionControlLive do
           {:noreply, socket}
 
         session ->
-          {:noreply, socket |> put_flash(:info, "Finding rejected.") |> assign_session(session)}
+          {:noreply,
+           socket |> put_flash(:info, "Finding rejected.") |> safe_assign_session(session)}
       end
     else
       _error -> {:noreply, put_flash(socket, :error, "Could not reject finding.")}
@@ -151,7 +153,8 @@ defmodule ControlKeelWeb.MissionControlLive do
          {:ok, _proof} <- Mission.generate_proof_bundle(task_id),
          session when not is_nil(session) <-
            Mission.get_session_context(socket.assigns.session.id) do
-      {:noreply, socket |> put_flash(:info, "Proof bundle generated.") |> assign_session(session)}
+      {:noreply,
+       socket |> put_flash(:info, "Proof bundle generated.") |> safe_assign_session(session)}
     else
       _error -> {:noreply, put_flash(socket, :error, "Could not generate proof bundle.")}
     end
@@ -163,7 +166,7 @@ defmodule ControlKeelWeb.MissionControlLive do
          {:ok, _result} <- Mission.pause_task(task_id, "mission_control"),
          session when not is_nil(session) <-
            Mission.get_session_context(socket.assigns.session.id) do
-      {:noreply, socket |> put_flash(:info, "Task paused.") |> assign_session(session)}
+      {:noreply, socket |> put_flash(:info, "Task paused.") |> safe_assign_session(session)}
     else
       _error -> {:noreply, put_flash(socket, :error, "Could not pause task.")}
     end
@@ -175,7 +178,7 @@ defmodule ControlKeelWeb.MissionControlLive do
          {:ok, _result} <- Mission.resume_task(task_id, "mission_control"),
          session when not is_nil(session) <-
            Mission.get_session_context(socket.assigns.session.id) do
-      {:noreply, socket |> put_flash(:info, "Task resumed.") |> assign_session(session)}
+      {:noreply, socket |> put_flash(:info, "Task resumed.") |> safe_assign_session(session)}
     else
       _error -> {:noreply, put_flash(socket, :error, "Could not resume task.")}
     end
@@ -890,6 +893,28 @@ defmodule ControlKeelWeb.MissionControlLive do
       </section>
     </Layouts.app>
     """
+  end
+
+  defp safe_assign_session(socket, session) do
+    assign_session(socket, session)
+  rescue
+    e ->
+      require Logger
+      Logger.warning("MissionControlLive assign_session rescued: #{inspect(e)}")
+
+      socket
+      |> assign(:session, session)
+      |> assign(:workspace, session.workspace)
+      |> assign(:page_title, session.title)
+      |> assign(
+        :active_findings,
+        Enum.count(session.findings || [], &(&1.status in ["open", "blocked"]))
+      )
+      |> assign(
+        :active_tasks,
+        Enum.count(session.tasks || [], &(&1.status in ["queued", "in_progress"]))
+      )
+      |> assign(:task_graph, %{tasks: session.tasks || [], edges: []})
   end
 
   defp assign_session(socket, session) do

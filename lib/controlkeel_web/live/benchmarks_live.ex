@@ -3,7 +3,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
   alias ControlKeel.Benchmark
   alias ControlKeel.Intent
-  alias ControlKeel.PolicyTraining
 
   @impl true
   def mount(_params, _session, socket) do
@@ -16,7 +15,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
      |> assign(:form, to_form(default_form_params(), as: :benchmark))
      |> assign(:filter_form, to_form(%{"domain_pack" => ""}, as: :filters))
      |> assign(:domain_pack_options, domain_pack_options())
-     |> assign(:policy_form, to_form(default_policy_params(), as: :policy))
      |> refresh_dashboard_assigns()}
   end
 
@@ -77,19 +75,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
   def handle_event("filter_domain", %{"filters" => filters}, socket) do
     {:noreply, push_patch(socket, to: ~p"/benchmarks?#{domain_filter_params(filters)}")}
-  end
-
-  def handle_event("train_policy", %{"policy" => params}, socket) do
-    case PolicyTraining.start_training(params) do
-      {:ok, artifact} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Policy training completed for #{artifact.artifact_type}.")
-         |> push_navigate(to: ~p"/benchmarks/policies/#{artifact.id}")}
-
-      {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Policy training failed: #{inspect(reason)}")}
-    end
   end
 
   def handle_event("preset_benchmark", %{"preset" => preset}, socket) do
@@ -485,138 +470,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
             </div>
           </div>
         </div>
-
-        <div class="ck-grid ck-grid-dashboard" style="margin-top: 1.5rem;">
-          <div class="ck-card">
-            <p class="ck-mini-label">Active policy artifacts</p>
-            <div class="ck-finding-list">
-              <article class="ck-finding-item" id="active-router-artifact">
-                <div class="ck-finding-head">
-                  <h3>Router policy</h3>
-                  <span class="ck-pill ck-pill-neutral">
-                    {if @active_router_artifact,
-                      do: "v#{@active_router_artifact.version}",
-                      else: "heuristic"}
-                  </span>
-                </div>
-                <p class="ck-note">
-                  <%= if @active_router_artifact do %>
-                    {Map.get(@active_router_artifact.metrics["gates"] || %{}, "eligible", false)
-                    |> then(fn _ -> @active_router_artifact.model_family end)}. Held-out reward: {Float.round(
-                      get_in(@active_router_artifact.metrics, ["held_out", "reward"]) || 0.0,
-                      3
-                    )}.
-                  <% else %>
-                    No learned router artifact is active. Runtime routing is using heuristics.
-                  <% end %>
-                </p>
-                <p :if={@active_router_artifact} class="ck-note">
-                  Integrity: {policy_integrity_label(@active_router_artifact)}
-                </p>
-                <%= if @active_router_artifact do %>
-                  <.link
-                    navigate={~p"/benchmarks/policies/#{@active_router_artifact.id}"}
-                    class="ck-link"
-                  >
-                    Open policy detail
-                  </.link>
-                <% end %>
-              </article>
-              <article class="ck-finding-item" id="active-budget-artifact">
-                <div class="ck-finding-head">
-                  <h3>Budget hint policy</h3>
-                  <span class="ck-pill ck-pill-neutral">
-                    {if @active_budget_artifact,
-                      do: "v#{@active_budget_artifact.version}",
-                      else: "heuristic"}
-                  </span>
-                </div>
-                <p class="ck-note">
-                  <%= if @active_budget_artifact do %>
-                    {Map.get(
-                      @active_budget_artifact.artifact,
-                      "model_family",
-                      @active_budget_artifact.model_family
-                    )}.
-                    Held-out precision: {Float.round(
-                      get_in(@active_budget_artifact.metrics, ["held_out", "precision"]) || 0.0,
-                      3
-                    )}.
-                  <% else %>
-                    No learned budget-hint artifact is active. Budget caps are still deterministic.
-                  <% end %>
-                </p>
-                <p :if={@active_budget_artifact} class="ck-note">
-                  Integrity: {policy_integrity_label(@active_budget_artifact)}
-                </p>
-                <%= if @active_budget_artifact do %>
-                  <.link
-                    navigate={~p"/benchmarks/policies/#{@active_budget_artifact.id}"}
-                    class="ck-link"
-                  >
-                    Open policy detail
-                  </.link>
-                <% end %>
-              </article>
-            </div>
-          </div>
-
-          <div class="ck-card">
-            <p class="ck-mini-label">Train a new artifact</p>
-            <.form for={@policy_form} id="policy-train-form" phx-submit="train_policy">
-              <div class="ck-filter-grid">
-                <.input
-                  field={@policy_form[:type]}
-                  type="select"
-                  label="Artifact type"
-                  options={[{"Router", "router"}, {"Budget hint", "budget_hint"}]}
-                />
-              </div>
-              <div class="ck-action-row" style="margin-top: 1rem;">
-                <button type="submit" class="ck-button-primary">Train policy artifact</button>
-              </div>
-            </.form>
-            <p class="ck-note" style="margin-top: 1rem;">
-              Training runs stay offline. Held-out gates prevent promotion if a candidate regresses protection quality or budget-hint precision.
-            </p>
-          </div>
-        </div>
-
-        <div class="ck-card" style="margin-top: 1.5rem;">
-          <p class="ck-mini-label">Recent training runs</p>
-          <div class="ck-table-wrap">
-            <.table id="policy-training-runs" rows={@recent_training_runs}>
-              <:col :let={run} label="Run">
-                ##{run.id}
-              </:col>
-              <:col :let={run} label="Type">
-                {run.artifact_type}
-              </:col>
-              <:col :let={run} label="Status">
-                {run.status}
-              </:col>
-              <:col :let={run} label="Artifact">
-                <%= case List.first(Enum.sort_by(run.artifacts, & &1.version, :desc)) do %>
-                  <% nil -> %>
-                    <span class="ck-note">n/a</span>
-                  <% artifact -> %>
-                    <.link navigate={~p"/benchmarks/policies/#{artifact.id}"} class="ck-link">
-                      v{artifact.version}
-                    </.link>
-                <% end %>
-              </:col>
-              <:col :let={run} label="Held-out">
-                <%= if run.held_out_metrics == %{} do %>
-                  <span class="ck-note">n/a</span>
-                <% else %>
-                  <span class="ck-note">
-                    {held_out_summary(run)}
-                  </span>
-                <% end %>
-              </:col>
-            </.table>
-          </div>
-        </div>
       </section>
     </Layouts.app>
     """
@@ -659,12 +512,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
     }
   end
 
-  defp default_policy_params do
-    %{"type" => "router"}
-  end
-
   defp refresh_dashboard_assigns(socket, domain_pack \\ nil) do
-    active = PolicyTraining.active_artifacts_summary()
     filter_opts = benchmark_filter_opts(domain_pack)
 
     socket
@@ -672,9 +520,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
     |> assign(:suites, Benchmark.list_suites(filter_opts))
     |> assign(:recent_runs, Benchmark.list_recent_runs(filter_opts))
     |> assign(:available_subjects, Benchmark.available_subjects())
-    |> assign(:recent_training_runs, PolicyTraining.list_training_runs())
-    |> assign(:active_router_artifact, active["router"])
-    |> assign(:active_budget_artifact, active["budget_hint"])
   end
 
   defp format_percent(nil), do: "Not recorded"
@@ -696,33 +541,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
   defp format_latency(nil), do: "n/a"
   defp format_latency(value), do: "#{value}ms"
-
-  defp held_out_summary(run) do
-    held_out = run.held_out_metrics || %{}
-
-    cond do
-      Map.has_key?(held_out, "reward") ->
-        "reward #{Float.round(Map.get(held_out, "reward", 0.0), 3)}"
-
-      Map.has_key?(held_out, "precision") ->
-        "precision #{Float.round(Map.get(held_out, "precision", 0.0), 3)}"
-
-      true ->
-        "n/a"
-    end
-  end
-
-  defp policy_integrity_label(nil), do: "not available"
-
-  defp policy_integrity_label(artifact) do
-    integrity = get_in(artifact.metrics || %{}, ["gates", "integrity"]) || %{}
-    warnings = integrity["warnings"] || []
-
-    case warnings do
-      [] -> integrity["status"] || "ready"
-      _ -> "#{integrity["status"] || "warn"} (#{Enum.join(warnings, ", ")})"
-    end
-  end
 
   defp benchmark_filter_opts(nil), do: []
   defp benchmark_filter_opts(""), do: []

@@ -11,11 +11,11 @@ defmodule ControlKeelWeb.Endpoint do
     end
 
   @session_options [
-    store: :cookie,
-    key: "_controlkeel_key",
-    signing_salt: "0M+fMgUN",
-    same_site: "Lax"
-  ] ++ if(session_max_age, do: [max_age: session_max_age], else: [])
+                     store: :cookie,
+                     key: "_controlkeel_key",
+                     signing_salt: "0M+fMgUN",
+                     same_site: "Lax"
+                   ] ++ if(session_max_age, do: [max_age: session_max_age], else: [])
 
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [connect_info: [session: @session_options]],

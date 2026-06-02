@@ -8,7 +8,7 @@ defmodule ControlKeel.Budget do
   alias ControlKeel.Memory
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Invocation, Session}
-  alias ControlKeel.PolicyTraining
+
   alias ControlKeel.Repo
 
   @warn_threshold 0.8
@@ -49,20 +49,10 @@ defmodule ControlKeel.Budget do
       projected_daily = rolling_24h + estimated_cost_cents
       base_decision = decision(session, projected_session, projected_daily)
       base_summary = summary(session, base_decision, projected_session, projected_daily)
-      active_findings_count = active_findings_count(session.id)
+      _active_findings_count = active_findings_count(session.id)
 
-      hint =
-        PolicyTraining.budget_hint(
-          %{"decision" => base_decision, "summary" => base_summary},
-          session,
-          Map.put(attrs, "estimated_cost_cents", estimated_cost_cents),
-          projected_session,
-          projected_daily,
-          active_findings_count
-        )
-
-      decision = hint["decision"] || base_decision
-      summary = hint["summary"] || base_summary
+      decision = base_decision
+      summary = base_summary
 
       if decision in ["warn", "block"] do
         record_budget_memory(session, decision, summary, estimated_cost_cents, attrs)
@@ -79,9 +69,9 @@ defmodule ControlKeel.Budget do
          "rolling_24h_spend_cents" => projected_daily,
          "remaining_daily_cents" => remaining(projected_daily, session.daily_budget_cents),
          "recorded" => false,
-         "hint_source" => hint["hint_source"],
-         "hint_probability" => hint["hint_probability"],
-         "artifact_version" => hint["artifact_version"]
+         "hint_source" => nil,
+         "hint_probability" => nil,
+         "artifact_version" => nil
        }}
     end
   end

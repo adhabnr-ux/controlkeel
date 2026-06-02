@@ -185,10 +185,6 @@ defmodule ControlKeel.Benchmark do
     end
   end
 
-  def list_subjects_for_run(%Run{} = run) do
-    run.subjects || []
-  end
-
   def run_matrix(%Run{} = run) do
     scenario_ids =
       run.results

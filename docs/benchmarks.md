@@ -328,7 +328,7 @@ When benchmarking retrieval quality over CK memory, tag the retrieval backend:
 - `retrieval_strategy: "cross_encoder_rerank"` — retrieve then rerank with a cross-encoder
 - `retrieval_strategy: "late_interaction_rerank"` — retrieve then rerank with late interaction scoring
 
-This vocabulary exists so future retrieval experiments can be compared fairly. See `docs/idea/2026-late-interaction-retrieval-research.md` for the research motivating multi-vector and late-interaction approaches.
+This vocabulary exists so future retrieval experiments can be compared fairly.
 
 ### Runtime experiment metadata
 

@@ -1,0 +1,29 @@
+# Explicit Cloud Build ignore file for ControlKeel Cloud Run deploys.
+# Do NOT inherit .gitignore blindly: Phoenix static assets under priv/static/assets
+# are gitignored locally but required in the release image for Mission Control CSS/JS.
+
+.git
+.git/**
+_build
+_build/**
+deps
+deps/**
+node_modules
+node_modules/**
+assets/node_modules
+assets/node_modules/**
+.coveralls.json
+.elixir_ls
+.elixir_ls/**
+.DS_Store
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.log
+/tmp
+/tmp/**
+
+# Keep Phoenix digested assets and manifest even though .gitignore excludes them.
+!priv/static/assets/**
+!priv/static/cache_manifest.json

@@ -21,15 +21,6 @@ defmodule ControlKeel.Skills.TargetFamily do
 
   @render_fallback_order Map.keys(@family_targets)
 
-  def all_targets do
-    @family_targets
-    |> Map.values()
-    |> List.flatten()
-    |> Enum.uniq()
-  end
-
-  def target_families, do: Map.keys(@family_targets)
-
   def family_for(nil), do: nil
 
   def family_for(target) do
@@ -40,18 +31,6 @@ defmodule ControlKeel.Skills.TargetFamily do
     end)
   end
 
-  def targets_for_family(nil), do: []
-
-  def targets_for_family(family) do
-    Map.get(@family_targets, normalize(family), [])
-  end
-
-  def expand_targets(targets) when is_list(targets) do
-    targets
-    |> Enum.flat_map(&expand_target/1)
-    |> Enum.uniq()
-  end
-
   def render_order(preferred_target \\ nil) do
     preferred_family = family_for(preferred_target)
 
@@ -59,15 +38,6 @@ defmodule ControlKeel.Skills.TargetFamily do
     |> Enum.sort_by(fn family ->
       if family == preferred_family, do: 0, else: 1
     end)
-  end
-
-  defp expand_target(target) do
-    normalized = normalize(target)
-
-    case family_for(normalized) do
-      nil -> [normalized]
-      family -> [normalized | targets_for_family(family)]
-    end
   end
 
   defp normalize(target) do

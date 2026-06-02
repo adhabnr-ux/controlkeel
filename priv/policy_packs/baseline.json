@@ -56,6 +56,23 @@
     }
   },
   {
+    "id": "security.code_execution",
+    "category": "security",
+    "severity": "critical",
+    "action": "block",
+    "plain_message": "This calls a dynamic code-execution sink (eval/exec/os.system/shell=True). Untrusted input reaching it is remote code execution. Use a safe parser or an allow-listed dispatch instead of executing the input.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?<![.\\w])eval\\s*\\(",
+        "(?<![.\\w])exec\\s*\\(",
+        "\\bos\\.system\\s*\\(",
+        "\\bsubprocess\\.(?:call|run|Popen|check_output)\\s*\\([^)]*shell\\s*=\\s*True",
+        "(?<![.\\w])(?:Function|setTimeout|setInterval)\\s*\\(\\s*[\"'`][^\"'`]*\\$\\{"
+      ]
+    }
+  },
+  {
     "id": "security.xss_unsafe_html",
     "category": "security",
     "severity": "high",

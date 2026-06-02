@@ -21,7 +21,9 @@ defmodule ControlKeelWeb.LiveAuth do
   socket.assigns (they carry the same values from the same source).
   """
 
-  import Phoenix.LiveView, only: [redirect: 2, attach_hook: 4, put_flash: 3, push_navigate: 2, connected?: 1]
+  import Phoenix.LiveView,
+    only: [redirect: 2, attach_hook: 4, put_flash: 3, push_navigate: 2, connected?: 1]
+
   import Phoenix.Component, only: [assign: 3]
 
   alias ControlKeel.{Accounts, RuntimeMode}

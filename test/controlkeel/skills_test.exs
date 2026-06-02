@@ -453,7 +453,6 @@ defmodule ControlKeel.SkillsTest do
 
     codes = Enum.map(skill.diagnostics, & &1.code)
 
-    assert "legacy_frontmatter_field" in codes
     assert "unsupported_frontmatter_field" in codes
     assert "activation_metadata_too_long" in codes
   end
@@ -576,7 +575,6 @@ defmodule ControlKeel.SkillsTest do
              "orchestrate-tasks",
              "parallel-review",
              "plan-slice",
-             "policy-training",
              "proof-memory",
              "reviewable-pr",
              "security-review",
@@ -593,7 +591,7 @@ defmodule ControlKeel.SkillsTest do
 
   test "built-in skills include observability loop guidance" do
     root = Path.expand("../..", __DIR__)
-    skills = ["benchmark-operator", "policy-training", "proof-memory", "ship-readiness"]
+    skills = ["benchmark-operator", "proof-memory", "ship-readiness"]
 
     for skill <- skills do
       contents = File.read!(Path.join([root, "priv/skills", skill, "SKILL.md"]))
@@ -711,6 +709,12 @@ defmodule ControlKeel.SkillsTest do
 
     assert Map.has_key?(codex_hooks["hooks"], "PostToolUse")
     assert Map.has_key?(codex_hooks["hooks"], "UserPromptSubmit")
+
+    codex_hooks_json = Jason.encode!(codex_hooks)
+    assert codex_hooks_json =~ "$HOME"
+    assert codex_hooks_json =~ ".codex/hooks/ck-session-start.sh"
+    assert codex_hooks_json =~ ".codex/hooks/ck-user-prompt-submit.sh"
+    refute codex_hooks_json =~ "sh .codex/hooks"
 
     codex_prompt_hook = Path.join(codex_plan.output_dir, ".codex/hooks/ck-user-prompt-submit.sh")
 
@@ -1057,6 +1061,12 @@ defmodule ControlKeel.SkillsTest do
     assert letta_findings_hook =~ "ck_run findings"
     assert letta_findings_hook =~ "CONTROLKEEL_HOOK_TIMEOUT_SECONDS"
     refute letta_findings_hook =~ "set -eu"
+
+    letta_settings = File.read!(Path.join(letta_plan.output_dir, ".letta/settings.json"))
+    assert letta_settings =~ "CK_PROJECT_ROOT"
+    assert letta_settings =~ ".letta/hooks/controlkeel-session-start.sh"
+    assert letta_settings =~ ".letta/hooks/controlkeel-findings.sh"
+    refute letta_settings =~ "./.letta/hooks"
 
     assert {:ok, opencode_plan} = Skills.export("opencode-native", tmp_dir, scope: "export")
     assert File.exists?(Path.join(opencode_plan.output_dir, "package.json"))
@@ -1496,8 +1506,9 @@ defmodule ControlKeel.SkillsTest do
     assert claude_install_agent =~ "controlkeel update --json"
 
     claude_settings = File.read!(Path.join(tmp_dir, ".claude/settings.json"))
-    assert claude_settings =~ ".tool_input.command // .command // empty"
-    assert claude_settings =~ "Deploy-like command detected"
+    assert claude_settings =~ "CK_PROJECT_ROOT"
+    assert claude_settings =~ ".claude/hooks/pre-tool-use-bash.sh"
+    assert claude_settings =~ ".claude/hooks/pre-tool-use-write.sh"
 
     assert {:ok, github_install} = Skills.install("github-repo", tmp_dir, scope: "project")
     assert github_install.destination == Path.join(tmp_dir, ".github/skills")
@@ -1750,6 +1761,18 @@ defmodule ControlKeel.SkillsTest do
     assert File.exists?(Path.join(tmp_dir, ".windsurf/hooks/controlkeel-review.json"))
     assert File.exists?(Path.join(tmp_dir, ".windsurf/mcp.json"))
 
+    windsurf_hooks = File.read!(Path.join(tmp_dir, ".windsurf/hooks.json"))
+    assert windsurf_hooks =~ "CK_PROJECT_ROOT"
+    assert windsurf_hooks =~ ".windsurf/hooks/controlkeel-review.sh"
+    refute windsurf_hooks =~ "./hooks/controlkeel-review.sh"
+
+    windsurf_review_hook =
+      File.read!(Path.join(tmp_dir, ".windsurf/hooks/controlkeel-review.json"))
+
+    assert windsurf_review_hook =~ "CK_PROJECT_ROOT"
+    assert windsurf_review_hook =~ ".windsurf/hooks/controlkeel-review.sh"
+    refute windsurf_review_hook =~ "./controlkeel-review.sh"
+
     assert {:ok, continue_install} = Skills.install("continue-native", tmp_dir, scope: "project")
     assert continue_install.destination == Path.join(tmp_dir, ".continue")
     assert File.exists?(Path.join(tmp_dir, ".continue/skills/controlkeel-governance/SKILL.md"))
@@ -1886,6 +1909,7 @@ defmodule ControlKeel.SkillsTest do
         env: [
           {"CK_TEST_INPUT", payload},
           {"CK_HOOK_PATH", hook_path},
+          {"CK_PROJECT_ROOT", tmp_dir},
           {"PATH", "#{bin_dir}:#{System.get_env("PATH")}"}
         ]
       )

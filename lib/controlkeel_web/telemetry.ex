@@ -61,10 +61,6 @@ defmodule ControlKeelWeb.Telemetry do
       counter("controlkeel.skills.activated.count", tags: [:activation]),
       counter("controlkeel.skills.exported.count", tags: [:target]),
       counter("controlkeel.skills.installed.count", tags: [:target]),
-      counter("controlkeel.policy_training.started.count"),
-      counter("controlkeel.policy_training.completed.count"),
-      counter("controlkeel.policy_training.failed.count"),
-      counter("controlkeel.policy_artifact.promoted.count"),
       counter("controlkeel.agent_router.policy_used.count"),
       counter("controlkeel.budget.hint_used.count"),
 

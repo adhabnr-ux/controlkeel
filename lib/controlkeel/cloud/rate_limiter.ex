@@ -50,7 +50,10 @@ defmodule ControlKeel.Cloud.RateLimiter do
   @spec hit(integer(), keyword()) :: result()
   def hit(workspace_id, opts \\ []) when is_integer(workspace_id) do
     burst = Keyword.get(opts, :burst, configured(:burst, @default_burst))
-    refill = Keyword.get(opts, :refill_per_sec, configured(:refill_per_sec, @default_refill_per_sec))
+
+    refill =
+      Keyword.get(opts, :refill_per_sec, configured(:refill_per_sec, @default_refill_per_sec))
+
     now_ms = System.monotonic_time(:millisecond)
     do_hit(workspace_id, burst, refill, now_ms)
   end

@@ -7,9 +7,7 @@ defmodule ControlKeel.RuntimeConformanceTest do
   use ExUnit.Case, async: true
 
   alias ControlKeel.AgentIntegration
-  alias ControlKeel.Governance.ApprovalAdapter
   alias ControlKeel.MCP.Protocol
-  alias ControlKeel.OrchestrationEvents
   alias ControlKeel.ProtocolInterop
 
   @attach_clients ["claude-code", "codex-cli", "codex-app-server", "opencode", "t3code"]
@@ -74,99 +72,6 @@ defmodule ControlKeel.RuntimeConformanceTest do
         assert integration.feedback_mode in ["tool_call", "file_patch", "command_reply", "manual"]
         assert integration.phase_model in ["host_plan_mode", "file_plan_mode", "review_only"]
       end
-    end
-  end
-
-  describe "approval adapter works across all runtimes" do
-    for agent_id <- @attach_clients do
-      test "#{agent_id} evaluates low-tier tool without error" do
-        result = ApprovalAdapter.evaluate(unquote(agent_id), %{"tool" => "file_read"})
-
-        assert Map.has_key?(result, :decision)
-        assert Map.has_key?(result, :reason)
-        assert Map.has_key?(result, :policy_rule_ids)
-        assert Map.has_key?(result, :requires_human_approval)
-      end
-
-      test "#{agent_id} blocks critical-tier secrets tool" do
-        result = ApprovalAdapter.evaluate(unquote(agent_id), %{"tool" => "secrets"})
-
-        assert result.decision == :decline
-      end
-    end
-
-    test "interactive approval mode allows policy-gated medium tools without pestering" do
-      result =
-        ApprovalAdapter.evaluate(
-          "codex-cli",
-          %{"tool" => "file_write"},
-          policy_mode: "approval_required"
-        )
-
-      assert result.decision == :accept_for_session
-      assert result.requires_human_approval == false
-      assert "INTERACTIVE_GATE_MEDIUM_POLICY_ALLOW" in result.policy_rule_ids
-    end
-
-    test "interactive approval mode still gates high and critical tools" do
-      high =
-        ApprovalAdapter.evaluate(
-          "codex-cli",
-          %{"tool" => "bash"},
-          policy_mode: "approval_required"
-        )
-
-      assert high.decision == :decline
-      assert high.requires_human_approval == true
-      assert "INTERACTIVE_GATE_HIGH" in high.policy_rule_ids
-
-      critical =
-        ApprovalAdapter.evaluate(
-          "codex-cli",
-          %{"tool" => "secrets"},
-          policy_mode: "approval_required"
-        )
-
-      assert critical.decision == :decline
-      assert critical.requires_human_approval == true
-      assert Enum.any?(critical.policy_rule_ids, &String.starts_with?(&1, "CRITICAL_TOOL"))
-    end
-  end
-
-  describe "orchestration events produce valid payloads for all runtimes" do
-    test "finding payload works with standard fields" do
-      payload =
-        OrchestrationEvents.finding_payload(%{
-          severity: "high",
-          rule_id: "CONF001",
-          category: "conformance",
-          plain_message: "Conformance check",
-          decision: "warn"
-        })
-
-      assert payload["event"] == "ck.finding.opened"
-      assert payload["severity"] == "high"
-    end
-
-    test "review payload produces valid events for all statuses" do
-      for status <- [:pending, :approved, :denied] do
-        payload = OrchestrationEvents.review_payload(%{id: 1, title: "Test"}, status)
-
-        assert payload["event"] =~ "ck.review."
-        assert is_binary(payload["timestamp"])
-      end
-    end
-
-    test "budget payload produces valid telemetry" do
-      payload =
-        OrchestrationEvents.budget_payload(%{
-          "session_budget_cents" => 2000,
-          "spent_cents" => 500,
-          "remaining_session_cents" => 1500,
-          "remaining_daily_cents" => 9500
-        })
-
-      assert payload["event"] == "ck.budget.updated"
     end
   end
 

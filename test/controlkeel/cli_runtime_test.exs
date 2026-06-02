@@ -4,7 +4,6 @@ defmodule ControlKeel.CLIRuntimeTest do
   import ControlKeel.BenchmarkFixtures
   import ExUnit.CaptureIO
   import ControlKeel.MissionFixtures
-  import ControlKeel.PolicyTrainingFixtures
   import ControlKeel.PlatformFixtures
 
   alias ControlKeel.Analytics
@@ -327,7 +326,7 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(skills_list, project_root: tmp_dir)
       end)
 
-    payload = Jason.decode!(output)
+    payload = decode_cli_json(output)
 
     assert payload["project_root"] == ProjectRoot.resolve(tmp_dir)
     assert is_list(payload["skills"])
@@ -405,7 +404,8 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(status_json, project_root: tmp_dir)
       end)
 
-    assert {:ok, status_payload} = Jason.decode(String.trim(status_json_output))
+    assert {:ok, status_envelope} = Jason.decode(String.trim(status_json_output))
+    status_payload = status_envelope["data"]
     assert get_in(status_payload, ["session", "title"]) == "Runtime CLI session"
     assert get_in(status_payload, ["autonomy_profile", "mode"])
     assert is_list(status_payload["suggested_next_steps"])
@@ -418,7 +418,8 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(ctx, project_root: tmp_dir)
       end)
 
-    assert {:ok, ctx_payload} = Jason.decode(String.trim(ctx_output))
+    assert {:ok, ctx_envelope} = Jason.decode(String.trim(ctx_output))
+    ctx_payload = ctx_envelope["data"]
     assert ctx_payload["session_id"] == session.id
 
     assert {:ok, val} =
@@ -436,7 +437,8 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(val, project_root: tmp_dir)
       end)
 
-    assert {:ok, val_payload} = Jason.decode(String.trim(val_output))
+    assert {:ok, val_envelope} = Jason.decode(String.trim(val_output))
+    val_payload = val_envelope["data"]
     assert is_binary(val_payload["decision"])
   end
 
@@ -490,7 +492,8 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(findings_json, project_root: tmp_dir)
       end)
 
-    assert {:ok, findings_payload} = Jason.decode(String.trim(findings_json_output))
+    assert {:ok, findings_envelope} = Jason.decode(String.trim(findings_json_output))
+    findings_payload = findings_envelope["data"]
     assert get_in(findings_payload, ["summary", "matched"]) == 1
     assert [%{"title" => "Patch validation missing"}] = findings_payload["entries"]
   end
@@ -870,11 +873,6 @@ defmodule ControlKeel.CLIRuntimeTest do
                "/controlkeel/bin/controlkeel-mcp"
              )
 
-    # Regression: attaching OpenCode should recover from malformed legacy MCP config
-    # and write the canonical OpenCode config path.
-    File.mkdir_p!(Path.dirname(opencode_legacy_config_path()))
-    File.write!(opencode_legacy_config_path(), "{\"mcpServers\": {\"broken\": ")
-
     assert {:ok, opencode_attach} = CLI.parse(["attach", "opencode"])
 
     opencode_output =
@@ -902,42 +900,6 @@ defmodule ControlKeel.CLIRuntimeTest do
 
     assert hd(opencode_cmd) == "controlkeel" or
              String.ends_with?(hd(opencode_cmd), "/controlkeel/bin/controlkeel-mcp")
-
-    # Keep legacy config in sync when it already exists.
-    assert {:ok, opencode_legacy_config} = Jason.decode(File.read!(opencode_legacy_config_path()))
-    assert get_in(opencode_legacy_config, ["mcp", "controlkeel", "type"]) == "local"
-    assert get_in(opencode_legacy_config, ["mcp", "controlkeel", "enabled"]) == true
-  end
-
-  test "attach opencode writes legacy config even when absent", %{tmp_dir: tmp_dir} do
-    assert {:ok, init} = CLI.parse(["init", "--no-attach"])
-
-    capture_io(fn ->
-      assert 0 == CLI.execute(init, project_root: tmp_dir)
-    end)
-
-    File.rm_rf!(Path.dirname(opencode_legacy_config_path()))
-    refute File.exists?(opencode_legacy_config_path())
-
-    assert {:ok, opencode_attach} = CLI.parse(["attach", "opencode"])
-
-    output =
-      capture_io(fn ->
-        assert 0 == CLI.execute(opencode_attach, project_root: tmp_dir)
-      end)
-
-    assert output =~ "Attached ControlKeel to OpenCode."
-    assert File.exists?(opencode_canonical_config_path())
-    assert File.exists?(opencode_legacy_config_path())
-
-    assert {:ok, canonical} = Jason.decode(File.read!(opencode_canonical_config_path()))
-    assert {:ok, legacy} = Jason.decode(File.read!(opencode_legacy_config_path()))
-
-    assert get_in(canonical, ["mcp", "controlkeel", "type"]) == "local"
-    assert get_in(legacy, ["mcp", "controlkeel", "type"]) == "local"
-
-    assert get_in(canonical, ["mcp", "controlkeel", "command"]) ==
-             get_in(legacy, ["mcp", "controlkeel", "command"])
   end
 
   test "codex attach supports mcp-only mode without native bundle install", %{tmp_dir: tmp_dir} do
@@ -1369,7 +1331,8 @@ defmodule ControlKeel.CLIRuntimeTest do
                  )
       end)
 
-    assert {:ok, proofs_payload} = Jason.decode(String.trim(proofs_json_output))
+    assert {:ok, proofs_envelope} = Jason.decode(String.trim(proofs_json_output))
+    proofs_payload = proofs_envelope["data"]
     assert get_in(proofs_payload, ["summary", "matched"]) == 1
     assert [%{"task_title" => "CLI proof task"}] = proofs_payload["entries"]
 
@@ -1500,7 +1463,8 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(list_json, project_root: tmp_dir)
       end)
 
-    assert {:ok, list_payload} = Jason.decode(String.trim(list_json_output))
+    assert {:ok, list_envelope} = Jason.decode(String.trim(list_json_output))
+    list_payload = list_envelope["data"]
     assert get_in(list_payload, ["summary", "suite_count"]) >= 1
     assert Enum.any?(list_payload["subjects"], &(&1["id"] == "manual_subject"))
 
@@ -1589,78 +1553,6 @@ defmodule ControlKeel.CLIRuntimeTest do
       end)
 
     assert import_output =~ "Imported benchmark output for manual_subject"
-  end
-
-  test "runtime policy commands list, train, show, promote, and archive" do
-    benchmark_run_fixture(%{
-      "suite" => "vibe_failures_v1",
-      "subjects" => "controlkeel_validate",
-      "baseline_subject" => "controlkeel_validate",
-      "scenario_slugs" => "hardcoded_api_key_python_webhook"
-    })
-
-    list_output =
-      capture_io(fn ->
-        assert 0 == CLI.execute(%{command: :policy_list, options: %{}, args: []})
-      end)
-
-    assert list_output =~ "Active artifacts:"
-
-    train_output =
-      capture_io(fn ->
-        assert 0 ==
-                 CLI.execute(%{
-                   command: :policy_train,
-                   options: [type: "router"],
-                   args: []
-                 })
-      end)
-
-    assert train_output =~ "Policy artifact"
-
-    artifact = policy_artifact_fixture(%{artifact_type: "budget_hint"})
-
-    show_output =
-      capture_io(fn ->
-        assert 0 ==
-                 CLI.execute(%{
-                   command: :policy_show,
-                   options: %{},
-                   args: [Integer.to_string(artifact.id)]
-                 })
-      end)
-
-    assert show_output =~ "Policy artifact ##{artifact.id}"
-
-    promotable =
-      policy_artifact_fixture(%{
-        artifact_type: "router",
-        metrics: %{"gates" => %{"eligible" => true, "reasons" => []}}
-      })
-
-    promote_output =
-      capture_io(fn ->
-        assert 0 ==
-                 CLI.execute(%{
-                   command: :policy_promote,
-                   options: %{},
-                   args: [Integer.to_string(promotable.id)]
-                 })
-      end)
-
-    assert promote_output =~ "Promoted policy artifact"
-
-    archive_output =
-      capture_io(fn ->
-        assert 0 ==
-                 CLI.execute(%{
-                   command: :policy_archive,
-                   options: %{},
-                   args: [Integer.to_string(promotable.id)]
-                 })
-      end)
-
-    assert archive_output =~ "Archived policy artifact"
   end
 
   test "runtime platform commands manage service accounts, graphs, and audit exports", %{
@@ -1864,15 +1756,6 @@ defmodule ControlKeel.CLIRuntimeTest do
     ])
   end
 
-  defp opencode_legacy_config_path do
-    Path.join([
-      System.get_env("HOME") || System.user_home!(),
-      ".config",
-      "opencode",
-      "config.json"
-    ])
-  end
-
   defp kilo_config_path do
     Path.join([
       System.get_env("HOME") || System.user_home!(),
@@ -1880,6 +1763,20 @@ defmodule ControlKeel.CLIRuntimeTest do
       "kilo",
       "kilo.json"
     ])
+  end
+
+  # Unwrap the CLI success envelope for test assertions.
+  # The execute/1 interceptor wraps all JSON output in:
+  #   {"status" => "ok", "command" => "...", "data" => <payload>, "version" => "..."}
+  # This helper extracts the data payload so tests can assert on the original structure.
+  defp decode_cli_json(output) do
+    decoded = Jason.decode!(output)
+
+    case decoded do
+      %{"status" => "ok", "data" => data} -> data
+      %{"status" => "error"} -> decoded
+      other -> other
+    end
   end
 
   describe "sandbox commands" do

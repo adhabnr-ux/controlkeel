@@ -28,6 +28,7 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Governance.CircuitBreaker
   alias ControlKeel.Governance.PreCommitHook
   alias ControlKeel.Governance.Socket, as: GovernanceSocket
+  alias ControlKeel.CLI.Catalog
   alias ControlKeel.Help
   alias ControlKeel.Intent
   alias ControlKeel.Findings.PlainEnglish
@@ -43,7 +44,6 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Accounts
   alias ControlKeel.Accounts.WorkspaceToolPolicy
   alias ControlKeel.Platform
-  alias ControlKeel.PolicyTraining
   alias ControlKeel.ProviderBroker
   alias ControlKeel.ProviderConfig
   alias ControlKeel.ProtocolAccess
@@ -80,6 +80,8 @@ defmodule ControlKeel.CLI do
     scope: :string
   ]
   @status_switches [format: :string, json: :boolean]
+  @doctor_switches [project_root: :string, format: :string, json: :boolean]
+  @capabilities_switches [format: :string, json: :boolean]
   @update_switches [
     apply: :boolean,
     sync_attached: :boolean,
@@ -151,7 +153,6 @@ defmodule ControlKeel.CLI do
   ]
   @benchmark_list_switches [domain_pack: :string, format: :string]
   @benchmark_export_switches [format: :string]
-  @policy_train_switches [type: :string]
   @watch_switches [interval: :integer, status: :boolean]
   @obs_switches [
     by: :string,
@@ -372,6 +373,27 @@ defmodule ControlKeel.CLI do
   end
 
   def parse(argv) when is_list(argv) do
+    case scoped_help_args(argv) do
+      {:help, args} ->
+        {:ok, %{command: :help, options: %{}, args: args}}
+
+      :not_help ->
+        parse_command(argv)
+    end
+  end
+
+  defp scoped_help_args([flag]) when flag in ["--help", "-h"], do: {:help, []}
+
+  defp scoped_help_args(argv) do
+    if Enum.any?(argv, &(&1 in ["--help", "-h"])) do
+      args = Enum.reject(argv, &(&1 in ["--help", "-h"]))
+      {:help, args}
+    else
+      :not_help
+    end
+  end
+
+  defp parse_command(argv) do
     case argv do
       [] ->
         {:ok, %{command: :serve, options: %{}, args: []}}
@@ -393,6 +415,12 @@ defmodule ControlKeel.CLI do
 
       ["serve"] ->
         {:ok, %{command: :serve, options: %{}, args: []}}
+
+      ["doctor" | rest] ->
+        parse_with_switches(:doctor, rest, @doctor_switches)
+
+      ["capabilities" | rest] ->
+        parse_with_switches(:capabilities, rest, @capabilities_switches)
 
       ["me" | rest] ->
         parse_with_switches(:me, rest, @me_switches)
@@ -803,21 +831,6 @@ defmodule ControlKeel.CLI do
       ["benchmark", "export", run_id | rest] ->
         parse_benchmark_export(run_id, rest)
 
-      ["policy", "list"] ->
-        {:ok, %{command: :policy_list, options: %{}, args: []}}
-
-      ["policy", "train" | rest] ->
-        parse_with_switches(:policy_train, rest, @policy_train_switches)
-
-      ["policy", "show", id] ->
-        {:ok, %{command: :policy_show, options: %{}, args: [id]}}
-
-      ["policy", "promote", id] ->
-        {:ok, %{command: :policy_promote, options: %{}, args: [id]}}
-
-      ["policy", "archive", id] ->
-        {:ok, %{command: :policy_archive, options: %{}, args: [id]}}
-
       ["service-account", "create" | rest] ->
         parse_with_switches(:service_account_create, rest, @service_account_create_switches)
 
@@ -978,6 +991,7 @@ defmodule ControlKeel.CLI do
 
     case run_command(parsed, project_root) do
       {:ok, lines} ->
+        lines = maybe_wrap_success_envelope(parsed, lines)
         Enum.each(List.wrap(lines), printer)
         0
 
@@ -987,6 +1001,45 @@ defmodule ControlKeel.CLI do
       {:error, message} ->
         error_printer.(message)
         1
+    end
+  end
+
+  # Commands whose JSON output is machine-to-machine data (export/import round-trips)
+  # and should NOT be wrapped in the success envelope.
+  @skip_envelope_commands ~w(obs_export obs_import audit_export)a
+
+  defp maybe_wrap_success_envelope(parsed, lines) do
+    options = Map.get(parsed, :options, %{})
+    json? = options[:json] == true or options[:format] == "json"
+    skip? = parsed.command in @skip_envelope_commands
+
+    if json? and not skip? and is_list(lines) and length(lines) == 1 do
+      [line] = lines
+
+      if is_binary(line) and String.starts_with?(line, "{") do
+        case Jason.decode(line) do
+          {:ok, %{"status" => status, "data" => _}} when status in ["ok", "error"] ->
+            lines
+
+          {:ok, payload} ->
+            command_path = catalog_path_for_command(parsed.command)
+            [ControlKeel.CLI.Output.success_json(command_path, payload, version: version())]
+
+          {:error, _} ->
+            lines
+        end
+      else
+        lines
+      end
+    else
+      lines
+    end
+  end
+
+  defp catalog_path_for_command(command) when is_atom(command) do
+    case Catalog.for_command(command) do
+      nil -> command |> Atom.to_string() |> String.replace("_", " ")
+      entry -> entry.path
     end
   end
 
@@ -1054,6 +1107,30 @@ defmodule ControlKeel.CLI do
   end
 
   def run_command(%{command: :serve}, _project_root), do: :ok
+
+  def run_command(%{command: :capabilities, options: options}, _project_root) do
+    with {:ok, format} <- effective_cli_format(options) do
+      payload = ControlKeel.CLI.Capabilities.payload()
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(payload)]}
+        _ -> {:ok, ControlKeel.CLI.Capabilities.lines(payload)}
+      end
+    end
+  end
+
+  def run_command(%{command: :doctor, options: options}, project_root) do
+    with {:ok, format} <- effective_cli_format(options) do
+      root = resolve_project_root(options, project_root)
+      payload = ControlKeel.CLI.Doctor.payload(root, version())
+
+      case format do
+        "json" -> {:ok, [Jason.encode!(payload)]}
+        _ -> {:ok, ControlKeel.CLI.Doctor.lines(payload)}
+      end
+    end
+  end
+
   def run_command(%{command: :help, args: args}, _project_root), do: {:ok, [Help.render(args)]}
   def run_command(%{command: :version}, _project_root), do: {:ok, ["ControlKeel #{version()}"]}
 
@@ -4497,134 +4574,6 @@ defmodule ControlKeel.CLI do
     end
   end
 
-  def run_command(%{command: :policy_list}, _project_root) do
-    artifacts = PolicyTraining.list_artifacts(%{"limit" => 10})
-    training_runs = PolicyTraining.list_training_runs()
-    active = PolicyTraining.active_artifacts_summary()
-
-    artifact_lines =
-      if artifacts == [] do
-        ["No policy artifacts recorded yet."]
-      else
-        [
-          "Policy artifacts:"
-          | Enum.map(artifacts, fn artifact ->
-              "  ##{artifact.id} #{artifact.artifact_type} v#{artifact.version} [#{artifact.status}] #{artifact.model_family}"
-            end)
-        ]
-      end
-
-    active_lines =
-      [
-        "",
-        "Active artifacts:",
-        "  router: #{format_active_artifact(active["router"])}",
-        "  budget_hint: #{format_active_artifact(active["budget_hint"])}"
-      ]
-
-    training_lines =
-      if training_runs == [] do
-        ["", "No training runs recorded yet."]
-      else
-        [
-          "",
-          "Recent training runs:"
-          | Enum.map(training_runs, fn run ->
-              "  ##{run.id} #{run.artifact_type} [#{run.status}]"
-            end)
-        ]
-      end
-
-    {:ok, artifact_lines ++ active_lines ++ training_lines}
-  end
-
-  def run_command(%{command: :policy_train, options: options}, _project_root) do
-    case PolicyTraining.start_training(%{"type" => options[:type] || "router"}) do
-      {:ok, artifact} ->
-        {:ok,
-         [
-           "Policy artifact ##{artifact.id} trained.",
-           "Type: #{artifact.artifact_type}",
-           "Version: #{artifact.version}",
-           "Model family: #{artifact.model_family}",
-           "Eligible for promotion: #{get_in(artifact.metrics, ["gates", "eligible"]) == true}"
-         ]}
-
-      {:error, :unknown_artifact_type} ->
-        {:error, "Artifact type must be `router` or `budget_hint`."}
-
-      {:error, reason} ->
-        {:error, "Failed to train policy artifact: #{inspect(reason)}"}
-    end
-  end
-
-  def run_command(%{command: :policy_show, args: [id]}, _project_root) do
-    with {:ok, parsed_id} <- parse_id(id),
-         %{} = artifact <- PolicyTraining.get_artifact(parsed_id) do
-      {:ok,
-       [
-         "Policy artifact ##{artifact.id}",
-         "Type: #{artifact.artifact_type}",
-         "Version: #{artifact.version}",
-         "Status: #{artifact.status}",
-         "Model family: #{artifact.model_family}",
-         "Promotion eligible: #{get_in(artifact.metrics, ["gates", "eligible"]) == true}",
-         Jason.encode!(artifact.metrics, pretty: true)
-       ]}
-    else
-      {:error, :invalid_id} ->
-        {:error, "Policy artifact id must be an integer."}
-
-      nil ->
-        {:error, "Policy artifact not found."}
-    end
-  end
-
-  def run_command(%{command: :policy_promote, args: [id]}, _project_root) do
-    with {:ok, parsed_id} <- parse_id(id),
-         {:ok, artifact} <- PolicyTraining.promote_artifact(parsed_id) do
-      {:ok,
-       [
-         "Promoted policy artifact ##{artifact.id}.",
-         "Type: #{artifact.artifact_type}",
-         "Version: #{artifact.version}"
-       ]}
-    else
-      {:error, :invalid_id} ->
-        {:error, "Policy artifact id must be an integer."}
-
-      {:error, :not_found} ->
-        {:error, "Policy artifact not found."}
-
-      {:error, {:promotion_failed, reasons}} ->
-        {:error, "Promotion gate failed: #{Enum.join(List.wrap(reasons), "; ")}"}
-
-      {:error, reason} ->
-        {:error, "Failed to promote policy artifact: #{inspect(reason)}"}
-    end
-  end
-
-  def run_command(%{command: :policy_archive, args: [id]}, _project_root) do
-    with {:ok, parsed_id} <- parse_id(id),
-         {:ok, artifact} <- PolicyTraining.archive_artifact(parsed_id) do
-      {:ok,
-       [
-         "Archived policy artifact ##{artifact.id}.",
-         "Type: #{artifact.artifact_type}",
-         "Version: #{artifact.version}"
-       ]}
-    else
-      {:error, :invalid_id} ->
-        {:error, "Policy artifact id must be an integer."}
-
-      {:error, :not_found} ->
-        {:error, "Policy artifact not found."}
-
-      {:error, reason} ->
-        {:error, "Failed to archive policy artifact: #{inspect(reason)}"}
-    end
-  end
-
   def run_command(%{command: :service_account_create, options: options}, _project_root) do
     with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id"),
          {:ok, name} <- require_string_option(options[:name], "name"),
@@ -6471,10 +6420,10 @@ defmodule ControlKeel.CLI do
 
     cond do
       invalid != [] ->
-        {:error, usage_text()}
+        {:error, Help.command_parse_error(command, invalid, remainder, argv)}
 
       remainder != [] ->
-        {:error, usage_text()}
+        {:error, Help.command_parse_error(command, invalid, remainder, argv)}
 
       true ->
         {:ok, %{command: command, options: options, args: []}}
@@ -6486,10 +6435,10 @@ defmodule ControlKeel.CLI do
 
     cond do
       invalid != [] ->
-        {:error, usage_text()}
+        {:error, Help.command_parse_error(:attach, invalid, remainder, argv)}
 
       remainder != [] ->
-        {:error, usage_text()}
+        {:error, Help.command_parse_error(:attach, invalid, remainder, argv)}
 
       true ->
         case validate_attach_scope(agent, options) do
@@ -6851,8 +6800,8 @@ defmodule ControlKeel.CLI do
 
     candidate =
       cond do
-        is_binary(runtime_root) and runtime_root != "" -> runtime_root
         is_binary(project_root) and project_root != "" -> project_root
+        is_binary(runtime_root) and runtime_root != "" -> runtime_root
         true -> File.cwd!()
       end
 
@@ -8590,9 +8539,6 @@ defmodule ControlKeel.CLI do
   defp format_ms(nil), do: "Not recorded"
   defp format_ms(value), do: "#{value}ms"
 
-  defp format_active_artifact(nil), do: "heuristic"
-  defp format_active_artifact(artifact), do: "v#{artifact.version} (##{artifact.id})"
-
   defp format_provider_bridge(%{supported: true, provider: provider, mode: mode}),
     do: "#{mode}: #{provider}"
 
@@ -8940,25 +8886,7 @@ defmodule ControlKeel.CLI do
     command = command_spec[:command] || command_spec["command"]
     args = command_spec[:args] || command_spec["args"] || []
 
-    {existing, legacy_mirror_path} =
-      if ide_key == "opencode" do
-        legacy_path = opencode_legacy_mcp_config_path()
-        canonical_existing = read_json_map(config_path)
-
-        existing =
-          if canonical_existing == %{} and legacy_path != config_path do
-            read_json_map(legacy_path)
-          else
-            canonical_existing
-          end
-
-        mirror_path =
-          if legacy_path != config_path, do: legacy_path, else: nil
-
-        {existing, mirror_path}
-      else
-        {read_json_map(config_path), nil}
-      end
+    existing = read_json_map(config_path)
 
     updated =
       if ide_key in ["opencode", "kilo"] do
@@ -8989,8 +8917,7 @@ defmodule ControlKeel.CLI do
       end
 
     with :ok <- File.mkdir_p(Path.dirname(config_path)),
-         :ok <- File.write(config_path, Jason.encode!(updated, pretty: true) <> "\n"),
-         :ok <- maybe_write_json_mirror(legacy_mirror_path, updated) do
+         :ok <- File.write(config_path, Jason.encode!(updated, pretty: true) <> "\n") do
       {:ok,
        %{
          "server_name" => server_name,
@@ -9000,8 +8927,7 @@ defmodule ControlKeel.CLI do
          "args" => args,
          "attached_at" =>
            DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
-       }
-       |> maybe_put_legacy_config_path(legacy_mirror_path)}
+       }}
     end
   end
 
@@ -9017,20 +8943,6 @@ defmodule ControlKeel.CLI do
         %{}
     end || %{}
   end
-
-  defp maybe_write_json_mirror(nil, _payload), do: :ok
-
-  defp maybe_write_json_mirror(path, payload) do
-    with :ok <- File.mkdir_p(Path.dirname(path)),
-         :ok <- File.write(path, Jason.encode!(payload, pretty: true) <> "\n") do
-      :ok
-    end
-  end
-
-  defp maybe_put_legacy_config_path(attached, nil), do: attached
-
-  defp maybe_put_legacy_config_path(attached, path),
-    do: Map.put(attached, "legacy_config_path", path)
 
   defp ensure_stdio_server_running(timeout_ms) do
     case wait_for_stdio_server(timeout_ms) do
@@ -9123,10 +9035,6 @@ defmodule ControlKeel.CLI do
 
   defp opencode_mcp_config_path do
     Path.join([user_home(), ".config", "opencode", "opencode.json"])
-  end
-
-  defp opencode_legacy_mcp_config_path do
-    Path.join([user_home(), ".config", "opencode", "config.json"])
   end
 
   defp gemini_cli_config_path do

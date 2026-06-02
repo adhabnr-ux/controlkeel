@@ -65,11 +65,7 @@ defmodule ControlKeelWeb.Router do
 
     # Public in all modes
     live "/auth/login", AuthLive, :index
-    live "/pricing", PricingLive, :index
-    live "/docs", DocsLive, :index
-    live "/docs/:name", DocsLive, :show
-    live "/status", StatusLive, :index
-    live "/contact", ContactLive, :index
+
     live "/signup", SignupLive, :new
     get "/auth/oidc/start", OidcController, :start
     get "/auth/oidc/callback", OidcController, :callback
@@ -87,7 +83,6 @@ defmodule ControlKeelWeb.Router do
       live "/findings", FindingsLive, :index
       live "/benchmarks", BenchmarksLive, :index
       live "/benchmarks/runs/:id", BenchmarksLive, :show
-      live "/benchmarks/policies/:id", BenchmarkPolicyLive, :show
       live "/proofs", ProofBrowserLive, :index
       live "/proofs/:id", ProofBrowserLive, :show
       live "/reviews/:id", ReviewLive, :show
@@ -182,6 +177,7 @@ defmodule ControlKeelWeb.Router do
     post "/tasks/:id/report", ApiController, :report_task
     post "/validate", ApiController, :validate
     get "/findings", ApiController, :list_findings
+    post "/findings", ApiController, :create_finding
     post "/findings/:id/action", ApiController, :finding_action
     get "/proofs", ApiController, :list_proofs
     get "/proofs/:id", ApiController, :get_proof
@@ -190,14 +186,10 @@ defmodule ControlKeelWeb.Router do
     get "/benchmarks/runs/:id", ApiController, :get_benchmark_run
     post "/benchmarks/runs/:id/import", ApiController, :import_benchmark_result
     get "/benchmarks/runs/:id/export", ApiController, :export_benchmark_run
-    get "/policies", ApiController, :list_policies
-    post "/policies/train", ApiController, :train_policy
-    get "/policies/:id", ApiController, :get_policy
-    post "/policies/:id/promote", ApiController, :promote_policy
-    post "/policies/:id/archive", ApiController, :archive_policy
     get "/budget", ApiController, :get_budget
     get "/proof/:task_id", ApiController, :proof_bundle
     get "/memory/search", ApiController, :search_memory
+    post "/memory", ApiController, :create_memory
     delete "/memory/:id", ApiController, :archive_memory
     post "/route-agent", ApiController, :route_agent
     get "/skills", ApiController, :list_skills
@@ -260,7 +252,8 @@ defmodule ControlKeelWeb.Router do
     post "/sync/push", CloudSyncController, :push
     post "/sync/pull", CloudSyncController, :pull
 
-     get "/orgs/:slug/usage", CloudUsageApiController, :show  end
+    get "/orgs/:slug/usage", CloudUsageApiController, :show
+  end
 
   scope "/", ControlKeelWeb do
     pipe_through :saml_acs

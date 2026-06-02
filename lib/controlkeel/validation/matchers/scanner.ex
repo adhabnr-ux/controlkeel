@@ -140,36 +140,6 @@ defmodule ControlKeel.Validation.Matchers.Scanner do
     end
   end
 
-  @doc """
-  Runs a full deepsec workflow including revalidation.
-
-  ## Parameters
-  - opts: Keyword list of options (same as deepsec_scan/1)
-    - skip_revalidate: Skip revalidation step (default: false)
-
-  ## Returns
-  {:ok, findings} on success with list of Finding structs
-  {:error, reason} on failure
-  """
-  def deepsec_full_scan(opts \\ []) do
-    workspace_path = Keyword.get(opts, :workspace_path)
-    session_id = Keyword.get(opts, :session_id)
-    task_id = Keyword.get(opts, :task_id)
-    export_format = Keyword.get(opts, :export_format, :json)
-
-    with :ok <- ensure_deepsec_available(),
-         {:ok, _} <- CLI.init(workspace_path: workspace_path),
-         {:ok, _scan_output} <- CLI.scan(workspace_path: workspace_path),
-         {:ok, _process_output} <- CLI.process(workspace_path: workspace_path),
-         {:ok, _revalidate_output} <- maybe_revalidate(opts),
-         {:ok, findings} <-
-           export_and_parse_findings(export_format, workspace_path, session_id, task_id) do
-      {:ok, findings}
-    else
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
   # Private functions
 
   defp ensure_deepsec_available do
@@ -177,14 +147,6 @@ defmodule ControlKeel.Validation.Matchers.Scanner do
       :ok
     else
       {:error, "Deepsec CLI is not available. Please install it with: npm install -g deepsec"}
-    end
-  end
-
-  defp maybe_revalidate(opts) do
-    if Keyword.get(opts, :skip_revalidate, false) do
-      {:ok, "Revalidation skipped"}
-    else
-      CLI.revalidate(workspace_path: Keyword.get(opts, :workspace_path))
     end
   end
 
