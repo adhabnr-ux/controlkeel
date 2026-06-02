@@ -158,27 +158,13 @@ defmodule ControlKeel.CLI.Catalog do
   defp command_path(:review_plan_wait), do: "review plan wait"
   defp command_path(:review_plan_respond), do: "review plan respond <id>"
   defp command_path(:release_ready), do: "release-ready"
-  defp command_path(:govern_install_github), do: "govern install github"
-  defp command_path(:govern_bind_github), do: "govern bind github"
-  defp command_path(:govern_unbind_github), do: "govern unbind github"
-  defp command_path(:govern_list_github), do: "govern list github"
   defp command_path(:plugin_export), do: "plugin export <host>"
   defp command_path(:plugin_install), do: "plugin install <host>"
   defp command_path(:cloud_doctor), do: "cloud doctor"
   defp command_path(:cloud_connect), do: "cloud connect"
-  defp command_path(:cloud_sync_push), do: "cloud push"
-  defp command_path(:cloud_sync_pull), do: "cloud pull"
-  defp command_path(:cloud_sync_migrate), do: "cloud migrate"
   defp command_path(:telemetry_enable), do: "telemetry enable"
   defp command_path(:telemetry_disable), do: "telemetry disable"
-  defp command_path(:telemetry_queue), do: "telemetry queue"
-  defp command_path(:telemetry_flush), do: "telemetry flush"
-  defp command_path(:telemetry_status), do: "telemetry status"
   defp command_path(:baseline_compute), do: "baseline compute"
-  defp command_path(:selfhost_pack), do: "selfhost pack"
-  defp command_path(:selfhost_verify), do: "selfhost verify"
-  defp command_path(:selfhost_manifest), do: "selfhost manifest"
-  defp command_path(:selfhost_install_guide), do: "selfhost install-guide"
   defp command_path(:agents_discover), do: "agents discover <path>"
   defp command_path(:audit_export), do: "audit export"
   defp command_path(:eval_list), do: "eval list"
@@ -448,11 +434,8 @@ defmodule ControlKeel.CLI.Catalog do
           :obs_export,
           :obs_import,
           :obs_workshop,
-          :telemetry_status,
           :telemetry_enable,
           :telemetry_disable,
-          :telemetry_queue,
-          :telemetry_flush,
           :baseline_compute
         ],
         help_topic: "observability",
@@ -543,18 +526,7 @@ defmodule ControlKeel.CLI.Catalog do
         [
           :cloud_doctor,
           :cloud_connect,
-          :cloud_sync_push,
-          :cloud_sync_pull,
-          :cloud_sync_migrate,
-          :govern_install_github,
-          :govern_bind_github,
-          :govern_unbind_github,
-          :govern_list_github,
           :audit_export,
-          :selfhost_pack,
-          :selfhost_verify,
-          :selfhost_manifest,
-          :selfhost_install_guide,
           :user_create,
           :org_create,
           :org_list,

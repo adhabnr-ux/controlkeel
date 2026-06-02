@@ -1190,7 +1190,7 @@ defmodule ControlKeel.CLIRuntimeTest do
            )
   end
 
-  test "repo governance commands review patches, check release readiness, and scaffold github", %{
+  test "repo governance commands review patches, and check release readiness", %{
     tmp_dir: tmp_dir
   } do
     session = session_fixture(%{title: "Governed CLI session"})
@@ -1278,18 +1278,6 @@ defmodule ControlKeel.CLIRuntimeTest do
       end)
 
     assert release_output =~ "Release readiness: blocked"
-
-    assert {:ok, govern_install} = CLI.parse(["govern", "install", "github"])
-
-    govern_output =
-      capture_io(fn ->
-        assert 0 == CLI.execute(govern_install, project_root: tmp_dir)
-      end)
-
-    assert govern_output =~ "Installed ControlKeel GitHub governance scaffolding."
-    assert File.exists?(Path.join(tmp_dir, ".github/workflows/controlkeel-pr-governor.yml"))
-    assert File.exists?(Path.join(tmp_dir, ".github/workflows/controlkeel-release-governor.yml"))
-    assert File.exists?(Path.join(tmp_dir, ".github/workflows/scorecards.yml"))
   end
 
   test "runtime proofs, pause, resume, and memory search operate on the bound session", %{

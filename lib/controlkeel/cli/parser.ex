@@ -241,21 +241,6 @@ defmodule ControlKeel.CLI.Parser do
     json: :boolean
   ]
   @govern_install_switches [project_root: :string, json: :boolean]
-  @govern_bind_github_switches [
-    workspace_id: :integer,
-    owner: :string,
-    repo: :string,
-    default_branch: :string,
-    installation_id: :string,
-    json: :boolean
-  ]
-  @govern_unbind_github_switches [
-    workspace_id: :integer,
-    owner: :string,
-    repo: :string,
-    json: :boolean
-  ]
-  @govern_list_github_switches [workspace_id: :integer, json: :boolean]
   @plugin_switches [project_root: :string, scope: :string, mode: :string, json: :boolean]
   @agents_doctor_switches [project_root: :string, json: :boolean]
   @cloud_doctor_switches [project_root: :string, json: :boolean]
@@ -267,14 +252,8 @@ defmodule ControlKeel.CLI.Parser do
     invite: :string,
     json: :boolean
   ]
-  @cloud_sync_push_switches [project_root: :string, workspace: :string, json: :boolean]
-  @cloud_sync_pull_switches [project_root: :string, workspace: :string, json: :boolean]
-  @cloud_sync_migrate_switches [project_root: :string, json: :boolean]
-  @telemetry_status_switches [project_root: :string, json: :boolean]
   @telemetry_enable_switches [project_root: :string, level: :string, json: :boolean]
   @telemetry_disable_switches [project_root: :string, json: :boolean]
-  @telemetry_queue_switches [project_root: :string, limit: :integer, json: :boolean]
-  @telemetry_flush_switches [project_root: :string, limit: :integer, json: :boolean]
   @mcp_registry_list_switches [project_root: :string, json: :boolean]
   @mcp_registry_check_switches [project_root: :string, attested: :boolean, json: :boolean]
   @mcp_guardrails_switches [project_root: :string, json: :boolean]
@@ -337,7 +316,6 @@ defmodule ControlKeel.CLI.Parser do
     json: :boolean
   ]
   @selfhost_switches [project_root: :string, json: :boolean]
-  @selfhost_pack_switches [project_root: :string, output: :string, json: :boolean]
   @agents_discover_switches [
     project_root: :string,
     max_depth: :integer,
@@ -466,19 +444,6 @@ defmodule ControlKeel.CLI.Parser do
 
       ["release-ready" | rest] ->
         parse_with_switches(:release_ready, rest, @release_ready_switches)
-
-      ["govern", "install", "github" | rest] ->
-        parse_with_switches(:govern_install_github, rest, @govern_install_switches)
-
-      ["govern", "bind", "github" | rest] ->
-        parse_with_switches(:govern_bind_github, rest, @govern_bind_github_switches)
-
-      ["govern", "unbind", "github" | rest] ->
-        parse_with_switches(:govern_unbind_github, rest, @govern_unbind_github_switches)
-
-      ["govern", "list", "github" | rest] ->
-        parse_with_switches(:govern_list_github, rest, @govern_list_github_switches)
-
       ["plugin", "export", plugin | rest] ->
         parse_plugin_command(:plugin_export, plugin, rest)
 
@@ -493,31 +458,11 @@ defmodule ControlKeel.CLI.Parser do
 
       ["cloud", "connect" | rest] ->
         parse_with_switches(:cloud_connect, rest, @cloud_connect_switches)
-
-      ["cloud", "push" | rest] ->
-        parse_with_switches(:cloud_sync_push, rest, @cloud_sync_push_switches)
-
-      ["cloud", "pull" | rest] ->
-        parse_with_switches(:cloud_sync_pull, rest, @cloud_sync_pull_switches)
-
-      ["cloud", "migrate" | rest] ->
-        parse_with_switches(:cloud_sync_migrate, rest, @cloud_sync_migrate_switches)
-
-      ["telemetry", "status" | rest] ->
-        parse_with_switches(:telemetry_status, rest, @telemetry_status_switches)
-
       ["telemetry", "enable" | rest] ->
         parse_with_switches(:telemetry_enable, rest, @telemetry_enable_switches)
 
       ["telemetry", "disable" | rest] ->
         parse_with_switches(:telemetry_disable, rest, @telemetry_disable_switches)
-
-      ["telemetry", "queue" | rest] ->
-        parse_with_switches(:telemetry_queue, rest, @telemetry_queue_switches)
-
-      ["telemetry", "flush" | rest] ->
-        parse_with_switches(:telemetry_flush, rest, @telemetry_flush_switches)
-
       ["mcp", "registry", "list" | rest] ->
         parse_with_switches(:mcp_registry_list, rest, @mcp_registry_list_switches)
 
@@ -622,19 +567,6 @@ defmodule ControlKeel.CLI.Parser do
 
       ["baseline", "compute" | rest] ->
         parse_with_switches(:baseline_compute, rest, @baseline_compute_switches)
-
-      ["selfhost", "pack" | rest] ->
-        parse_with_switches(:selfhost_pack, rest, @selfhost_pack_switches)
-
-      ["selfhost", "verify" | rest] ->
-        parse_with_switches(:selfhost_verify, rest, @selfhost_switches)
-
-      ["selfhost", "manifest" | rest] ->
-        parse_with_switches(:selfhost_manifest, rest, @selfhost_switches)
-
-      ["selfhost", "install-guide" | rest] ->
-        parse_with_switches(:selfhost_install_guide, rest, @selfhost_switches)
-
       ["agents", "discover", path | rest] ->
         case parse_with_switches(:agents_discover, rest, @agents_discover_switches) do
           {:ok, parsed} -> {:ok, Map.put(parsed, :args, [path])}

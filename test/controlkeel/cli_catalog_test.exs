@@ -24,7 +24,6 @@ defmodule ControlKeel.CLI.CatalogTest do
     ["skills", "list", "--json"],
     ["tool", "groups", "suggest", "--format", "json"],
     ["cloud", "doctor"],
-    ["selfhost", "verify"],
     ["provider", "doctor"],
     ["sandbox", "status"],
     ["benchmark", "list"],
