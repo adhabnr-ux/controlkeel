@@ -70,14 +70,16 @@ defmodule ControlKeel.CLI do
     users: :string,
     data: :string,
     project_name: :string,
-    no_attach: :boolean
+    no_attach: :boolean,
+    json: :boolean
   ]
   @attach_switches [
     project_root: :string,
     mcp_only: :boolean,
     no_native: :boolean,
     with_skills: :boolean,
-    scope: :string
+    scope: :string,
+    json: :boolean
   ]
   @status_switches [format: :string, json: :boolean]
   @doctor_switches [project_root: :string, format: :string, json: :boolean]
@@ -107,53 +109,76 @@ defmodule ControlKeel.CLI do
     json: :boolean,
     project_root: :string
   ]
-  @findings_switches [severity: :string, status: :string, format: :string]
-  @findings_translate_switches [session_id: :integer, severity: :string]
+  @findings_switches [severity: :string, status: :string, format: :string, json: :boolean]
+  @findings_translate_switches [session_id: :integer, severity: :string, json: :boolean]
   @proofs_switches [
     session_id: :integer,
     task_id: :integer,
     deploy_ready: :boolean,
-    format: :string
+    format: :string,
+    json: :boolean
   ]
-  @mcp_switches [project_root: :string]
+  @mcp_switches [project_root: :string, json: :boolean]
   @me_switches [
     session_id: :integer,
     format: :string,
     json: :boolean,
     project_root: :string
   ]
-  @memory_search_switches [session_id: :integer, type: :string]
-  @deploy_analyze_switches [project_root: :string]
+  @memory_search_switches [session_id: :integer, type: :string, json: :boolean]
+  @deploy_analyze_switches [project_root: :string, json: :boolean]
   @deploy_cost_switches [
     stack: :string,
     tier: :string,
     needs_db: :boolean,
     db_tier: :string,
     bandwidth: :integer,
-    storage: :integer
+    storage: :integer,
+    json: :boolean
   ]
-  @cost_optimize_switches [session_id: :integer, provider: :string, model: :string]
-  @cost_compare_switches [tokens: :integer]
-  @precommit_check_switches [project_root: :string, domain_pack: :string, enforce: :boolean]
-  @progress_switches [session_id: :integer, format: :string]
-  @circuit_breaker_switches [agent_id: :string]
+  @cost_optimize_switches [
+    session_id: :integer,
+    provider: :string,
+    model: :string,
+    json: :boolean
+  ]
+  @cost_compare_switches [tokens: :integer, json: :boolean]
+  @precommit_check_switches [
+    project_root: :string,
+    domain_pack: :string,
+    enforce: :boolean,
+    json: :boolean
+  ]
+  @progress_switches [session_id: :integer, format: :string, json: :boolean]
+  @circuit_breaker_switches [agent_id: :string, json: :boolean]
   @skills_list_switches [project_root: :string, target: :string, format: :string, json: :boolean]
-  @skills_validate_switches [project_root: :string]
-  @skills_export_switches [project_root: :string, target: :string, scope: :string]
-  @skills_install_switches [project_root: :string, target: :string, scope: :string]
-  @skills_doctor_switches [project_root: :string]
-  @token_audit_switches [mode: :string, format: :string, project_root: :string]
-  @tool_groups_suggest_switches [project_root: :string, format: :string, apply: :boolean]
+  @skills_validate_switches [project_root: :string, json: :boolean]
+  @skills_export_switches [project_root: :string, target: :string, scope: :string, json: :boolean]
+  @skills_install_switches [
+    project_root: :string,
+    target: :string,
+    scope: :string,
+    json: :boolean
+  ]
+  @skills_doctor_switches [project_root: :string, json: :boolean]
+  @token_audit_switches [mode: :string, format: :string, project_root: :string, json: :boolean]
+  @tool_groups_suggest_switches [
+    project_root: :string,
+    format: :string,
+    apply: :boolean,
+    json: :boolean
+  ]
   @benchmark_run_switches [
     suite: :string,
     subjects: :string,
     baseline_subject: :string,
     scenario_slugs: :string,
-    domain_pack: :string
+    domain_pack: :string,
+    json: :boolean
   ]
-  @benchmark_list_switches [domain_pack: :string, format: :string]
-  @benchmark_export_switches [format: :string]
-  @watch_switches [interval: :integer, status: :boolean]
+  @benchmark_list_switches [domain_pack: :string, format: :string, json: :boolean]
+  @benchmark_export_switches [format: :string, json: :boolean]
+  @watch_switches [interval: :integer, status: :boolean, json: :boolean]
   @obs_switches [
     by: :string,
     days: :integer,
@@ -170,42 +195,55 @@ defmodule ControlKeel.CLI do
   ]
   @obs_import_switches [dry_run: :boolean, persist: :boolean, format: :string, json: :boolean]
   @obs_workshop_switches [dry_run: :boolean, format: :string, json: :boolean]
-  @audit_log_switches [format: :string]
-  @service_account_create_switches [workspace_id: :integer, name: :string, scopes: :string]
-  @service_account_list_switches [workspace_id: :integer]
+  @audit_log_switches [format: :string, json: :boolean]
+  @service_account_create_switches [
+    workspace_id: :integer,
+    name: :string,
+    scopes: :string,
+    json: :boolean
+  ]
+  @service_account_list_switches [workspace_id: :integer, json: :boolean]
   @policy_set_create_switches [
     name: :string,
     scope: :string,
     description: :string,
-    rules_file: :string
+    rules_file: :string,
+    json: :boolean
   ]
-  @policy_set_list_switches [workspace_id: :integer]
-  @policy_set_apply_switches [precedence: :integer]
+  @policy_set_list_switches [workspace_id: :integer, json: :boolean]
+  @policy_set_apply_switches [precedence: :integer, json: :boolean]
   @webhook_create_switches [
     workspace_id: :integer,
     name: :string,
     url: :string,
     events: :string,
-    secret: :string
+    secret: :string,
+    json: :boolean
   ]
-  @webhook_list_switches [workspace_id: :integer]
-  @worker_start_switches [service_account_token: :string, interval: :integer]
-  @provider_default_switches [scope: :string, project_root: :string]
-  @provider_set_key_switches [value: :string]
-  @provider_set_base_url_switches [value: :string]
-  @provider_set_model_switches [value: :string]
-  @provider_show_switches [project_root: :string]
-  @provider_list_switches [project_root: :string]
-  @provider_doctor_switches [project_root: :string]
-  @bootstrap_switches [project_root: :string, ephemeral_ok: :boolean, agent: :string]
-  @setup_switches [project_root: :string, ephemeral_ok: :boolean, agent: :string]
-  @runtime_export_switches [project_root: :string]
+  @webhook_list_switches [workspace_id: :integer, json: :boolean]
+  @worker_start_switches [service_account_token: :string, interval: :integer, json: :boolean]
+  @provider_default_switches [scope: :string, project_root: :string, json: :boolean]
+  @provider_set_key_switches [value: :string, json: :boolean]
+  @provider_set_base_url_switches [value: :string, json: :boolean]
+  @provider_set_model_switches [value: :string, json: :boolean]
+  @provider_show_switches [project_root: :string, json: :boolean]
+  @provider_list_switches [project_root: :string, json: :boolean]
+  @provider_doctor_switches [project_root: :string, json: :boolean]
+  @bootstrap_switches [
+    project_root: :string,
+    ephemeral_ok: :boolean,
+    agent: :string,
+    json: :boolean
+  ]
+  @setup_switches [project_root: :string, ephemeral_ok: :boolean, agent: :string, json: :boolean]
+  @runtime_export_switches [project_root: :string, json: :boolean]
   @review_diff_switches [
     base: :string,
     head: :string,
     session_id: :integer,
     domain_pack: :string,
-    project_root: :string
+    project_root: :string,
+    json: :boolean
   ]
   @review_pr_switches [
     patch: :string,
@@ -213,14 +251,16 @@ defmodule ControlKeel.CLI do
     stdin: :boolean,
     session_id: :integer,
     domain_pack: :string,
-    project_root: :string
+    project_root: :string,
+    json: :boolean
   ]
   @review_socket_switches [
     report: :string,
     stdin: :boolean,
     session_id: :integer,
     domain_pack: :string,
-    project_root: :string
+    project_root: :string,
+    json: :boolean
   ]
   @review_plan_submit_switches [
     session_id: :integer,
@@ -254,50 +294,59 @@ defmodule ControlKeel.CLI do
     smoke_status: :string,
     artifact_source: :string,
     provenance_verified: :boolean,
-    project_root: :string
+    project_root: :string,
+    json: :boolean
   ]
-  @govern_install_switches [project_root: :string]
+  @govern_install_switches [project_root: :string, json: :boolean]
   @govern_bind_github_switches [
     workspace_id: :integer,
     owner: :string,
     repo: :string,
     default_branch: :string,
-    installation_id: :string
+    installation_id: :string,
+    json: :boolean
   ]
   @govern_unbind_github_switches [
     workspace_id: :integer,
     owner: :string,
-    repo: :string
+    repo: :string,
+    json: :boolean
   ]
-  @govern_list_github_switches [workspace_id: :integer]
-  @plugin_switches [project_root: :string, scope: :string, mode: :string]
-  @agents_doctor_switches [project_root: :string]
-  @cloud_doctor_switches [project_root: :string]
+  @govern_list_github_switches [workspace_id: :integer, json: :boolean]
+  @plugin_switches [project_root: :string, scope: :string, mode: :string, json: :boolean]
+  @agents_doctor_switches [project_root: :string, json: :boolean]
+  @cloud_doctor_switches [project_root: :string, json: :boolean]
   @cloud_connect_switches [
     project_root: :string,
     rotate: :boolean,
     enroll: :string,
     name: :string,
-    invite: :string
+    invite: :string,
+    json: :boolean
   ]
-  @cloud_sync_push_switches [project_root: :string, workspace: :string]
-  @cloud_sync_pull_switches [project_root: :string, workspace: :string]
-  @cloud_sync_migrate_switches [project_root: :string]
-  @telemetry_status_switches [project_root: :string]
-  @telemetry_enable_switches [project_root: :string, level: :string]
-  @telemetry_disable_switches [project_root: :string]
-  @telemetry_queue_switches [project_root: :string, limit: :integer]
-  @telemetry_flush_switches [project_root: :string, limit: :integer]
-  @mcp_registry_list_switches [project_root: :string]
-  @mcp_registry_check_switches [project_root: :string, attested: :boolean]
-  @mcp_guardrails_switches [project_root: :string]
-  @user_create_switches [project_root: :string, email: :string, name: :string]
-  @org_create_switches [project_root: :string, name: :string, slug: :string]
-  @org_list_switches [project_root: :string]
-  @org_budget_set_switches [project_root: :string, cents: :integer, clear: :boolean]
-  @org_budget_show_switches [project_root: :string]
-  @org_invite_switches [project_root: :string, email: :string, role: :string]
-  @org_members_switches [project_root: :string]
+  @cloud_sync_push_switches [project_root: :string, workspace: :string, json: :boolean]
+  @cloud_sync_pull_switches [project_root: :string, workspace: :string, json: :boolean]
+  @cloud_sync_migrate_switches [project_root: :string, json: :boolean]
+  @telemetry_status_switches [project_root: :string, json: :boolean]
+  @telemetry_enable_switches [project_root: :string, level: :string, json: :boolean]
+  @telemetry_disable_switches [project_root: :string, json: :boolean]
+  @telemetry_queue_switches [project_root: :string, limit: :integer, json: :boolean]
+  @telemetry_flush_switches [project_root: :string, limit: :integer, json: :boolean]
+  @mcp_registry_list_switches [project_root: :string, json: :boolean]
+  @mcp_registry_check_switches [project_root: :string, attested: :boolean, json: :boolean]
+  @mcp_guardrails_switches [project_root: :string, json: :boolean]
+  @user_create_switches [project_root: :string, email: :string, name: :string, json: :boolean]
+  @org_create_switches [project_root: :string, name: :string, slug: :string, json: :boolean]
+  @org_list_switches [project_root: :string, json: :boolean]
+  @org_budget_set_switches [
+    project_root: :string,
+    cents: :integer,
+    clear: :boolean,
+    json: :boolean
+  ]
+  @org_budget_show_switches [project_root: :string, json: :boolean]
+  @org_invite_switches [project_root: :string, email: :string, role: :string, json: :boolean]
+  @org_members_switches [project_root: :string, json: :boolean]
   @org_idp_set_switches [
     project_root: :string,
     type: :string,
@@ -305,9 +354,10 @@ defmodule ControlKeel.CLI do
     client_id: :string,
     entity_id: :string,
     idp_metadata_url: :string,
-    clear: :boolean
+    clear: :boolean,
+    json: :boolean
   ]
-  @org_idp_show_switches [project_root: :string]
+  @org_idp_show_switches [project_root: :string, json: :boolean]
   @run_cloud_agent_switches [
     project_root: :string,
     runtime: :string,
@@ -318,10 +368,11 @@ defmodule ControlKeel.CLI do
     repo_url: :string,
     branch: :string,
     commit_sha: :string,
-    dispatch: :boolean
+    dispatch: :boolean,
+    json: :boolean
   ]
-  @eval_list_switches [project_root: :string]
-  @eval_run_switches [project_root: :string, suite: :string]
+  @eval_list_switches [project_root: :string, json: :boolean]
+  @eval_run_switches [project_root: :string, suite: :string, json: :boolean]
   @audit_export_switches [
     project_root: :string,
     workspace: :string,
@@ -331,13 +382,19 @@ defmodule ControlKeel.CLI do
     out: :string,
     template: :string,
     sign: :boolean,
-    signing_key_env: :string
+    signing_key_env: :string,
+    json: :boolean
   ]
-  @baseline_compute_switches [workspace_id: :integer, window_days: :integer]
-  @workspace_tool_policy_get_switches [workspace_id: :integer]
-  @workspace_tool_policy_set_switches [workspace_id: :integer, mode: :string, tools: :string]
-  @selfhost_switches [project_root: :string]
-  @selfhost_pack_switches [project_root: :string, output: :string]
+  @baseline_compute_switches [workspace_id: :integer, window_days: :integer, json: :boolean]
+  @workspace_tool_policy_get_switches [workspace_id: :integer, json: :boolean]
+  @workspace_tool_policy_set_switches [
+    workspace_id: :integer,
+    mode: :string,
+    tools: :string,
+    json: :boolean
+  ]
+  @selfhost_switches [project_root: :string, json: :boolean]
+  @selfhost_pack_switches [project_root: :string, output: :string, json: :boolean]
   @agents_discover_switches [
     project_root: :string,
     max_depth: :integer,
@@ -353,11 +410,23 @@ defmodule ControlKeel.CLI do
     format: :string,
     json: :boolean
   ]
-  @task_claim_switches [execution_mode: :string]
-  @task_heartbeat_switches [progress: :integer, note: :string]
-  @task_checks_switches [checks: :string]
-  @task_report_switches [status: :string, output: :string, metadata: :string]
-  @agent_run_switches [project_root: :string, agent: :string, mode: :string, sandbox: :string]
+  @task_claim_switches [execution_mode: :string, json: :boolean]
+  @task_heartbeat_switches [progress: :integer, note: :string, json: :boolean]
+  @task_checks_switches [checks: :string, json: :boolean]
+  @task_report_switches [status: :string, output: :string, metadata: :string, json: :boolean]
+  @agent_run_switches [
+    project_root: :string,
+    agent: :string,
+    mode: :string,
+    sandbox: :string,
+    json: :boolean
+  ]
+  @session_list_switches [format: :string, json: :boolean]
+  @session_switch_switches [format: :string, json: :boolean]
+  @sandbox_status_switches [format: :string, json: :boolean]
+  @outcome_record_switches [format: :string, json: :boolean]
+  @outcome_score_switches [format: :string, json: :boolean]
+  @outcome_leaderboard_switches [format: :string, json: :boolean]
 
   def standalone_argv do
     cond do
@@ -645,11 +714,14 @@ defmodule ControlKeel.CLI do
       ["run", "session", session_id | rest] ->
         parse_run_command(:run_session, session_id, rest)
 
-      ["session", "list"] ->
-        {:ok, %{command: :session_list, options: %{}, args: []}}
+      ["session", "list" | rest] ->
+        parse_with_switches(:session_list, rest, @session_list_switches)
 
-      ["session", "switch", session_id] ->
-        {:ok, %{command: :session_switch, options: %{}, args: [session_id]}}
+      ["session", "switch", session_id | rest] ->
+        case parse_with_switches(:session_switch, rest, @session_switch_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [session_id])}
+          err -> err
+        end
 
       ["registry", "sync", "acp"] ->
         {:ok, %{command: :registry_sync_acp, options: %{}, args: []}}
@@ -657,8 +729,8 @@ defmodule ControlKeel.CLI do
       ["registry", "status", "acp"] ->
         {:ok, %{command: :registry_status_acp, options: %{}, args: []}}
 
-      ["sandbox", "status"] ->
-        {:ok, %{command: :sandbox_status, options: %{}, args: []}}
+      ["sandbox", "status" | rest] ->
+        parse_with_switches(:sandbox_status, rest, @sandbox_status_switches)
 
       ["sandbox", "config", adapter] ->
         {:ok, %{command: :sandbox_config, options: %{adapter: adapter}, args: []}}
@@ -948,14 +1020,20 @@ defmodule ControlKeel.CLI do
       ["agents", "monitor" | rest] ->
         parse_with_switches(:agents_monitor, rest, @circuit_breaker_switches)
 
-      ["outcome", "record", session_id, outcome] ->
-        {:ok, %{command: :outcome_record, options: %{}, args: [session_id, outcome]}}
+      ["outcome", "record", session_id, outcome | rest] ->
+        case parse_with_switches(:outcome_record, rest, @outcome_record_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [session_id, outcome])}
+          err -> err
+        end
 
-      ["outcome", "score", agent_id] ->
-        {:ok, %{command: :outcome_score, options: %{}, args: [agent_id]}}
+      ["outcome", "score", agent_id | rest] ->
+        case parse_with_switches(:outcome_score, rest, @outcome_score_switches) do
+          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [agent_id])}
+          err -> err
+        end
 
-      ["outcome", "leaderboard"] ->
-        {:ok, %{command: :outcome_leaderboard, options: %{}, args: []}}
+      ["outcome", "leaderboard" | rest] ->
+        parse_with_switches(:outcome_leaderboard, rest, @outcome_leaderboard_switches)
 
       ["help" | rest] ->
         {:ok, %{command: :help, options: %{}, args: rest}}

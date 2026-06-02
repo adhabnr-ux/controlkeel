@@ -7,6 +7,7 @@ defmodule ControlKeel.MCP.Protocol do
   alias ControlKeel.Skills.Registry
   alias ControlKeel.TrustBoundary
 
+  alias ControlKeel.MCP.OutputSchemas
   alias ControlKeel.MCP.ToolGroups
 
   alias ControlKeel.MCP.Tools.{
@@ -180,42 +181,45 @@ defmodule ControlKeel.MCP.Protocol do
         Logger.error("MCP tools/list failed: #{Exception.message(e)}")
         # Return core tools as a safe fallback
         ok_response(id, %{
-          "tools" => [
-            ck_validate_tool(),
-            ck_context_tool(),
-            ck_finding_tool(),
-            ck_memory_search_tool(),
-            ck_memory_record_tool(),
-            ck_budget_tool()
-          ]
+          "tools" =>
+            OutputSchemas.inject_all([
+              ck_validate_tool(),
+              ck_context_tool(),
+              ck_finding_tool(),
+              ck_memory_search_tool(),
+              ck_memory_record_tool(),
+              ck_budget_tool()
+            ])
         })
     catch
       :exit, e ->
         Logger.error("MCP tools/list exited: #{inspect(e)}")
 
         ok_response(id, %{
-          "tools" => [
-            ck_validate_tool(),
-            ck_context_tool(),
-            ck_finding_tool(),
-            ck_memory_search_tool(),
-            ck_memory_record_tool(),
-            ck_budget_tool()
-          ]
+          "tools" =>
+            OutputSchemas.inject_all([
+              ck_validate_tool(),
+              ck_context_tool(),
+              ck_finding_tool(),
+              ck_memory_search_tool(),
+              ck_memory_record_tool(),
+              ck_budget_tool()
+            ])
         })
 
       :throw, e ->
         Logger.error("MCP tools/list threw: #{inspect(e)}")
 
         ok_response(id, %{
-          "tools" => [
-            ck_validate_tool(),
-            ck_context_tool(),
-            ck_finding_tool(),
-            ck_memory_search_tool(),
-            ck_memory_record_tool(),
-            ck_budget_tool()
-          ]
+          "tools" =>
+            OutputSchemas.inject_all([
+              ck_validate_tool(),
+              ck_context_tool(),
+              ck_finding_tool(),
+              ck_memory_search_tool(),
+              ck_memory_record_tool(),
+              ck_budget_tool()
+            ])
         })
     end
   end
@@ -344,7 +348,10 @@ defmodule ControlKeel.MCP.Protocol do
       # Always expose ck_skill_list / ck_skill_load / ck_skill_validate. Do not call Registry here: a full
       # catalog walk (every agent skill dir under $HOME) can take 10–30s and blocks this
       # process while Cursor expects tools/list under a ~20s connect budget.
-      tools = base ++ [ck_skill_list_tool(), ck_skill_load_tool(), ck_skill_validate_tool()]
+      tools =
+        OutputSchemas.inject_all(
+          base ++ [ck_skill_list_tool(), ck_skill_load_tool(), ck_skill_validate_tool()]
+        )
 
       # Apply tool_names filtering (takes precedence over tool_groups and adaptive mode)
       # This is used by hosted mode for security - explicit tool whitelisting
@@ -405,39 +412,39 @@ defmodule ControlKeel.MCP.Protocol do
       e ->
         # If anything fails during tool schema generation, log it and return a safe fallback
         Logger.error("MCP tool schema generation failed: #{Exception.message(e)}")
-        # Return core tools as a safe fallback
-        [
+
+        OutputSchemas.inject_all([
           ck_validate_tool(),
           ck_context_tool(),
           ck_finding_tool(),
           ck_memory_search_tool(),
           ck_memory_record_tool(),
           ck_budget_tool()
-        ]
+        ])
     catch
       :exit, e ->
         Logger.error("MCP tool schema generation exited: #{inspect(e)}")
 
-        [
+        OutputSchemas.inject_all([
           ck_validate_tool(),
           ck_context_tool(),
           ck_finding_tool(),
           ck_memory_search_tool(),
           ck_memory_record_tool(),
           ck_budget_tool()
-        ]
+        ])
 
       :throw, e ->
         Logger.error("MCP tool schema generation threw: #{inspect(e)}")
 
-        [
+        OutputSchemas.inject_all([
           ck_validate_tool(),
           ck_context_tool(),
           ck_finding_tool(),
           ck_memory_search_tool(),
           ck_memory_record_tool(),
           ck_budget_tool()
-        ]
+        ])
     end
   end
 
