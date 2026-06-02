@@ -1566,6 +1566,9 @@ defmodule ControlKeel.Skills.Exporter do
     readme_path = Path.join(extension_root, "README.md")
     File.write!(readme_path, vscode_companion_readme_contents())
 
+    license_path = Path.join(extension_root, "LICENSE")
+    File.write!(license_path, "MIT License\n\nCopyright (c) 2026 ControlKeel Authors")
+
     with_common_assets(
       root,
       root,
@@ -1573,7 +1576,8 @@ defmodule ControlKeel.Skills.Exporter do
       [
         %{"path" => package_json_path, "kind" => "package"},
         %{"path" => extension_js_path, "kind" => "runtime"},
-        %{"path" => readme_path, "kind" => "instructions"}
+        %{"path" => readme_path, "kind" => "instructions"},
+        %{"path" => license_path, "kind" => "license"}
       ],
       [
         "Zip the `extension/` directory as a `.vsix` when publishing the VS Code companion.",
@@ -5242,6 +5246,8 @@ defmodule ControlKeel.Skills.Exporter do
       "keywords" => ["controlkeel", "review", "governance", "mcp"],
       "engines" => %{"vscode" => "^1.85.0"},
       "main" => "./extension.js",
+      "license" => "MIT",
+      "files" => ["extension.js", "README.md", "package.json", "LICENSE"],
       "activationEvents" => ["onStartupFinished"],
       "contributes" => %{
         "commands" => [

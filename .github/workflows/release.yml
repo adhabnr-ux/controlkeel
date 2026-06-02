@@ -73,12 +73,12 @@ jobs:
           mkdir -p /tmp/release-candidate
           gh run download "${{ steps.smoke_run.outputs.run_id }}" -R "${GITHUB_REPOSITORY}" -n "$ARTIFACT_NAME" -D /tmp/release-candidate
           test -f /tmp/release-candidate/controlkeel-checksums.txt
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: release-candidate-dist
           path: /tmp/release-candidate
           retention-days: 1
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: release-metadata
           path: /tmp/release-candidate/controlkeel-checksums.txt
@@ -90,8 +90,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
           name: release-candidate-dist
           path: dist
@@ -125,7 +125,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
       - name: Check Homebrew publish configuration
         id: homebrew_gate
         env:
@@ -137,7 +137,7 @@ jobs:
           else
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         if: steps.homebrew_gate.outputs.enabled == 'true'
         with:
           name: release-metadata
@@ -210,8 +210,8 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
       - name: Use npm Trusted Publishing
@@ -234,11 +234,11 @@ jobs:
           fi
 
           npm publish --access public --provenance --registry=https://registry.npmjs.org
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         with:
           name: release-candidate-dist
           path: dist
-      - uses: erlef/setup-beam@v1.23.0
+      - uses: erlef/setup-beam@v1
         with:
           elixir-version: "1.19.5"
           otp-version: "27.3.4.3"
@@ -290,8 +290,8 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: https://npm.pkg.github.com
@@ -323,11 +323,11 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         with:
           name: release-candidate-dist
           path: dist
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
       - name: Check VS Code marketplace publish configuration
