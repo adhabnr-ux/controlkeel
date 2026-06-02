@@ -29,8 +29,8 @@ defmodule ControlKeel.AttachedAgentSyncTest do
       "session_id" => 1,
       "agent" => "claude",
       "attached_agents" => %{
-        "augment" => %{
-          "target" => "augment-native",
+        "cursor" => %{
+          "target" => "cursor-native",
           "scope" => "project",
           "controlkeel_version" => "0.0.1"
         }
@@ -41,11 +41,11 @@ defmodule ControlKeel.AttachedAgentSyncTest do
     assert {:ok, written} = ProjectBinding.write(binding, tmp_dir)
     assert {:ok, synced, changes} = AttachedAgentSync.sync(written, tmp_dir, mode: :project)
 
-    assert [%{"agent" => "augment", "status" => "synced"}] = changes
-    assert synced["attached_agents"]["augment"]["controlkeel_version"] == current_version
-    assert synced["attached_agents"]["augment"]["synced_at"]
-    assert File.exists?(Path.join(tmp_dir, ".augment/mcp.json"))
-    assert File.exists?(Path.join(tmp_dir, ".augment/commands/controlkeel-review.md"))
+    assert [%{"agent" => "cursor", "status" => "synced"}] = changes
+    assert synced["attached_agents"]["cursor"]["controlkeel_version"] == current_version
+    assert synced["attached_agents"]["cursor"]["synced_at"]
+    assert File.exists?(Path.join(tmp_dir, ".cursor/mcp.json"))
+    assert File.exists?(Path.join(tmp_dir, ".cursor/commands/controlkeel-review.md"))
   end
 
   test "sync skips agents already on the current version", %{tmp_dir: tmp_dir} do
@@ -56,8 +56,8 @@ defmodule ControlKeel.AttachedAgentSyncTest do
       "session_id" => 1,
       "agent" => "claude",
       "attached_agents" => %{
-        "augment" => %{
-          "target" => "augment-native",
+        "cursor" => %{
+          "target" => "cursor-native",
           "scope" => "project",
           "controlkeel_version" => current_version
         }
@@ -67,7 +67,7 @@ defmodule ControlKeel.AttachedAgentSyncTest do
 
     assert {:ok, written} = ProjectBinding.write(binding, tmp_dir)
     assert {:ok, synced, []} = AttachedAgentSync.sync(written, tmp_dir, mode: :project)
-    assert synced["attached_agents"]["augment"]["controlkeel_version"] == current_version
-    refute synced["attached_agents"]["augment"]["synced_at"]
+    assert synced["attached_agents"]["cursor"]["controlkeel_version"] == current_version
+    refute synced["attached_agents"]["cursor"]["synced_at"]
   end
 end

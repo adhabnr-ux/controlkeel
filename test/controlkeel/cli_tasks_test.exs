@@ -267,8 +267,8 @@ defmodule ControlKeel.CLITasksTest do
           "session_id" => session.id,
           "agent" => "claude",
           "attached_agents" => %{
-            "augment" => %{
-              "target" => "augment-native",
+            "cursor" => %{
+              "target" => "cursor-native",
               "scope" => "project",
               "controlkeel_version" => "0.0.1"
             }
@@ -285,11 +285,11 @@ defmodule ControlKeel.CLITasksTest do
 
     assert status_output =~ "Execution sandbox:"
     assert status_output =~ "Attached agents:"
-    assert status_output =~ "augment (CK v"
+    assert status_output =~ "cursor (CK v"
 
     assert {:ok, binding} = ProjectBinding.read(tmp_dir)
-    assert binding["attached_agents"]["augment"]["synced_at"]
-    assert File.exists?(Path.join(tmp_dir, ".augment/mcp.json"))
+    assert binding["attached_agents"]["cursor"]["synced_at"]
+    assert File.exists?(Path.join(tmp_dir, ".cursor/mcp.json"))
   end
 
   test "ck.proofs, ck.pause, ck.resume, and ck.memory.search operate on the bound session", %{
