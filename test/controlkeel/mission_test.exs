@@ -63,6 +63,39 @@ defmodule ControlKeel.MissionTest do
     assert length(session.tasks) >= 3
   end
 
+  test "create_launch_from_brief/2 rejects duplicate project names" do
+    brief =
+      execution_brief_fixture(
+        payload: %{
+          "project_name" => "Duplicate launchpad",
+          "occupation" => "Education",
+          "domain_pack" => "education",
+          "risk_tier" => "moderate",
+          "compliance" => ["FERPA", "WCAG 2.1 AA"],
+          "recommended_stack" => "Phoenix + LiveView",
+          "data_summary" => "Student rosters and curriculum notes"
+        },
+        compiler: %{
+          "provider" => "openai",
+          "model" => "gpt-5.4",
+          "occupation" => "education",
+          "domain_pack" => "education"
+        }
+      )
+
+    assert {:ok, _session} =
+             Mission.create_launch_from_brief(
+               %{"agent" => "codex", "project_root" => "/tmp/controlkeel-duplicate"},
+               brief
+             )
+
+    assert {:error, :project_name_taken, "Duplicate launchpad"} =
+             Mission.create_launch_from_brief(
+               %{"agent" => "codex", "project_root" => "/tmp/controlkeel-duplicate-2"},
+               brief
+             )
+  end
+
   test "create_launch_from_brief/2 preserves the domain pack for every supported domain" do
     aliases = %{
       "software" => "Founder / Product Builder",

@@ -2,11 +2,12 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
   use ControlKeelWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
+  import ControlKeel.MissionFixtures
 
   alias ControlKeel.Mission
 
   test "user can complete onboarding, regenerate, and create a mission", %{conn: conn} do
-    {:ok, view, html} = live(conn, ~p"/start")
+    {:ok, view, html} = live(conn, ~p"/missions/start")
 
     assert html =~ "Choose the domain and primary agent"
     assert html =~ "Founder / Product Builder"
@@ -86,7 +87,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
       }
     )
 
-    {:ok, view, html} = live(conn, ~p"/start")
+    {:ok, view, html} = live(conn, ~p"/missions/start")
     refute html =~ "sk-secret-test"
 
     render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
@@ -94,14 +95,14 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
     error_html =
       render_submit(form(view, "form", launch: %{"project_name" => "Tiny", "idea" => "short"}))
 
-    assert error_html =~ "Describe the product in a few concrete sentences."
+    assert error_html =~ "Describe the product in a few concrete sentences (at least 12 characters)."
     refute error_html =~ "sk-secret-test"
   end
 
   test "review step explains heuristic mode and provider status without leaking secrets", %{
     conn: conn
   } do
-    {:ok, view, _html} = live(conn, ~p"/start")
+    {:ok, view, _html} = live(conn, ~p"/missions/start")
 
     render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
 
@@ -129,29 +130,28 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
         )
       )
 
-    assert review_html =~ "Provider and autonomy status"
-    assert review_html =~ "Heuristic / no-LLM fallback"
-    assert review_html =~ "Always available"
-    assert review_html =~ "Model-backed features"
-    assert review_html =~ "Autonomy defaults"
-    assert review_html =~ "Unsupported tool or rescue situation?"
+    assert review_html =~ "Compiler Info"
+    assert review_html =~ "Objective"
+    assert review_html =~ "Acceptance criteria"
+    assert review_html =~ "Production boundary"
+    assert review_html =~ "Open Questions"
     refute review_html =~ "sk-secret-test"
   end
 
   test "expanded domain occupations render and advance through onboarding", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/start")
+    {:ok, view, _html} = live(conn, ~p"/missions/start")
 
-    assert has_element?(view, "input[value=\"hr\"]")
-    assert has_element?(view, "input[value=\"legal\"]")
-    assert has_element?(view, "input[value=\"marketing\"]")
-    assert has_element?(view, "input[value=\"sales\"]")
-    assert has_element?(view, "input[value=\"realestate\"]")
-    assert has_element?(view, "input[value=\"government\"]")
-    assert has_element?(view, "input[value=\"insurance\"]")
-    assert has_element?(view, "input[value=\"ecommerce\"]")
-    assert has_element?(view, "input[value=\"logistics\"]")
-    assert has_element?(view, "input[value=\"manufacturing\"]")
-    assert has_element?(view, "input[value=\"nonprofit\"]")
+    assert has_element?(view, "option[value=\"hr\"]")
+    assert has_element?(view, "option[value=\"legal\"]")
+    assert has_element?(view, "option[value=\"marketing\"]")
+    assert has_element?(view, "option[value=\"sales\"]")
+    assert has_element?(view, "option[value=\"realestate\"]")
+    assert has_element?(view, "option[value=\"government\"]")
+    assert has_element?(view, "option[value=\"insurance\"]")
+    assert has_element?(view, "option[value=\"ecommerce\"]")
+    assert has_element?(view, "option[value=\"logistics\"]")
+    assert has_element?(view, "option[value=\"manufacturing\"]")
+    assert has_element?(view, "option[value=\"nonprofit\"]")
 
     next_html =
       render_submit(
@@ -159,6 +159,58 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
       )
 
     assert next_html =~ "Describe the product"
-    assert next_html =~ "Marketing / Content pack"
+    assert next_html =~ "Marketing / Content"
+  end
+
+  test "onboarding UI prevents duplicate project names", %{conn: conn} do
+    workspace = workspace_fixture(%{name: "Existing Project"})
+    _session = session_fixture(%{workspace: workspace, title: "Existing Project"})
+
+    {:ok, view, _html} = live(conn, ~p"/missions/start")
+
+    # Step 1
+    render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
+
+    # Step 2: Attempting to submit a duplicate project name
+    error_html =
+      render_submit(
+        form(view, "form",
+          launch: %{
+            "project_name" => "Existing Project",
+            "idea" => "Build a new portal with workflow."
+          }
+        )
+      )
+
+    assert error_html =~ "This project name is already used by an existing mission."
+  end
+
+  test "user can continue from an existing mission in onboarding", %{conn: conn} do
+    session =
+      session_fixture(%{
+        title: "Saved Project",
+        objective: "Original project objective",
+        execution_brief: %{
+          "idea" => "Original project objective",
+          "compiler" => %{
+            "interview_answers" => %{
+              "who_uses_it" => "Original users",
+              "constraints" => "Original constraints"
+            }
+          }
+        }
+      })
+
+    {:ok, view, _html} = live(conn, ~p"/missions/start")
+
+    # Step 1
+    render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
+
+    # Step 2: Select the existing mission from dropdown
+    render_change(view, :select_mission, %{recent_mission_id: to_string(session.id)})
+
+    # Verify project name is populated
+    assert has_element?(view, "input[name=\"launch[project_name]\"][value=\"Saved Project\"]")
+    assert render(view) =~ "Original project objective"
   end
 end

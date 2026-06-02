@@ -56,7 +56,7 @@ defmodule ControlKeelWeb.Layouts do
             <.icon name="hero-squares-2x2" class="size-4 text-lime-300" /> Dashboard
           </a>
           <a
-            href={~p"/start"}
+            href={~p"/missions"}
             data-sidebar-link
             class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
           >

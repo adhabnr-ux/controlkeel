@@ -166,11 +166,8 @@ defmodule ControlKeel.Intent.Router do
 
     key_features =
       answers["first_release"]
-      |> split_list()
-      |> case do
-        [] -> plan.session.execution_brief.key_features || []
-        values -> values
-      end
+      |> to_string()
+      |> String.trim()
 
     objective =
       plan.session.execution_brief.objective ||
@@ -205,9 +202,14 @@ defmodule ControlKeel.Intent.Router do
       "data_summary" => data_summary,
       "compliance" => preflight.compliance,
       "recommended_stack" => preflight.stack_guidance,
-      "acceptance_criteria" => acceptance_from_features(key_features),
+      "acceptance_criteria" => key_features,
       "open_questions" => open_questions_from(attrs, answers),
-      "estimated_tasks" => max(length(key_features) + 2, 3),
+      "estimated_tasks" =>
+        key_features
+        |> String.split(~r/\r?\n/, trim: true)
+        |> length()
+        |> Kernel.+(2)
+        |> max(3),
       "budget_note" =>
         present_value(answers["constraints"]) || plan.session.execution_brief.budget_note,
       "next_step" => next_step,
@@ -225,16 +227,6 @@ defmodule ControlKeel.Intent.Router do
       {:error, changeset} ->
         emit_compiler_failure(:heuristic, changeset)
         {:error, changeset}
-    end
-  end
-
-  defp acceptance_from_features(features) do
-    features
-    |> List.wrap()
-    |> Enum.map(&"The first release supports #{String.downcase(&1)} without manual patching.")
-    |> case do
-      [] -> ["The first release completes one governed workflow end to end."]
-      values -> values
     end
   end
 
@@ -296,18 +288,6 @@ defmodule ControlKeel.Intent.Router do
 
   defp maybe_append_question(list, true, question), do: list ++ [question]
   defp maybe_append_question(list, false, _question), do: list
-
-  defp split_list(nil), do: []
-
-  defp split_list(value) when is_binary(value) do
-    value
-    |> String.split(~r/[\n,]/, trim: true)
-    |> Enum.map(&String.trim/1)
-    |> Enum.reject(&(&1 == ""))
-  end
-
-  defp split_list(value) when is_list(value), do: Enum.map(value, &to_string/1)
-  defp split_list(_value), do: []
 
   defp present_value(value) do
     value = to_string(value || "") |> String.trim()
