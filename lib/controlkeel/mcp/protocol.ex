@@ -342,7 +342,9 @@ defmodule ControlKeel.MCP.Protocol do
         ck_rollback_tool(),
         ck_workspace_agent_tool(),
         ck_copilot_tool(),
-        ck_external_service_tool()
+        ck_external_service_tool(),
+        ck_task_tool(),
+        ck_session_tool()
       ]
 
       # Always expose ck_skill_list / ck_skill_load / ck_skill_validate. Do not call Registry here: a full
@@ -520,6 +522,10 @@ defmodule ControlKeel.MCP.Protocol do
   defp do_dispatch_tool("ck_workspace_agent", arguments), do: CkWorkspaceAgent.call(arguments)
   defp do_dispatch_tool("ck_copilot", arguments), do: CkCopilot.call(arguments)
   defp do_dispatch_tool("ck_external_service", arguments), do: CkExternalService.call(arguments)
+  defp do_dispatch_tool("ck_task", arguments), do: ControlKeel.MCP.Tools.CkTask.call(arguments)
+
+  defp do_dispatch_tool("ck_session", arguments),
+    do: ControlKeel.MCP.Tools.CkSession.call(arguments)
 
   defp do_dispatch_tool(unknown, _arguments),
     do: {:error, {:invalid_arguments, "Unknown tool: #{unknown}"}}
@@ -3125,6 +3131,102 @@ defmodule ControlKeel.MCP.Protocol do
           "metadata" => %{
             "type" => "object",
             "description" => "Additional metadata."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_task_tool do
+    %{
+      "name" => "ck_task",
+      "description" =>
+        "Manage governed tasks within a session. Six modes: status (return task details for a given task_id); claim (claim an available task for execution); complete (mark a task as done, blocked if unresolved findings exist); heartbeat (signal the agent is alive and working on a task); checks (record task quality check results); report (submit a task report with output and metadata).",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["session_id"],
+        "properties" => %{
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["status", "claim", "complete", "heartbeat", "checks", "report"],
+            "description" => "Operation mode that determines the tool behavior and return shape."
+          },
+          "execution_mode" => %{
+            "type" => "string",
+            "description" => "Execution mode for claim (e.g., local, external)."
+          },
+          "progress" => %{
+            "type" => "string",
+            "description" => "Progress indicator for heartbeat mode."
+          },
+          "note" => %{
+            "type" => "string",
+            "description" => "Freeform note for heartbeat mode."
+          },
+          "checks" => %{
+            "type" => "array",
+            "items" => %{"type" => "object"},
+            "description" => "Array of check result objects for checks mode."
+          },
+          "status" => %{
+            "type" => "string",
+            "description" => "Target status for report mode (e.g., done, failed, blocked)."
+          },
+          "output" => %{
+            "type" => "object",
+            "description" => "Structured output payload for report mode."
+          },
+          "metadata" => %{
+            "type" => "object",
+            "description" => "Arbitrary key-value metadata for report mode."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" => "Absolute path to project root."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_session_tool do
+    %{
+      "name" => "ck_session",
+      "description" =>
+        "Enumerate and manage governed sessions. Three modes: list (enumerate sessions for the project); status (get current session details, resolves from project binding if session_id omitted); switch (change active session binding — REQUIRES confirm: true).",
+      "inputSchema" => %{
+        "type" => "object",
+        "properties" => %{
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier. Required for switch mode. Omit or pass nil to resolve from project binding."
+          },
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["list", "status", "switch"],
+            "description" => "Operation mode that determines the tool behavior and return shape."
+          },
+          "limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Max sessions to return for list mode. Default: 20, max: 100."
+          },
+          "confirm" => %{
+            "type" => "boolean",
+            "description" => "Must be true to authorize a session switch."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" => "Absolute path to project root. Required for switch mode."
           }
         }
       }

@@ -29,6 +29,7 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Governance.PreCommitHook
   alias ControlKeel.Governance.Socket, as: GovernanceSocket
   alias ControlKeel.CLI.Catalog
+  alias ControlKeel.CLI.Parser
   alias ControlKeel.Help
   alias ControlKeel.Intent
   alias ControlKeel.Findings.PlainEnglish
@@ -8910,7 +8911,7 @@ defmodule ControlKeel.CLI do
       end
   end
 
-  defp validate_attach_scope(agent, options) do
+  def validate_attach_scope(agent, options) do
     scope = attach_scope(agent, options)
 
     case AgentIntegration.get(agent) do

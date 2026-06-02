@@ -38,7 +38,9 @@ defmodule ControlKeel.MCP.ToolGroups do
       "ck_rollback",
       "ck_workspace_agent",
       "ck_copilot",
-      "ck_external_service"
+      "ck_external_service",
+      "ck_task",
+      "ck_session"
     ],
     "observability" => [
       "ck_observability",

@@ -580,6 +580,36 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "rate_limits" => %{"type" => "object"},
         "services" => %{"type" => "array", "items" => %{"type" => "object"}}
       }
+    },
+    "ck_task" => %{
+      "type" => "object",
+      "properties" => %{
+        "task_id" => %{"type" => "integer"},
+        "title" => %{"type" => "string"},
+        "status" => %{"type" => "string"},
+        "session_id" => %{"type" => "integer"},
+        "risk_tier" => %{"type" => "string"},
+        "claimed" => %{"type" => "boolean"},
+        "run_id" => %{"type" => "integer"},
+        "completed" => %{"type" => "boolean"},
+        "recorded" => %{"type" => "boolean"},
+        "count" => %{"type" => "integer"},
+        "results" => %{"type" => "array", "items" => %{"type" => "object"}},
+        "reported" => %{"type" => "boolean"}
+      }
+    },
+    "ck_session" => %{
+      "type" => "object",
+      "properties" => %{
+        "id" => %{"type" => "integer"},
+        "title" => %{"type" => "string"},
+        "risk_tier" => %{"type" => "string"},
+        "workspace_id" => %{"type" => "integer"},
+        "sessions" => %{"type" => "array", "items" => %{"type" => "object"}},
+        "total" => %{"type" => "integer"},
+        "switched" => %{"type" => "boolean"},
+        "project_root" => %{"type" => "string"}
+      }
     }
   }
 

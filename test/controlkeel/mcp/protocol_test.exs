@@ -104,6 +104,8 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "ck_workspace_agent",
              "ck_copilot",
              "ck_external_service",
+             "ck_task",
+             "ck_session",
              "ck_skill_list",
              "ck_skill_load",
              "ck_skill_validate"

@@ -2,6 +2,7 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
   @moduledoc """
   Tracks tool usage to enable adaptive tool group selection.
   Learns which tools are actually used per project and suggests optimal groups.
+  Persists usage data to disk so it survives VM restarts.
   """
 
   alias ControlKeel.MCP.ToolGroups
@@ -10,8 +11,10 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
   require Logger
 
   @table_name :tool_group_usage
-  # 7 days
   @retention_period :timer.hours(24 * 7)
+  @flush_interval :timer.minutes(5)
+  @persistence_dir ".controlkeel"
+  @persistence_file "tool_usage.json"
 
   # Client API
 
@@ -31,21 +34,43 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
     GenServer.cast(__MODULE__, {:reset_project, project_root})
   end
 
+  def flush_to_disk(project_root) do
+    GenServer.call(__MODULE__, {:flush_to_disk, project_root})
+  end
+
+  def load_from_disk(project_root) do
+    GenServer.call(__MODULE__, {:load_from_disk, project_root})
+  end
+
   # Server Callbacks
 
   @impl true
   def init(_opts) do
     :ets.new(@table_name, [:named_table, :public, :set, read_concurrency: true])
     schedule_cleanup()
-    {:ok, %{cleanup_ref: nil}}
+    schedule_flush()
+    {:ok, %{project_roots: MapSet.new(), loaded_roots: MapSet.new()}}
   end
 
   @impl true
   def handle_cast({:track_usage, project_root, tool_name}, state) do
+    state =
+      if is_binary(project_root) and project_root != "" and
+           not MapSet.member?(state.loaded_roots, project_root) do
+        do_load_from_disk(project_root)
+
+        %{
+          state
+          | project_roots: MapSet.put(state.project_roots, project_root),
+            loaded_roots: MapSet.put(state.loaded_roots, project_root)
+        }
+      else
+        state
+      end
+
     key = usage_key(project_root, tool_name)
     now = System.system_time(:second)
 
-    # Increment count if key exists, otherwise insert with count 1
     case :ets.lookup(@table_name, key) do
       [{^key, _ts, count}] ->
         :ets.insert(@table_name, {key, now, count + 1})
@@ -63,7 +88,7 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
     |> project_entries()
     |> Enum.each(fn {key, _timestamp, _count} -> :ets.delete(@table_name, key) end)
 
-    {:noreply, state}
+    {:noreply, %{state | loaded_roots: MapSet.delete(state.loaded_roots, project_root)}}
   end
 
   @impl true
@@ -79,10 +104,43 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
   end
 
   @impl true
+  def handle_call({:flush_to_disk, project_root}, _from, state) do
+    result = do_flush_to_disk(project_root)
+    new_state = %{state | project_roots: MapSet.put(state.project_roots, project_root)}
+    {:reply, result, new_state}
+  end
+
+  @impl true
+  def handle_call({:load_from_disk, project_root}, _from, state) do
+    result = do_load_from_disk(project_root)
+
+    new_state = %{
+      state
+      | project_roots: MapSet.put(state.project_roots, project_root),
+        loaded_roots: MapSet.put(state.loaded_roots, project_root)
+    }
+
+    {:reply, result, new_state}
+  end
+
+  @impl true
   def handle_info(:cleanup, state) do
     cleanup_old_entries()
     schedule_cleanup()
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:flush_all, state) do
+    Enum.each(state.project_roots, &do_flush_to_disk/1)
+    schedule_flush()
+    {:noreply, state}
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    Enum.each(state.project_roots, &do_flush_to_disk/1)
+    :ok
   end
 
   # Private Functions
@@ -121,12 +179,10 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
     used_tools =
       project_entries(project_root)
       |> Enum.map(fn {key, _timestamp, _count} ->
-        # Extract tool name from "project_root:tool_name" key
         String.replace_prefix(key, project_root <> ":", "")
       end)
       |> Enum.uniq()
 
-    # Map used tools to their groups
     tool_to_group = get_tool_to_group_mapping()
 
     needed_groups =
@@ -136,7 +192,6 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
       end)
       |> Enum.uniq()
 
-    # Always include core + governance as baseline
     baseline_groups = ["core", "governance"]
     suggested_groups = Enum.uniq(baseline_groups ++ needed_groups)
 
@@ -163,5 +218,78 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
 
   defp schedule_cleanup do
     Process.send_after(self(), :cleanup, :timer.hours(1))
+  end
+
+  defp schedule_flush do
+    Process.send_after(self(), :flush_all, @flush_interval)
+  end
+
+  defp do_flush_to_disk(nil), do: {:error, :no_project_root}
+  defp do_flush_to_disk(""), do: {:error, :no_project_root}
+
+  defp do_flush_to_disk(project_root) do
+    entries = project_entries(project_root)
+    file_path = persistence_path(project_root)
+    dir_path = Path.dirname(file_path)
+
+    json_entries =
+      Enum.map(entries, fn {key, last_used, count} ->
+        %{"key" => key, "count" => count, "last_used" => last_used}
+      end)
+
+    payload = %{"version" => 1, "entries" => json_entries}
+
+    with :ok <- File.mkdir_p(dir_path),
+         :ok <- File.write(file_path, Jason.encode!(payload, pretty: true) <> "\n") do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warning("Failed to flush tool usage to disk: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp do_load_from_disk(nil), do: {:ok, 0}
+  defp do_load_from_disk(""), do: {:ok, 0}
+
+  defp do_load_from_disk(project_root) do
+    file_path = persistence_path(project_root)
+
+    case File.read(file_path) do
+      {:ok, contents} ->
+        case Jason.decode(contents) do
+          {:ok, %{"version" => 1, "entries" => entries}} when is_list(entries) ->
+            Enum.each(entries, fn %{"key" => key, "count" => count, "last_used" => last_used} ->
+              case :ets.lookup(@table_name, key) do
+                [] -> :ets.insert(@table_name, {key, last_used, count})
+                _ -> :ok
+              end
+            end)
+
+            {:ok, length(entries)}
+
+          {:ok, _} ->
+            Logger.warning("Tool usage file has unexpected format: #{file_path}")
+            {:error, :invalid_format}
+
+          {:error, %Jason.DecodeError{} = e} ->
+            Logger.warning(
+              "Corrupt tool usage file, starting fresh: #{file_path} (#{Exception.message(e)})"
+            )
+
+            {:error, :corrupt}
+        end
+
+      {:error, :enoent} ->
+        {:ok, 0}
+
+      {:error, reason} ->
+        Logger.warning("Failed to load tool usage from disk: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp persistence_path(project_root) do
+    Path.join([project_root, @persistence_dir, @persistence_file])
   end
 end

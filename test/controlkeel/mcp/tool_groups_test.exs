@@ -20,9 +20,9 @@ defmodule ControlKeel.MCP.ToolGroupsTest do
   end
 
   describe "all_tools/0" do
-    test "returns all 54 tools" do
+    test "returns all 56 tools" do
       tools = ToolGroups.all_tools()
-      assert length(tools) == 54
+      assert length(tools) == 56
     end
 
     test "includes the 7 previously missing tools" do
@@ -35,6 +35,8 @@ defmodule ControlKeel.MCP.ToolGroupsTest do
       assert "ck_result_peek" in tools
       assert "ck_rollback" in tools
       assert "ck_workspace_agent" in tools
+      assert "ck_task" in tools
+      assert "ck_session" in tools
     end
   end
 
@@ -42,7 +44,7 @@ defmodule ControlKeel.MCP.ToolGroupsTest do
     test "every tool has exactly one group" do
       map = ToolGroups.tool_to_group_map()
 
-      assert map_size(map) == 54
+      assert map_size(map) == 56
 
       all_tools = ToolGroups.all_tools()
       assert MapSet.new(Map.keys(map)) == MapSet.new(all_tools)
@@ -52,7 +54,7 @@ defmodule ControlKeel.MCP.ToolGroupsTest do
   describe "tools_for_group/1" do
     test "returns tools for known groups" do
       assert length(ToolGroups.tools_for_group("core")) == 9
-      assert length(ToolGroups.tools_for_group("governance")) == 20
+      assert length(ToolGroups.tools_for_group("governance")) == 22
       assert length(ToolGroups.tools_for_group("observability")) == 9
       assert length(ToolGroups.tools_for_group("skills")) == 4
       assert length(ToolGroups.tools_for_group("filesystem")) == 4
