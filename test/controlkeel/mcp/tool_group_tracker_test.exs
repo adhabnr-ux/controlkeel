@@ -4,7 +4,8 @@ defmodule ControlKeel.MCP.ToolGroupTrackerTest do
   alias ControlKeel.MCP.ToolGroupTracker
 
   setup do
-    project_root = Path.join(System.tmp_dir!(), "ck-tool-groups-#{System.unique_integer([:positive])}")
+    project_root =
+      Path.join(System.tmp_dir!(), "ck-tool-groups-#{System.unique_integer([:positive])}")
 
     ToolGroupTracker.reset_project(project_root)
     sync_tracker()
