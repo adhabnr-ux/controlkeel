@@ -286,65 +286,65 @@
         </section>
       </aside>
 
-    <.current_status provider_status={@provider_status} />
+      <.current_status provider_status={@provider_status} />
 
-    <div class="grid gap-6 w-full ">
-      <section class="rounded-3xl border border-white/10 bg-zinc-900/70 shadow-2xl shadow-black/20 backdrop-blur">
-        <div class="flex items-center justify-between border-b border-white/10 p-5">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
-            Recent Missions
-          </p>
-          <a
-            href={~p"/missions"}
-            class="inline-flex items-center gap-2 text-sm font-medium text-zinc-300 transition hover:text-lime-300"
-          >
-            View all missions <.icon name="hero-arrow-up-right" class="size-4" />
-          </a>
-        </div>
+      <div class="grid gap-6 w-full ">
+        <section class="rounded-3xl border border-white/10 bg-zinc-900/70 shadow-2xl shadow-black/20 backdrop-blur">
+          <div class="flex items-center justify-between border-b border-white/10 p-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+              Recent Missions
+            </p>
+            <a
+              href={~p"/missions"}
+              class="inline-flex items-center gap-2 text-sm font-medium text-zinc-300 transition hover:text-lime-300"
+            >
+              View all missions <.icon name="hero-arrow-up-right" class="size-4" />
+            </a>
+          </div>
 
-        <div class="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
-          <%= if @recent_sessions == [] do %>
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:col-span-2 xl:col-span-4">
-              <p class="text-base font-medium text-white">No missions yet.</p>
-              <p class="mt-1 text-sm text-zinc-500">
-                Start a mission to populate live governance telemetry.
-              </p>
-            </div>
-          <% else %>
-            <%= for session <- @recent_sessions do %>
-              <a
-                href={~p"/missions/#{session.id}"}
-                class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-lime-300/40 hover:bg-white/[0.05]"
-              >
-                <div class="flex items-start justify-between gap-3">
-                  <p class="line-clamp-2 text-sm font-semibold text-white">{session.title}</p>
-                  <span class={[
-                    "inline-flex rounded-full px-2 py-1 text-[10px] font-semibold capitalize ring-1",
-                    session.risk_tier in ["critical", "high"] &&
-                      "bg-red-400/10 text-red-200 ring-red-300/20",
-                    session.risk_tier in ["medium", "moderate"] &&
-                      "bg-amber-300/10 text-amber-100 ring-amber-200/20",
-                    session.risk_tier in ["low"] &&
-                      "bg-emerald-300/10 text-emerald-100 ring-emerald-200/20",
-                    session.risk_tier not in ["critical", "high", "medium", "moderate", "low"] &&
-                      "bg-white/10 text-zinc-300 ring-white/15"
-                  ]}>
-                    {session.risk_tier}
-                  </span>
-                </div>
-                <p class="mt-2 line-clamp-3 text-xs leading-5 text-zinc-500">
-                  {session.objective}
+          <div class="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
+            <%= if @recent_sessions == [] do %>
+              <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:col-span-2 xl:col-span-4">
+                <p class="text-base font-medium text-white">No missions yet.</p>
+                <p class="mt-1 text-sm text-zinc-500">
+                  Start a mission to populate live governance telemetry.
                 </p>
-                <div class="mt-4 flex items-center justify-between text-xs text-zinc-400">
-                  <span>{Enum.count(session.tasks)} tasks</span>
-                  <span>{Enum.count(session.findings)} findings</span>
-                </div>
-              </a>
+              </div>
+            <% else %>
+              <%= for session <- @recent_sessions do %>
+                <a
+                  href={~p"/missions/#{session.id}"}
+                  class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-lime-300/40 hover:bg-white/[0.05]"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <p class="line-clamp-2 text-sm font-semibold text-white">{session.title}</p>
+                    <span class={[
+                      "inline-flex rounded-full px-2 py-1 text-[10px] font-semibold capitalize ring-1",
+                      session.risk_tier in ["critical", "high"] &&
+                        "bg-red-400/10 text-red-200 ring-red-300/20",
+                      session.risk_tier in ["medium", "moderate"] &&
+                        "bg-amber-300/10 text-amber-100 ring-amber-200/20",
+                      session.risk_tier in ["low"] &&
+                        "bg-emerald-300/10 text-emerald-100 ring-emerald-200/20",
+                      session.risk_tier not in ["critical", "high", "medium", "moderate", "low"] &&
+                        "bg-white/10 text-zinc-300 ring-white/15"
+                    ]}>
+                      {session.risk_tier}
+                    </span>
+                  </div>
+                  <p class="mt-2 line-clamp-3 text-xs leading-5 text-zinc-500">
+                    {session.objective}
+                  </p>
+                  <div class="mt-4 flex items-center justify-between text-xs text-zinc-400">
+                    <span>{Enum.count(session.tasks)} tasks</span>
+                    <span>{Enum.count(session.findings)} findings</span>
+                  </div>
+                </a>
+              <% end %>
             <% end %>
-          <% end %>
-        </div>
-      </section>
-    </div>
-  </section>
+          </div>
+        </section>
+      </div>
+    </section>
   <% end %>
 </Layouts.app>
