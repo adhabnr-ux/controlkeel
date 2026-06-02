@@ -4,6 +4,8 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
   Learns which tools are actually used per project and suggests optimal groups.
   """
 
+  alias ControlKeel.MCP.ToolGroups
+
   use GenServer
   require Logger
 
@@ -146,63 +148,9 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
   end
 
   defp get_tool_to_group_mapping do
-    # This should match the groups in protocol.ex
-    %{
-      # Core
-      "ck_validate" => ["core"],
-      "ck_context" => ["core"],
-      "ck_context_pack" => ["core"],
-      "ck_execute_code" => ["core"],
-      "ck_budget" => ["core"],
-      "ck_route" => ["core"],
-      "ck_mcp_discover" => ["core"],
-      "ck_token_audit" => ["core"],
-      # Governance
-      "ck_review_submit" => ["governance"],
-      "ck_review_status" => ["governance"],
-      "ck_review_feedback" => ["governance"],
-      "ck_regression_result" => ["governance"],
-      "ck_finding" => ["governance"],
-      "ck_goal" => ["governance"],
-      "ck_memory_record" => ["governance"],
-      "ck_memory_search" => ["governance"],
-      "ck_memory_archive" => ["governance"],
-      "ck_delegate" => ["governance"],
-      "ck_cost_optimizer" => ["governance"],
-      "ck_deployment_advisor" => ["governance"],
-      "ck_outcome_tracker" => ["governance"],
-      # Observability
-      "ck_observability" => ["observability"],
-      "ck_experience_index" => ["observability"],
-      "ck_experience_read" => ["observability"],
-      "ck_experience_search" => ["observability"],
-      "ck_trace_packet" => ["observability"],
-      "ck_failure_clusters" => ["observability"],
-      "ck_monitor_subscribe" => ["observability"],
-      "ck_tool_health" => ["observability"],
-      "ck_skill_evolution" => ["observability"],
-      # Skills
-      "ck_skill_list" => ["skills"],
-      "ck_skill_load" => ["skills"],
-      "ck_skill_validate" => ["skills"],
-      "ck_load_resources" => ["skills"],
-      # Filesystem
-      "ck_fs_ls" => ["filesystem"],
-      "ck_fs_read" => ["filesystem"],
-      "ck_fs_find" => ["filesystem"],
-      "ck_fs_grep" => ["filesystem"],
-      # Git
-      "ck_git_status" => ["git"],
-      "ck_git_diff" => ["git"],
-      "ck_git_commit" => ["git"],
-      # Checkpoints
-      "ck_checkpoint_create" => ["checkpoints"],
-      "ck_checkpoint_restore" => ["checkpoints"],
-      "ck_checkpoint_list" => ["checkpoints"],
-      # Worktrees
-      "ck_worktree_list" => ["worktrees"],
-      "ck_worktree_switch" => ["worktrees"]
-    }
+    ToolGroups.tool_to_group_map()
+    |> Enum.map(fn {tool, group} -> {tool, [group]} end)
+    |> Map.new()
   end
 
   defp cleanup_old_entries do

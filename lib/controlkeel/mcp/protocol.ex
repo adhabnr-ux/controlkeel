@@ -7,6 +7,8 @@ defmodule ControlKeel.MCP.Protocol do
   alias ControlKeel.Skills.Registry
   alias ControlKeel.TrustBoundary
 
+  alias ControlKeel.MCP.ToolGroups
+
   alias ControlKeel.MCP.Tools.{
     CkBudget,
     CkContext,
@@ -281,78 +283,7 @@ defmodule ControlKeel.MCP.Protocol do
     error_response(nil, -32600, "Invalid Request")
   end
 
-  @tool_groups %{
-    "core" => [
-      "ck_validate",
-      "ck_context",
-      "ck_context_pack",
-      "ck_execute_code",
-      "ck_budget",
-      "ck_route",
-      "ck_mcp_discover",
-      "ck_token_audit",
-      "ck_attach"
-    ],
-    "governance" => [
-      "ck_review_submit",
-      "ck_review_status",
-      "ck_review_feedback",
-      "ck_regression_result",
-      "ck_finding",
-      "ck_goal",
-      "ck_memory_record",
-      "ck_memory_search",
-      "ck_memory_archive",
-      "ck_delegate",
-      "ck_result_peek",
-      "ck_cost_optimizer",
-      "ck_deployment_advisor",
-      "ck_outcome_tracker",
-      "ck_engineer_mirror",
-      "ck_session_digest",
-      "ck_rollback",
-      "ck_workspace_agent",
-      "ck_copilot",
-      "ck_external_service"
-    ],
-    "observability" => [
-      "ck_observability",
-      "ck_experience_index",
-      "ck_experience_read",
-      "ck_experience_search",
-      "ck_trace_packet",
-      "ck_failure_clusters",
-      "ck_monitor_subscribe",
-      "ck_tool_health",
-      "ck_skill_evolution"
-    ],
-    "skills" => [
-      "ck_skill_list",
-      "ck_skill_load",
-      "ck_skill_validate",
-      "ck_load_resources"
-    ],
-    "filesystem" => [
-      "ck_fs_ls",
-      "ck_fs_read",
-      "ck_fs_find",
-      "ck_fs_grep"
-    ],
-    "git" => [
-      "ck_git_status",
-      "ck_git_diff",
-      "ck_git_commit"
-    ],
-    "checkpoints" => [
-      "ck_checkpoint_create",
-      "ck_checkpoint_restore",
-      "ck_checkpoint_list"
-    ],
-    "worktrees" => [
-      "ck_worktree_list",
-      "ck_worktree_switch"
-    ]
-  }
+  @tool_groups ToolGroups.tool_groups_map()
 
   def tool_schemas(opts \\ []) do
     try do
@@ -593,7 +524,7 @@ defmodule ControlKeel.MCP.Protocol do
     end)
   end
 
-  def tool_groups, do: Map.keys(@tool_groups)
+  def tool_groups, do: ToolGroups.groups()
 
   def ck_validate_tool do
     %{

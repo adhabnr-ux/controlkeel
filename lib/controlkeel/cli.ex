@@ -981,8 +981,13 @@ defmodule ControlKeel.CLI do
   def server_mode?(_parsed), do: false
 
   def execute(parsed, opts \\ []) do
+    if json_mode?(parsed) do
+      Logger.configure(level: :error)
+    end
+
     printer = Keyword.get(opts, :printer, &IO.puts/1)
     error_printer = Keyword.get(opts, :error_printer, fn line -> IO.puts(:stderr, line) end)
+    json_error_printer = Keyword.get(opts, :json_error_printer, &IO.puts/1)
 
     project_root =
       opts
@@ -999,9 +1004,20 @@ defmodule ControlKeel.CLI do
         0
 
       {:error, message} ->
-        error_printer.(message)
+        if json_mode?(parsed) do
+          entry = Catalog.for_command(parsed.command)
+          json_error_printer.(ControlKeel.CLI.Output.error_json(message, :command_error, entry))
+        else
+          error_printer.(message)
+        end
+
         1
     end
+  end
+
+  def json_mode?(parsed) do
+    options = Map.get(parsed, :options, %{})
+    options[:json] == true or options[:format] in ["json", "JSON"]
   end
 
   # Commands whose JSON output is machine-to-machine data (export/import round-trips)

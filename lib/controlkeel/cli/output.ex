@@ -53,12 +53,19 @@ defmodule ControlKeel.CLI.Output do
       "error" => message,
       "code" => to_string(code),
       "command" => entry && entry.path,
+      "version" => version(),
       "hint" => hint(entry),
       "examples" => examples(entry),
       "help_topic" => entry && entry.help_topic,
       "details" => details
     }
     |> Jason.encode!()
+  end
+
+  defp version do
+    Application.spec(:controlkeel, :vsn)
+    |> Kernel.||("0.1.0")
+    |> to_string()
   end
 
   defp format_json_requested?(["--format", "json" | _rest]), do: true
