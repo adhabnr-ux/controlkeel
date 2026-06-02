@@ -162,6 +162,16 @@ defmodule ControlKeel.CLI.Catalog do
   defp command_path(:plugin_install), do: "plugin install <host>"
   defp command_path(:cloud_doctor), do: "cloud doctor"
   defp command_path(:cloud_connect), do: "cloud connect"
+  defp command_path(:cloud_sync_push), do: "cloud push"
+  defp command_path(:cloud_sync_pull), do: "cloud pull"
+  defp command_path(:cloud_sync_migrate), do: "cloud migrate"
+  defp command_path(:govern_bind_github), do: "govern bind github"
+  defp command_path(:govern_unbind_github), do: "govern unbind github"
+  defp command_path(:govern_list_github), do: "govern list github"
+  defp command_path(:selfhost_pack), do: "selfhost pack"
+  defp command_path(:selfhost_verify), do: "selfhost verify"
+  defp command_path(:selfhost_manifest), do: "selfhost manifest"
+  defp command_path(:selfhost_install_guide), do: "selfhost install-guide"
   defp command_path(:telemetry_enable), do: "telemetry enable"
   defp command_path(:telemetry_disable), do: "telemetry disable"
   defp command_path(:baseline_compute), do: "baseline compute"
@@ -543,6 +553,16 @@ defmodule ControlKeel.CLI.Catalog do
           :policy_set_create,
           :policy_set_list,
           :policy_set_apply,
+          :cloud_sync_push,
+          :cloud_sync_pull,
+          :cloud_sync_migrate,
+          :govern_bind_github,
+          :govern_unbind_github,
+          :govern_list_github,
+          :selfhost_pack,
+          :selfhost_verify,
+          :selfhost_manifest,
+          :selfhost_install_guide,
           :webhook_create,
           :webhook_list,
           :webhook_replay

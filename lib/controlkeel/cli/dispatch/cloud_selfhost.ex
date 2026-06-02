@@ -690,4 +690,180 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
         {:error, "Failed to replay webhook: #{inspect(reason)}"}
     end
   end
+
+  def run_command(%{command: :govern_bind_github, options: options}, _project_root) do
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id"),
+         {:ok, owner} <- require_string_option(options[:owner], "owner"),
+         {:ok, repo} <- require_string_option(options[:repo], "repo") do
+      opts =
+        []
+        |> maybe_put_kw(:default_branch, options[:default_branch])
+        |> maybe_put_kw(:installation_id, options[:installation_id])
+
+      case Mission.bind_github_repo(workspace_id, owner, repo, opts) do
+        {:ok, binding} ->
+          {:ok,
+           [
+             "Bound GitHub repository to workspace #{workspace_id}.",
+             "Repo: #{binding.owner}/#{binding.repo}",
+             "URL:  https://github.com/#{binding.owner}/#{binding.repo}",
+             "Default branch: #{binding.default_branch || "(unset)"}",
+             "Installation: #{binding.installation_id || "(unauthenticated)"}"
+           ]}
+
+        {:error, %Ecto.Changeset{} = cs} ->
+          {:error, "Failed to bind repo: #{format_changeset_errors(cs)}"}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+      {:error, msg} when is_binary(msg) -> {:error, msg}
+    end
+  end
+
+  def run_command(%{command: :govern_unbind_github, options: options}, _project_root) do
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id"),
+         {:ok, owner} <- require_string_option(options[:owner], "owner"),
+         {:ok, repo} <- require_string_option(options[:repo], "repo") do
+      case Mission.unbind_github_repo(workspace_id, owner, repo) do
+        {:ok, _} ->
+          {:ok, ["Unbound #{owner}/#{repo} from workspace #{workspace_id}."]}
+
+        {:error, :not_found} ->
+          {:error, "No binding found for #{owner}/#{repo} on workspace #{workspace_id}."}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+      {:error, msg} when is_binary(msg) -> {:error, msg}
+    end
+  end
+
+  def run_command(%{command: :govern_list_github, options: options}, _project_root) do
+    with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id") do
+      case Mission.list_github_repos(workspace_id) do
+        [] ->
+          {:ok, ["No GitHub repos bound to workspace #{workspace_id}."]}
+
+        bindings ->
+          rows =
+            Enum.map(bindings, fn b ->
+              "  #{b.owner}/#{b.repo}#{format_default_branch(b.default_branch)}#{format_installation(b.installation_id)}"
+            end)
+
+          {:ok, ["GitHub repos bound to workspace #{workspace_id}:" | rows]}
+      end
+    else
+      {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+    end
+  end
+
+  def run_command(%{command: :cloud_sync_push, options: _options}, _project_root) do
+    case ControlKeel.Cloud.SyncEngine.force_sync() do
+      {:ok, %{push: %{pushed: n}}} ->
+        {:ok, ["Pushed #{n} record(s) to cloud."]}
+
+      {:error, :not_configured} ->
+        {:error, "Cloud sync endpoint not configured. Set cloud_sync_endpoint first."}
+
+      {:error, :not_enrolled} ->
+        {:error, "Cloud sync not configured. Run `controlkeel cloud connect` first."}
+
+      {:error, :already_syncing} ->
+        {:error, "Sync already in progress. Try again in a moment."}
+
+      {:error, reason} ->
+        {:error, "Cloud push failed: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :cloud_sync_pull, options: _options}, _project_root) do
+    case ControlKeel.Cloud.SyncEngine.force_sync() do
+      {:ok, %{pull: pull_result}} ->
+        applied = Map.get(pull_result, :inserted, 0) + Map.get(pull_result, :updated, 0)
+        {:ok, ["Pulled and applied #{applied} record(s) from cloud."]}
+
+      {:error, :not_configured} ->
+        {:error, "Cloud sync endpoint not configured. Set cloud_sync_endpoint first."}
+
+      {:error, :not_enrolled} ->
+        {:error, "Cloud sync not configured. Run `controlkeel cloud connect` first."}
+
+      {:error, :already_syncing} ->
+        {:error, "Sync already in progress. Try again in a moment."}
+
+      {:error, reason} ->
+        {:error, "Cloud pull failed: #{inspect(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :cloud_sync_migrate, options: _options}, _project_root) do
+    {:ok,
+     [
+       "Cloud sync schema migrations (external_id, synced_at, lock_version) are managed by Ecto.",
+       "Run `mix ecto.migrate` to apply any pending migrations.",
+       "Run `mix ecto.migrations` to see current status."
+     ]}
+  end
+
+  def run_command(%{command: :selfhost_pack, options: options}, project_root) do
+    root = resolve_project_root(options, project_root)
+    pack_opts = Enum.reject([output: options[:output]], fn {_, v} -> is_nil(v) end)
+
+    case ControlKeel.SelfHost.pack(root, pack_opts) do
+      {:ok, %{path: path, sha256: sha256}} ->
+        {:ok,
+         [
+           "Air-gapped bundle written: #{path}",
+           "SHA256: #{sha256}",
+           "",
+           "Ship this file to your air-gapped host. See INSTALL.md for boot instructions."
+         ]}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def run_command(%{command: :selfhost_verify, options: _options}, _project_root) do
+    result = ControlKeel.SelfHost.verify_environment()
+
+    header = [
+      "ControlKeel self-host verify",
+      "Ready: #{result.ready?}",
+      "Runtime mode: #{result.repo.mode}",
+      "Cloud repo enabled: #{result.repo.cloud_repo_enabled?}",
+      "Repo reachable: #{result.repo.repo_reachable?}#{format_repo_error(result.repo.error)}",
+      "",
+      "Required environment:"
+    ]
+
+    required_rows =
+      Enum.map(result.required_env, fn check ->
+        badge = if check.present?, do: "ok  ", else: "MISS"
+        "  [#{badge}] #{check.name}#{format_value_hint(check.value_hint)}"
+      end)
+
+    recommended_rows =
+      ["", "Recommended environment:"] ++
+        Enum.map(result.recommended_env, fn check ->
+          badge = if check.present?, do: "ok  ", else: "-   "
+          "  [#{badge}] #{check.name}#{format_value_hint(check.value_hint)}"
+        end)
+
+    lines = header ++ required_rows ++ recommended_rows
+
+    if result.ready? do
+      {:ok, lines}
+    else
+      {:error, Enum.join(lines, "\n")}
+    end
+  end
+
+  def run_command(%{command: :selfhost_manifest, options: _options}, _project_root) do
+    paths = ControlKeel.SelfHost.bundle_manifest()
+    {:ok, ["Air-gapped bundle manifest:"] ++ Enum.map(paths, &"  #{&1}")}
+  end
+
+  def run_command(%{command: :selfhost_install_guide, options: _options}, _project_root) do
+    {:ok, [ControlKeel.SelfHost.install_guide()]}
+  end
 end

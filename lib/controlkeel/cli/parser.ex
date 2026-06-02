@@ -316,6 +316,27 @@ defmodule ControlKeel.CLI.Parser do
     json: :boolean
   ]
   @selfhost_switches [project_root: :string, json: :boolean]
+  @govern_bind_github_switches [
+    project_root: :string,
+    workspace_id: :integer,
+    owner: :string,
+    repo: :string,
+    default_branch: :string,
+    installation_id: :string,
+    json: :boolean
+  ]
+  @govern_unbind_github_switches [
+    project_root: :string,
+    workspace_id: :integer,
+    owner: :string,
+    repo: :string,
+    json: :boolean
+  ]
+  @govern_list_github_switches [workspace_id: :integer, json: :boolean]
+  @cloud_sync_push_switches [project_root: :string, workspace: :string, json: :boolean]
+  @cloud_sync_pull_switches [project_root: :string, workspace: :string, json: :boolean]
+  @cloud_sync_migrate_switches [project_root: :string, json: :boolean]
+  @selfhost_pack_switches [project_root: :string, output: :string, json: :boolean]
   @agents_discover_switches [
     project_root: :string,
     max_depth: :integer,
@@ -459,6 +480,36 @@ defmodule ControlKeel.CLI.Parser do
 
       ["cloud", "connect" | rest] ->
         parse_with_switches(:cloud_connect, rest, @cloud_connect_switches)
+
+      ["cloud", "push" | rest] ->
+        parse_with_switches(:cloud_sync_push, rest, @cloud_sync_push_switches)
+
+      ["cloud", "pull" | rest] ->
+        parse_with_switches(:cloud_sync_pull, rest, @cloud_sync_pull_switches)
+
+      ["cloud", "migrate" | rest] ->
+        parse_with_switches(:cloud_sync_migrate, rest, @cloud_sync_migrate_switches)
+
+      ["govern", "bind", "github" | rest] ->
+        parse_with_switches(:govern_bind_github, rest, @govern_bind_github_switches)
+
+      ["govern", "unbind", "github" | rest] ->
+        parse_with_switches(:govern_unbind_github, rest, @govern_unbind_github_switches)
+
+      ["govern", "list", "github" | rest] ->
+        parse_with_switches(:govern_list_github, rest, @govern_list_github_switches)
+
+      ["selfhost", "pack" | rest] ->
+        parse_with_switches(:selfhost_pack, rest, @selfhost_pack_switches)
+
+      ["selfhost", "verify" | rest] ->
+        parse_with_switches(:selfhost_verify, rest, @selfhost_switches)
+
+      ["selfhost", "manifest" | rest] ->
+        parse_with_switches(:selfhost_manifest, rest, @selfhost_switches)
+
+      ["selfhost", "install-guide" | rest] ->
+        parse_with_switches(:selfhost_install_guide, rest, @selfhost_switches)
 
       ["telemetry", "enable" | rest] ->
         parse_with_switches(:telemetry_enable, rest, @telemetry_enable_switches)

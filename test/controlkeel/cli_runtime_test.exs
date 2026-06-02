@@ -1248,43 +1248,6 @@ defmodule ControlKeel.CLIRuntimeTest do
     Path.join([project_root, ".codex", "config.toml"])
   end
 
-  defp cursor_config_path do
-    home = System.get_env("HOME") || System.user_home!()
-
-    case :os.type() do
-      {:win32, _} ->
-        Path.join([
-          System.get_env("APPDATA") || home,
-          "Cursor",
-          "User",
-          "globalStorage",
-          "cursor.mcp.json"
-        ])
-
-      {:unix, :darwin} ->
-        Path.join([
-          home,
-          "Library",
-          "Application Support",
-          "Cursor",
-          "User",
-          "globalStorage",
-          "cursor.mcp.json"
-        ])
-
-      _ ->
-        Path.join([home, ".config", "Cursor", "User", "globalStorage", "cursor.mcp.json"])
-    end
-  end
-
-  defp cline_config_path do
-    base =
-      System.get_env("CLINE_DIR") ||
-        Path.join(System.get_env("HOME") || System.user_home!(), ".cline")
-
-    Path.join([base, "data", "settings", "cline_mcp_settings.json"])
-  end
-
   defp goose_config_path do
     Path.join([System.get_env("HOME") || System.user_home!(), ".config", "goose", "config.yaml"])
   end
