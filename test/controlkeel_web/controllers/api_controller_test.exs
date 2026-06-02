@@ -178,8 +178,7 @@ defmodule ControlKeelWeb.ApiControllerTest do
       assert body["context"]["boundary_summary"]["risk_tier"] == "critical"
 
       assert body["context"]["boundary_summary"]["constraints"] == [
-               "Local-first deploy",
-               "approval before production"
+               "Local-first deploy, approval before production"
              ]
 
       conn =

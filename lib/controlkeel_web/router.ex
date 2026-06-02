@@ -78,7 +78,8 @@ defmodule ControlKeelWeb.Router do
     # In local mode the on_mount hook is a passthrough.
     live_session :cloud_auth,
       on_mount: [{ControlKeelWeb.LiveAuth, :require_cloud_auth}] do
-      live "/start", OnboardingLive, :new
+      live "/missions", MissionsLive, :index
+    live "/missions/start", OnboardingLive, :new
       live "/findings", FindingsLive, :index
       live "/benchmarks", BenchmarksLive, :index
       live "/benchmarks/runs/:id", BenchmarksLive, :show

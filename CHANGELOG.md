@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.3.37 — 2026-06-02
+
+### What's changed
+
+- Merge pull request #6 from aryaminus/refactor/onboarding-page
+- Merge branch 'main' of github.com:aryaminus/controlkeel into refactor/onboarding-page
+- fix(postgres): resolve GROUP BY grouping_error in count_vulnerability_metadata
+- refactor/onboarding-page: handle Windows-style line endings when counting key features in router
+- refactor/onboarding-page: update missions index to display all sessions and add corresponding integration test
+- refactor/onboarding-page: handle missing mission sessions and improve formatting in onboarding live view
+- refactor/onboarding-page: remove unused split_list helper function from intent router
+- Merge branch 'main' of github.com:aryaminus/controlkeel into refactor/onboarding-page
+- refactor/onboarding-page: update UI assertions, refine boundary constraints, and add duplicate project name/continuation tests to onboarding
+- refactor/onboarding-page: prevent duplicate mission project names with validation and error handling
+- refactor/onboarding-page: add recent sessions dropdown to onboarding and implement mission selection logic
+- refactor/onboarding-page: improve boundary summary display and simplify constraints handling
+- refactor/onboarding-page: enhance project name validation and update UI to display acceptance criteria
+- refactor/onboarding-page: implement missions dashboard and migrate onboarding route to /missions/start
+- refactor/onboarding-page: simplify onboarding layout and enhance validation feedback messages
+- refactor/onboarding-page: introduce ProviderStatusComponents and integrate into home view
+
+## v0.3.36 — 2026-06-02
+
+### What's changed
+
+- fix(ci): update workflow versions and resolve vs code extension warnings
+
 ## v0.3.35 — 2026-06-02
 
 ### What's changed

@@ -4,12 +4,16 @@ defmodule ControlKeelWeb.PageController do
   alias ControlKeel.Analytics
   alias ControlKeel.Benchmark
   alias ControlKeel.Mission
+  alias ControlKeel.ProviderBroker
   alias ControlKeel.RuntimeMode
 
   def home(conn, _params) do
+    project_root = conn.private.phoenix_endpoint.config(:project_root) || File.cwd!()
+
     render(conn, :home,
       benchmark_summary: Benchmark.benchmark_summary(),
-      recent_sessions: Mission.list_recent_sessions(),
+      provider_status: ProviderBroker.status(project_root),
+      recent_sessions: Mission.list_recent_sessions(4),
       ship_summary: Analytics.funnel_summary(),
       runtime_mode: RuntimeMode.current(),
       current_user: conn.assigns[:current_user]

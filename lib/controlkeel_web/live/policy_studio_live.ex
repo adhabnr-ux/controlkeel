@@ -88,7 +88,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
               <p class="ck-mini-label">Session budgets</p>
               <%= if @sessions == [] do %>
                 <p class="ck-note">
-                  No active sessions. Start a mission at <a href={~p"/start"} class="ck-link">/start</a>.
+                  No active sessions. Start a mission at <a href={~p"/missions/start"} class="ck-link">/missions/start</a>.
                 </p>
               <% else %>
                 <div class="ck-finding-list">
