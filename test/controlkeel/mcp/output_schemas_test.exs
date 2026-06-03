@@ -71,7 +71,7 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
       assert props["advisory"]["type"] == ["object", "string", "null"]
       assert props["trust_policy_advisory"]["type"] == ["object", "string", "null"]
       assert finding_props["id"]["type"] == ["string", "null"]
-      assert finding_props["location"]["type"] == ["string", "null"]
+      assert finding_props["location"]["type"] == ["object", "string", "null"]
     end
 
     test "ck_finding schema allows nullable relationship fields" do

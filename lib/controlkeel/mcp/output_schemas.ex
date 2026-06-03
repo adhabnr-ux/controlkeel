@@ -24,7 +24,7 @@ defmodule ControlKeel.MCP.OutputSchemas do
               "rule_id" => %{"type" => "string"},
               "decision" => %{"type" => "string"},
               "plain_message" => %{"type" => "string"},
-              "location" => @nullable_string,
+              "location" => @nullable_object_or_string,
               "metadata" => %{"type" => "object"}
             }
           }
