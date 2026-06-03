@@ -272,8 +272,8 @@ defmodule ControlKeel.MCP.OutputSchemas do
     "ck_git_diff" => %{
       "type" => "object",
       "properties" => %{
-        "base_ref" => %{"type" => "string"},
-        "head_ref" => %{"type" => "string"},
+        "base_ref" => @nullable_string,
+        "head_ref" => @nullable_string,
         "diff" => %{"type" => "string"},
         "files_changed" => %{"type" => "integer"},
         "validation" => %{"type" => "object"}
@@ -566,7 +566,7 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "findings_raised" => %{"type" => "integer"},
         "budget_spent_cents" => %{"type" => "integer"},
         "reviews_pending" => %{"type" => "integer"},
-        "highlights" => %{"type" => "array", "items" => %{"type" => "string"}}
+        "highlights" => %{"type" => "object"}
       }
     },
     "ck_rollback" => %{
