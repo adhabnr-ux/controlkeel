@@ -2105,6 +2105,111 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert Mission.get_finding!(finding_id).status == "approved"
   end
 
+  test "tools/call ck_finding mode=resolve disposes a single finding by id" do
+    session = session_fixture()
+
+    blocked =
+      finding_fixture(%{
+        session: session,
+        category: "security",
+        severity: "high",
+        rule_id: "security.workflow.single_resolve",
+        status: "blocked"
+      })
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 210,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_finding",
+          "arguments" => %{
+            "session_id" => session.id,
+            "mode" => "resolve",
+            "finding_id" => blocked.id
+          }
+        }
+      })
+
+    assert %{
+             "result" => %{
+               "structuredContent" => %{
+                 "mode" => "resolve",
+                 "finding_id" => fid,
+                 "status" => "approved",
+                 "disposed_count" => 1
+               }
+             }
+           } = response
+
+    assert fid == blocked.id
+    assert Mission.get_finding!(blocked.id).status == "approved"
+  end
+
+  test "tools/call ck_finding mode=dismiss bulk-disposes active findings by status filter" do
+    session = session_fixture()
+
+    one =
+      finding_fixture(%{
+        session: session,
+        category: "security",
+        severity: "high",
+        rule_id: "security.workflow.stale_one",
+        status: "blocked"
+      })
+
+    two =
+      finding_fixture(%{
+        session: session,
+        category: "security",
+        severity: "medium",
+        rule_id: "security.workflow.stale_two",
+        status: "blocked"
+      })
+
+    open_one =
+      finding_fixture(%{
+        session: session,
+        category: "quality",
+        severity: "low",
+        rule_id: "quality.style.spacing",
+        status: "open"
+      })
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 211,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_finding",
+          "arguments" => %{
+            "session_id" => session.id,
+            "mode" => "dismiss",
+            "status" => "blocked",
+            "reason" => "stale: pre-governance run"
+          }
+        }
+      })
+
+    assert %{
+             "result" => %{
+               "structuredContent" => %{
+                 "mode" => "dismiss",
+                 "disposed_count" => 2,
+                 "disposed_finding_ids" => ids
+               }
+             }
+           } = response
+
+    assert Enum.sort(ids) == Enum.sort([one.id, two.id])
+    assert Mission.get_finding!(one.id).status == "rejected"
+    assert Mission.get_finding!(two.id).status == "rejected"
+    # finding in a different status is left untouched by the status-scoped filter
+    assert Mission.get_finding!(open_one.id).status == "open"
+  end
+
   test "tools/call ck_regression_result records external regression evidence" do
     session = session_fixture()
     task = task_fixture(%{session: session, status: "done"})

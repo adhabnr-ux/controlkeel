@@ -952,16 +952,14 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_finding",
       "description" =>
-        "Persist a governed finding with a ruling decision (allow, warn, block, escalate_to_human). " <>
-          "Findings are the durable audit trail in ControlKeel: every policy check, validation failure, or human review should produce a finding. " <>
-          "Write operation — creates or updates a DB record. Idempotent for the same rule_id within a session. " <>
-          "Returns the finding ID, status, and ruling state. " <>
-          "Required fields: session_id, category (e.g., security/compliance/performance), severity (critical/high/medium/low), rule_id (dotted policy identifier such as CK-SEC-001), and plain_message. " <>
-          "decision defaults to block; use allow for approved exceptions. " <>
-          "Use ck_finding to record issues discovered during agent work; use ck_memory_record for general knowledge or decisions not tied to a policy rule.",
+        "Record or disposition a governed finding. mode=create (default) persists a finding with a ruling decision (allow, warn, block, escalate_to_human); findings are the durable audit trail in ControlKeel. " <>
+          "mode=resolve|dismiss|escalate disposition EXISTING findings so the agent that created them can also clear them: pass `finding_id` for a single finding, or `rule_id`/`category`/`status` to bulk-disposition all matching active findings in the session (resolve->approved, dismiss->rejected, escalate->escalated). " <>
+          "Write operation. For create, required fields are session_id, category, severity, rule_id, plain_message; decision defaults to warn, use allow for an approved exception (which also auto-resolves matching open/blocked findings). " <>
+          "Returns finding_id + status for create, or disposed_count + disposed_finding_ids for disposition. " <>
+          "Use ck_finding to record and clear policy findings; use ck_memory_record for general knowledge not tied to a policy rule.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id", "category", "severity", "rule_id", "plain_message"],
+        "required" => ["session_id"],
         "properties" => %{
           "session_id" => %{
             "type" => ["integer", "string"],
@@ -997,7 +995,27 @@ defmodule ControlKeel.MCP.Protocol do
             "enum" => ["allow", "warn", "block", "escalate_to_human"],
             "description" => "Governance decision: allow, warn, block, or escalate to human."
           },
-          "metadata" => %{"type" => "object"}
+          "metadata" => %{"type" => "object"},
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["create", "resolve", "dismiss", "escalate"],
+            "description" =>
+              "create (default) records a finding. resolve/dismiss/escalate disposition existing findings, by `finding_id` (single) or `rule_id`/`category`/`status` (bulk)."
+          },
+          "finding_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Target finding id for single disposition (resolve/dismiss/escalate modes)."
+          },
+          "status" => %{
+            "type" => "string",
+            "description" =>
+              "Bulk disposition filter: only findings currently in this status are dispositioned (e.g. blocked, open, escalated)."
+          },
+          "reason" => %{
+            "type" => "string",
+            "description" => "Reason recorded on the finding(s) when dismissing."
+          }
         }
       }
     }

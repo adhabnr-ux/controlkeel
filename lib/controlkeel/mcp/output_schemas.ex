@@ -136,11 +136,14 @@ defmodule ControlKeel.MCP.OutputSchemas do
     "ck_finding" => %{
       "type" => "object",
       "properties" => %{
+        "mode" => %{"type" => "string"},
         "finding_id" => %{"type" => "integer"},
         "status" => %{"type" => "string"},
         "requires_human" => %{"type" => "boolean"},
         "resolved_finding_ids" => %{"type" => "array", "items" => %{"type" => "integer"}},
         "resolved_findings_count" => %{"type" => "integer"},
+        "disposed_finding_ids" => %{"type" => "array", "items" => %{"type" => "integer"}},
+        "disposed_count" => %{"type" => "integer"},
         "extends_finding_id" => @nullable_integer,
         "contradicts_finding_id" => @nullable_integer,
         "summary" => %{"type" => "string"}
