@@ -162,27 +162,46 @@ defmodule ControlKeel.Learning.OutcomeTracker do
     end
   end
 
-  def compute_router_weights do
+  @doc """
+  Normalized per-agent routing weights derived from recorded outcome rewards.
+
+  `opts[:min_samples]` (default 0) gates which agents contribute: only agents with at
+  least that many recorded outcomes are included, so a handful of noisy outcomes cannot
+  sway routing. Returns `{:ok, %{agent_id => weight}}`, or `{:ok, %{}}` when no agent
+  qualifies. The router calls this with a min-sample floor; callers wanting the raw
+  leaderboard-weighted view can omit the option.
+  """
+  def compute_router_weights(opts \\ []) do
+    min_samples = Keyword.get(opts, :min_samples, 0)
+
     case get_leaderboard(limit: 50) do
       {:ok, scores} when is_list(scores) and length(scores) > 0 ->
-        total_abs =
-          scores
-          |> Enum.map(fn s -> abs(s.score) + 0.01 end)
-          |> Enum.sum()
-
-        weights =
-          scores
-          |> Enum.map(fn s ->
-            normalized = (abs(s.score) + 0.01) / total_abs
-            {s.agent_id, Float.round(normalized, 4)}
-          end)
-          |> Map.new()
-
-        {:ok, weights}
+        scores
+        |> Enum.filter(fn s -> Map.get(s, :outcome_count, 0) >= min_samples end)
+        |> normalize_router_weights()
 
       _ ->
         {:ok, %{}}
     end
+  end
+
+  defp normalize_router_weights([]), do: {:ok, %{}}
+
+  defp normalize_router_weights(scores) do
+    total_abs =
+      scores
+      |> Enum.map(fn s -> abs(s.score) + 0.01 end)
+      |> Enum.sum()
+
+    weights =
+      scores
+      |> Enum.map(fn s ->
+        normalized = (abs(s.score) + 0.01) / total_abs
+        {s.agent_id, Float.round(normalized, 4)}
+      end)
+      |> Map.new()
+
+    {:ok, weights}
   end
 
   def valid_outcomes do
