@@ -22,10 +22,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     with {:ok, format} <- effective_cli_format(options) do
       payload = ControlKeel.CLI.Capabilities.payload()
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(payload)]}
-        _ -> {:ok, ControlKeel.CLI.Capabilities.lines(payload)}
-      end
+      render_format(format, payload, &ControlKeel.CLI.Capabilities.lines/1)
     end
   end
 
@@ -34,10 +31,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
       root = resolve_project_root(options, project_root)
       payload = ControlKeel.CLI.Doctor.payload(root, version())
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(payload)]}
-        _ -> {:ok, ControlKeel.CLI.Doctor.lines(payload)}
-      end
+      render_format(format, payload, &ControlKeel.CLI.Doctor.lines/1)
     end
   end
 
@@ -143,13 +137,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
 
       payload = ControlKeel.Learning.EngineerMirror.build(session_id)
 
-      case format do
-        "json" ->
-          {:ok, [Jason.encode!(payload)]}
-
-        _ ->
-          {:ok, [render_engineer_mirror(payload)]}
-      end
+      render_format(format, payload, fn p -> [render_engineer_mirror(p)] end)
     end
   end
 

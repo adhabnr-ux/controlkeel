@@ -7,6 +7,19 @@ defmodule ControlKeel.CLI.Output do
   error ("error") without parsing the full payload shape.
   """
 
+  @doc """
+  Render a command result in either JSON or text format.
+
+  Removes the repeated `case format do` boilerplate across every CLI dispatch
+  command.  `text_fn` receives `payload` and must return a list of strings.
+  """
+  def render_format(format, payload, text_fn) do
+    case format do
+      "json" -> {:ok, [Jason.encode!(payload)]}
+      _ -> {:ok, text_fn.(payload)}
+    end
+  end
+
   def json_requested?(argv) when is_list(argv) do
     Enum.any?(argv, &(&1 == "--json")) or format_json_requested?(argv)
   end

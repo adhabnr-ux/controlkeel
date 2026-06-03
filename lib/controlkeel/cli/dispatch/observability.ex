@@ -108,10 +108,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
           limit: options[:limit] || 10
         )
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(loop)]}
-        _ -> {:ok, observability_loop_status_lines(loop)}
-      end
+      render_format(format, loop, &observability_loop_status_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -123,10 +120,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       problems = Observability.problems(workspace_id: session.workspace_id)
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(problems)]}
-        _ -> {:ok, observability_problem_lines(problems)}
-      end
+      render_format(format, problems, &observability_problem_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -138,10 +132,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       costs = Observability.costs(workspace_id: session.workspace_id, by: options[:by])
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(costs)]}
-        _ -> {:ok, observability_cost_lines(costs)}
-      end
+      render_format(format, costs, &observability_cost_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -153,10 +144,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       imports = Observability.imports(workspace_id: session.workspace_id)
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(imports)]}
-        _ -> {:ok, observability_import_list_lines(imports)}
-      end
+      render_format(format, imports, &observability_import_list_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -168,10 +156,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       trends = Observability.trends(workspace_id: session.workspace_id, days: options[:days])
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(trends)]}
-        _ -> {:ok, observability_trend_lines(trends)}
-      end
+      render_format(format, trends, &observability_trend_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -188,10 +173,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
           limit: options[:limit] || 12
         )
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(regressions)]}
-        _ -> {:ok, observability_regression_lines(regressions)}
-      end
+      render_format(format, regressions, &observability_regression_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -203,10 +185,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       recommendations = Observability.recommendations(workspace_id: session.workspace_id)
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(recommendations)]}
-        _ -> {:ok, observability_recommendation_lines(recommendations)}
-      end
+      render_format(format, recommendations, &observability_recommendation_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -218,10 +197,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       candidates = Observability.eval_candidates(workspace_id: session.workspace_id)
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(candidates)]}
-        _ -> {:ok, observability_eval_candidate_lines(candidates)}
-      end
+      render_format(format, candidates, &observability_eval_candidate_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -233,10 +209,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       result = Observability.save_eval_candidates(workspace_id: session.workspace_id)
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(result)]}
-        _ -> {:ok, observability_eval_save_lines(result)}
-      end
+      render_format(format, result, &observability_eval_save_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -247,11 +220,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
     with {:ok, format} <- effective_cli_format(options),
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       candidates = Observability.saved_eval_candidates(workspace_id: session.workspace_id)
-
-      case format do
-        "json" -> {:ok, [Jason.encode!(candidates)]}
-        _ -> {:ok, observability_saved_eval_lines(candidates)}
-      end
+      render_format(format, candidates, &observability_saved_eval_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -263,10 +232,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       result = Observability.generate_benchmark_drafts(workspace_id: session.workspace_id)
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(result)]}
-        _ -> {:ok, observability_benchmark_draft_result_lines(result)}
-      end
+      render_format(format, result, &observability_benchmark_draft_result_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -278,10 +244,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       drafts = Observability.benchmark_drafts(workspace_id: session.workspace_id)
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(drafts)]}
-        _ -> {:ok, observability_benchmark_draft_lines(drafts)}
-      end
+      render_format(format, drafts, &observability_benchmark_draft_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -293,10 +256,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       result = Observability.materialize_benchmark_drafts(workspace_id: session.workspace_id)
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(result)]}
-        _ -> {:ok, observability_benchmark_materialize_lines(result)}
-      end
+      render_format(format, result, &observability_benchmark_materialize_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -309,10 +269,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
       scenarios =
         Observability.observability_benchmark_scenarios(workspace_id: session.workspace_id)
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(scenarios)]}
-        _ -> {:ok, observability_benchmark_scenario_lines(scenarios)}
-      end
+      render_format(format, scenarios, &observability_benchmark_scenario_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -328,10 +285,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
           limit: options[:limit] || 50
         )
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(promotions)]}
-        _ -> {:ok, observability_promotion_lines(promotions)}
-      end
+      render_format(format, promotions, &observability_promotion_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -347,10 +301,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
           limit: options[:limit] || 12
         )
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(history)]}
-        _ -> {:ok, observability_benchmark_history_lines(history)}
-      end
+      render_format(format, history, &observability_benchmark_history_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -364,10 +315,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
 
       case Observability.run_observability_benchmark(run_opts, project_root) do
         {:ok, result} ->
-          case format do
-            "json" -> {:ok, [Jason.encode!(result)]}
-            _ -> {:ok, observability_benchmark_run_lines(result)}
-          end
+          render_format(format, result, &observability_benchmark_run_lines/1)
 
         {:error, :execute_required, preview} ->
           {:error,
@@ -393,10 +341,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
     with {:ok, format} <- effective_cli_format(options),
          {:ok, result} <-
            Observability.update_benchmark_draft_status(draft_id, status, reviewed_by: "cli") do
-      case format do
-        "json" -> {:ok, [Jason.encode!(result)]}
-        _ -> {:ok, observability_benchmark_status_lines(result)}
-      end
+      render_format(format, result, &observability_benchmark_status_lines/1)
     else
       {:error, {:invalid_output_format, message}} ->
         {:error, message}
@@ -420,10 +365,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       comparison = Observability.comparison(workspace_id: session.workspace_id, by: options[:by])
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(comparison)]}
-        _ -> {:ok, observability_comparison_lines(comparison)}
-      end
+      render_format(format, comparison, &observability_comparison_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -465,10 +407,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
           stale_days: options[:stale_days]
         )
 
-      case format do
-        "json" -> {:ok, [Jason.encode!(quality)]}
-        _ -> {:ok, observability_memory_quality_lines(quality)}
-      end
+      render_format(format, quality, &observability_memory_quality_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, reason} -> {:error, "Failed to load local project: #{inspect(reason)}"}
@@ -478,10 +417,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
   def run_command(%{command: :obs_export, args: [session_id], options: options}, _project_root) do
     with {:ok, format} <- effective_cli_format(options),
          {:ok, envelope} <- ObservabilityTelemetry.export_session(session_id) do
-      case format do
-        "json" -> {:ok, [Jason.encode!(envelope)]}
-        _ -> {:ok, observability_export_lines(envelope)}
-      end
+      render_format(format, envelope, &observability_export_lines/1)
     else
       {:error, {:invalid_output_format, message}} -> {:error, message}
       {:error, :not_found} -> {:error, "Session not found: #{session_id}"}
@@ -492,10 +428,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
   def run_command(%{command: :obs_import, args: [file_path], options: options}, project_root) do
     with {:ok, format} <- effective_cli_format(options),
          {:ok, result} <- observability_import(file_path, options, project_root) do
-      case format do
-        "json" -> {:ok, [Jason.encode!(result)]}
-        _ -> {:ok, observability_import_lines(result)}
-      end
+      render_format(format, result, &observability_import_lines/1)
     else
       {:error, {:invalid_output_format, message}} ->
         {:error, message}
@@ -530,10 +463,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
   def run_command(%{command: :obs_workshop, args: [file_path], options: options}, _project_root) do
     with {:ok, format} <- effective_cli_format(options),
          {:ok, preview} <- observability_workshop_preview(file_path, options) do
-      case format do
-        "json" -> {:ok, [Jason.encode!(preview)]}
-        _ -> {:ok, observability_workshop_lines(preview)}
-      end
+      render_format(format, preview, &observability_workshop_lines/1)
     else
       {:error, {:invalid_output_format, message}} ->
         {:error, message}

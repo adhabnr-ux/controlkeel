@@ -48,6 +48,8 @@ defmodule ControlKeel.CLI do
 
   def parse(argv), do: Parser.parse(argv)
 
+  defdelegate render_format(format, payload, text_fn), to: ControlKeel.CLI.Output
+
   def app_required?(%{command: command}) when command in [:help, :version], do: false
   def app_required?(_parsed), do: true
 
@@ -1580,10 +1582,7 @@ defmodule ControlKeel.CLI do
   def render_observability_timeline(session_id, limit, format) do
     case Observability.timeline(session_id, limit: limit) do
       {:ok, timeline} ->
-        case format do
-          "json" -> {:ok, [Jason.encode!(timeline)]}
-          _ -> {:ok, observability_timeline_lines(timeline)}
-        end
+        render_format(format, timeline, &observability_timeline_lines/1)
 
       {:error, :not_found} ->
         {:error, "Session not found: #{session_id}"}
@@ -1609,10 +1608,7 @@ defmodule ControlKeel.CLI do
   def render_observability_memory(session_id, limit, format) do
     case Observability.memory_context(session_id, limit: limit) do
       {:ok, memory_context} ->
-        case format do
-          "json" -> {:ok, [Jason.encode!(memory_context)]}
-          _ -> {:ok, observability_memory_lines(memory_context)}
-        end
+        render_format(format, memory_context, &observability_memory_lines/1)
 
       {:error, :not_found} ->
         {:error, "Session not found: #{session_id}"}
@@ -1653,10 +1649,7 @@ defmodule ControlKeel.CLI do
   def render_observability(session_id, format) do
     case Observability.session_run(session_id) do
       {:ok, run} ->
-        case format do
-          "json" -> {:ok, [Jason.encode!(run)]}
-          _ -> {:ok, observability_lines(run)}
-        end
+        render_format(format, run, &observability_lines/1)
 
       {:error, :not_found} ->
         {:error, "Session not found: #{session_id}"}
