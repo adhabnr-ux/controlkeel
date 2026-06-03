@@ -24,7 +24,7 @@ defmodule ControlKeel.MCP.OutputSchemas do
               "rule_id" => %{"type" => "string"},
               "decision" => %{"type" => "string"},
               "plain_message" => %{"type" => "string"},
-              "location" => @nullable_object_or_string,
+              "location" => @nullable_object,
               "metadata" => %{"type" => "object"}
             }
           }
@@ -43,8 +43,8 @@ defmodule ControlKeel.MCP.OutputSchemas do
           }
         },
         "scanned_at" => %{"type" => "string"},
-        "advisory" => @nullable_object_or_string,
-        "trust_policy_advisory" => @nullable_object_or_string
+        "advisory" => @nullable_string,
+        "trust_policy_advisory" => @nullable_string
       }
     },
     "ck_execute_code" => %{

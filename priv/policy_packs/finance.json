@@ -11,5 +11,126 @@
         "(?i)payment|card|reconciliation|ledger"
       ]
     }
+  },
+  {
+    "id": "finance.card_data_in_logs",
+    "category": "security",
+    "severity": "critical",
+    "action": "block",
+    "plain_message": "Card numbers, CVV, expiry dates, and PANs must never appear in application logs. PCI-DSS requirement 3 prohibits storing or logging full cardholder data.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(log|print|console\\.log|logger\\.|IO\\.puts|IO\\.inspect|puts|echo).*(card_number|cvv|cvc|expiry_date|pan|cardholder_name|track_data)"
+      ]
+    }
+  },
+  {
+    "id": "finance.card_data_unencrypted",
+    "category": "security",
+    "severity": "critical",
+    "action": "block",
+    "plain_message": "Storing card numbers, CVV, or track data as plain strings violates PCI-DSS requirement 3. Use a payment token from a PCI-compliant provider instead of storing raw card data.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)field\\s*\\(?\\s*:(card_number|cvv|cvc|expiry_date|cardholder_name|track_data|pin)\\s*,\\s*:string"
+      ]
+    }
+  },
+  {
+    "id": "finance.payment_idor",
+    "category": "security",
+    "severity": "critical",
+    "action": "block",
+    "plain_message": "Payment and invoice lookups by URL id must be scoped to the authenticated user or authorized entity. Unscoped lookups expose every transaction.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?is)Repo\\.get!\\s*\\(\\s*(?:Payment|Invoice|Transaction|Refund|LedgerEntry|__MODULE__)\\s*,\\s*id\\s*\\).*json\\s*\\([^\\)]*(?:amount|card|bank|account|routing)",
+        "(?is)def\\s+show\\s*\\([^\\n]*%\\{[\"']id[\"']\\s*=>\\s*id\\}.*Repo\\.get!\\s*\\(\\s*(?:Payment|Invoice|Transaction)\\s*,\\s*id\\s*\\)"
+      ]
+    }
+  },
+  {
+    "id": "finance.transaction_no_audit",
+    "category": "compliance",
+    "severity": "high",
+    "action": "block",
+    "plain_message": "Financial transaction creation must include an immutable audit trail. SOX requires traceability for all material financial record changes.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(create_payment|process_payment|create_transaction|create_invoice|issue_refund|post_ledger).*(?!.*audit|.*log|.*journal)"
+      ]
+    }
+  },
+  {
+    "id": "finance.reconciliation_bypass",
+    "category": "compliance",
+    "severity": "high",
+    "action": "warn",
+    "plain_message": "Automated reconciliation or ledger posting without review thresholds can hide discrepancies. Ensure reconciliation steps include human review or exception-flagging.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(auto_reconcile|auto_post|skip_reconciliation|force_balance).*(without_review|skip_review|always_true|no_check)",
+        "(?i)(disable|bypass).*(reconciliation|ledger_review|balance_check|dual_control)"
+      ]
+    }
+  },
+  {
+    "id": "finance.financial_mass_assignment",
+    "category": "security",
+    "severity": "critical",
+    "action": "block",
+    "plain_message": "Financial fields (amount, currency, status, refunded, discount) must not be mass-assigned from user params. Set them from trusted server context only.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?is)cast\\s*\\([^\\)]*,\\s*\\[[^\\]]*:(?:amount|currency|status|refunded|refunded_amount|discount_percent|tax_rate|total|balance|fee)[^\\]]*\\]",
+        "(?is)permit\\s*\\([^\\)]*(?:amount|currency|status|refunded|discount_percent|tax_rate|total|balance)"
+      ]
+    }
+  },
+  {
+    "id": "finance.financial_data_third_party",
+    "category": "privacy",
+    "severity": "high",
+    "action": "warn",
+    "plain_message": "Sending financial data (account numbers, transactions, balances) to external APIs requires a Data Processing Agreement and compliance review.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(Req\\.post|HTTPoison\\.post|requests\\.post|axios\\.post|fetch\\s*\\().*\\b(account_number|routing_number|iban|swift|balance|transaction_id|amount|tax_id)\\b"
+      ]
+    }
+  },
+  {
+    "id": "finance.sox_retention_missing",
+    "category": "compliance",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Financial record tables should have a defined retention or archival mechanism. SOX requires retention of audit-relevant records for 5-7 years.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)create\\s+table[\\s(]+:?(payments|transactions|invoices|ledger_entries|journal_entries|refunds|accounts|reconciliations)\\b"
+      ]
+    }
+  },
+  {
+    "id": "finance.pci_scope_creep",
+    "category": "compliance",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Application code handling raw card data expands PCI-DSS scope. Use a tokenized payment provider (Stripe, Braintree) and never let card data touch your servers.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)params\\[([\"'])(?:card_number|cvv|expiry|pan)\\1\\]",
+        "(?i)conn\\.params.*card_number|params\\[\"card"
+      ]
+    }
   }
 ]

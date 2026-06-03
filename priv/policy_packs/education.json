@@ -11,5 +11,124 @@
         "(?i)student|classroom|gradebook|parent"
       ]
     }
+  },
+  {
+    "id": "education.student_pii_in_logs",
+    "category": "privacy",
+    "severity": "high",
+    "action": "block",
+    "plain_message": "Student names, grades, behavioral data, SSN, or disciplinary records must never be written to application logs. FERPA prohibits unauthorized disclosure of education records.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(log|print|console\\.log|logger\\.|IO\\.puts|IO\\.inspect|puts|echo).*(student_name|grade|gpa|ssn|disciplinary|behavioral|iep|attendance|transcript)"
+      ]
+    }
+  },
+  {
+    "id": "education.student_pii_unencrypted",
+    "category": "privacy",
+    "severity": "high",
+    "action": "block",
+    "plain_message": "Fields storing student PII (name, DOB, guardian contact, SSN) must be encrypted at rest. Add encryption before persisting student records.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)field\\s*\\(?\\s*:(student_name|date_of_birth|guardian_contact|guardian_phone|ssn|national_id|home_address|behavioral_notes|iep_notes)\\s*,\\s*:string"
+      ]
+    }
+  },
+  {
+    "id": "education.student_record_idor",
+    "category": "security",
+    "severity": "critical",
+    "action": "block",
+    "plain_message": "Student record access by URL id must be scoped to the authorized teacher, admin, or the student themselves. Unscoped lookups expose every student record.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?is)Repo\\.get!\\s*\\(\\s*(?:Student|Enrollment|Grade|Transcript|DisciplinaryRecord|__MODULE__)\\s*,\\s*id\\s*\\).*json\\s*\\([^\\)]*(?:gpa|grade|disciplinary|iep|attendance)",
+        "(?is)def\\s+show\\s*\\([^\\n]*%\\{[\"']id[\"']\\s*=>\\s*id\\}.*Repo\\.get!\\s*\\(\\s*(?:Student|Enrollment|Grade)\\s*,\\s*id\\s*\\)"
+      ]
+    }
+  },
+  {
+    "id": "education.student_data_third_party",
+    "category": "privacy",
+    "severity": "high",
+    "action": "block",
+    "plain_message": "Sending student education records to an external service without a FERPA-compliant agreement violates federal law. Verify the recipient has a school official exception or consent.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(Req\\.post|HTTPoison\\.post|requests\\.post|axios\\.post|fetch\\s*\\().*\\b(student_name|grade|gpa|transcript|disciplinary|iep|attendance|enrollment)\\b"
+      ]
+    }
+  },
+  {
+    "id": "education.grade_mass_assignment",
+    "category": "security",
+    "severity": "high",
+    "action": "block",
+    "plain_message": "Grade, GPA, and disciplinary fields must not be mass-assigned from user params. Set them from trusted teacher or admin context only.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?is)cast\\s*\\([^\\)]*,\\s*\\[[^\\]]*:(?:grade|gpa|score|passing|disciplinary_action|iep_status|attendance_rate)[^\\]]*\\]",
+        "(?is)permit\\s*\\([^\\)]*(?:grade|gpa|score|passing|disciplinary_action|iep_status|attendance_rate)"
+      ]
+    }
+  },
+  {
+    "id": "education.coppa_age_gate_missing",
+    "category": "compliance",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Student registration for users under 13 requires parental consent under COPPA. Ensure age verification and parental consent collection are part of the registration flow.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(register_student|create_student|sign_up_student|student_account).*(?!.*age|.*parental|.*consent|.*guardian)"
+      ]
+    }
+  },
+  {
+    "id": "education.student_retention_missing",
+    "category": "compliance",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Student record tables should have a defined retention or archival schedule. FERPA allows destruction of records no longer needed, but requires a policy. Add retention or archival.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)create\\s+table[\\s(]+:?(students|enrollments|grades|transcripts|attendance_records|disciplinary_records|iep_records)\\b"
+      ]
+    }
+  },
+  {
+    "id": "education.ferpa_directory_info_opt_out",
+    "category": "privacy",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Publishing student directory information (name, email, photo, enrollment status) without an opt-out mechanism violates FERPA. Add a consent/opt-out field.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(publish|public|directory|roster).*(student_name|student_email|photo|enrollment_status)(?!.*opt_out|.*consent)"
+      ]
+    }
+  },
+  {
+    "id": "education.ferpa_consent_not_recorded",
+    "category": "privacy",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Sharing educational records with third parties requires written student consent under FERPA. Ensure this flow records consent before releasing records.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(share|release|send|forward).*(transcript|grade|disciplinary|iep|education_record)(?!.*consent)"
+      ]
+    }
   }
 ]

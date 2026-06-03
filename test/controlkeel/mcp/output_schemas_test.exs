@@ -68,10 +68,10 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
       props = OutputSchemas.schema_for("ck_validate")["properties"]
       finding_props = get_in(props, ["findings", "items", "properties"])
 
-      assert props["advisory"]["type"] == ["object", "string", "null"]
-      assert props["trust_policy_advisory"]["type"] == ["object", "string", "null"]
+      assert props["advisory"]["type"] == ["string", "null"]
+      assert props["trust_policy_advisory"]["type"] == ["string", "null"]
       assert finding_props["id"]["type"] == ["string", "null"]
-      assert finding_props["location"]["type"] == ["object", "string", "null"]
+      assert finding_props["location"]["type"] == ["object", "null"]
     end
 
     test "ck_finding schema allows nullable relationship fields" do
