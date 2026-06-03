@@ -1,6 +1,8 @@
 defmodule ControlKeel.Scanner.FastPath do
   @moduledoc false
 
+  require Logger
+
   alias ControlKeel.Intent.Domains
   alias ControlKeel.Integrations.Deepsec
   alias ControlKeel.Mission
@@ -60,10 +62,10 @@ defmodule ControlKeel.Scanner.FastPath do
 
   def scan(input, _opts \\ []) when is_map(input) do
     normalized = normalize_input(input)
-    baseline_rules = PackLoader.load!("baseline")
+    baseline_rules = load_pack_rules("baseline")
     domain_rules = domain_rules_for(normalized)
     workspace_rules = workspace_rules_for(normalized)
-    cost_rules = PackLoader.load!("cost")
+    cost_rules = load_pack_rules("cost")
     runtime_rules = uniq_rules(baseline_rules ++ domain_rules ++ workspace_rules)
 
     layer1 =
@@ -97,7 +99,7 @@ defmodule ControlKeel.Scanner.FastPath do
       end
 
     layer3 =
-      if matcher_system_enabled?() and code_content?(normalized) do
+      if matcher_system_enabled?() and matcher_registry_running?() and code_content?(normalized) do
         MatcherScanner.scan(
           normalized["content"],
           normalized["path"] || "unknown",
@@ -549,6 +551,32 @@ defmodule ControlKeel.Scanner.FastPath do
   defp shell_fingerprint(rule_id, path, matched_command) do
     seed = "#{rule_id}:#{path}:#{matched_command}"
     "fp_" <> (:crypto.hash(:sha256, seed) |> Base.encode16(case: :lower) |> binary_part(0, 12))
+  end
+
+  # Load a core policy pack, degrading to an empty rule set (with a warning) instead of
+  # raising when a pack is missing or malformed. A bad pack must not take down every
+  # validation: the other layers (entropy, destructive-shell, trust-boundary,
+  # security-workflow) still run, so the scanner stays available with a reduced rule set.
+  defp load_pack_rules(name) do
+    case PackLoader.load(name) do
+      {:ok, rules} ->
+        rules
+
+      {:error, reason} ->
+        Logger.warning(
+          "[scanner] policy pack #{name} unavailable (#{inspect(reason)}); continuing with a reduced rule set"
+        )
+
+        []
+    end
+  end
+
+  # Layer 3 (the matcher subsystem) only runs when its Registry process is actually
+  # started. The matcher_system flag alone is not enough — without a live Registry the
+  # matcher scan would hit a dead process. This guard keeps enabling the flag from
+  # crashing the scan when the Registry is not supervised.
+  defp matcher_registry_running? do
+    is_pid(Process.whereis(ControlKeel.Validation.Matchers.Registry))
   end
 
   defp matcher_system_enabled? do

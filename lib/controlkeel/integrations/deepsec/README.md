@@ -24,6 +24,17 @@ config :controlkeel, :deepsec,
 config :controlkeel, :matcher_system, enabled: true
 ```
 
+> The matcher subsystem (Layer 3) additionally requires its Registry process to be
+> running and the built-in matchers loaded. Start and seed it before enabling the flag:
+>
+> ```elixir
+> {:ok, _} = ControlKeel.Validation.Matchers.Registry.start_link()
+> :ok = ControlKeel.Validation.Matchers.Registry.load_built_ins()
+> ```
+>
+> If the flag is enabled without a running Registry, the scanner safely skips Layer 3
+> (it no longer crashes), so no matcher findings are produced until the Registry is up.
+
 ## API
 
 ```elixir

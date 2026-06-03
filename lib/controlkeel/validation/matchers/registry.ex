@@ -135,6 +135,11 @@ defmodule ControlKeel.Validation.Matchers.Registry do
     |> Enum.sort_by(&Matcher.tier_priority(&1.noise_tier))
   rescue
     _ -> []
+  catch
+    # The Agent process may not be started (e.g. matcher_system enabled without the
+    # Registry supervised). Agent.get/2 then exits with :noproc, which `rescue` does NOT
+    # catch — only `catch :exit` does. Degrade to no matchers instead of crashing the scan.
+    :exit, _ -> []
   end
 
   defp matches_glob?(file_path, pattern) do

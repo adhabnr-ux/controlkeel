@@ -1,6 +1,8 @@
 defmodule ControlKeel.Policy.PackLoader do
   @moduledoc false
 
+  require Logger
+
   alias ControlKeel.Policy.Rule
 
   @cache_key {__MODULE__, :packs}
@@ -60,17 +62,28 @@ defmodule ControlKeel.Policy.PackLoader do
     end
   end
 
+  # Load every pack independently: a single malformed pack is skipped (with a warning)
+  # rather than failing the whole load. Previously one bad pack halted load_all_packs,
+  # which made load!/1 raise and took down EVERY validation (the scanner calls
+  # load("baseline")/load("cost") on the hot path).
   defp load_all_packs do
-    Application.app_dir(:controlkeel, "priv/policy_packs/*.json")
-    |> Path.wildcard()
-    |> Enum.reduce_while({:ok, %{}}, fn path, {:ok, acc} ->
-      name = path |> Path.basename(".json")
+    packs =
+      Application.app_dir(:controlkeel, "priv/policy_packs/*.json")
+      |> Path.wildcard()
+      |> Enum.reduce(%{}, fn path, acc ->
+        name = path |> Path.basename(".json")
 
-      case load_from_path(path) do
-        {:ok, rules} -> {:cont, {:ok, Map.put(acc, name, rules)}}
-        {:error, reason} -> {:halt, {:error, reason}}
-      end
-    end)
+        case load_from_path(path) do
+          {:ok, rules} ->
+            Map.put(acc, name, rules)
+
+          {:error, reason} ->
+            Logger.warning("[policy] skipping malformed policy pack #{name}: #{inspect(reason)}")
+            acc
+        end
+      end)
+
+    {:ok, packs}
   end
 
   defp decode_rules(list) when is_list(list) do
