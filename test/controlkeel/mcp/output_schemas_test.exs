@@ -1,6 +1,8 @@
 defmodule ControlKeel.MCP.OutputSchemasTest do
   use ControlKeel.DataCase
 
+  import ControlKeel.MissionFixtures
+
   alias ControlKeel.MCP.OutputSchemas
   alias ControlKeel.MCP.Protocol
   alias ControlKeel.MCP.ToolGroups
@@ -157,6 +159,40 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
 
       assert length(all_tools) == 56
       assert length(schema_tools) >= 56
+    end
+  end
+
+  describe "declared output schema matches the real tool payload (no drift)" do
+    test "ck_execute_code structuredContent keys match its declared schema" do
+      assert {:ok, payload} =
+               ControlKeel.MCP.Tools.CkExecuteCode.call(%{
+                 "code" => "console.log(1 + 1)",
+                 "language" => "javascript",
+                 "dry_run" => true
+               })
+
+      declared =
+        OutputSchemas.schema_for("ck_execute_code")["properties"] |> Map.keys() |> MapSet.new()
+
+      actual = payload |> Map.keys() |> MapSet.new()
+
+      assert MapSet.equal?(actual, declared),
+             "ck_execute_code payload keys drifted from outputSchema.\n  payload: #{inspect(Enum.sort(MapSet.to_list(actual)))}\n  schema:  #{inspect(Enum.sort(MapSet.to_list(declared)))}"
+    end
+
+    test "ck_context_pack structuredContent keys match its declared schema" do
+      session = session_fixture()
+
+      assert {:ok, payload} =
+               ControlKeel.MCP.Tools.CkContextPack.call(%{"session_id" => session.id})
+
+      declared =
+        OutputSchemas.schema_for("ck_context_pack")["properties"] |> Map.keys() |> MapSet.new()
+
+      actual = payload |> Map.keys() |> MapSet.new()
+
+      assert MapSet.equal?(actual, declared),
+             "ck_context_pack payload keys drifted from outputSchema.\n  payload: #{inspect(Enum.sort(MapSet.to_list(actual)))}\n  schema:  #{inspect(Enum.sort(MapSet.to_list(declared)))}"
     end
   end
 end

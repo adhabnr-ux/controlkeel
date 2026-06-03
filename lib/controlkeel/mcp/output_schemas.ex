@@ -49,14 +49,17 @@ defmodule ControlKeel.MCP.OutputSchemas do
     "ck_execute_code" => %{
       "type" => "object",
       "properties" => %{
+        "allowed" => %{"type" => "boolean"},
+        "language" => %{"type" => "string"},
+        "sandbox" => %{"type" => "string"},
+        "dry_run" => %{"type" => "boolean"},
+        "exit_status" => @nullable_integer,
         "output" => %{"type" => "string"},
-        "exit_status" => %{"type" => "integer"},
-        "stdout" => %{"type" => "string"},
-        "stderr" => %{"type" => "string"},
-        "timed_out" => %{"type" => "boolean"},
-        "valid" => %{"type" => "boolean"},
-        "validation_errors" => %{"type" => "array", "items" => %{"type" => "string"}},
-        "error" => %{"type" => "string"}
+        "output_truncated" => %{"type" => "boolean"},
+        "command" => %{"type" => "string"},
+        "policy" => %{"type" => "object"},
+        "validation" => %{"type" => "object"},
+        "proof_artifacts" => %{"type" => "array", "items" => %{"type" => "string"}}
       }
     },
     "ck_context" => %{
@@ -97,12 +100,24 @@ defmodule ControlKeel.MCP.OutputSchemas do
       "type" => "object",
       "properties" => %{
         "session_id" => %{"type" => "integer"},
-        "task_id" => %{"type" => "integer"},
+        "task_id" => @nullable_integer,
         "query" => %{"type" => "string"},
-        "task_facts" => %{"type" => "object"},
-        "proof_state" => %{"type" => "object"},
-        "resume_highlights" => %{"type" => "object"},
-        "memory_excerpts" => %{"type" => "array", "items" => %{"type" => "object"}}
+        "generated_at" => %{"type" => "string"},
+        "factual_only" => %{"type" => "boolean"},
+        "detail_level" => %{"type" => "string"},
+        "semantic_available" => %{"type" => "boolean"},
+        "retrieval_strategy" => @nullable_string,
+        "excluded_ids_count" => %{"type" => "integer"},
+        "context_pack" => %{
+          "type" => "object",
+          "properties" => %{
+            "task" => %{"type" => "object"},
+            "proof" => %{"type" => "object"},
+            "resume" => %{"type" => "object"},
+            "memory" => %{"type" => "array", "items" => %{"type" => "object"}},
+            "citations" => %{"type" => "array", "items" => %{"type" => "object"}}
+          }
+        }
       }
     },
     "ck_observability" => %{
