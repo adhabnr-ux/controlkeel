@@ -600,7 +600,7 @@ defmodule ControlKeel.CLIRuntimeTest do
     assert File.exists?(Path.join(tmp_dir, "controlkeel/project.json"))
   end
 
-  test "attach writes companion artifacts and prints install guidance", %{tmp_dir: tmp_dir} do
+  test "attach writes companion artifacts and prints install guidance", %{tmp_dir: _tmp_dir} do
     assert true
   end
 

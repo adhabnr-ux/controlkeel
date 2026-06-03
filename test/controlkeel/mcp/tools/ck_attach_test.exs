@@ -35,5 +35,15 @@ defmodule ControlKeel.MCP.Tools.CkAttachTest do
       assert "copilot" in hosts
       assert length(hosts) >= 15
     end
+
+    test "stays in sync with the AgentIntegration attach-client set (no drift below the CLI)" do
+      hosts = CkAttach.attachable_hosts()
+
+      # These hosts are attachable by the CLI but were rejected by the old hardcoded
+      # 17-host allowlist; ck_attach now derives the set from the single source of truth.
+      assert "amp" in hosts
+      assert "warp" in hosts
+      assert hosts == ControlKeel.AgentIntegration.attachable_ids()
+    end
   end
 end

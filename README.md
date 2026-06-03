@@ -274,7 +274,7 @@ Use the docs below for the precise truth per host:
 
 Web app:
 
-- `/start` for onboarding and execution brief creation
+- `/missions/start` for onboarding and execution brief creation
 - `/missions/:id` for mission control and approvals
 - `/findings` for cross-session findings
 - `/proofs` for immutable proof bundles

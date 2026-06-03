@@ -47,30 +47,30 @@ const { records } = await ck.syncPull("ws-123", "2026-05-29T00:00:00Z");
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `listServiceAccounts(workspaceId)` | GET `/cloud/v1/workspaces/:id/service-accounts` | List service accounts |
-| `createServiceAccount(workspaceId, params)` | POST `/cloud/v1/workspaces/:id/service-accounts` | Create (token shown once) |
+| `listServiceAccounts(workspaceId)` | GET `/api/v1/workspaces/:id/service-accounts` | List service accounts |
+| `createServiceAccount(workspaceId, params)` | POST `/api/v1/workspaces/:id/service-accounts` | Create (token shown once) |
 
 ### Webhooks
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `listWebhooks(workspaceId)` | GET `/cloud/v1/workspaces/:id/webhooks` | List webhooks |
-| `createWebhook(workspaceId, params)` | POST `/cloud/v1/workspaces/:id/webhooks` | Create a webhook |
+| `listWebhooks(workspaceId)` | GET `/api/v1/workspaces/:id/webhooks` | List webhooks |
+| `createWebhook(workspaceId, params)` | POST `/api/v1/workspaces/:id/webhooks` | Create a webhook |
 
 ### Tool policy
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `getToolPolicy(workspaceId)` | GET `/cloud/v1/workspaces/:id/tool-policy` | Get current policy |
-| `setToolPolicy(workspaceId, params)` | PUT `/cloud/v1/workspaces/:id/tool-policy` | Set policy mode + tools |
+| `getToolPolicy(workspaceId)` | GET `/api/v1/workspaces/:id/tool-policy` | Get current policy |
+| `setToolPolicy(workspaceId, params)` | PUT `/api/v1/workspaces/:id/tool-policy` | Set policy mode + tools |
 
 ### Policy sets
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `listPolicySets(workspaceId)` | GET `/cloud/v1/workspaces/:id/policy-sets` | List policy sets |
-| `createPolicySet(workspaceId, params)` | POST `/cloud/v1/workspaces/:id/policy-sets` | Create a policy set |
-| `applyPolicySet(workspaceId, policySetId)` | POST `/cloud/v1/workspaces/:id/policy-sets/:psId/apply` | Apply to workspace |
+| `listPolicySets(workspaceId)` | GET `/api/v1/workspaces/:id/policy-sets` | List policy sets |
+| `createPolicySet(workspaceId, params)` | POST `/api/v1/workspaces/:id/policy-sets` | Create a policy set |
+| `applyPolicySet(workspaceId, policySetId)` | POST `/api/v1/workspaces/:id/policy-sets/:psId/apply` | Apply to workspace |
 
 ### Telemetry
 
