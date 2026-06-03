@@ -89,7 +89,7 @@ export class ControlKeelClient {
   /** List service accounts for a workspace. */
   async listServiceAccounts(workspaceId: string): Promise<ServiceAccount[]> {
     return this.get<ServiceAccount[]>(
-      `/cloud/v1/workspaces/${workspaceId}/service-accounts`,
+      `/api/v1/workspaces/${workspaceId}/service-accounts`,
     );
   }
 
@@ -99,7 +99,7 @@ export class ControlKeelClient {
     params: CreateServiceAccountParams,
   ): Promise<CreateServiceAccountResponse> {
     return this.post<CreateServiceAccountResponse>(
-      `/cloud/v1/workspaces/${workspaceId}/service-accounts`,
+      `/api/v1/workspaces/${workspaceId}/service-accounts`,
       params,
     );
   }
@@ -109,7 +109,7 @@ export class ControlKeelClient {
   /** List webhooks for a workspace. */
   async listWebhooks(workspaceId: string): Promise<Webhook[]> {
     return this.get<Webhook[]>(
-      `/cloud/v1/workspaces/${workspaceId}/webhooks`,
+      `/api/v1/workspaces/${workspaceId}/webhooks`,
     );
   }
 
@@ -119,7 +119,7 @@ export class ControlKeelClient {
     params: CreateWebhookParams,
   ): Promise<Webhook> {
     return this.post<Webhook>(
-      `/cloud/v1/workspaces/${workspaceId}/webhooks`,
+      `/api/v1/workspaces/${workspaceId}/webhooks`,
       params,
     );
   }
@@ -129,7 +129,7 @@ export class ControlKeelClient {
   /** Get the current tool policy for a workspace. */
   async getToolPolicy(workspaceId: string): Promise<ToolPolicy> {
     return this.get<ToolPolicy>(
-      `/cloud/v1/workspaces/${workspaceId}/tool-policy`,
+      `/api/v1/workspaces/${workspaceId}/tool-policy`,
     );
   }
 
@@ -139,7 +139,7 @@ export class ControlKeelClient {
     params: SetToolPolicyParams,
   ): Promise<ToolPolicy> {
     return this.put<ToolPolicy>(
-      `/cloud/v1/workspaces/${workspaceId}/tool-policy`,
+      `/api/v1/workspaces/${workspaceId}/tool-policy`,
       params,
     );
   }
@@ -149,7 +149,7 @@ export class ControlKeelClient {
   /** List policy sets for a workspace. */
   async listPolicySets(workspaceId: string): Promise<PolicySet[]> {
     return this.get<PolicySet[]>(
-      `/cloud/v1/workspaces/${workspaceId}/policy-sets`,
+      `/api/v1/workspaces/${workspaceId}/policy-sets`,
     );
   }
 
@@ -159,7 +159,7 @@ export class ControlKeelClient {
     params: CreatePolicySetParams,
   ): Promise<PolicySet> {
     return this.post<PolicySet>(
-      `/cloud/v1/workspaces/${workspaceId}/policy-sets`,
+      `/api/v1/workspaces/${workspaceId}/policy-sets`,
       params,
     );
   }
@@ -170,7 +170,7 @@ export class ControlKeelClient {
     policySetId: string,
   ): Promise<{ status: string }> {
     return this.post<{ status: string }>(
-      `/cloud/v1/workspaces/${workspaceId}/policy-sets/${policySetId}/apply`,
+      `/api/v1/workspaces/${workspaceId}/policy-sets/${policySetId}/apply`,
       {},
     );
   }

@@ -4,6 +4,7 @@ defmodule ControlKeel.MCP.OutputSchemas do
   @nullable_string %{"type" => ["string", "null"]}
   @nullable_integer %{"type" => ["integer", "null"]}
   @nullable_object %{"type" => ["object", "null"]}
+  @nullable_object_or_string %{"type" => ["object", "string", "null"]}
 
   @schemas %{
     "ck_validate" => %{
@@ -23,7 +24,7 @@ defmodule ControlKeel.MCP.OutputSchemas do
               "rule_id" => %{"type" => "string"},
               "decision" => %{"type" => "string"},
               "plain_message" => %{"type" => "string"},
-              "location" => @nullable_string,
+              "location" => @nullable_object,
               "metadata" => %{"type" => "object"}
             }
           }
@@ -42,21 +43,24 @@ defmodule ControlKeel.MCP.OutputSchemas do
           }
         },
         "scanned_at" => %{"type" => "string"},
-        "advisory" => @nullable_string,
+        "advisory" => @nullable_object,
         "trust_policy_advisory" => @nullable_string
       }
     },
     "ck_execute_code" => %{
       "type" => "object",
       "properties" => %{
+        "allowed" => %{"type" => "boolean"},
+        "language" => %{"type" => "string"},
+        "sandbox" => %{"type" => "string"},
+        "dry_run" => %{"type" => "boolean"},
+        "exit_status" => @nullable_integer,
         "output" => %{"type" => "string"},
-        "exit_status" => %{"type" => "integer"},
-        "stdout" => %{"type" => "string"},
-        "stderr" => %{"type" => "string"},
-        "timed_out" => %{"type" => "boolean"},
-        "valid" => %{"type" => "boolean"},
-        "validation_errors" => %{"type" => "array", "items" => %{"type" => "string"}},
-        "error" => %{"type" => "string"}
+        "output_truncated" => %{"type" => "boolean"},
+        "command" => %{"type" => "string"},
+        "policy" => %{"type" => "object"},
+        "validation" => %{"type" => "object"},
+        "proof_artifacts" => %{"type" => "array", "items" => %{"type" => "string"}}
       }
     },
     "ck_context" => %{
@@ -89,20 +93,36 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "transcript_summary" => %{"type" => "object"},
         "provider_status" => %{"type" => "object"},
         "bootstrap_status" => @nullable_object,
-        "attach_advisory" => %{"type" => "object"},
-        "detail_level" => %{"type" => "string"}
+        "attach_advisory" => @nullable_object_or_string,
+        "detail_level" => %{"type" => "string"},
+        "detail_hint" => %{"type" => "string"}
       }
     },
     "ck_context_pack" => %{
       "type" => "object",
       "properties" => %{
         "session_id" => %{"type" => "integer"},
-        "task_id" => %{"type" => "integer"},
+        "task_id" => @nullable_integer,
         "query" => %{"type" => "string"},
-        "task_facts" => %{"type" => "object"},
-        "proof_state" => %{"type" => "object"},
-        "resume_highlights" => %{"type" => "object"},
-        "memory_excerpts" => %{"type" => "array", "items" => %{"type" => "object"}}
+        "generated_at" => %{"type" => "string"},
+        "factual_only" => %{"type" => "boolean"},
+        "detail_level" => %{"type" => "string"},
+        "semantic_available" => %{"type" => "boolean"},
+        "retrieval_strategy" => @nullable_string,
+        "excluded_ids_count" => %{"type" => "integer"},
+        "count_only" => %{"type" => "boolean"},
+        "hit_count" => %{"type" => "integer"},
+        "tag_distribution" => %{"type" => "object"},
+        "context_pack" => %{
+          "type" => "object",
+          "properties" => %{
+            "task" => @nullable_object,
+            "proof" => @nullable_object,
+            "resume" => @nullable_object,
+            "memory" => %{"type" => "array", "items" => %{"type" => "object"}},
+            "citations" => %{"type" => "array", "items" => %{"type" => "object"}}
+          }
+        }
       }
     },
     "ck_observability" => %{
@@ -136,11 +156,14 @@ defmodule ControlKeel.MCP.OutputSchemas do
     "ck_finding" => %{
       "type" => "object",
       "properties" => %{
+        "mode" => %{"type" => "string"},
         "finding_id" => %{"type" => "integer"},
         "status" => %{"type" => "string"},
         "requires_human" => %{"type" => "boolean"},
         "resolved_finding_ids" => %{"type" => "array", "items" => %{"type" => "integer"}},
         "resolved_findings_count" => %{"type" => "integer"},
+        "disposed_finding_ids" => %{"type" => "array", "items" => %{"type" => "integer"}},
+        "disposed_count" => %{"type" => "integer"},
         "extends_finding_id" => @nullable_integer,
         "contradicts_finding_id" => @nullable_integer,
         "summary" => %{"type" => "string"}
@@ -249,8 +272,8 @@ defmodule ControlKeel.MCP.OutputSchemas do
     "ck_git_diff" => %{
       "type" => "object",
       "properties" => %{
-        "base_ref" => %{"type" => "string"},
-        "head_ref" => %{"type" => "string"},
+        "base_ref" => @nullable_string,
+        "head_ref" => @nullable_string,
         "diff" => %{"type" => "string"},
         "files_changed" => %{"type" => "integer"},
         "validation" => %{"type" => "object"}
@@ -323,6 +346,7 @@ defmodule ControlKeel.MCP.OutputSchemas do
       "properties" => %{
         "query" => %{"type" => "string"},
         "count" => %{"type" => "integer"},
+        "detail_level" => %{"type" => "string"},
         "semantic_available" => %{"type" => "boolean"},
         "records" => %{
           "type" => "array",
@@ -334,12 +358,14 @@ defmodule ControlKeel.MCP.OutputSchemas do
               "title" => %{"type" => "string"},
               "summary" => %{"type" => "string"},
               "tags" => %{"type" => "array", "items" => %{"type" => "string"}},
-              "source_type" => %{"type" => "string"},
-              "source_id" => %{"type" => "string"},
-              "session_id" => %{"type" => "integer"},
-              "task_id" => %{"type" => "integer"},
+              "source_type" => @nullable_string,
+              "source_id" => @nullable_string,
+              "session_id" => @nullable_integer,
+              "task_id" => @nullable_integer,
               "inserted_at" => %{"type" => "string"},
-              "score" => %{"type" => "number"}
+              "score" => %{"type" => "number"},
+              "body" => @nullable_string,
+              "metadata" => @nullable_object
             }
           }
         }
@@ -352,8 +378,8 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "memory_id" => %{"type" => "integer"},
         "record_type" => %{"type" => "string"},
         "title" => %{"type" => "string"},
-        "session_id" => %{"type" => "integer"},
-        "task_id" => %{"type" => "integer"}
+        "session_id" => @nullable_integer,
+        "task_id" => @nullable_integer
       }
     },
     "ck_goal" => %{
@@ -540,7 +566,7 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "findings_raised" => %{"type" => "integer"},
         "budget_spent_cents" => %{"type" => "integer"},
         "reviews_pending" => %{"type" => "integer"},
-        "highlights" => %{"type" => "array", "items" => %{"type" => "string"}}
+        "highlights" => %{"type" => "object"}
       }
     },
     "ck_rollback" => %{
@@ -638,7 +664,9 @@ defmodule ControlKeel.MCP.OutputSchemas do
         s -> s
       end
 
-    Map.put(tool_def, "outputSchema", schema)
+    tool_def
+    |> Map.put("outputSchema", schema)
+    |> Map.put("annotations", ControlKeel.MCP.Annotations.for_tool(name))
   end
 
   @doc "Injects outputSchema into a list of tool definitions."

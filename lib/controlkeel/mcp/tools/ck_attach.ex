@@ -36,11 +36,6 @@ defmodule ControlKeel.MCP.Tools.CkAttach do
   alias ControlKeel.AgentIntegration
   alias ControlKeel.CLI
 
-  @attachable_hosts ~w(
-    claude-code codex-cli cursor opencode augment continue aider cline
-    roo-code kiro goose gemini-cli letta-code windsurf vscode copilot pi
-  )
-
   def call(arguments) when is_map(arguments) do
     with {:ok, host} <- require_host(arguments),
          {:ok, _integration} <- validate_host(host) do
@@ -80,11 +75,12 @@ defmodule ControlKeel.MCP.Tools.CkAttach do
   defp require_host(_), do: {:error, {:invalid_arguments, "host is required"}}
 
   defp validate_host(host) do
+    attachable = AgentIntegration.attachable_ids()
+
     cond do
-      host not in @attachable_hosts ->
+      host not in attachable ->
         {:error,
-         {:invalid_arguments,
-          "unknown host: #{host}. Supported: #{Enum.join(@attachable_hosts, ", ")}"}}
+         {:invalid_arguments, "unknown host: #{host}. Supported: #{Enum.join(attachable, ", ")}"}}
 
       AgentIntegration.get(host) == nil ->
         {:error, {:invalid_arguments, "host #{host} is not in the integration catalog"}}
@@ -106,6 +102,10 @@ defmodule ControlKeel.MCP.Tools.CkAttach do
     ]
   end
 
-  @doc "List of host IDs this tool can attach."
-  def attachable_hosts, do: @attachable_hosts
+  @doc """
+  List of host IDs this tool can attach — the canonical attach-client set from
+  AgentIntegration, so the agent-facing ck_attach surface never drifts below the
+  hosts the CLI actually attaches.
+  """
+  def attachable_hosts, do: AgentIntegration.attachable_ids()
 end

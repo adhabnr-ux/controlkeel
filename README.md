@@ -106,6 +106,7 @@ ControlKeel adds a governance layer around agent output: fast deterministic chec
 
 What users should take away:
 
+- **Reading the two numbers:** *Catch* counts scenarios where CK produced the correct block/warn decision (any matching finding); *Block* counts scenarios CK actively blocked. "12/12" means CK reached the correct decision on all 12 risky scenarios — it is not a claim that each was caught by its exact expected rule (the stricter expected-rule-hit metric is lower and is defined in [docs/benchmarks.md](docs/benchmarks.md)).
 - **Security lift:** CK raises systematic detection from raw model output's 1/12 to 5/12 with bounded active governance, and 12/12 with direct deterministic validation.
 - **Efficiency:** bounded active used about half the tokens of exhaustive active while catching more issues.
 - **Cost control:** OpenCode reported `$0` cost in JSON events, so we treat tokens/time as the reliable cost proxy. Direct CK scanning uses no provider tokens.
@@ -273,7 +274,7 @@ Use the docs below for the precise truth per host:
 
 Web app:
 
-- `/start` for onboarding and execution brief creation
+- `/missions/start` for onboarding and execution brief creation
 - `/missions/:id` for mission control and approvals
 - `/findings` for cross-session findings
 - `/proofs` for immutable proof bundles

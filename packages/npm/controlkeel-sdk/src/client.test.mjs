@@ -120,15 +120,20 @@ test("registerWorkspace — malformed body returns 400 (endpoint mounted)", asyn
 
 // ── Service accounts ──────────────────────────────────────────────────
 
-test("listServiceAccounts — 200 returns accounts array", async () => {
+test("listServiceAccounts — 200 returns accounts array and hits the /api/v1 path", async () => {
   const accounts = [{ id: 1, name: "ci", workspace_id: 42, status: "active" }];
-  const { server, baseUrl } = await startServer((_req, res) => {
+  let requestedPath;
+  const { server, baseUrl } = await startServer((req, res) => {
+    requestedPath = req.url;
     jsonResponse(res, 200, accounts);
   });
   const client = new ControlKeelClient({ baseUrl, token: "tok" });
   const result = await client.listServiceAccounts("42");
   assert.equal(result.length, 1);
   assert.equal(result[0].name, "ci");
+  // Guards against the /cloud/v1 vs /api/v1 prefix regression: these workspace-admin
+  // routes are served by the Phoenix router under /api/v1, not /cloud/v1.
+  assert.equal(requestedPath, "/api/v1/workspaces/42/service-accounts");
   await stopServer(server);
 });
 

@@ -1128,6 +1128,78 @@ defmodule ControlKeel.Mission do
     end
   end
 
+  @disposition_actions ~w(resolve dismiss escalate)
+
+  @doc """
+  Disposition a single finding via a high-level action so agents (and bulk paths) can
+  resolve the findings they create instead of only filing compensating records:
+
+    * `"resolve"`  -> approved
+    * `"dismiss"`  -> rejected (records `opts[:reason]`)
+    * `"escalate"` -> escalated
+
+  Accepts a `%Finding{}` or an integer id. Returns `{:ok, finding}` / `{:error, reason}`.
+  """
+  def dispose_finding(action, finding_or_id, opts \\ [])
+
+  def dispose_finding(action, %Finding{} = finding, opts),
+    do: do_dispose_finding(action, finding, opts)
+
+  def dispose_finding(action, id, opts) when is_integer(id) do
+    case get_finding(id) do
+      nil -> {:error, :not_found}
+      finding -> do_dispose_finding(action, finding, opts)
+    end
+  end
+
+  defp do_dispose_finding("resolve", finding, _opts), do: approve_finding(finding)
+
+  defp do_dispose_finding("dismiss", finding, opts),
+    do: reject_finding(finding, Keyword.get(opts, :reason))
+
+  defp do_dispose_finding("escalate", finding, _opts), do: escalate_finding(finding)
+  defp do_dispose_finding(_action, _finding, _opts), do: {:error, :invalid_action}
+
+  @doc """
+  Bulk-disposition findings in a session matching a filter map.
+
+  Filter keys: `:rule_id`, `:category`, `:statuses` (defaults to the active set
+  `~w(open blocked escalated)`), and `:reason` (recorded when dismissing). Only findings
+  currently in the matched statuses are touched, so the operation is idempotent. Returns
+  `{:ok, %{count: n, ids: [finding_id]}}`.
+  """
+  def dispose_session_findings(session_id, filter, action)
+      when is_integer(session_id) and action in @disposition_actions do
+    reason = Map.get(filter, :reason)
+
+    ids =
+      session_id
+      |> list_findings_for_session()
+      |> Enum.filter(&matches_disposition_filter?(&1, filter))
+      |> Enum.reduce([], fn finding, acc ->
+        case do_dispose_finding(action, finding, reason: reason) do
+          {:ok, updated} -> [updated.id | acc]
+          _ -> acc
+        end
+      end)
+      |> Enum.reverse()
+
+    {:ok, %{count: length(ids), ids: ids}}
+  end
+
+  def dispose_session_findings(_session_id, _filter, _action), do: {:error, :invalid_action}
+
+  defp matches_disposition_filter?(finding, filter) do
+    statuses = Map.get(filter, :statuses) || ~w(open blocked escalated)
+
+    finding.status in statuses and
+      disposition_filter_match?(finding.rule_id, Map.get(filter, :rule_id)) and
+      disposition_filter_match?(finding.category, Map.get(filter, :category))
+  end
+
+  defp disposition_filter_match?(_value, nil), do: true
+  defp disposition_filter_match?(value, expected), do: value == expected
+
   @doc """
   Complete a task, gating on open/blocked findings.
 
@@ -3428,7 +3500,7 @@ defmodule ControlKeel.Mission do
   defp unresolved_findings(session_id) do
     Finding
     |> where([finding], finding.session_id == ^session_id)
-    |> where([finding], finding.status in ["open", "blocked"])
+    |> where([finding], finding.status in ["open", "blocked", "escalated"])
     |> Repo.all()
   end
 
@@ -5433,10 +5505,18 @@ defmodule ControlKeel.Mission do
     |> String.capitalize()
   end
 
-  defp status_for_decision("block"), do: "blocked"
-  defp status_for_decision("escalate_to_human"), do: "escalated"
-  defp status_for_decision("warn"), do: "open"
-  defp status_for_decision(_decision), do: "open"
+  @doc """
+  Canonical mapping from a governance ruling decision to a persisted finding status.
+
+  Single source of truth shared by the runtime governance path (persist_findings) and
+  the `ck_finding` MCP tool, so the same decision can never produce a different status
+  depending on the entry point.
+  """
+  def status_for_decision("block"), do: "blocked"
+  def status_for_decision("escalate_to_human"), do: "escalated"
+  def status_for_decision("allow"), do: "approved"
+  def status_for_decision("warn"), do: "open"
+  def status_for_decision(_decision), do: "open"
 
   defp findings_query(session_id, opts) do
     from(f in Finding, where: f.session_id == ^session_id, order_by: [desc: f.inserted_at])

@@ -246,4 +246,82 @@ defmodule ControlKeel.Learning.OutcomeTrackerTest do
     assert {:ok, weights} = OutcomeTracker.compute_router_weights()
     assert is_map(weights)
   end
+
+  test "compute_router_weights gates contributors by min_samples" do
+    session = session_fixture()
+    workspace = ControlKeel.Mission.get_session!(session.id)
+
+    for _ <- 1..2 do
+      OutcomeTracker.record(session.id, :deploy_success,
+        agent_id: "few_samples",
+        workspace_id: workspace.workspace_id
+      )
+    end
+
+    for _ <- 1..5 do
+      OutcomeTracker.record(session.id, :deploy_success,
+        agent_id: "many_samples",
+        workspace_id: workspace.workspace_id
+      )
+    end
+
+    assert {:ok, gated} = OutcomeTracker.compute_router_weights(min_samples: 5)
+    assert Map.has_key?(gated, "many_samples")
+    refute Map.has_key?(gated, "few_samples")
+
+    assert {:ok, ungated} = OutcomeTracker.compute_router_weights(min_samples: 0)
+    assert Map.has_key?(ungated, "few_samples")
+  end
+
+  test "compute_router_weights preserves negative outcomes as penalties" do
+    session = session_fixture()
+    workspace = ControlKeel.Mission.get_session!(session.id)
+
+    for _ <- 1..5 do
+      OutcomeTracker.record(session.id, :deploy_success,
+        agent_id: "good_agent",
+        workspace_id: workspace.workspace_id
+      )
+
+      OutcomeTracker.record(session.id, :deploy_failure,
+        agent_id: "bad_agent",
+        workspace_id: workspace.workspace_id
+      )
+    end
+
+    assert {:ok, weights} = OutcomeTracker.compute_router_weights(min_samples: 5)
+    assert weights["good_agent"] > 0
+    assert weights["bad_agent"] < 0
+  end
+
+  test "recorded outcomes close the learning loop into router ranking" do
+    # Baseline: no outcomes recorded -> router uses the pure static heuristic.
+    assert {:ok, baseline} =
+             ControlKeel.AgentRouter.route("Automate webhook connector flows",
+               risk_tier: "low",
+               allowed_agents: ["n8n", "make"]
+             )
+
+    assert baseline.policy_source == "heuristic"
+
+    # Record enough outcomes (>= the router's min-sample floor) to qualify an agent.
+    session = session_fixture()
+    workspace = ControlKeel.Mission.get_session!(session.id)
+
+    for _ <- 1..6 do
+      OutcomeTracker.record(session.id, :deploy_success,
+        agent_id: "n8n",
+        workspace_id: workspace.workspace_id
+      )
+    end
+
+    assert {:ok, learned} =
+             ControlKeel.AgentRouter.route("Automate webhook connector flows",
+               risk_tier: "low",
+               allowed_agents: ["n8n", "make"]
+             )
+
+    # The learned signal now reaches routing: policy provenance reflects it.
+    assert learned.policy_source == "heuristic+learned"
+  end
 end

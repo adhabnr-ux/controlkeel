@@ -1101,4 +1101,35 @@ defmodule ControlKeel.SkillsTest do
 
     output
   end
+
+  test "every registered export target produces a plan (no host silently dropped)", %{
+    tmp_dir: tmp_dir
+  } do
+    ids = ControlKeel.Skills.SkillTarget.ids()
+
+    failures =
+      for id <- ids, reduce: [] do
+        acc ->
+          dir = Path.join(tmp_dir, "export-#{id}")
+
+          case Skills.export(id, dir, scope: "export") do
+            {:ok, plan} ->
+              if is_binary(plan.output_dir) and File.dir?(plan.output_dir) do
+                acc
+              else
+                [{id, :no_output_dir} | acc]
+              end
+
+            other ->
+              [{id, other} | acc]
+          end
+      end
+
+    assert failures == [],
+           "export targets that failed to produce a plan: #{inspect(failures)}"
+
+    # Guards against the decomposition silently dropping a host (handlers were
+    # lost-and-restored twice during the exporter/CLI refactors).
+    assert length(ids) >= 40
+  end
 end

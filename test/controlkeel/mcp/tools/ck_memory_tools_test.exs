@@ -96,4 +96,43 @@ defmodule ControlKeel.MCP.Tools.CkMemoryToolsTest do
     assert message =~ "memory_id"
     assert message =~ "finite integer"
   end
+
+  test "ck_memory_search detail_level=full returns body and metadata; compact omits them" do
+    session = session_fixture()
+
+    {:ok, record} =
+      ControlKeel.Memory.record(%{
+        workspace_id: session.workspace_id,
+        session_id: session.id,
+        record_type: "decision",
+        title: "Verbosity knob",
+        summary: "summary only",
+        body: "full body contents here",
+        tags: ["verbosity"],
+        source_type: "test",
+        source_id: "verbosity-1",
+        metadata: %{"k" => "v"}
+      })
+
+    assert {:ok, compact} =
+             CkMemorySearch.call(%{"session_id" => session.id, "query" => "verbosity"})
+
+    compact_row = Enum.find(compact["records"], &(&1["id"] == record.id))
+    assert compact["detail_level"] == "compact"
+    assert compact_row
+    refute Map.has_key?(compact_row, "body")
+    refute Map.has_key?(compact_row, "metadata")
+
+    assert {:ok, full} =
+             CkMemorySearch.call(%{
+               "session_id" => session.id,
+               "query" => "verbosity",
+               "detail_level" => "full"
+             })
+
+    full_row = Enum.find(full["records"], &(&1["id"] == record.id))
+    assert full["detail_level"] == "full"
+    assert full_row["body"] == "full body contents here"
+    assert full_row["metadata"]["k"] == "v"
+  end
 end

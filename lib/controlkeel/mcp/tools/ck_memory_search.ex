@@ -12,6 +12,8 @@ defmodule ControlKeel.MCP.Tools.CkMemorySearch do
          {:ok, top_k} <- Arguments.optional_top_k(arguments, default: 5, max: @max_top_k),
          {:ok, session} <- Arguments.fetch_session(arguments),
          :ok <- Arguments.validate_task(task_id, session.id) do
+      full? = Map.get(arguments, "detail_level") == "full"
+
       result =
         Memory.search(query,
           workspace_id: session.workspace_id,
@@ -20,6 +22,8 @@ defmodule ControlKeel.MCP.Tools.CkMemorySearch do
           record_type: Map.get(arguments, "record_type"),
           source_type: Map.get(arguments, "source_type"),
           source_id: Map.get(arguments, "source_id"),
+          include_body: full?,
+          include_metadata: full?,
           top_k: top_k
         )
 
@@ -27,8 +31,9 @@ defmodule ControlKeel.MCP.Tools.CkMemorySearch do
        %{
          "query" => result.query,
          "count" => result.total_count,
+         "detail_level" => if(full?, do: "full", else: "compact"),
          "semantic_available" => result.semantic_available,
-         "records" => Enum.map(result.entries, &memory_summary/1)
+         "records" => Enum.map(result.entries, &memory_summary(&1, full?))
        }}
     end
   end
@@ -50,8 +55,8 @@ defmodule ControlKeel.MCP.Tools.CkMemorySearch do
     end
   end
 
-  defp memory_summary(entry) do
-    %{
+  defp memory_summary(entry, full?) do
+    base = %{
       "id" => entry.id,
       "record_type" => entry.record_type,
       "title" => entry.title,
@@ -64,5 +69,13 @@ defmodule ControlKeel.MCP.Tools.CkMemorySearch do
       "inserted_at" => entry.inserted_at,
       "score" => entry.score
     }
+
+    if full? do
+      base
+      |> Map.put("body", Map.get(entry, :body))
+      |> Map.put("metadata", Map.get(entry, :metadata))
+    else
+      base
+    end
   end
 end

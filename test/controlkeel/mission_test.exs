@@ -720,6 +720,15 @@ defmodule ControlKeel.MissionTest do
       assert {:error, :unresolved_findings, _} = Mission.complete_task(task)
     end
 
+    test "returns error when escalated findings exist" do
+      session = session_fixture()
+      task = task_fixture(%{session: session})
+      _escalated = finding_fixture(%{session: session, status: "escalated"})
+
+      assert {:error, :unresolved_findings, findings} = Mission.complete_task(task)
+      assert Enum.any?(findings, &(&1.status == "escalated"))
+    end
+
     test "accepts integer task_id" do
       session = session_fixture()
       task = task_fixture(%{session: session})

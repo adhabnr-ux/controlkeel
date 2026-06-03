@@ -12,7 +12,10 @@ defmodule ControlKeel.ExecutionSandbox do
   @callback adapter_name() :: String.t()
 
   def adapter_name(opts \\ []) do
-    Keyword.get(opts, :sandbox, config_sandbox_adapter())
+    case Keyword.get(opts, :sandbox) do
+      nil -> config_sandbox_adapter()
+      name -> name
+    end
   end
 
   def run(command, args, opts \\ []) do
@@ -26,30 +29,72 @@ defmodule ControlKeel.ExecutionSandbox do
            force: force
          ) do
       {:ok, :proceed} ->
-        dispatch_run(command, args, opts)
+        guarded_dispatch(command, args, opts)
 
       {:warn, _message, _findings} ->
-        dispatch_run(command, args, opts)
+        guarded_dispatch(command, args, opts)
 
       {:error, {:blocked, reason, _findings}} ->
         {:error, {:blocked_by_policy, reason}}
     end
   end
 
-  defp dispatch_run(command, args, opts) do
-    adapter = resolve_adapter(opts)
-    adapter.run(command, args, opts)
+  defp guarded_dispatch(command, args, opts) do
+    case resolve_adapter(opts, strict: true) do
+      {:error, _reason} = error ->
+        error
+
+      adapter ->
+        if host_adapter?(adapter) and enforce_sandbox?() and not Keyword.get(opts, :force, false) do
+          {:error,
+           {:blocked_by_policy,
+            "Host (local) execution is forbidden because enforce_sandbox is enabled. " <>
+              "Use an isolated adapter (sandbox: \"docker\"), set execution_sandbox=docker in config, " <>
+              "or pass force: true for an explicit, audited override."}}
+        else
+          adapter.run(command, args, opts)
+        end
+    end
   end
 
-  def resolve_adapter(opts) do
+  defp host_adapter?(ControlKeel.ExecutionSandbox.Local), do: true
+  defp host_adapter?(_), do: false
+
+  @doc """
+  Whether host (local) execution is forbidden.
+
+  Off by default to preserve the zero-config local path; opt in via config
+  `enforce_sandbox: true` or env `CK_ENFORCE_SANDBOX=1` to require an isolated
+  runtime for all sandboxed execution (host runs then return
+  `{:error, {:blocked_by_policy, _}}` unless `force: true` is passed).
+  """
+  def enforce_sandbox? do
+    case read_config() do
+      %{"enforce_sandbox" => value} when is_boolean(value) ->
+        value
+
+      _ ->
+        System.get_env("CK_ENFORCE_SANDBOX") in ~w(1 true TRUE yes YES)
+    end
+  end
+
+  def resolve_adapter(opts, resolution_opts \\ []) do
     name = adapter_name(opts)
     adapter = adapter_module(name)
+    strict? = Keyword.get(resolution_opts, :strict, false)
 
     if function_exported?(adapter, :available?, 0) and not adapter.available?() do
-      if name == @default_adapter do
-        adapter
-      else
-        ControlKeel.ExecutionSandbox.Local
+      cond do
+        name == @default_adapter ->
+          adapter
+
+        strict? ->
+          {:error,
+           {:sandbox_unavailable,
+            "Requested sandbox adapter #{name} is unavailable; refusing to fall back to host execution."}}
+
+        true ->
+          ControlKeel.ExecutionSandbox.Local
       end
     else
       adapter

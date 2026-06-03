@@ -1,6 +1,8 @@
 defmodule ControlKeel.AgentExecution do
   @moduledoc false
 
+  require Logger
+
   alias ControlKeel.AgentIntegration
   alias ControlKeel.AgentRouter
   alias ControlKeel.ExecutionSandbox
@@ -406,14 +408,35 @@ defmodule ControlKeel.AgentExecution do
     end
   end
 
+  # Make unsandboxed host execution VISIBLE without gating delivery: when embedded
+  # execution resolves to the local (host) adapter, log a warning. Refusing host is
+  # opt-in via ExecutionSandbox.enforce_sandbox? (which blocks at the run boundary);
+  # this is just the signal so operators can see a run had no isolation. Non-gating by
+  # design — host execution is allowed unless the operator has enabled enforce_sandbox,
+  # so it must not create an open finding that would block complete_task.
+  defp maybe_flag_host_execution(task, _session, sandbox_choice) do
+    if ExecutionSandbox.adapter_name(sandbox: sandbox_choice) in [nil, "local"] do
+      Logger.warning(
+        "[execution_sandbox] embedded agent execution for task #{task.id} ran on the host " <>
+          "(local adapter) with no isolation. Set execution_sandbox=docker or enable " <>
+          "enforce_sandbox to require an isolated runtime."
+      )
+    end
+
+    :ok
+  end
+
   defp dispatch_run(task, session, integration, "embedded", package_root, service_account_context) do
+    sandbox_choice = Process.get(:ck_execution_sandbox)
+    _ = maybe_flag_host_execution(task, session, sandbox_choice)
+
     with {:ok, command, args} <- direct_command(integration.id),
          result_path = Path.join(package_root, "result.json"),
          sandbox_opts = direct_run_env(task, session, integration, package_root, result_path),
          {:ok, %{output: output, exit_status: exit_status}} <-
            ExecutionSandbox.run(command, args,
              env: sandbox_opts,
-             sandbox: Process.get(:ck_execution_sandbox)
+             sandbox: sandbox_choice
            ) do
       payload = direct_result_payload(output, result_path)
       validation = validate_result_payload(payload, session, task)

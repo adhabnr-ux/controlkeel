@@ -11,5 +11,112 @@
         "(?i)\\bpatient\\b|\\bdiagnosis\\b|\\binsurance_id\\b|\\bmedical_record\\b|\\bhealth_record\\b|\\bPHI\\b|\\bHIPAA\\b|\\bePHI\\b"
       ]
     }
+  },
+  {
+    "id": "healthcare.phi_in_logs",
+    "category": "privacy",
+    "severity": "critical",
+    "action": "block",
+    "plain_message": "Patient names, diagnosis codes, MRN, SSN, or insurance IDs must never be written to application logs. Log an encounter or patient identifier instead.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(log|print|console\\.log|logger\\.|IO\\.puts|IO\\.inspect|puts|echo).*(patient_name|diagnosis|mrn|medical_record_number|insurance_id|health_record_number|ssn|date_of_birth)"
+      ]
+    }
+  },
+  {
+    "id": "healthcare.phi_unencrypted_field",
+    "category": "privacy",
+    "severity": "high",
+    "action": "block",
+    "plain_message": "Fields that store PHI (patient name, diagnosis, MRN, insurance ID, SSN) must be encrypted at rest. Use an encrypted field type or application-level encryption before persisting.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)field\\s*\\(?\\s*:(patient_name|diagnosis_code|medical_record_number|insurance_id|health_record_number|phi_notes|treatment_plan|lab_result)\\s*,\\s*:string"
+      ]
+    }
+  },
+  {
+    "id": "healthcare.phi_third_party_transfer",
+    "category": "privacy",
+    "severity": "critical",
+    "action": "block",
+    "plain_message": "Sending PHI to an external service without explicit patient consent and a Business Associate Agreement violates HIPAA. Block this transmission.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(Req\\.post|HTTPoison\\.post|requests\\.post|axios\\.post|fetch\\s*\\().*\\b(patient_name|diagnosis|mrn|insurance_id|medical_record|health_record|treatment|prescription)\\b"
+      ]
+    }
+  },
+  {
+    "id": "healthcare.phi_idor_access",
+    "category": "security",
+    "severity": "critical",
+    "action": "block",
+    "plain_message": "Patient record lookups by URL id must be scoped to the authenticated user or care-team authorization. Unscoped Repo.get exposes every patient record.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?is)Repo\\.get!\\s*\\(\\s*(?:Patient|Encounter|MedicalRecord|__MODULE__)\\s*,\\s*id\\s*\\).*json\\s*\\([^\\)]*(?:diagnosis|treatment|prescription|insurance|lab)",
+        "(?is)def\\s+show\\s*\\([^\\n]*%\\{[\"']id[\"']\\s*=>\\s*id\\}.*Repo\\.get!\\s*\\(\\s*Patient\\s*,\\s*id\\s*\\)"
+      ]
+    }
+  },
+  {
+    "id": "healthcare.audit_trail_missing",
+    "category": "compliance",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "HIPAA requires audit trails for access to electronic protected health information. Patient and medical record tables should have an access-logging mechanism.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)create\\s+table[\\s(]+:?(patients|encounters|medical_records|prescriptions|lab_results|treatment_plans|clinical_notes)\\b"
+      ]
+    }
+  },
+  {
+    "id": "healthcare.phi_bulk_export",
+    "category": "privacy",
+    "severity": "high",
+    "action": "block",
+    "plain_message": "Bulk export or download of patient records must be access-reviewed and audit-logged. Unrestricted bulk endpoints violate the minimum necessary standard.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(export|download|csv|bulk).*(patient|medical_record|diagnosis|prescription|encounter)",
+        "(?i)Repo\\.all\\s*\\(\\s*(?:Patient|MedicalRecord|Encounter)\\s*\\).*(export|download|csv|send_download)"
+      ]
+    }
+  },
+  {
+    "id": "healthcare.phi_in_email",
+    "category": "privacy",
+    "severity": "high",
+    "action": "block",
+    "plain_message": "Sending PHI via unencrypted email (To/Cc/Bcc fields) violates HIPAA unless the patient has consented to unencrypted communication. Use a secure messaging portal instead.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(Notifier|Mailer|Email|send_email|deliver).*\\b(patient_name|diagnosis|treatment|prescription|lab_result|medical_record)\\b",
+        "(?i)to:\\s*[\"'].*@(patient|hospital|clinic).*\\b(diagnosis|treatment|ssn)\\b"
+      ]
+    }
+  },
+  {
+    "id": "healthcare.access_control_missing",
+    "category": "compliance",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Clinical endpoints that serve patient data should enforce role-based access controls (RBAC). Ensure only authorized care-team members can access PHI.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?i)(def\\s+(index|show|create|update|delete)|live_view|live_component).*(patient|encounter|prescription|clinical)(?!.*authorize|plug.*auth|require_auth)"
+      ]
+    }
   }
 ]
