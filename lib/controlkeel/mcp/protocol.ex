@@ -2816,7 +2816,19 @@ defmodule ControlKeel.MCP.Protocol do
   defp tool_response(id, {:error, {:invalid_arguments, reason}}),
     do: error_response(id, -32602, reason)
 
-  defp tool_response(id, {:error, reason}), do: error_response(id, -32000, inspect(reason))
+  # Tool EXECUTION failure (not a malformed request): per the MCP June-2025 tools spec,
+  # return a tool result with isError:true so the model can read the failure and
+  # self-correct, instead of an opaque JSON-RPC protocol error. Protocol-level errors
+  # (-32602) stay reserved for invalid/malformed arguments, which the clause above handles.
+  defp tool_response(id, {:error, reason}) do
+    ok_response(id, %{
+      "content" => [%{"type" => "text", "text" => tool_error_text(reason)}],
+      "isError" => true
+    })
+  end
+
+  defp tool_error_text(reason) when is_binary(reason), do: reason
+  defp tool_error_text(reason), do: inspect(reason)
 
   defp resource_response(id, {:ok, result}) do
     ok_response(id, %{

@@ -412,7 +412,9 @@ defmodule ControlKeel.MCP.ProtocolTest do
         }
       })
 
-    assert %{"error" => %{"message" => message}} = response
+    # A policy block is a tool-execution outcome the model should read and recover from,
+    # so it now comes back as an MCP isError result (not an opaque -32000 protocol error).
+    assert %{"result" => %{"isError" => true, "content" => [%{"text" => message}]}} = response
     assert message =~ "blocked"
   end
 
@@ -2208,6 +2210,31 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert Mission.get_finding!(two.id).status == "rejected"
     # finding in a different status is left untouched by the status-scoped filter
     assert Mission.get_finding!(open_one.id).status == "open"
+  end
+
+  test "tools/call surfaces a tool-execution failure as an isError result, not a -32000 protocol error" do
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 777,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_execute_code",
+          "arguments" => %{
+            "code" => "console.log(1)",
+            "language" => "javascript",
+            "sandbox" => "docker",
+            "dry_run" => false
+          }
+        }
+      })
+
+    # The sandbox runner image isn't available in test, so real execution fails. That
+    # tool-execution failure must surface as an MCP isError result the model can read and
+    # recover from — not an opaque JSON-RPC protocol error.
+    assert %{"result" => %{"isError" => true, "content" => [%{"text" => text}]}} = response
+    assert is_binary(text)
+    refute Map.has_key?(response, "error")
   end
 
   test "tools/call ck_regression_result records external regression evidence" do
