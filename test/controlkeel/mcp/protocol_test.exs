@@ -782,7 +782,8 @@ defmodule ControlKeel.MCP.ProtocolTest do
              }
            } = response
 
-    assert is_binary(content)
+    assert content =~ "Structured result returned in structuredContent"
+    refute String.starts_with?(String.trim(content), "{")
     assert is_list(findings)
     assert Enum.any?(findings, &(&1["rule_id"] == "security.sql_injection"))
     assert summary =~ "Blocked"

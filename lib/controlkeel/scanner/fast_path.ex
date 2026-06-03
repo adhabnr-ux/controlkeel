@@ -64,9 +64,10 @@ defmodule ControlKeel.Scanner.FastPath do
     normalized = normalize_input(input)
     baseline_rules = load_pack_rules("baseline")
     domain_rules = domain_rules_for(normalized)
+    ai_tool_rules = ai_tool_rules_for(normalized)
     workspace_rules = workspace_rules_for(normalized)
     cost_rules = load_pack_rules("cost")
-    runtime_rules = uniq_rules(baseline_rules ++ domain_rules ++ workspace_rules)
+    runtime_rules = uniq_rules(baseline_rules ++ domain_rules ++ ai_tool_rules ++ workspace_rules)
 
     layer1 =
       []
@@ -167,7 +168,9 @@ defmodule ControlKeel.Scanner.FastPath do
         normalize_optional_string_enum(
           Map.get(input, "target_scope", Map.get(input, :target_scope)),
           SecurityWorkflow.target_scopes()
-        )
+        ),
+      "policy_packs" =>
+        normalize_policy_packs(Map.get(input, "policy_packs", Map.get(input, :policy_packs)))
     }
     |> Map.merge(TrustBoundary.normalize_validation_context(input))
   end
@@ -181,6 +184,38 @@ defmodule ControlKeel.Scanner.FastPath do
       []
     end
   end
+
+  defp ai_tool_rules_for(input) do
+    if ai_tools_explicitly_requested?(input) or ai_tool_config_path?(Map.get(input, "path")) do
+      load_pack_rules("ai_tools")
+    else
+      []
+    end
+  end
+
+  defp ai_tools_explicitly_requested?(%{"policy_packs" => packs}) do
+    "ai_tools" in packs or
+      Application.get_env(:controlkeel, :enforce_ai_tools_policy, false) == true
+  end
+
+  defp ai_tool_config_path?(path) when is_binary(path) do
+    normalized = String.downcase(path)
+
+    String.contains?(normalized, "/.cursor/") or
+      String.contains?(normalized, "/.factory/") or
+      String.contains?(normalized, "/.warp/") or
+      String.contains?(normalized, "/.codeium/") or
+      String.contains?(normalized, "/.copilot/") or
+      String.contains?(normalized, "/.vscode/") or
+      String.starts_with?(normalized, ".cursor/") or
+      String.starts_with?(normalized, ".factory/") or
+      String.starts_with?(normalized, ".warp/") or
+      String.starts_with?(normalized, ".codeium/") or
+      String.starts_with?(normalized, ".copilot/") or
+      String.starts_with?(normalized, ".vscode/")
+  end
+
+  defp ai_tool_config_path?(_path), do: false
 
   defp normalize_domain_pack(input) do
     direct =
@@ -197,6 +232,24 @@ defmodule ControlKeel.Scanner.FastPath do
         pack
     end
   end
+
+  defp normalize_policy_packs(nil), do: []
+
+  defp normalize_policy_packs(values) when is_list(values) do
+    values
+    |> Enum.map(&to_string/1)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.uniq()
+  end
+
+  defp normalize_policy_packs(value) when is_binary(value) do
+    value
+    |> String.split(",")
+    |> normalize_policy_packs()
+  end
+
+  defp normalize_policy_packs(_value), do: []
 
   defp normalize_supported_pack(nil), do: nil
 

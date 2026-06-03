@@ -77,4 +77,54 @@ defmodule ControlKeel.Scanner.ReliabilityTest do
       assert is_list(cost)
     end
   end
+
+  describe "scoped ai_tools policy enforcement" do
+    setup do
+      previous = Application.get_env(:controlkeel, :enforce_ai_tools_policy)
+
+      on_exit(fn ->
+        if is_nil(previous) do
+          Application.delete_env(:controlkeel, :enforce_ai_tools_policy)
+        else
+          Application.put_env(:controlkeel, :enforce_ai_tools_policy, previous)
+        end
+      end)
+
+      :ok
+    end
+
+    test "does not globally enforce ai_tools block rules on unrelated paths" do
+      result =
+        FastPath.scan(%{
+          "content" => ~s({"allowed_commands": "*"}),
+          "path" => "config/app.json",
+          "kind" => "config"
+        })
+
+      refute Enum.any?(result.findings, &(&1.rule_id == "security.ai_agent_tool_escalation"))
+    end
+
+    test "enforces ai_tools for AI tool config paths" do
+      result =
+        FastPath.scan(%{
+          "content" => ~s({"allowed_commands": "*"}),
+          "path" => ".cursor/settings.json",
+          "kind" => "config"
+        })
+
+      assert Enum.any?(result.findings, &(&1.rule_id == "security.ai_agent_tool_escalation"))
+    end
+
+    test "enforces ai_tools when explicitly requested" do
+      result =
+        FastPath.scan(%{
+          "content" => ~s({"allowed_commands": "*"}),
+          "path" => "config/app.json",
+          "kind" => "config",
+          "policy_packs" => ["ai_tools"]
+        })
+
+      assert Enum.any?(result.findings, &(&1.rule_id == "security.ai_agent_tool_escalation"))
+    end
+  end
 end

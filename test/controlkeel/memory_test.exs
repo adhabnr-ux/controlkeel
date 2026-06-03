@@ -127,6 +127,33 @@ defmodule ControlKeel.MemoryTest do
     assert Enum.any?(result.entries, &(&1.title == "Fallback memory"))
   end
 
+  test "retention scheduler is opt-in and advertises findings preservation by default" do
+    previous = Application.get_env(:controlkeel, :memory_retention)
+    System.delete_env("CK_MEMORY_RETENTION_SCHEDULER")
+
+    on_exit(fn ->
+      if previous do
+        Application.put_env(:controlkeel, :memory_retention, previous)
+      else
+        Application.delete_env(:controlkeel, :memory_retention)
+      end
+
+      System.delete_env("CK_MEMORY_RETENTION_SCHEDULER")
+    end)
+
+    Application.delete_env(:controlkeel, :memory_retention)
+    refute ControlKeel.Memory.RetentionScheduler.enabled?()
+
+    policy = ControlKeel.Memory.RetentionScheduler.policy()
+    assert policy.findings.enabled == false
+    assert policy.findings.action == :preserve
+    assert policy.memory.record_types == ~w(task checkpoint budget)
+
+    Application.put_env(:controlkeel, :memory_retention, enabled: true, max_age_days: 30)
+    assert ControlKeel.Memory.RetentionScheduler.enabled?()
+    assert ControlKeel.Memory.RetentionScheduler.policy().memory.max_age_days == 30
+  end
+
   test "archive_stale_records archives stale transient records but preserves recent and durable ones" do
     session = session_fixture()
 

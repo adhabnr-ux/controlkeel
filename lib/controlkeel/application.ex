@@ -81,6 +81,7 @@ defmodule ControlKeel.Application do
       analytics_children() ++
       cloud_emitter_children() ++
       mailer_test_inbox_children() ++
+      retention_scheduler_children() ++
       [ControlKeel.Cloud.RateLimiter, ControlKeel.Cloud.UsageMeter] ++
       [
         {DNSCluster, query: Application.get_env(:controlkeel, :dns_cluster_query) || :ignore},
@@ -268,6 +269,14 @@ defmodule ControlKeel.Application do
   defp cloud_sender_periodic_children do
     if Application.get_env(:controlkeel, :cloud_sender_periodic_enabled, true) do
       [ControlKeel.Cloud.Sender.Periodic]
+    else
+      []
+    end
+  end
+
+  defp retention_scheduler_children do
+    if ControlKeel.Memory.RetentionScheduler.enabled?() do
+      [ControlKeel.Memory.RetentionScheduler]
     else
       []
     end

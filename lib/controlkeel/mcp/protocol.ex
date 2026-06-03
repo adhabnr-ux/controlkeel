@@ -572,6 +572,12 @@ defmodule ControlKeel.MCP.Protocol do
             "enum" => Domains.supported_packs(),
             "description" => "Domain-specific policy pack to apply during validation."
           },
+          "policy_packs" => %{
+            "type" => "array",
+            "items" => %{"type" => "string", "enum" => ["ai_tools"]},
+            "description" =>
+              "Additional explicit policy packs to apply. Currently supports ai_tools for AI tool configuration review."
+          },
           "session_id" => %{
             "type" => ["integer", "string"],
             "description" =>
@@ -2808,7 +2814,7 @@ defmodule ControlKeel.MCP.Protocol do
 
   defp tool_response(id, {:ok, result}) do
     ok_response(id, %{
-      "content" => [%{"type" => "text", "text" => Jason.encode!(result)}],
+      "content" => [%{"type" => "text", "text" => success_content_summary(result)}],
       "structuredContent" => result
     })
   end
@@ -2826,6 +2832,24 @@ defmodule ControlKeel.MCP.Protocol do
       "isError" => true
     })
   end
+
+  defp success_content_summary(result) when is_map(result) do
+    keys =
+      result
+      |> Map.keys()
+      |> Enum.map(&to_string/1)
+      |> Enum.sort()
+      |> Enum.take(8)
+      |> Enum.join(", ")
+
+    suffix = if map_size(result) > 8, do: ", …", else: ""
+    "Structured result returned in structuredContent (keys: #{keys}#{suffix})."
+  end
+
+  defp success_content_summary(result) when is_list(result),
+    do: "Structured result returned in structuredContent (list length: #{length(result)})."
+
+  defp success_content_summary(_result), do: "Structured result returned in structuredContent."
 
   defp tool_error_text(reason) when is_binary(reason), do: reason
   defp tool_error_text(reason), do: inspect(reason)
