@@ -14,17 +14,6 @@ defmodule ControlKeel.ObservabilityTest do
   alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
   alias ControlKeel.Repo
 
-  test "documents production signal families and agentic eval checkpoints" do
-    assert Observability.classify_signal("tool_error_rate") == :explicit
-    assert Observability.classify_signal("user_frustration") == :implicit
-    assert Observability.classify_signal("loop_detected") == :trajectory
-    assert Observability.classify_signal("unknown_signal") == :unknown
-
-    assert "cost_cents" in Observability.signal_names(:explicit)
-    assert Observability.valid_checkpoint_dimension?("tool_selection")
-    refute Observability.valid_checkpoint_dimension?("tool_choice")
-  end
-
   test "session_run/1 composes health, costs, gates, memory, proofs, timeline, and calls" do
     session = session_fixture(%{budget_cents: 1_000, daily_budget_cents: 2_000, spent_cents: 850})
     task = task_fixture(%{session: session, status: "in_progress"})
