@@ -126,4 +126,44 @@ defmodule ControlKeel.MemoryTest do
     result = Pgvector.search("fallback", session_id: session.id)
     assert Enum.any?(result.entries, &(&1.title == "Fallback memory"))
   end
+
+  test "archive_stale_records archives stale transient records but preserves recent and durable ones" do
+    session = session_fixture()
+
+    insert = fn type, source_id ->
+      {:ok, record} =
+        Memory.record(%{
+          workspace_id: session.workspace_id,
+          session_id: session.id,
+          record_type: type,
+          title: "#{type} #{source_id}",
+          summary: "s",
+          source_type: "test",
+          source_id: source_id
+        })
+
+      record
+    end
+
+    stale_task = insert.("task", "stale-task")
+    recent_task = insert.("task", "recent-task")
+    old_proof = insert.("proof", "old-proof")
+
+    # Backdate the stale task and the durable proof well past the retention cutoff.
+    old =
+      DateTime.utc_now() |> DateTime.add(-200 * 86_400, :second) |> DateTime.truncate(:second)
+
+    Enum.each([stale_task, old_proof], fn record ->
+      record |> Ecto.Changeset.change(%{inserted_at: old}) |> ControlKeel.Repo.update!()
+    end)
+
+    assert {:ok, %{archived: 1, ids: [archived_id]}} =
+             Memory.archive_stale_records(max_age_days: 90)
+
+    assert archived_id == stale_task.id
+    # stale transient record archived; recent transient + durable (proof) preserved
+    assert Memory.get_record(stale_task.id).archived_at != nil
+    assert Memory.get_record(recent_task.id).archived_at == nil
+    assert Memory.get_record(old_proof.id).archived_at == nil
+  end
 end

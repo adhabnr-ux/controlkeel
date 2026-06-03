@@ -341,6 +341,7 @@ defmodule ControlKeel.MCP.OutputSchemas do
       "properties" => %{
         "query" => %{"type" => "string"},
         "count" => %{"type" => "integer"},
+        "detail_level" => %{"type" => "string"},
         "semantic_available" => %{"type" => "boolean"},
         "records" => %{
           "type" => "array",
@@ -357,7 +358,9 @@ defmodule ControlKeel.MCP.OutputSchemas do
               "session_id" => %{"type" => "integer"},
               "task_id" => %{"type" => "integer"},
               "inserted_at" => %{"type" => "string"},
-              "score" => %{"type" => "number"}
+              "score" => %{"type" => "number"},
+              "body" => @nullable_string,
+              "metadata" => @nullable_object
             }
           }
         }

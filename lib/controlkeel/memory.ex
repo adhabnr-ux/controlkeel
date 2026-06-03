@@ -38,6 +38,46 @@ defmodule ControlKeel.Memory do
     end
   end
 
+  @stale_default_days 90
+  @stale_default_types ~w(task checkpoint budget)
+
+  @doc """
+  Archive (soft-delete) stale memory records to keep the company-brain bounded.
+
+  Archives records whose `record_type` is in `opts[:record_types]` (default the
+  transient status types `task`/`checkpoint`/`budget`) and whose `inserted_at` is
+  older than `opts[:max_age_days]` (default 90), excluding records already archived.
+  Durable evidence types (proof/finding/decision/review/goal/brief/incident) are not
+  touched by the defaults, so the audit corpus is preserved.
+
+  Caller-driven (a scheduled job or operator) so the retention policy stays explicit
+  and overridable rather than a hidden background mutation. Returns
+  `{:ok, %{archived: count, ids: [id]}}`.
+  """
+  def archive_stale_records(opts \\ []) do
+    max_age_days = Keyword.get(opts, :max_age_days, @stale_default_days)
+    types = Keyword.get(opts, :record_types, @stale_default_types)
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    cutoff = DateTime.add(now, -max_age_days * 86_400, :second)
+
+    ids =
+      from(r in Record,
+        where:
+          is_nil(r.archived_at) and r.record_type in ^types and
+            r.inserted_at < ^cutoff,
+        select: r.id
+      )
+      |> Repo.all()
+
+    {count, _} =
+      Repo.update_all(
+        from(r in Record, where: r.id in ^ids),
+        set: [archived_at: now, updated_at: now]
+      )
+
+    {:ok, %{archived: count, ids: ids}}
+  end
+
   def search(query, opts \\ []) when is_binary(query) do
     Store.search(query, normalize_search_opts(opts))
   end

@@ -1791,7 +1791,13 @@ defmodule ControlKeel.MCP.Protocol do
             "description" =>
               "Origin category of the record (e.g., developer, tool_output, human_review)."
           },
-          "source_id" => %{"type" => "string"}
+          "source_id" => %{"type" => "string"},
+          "detail_level" => %{
+            "type" => "string",
+            "enum" => ["compact", "full"],
+            "description" =>
+              "compact (default) returns title/summary/tags per record; full additionally includes each record's body and metadata. Use compact to save tokens, full when you need the record contents."
+          }
         }
       }
     }
