@@ -659,7 +659,9 @@ defmodule ControlKeel.MCP.OutputSchemas do
         s -> s
       end
 
-    Map.put(tool_def, "outputSchema", schema)
+    tool_def
+    |> Map.put("outputSchema", schema)
+    |> Map.put("annotations", ControlKeel.MCP.Annotations.for_tool(name))
   end
 
   @doc "Injects outputSchema into a list of tool definitions."

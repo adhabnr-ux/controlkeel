@@ -195,4 +195,35 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
              "ck_context_pack payload keys drifted from outputSchema.\n  payload: #{inspect(Enum.sort(MapSet.to_list(actual)))}\n  schema:  #{inspect(Enum.sort(MapSet.to_list(declared)))}"
     end
   end
+
+  describe "tool annotations" do
+    test "inject/1 attaches read-only/destructive annotations" do
+      ro = OutputSchemas.inject(%{"name" => "ck_context"})["annotations"]
+      assert ro["readOnlyHint"] == true
+      assert ro["destructiveHint"] == false
+
+      wr = OutputSchemas.inject(%{"name" => "ck_finding"})["annotations"]
+      assert wr["readOnlyHint"] == false
+
+      destructive = OutputSchemas.inject(%{"name" => "ck_rollback"})["annotations"]
+      assert destructive["readOnlyHint"] == false
+      assert destructive["destructiveHint"] == true
+    end
+
+    test "SAFETY: no known side-effecting tool is ever advertised as read-only" do
+      # Tools that mutate state, run code, write files, or spend budget. The dangerous
+      # annotation error is marking one of these readOnlyHint:true, so guard it explicitly.
+      known_writes = ~w(
+        ck_finding ck_memory_record ck_memory_archive ck_review_submit ck_review_feedback
+        ck_regression_result ck_budget ck_outcome_tracker ck_git_commit ck_rollback
+        ck_delegate ck_execute_code ck_attach ck_session ck_checkpoint_create
+        ck_checkpoint_restore ck_worktree_switch ck_goal
+      )
+
+      for tool <- known_writes do
+        refute ControlKeel.MCP.Annotations.for_tool(tool)["readOnlyHint"],
+               "#{tool} has side effects but is annotated readOnlyHint:true"
+      end
+    end
+  end
 end
