@@ -43,7 +43,7 @@ defmodule ControlKeel.MCP.OutputSchemas do
           }
         },
         "scanned_at" => %{"type" => "string"},
-        "advisory" => @nullable_string,
+        "advisory" => @nullable_object,
         "trust_policy_advisory" => @nullable_string
       }
     },
@@ -116,9 +116,9 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "context_pack" => %{
           "type" => "object",
           "properties" => %{
-            "task" => %{"type" => "object"},
-            "proof" => %{"type" => "object"},
-            "resume" => %{"type" => "object"},
+            "task" => @nullable_object,
+            "proof" => @nullable_object,
+            "resume" => @nullable_object,
             "memory" => %{"type" => "array", "items" => %{"type" => "object"}},
             "citations" => %{"type" => "array", "items" => %{"type" => "object"}}
           }

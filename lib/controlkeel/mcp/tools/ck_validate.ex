@@ -256,8 +256,8 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
 
     advisory =
       case trust_advisory do
-        nil -> result.advisory
-        msg -> Enum.join(Enum.reject([result.advisory, msg], &is_nil/1), " ")
+        nil -> normalize_advisory(result.advisory)
+        msg -> normalize_advisory(Enum.join(Enum.reject([result.advisory, msg], &is_nil/1), " "))
       end
 
     %{
@@ -271,6 +271,10 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
       "trust_policy_advisory" => trust_advisory
     }
   end
+
+  defp normalize_advisory(nil), do: nil
+  defp normalize_advisory(advisory) when is_map(advisory), do: advisory
+  defp normalize_advisory(advisory) when is_binary(advisory), do: %{"message" => advisory}
 
   defp trust_policy_advisory(nil), do: nil
 
