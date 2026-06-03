@@ -40,16 +40,20 @@ defmodule ControlKeel.ExecutionSandbox do
   end
 
   defp guarded_dispatch(command, args, opts) do
-    adapter = resolve_adapter(opts)
+    case resolve_adapter(opts, strict: true) do
+      {:error, _reason} = error ->
+        error
 
-    if host_adapter?(adapter) and enforce_sandbox?() and not Keyword.get(opts, :force, false) do
-      {:error,
-       {:blocked_by_policy,
-        "Host (local) execution is forbidden because enforce_sandbox is enabled. " <>
-          "Use an isolated adapter (sandbox: \"docker\"), set execution_sandbox=docker in config, " <>
-          "or pass force: true for an explicit, audited override."}}
-    else
-      adapter.run(command, args, opts)
+      adapter ->
+        if host_adapter?(adapter) and enforce_sandbox?() and not Keyword.get(opts, :force, false) do
+          {:error,
+           {:blocked_by_policy,
+            "Host (local) execution is forbidden because enforce_sandbox is enabled. " <>
+              "Use an isolated adapter (sandbox: \"docker\"), set execution_sandbox=docker in config, " <>
+              "or pass force: true for an explicit, audited override."}}
+        else
+          adapter.run(command, args, opts)
+        end
     end
   end
 
@@ -74,15 +78,23 @@ defmodule ControlKeel.ExecutionSandbox do
     end
   end
 
-  def resolve_adapter(opts) do
+  def resolve_adapter(opts, resolution_opts \\ []) do
     name = adapter_name(opts)
     adapter = adapter_module(name)
+    strict? = Keyword.get(resolution_opts, :strict, false)
 
     if function_exported?(adapter, :available?, 0) and not adapter.available?() do
-      if name == @default_adapter do
-        adapter
-      else
-        ControlKeel.ExecutionSandbox.Local
+      cond do
+        name == @default_adapter ->
+          adapter
+
+        strict? ->
+          {:error,
+           {:sandbox_unavailable,
+            "Requested sandbox adapter #{name} is unavailable; refusing to fall back to host execution."}}
+
+        true ->
+          ControlKeel.ExecutionSandbox.Local
       end
     else
       adapter

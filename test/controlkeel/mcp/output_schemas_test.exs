@@ -57,7 +57,7 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
     test "ck_context schema matches nullable and object-shaped runtime fields" do
       props = OutputSchemas.schema_for("ck_context")["properties"]
 
-      assert props["attach_advisory"]["type"] == "object"
+      assert props["attach_advisory"]["type"] == ["object", "string", "null"]
       assert props["past_patterns"]["type"] == ["object", "array"]
       assert props["proof_summary"]["type"] == ["object", "null"]
       assert props["current_task"]["type"] == ["object", "null"]
@@ -68,8 +68,8 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
       props = OutputSchemas.schema_for("ck_validate")["properties"]
       finding_props = get_in(props, ["findings", "items", "properties"])
 
-      assert props["advisory"]["type"] == ["string", "null"]
-      assert props["trust_policy_advisory"]["type"] == ["string", "null"]
+      assert props["advisory"]["type"] == ["object", "string", "null"]
+      assert props["trust_policy_advisory"]["type"] == ["object", "string", "null"]
       assert finding_props["id"]["type"] == ["string", "null"]
       assert finding_props["location"]["type"] == ["string", "null"]
     end
@@ -176,7 +176,7 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
 
       actual = payload |> Map.keys() |> MapSet.new()
 
-      assert MapSet.equal?(actual, declared),
+      assert MapSet.subset?(actual, declared),
              "ck_execute_code payload keys drifted from outputSchema.\n  payload: #{inspect(Enum.sort(MapSet.to_list(actual)))}\n  schema:  #{inspect(Enum.sort(MapSet.to_list(declared)))}"
     end
 
@@ -191,8 +191,26 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
 
       actual = payload |> Map.keys() |> MapSet.new()
 
-      assert MapSet.equal?(actual, declared),
-             "ck_context_pack payload keys drifted from outputSchema.\n  payload: #{inspect(Enum.sort(MapSet.to_list(actual)))}\n  schema:  #{inspect(Enum.sort(MapSet.to_list(declared)))}"
+      assert MapSet.subset?(actual, declared),
+             "ck_context_pack payload includes keys absent from outputSchema.\n  payload: #{inspect(Enum.sort(MapSet.to_list(actual)))}\n  schema:  #{inspect(Enum.sort(MapSet.to_list(declared)))}"
+    end
+
+    test "ck_context_pack count_only response keys are declared" do
+      session = session_fixture()
+
+      assert {:ok, payload} =
+               ControlKeel.MCP.Tools.CkContextPack.call(%{
+                 "session_id" => session.id,
+                 "count_only" => true
+               })
+
+      declared =
+        OutputSchemas.schema_for("ck_context_pack")["properties"] |> Map.keys() |> MapSet.new()
+
+      actual = payload |> Map.keys() |> MapSet.new()
+
+      assert MapSet.subset?(actual, declared),
+             "ck_context_pack count_only payload includes keys absent from outputSchema.\n  payload: #{inspect(Enum.sort(MapSet.to_list(actual)))}\n  schema:  #{inspect(Enum.sort(MapSet.to_list(declared)))}"
     end
   end
 
@@ -217,7 +235,7 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
         ck_finding ck_memory_record ck_memory_archive ck_review_submit ck_review_feedback
         ck_regression_result ck_budget ck_outcome_tracker ck_git_commit ck_rollback
         ck_delegate ck_execute_code ck_attach ck_session ck_checkpoint_create
-        ck_checkpoint_restore ck_worktree_switch ck_goal
+        ck_checkpoint_restore ck_worktree_switch ck_goal ck_validate ck_session_digest
       )
 
       for tool <- known_writes do

@@ -58,6 +58,18 @@ defmodule ControlKeel.ExecutionSandboxTest do
     end
   end
 
+  describe "strict adapter resolution" do
+    test "refuses to fall back to host execution when an explicit non-local adapter is unavailable" do
+      unless ControlKeel.ExecutionSandbox.E2B.available?() do
+        assert {:error, {:sandbox_unavailable, msg}} =
+                 ExecutionSandbox.run("echo", ["must-not-run-locally"], sandbox: "e2b")
+
+        assert msg =~ "e2b"
+        assert msg =~ "refusing to fall back"
+      end
+    end
+  end
+
   describe "Docker.ensure_image_available/1 fail-fast" do
     test "returns an actionable :image_unavailable error for a missing image (or when docker is absent)" do
       assert {:error, {:image_unavailable, msg}} =

@@ -273,6 +273,27 @@ defmodule ControlKeel.Learning.OutcomeTrackerTest do
     assert Map.has_key?(ungated, "few_samples")
   end
 
+  test "compute_router_weights preserves negative outcomes as penalties" do
+    session = session_fixture()
+    workspace = ControlKeel.Mission.get_session!(session.id)
+
+    for _ <- 1..5 do
+      OutcomeTracker.record(session.id, :deploy_success,
+        agent_id: "good_agent",
+        workspace_id: workspace.workspace_id
+      )
+
+      OutcomeTracker.record(session.id, :deploy_failure,
+        agent_id: "bad_agent",
+        workspace_id: workspace.workspace_id
+      )
+    end
+
+    assert {:ok, weights} = OutcomeTracker.compute_router_weights(min_samples: 5)
+    assert weights["good_agent"] > 0
+    assert weights["bad_agent"] < 0
+  end
+
   test "recorded outcomes close the learning loop into router ranking" do
     # Baseline: no outcomes recorded -> router uses the pure static heuristic.
     assert {:ok, baseline} =

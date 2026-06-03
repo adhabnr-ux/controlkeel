@@ -190,13 +190,13 @@ defmodule ControlKeel.Learning.OutcomeTracker do
   defp normalize_router_weights(scores) do
     total_abs =
       scores
-      |> Enum.map(fn s -> abs(s.score) + 0.01 end)
+      |> Enum.map(fn s -> abs(s.score) end)
       |> Enum.sum()
 
     weights =
       scores
       |> Enum.map(fn s ->
-        normalized = (abs(s.score) + 0.01) / total_abs
+        normalized = if total_abs == 0, do: 0.0, else: s.score / total_abs
         {s.agent_id, Float.round(normalized, 4)}
       end)
       |> Map.new()

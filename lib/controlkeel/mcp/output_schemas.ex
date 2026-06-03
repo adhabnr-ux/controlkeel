@@ -4,6 +4,7 @@ defmodule ControlKeel.MCP.OutputSchemas do
   @nullable_string %{"type" => ["string", "null"]}
   @nullable_integer %{"type" => ["integer", "null"]}
   @nullable_object %{"type" => ["object", "null"]}
+  @nullable_object_or_string %{"type" => ["object", "string", "null"]}
 
   @schemas %{
     "ck_validate" => %{
@@ -42,8 +43,8 @@ defmodule ControlKeel.MCP.OutputSchemas do
           }
         },
         "scanned_at" => %{"type" => "string"},
-        "advisory" => @nullable_string,
-        "trust_policy_advisory" => @nullable_string
+        "advisory" => @nullable_object_or_string,
+        "trust_policy_advisory" => @nullable_object_or_string
       }
     },
     "ck_execute_code" => %{
@@ -92,8 +93,9 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "transcript_summary" => %{"type" => "object"},
         "provider_status" => %{"type" => "object"},
         "bootstrap_status" => @nullable_object,
-        "attach_advisory" => %{"type" => "object"},
-        "detail_level" => %{"type" => "string"}
+        "attach_advisory" => @nullable_object_or_string,
+        "detail_level" => %{"type" => "string"},
+        "detail_hint" => %{"type" => "string"}
       }
     },
     "ck_context_pack" => %{
@@ -108,6 +110,9 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "semantic_available" => %{"type" => "boolean"},
         "retrieval_strategy" => @nullable_string,
         "excluded_ids_count" => %{"type" => "integer"},
+        "count_only" => %{"type" => "boolean"},
+        "hit_count" => %{"type" => "integer"},
+        "tag_distribution" => %{"type" => "object"},
         "context_pack" => %{
           "type" => "object",
           "properties" => %{
@@ -353,10 +358,10 @@ defmodule ControlKeel.MCP.OutputSchemas do
               "title" => %{"type" => "string"},
               "summary" => %{"type" => "string"},
               "tags" => %{"type" => "array", "items" => %{"type" => "string"}},
-              "source_type" => %{"type" => "string"},
-              "source_id" => %{"type" => "string"},
-              "session_id" => %{"type" => "integer"},
-              "task_id" => %{"type" => "integer"},
+              "source_type" => @nullable_string,
+              "source_id" => @nullable_string,
+              "session_id" => @nullable_integer,
+              "task_id" => @nullable_integer,
               "inserted_at" => %{"type" => "string"},
               "score" => %{"type" => "number"},
               "body" => @nullable_string,
@@ -373,8 +378,8 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "memory_id" => %{"type" => "integer"},
         "record_type" => %{"type" => "string"},
         "title" => %{"type" => "string"},
-        "session_id" => %{"type" => "integer"},
-        "task_id" => %{"type" => "integer"}
+        "session_id" => @nullable_integer,
+        "task_id" => @nullable_integer
       }
     },
     "ck_goal" => %{

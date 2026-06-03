@@ -3500,7 +3500,7 @@ defmodule ControlKeel.Mission do
   defp unresolved_findings(session_id) do
     Finding
     |> where([finding], finding.session_id == ^session_id)
-    |> where([finding], finding.status in ["open", "blocked"])
+    |> where([finding], finding.status in ["open", "blocked", "escalated"])
     |> Repo.all()
   end
 
