@@ -39,10 +39,7 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
 
       case CkContext.call(args) do
         {:ok, payload} ->
-          case format do
-            "json" -> {:ok, [Jason.encode!(payload)]}
-            _ -> {:ok, [inspect(payload, pretty: true, limit: :infinity)]}
-          end
+          render_format(format, payload, fn p -> [inspect(p, pretty: true, limit: :infinity)] end)
 
         {:error, {:invalid_arguments, msg}} when is_binary(msg) ->
           {:error, msg}
@@ -75,10 +72,9 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
 
         case CkValidate.call(args) do
           {:ok, payload} ->
-            case format do
-              "json" -> {:ok, [Jason.encode!(payload)]}
-              _ -> {:ok, [inspect(payload, pretty: true, limit: :infinity)]}
-            end
+            render_format(format, payload, fn p ->
+              [inspect(p, pretty: true, limit: :infinity)]
+            end)
 
           {:error, {:invalid_arguments, msg}} when is_binary(msg) ->
             {:error, msg}

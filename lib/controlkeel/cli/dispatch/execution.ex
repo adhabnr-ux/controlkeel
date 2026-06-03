@@ -115,22 +115,17 @@ defmodule ControlKeel.CLI.Dispatch.Execution do
 
       case AgentRouter.route(task_title, router_opts) do
         {:ok, recommendation} ->
-          case format do
-            "json" ->
-              {:ok, [Jason.encode!(%{"recommendation" => recommendation})]}
-
-            _ ->
-              {:ok,
-               [
-                 "Recommended agent: #{recommendation.agent}",
-                 "Task type: #{recommendation.task_type}",
-                 "Rationale: #{Enum.join(recommendation.rationale || [], " | ")}",
-                 if((recommendation.warnings || []) == [],
-                   do: "Warnings: none",
-                   else: "Warnings: #{Enum.join(recommendation.warnings, " | ")}"
-                 )
-               ]}
-          end
+          render_format(format, %{"recommendation" => recommendation}, fn _p ->
+            [
+              "Recommended agent: #{recommendation.agent}",
+              "Task type: #{recommendation.task_type}",
+              "Rationale: #{Enum.join(recommendation.rationale || [], " | ")}",
+              if((recommendation.warnings || []) == [],
+                do: "Warnings: none",
+                else: "Warnings: #{Enum.join(recommendation.warnings, " | ")}"
+              )
+            ]
+          end)
 
         {:error, :no_suitable_agent, message} ->
           {:error, message}

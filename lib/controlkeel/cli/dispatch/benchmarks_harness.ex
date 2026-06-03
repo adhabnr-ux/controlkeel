@@ -159,13 +159,9 @@ defmodule ControlKeel.CLI.Dispatch.BenchmarksHarness do
           ]
         end
 
-      case format do
-        "json" ->
-          {:ok, [Jason.encode!(payload)]}
-
-        _ ->
-          {:ok, suite_lines ++ subject_lines ++ run_lines ++ help_lines}
-      end
+      render_format(format, payload, fn _p ->
+        suite_lines ++ subject_lines ++ run_lines ++ help_lines
+      end)
     else
       {:error, {:invalid_output_format, message}} ->
         {:error, message}
