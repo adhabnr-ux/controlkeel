@@ -145,16 +145,37 @@ defmodule ControlKeelWeb.SkillsLive do
             <strong>{length(@skills)}</strong>
           </div>
           <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Warnings</p>
+            <p class="ck-mini-label">Skill warnings</p>
             <strong>{Enum.count(@diagnostics, &(&1.level == "warn"))}</strong>
           </div>
           <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Errors</p>
+            <p class="ck-mini-label">Skill errors</p>
             <strong>{Enum.count(@diagnostics, &(&1.level == "error"))}</strong>
           </div>
           <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Project trust</p>
-            <strong>{if @trusted_project?, do: "trusted", else: "gated"}</strong>
+            <p class="ck-mini-label">Local skills</p>
+            <strong>{if @trusted_project?, do: "allowed", else: "gated"}</strong>
+          </div>
+        </div>
+
+        <div class="ck-card" style="margin: 1rem 0;">
+          <p class="ck-mini-label">Skill diagnostics</p>
+          <div :if={@diagnostics == []} class="ck-note">No skill diagnostics were recorded.</div>
+          <div :if={@diagnostics != []} class="ck-finding-list">
+            <%= for diagnostic <- @diagnostics do %>
+              <article class="ck-finding-item">
+                <div class="ck-finding-head">
+                  <h3>{diagnostic.code}</h3>
+                  <span class={"ck-pill #{diagnostic_pill_class(diagnostic.level)}"}>
+                    {diagnostic.level}
+                  </span>
+                </div>
+                <p class="ck-note">{diagnostic.message}</p>
+                <p class="ck-note" style="margin-top: 0.35rem; font-family: monospace;">
+                  {diagnostic.path}
+                </p>
+              </article>
+            <% end %>
           </div>
         </div>
 
@@ -231,27 +252,6 @@ defmodule ControlKeelWeb.SkillsLive do
                     <p class="ck-note">{skill.description}</p>
                     <p class="ck-note" style="margin-top: 0.35rem;">
                       Targets: {format_targets(skill.compatibility_targets)}
-                    </p>
-                  </article>
-                <% end %>
-              </div>
-            </div>
-
-            <div class="ck-card">
-              <p class="ck-mini-label">Catalog diagnostics</p>
-              <div :if={@diagnostics == []} class="ck-note">No skill diagnostics were recorded.</div>
-              <div :if={@diagnostics != []} class="ck-finding-list">
-                <%= for diagnostic <- @diagnostics do %>
-                  <article class="ck-finding-item">
-                    <div class="ck-finding-head">
-                      <h3>{diagnostic.code}</h3>
-                      <span class={"ck-pill #{diagnostic_pill_class(diagnostic.level)}"}>
-                        {diagnostic.level}
-                      </span>
-                    </div>
-                    <p class="ck-note">{diagnostic.message}</p>
-                    <p class="ck-note" style="margin-top: 0.35rem; font-family: monospace;">
-                      {diagnostic.path}
                     </p>
                   </article>
                 <% end %>
