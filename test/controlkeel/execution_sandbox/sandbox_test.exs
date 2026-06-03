@@ -1,4 +1,4 @@
-defmodule ControlKeel.ExecutionSandboxTest do
+defmodule ControlKeel.ExecutionSandbox.SandboxTest do
   # async: false — these tests toggle the global CK_ENFORCE_SANDBOX env var.
   use ExUnit.Case, async: false
 

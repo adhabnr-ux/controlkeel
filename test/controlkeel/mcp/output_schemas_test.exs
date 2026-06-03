@@ -235,8 +235,12 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
         ck_finding ck_memory_record ck_memory_archive ck_review_submit ck_review_feedback
         ck_regression_result ck_budget ck_outcome_tracker ck_git_commit ck_rollback
         ck_delegate ck_execute_code ck_attach ck_session ck_checkpoint_create
-        ck_checkpoint_restore ck_worktree_switch ck_goal ck_validate ck_session_digest
+        ck_checkpoint_restore ck_worktree_switch ck_goal
       )
+
+      # Note: ck_validate is read-only per its description ("Read-only — no changes applied");
+      # ck_session_digest has both generate (write) and latest/list (read) modes so it is
+      # conservatively left unclassified, not listed here as a known writer.
 
       for tool <- known_writes do
         refute ControlKeel.MCP.Annotations.for_tool(tool)["readOnlyHint"],

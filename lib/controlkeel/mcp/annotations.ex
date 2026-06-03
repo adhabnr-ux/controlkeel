@@ -22,7 +22,16 @@ defmodule ControlKeel.MCP.Annotations do
     ck_git_status ck_review_status ck_memory_search ck_route ck_cost_optimizer
     ck_token_audit ck_result_peek ck_engineer_mirror ck_skill_list ck_skill_validate
     ck_worktree_list ck_checkpoint_list ck_load_resources
+    ck_validate ck_mcp_discover ck_skill_load
   )
+
+  # Tools not in @read_only but with known read-only modes — conservatively left unclassified
+  # because they also expose write/generate modes. Tools with only write semantics remain
+  # the default (readOnlyHint: false, destructiveHint: false):
+  #   ck_goal (record/update_status modes), ck_session_digest (generate mode),
+  #   ck_deployment_advisor (generate_files mode), ck_checkpoint_create, ck_monitor_subscribe,
+  #   ck_task, ck_session, ck_budget, ck_outcome_tracker, ck_workspace_agent,
+  #   ck_copilot, ck_external_service, ck_delegate, ck_execute_code, ck_attach.
 
   # Tools that replace or discard state irreversibly (destructiveHint only meaningful
   # when readOnlyHint is false).
