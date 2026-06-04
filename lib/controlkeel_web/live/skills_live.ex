@@ -12,18 +12,59 @@ defmodule ControlKeelWeb.SkillsLive do
      |> assign(:page_title, "Skills Studio")
      |> assign(:selected, nil)
      |> assign(:last_result, nil)
-     |> assign(:agent_integrations, Skills.agent_integrations())
      |> assign(:target_options, target_options())
      |> assign(:scope_options, [{"Export", "export"}, {"User", "user"}, {"Project", "project"}])
      |> assign_analysis(project_root)
      |> assign(:project_form, project_form(project_root))
-     |> assign(:action_form, action_form())}
+     |> assign(:action_form, action_form())
+     |> assign(:skill_search, "")
+     |> assign(:target_search, "")}
   end
 
   @impl true
   def handle_event("select_skill", %{"name" => name}, socket) do
     selected = Enum.find(socket.assigns.skills, &(&1.name == name))
     {:noreply, assign(socket, :selected, selected)}
+  end
+
+  def handle_event("search_skills", %{"skill_search" => search}, socket) do
+    skills = socket.assigns.skills
+    like = String.downcase(String.trim(search))
+
+    filtered =
+      if like == "" do
+        skills
+      else
+        Enum.filter(skills, fn skill ->
+          String.contains?(String.downcase(skill.name), like) or
+            (skill.description && String.contains?(String.downcase(skill.description), like))
+        end)
+      end
+
+    {:noreply,
+     socket
+     |> assign(:skill_search, search)
+     |> assign(:filtered_skills, filtered)}
+  end
+
+  def handle_event("search_targets", %{"target_search" => search}, socket) do
+    targets = socket.assigns.targets
+    like = String.downcase(String.trim(search))
+
+    filtered =
+      if like == "" do
+        targets
+      else
+        Enum.filter(targets, fn target ->
+          String.contains?(String.downcase(target.label), like) or
+            (target.description && String.contains?(String.downcase(target.description), like))
+        end)
+      end
+
+    {:noreply,
+     socket
+     |> assign(:target_search, search)
+     |> assign(:filtered_targets, filtered)}
   end
 
   def handle_event("validate_project", %{"project" => %{"project_root" => project_root}}, socket) do
@@ -106,11 +147,12 @@ defmodule ControlKeelWeb.SkillsLive do
     ~H"""
     <Layouts.app flash={@flash}>
       <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-8 pb-16">
-        <div class="mb-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">Skills Studio</p>
-            <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Native skills and plugin operator console</h1>
-          <p class="text-[var(--ck-muted)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
-            ControlKeel keeps `priv/skills/` as the canonical source of truth, validates every skill package, and can export or install the same capability set for Codex, Claude Code, Cline, Copilot / VS Code, and MCP-only tools.
+        <div class="mb-6 space-y-1">
+          <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+            Skills Studio
+          </h2>
+          <p class="text-[var(--ck-muted)]">
+            Native skills and plugin operator console
           </p>
         </div>
 
@@ -123,10 +165,15 @@ defmodule ControlKeelWeb.SkillsLive do
                   type="text"
                   label="Project root"
                   placeholder="/absolute/path/to/project"
+                  class="p-3 w-full focus:outline-[var(--ck-stroke)] border-r-1 border-[var(--ck-stroke)]"
                 />
               </div>
               <div class="flex items-end">
-                <button type="submit" class="inline-flex items-center justify-center gap-[0.4rem] px-5 py-[0.95rem] rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-[transform,box-shadow] duration-150 ease-in-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)] cursor-pointer" id="skills-project-submit">
+                <button
+                  type="submit"
+                  class="inline-flex items-center justify-center gap-[0.4rem] px-5 py-[0.95rem] rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-[transform,box-shadow] duration-150 ease-in-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)] cursor-pointer"
+                  id="skills-project-submit"
+                >
                   Refresh catalog
                 </button>
               </div>
@@ -136,26 +183,38 @@ defmodule ControlKeelWeb.SkillsLive do
 
         <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
           <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">Total skills</p>
+            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+              Total skills
+            </p>
             <strong>{length(@skills)}</strong>
           </div>
           <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">Skill warnings</p>
+            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+              Skill warnings
+            </p>
             <strong>{Enum.count(@diagnostics, &(&1.level == "warn"))}</strong>
           </div>
           <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">Skill errors</p>
+            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+              Skill errors
+            </p>
             <strong>{Enum.count(@diagnostics, &(&1.level == "error"))}</strong>
           </div>
           <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">Local skills</p>
+            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+              Local skills
+            </p>
             <strong>{if @trusted_project?, do: "allowed", else: "gated"}</strong>
           </div>
         </div>
 
         <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 my-4">
-          <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">Skill diagnostics</p>
-          <div :if={@diagnostics == []} class="text-[var(--ck-muted)]">No skill diagnostics were recorded.</div>
+          <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+            Skill diagnostics
+          </p>
+          <div :if={@diagnostics == []} class="text-[var(--ck-muted)]">
+            No skill diagnostics were recorded.
+          </div>
           <div :if={@diagnostics != []} class="grid gap-4 m-0 p-0 list-none">
             <%= for diagnostic <- @diagnostics do %>
               <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)] grid gap-[0.55rem]">
@@ -175,7 +234,9 @@ defmodule ControlKeelWeb.SkillsLive do
         </div>
 
         <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 my-4">
-          <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">Export and install</p>
+          <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+            Export and install
+          </p>
           <.form for={@action_form} id="skills-action-form" phx-change="update_action_form">
             <div class="grid grid-cols-2 gap-4">
               <div>
@@ -225,268 +286,179 @@ defmodule ControlKeelWeb.SkillsLive do
           <% end %>
         </div>
 
-        <div class="grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)] gap-6 mt-6">
-          <div class="space-y-4">
-            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-              <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">Available skills</p>
-              <div class="grid gap-4 m-0 p-0 list-none">
-                <%= for skill <- @skills do %>
-                  <article
-                    id={"skill-#{skill.name}"}
-                    class={[
-                      "border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)] grid gap-[0.55rem] cursor-pointer",
-                      @selected && @selected.name == skill.name && "border-[var(--ck-lime)]"
-                    ]}
-                    phx-click="select_skill"
-                    phx-value-name={skill.name}
-                  >
-                    <div class="flex items-center justify-between gap-4">
-                      <h3>{skill.name}</h3>
-                      <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{scope_pill_class(skill.scope)}"}>{skill.scope}</span>
-                    </div>
-                    <p class="text-[var(--ck-muted)]">{skill.description}</p>
-                    <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                      Targets: {format_targets(skill.compatibility_targets)}
-                    </p>
-                  </article>
-                <% end %>
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-              <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">Target availability</p>
-              <div class="overflow-x-auto">
-                <table class="min-w-full text-sm" id="skills-target-matrix">
-                  <thead>
-                    <tr>
-                      <th class="text-left py-2 pr-4">Target</th>
-                      <th class="text-left py-2 pr-4">Default scope</th>
-                      <th class="text-left py-2 pr-4">Native</th>
-                      <th class="text-left py-2 pr-4">Release asset</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <%= for target <- @targets do %>
-                      <tr id={"skill-target-#{target.id}"}>
-                        <td class="py-2 pr-4">
-                          <strong>{target.label}</strong>
-                          <p class="text-[var(--ck-muted)]">{target.description}</p>
-                        </td>
-                        <td class="py-2 pr-4">{target.default_scope}</td>
-                        <td class="py-2 pr-4">{if target.native, do: "yes", else: "fallback"}</td>
-                        <td class="py-2 pr-4">
-                          {if target.release_bundle, do: "published", else: "local only"}
-                        </td>
-                      </tr>
-                    <% end %>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-              <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">Available where</p>
-              <div class="overflow-x-auto">
-                <table class="min-w-full text-sm" id="skills-agent-matrix">
-                  <thead>
-                    <tr>
-                      <th class="text-left py-2 pr-4">Agent</th>
-                      <th class="text-left py-2 pr-4">How agent uses CK</th>
-                      <th class="text-left py-2 pr-4">How CK runs the agent</th>
-                      <th class="text-left py-2 pr-4">Companion and policy</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <%= for integration <- @agent_integrations do %>
-                      <tr id={"agent-#{integration.id}"}>
-                        <td class="py-2 pr-4 align-top">
-                          <strong>{integration.label}</strong>
-                          <p class="text-[var(--ck-muted)]">{human_support_class(integration.support_class)}</p>
-                        </td>
-                        <td class="py-2 pr-4 align-top">
-                          <p class="text-[var(--ck-muted)]">
-                            Uses CK via: {format_targets(integration.agent_uses_ck_via)}
-                          </p>
-                          <%= if integration.attach_command do %>
-                            <div class="flex items-start gap-2">
-                              <code>{integration.attach_command}</code>
-                              <button
-                                type="button"
-                                class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase"
-                                id={"copy-agent-#{integration.id}"}
-                                phx-click="copy_command"
-                                phx-value-command={integration.attach_command}
-                              >
-                                Copy
-                              </button>
-                            </div>
-                          <% else %>
-                            <code>
-                              {integration.runtime_export_command || alias_action(integration)}
-                            </code>
-                          <% end %>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Scope: {Enum.join(integration.supported_scopes, ", ")}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Install path: {human_install_experience(integration.install_experience)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Auto-bootstrap: {if integration.auto_bootstrap, do: "yes", else: "no"}
-                          </p>
-                        </td>
-                        <td class="py-2 pr-4 align-top">
-                          <p class="text-[var(--ck-muted)]">
-                            CK runs via: {integration.ck_runs_agent_via || "none"}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Execution support: {integration.execution_support || "inbound_only"}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Review experience: {human_review_experience(integration.review_experience)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Submit / feedback: {integration.submission_mode} / {integration.feedback_mode}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Phase model / embed: {human_phase_model(integration.phase_model)} / {human_browser_embed(
-                              integration.browser_embed
-                            )}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Runtime / review transport: {integration.runtime_transport ||
-                              "artifact_only"} / {integration.runtime_review_transport ||
-                              "artifact_only"}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Subagent visibility: {human_subagent_visibility(
-                              integration.subagent_visibility
-                            )}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Autonomy: {integration.autonomy_mode || "policy_gated"}
-                          </p>
-                          <p class="text-[var(--ck-muted)]">{integration.config_location}</p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Required CK tools: {format_targets(integration.required_mcp_tools)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Auth: {integration.auth_mode} / {auth_owner(integration)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Provider bridge: {format_provider_bridge(integration.provider_bridge)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Runtime auth owner: {integration.runtime_auth_owner || "none"}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            MCP / skills: {integration.mcp_mode} / {integration.skills_mode}
-                          </p>
-                        </td>
-                        <td class="py-2 pr-4 align-top">
-                          <p class="text-[var(--ck-muted)]">{integration.companion_delivery}</p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Export targets: {format_targets(integration.export_targets)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Plan phases: {format_targets(integration.plan_phase_support)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Runtime sessions: {format_runtime_session_support(
-                              integration.runtime_session_support
-                            )}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Files written: {format_paths(integration.artifact_surfaces)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Package outputs: {format_package_outputs(integration.package_outputs)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Direct install: {format_direct_install_methods(
-                              integration.direct_install_methods
-                            )}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Human intervention: {human_intervention_copy(integration)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Confidence: {human_confidence_level(integration.confidence_level)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Upstream: {integration.upstream_slug || "n/a"}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            ACP registry: {registry_label(integration)}
-                          </p>
-                          <p class="text-[var(--ck-muted)] mt-[0.35rem]">
-                            Get CK: {format_install_channels(integration.install_channels)}
-                          </p>
-                        </td>
-                      </tr>
-                    <% end %>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-              <%= if @selected do %>
-                <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">{@selected.name}</p>
-                <p class="text-[var(--ck-muted)] mb-3">{@selected.description}</p>
-                <div class="flex flex-wrap gap-2 mb-3">
-                  <%= for target <- @selected.compatibility_targets do %>
-                    <span class="border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-[0.45rem] text-[0.8rem]">{target}</span>
-                  <% end %>
-                </div>
-                <p class="text-[var(--ck-muted)] mb-2">
-                  Required CK MCP tools: {format_targets(@selected.required_mcp_tools)}
-                </p>
-                <p class="text-[var(--ck-muted)] mb-2">
-                  Native locations: {format_paths(
-                    get_in(@selected.install_state, ["native_locations"])
-                  )}
-                </p>
-                <p class="text-[var(--ck-muted)] mb-2">
-                  Exported targets: {format_targets(
-                    get_in(@selected.install_state, ["exported_targets"])
-                  )}
-                </p>
-                <%= if @selected.resources != [] do %>
-                  <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mt-4">Resources</p>
-                  <ul class="grid gap-4 m-0 p-0 list-none">
-                    <%= for resource <- @selected.resources do %>
-                      <li>{resource}</li>
-                    <% end %>
-                  </ul>
-                <% end %>
-                <%= if @selected.diagnostics != [] do %>
-                  <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mt-4">Skill diagnostics</p>
-                  <ul class="grid gap-4 m-0 p-0 list-none">
-                    <%= for diagnostic <- @selected.diagnostics do %>
-                      <li>[{diagnostic.level}] {diagnostic.code} — {diagnostic.message}</li>
-                    <% end %>
-                  </ul>
-                <% end %>
-                <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mt-4">Instructions preview</p>
-                <pre class="text-[0.72rem] leading-[1.5] whitespace-pre-wrap break-words max-h-[420px] overflow-y-auto mt-2">{@selected.body}</pre>
-              <% else %>
-                <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">How this works</p>
-                <ul class="grid gap-4 m-0 p-0 list-none">
-                  <li>`priv/skills/` is the canonical built-in source of truth.</li>
-                  <li>`ck_skill_list` and `ck_skill_load` remain the universal MCP fallback.</li>
-                  <li>
-                    Native targets are generated from the same catalog instead of being hand-maintained.
-                  </li>
-                  <li>
-                    Project-local skills are only loaded when the project is trusted by ControlKeel.
-                  </li>
-                </ul>
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <%= if @selected do %>
+            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+              {@selected.name}
+            </p>
+            <p class="text-[var(--ck-muted)] mb-3">{@selected.description}</p>
+            <div class="flex flex-wrap gap-2 mb-3">
+              <%= for target <- @selected.compatibility_targets do %>
+                <span class="border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-[0.45rem] text-[0.8rem]">
+                  {target}
+                </span>
               <% end %>
             </div>
+            <p class="text-[var(--ck-muted)] mb-2">
+              Required CK MCP tools: {format_targets(@selected.required_mcp_tools)}
+            </p>
+            <p class="text-[var(--ck-muted)] mb-2">
+              Native locations: {format_paths(get_in(@selected.install_state, ["native_locations"]))}
+            </p>
+            <p class="text-[var(--ck-muted)] mb-2">
+              Exported targets: {format_targets(get_in(@selected.install_state, ["exported_targets"]))}
+            </p>
+            <%= if @selected.resources != [] do %>
+              <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mt-4">
+                Resources
+              </p>
+              <ul class="grid gap-4 m-0 p-0 list-none">
+                <%= for resource <- @selected.resources do %>
+                  <li>{resource}</li>
+                <% end %>
+              </ul>
+            <% end %>
+            <%= if @selected.diagnostics != [] do %>
+              <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mt-4">
+                Skill diagnostics
+              </p>
+              <ul class="grid gap-4 m-0 p-0 list-none">
+                <%= for diagnostic <- @selected.diagnostics do %>
+                  <li>[{diagnostic.level}] {diagnostic.code} — {diagnostic.message}</li>
+                <% end %>
+              </ul>
+            <% end %>
+            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mt-4">
+              Instructions preview
+            </p>
+            <pre class="text-[0.72rem] leading-[1.5] whitespace-pre-wrap break-words max-h-[420px] overflow-y-auto mt-2">{@selected.body}</pre>
+          <% else %>
+            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+              How this works
+            </p>
+            <ul class="grid gap-4 m-0 p-0 list-none">
+              <li>`priv/skills/` is the canonical built-in source of truth.</li>
+              <li>`ck_skill_list` and `ck_skill_load` remain the universal MCP fallback.</li>
+              <li>
+                Native targets are generated from the same catalog instead of being hand-maintained.
+              </li>
+              <li>
+                Project-local skills are only loaded when the project is trusted by ControlKeel.
+              </li>
+            </ul>
+            <p class="text-[var(--ck-muted)] text-sm leading-[1.7] mt-4">
+              ControlKeel keeps `priv/skills/` as the canonical source of truth, validates every skill package, and can export or install the same capability set for Codex, Claude Code, Cline, Copilot / VS Code, and MCP-only tools.
+            </p>
+          <% end %>
+        </div>
+
+        <div class="space-y-4 mt-10">
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-lg font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+              Available skills
+            </p>
+
+            <form phx-change="search_skills">
+              <input
+                type="text"
+                name="skill_search"
+                value={@skill_search}
+                placeholder="Filter skills by name or description..."
+                phx-debounce="150"
+                class="mt-3 mb-4 p-3 w-full bg-[rgba(255,255,255,0.04)] border border-[var(--ck-stroke)] rounded-xl text-[var(--ck-text)] outline-none focus:border-[var(--ck-lime)] transition-colors duration-150"
+              />
+            </form>
+
+            <div
+              id="skills-list"
+              class="grid gap-4 m-0 p-0 list-none overflow-y-auto max-h-[500px] pr-2"
+              style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent;"
+            >
+              <%= for skill <- @filtered_skills do %>
+                <article
+                  id={"skill-#{skill.name}"}
+                  class={[
+                    "border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)] grid gap-[0.55rem] cursor-pointer",
+                    @selected && @selected.name == skill.name && "border-[var(--ck-lime)]"
+                  ]}
+                  phx-click="select_skill"
+                  phx-value-name={skill.name}
+                >
+                  <div class="flex items-center justify-between gap-4">
+                    <h3>{skill.name}</h3>
+                    <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{scope_pill_class(skill.scope)}"}>
+                      {skill.scope}
+                    </span>
+                  </div>
+                  <p class="text-[var(--ck-muted)]">{skill.description}</p>
+                  <p class="text-[var(--ck-muted)] mt-[0.35rem]">
+                    Targets: {format_targets(skill.compatibility_targets)}
+                  </p>
+                </article>
+              <% end %>
+            </div>
+            <style>
+              #skills-list::-webkit-scrollbar { width: 6px; }
+              #skills-list::-webkit-scrollbar-track { background: transparent; }
+              #skills-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+              #skills-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+            </style>
           </div>
+        </div>
+
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-10">
+          <p class="text-lg font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+            Target availability
+          </p>
+
+          <form phx-change="search_targets">
+            <input
+              type="text"
+              name="target_search"
+              value={@target_search}
+              placeholder="Filter targets by name or description..."
+              phx-debounce="150"
+              class="mt-3 mb-4 p-3 w-full bg-[rgba(255,255,255,0.04)] border border-[var(--ck-stroke)] rounded-xl text-[var(--ck-text)] outline-none focus:border-[var(--ck-lime)] transition-colors duration-150"
+            />
+          </form>
+
+          <div
+            id="targets-list"
+            class="overflow-y-auto max-h-[500px] pr-2"
+            style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent;"
+          >
+            <table class="min-w-full text-sm" id="skills-target-matrix">
+              <thead>
+                <tr class="sticky top-0">
+                  <th class="text-left py-2 pr-4">Target</th>
+                  <th class="text-left py-2 pr-4">Default scope</th>
+                  <th class="text-left py-2 pr-4">Native</th>
+                  <th class="text-left py-2 pr-4">Release asset</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for target <- @filtered_targets do %>
+                  <tr id={"skill-target-#{target.id}"}>
+                    <td class="py-2 pr-4">
+                      <strong>{target.label}</strong>
+                      <p class="text-[var(--ck-muted)]">{target.description}</p>
+                    </td>
+                    <td class="py-2 pr-4">{target.default_scope}</td>
+                    <td class="py-2 pr-4">{if target.native, do: "yes", else: "fallback"}</td>
+                    <td class="py-2 pr-4">
+                      {if target.release_bundle, do: "published", else: "local only"}
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          <style>
+            #targets-list::-webkit-scrollbar { width: 6px; }
+            #targets-list::-webkit-scrollbar-track { background: transparent; }
+            #targets-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+            #targets-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+          </style>
         </div>
       </section>
     </Layouts.app>
@@ -499,8 +471,10 @@ defmodule ControlKeelWeb.SkillsLive do
     socket
     |> assign(:project_root, project_root)
     |> assign(:skills, analysis.skills)
+    |> assign(:filtered_skills, analysis.skills)
     |> assign(:diagnostics, analysis.diagnostics)
     |> assign(:targets, Skills.targets())
+    |> assign(:filtered_targets, Skills.targets())
     |> assign(:trusted_project?, analysis.trusted_project?)
   end
 
@@ -518,58 +492,9 @@ defmodule ControlKeelWeb.SkillsLive do
   defp format_targets(nil), do: "none"
   defp format_targets(values), do: Enum.join(values, ", ")
 
-  defp format_install_channels([]), do: "none"
-
-  defp format_install_channels(ids) do
-    ids
-    |> ControlKeel.Distribution.install_channels()
-    |> Enum.map(& &1.label)
-    |> Enum.join(", ")
-  end
-
   defp format_paths([]), do: "not installed"
   defp format_paths(nil), do: "not installed"
   defp format_paths(paths), do: Enum.join(paths, ", ")
-
-  defp format_package_outputs([]), do: "none"
-  defp format_package_outputs(nil), do: "none"
-
-  defp format_package_outputs(outputs) do
-    outputs
-    |> Enum.map(fn output ->
-      case output do
-        %{"artifact" => artifact, "kind" => kind} -> "#{kind}: #{artifact}"
-        %{artifact: artifact, kind: kind} -> "#{kind}: #{artifact}"
-        other -> inspect(other)
-      end
-    end)
-    |> Enum.join(", ")
-  end
-
-  defp format_direct_install_methods([]), do: "attach only"
-  defp format_direct_install_methods(nil), do: "attach only"
-
-  defp format_direct_install_methods(methods) do
-    methods
-    |> Enum.map(fn method ->
-      case method do
-        %{"label" => label, "command" => command} -> "#{label}: #{command}"
-        %{label: label, command: command} -> "#{label}: #{command}"
-        other -> inspect(other)
-      end
-    end)
-    |> Enum.join(" | ")
-  end
-
-  defp format_runtime_session_support(nil), do: "none"
-  defp format_runtime_session_support(%{} = support) when map_size(support) == 0, do: "none"
-
-  defp format_runtime_session_support(%{} = support) do
-    support
-    |> Enum.filter(fn {_key, value} -> value end)
-    |> Enum.map(fn {key, _value} -> to_string(key) end)
-    |> Enum.join(", ")
-  end
 
   defp scope_pill_class("builtin"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
   defp scope_pill_class("user"), do: "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
@@ -579,73 +504,4 @@ defmodule ControlKeelWeb.SkillsLive do
   defp diagnostic_pill_class("error"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
   defp diagnostic_pill_class("warn"), do: "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
   defp diagnostic_pill_class(_), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
-
-  defp human_support_class("attach_client"), do: "Attachable client"
-  defp human_support_class("headless_runtime"), do: "Headless runtime"
-  defp human_support_class("framework_adapter"), do: "Framework adapter"
-  defp human_support_class("provider_only"), do: "Provider-only"
-  defp human_support_class("alias"), do: "Alias"
-  defp human_support_class("unverified"), do: "Unverified"
-  defp human_support_class(_), do: "Portable integration"
-
-  defp human_install_experience("first_class"), do: "first-class"
-  defp human_install_experience("guided"), do: "guided"
-  defp human_install_experience("fallback"), do: "fallback"
-  defp human_install_experience(_value), do: "guided"
-
-  defp human_review_experience("native_review"), do: "native review"
-  defp human_review_experience("browser_review"), do: "browser review"
-  defp human_review_experience("feedback_only"), do: "feedback only"
-  defp human_review_experience("none"), do: "none"
-  defp human_review_experience(_value), do: "browser review"
-
-  defp human_phase_model("host_plan_mode"), do: "host plan mode"
-  defp human_phase_model("file_plan_mode"), do: "file plan mode"
-  defp human_phase_model("review_only"), do: "review only"
-  defp human_phase_model(_value), do: "review only"
-
-  defp human_browser_embed("external"), do: "external browser"
-  defp human_browser_embed("vscode_webview"), do: "VS Code webview"
-  defp human_browser_embed("none"), do: "none"
-  defp human_browser_embed(_value), do: "external browser"
-
-  defp human_subagent_visibility("primary_only"), do: "primary only"
-  defp human_subagent_visibility("all"), do: "all agents"
-  defp human_subagent_visibility("none"), do: "none"
-  defp human_subagent_visibility(_value), do: "none"
-
-  defp human_confidence_level("shipped"), do: "shipped"
-  defp human_confidence_level("experimental"), do: "experimental"
-  defp human_confidence_level("research"), do: "research"
-  defp human_confidence_level(_value), do: "shipped"
-
-  defp alias_action(%{alias_of: alias_of}) when is_binary(alias_of), do: "Use #{alias_of}"
-  defp alias_action(_integration), do: "reference only"
-
-  defp auth_owner(integration), do: ControlKeel.AgentIntegration.auth_owner(integration)
-
-  defp format_provider_bridge(%{supported: true, provider: provider, mode: mode}),
-    do: "#{mode}: #{provider}"
-
-  defp format_provider_bridge(%{supported: true, mode: mode}), do: mode
-  defp format_provider_bridge(%{mode: "ck_owned"}), do: "ck-owned"
-  defp format_provider_bridge(_bridge), do: "none"
-
-  defp registry_label(%{registry_match: true, registry_version: version, registry_stale: stale}) do
-    suffix = if stale, do: " (stale cache)", else: ""
-    "matched #{version || "unknown"}#{suffix}"
-  end
-
-  defp registry_label(_integration), do: "not matched"
-
-  defp human_intervention_copy(%{execution_support: "direct"}),
-    do: "Only when findings or approvals block execution"
-
-  defp human_intervention_copy(%{execution_support: "handoff"}),
-    do: "Required to continue from the generated handoff package"
-
-  defp human_intervention_copy(%{execution_support: "runtime"}),
-    do: "Only when the remote runtime pauses or policy gates block"
-
-  defp human_intervention_copy(_integration), do: "Use ControlKeel from the agent side only"
 end

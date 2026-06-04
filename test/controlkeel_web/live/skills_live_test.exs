@@ -25,20 +25,10 @@ defmodule ControlKeelWeb.SkillsLiveTest do
     assert has_element?(view, "#skills-export-button")
     assert has_element?(view, "#skills-install-button")
     assert has_element?(view, "#skills-target-matrix")
-    assert has_element?(view, "#skills-agent-matrix")
     assert has_element?(view, "#skill-controlkeel-governance")
-    assert has_element?(view, "#agent-claude-code")
-    assert has_element?(view, "#agent-cline")
-    assert has_element?(view, "#copy-agent-claude-code")
-    assert has_element?(view, "#agent-open-swe")
-    assert has_element?(view, "#agent-devin")
-    assert has_element?(view, "#agent-vllm")
 
     render_click(element(view, "#skill-controlkeel-governance"))
     assert render(view) =~ "Required CK MCP tools"
-    assert render(view) =~ "controlkeel attach claude-code"
-    assert render(view) =~ "Attachable client"
-    assert render(view) =~ "Headless runtime"
 
     render_submit(form(view, "#skills-project-form", project: %{"project_root" => tmp_dir}))
 
