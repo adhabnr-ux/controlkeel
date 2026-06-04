@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.41 — 2026-06-04
+
+### What's changed
+
+- Merge branch 'main' of https://github.com/aryaminus/controlkeel
+- feat: add agent spec metadata bridge
+- feat: add semantic drift scanner guardrails
+- feat: enhance review submission with semantic change tracking and governance rules
+
 ## v0.3.40 — 2026-06-04
 
 ### What's changed
