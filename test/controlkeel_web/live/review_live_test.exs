@@ -43,4 +43,41 @@ defmodule ControlKeelWeb.ReviewLiveTest do
     assert html =~ "Support"
     assert html =~ "Security"
   end
+
+  test "review live renders semantic boundary fields from plan refinement", %{conn: conn} do
+    task = task_fixture(%{status: "queued", title: "Semantic boundary review"})
+
+    assert {:ok, review} =
+             Mission.submit_review(%{
+               "task_id" => task.id,
+               "review_type" => "plan",
+               "plan_phase" => "implementation_plan",
+               "submission_body" => "Implementation plan with semantic boundaries",
+               "research_summary" => "Mapped review metadata rendering.",
+               "options_considered" => ["Render metadata", "Leave MCP-only"],
+               "selected_option" => "Render metadata",
+               "rejected_options" => ["Leave MCP-only"],
+               "implementation_steps" => ["Add card", "Test rendering"],
+               "validation_plan" => ["mix test test/controlkeel_web/live/review_live_test.exs"],
+               "allowed_semantic_changes" => ["Add review metadata display"],
+               "forbidden_semantic_changes" => ["Change execution gating behavior"],
+               "invariant_boundaries" => ["Approved plans still gate execution"],
+               "requires_reapproval_if" => ["Planner semantics change"],
+               "harness_quality_checks" => ["Proof metadata is preserved"]
+             })
+
+    {:ok, _view, html} = live(conn, ~p"/reviews/#{review.id}")
+
+    assert html =~ "Agent execution guardrails"
+    assert html =~ "Allowed semantic changes"
+    assert html =~ "Add review metadata display"
+    assert html =~ "Forbidden semantic changes"
+    assert html =~ "Change execution gating behavior"
+    assert html =~ "Invariant boundaries"
+    assert html =~ "Approved plans still gate execution"
+    assert html =~ "Requires re-approval if"
+    assert html =~ "Planner semantics change"
+    assert html =~ "Harness quality checks"
+    assert html =~ "Proof metadata is preserved"
+  end
 end

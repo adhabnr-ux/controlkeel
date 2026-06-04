@@ -149,6 +149,27 @@ defmodule ControlKeelWeb.ReviewLive do
                 </div>
               </article>
 
+              <article
+                :if={present_semantic_boundaries?(@review)}
+                class="ck-card"
+                id="review-semantic-boundaries-card"
+              >
+                <div class="ck-finding-head">
+                  <div>
+                    <p class="ck-mini-label">Semantic boundaries</p>
+                    <h2>Agent execution guardrails</h2>
+                  </div>
+                </div>
+                <div class="mt-4 space-y-4">
+                  <div :for={boundary <- semantic_boundary_sections(@review)}>
+                    <p class="ck-mini-label">{boundary.label}</p>
+                    <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700">
+                      <li :for={entry <- boundary.entries}>{entry}</li>
+                    </ul>
+                  </div>
+                </div>
+              </article>
+
               <article :if={@review.previous_review} class="ck-card" id="review-diff-card">
                 <div class="ck-finding-head">
                   <div>
@@ -344,6 +365,22 @@ defmodule ControlKeelWeb.ReviewLive do
 
   defp present_plan_context?(review, key) do
     plan_context(review, key) != []
+  end
+
+  defp present_semantic_boundaries?(review) do
+    semantic_boundary_sections(review) != []
+  end
+
+  defp semantic_boundary_sections(review) do
+    [
+      {"Allowed semantic changes", "allowed_semantic_changes"},
+      {"Forbidden semantic changes", "forbidden_semantic_changes"},
+      {"Invariant boundaries", "invariant_boundaries"},
+      {"Requires re-approval if", "requires_reapproval_if"},
+      {"Harness quality checks", "harness_quality_checks"}
+    ]
+    |> Enum.map(fn {label, key} -> %{label: label, entries: plan_context(review, key)} end)
+    |> Enum.reject(&(&1.entries == []))
   end
 
   defp parse_integer(value) when is_binary(value) do

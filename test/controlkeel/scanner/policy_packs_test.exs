@@ -1,6 +1,9 @@
 defmodule ControlKeel.Scanner.PolicyPacksTest do
   use ControlKeel.DataCase, async: true
 
+  import ControlKeel.MissionFixtures
+
+  alias ControlKeel.Mission
   alias ControlKeel.Policy.PackLoader
   alias ControlKeel.Scanner.FastPath
 
@@ -406,6 +409,166 @@ defmodule ControlKeel.Scanner.PolicyPacksTest do
         })
 
       refute Enum.any?(result.findings, &(&1.rule_id == "software.agent_semantic_drift"))
+    end
+
+    @tag domain_pack: "software"
+    test "approved plan forbidden semantic changes warn on matching diff content" do
+      task = task_fixture(%{status: "queued"})
+
+      {:ok, review} =
+        Mission.submit_review(%{
+          "task_id" => task.id,
+          "review_type" => "plan",
+          "plan_phase" => "implementation_plan",
+          "research_summary" => "Mapped the review metadata path.",
+          "options_considered" => ["Metadata fields", "Freeform only"],
+          "selected_option" => "Metadata fields",
+          "rejected_options" => ["Freeform only"],
+          "implementation_steps" => ["Store fields", "Validate drift"],
+          "validation_plan" => ["mix test"],
+          "forbidden_semantic_changes" => ["change execution gating behavior"],
+          "requires_reapproval_if" => ["planner semantics change"],
+          "submission_body" => "Plan with semantic boundaries"
+        })
+
+      {:ok, _approved} = Mission.respond_review(review, %{"decision" => "approved"})
+
+      result =
+        FastPath.scan(%{
+          "content" =>
+            "diff --git a/lib/app.ex b/lib/app.ex\nThis patch will change execution gating behavior.",
+          "path" => "diff.patch",
+          "kind" => "text",
+          "domain_pack" => "software",
+          "session_id" => task.session_id,
+          "task_id" => task.id
+        })
+
+      assert Enum.any?(result.findings, &(&1.rule_id == "semantic_drift.forbidden_change"))
+    end
+
+    @tag domain_pack: "software"
+    test "approved plan reapproval triggers warn on matching diff content" do
+      task = task_fixture(%{status: "queued"})
+
+      {:ok, review} =
+        Mission.submit_review(%{
+          "task_id" => task.id,
+          "review_type" => "plan",
+          "plan_phase" => "implementation_plan",
+          "research_summary" => "Mapped the review metadata path.",
+          "options_considered" => ["Metadata fields", "Freeform only"],
+          "selected_option" => "Metadata fields",
+          "rejected_options" => ["Freeform only"],
+          "implementation_steps" => ["Store fields", "Validate drift"],
+          "validation_plan" => ["mix test"],
+          "forbidden_semantic_changes" => ["change execution gating behavior"],
+          "requires_reapproval_if" => ["planner semantics change"],
+          "submission_body" => "Plan with semantic boundaries"
+        })
+
+      {:ok, _approved} = Mission.respond_review(review, %{"decision" => "approved"})
+
+      result =
+        FastPath.scan(%{
+          "content" =>
+            "The implementation causes a planner semantics change and must be reviewed.",
+          "path" => "diff.patch",
+          "kind" => "text",
+          "domain_pack" => "software",
+          "session_id" => task.session_id,
+          "task_id" => task.id
+        })
+
+      assert Enum.any?(result.findings, &(&1.rule_id == "semantic_drift.reapproval_required"))
+    end
+
+    @tag domain_pack: "software"
+    test "approved plan semantic drift catches conservative paraphrases" do
+      task = task_fixture(%{status: "queued"})
+
+      {:ok, review} =
+        Mission.submit_review(%{
+          "task_id" => task.id,
+          "review_type" => "plan",
+          "plan_phase" => "implementation_plan",
+          "research_summary" => "Mapped the review metadata path.",
+          "options_considered" => ["Metadata fields", "Freeform only"],
+          "selected_option" => "Metadata fields",
+          "rejected_options" => ["Freeform only"],
+          "implementation_steps" => ["Store fields", "Validate drift"],
+          "validation_plan" => ["mix test"],
+          "forbidden_semantic_changes" => ["change execution gating behavior"],
+          "requires_reapproval_if" => ["planner semantics change"],
+          "submission_body" => "Plan with semantic boundaries"
+        })
+
+      {:ok, _approved} = Mission.respond_review(review, %{"decision" => "approved"})
+
+      forbidden_result =
+        FastPath.scan(%{
+          "content" => "This patch alters execution gate behavior in the runtime policy.",
+          "path" => "diff.patch",
+          "kind" => "text",
+          "domain_pack" => "software",
+          "session_id" => task.session_id,
+          "task_id" => task.id
+        })
+
+      reapproval_result =
+        FastPath.scan(%{
+          "content" => "The planner semantic changes should go back through review.",
+          "path" => "diff.patch",
+          "kind" => "text",
+          "domain_pack" => "software",
+          "session_id" => task.session_id,
+          "task_id" => task.id
+        })
+
+      assert Enum.any?(
+               forbidden_result.findings,
+               &(&1.rule_id == "semantic_drift.forbidden_change")
+             )
+
+      assert Enum.any?(
+               reapproval_result.findings,
+               &(&1.rule_id == "semantic_drift.reapproval_required")
+             )
+    end
+
+    @tag domain_pack: "software"
+    test "approved plan semantic drift scan ignores unrelated content" do
+      task = task_fixture(%{status: "queued"})
+
+      {:ok, review} =
+        Mission.submit_review(%{
+          "task_id" => task.id,
+          "review_type" => "plan",
+          "plan_phase" => "implementation_plan",
+          "research_summary" => "Mapped the review metadata path.",
+          "options_considered" => ["Metadata fields", "Freeform only"],
+          "selected_option" => "Metadata fields",
+          "rejected_options" => ["Freeform only"],
+          "implementation_steps" => ["Store fields", "Validate drift"],
+          "validation_plan" => ["mix test"],
+          "forbidden_semantic_changes" => ["change execution gating behavior"],
+          "requires_reapproval_if" => ["planner semantics change"],
+          "submission_body" => "Plan with semantic boundaries"
+        })
+
+      {:ok, _approved} = Mission.respond_review(review, %{"decision" => "approved"})
+
+      result =
+        FastPath.scan(%{
+          "content" => "This patch only preserves review metadata in the plan refinement packet.",
+          "path" => "diff.patch",
+          "kind" => "text",
+          "domain_pack" => "software",
+          "session_id" => task.session_id,
+          "task_id" => task.id
+        })
+
+      refute Enum.any?(result.findings, &String.starts_with?(&1.rule_id, "semantic_drift."))
     end
   end
 

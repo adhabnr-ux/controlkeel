@@ -10,7 +10,7 @@ defmodule ControlKeel.Scanner.FastPath do
   alias ControlKeel.Policy.PackLoader
   alias ControlKeel.Policy.Rule
   alias ControlKeel.Scanner
-  alias ControlKeel.Scanner.{Advisory, Aislop, Entropy, Patterns, Semgrep}
+  alias ControlKeel.Scanner.{Advisory, Aislop, Entropy, Patterns, SemanticDrift, Semgrep}
   alias ControlKeel.SecurityWorkflow
   alias ControlKeel.TrustBoundary
   alias ControlKeel.Validation.Matchers.Scanner, as: MatcherScanner
@@ -77,6 +77,7 @@ defmodule ControlKeel.Scanner.FastPath do
       |> Kernel.++(destructive_shell_findings(normalized))
       |> Kernel.++(trust_boundary_findings(normalized))
       |> Kernel.++(security_workflow_findings(normalized))
+      |> Kernel.++(SemanticDrift.detect(normalized))
       |> uniq_findings()
 
     layer2 =
