@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.42 — 2026-06-04
+
+### What's changed
+
+- feat: capture git HEAD SHA and working tree state in proof records
+- feat: verifiable proof, loop diagnostics, skill eval metadata
+
 ## v0.3.41 — 2026-06-04
 
 ### What's changed
