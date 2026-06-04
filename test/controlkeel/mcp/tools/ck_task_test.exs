@@ -249,6 +249,40 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
       assert is_boolean(check["proof"]["working_tree_dirty"])
     end
 
+    test "records checks without git fields when project_root is not a git repo" do
+      session = session_fixture()
+      task = task_fixture(%{session: session, status: "in_progress"})
+      assert {:ok, _run} = Platform.claim_task(task.id)
+
+      tmp_dir = Path.join(System.tmp_dir!(), "ck_non_git_#{System.unique_integer([:positive])}")
+      File.mkdir_p!(tmp_dir)
+      on_exit(fn -> File.rm_rf(tmp_dir) end)
+
+      checks = [
+        %{
+          "check_type" => "validation",
+          "status" => "passed",
+          "summary" => "All good",
+          "payload" => %{"stdout" => "validation passed"}
+        }
+      ]
+
+      # A non-git project_root must degrade gracefully, never crash recording.
+      assert {:ok, result} =
+               CkTask.call(%{
+                 "session_id" => session.id,
+                 "task_id" => task.id,
+                 "mode" => "checks",
+                 "checks" => checks,
+                 "project_root" => tmp_dir
+               })
+
+      assert result["recorded"] == true
+      [check] = result["results"]
+      refute Map.has_key?(check["proof"], "git_head_sha")
+      refute Map.has_key?(check["proof"], "working_tree_dirty")
+    end
+
     test "returns error when checks is missing" do
       session = session_fixture()
       task = task_fixture(%{session: session})

@@ -585,24 +585,44 @@ defmodule ControlKeel.Platform do
   defp git_context(nil), do: %{}
 
   defp git_context(project_root) when is_binary(project_root) do
-    head_sha =
-      case System.cmd("git", ["rev-parse", "HEAD"], cd: project_root, stderr_to_stdout: true) do
-        {sha, 0} -> String.trim(sha)
-        _ -> nil
-      end
+    %{head_sha: git_head_sha(project_root), dirty: git_working_tree_dirty(project_root)}
+    |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+    |> Map.new()
+  end
 
-    dirty =
-      case System.cmd("git", ["status", "--porcelain"], cd: project_root, stderr_to_stdout: true) do
-        {"", 0} -> false
-        {output, 0} when byte_size(output) > 0 -> true
-        _ -> nil
-      end
-
-    if head_sha != nil or dirty != nil do
-      %{head_sha: head_sha, dirty: dirty}
-    else
-      %{}
+  defp git_head_sha(project_root) do
+    case safe_git(["rev-parse", "HEAD"], project_root, stderr_to_stdout: true) do
+      {sha, 0} -> String.trim(sha)
+      _ -> nil
     end
+  end
+
+  # stderr is merged so git advisories (safe.directory, autocrlf) and the
+  # not-a-repo fatal never leak to the host console. Dirtiness is then decided
+  # only by lines matching git's stable `--porcelain` format (`XY <path>`), so
+  # a merged warning line can't masquerade as a pending change.
+  defp git_working_tree_dirty(project_root) do
+    case safe_git(["status", "--porcelain"], project_root, stderr_to_stdout: true) do
+      {output, 0} when is_binary(output) ->
+        output
+        |> String.split("\n", trim: true)
+        |> Enum.any?(&porcelain_entry?/1)
+
+      _ ->
+        nil
+    end
+  end
+
+  # Porcelain v1 entries begin with a two-character status field drawn from a
+  # fixed alphabet followed by a space; warning/fatal/hint text cannot match.
+  defp porcelain_entry?(line), do: line =~ ~r/^[ MTADRCU?!]{2} /
+
+  # System.cmd raises ErlangError when the git executable is absent; proof
+  # capture must never crash the task-check recording flow, so degrade to nil.
+  defp safe_git(args, project_root, opts) do
+    System.cmd("git", args, [cd: project_root] ++ opts)
+  rescue
+    _ -> {nil, :error}
   end
 
   defp first_binary(map, keys) do
