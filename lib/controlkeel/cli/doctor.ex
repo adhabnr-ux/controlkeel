@@ -52,8 +52,10 @@ defmodule ControlKeel.CLI.Doctor do
     {binding_status, binding, session} = load_binding(root)
     health = install_health(root, version, binding)
 
+    # Note: top-level "status" stays "ok" (it signals the command ran, a
+    # stable contract for JSON consumers). Setup health is surfaced via the
+    # dedicated install_health block, the human lines, and next_steps.
     base
-    |> Map.put("status", if(health["ok"], do: "ok", else: "attention"))
     |> Map.put("binding", binding_status)
     |> Map.put("session", session_payload(session))
     |> Map.put("governance", governance_payload(session))

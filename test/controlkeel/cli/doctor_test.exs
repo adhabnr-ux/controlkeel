@@ -23,7 +23,8 @@ defmodule ControlKeel.CLI.DoctorTest do
       assert health["gitignore"]["complete"] == false
       assert "/.controlkeel/" in health["gitignore"]["missing"]
       assert health["ok"] == false
-      assert payload["status"] == "attention"
+      # Top-level status stays "ok" (command ran); health lives in install_health.
+      assert payload["status"] == "ok"
 
       lines = Doctor.lines(payload)
       assert Enum.any?(lines, &(&1 =~ "Install health: attention"))
