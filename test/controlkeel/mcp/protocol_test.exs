@@ -220,6 +220,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
              [
                "overview",
                "loop_status",
+               "loop_diagnostics",
                "session_run",
                "timeline",
                "memory",

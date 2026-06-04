@@ -19,10 +19,16 @@ defmodule ControlKeel.Benchmark.Metadata do
     agent_spec_id agent_spec_version task_spec_id agent_role task_scope persona_or_actor_context
   )
 
+  @skill_eval_string_fields ~w(
+    skill_name skill_variant baseline_variant skill_delta_score
+  )
+
   @agent_spec_list_fields ~w(
     out_of_scope business_rules domain_terms allowed_actions prohibited_actions
     robustness_requirements linked_policy_packs linked_benchmark_suites promotion_gates
   )
+
+  @skill_eval_boolean_fields ~w(skill_loaded baseline_without_skill skill_harmed_performance)
 
   def normalize_scenario_metadata(payload) when is_map(payload) do
     metadata =
@@ -96,7 +102,9 @@ defmodule ControlKeel.Benchmark.Metadata do
   def agent_spec_fields do
     %{
       "string" => @agent_spec_string_fields,
-      "string_list" => @agent_spec_list_fields
+      "string_list" => @agent_spec_list_fields,
+      "skill_eval_string" => @skill_eval_string_fields,
+      "skill_eval_boolean" => @skill_eval_boolean_fields
     }
   end
 
@@ -118,12 +126,19 @@ defmodule ControlKeel.Benchmark.Metadata do
     |> coerce_enum("failure_dimension", @valid_failure_dimensions)
     |> coerce_enum("signal_source", @valid_signal_sources)
     |> normalize_agent_spec_fields()
+    |> normalize_skill_eval_fields()
   end
 
   defp normalize_agent_spec_fields(metadata) do
     metadata
     |> normalize_string_fields(@agent_spec_string_fields)
     |> normalize_string_list_fields(@agent_spec_list_fields)
+  end
+
+  defp normalize_skill_eval_fields(metadata) do
+    metadata
+    |> normalize_string_fields(@skill_eval_string_fields)
+    |> normalize_boolean_fields(@skill_eval_boolean_fields)
   end
 
   defp normalize_string_fields(metadata, fields) do
@@ -161,6 +176,18 @@ defmodule ControlKeel.Benchmark.Metadata do
 
         _ ->
           Map.delete(acc, key)
+      end
+    end)
+  end
+
+  defp normalize_boolean_fields(metadata, fields) do
+    Enum.reduce(fields, metadata, fn key, acc ->
+      case Map.get(acc, key) do
+        nil -> acc
+        value when is_boolean(value) -> Map.put(acc, key, value)
+        "true" -> Map.put(acc, key, true)
+        "false" -> Map.put(acc, key, false)
+        _ -> Map.delete(acc, key)
       end
     end)
   end

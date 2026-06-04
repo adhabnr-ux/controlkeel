@@ -731,6 +731,20 @@ defmodule ControlKeel.MissionTest do
       assert %ProofBundle{} = Mission.latest_proof_bundle_for_task(task.id)
     end
 
+    test "records advisory signal when completion has no task-check evidence" do
+      session = session_fixture()
+      task = task_fixture(%{session: session, status: "in_progress"})
+
+      assert {:ok, done_task} = Mission.complete_task(task)
+      assert done_task.status == "done"
+      assert %ProofBundle{} = proof = Mission.latest_proof_bundle_for_task(task.id)
+
+      assert Enum.any?(
+               proof.bundle["verification_assessment"]["signals"],
+               &String.contains?(&1, "No task-check evidence")
+             )
+    end
+
     test "marks task verified when completion has sufficient governed evidence" do
       session = session_fixture()
       task = task_fixture(%{session: session, status: "in_progress"})
@@ -951,6 +965,9 @@ defmodule ControlKeel.MissionTest do
       assert bundle["task_checks"]["passed"] == 1
       assert bundle["task_checks"]["warn"] == 1
       assert bundle["task_checks"]["failed"] == 0
+      assert bundle["task_checks"]["proof_strength_counts"]["weak"] == 2
+      assert bundle["task_checks"]["strongest_proof_strength"] == "weak"
+      assert bundle["task_checks"]["hashed_outputs"] == 0
       assert "validation" in bundle["task_checks"]["evidence_sources"]
 
       assert bundle["runtime_context_integrity"]["status"] == "degraded"

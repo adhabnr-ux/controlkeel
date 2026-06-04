@@ -214,13 +214,32 @@ defmodule ControlKeel.MCP.Tools.CkTask do
   end
 
   defp check_result_response(result) do
+    metadata = result.metadata || %{}
+    payload = result.payload || %{}
+
     %{
       "id" => result.id,
       "check_type" => result.check_type,
       "status" => result.status,
-      "summary" => result.summary
+      "summary" => result.summary,
+      "proof_strength" => metadata["proof_strength"],
+      "proof" => proof_response(metadata, payload)
     }
   end
+
+  defp proof_response(metadata, payload) do
+    %{}
+    |> maybe_put("proof_strength", metadata["proof_strength"])
+    |> maybe_put("command", metadata["command"])
+    |> maybe_put("exit_code", metadata["exit_code"])
+    |> maybe_put("output_sha256", metadata["output_sha256"] || payload["output_sha256"])
+    |> maybe_put("output_bytes", metadata["output_bytes"])
+    |> maybe_put("artifact_sha256", metadata["artifact_sha256"])
+    |> maybe_put("artifact_uri", metadata["artifact_uri"])
+  end
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp mode(arguments) do
     case Map.get(arguments, "mode", "status") do

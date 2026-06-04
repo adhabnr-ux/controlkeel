@@ -190,7 +190,13 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
       assert {:ok, _run} = Platform.claim_task(task.id)
 
       checks = [
-        %{"check_type" => "validation", "status" => "passed", "summary" => "All good"}
+        %{
+          "check_type" => "validation",
+          "status" => "passed",
+          "summary" => "All good",
+          "payload" => %{"stdout" => "validation passed"},
+          "metadata" => %{"command" => "mix test test/example_test.exs", "exit_code" => 0}
+        }
       ]
 
       assert {:ok, result} =
@@ -203,6 +209,11 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
 
       assert result["recorded"] == true
       assert result["count"] == 1
+      [check] = result["results"]
+      assert check["proof_strength"] == "command_output"
+      assert check["proof"]["command"] == "mix test test/example_test.exs"
+      assert check["proof"]["exit_code"] == 0
+      assert is_binary(check["proof"]["output_sha256"])
     end
 
     test "returns error when checks is missing" do

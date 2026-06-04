@@ -8,6 +8,7 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
   @reports [
     "overview",
     "loop_status",
+    "loop_diagnostics",
     "session_run",
     "timeline",
     "memory",
@@ -142,6 +143,7 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
 
   defp dispatch_report("overview", opts), do: Observability.workspace_overview(opts)
   defp dispatch_report("loop_status", opts), do: Observability.loop_status(opts)
+  defp dispatch_report("loop_diagnostics", opts), do: Observability.loop_diagnostics(opts)
 
   defp dispatch_report("session_run", opts),
     do: session_report(opts, &Observability.session_run/2)

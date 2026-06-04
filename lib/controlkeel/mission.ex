@@ -2936,10 +2936,11 @@ defmodule ControlKeel.Mission do
          check_results
        ) do
     suspicious_test_changes = suspicious_test_changes(reviews)
+    task_check_summary = summarize_task_checks(check_results)
     approved_reviews = Enum.count(reviews, &(&1.status == "approved"))
     passed_checks = Enum.count(invocations, &(get_in(&1.metadata, ["outcome"]) == "passed"))
-    passed_task_checks = Enum.count(check_results, &(&1.status == "passed"))
-    failed_task_checks = Enum.count(check_results, &(&1.status == "failed"))
+    passed_task_checks = task_check_summary["passed"]
+    failed_task_checks = task_check_summary["failed"]
     external_regressions = test_outcomes["external_recorded"] || 0
     blocking_failures = test_outcomes["blocking_failures"] || 0
     skipped = test_outcomes["skipped"] || 0
@@ -2988,7 +2989,8 @@ defmodule ControlKeel.Mission do
           evidence_sources,
           blocking_failures,
           skipped,
-          suspicious_test_changes
+          suspicious_test_changes,
+          task_check_summary
         ),
       "suspicious_test_changes" => suspicious_test_changes
     }
@@ -3282,7 +3284,8 @@ defmodule ControlKeel.Mission do
          evidence_sources,
          blocking_failures,
          skipped,
-         suspicious_test_changes
+         suspicious_test_changes,
+         task_check_summary
        ) do
     []
     |> maybe_add_verification_signal(
@@ -3305,12 +3308,22 @@ defmodule ControlKeel.Mission do
       suspicious_test_changes != [],
       "The submitted diff contains test-related changes that may weaken proof strength."
     )
+    |> maybe_add_verification_signal(
+      task_check_summary["total"] == 0,
+      "No task-check evidence was recorded; completion relies on claims, findings state, or review context rather than objective checks."
+    )
+    |> maybe_add_verification_signal(
+      task_check_summary["total"] > 0 and
+        task_check_summary["strongest_proof_strength"] in [nil, "none", "weak", "claimed"],
+      "Task-check evidence is weak or claim-like; prefer command output, external artifacts, or cryptographic hashes."
+    )
   end
 
   defp summarize_task_checks(check_results) do
     passed = Enum.count(check_results, &(&1.status == "passed"))
     failed = Enum.count(check_results, &(&1.status == "failed"))
     warned = Enum.count(check_results, &(&1.status == "warn"))
+    proof_strength_counts = proof_strength_counts(check_results)
 
     %{
       "total" => length(check_results),
@@ -3326,9 +3339,55 @@ defmodule ControlKeel.Mission do
         check_results
         |> Enum.filter(&(&1.status == "failed"))
         |> Enum.map(& &1.check_type)
-        |> Enum.uniq()
+        |> Enum.uniq(),
+      "proof_strength_counts" => proof_strength_counts,
+      "strongest_proof_strength" => strongest_proof_strength(check_results),
+      "hashed_outputs" => Enum.count(check_results, &task_check_output_hash?/1)
     }
   end
+
+  defp proof_strength_counts(check_results) do
+    check_results
+    |> Enum.map(&task_check_proof_strength/1)
+    |> Enum.frequencies()
+  end
+
+  defp strongest_proof_strength(check_results) do
+    check_results
+    |> Enum.map(&task_check_proof_strength/1)
+    |> Enum.max_by(&proof_strength_rank/1, fn -> nil end)
+  end
+
+  defp task_check_proof_strength(check_result) do
+    case get_in(check_result.metadata || %{}, ["proof_strength"]) do
+      value
+      when value in [
+             "none",
+             "weak",
+             "claimed",
+             "command_output",
+             "external_artifact",
+             "cryptographic"
+           ] ->
+        value
+
+      _ ->
+        "weak"
+    end
+  end
+
+  defp task_check_output_hash?(check_result) do
+    metadata = check_result.metadata || %{}
+    payload = check_result.payload || %{}
+    is_binary(metadata["output_sha256"]) or is_binary(payload["output_sha256"])
+  end
+
+  defp proof_strength_rank("cryptographic"), do: 5
+  defp proof_strength_rank("external_artifact"), do: 4
+  defp proof_strength_rank("command_output"), do: 3
+  defp proof_strength_rank("claimed"), do: 2
+  defp proof_strength_rank("weak"), do: 1
+  defp proof_strength_rank(_), do: 0
 
   defp derive_task_check_verification(task, check_results) do
     summary = summarize_task_checks(check_results)

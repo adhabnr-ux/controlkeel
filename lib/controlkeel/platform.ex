@@ -457,6 +457,7 @@ defmodule ControlKeel.Platform do
     with %Task{} = task <- Mission.get_task(task_id),
          %TaskRun{} = run <- active_task_run(task_id) do
       checks
+      |> Enum.map(&normalize_task_check/1)
       |> Enum.with_index()
       |> Enum.reduce(Multi.new(), fn {check, index}, multi ->
         Multi.insert(multi, {:check, index}, fn _changes ->
@@ -465,11 +466,11 @@ defmodule ControlKeel.Platform do
             task_run_id: run.id,
             task_id: task.id,
             session_id: task.session_id,
-            check_type: Map.get(check, "check_type", Map.get(check, :check_type, "external")),
-            status: Map.get(check, "status", Map.get(check, :status, "passed")),
-            summary: Map.get(check, "summary", Map.get(check, :summary)),
-            payload: Map.get(check, "payload", Map.get(check, :payload, %{})),
-            metadata: Map.get(check, "metadata", Map.get(check, :metadata, %{}))
+            check_type: Map.get(check, "check_type", "external"),
+            status: Map.get(check, "status", "passed"),
+            summary: Map.get(check, "summary"),
+            payload: Map.get(check, "payload", %{}),
+            metadata: Map.get(check, "metadata", %{})
           })
         end)
       end)
@@ -486,6 +487,114 @@ defmodule ControlKeel.Platform do
       nil -> {:error, :not_found}
     end
   end
+
+  defp normalize_task_check(check) when is_map(check) do
+    normalized = stringify_keys(check)
+    payload = Map.get(normalized, "payload", %{}) |> normalize_check_map()
+    metadata = Map.get(normalized, "metadata", %{}) |> normalize_check_map()
+    proof = task_check_proof_metadata(payload, metadata)
+
+    normalized
+    |> Map.put("payload", maybe_put_output_hash(payload, proof))
+    |> Map.put("metadata", Map.merge(metadata, proof))
+  end
+
+  defp normalize_task_check(_check), do: %{"payload" => %{}, "metadata" => %{}}
+
+  defp normalize_check_map(value) when is_map(value), do: stringify_keys(value)
+  defp normalize_check_map(_value), do: %{}
+
+  defp task_check_proof_metadata(payload, metadata) do
+    output = check_output(payload)
+    explicit_hash = first_binary(metadata, ["output_sha256", "artifact_sha256"])
+    output_hash = explicit_hash || sha256(output)
+
+    %{
+      "proof_strength" => proof_strength(metadata, output_hash),
+      "proof_normalized_at" => DateTime.to_iso8601(now())
+    }
+    |> maybe_put_binary(
+      "command",
+      first_binary(metadata, ["command"]) || first_binary(payload, ["command"])
+    )
+    |> maybe_put_value(
+      "exit_code",
+      first_value(metadata, ["exit_code"]) || first_value(payload, ["exit_code"])
+    )
+    |> maybe_put_binary("output_sha256", output_hash)
+    |> maybe_put_value("output_bytes", output && byte_size(output))
+    |> maybe_put_binary("artifact_sha256", first_binary(metadata, ["artifact_sha256"]))
+    |> maybe_put_binary(
+      "artifact_uri",
+      first_binary(metadata, ["artifact_uri", "artifact_url"]) ||
+        first_binary(payload, ["artifact_uri", "artifact_url"])
+    )
+  end
+
+  defp maybe_put_output_hash(payload, %{"output_sha256" => hash}) when is_binary(hash),
+    do: Map.put_new(payload, "output_sha256", hash)
+
+  defp maybe_put_output_hash(payload, _proof), do: payload
+
+  defp proof_strength(metadata, output_hash) do
+    explicit = first_binary(metadata, ["proof_strength"])
+
+    cond do
+      explicit in proof_strength_values() ->
+        explicit
+
+      first_binary(metadata, ["artifact_sha256"]) ->
+        "cryptographic"
+
+      output_hash && (Map.has_key?(metadata, "command") || Map.has_key?(metadata, "exit_code")) ->
+        "command_output"
+
+      first_binary(metadata, ["artifact_uri", "artifact_url"]) ->
+        "external_artifact"
+
+      output_hash ->
+        "claimed"
+
+      true ->
+        "weak"
+    end
+  end
+
+  defp proof_strength_values,
+    do: ["none", "weak", "claimed", "command_output", "external_artifact", "cryptographic"]
+
+  defp check_output(payload) do
+    ["output", "stdout", "stderr"]
+    |> Enum.map(&Map.get(payload, &1))
+    |> Enum.filter(&is_binary/1)
+    |> Enum.join("\n")
+    |> case do
+      "" -> nil
+      output -> String.slice(output, 0, 32_000)
+    end
+  end
+
+  defp sha256(nil), do: nil
+  defp sha256(value), do: :crypto.hash(:sha256, value) |> Base.encode16(case: :lower)
+
+  defp first_binary(map, keys) do
+    keys
+    |> Enum.map(&Map.get(map, &1))
+    |> Enum.find(&is_binary/1)
+  end
+
+  defp first_value(map, keys) do
+    keys
+    |> Enum.map(&Map.get(map, &1))
+    |> Enum.find(&(!is_nil(&1)))
+  end
+
+  defp maybe_put_binary(map, _key, nil), do: map
+  defp maybe_put_binary(map, key, value) when is_binary(value), do: Map.put(map, key, value)
+  defp maybe_put_binary(map, _key, _value), do: map
+
+  defp maybe_put_value(map, _key, nil), do: map
+  defp maybe_put_value(map, key, value), do: Map.put(map, key, value)
 
   def report_task(task_id, service_account \\ nil, attrs) do
     requested_status = Map.get(attrs, "status", Map.get(attrs, :status, "done"))

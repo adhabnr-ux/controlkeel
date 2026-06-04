@@ -518,7 +518,7 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
       |> Enum.filter(&(&1["word_count"] > 500))
       |> Enum.reduce(recommendations, fn skill, acc ->
         [
-          "Skill '#{skill["name"]}' is #{skill["word_count"]} words (#{skill["location"]}). Consider splitting into smaller skills."
+          "Skill '#{skill["name"]}' is #{skill["word_count"]} words (#{skill["location"]}). Prefer concise gotcha guidance and validate with a with-skill vs without-skill eval before adding more instructions."
           | acc
         ]
       end)

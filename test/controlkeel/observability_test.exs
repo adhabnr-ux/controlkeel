@@ -82,6 +82,51 @@ defmodule ControlKeel.ObservabilityTest do
     assert Enum.any?(run.recommendations, &String.contains?(&1, "blocked or critical"))
   end
 
+  test "loop_diagnostics reports repeated tool event and invocation runs" do
+    session = session_fixture()
+
+    for _ <- 1..3 do
+      assert {:ok, _event} =
+               %SessionEvent{}
+               |> SessionEvent.changeset(%{
+                 session_id: session.id,
+                 event_type: "tool_call",
+                 actor: "agent",
+                 summary: "Repeated validation call",
+                 payload: %{},
+                 metadata: %{}
+               })
+               |> Repo.insert()
+    end
+
+    for _ <- 1..3 do
+      assert {:ok, _invocation} =
+               %Invocation{}
+               |> Invocation.changeset(%{
+                 session_id: session.id,
+                 source: "opencode",
+                 tool: "ck_validate",
+                 provider: "openai",
+                 model: "gpt-5.5",
+                 estimated_cost_cents: 1,
+                 decision: "allow",
+                 metadata: %{}
+               })
+               |> Repo.insert()
+    end
+
+    diagnostics =
+      Observability.loop_diagnostics(session_id: session.id, workspace_id: session.workspace_id)
+
+    assert diagnostics.read_only == true
+    assert diagnostics.mutation == "none"
+    assert diagnostics.totals.event_runs == 1
+    assert diagnostics.totals.invocation_runs == 1
+    assert [%{count: 3}] = diagnostics.repeated_tool_events
+    assert [%{count: 3}] = diagnostics.repeated_invocations
+    assert Enum.any?(diagnostics.recommendations, &String.contains?(&1, "Repeated identical"))
+  end
+
   test "timeline/2 summarizes recent session events" do
     session = session_fixture()
 

@@ -66,6 +66,29 @@ defmodule ControlKeel.BenchmarkMetadataTest do
     refute Map.has_key?(metadata, "domain_terms")
   end
 
+  test "normalizes skill A/B eval metadata fields" do
+    metadata =
+      Metadata.normalize_scenario_metadata(%{
+        "metadata" => %{
+          skill_name: " authkit gotchas ",
+          skill_variant: " with_skill ",
+          baseline_variant: " without_skill ",
+          skill_delta_score: " -0.20 ",
+          skill_loaded: "true",
+          baseline_without_skill: false,
+          skill_harmed_performance: true
+        }
+      })
+
+    assert metadata["skill_name"] == "authkit gotchas"
+    assert metadata["skill_variant"] == "with_skill"
+    assert metadata["baseline_variant"] == "without_skill"
+    assert metadata["skill_delta_score"] == "-0.20"
+    assert metadata["skill_loaded"] == true
+    assert metadata["baseline_without_skill"] == false
+    assert metadata["skill_harmed_performance"] == true
+  end
+
   test "exposes documented metadata vocabularies" do
     assert "red_team" in Metadata.valid_eval_sources()
     assert "llm_judge" in Metadata.valid_eval_modes()
@@ -74,5 +97,7 @@ defmodule ControlKeel.BenchmarkMetadataTest do
     assert "agent_spec_id" in Metadata.agent_spec_fields()["string"]
     assert "task_spec_id" in Metadata.agent_spec_fields()["string"]
     assert "allowed_actions" in Metadata.agent_spec_fields()["string_list"]
+    assert "skill_name" in Metadata.agent_spec_fields()["skill_eval_string"]
+    assert "skill_harmed_performance" in Metadata.agent_spec_fields()["skill_eval_boolean"]
   end
 end
