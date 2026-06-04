@@ -228,4 +228,88 @@ defmodule ControlKeelWeb.ProviderStatusComponents do
   end
 
   defp blank?(value), do: String.trim(to_string(value || "")) == ""
+
+  attr :provider_status, :map, required: true
+
+  def provider_bootstrap_detail(assigns) do
+    ~H"""
+    <section
+      id="skills-provider-status"
+      class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur"
+    >
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+        Provider and bootstrap status
+      </p>
+      <div class="mt-5 grid gap-4 border-t border-white/10 pt-4">
+        <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 grid gap-[0.55rem]">
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="text-sm font-semibold text-zinc-200">Active provider</h3>
+            <span class="rounded-full border border-white/10 bg-white/[0.06] px-3 py-[0.45rem] text-xs text-lime-300">
+              {@provider_status["selected_source"]}
+            </span>
+          </div>
+          <p class="text-sm text-zinc-400">
+            Provider: {@provider_status["selected_provider"]} / {@provider_status["selected_model"] ||
+              "default"}
+          </p>
+          <p class="text-sm text-zinc-400">
+            Base URL: {selected_base_url(@provider_status)}
+          </p>
+          <p class="text-sm text-zinc-400">
+            Auth: {@provider_status["selected_auth_mode"]} / {@provider_status["selected_auth_owner"]}
+          </p>
+          <p class="text-sm text-zinc-400">
+            Bootstrap mode: {@provider_status["bootstrap"]["mode"]}
+          </p>
+          <p class="text-sm text-zinc-400">
+            Fallback chain: {Enum.join(@provider_status["fallback_chain"], ", ")}
+          </p>
+        </article>
+      </div>
+    </section>
+    """
+  end
+
+  attr :registry_status, :map, required: true
+
+  def registry_cache(assigns) do
+    ~H"""
+    <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+        ACP registry cache
+      </p>
+      <div class="mt-5 grid gap-4 border-t border-white/10 pt-4">
+        <article
+          class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 grid gap-[0.55rem]"
+          id="skills-registry-status"
+        >
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="text-sm font-semibold text-zinc-200">Cache status</h3>
+            <span class={[
+              "rounded-full border px-3 py-[0.45rem] text-xs",
+              (@registry_status["stale"] && "border-amber-200/20 bg-amber-300/10 text-amber-100") ||
+                "border-white/10 bg-white/[0.06] text-lime-300"
+            ]}>
+              {if @registry_status["stale"], do: "stale", else: "fresh"}
+            </span>
+          </div>
+          <p class="text-sm text-zinc-400">
+            Entries: {@registry_status["entry_count"]} / matched integrations: {@registry_status[
+              "matched_integrations"
+            ]}
+          </p>
+          <p class="text-sm text-zinc-400">
+            Fetched at: {@registry_status["fetched_at"] || "never"}
+          </p>
+        </article>
+      </div>
+    </section>
+    """
+  end
+
+  defp selected_base_url(%{"provider_chain" => [resolution | _]}) do
+    resolution["base_url"] || "default"
+  end
+
+  defp selected_base_url(_status), do: "default"
 end

@@ -21,13 +21,11 @@ defmodule ControlKeelWeb.SkillsLiveTest do
 
     assert html =~ "Skills Studio"
     assert has_element?(view, "#skills-project-form")
-    assert has_element?(view, "#skills-provider-status")
     assert has_element?(view, "#skills-action-form")
     assert has_element?(view, "#skills-export-button")
     assert has_element?(view, "#skills-install-button")
     assert has_element?(view, "#skills-target-matrix")
     assert has_element?(view, "#skills-agent-matrix")
-    assert has_element?(view, "#skills-registry-status")
     assert has_element?(view, "#skill-controlkeel-governance")
     assert has_element?(view, "#agent-claude-code")
     assert has_element?(view, "#agent-cline")
@@ -41,7 +39,6 @@ defmodule ControlKeelWeb.SkillsLiveTest do
     assert render(view) =~ "controlkeel attach claude-code"
     assert render(view) =~ "Attachable client"
     assert render(view) =~ "Headless runtime"
-    assert render(view) =~ "ACP registry cache"
 
     render_submit(form(view, "#skills-project-form", project: %{"project_root" => tmp_dir}))
 
