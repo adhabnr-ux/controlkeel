@@ -141,8 +141,27 @@ defmodule ControlKeel.SelfHost do
       |> Enum.reject(fn {_name, content} -> is_nil(content) end)
 
     case :erl_tar.create(String.to_charlist(output), entries, [:compressed]) do
-      :ok -> :ok
+      :ok -> zero_gzip_mtime(output)
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # Gzip format embeds a 4-byte MTIME at offset 4 (bytes 4–7) in the header.
+  # Two packs of identical content at different wall-clock seconds produce
+  # different MTIME values and therefore different sha256. Zero the field so
+  # the sha256 reflects only content, enabling deterministic integrity checking.
+  defp zero_gzip_mtime(path) do
+    with {:ok, data} <- File.read(path),
+         true <- byte_size(data) >= 10 do
+      zeroed =
+        :binary.part(data, 0, 4) <>
+          <<0, 0, 0, 0>> <>
+          :binary.part(data, 8, byte_size(data) - 8)
+
+      File.write!(path, zeroed)
+      :ok
+    else
+      _ -> :ok
     end
   end
 
