@@ -43,6 +43,59 @@ binary_asset_name() {
   esac
 }
 
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  else
+    return 1
+  fi
+}
+
+# Verify the downloaded binary against the published controlkeel-checksums.txt
+# before it is ever made executable or moved into place. Fails closed: a
+# missing checksums file, a missing entry, an absent sha256 tool, or a
+# mismatch all abort the install. Set CONTROLKEEL_SKIP_CHECKSUM=1 to bypass.
+verify_checksum() {
+  file="$1"
+  asset="$2"
+  base_url="$3"
+
+  if [ "${CONTROLKEEL_SKIP_CHECKSUM:-}" = "1" ]; then
+    echo "warning: CONTROLKEEL_SKIP_CHECKSUM=1 set; skipping integrity verification" >&2
+    return 0
+  fi
+
+  checksums="${TMP_DIR}/controlkeel-checksums.txt"
+  if ! curl -fsSL "${base_url}/controlkeel-checksums.txt" -o "$checksums"; then
+    echo "error: could not download checksums for integrity verification" >&2
+    echo "       set CONTROLKEEL_SKIP_CHECKSUM=1 to bypass (not recommended)" >&2
+    exit 1
+  fi
+
+  expected="$(awk -v a="$asset" '$2 ~ ("(^|/)" a "$") {print $1; exit}' "$checksums")"
+  if [ -z "$expected" ]; then
+    echo "error: no checksum entry for ${asset}; refusing to install" >&2
+    exit 1
+  fi
+
+  if ! actual="$(sha256_of "$file")"; then
+    echo "error: no sha256 tool (sha256sum/shasum) available to verify download" >&2
+    echo "       set CONTROLKEEL_SKIP_CHECKSUM=1 to bypass (not recommended)" >&2
+    exit 1
+  fi
+
+  if [ "$expected" != "$actual" ]; then
+    echo "error: checksum mismatch for ${asset}" >&2
+    echo "  expected: ${expected}" >&2
+    echo "  actual:   ${actual}" >&2
+    exit 1
+  fi
+
+  echo "Verified ${asset} (sha256 ${actual})"
+}
+
 release_base_url() {
   if [ "$VERSION" = "latest" ]; then
     printf "https://github.com/%s/releases/latest/download" "$REPO"
@@ -77,6 +130,7 @@ trap cleanup EXIT INT TERM
 mkdir -p "$DEST_DIR"
 
 curl -fsSL "${BASE_URL}/${ASSET}" -o "${TMP_DIR}/controlkeel"
+verify_checksum "${TMP_DIR}/controlkeel" "$ASSET" "$BASE_URL"
 chmod +x "${TMP_DIR}/controlkeel"
 mv "${TMP_DIR}/controlkeel" "${DEST_DIR}/controlkeel"
 

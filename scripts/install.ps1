@@ -22,12 +22,63 @@ function Get-ReleaseBaseUrl {
   return "https://github.com/$Repository/releases/download/v$Version"
 }
 
+$AssetName = "controlkeel-windows-x86_64.exe"
 $DestinationRoot = Get-DefaultInstallDir
 $Destination = Join-Path $DestinationRoot "controlkeel.exe"
-$DownloadUrl = "$(Get-ReleaseBaseUrl)/controlkeel-windows-x86_64.exe"
+$BaseUrl = Get-ReleaseBaseUrl
+$DownloadUrl = "$BaseUrl/$AssetName"
+
+# Verify the download against the published controlkeel-checksums.txt before
+# moving it into place. Fails closed: missing checksums, missing entry, or a
+# mismatch all abort. Set $env:CONTROLKEEL_SKIP_CHECKSUM=1 to bypass.
+function Confirm-Checksum {
+  param([string]$FilePath, [string]$Asset, [string]$BaseUrl)
+
+  if ($env:CONTROLKEEL_SKIP_CHECKSUM -eq "1") {
+    Write-Warning "CONTROLKEEL_SKIP_CHECKSUM=1 set; skipping integrity verification"
+    return
+  }
+
+  $checksumsPath = Join-Path ([System.IO.Path]::GetTempPath()) "controlkeel-checksums.txt"
+  try {
+    Invoke-WebRequest -Uri "$BaseUrl/controlkeel-checksums.txt" -OutFile $checksumsPath
+  }
+  catch {
+    throw "Could not download checksums for integrity verification. Set `$env:CONTROLKEEL_SKIP_CHECKSUM=1 to bypass (not recommended)."
+  }
+
+  $expected = $null
+  foreach ($line in Get-Content $checksumsPath) {
+    $parts = $line -split '\s+', 2
+    if ($parts.Count -eq 2) {
+      $name = ($parts[1].Trim() -split '[\\/]')[-1]
+      if ($name -eq $Asset) { $expected = $parts[0].Trim(); break }
+    }
+  }
+
+  if (-not $expected) {
+    throw "No checksum entry for $Asset; refusing to install."
+  }
+
+  $actual = (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash
+  if ($actual -ine $expected) {
+    throw "Checksum mismatch for $Asset.`n  expected: $expected`n  actual:   $actual"
+  }
+
+  Write-Host "Verified $Asset (sha256 $actual)"
+}
 
 New-Item -ItemType Directory -Force -Path $DestinationRoot | Out-Null
-Invoke-WebRequest -Uri $DownloadUrl -OutFile $Destination
+
+$TempFile = Join-Path ([System.IO.Path]::GetTempPath()) "controlkeel-$([System.Guid]::NewGuid().ToString('N')).exe"
+try {
+  Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempFile
+  Confirm-Checksum -FilePath $TempFile -Asset $AssetName -BaseUrl $BaseUrl
+  Move-Item -Path $TempFile -Destination $Destination -Force
+}
+finally {
+  if (Test-Path $TempFile) { Remove-Item $TempFile -Force -ErrorAction SilentlyContinue }
+}
 
 $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if (-not $UserPath) {
