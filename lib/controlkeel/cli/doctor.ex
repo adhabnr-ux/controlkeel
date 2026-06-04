@@ -5,9 +5,12 @@ defmodule ControlKeel.CLI.Doctor do
   alias ControlKeel.CLI.Catalog
   alias ControlKeel.ExecutionSandbox
   alias ControlKeel.LocalProject
+  alias ControlKeel.ProjectBinding
   alias ControlKeel.ProjectRoot
   alias ControlKeel.ProviderBroker
   alias ControlKeel.SetupAdvisor
+
+  @ck_gitignore_required ["/controlkeel/", "/.controlkeel/"]
 
   def payload(project_root, version) do
     root = ProjectRoot.resolve(project_root)
@@ -47,13 +50,16 @@ defmodule ControlKeel.CLI.Doctor do
     }
 
     {binding_status, binding, session} = load_binding(root)
+    health = install_health(root, version, binding)
 
     base
+    |> Map.put("status", if(health["ok"], do: "ok", else: "attention"))
     |> Map.put("binding", binding_status)
     |> Map.put("session", session_payload(session))
     |> Map.put("governance", governance_payload(session))
+    |> Map.put("install_health", health)
     |> Map.put("attached_agents", if(binding, do: attached_agent_payload(binding), else: []))
-    |> Map.put("next_steps", next_steps(binding_status, session, agents))
+    |> Map.put("next_steps", next_steps(binding_status, session, agents, health))
   end
 
   def lines(payload) do
@@ -75,9 +81,27 @@ defmodule ControlKeel.CLI.Doctor do
       "Sandbox: #{get_in(payload, ["sandbox", "adapter"])}",
       "Attached agents: #{if agents["attached"] == [], do: "none", else: Enum.join(agents["attached"], ", ")}",
       "Agent readiness: direct=#{length(agents["direct_ready"])} handoff=#{length(agents["handoff_ready"])} runtime=#{length(agents["runtime_ready"])}",
-      "CLI capabilities: #{capabilities["command_count"]} command(s) across #{length(capabilities["families"])} families",
-      "Next steps:"
-    ] ++ Enum.map(payload["next_steps"], &"  - #{&1}")
+      "CLI capabilities: #{capabilities["command_count"]} command(s) across #{length(capabilities["families"])} families"
+    ] ++ install_health_lines(payload["install_health"]) ++
+      ["Next steps:"] ++ Enum.map(payload["next_steps"], &"  - #{&1}")
+  end
+
+  defp install_health_lines(nil), do: []
+
+  defp install_health_lines(health) do
+    gitignore = health["gitignore"]
+
+    gitignore_status =
+      if gitignore["complete"],
+        do: "complete",
+        else: "incomplete (missing #{Enum.join(gitignore["missing"], ", ")})"
+
+    [
+      "Install health: #{if health["ok"], do: "ok", else: "attention"}",
+      "  git: #{if health["git_available"], do: "available", else: "MISSING"}",
+      "  gitignore: #{gitignore_status}",
+      "  mcp wrapper: #{if get_in(health, ["mcp_wrapper", "present"]), do: "present", else: "missing"}"
+    ] ++ Enum.map(health["problems"] || [], &"  ! #{&1}")
   end
 
   defp load_binding(root) do
@@ -132,18 +156,95 @@ defmodule ControlKeel.CLI.Doctor do
   defp loaded_assoc(nil), do: []
   defp loaded_assoc(values) when is_list(values), do: values
 
-  defp next_steps(%{"status" => "missing"}, _session, _agents) do
+  defp next_steps(%{"status" => "missing"}, _session, _agents, _health) do
     ["controlkeel init", "controlkeel attach <agent>", "controlkeel doctor --json"]
   end
 
-  defp next_steps(_binding, session, agents) do
+  defp next_steps(_binding, session, agents, health) do
     base = ["controlkeel status --json", "controlkeel findings"]
 
     attach =
       if (agents["attached_agents"] || []) == [], do: ["controlkeel attach doctor"], else: []
 
     proof = if session, do: ["controlkeel proofs"], else: []
-    base ++ attach ++ proof
+    base ++ attach ++ proof ++ install_health_next_steps(health)
+  end
+
+  defp install_health_next_steps(%{"ok" => true}), do: []
+
+  defp install_health_next_steps(health) do
+    drift = if Enum.any?(health["attached"] || [], & &1["version_drift"]), do: true, else: false
+
+    []
+    |> prepend_if(not get_in(health, ["mcp_wrapper", "present"]), "controlkeel attach <agent>")
+    |> prepend_if(not get_in(health, ["gitignore", "complete"]), "controlkeel init")
+    |> prepend_if(drift, "controlkeel update --sync-attached")
+  end
+
+  defp prepend_if(list, true, step), do: list ++ [step]
+  defp prepend_if(list, _false, _step), do: list
+
+  defp install_health(root, version, binding) do
+    git_available = ControlKeel.Git.available?()
+    gitignore = gitignore_health(root)
+    wrapper_path = ProjectBinding.mcp_wrapper_path(root)
+    wrapper_present = File.exists?(wrapper_path)
+    attached = attached_health(version, binding)
+
+    drifted = Enum.filter(attached, & &1["version_drift"])
+    missing_dest = Enum.filter(attached, &(&1["destination_present"] == false))
+
+    problems =
+      [
+        unless(git_available, do: "git not on PATH (git-backed proof/worktrees unavailable)"),
+        unless(gitignore["complete"], do: "gitignore missing: " <> Enum.join(gitignore["missing"], ", ")),
+        unless(wrapper_present, do: "MCP wrapper missing (run: controlkeel attach <agent>)"),
+        if(drifted != [], do: "version drift: " <> Enum.map_join(drifted, ", ", & &1["agent"])),
+        if(missing_dest != [],
+          do: "attached skills missing on disk: " <> Enum.map_join(missing_dest, ", ", & &1["agent"])
+        )
+      ]
+      |> Enum.reject(&is_nil/1)
+
+    %{
+      "git_available" => git_available,
+      "gitignore" => gitignore,
+      "mcp_wrapper" => %{"present" => wrapper_present, "path" => wrapper_path},
+      "attached" => attached,
+      "problems" => problems,
+      "ok" => problems == []
+    }
+  end
+
+  defp gitignore_health(root) do
+    contents =
+      case File.read(Path.join(root, ".gitignore")) do
+        {:ok, value} -> value
+        _ -> ""
+      end
+
+    missing = Enum.reject(@ck_gitignore_required, &String.contains?(contents, &1))
+    %{"present" => contents != "", "missing" => missing, "complete" => missing == []}
+  end
+
+  defp attached_health(_version, nil), do: []
+
+  defp attached_health(version, binding) do
+    binding
+    |> Map.get("attached_agents", %{})
+    |> Enum.sort_by(fn {agent, _attrs} -> agent end)
+    |> Enum.map(fn {agent, attrs} ->
+      agent_version = attrs["controlkeel_version"] || "unknown"
+      dest = attrs["destination"] || attrs["config_destination"]
+
+      %{
+        "agent" => agent,
+        "controlkeel_version" => agent_version,
+        "version_drift" => agent_version != "unknown" and agent_version != version,
+        "destination" => dest,
+        "destination_present" => if(is_binary(dest), do: File.exists?(dest), else: nil)
+      }
+    end)
   end
 
   defp attached_agent_payload(binding) do
