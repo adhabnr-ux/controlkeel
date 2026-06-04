@@ -618,6 +618,20 @@ defmodule ControlKeel.MissionTest do
                  "mix test test/controlkeel/mission_test.exs",
                  "mix precommit"
                ],
+               "agent_spec_id" => "code reviewer v1",
+               "task_spec_id" => "review plan metadata v1",
+               "agent_role" => "code reviewer",
+               "task_scope" => "Review implementation plans before execution",
+               "out_of_scope" => ["Approve production deploys without evidence"],
+               "business_rules" => ["Approved plans still gate execution"],
+               "domain_terms" => ["review gate", "proof bundle"],
+               "persona_or_actor_context" => "forward-deployed engineer",
+               "allowed_actions" => ["submit_review", "record_finding"],
+               "prohibited_actions" => ["bypass_review_gate"],
+               "robustness_requirements" => ["paraphrased semantic changes still require review"],
+               "linked_policy_packs" => ["software"],
+               "linked_benchmark_suites" => ["host_comparison_v1"],
+               "promotion_gates" => ["held-out benchmark evidence passes"],
                "allowed_semantic_changes" => ["Add review metadata only"],
                "forbidden_semantic_changes" => ["Change execution gating behavior"],
                "invariant_boundaries" => ["Approved implementation plans still gate execution"],
@@ -651,6 +665,24 @@ defmodule ControlKeel.MissionTest do
            )
 
     refinement = get_in(review.metadata, ["plan_refinement"])
+    assert refinement["agent_spec_id"] == "code reviewer v1"
+    assert refinement["task_spec_id"] == "review plan metadata v1"
+    assert refinement["agent_role"] == "code reviewer"
+    assert refinement["task_scope"] == "Review implementation plans before execution"
+    assert refinement["out_of_scope"] == ["Approve production deploys without evidence"]
+    assert refinement["business_rules"] == ["Approved plans still gate execution"]
+    assert refinement["domain_terms"] == ["review gate", "proof bundle"]
+    assert refinement["persona_or_actor_context"] == "forward-deployed engineer"
+    assert refinement["allowed_actions"] == ["submit_review", "record_finding"]
+    assert refinement["prohibited_actions"] == ["bypass_review_gate"]
+
+    assert refinement["robustness_requirements"] == [
+             "paraphrased semantic changes still require review"
+           ]
+
+    assert refinement["linked_policy_packs"] == ["software"]
+    assert refinement["linked_benchmark_suites"] == ["host_comparison_v1"]
+    assert refinement["promotion_gates"] == ["held-out benchmark evidence passes"]
     assert refinement["allowed_semantic_changes"] == ["Add review metadata only"]
     assert refinement["forbidden_semantic_changes"] == ["Change execution gating behavior"]
 

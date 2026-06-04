@@ -4611,6 +4611,49 @@ defmodule ControlKeel.Mission do
            optional_string_list(Map.get(raw_refinement, "validation_plan"), "validation_plan"),
          {:ok, code_snippets} <-
            optional_string_list(Map.get(raw_refinement, "code_snippets"), "code_snippets"),
+         {:ok, agent_spec_id} <-
+           optional_trimmed_string(Map.get(raw_refinement, "agent_spec_id"), "agent_spec_id"),
+         {:ok, task_spec_id} <-
+           optional_trimmed_string(Map.get(raw_refinement, "task_spec_id"), "task_spec_id"),
+         {:ok, agent_role} <-
+           optional_trimmed_string(Map.get(raw_refinement, "agent_role"), "agent_role"),
+         {:ok, task_scope} <-
+           optional_trimmed_string(Map.get(raw_refinement, "task_scope"), "task_scope"),
+         {:ok, out_of_scope} <-
+           optional_string_list(Map.get(raw_refinement, "out_of_scope"), "out_of_scope"),
+         {:ok, business_rules} <-
+           optional_string_list(Map.get(raw_refinement, "business_rules"), "business_rules"),
+         {:ok, domain_terms} <-
+           optional_string_list(Map.get(raw_refinement, "domain_terms"), "domain_terms"),
+         {:ok, persona_or_actor_context} <-
+           optional_trimmed_string(
+             Map.get(raw_refinement, "persona_or_actor_context"),
+             "persona_or_actor_context"
+           ),
+         {:ok, allowed_actions} <-
+           optional_string_list(Map.get(raw_refinement, "allowed_actions"), "allowed_actions"),
+         {:ok, prohibited_actions} <-
+           optional_string_list(
+             Map.get(raw_refinement, "prohibited_actions"),
+             "prohibited_actions"
+           ),
+         {:ok, robustness_requirements} <-
+           optional_string_list(
+             Map.get(raw_refinement, "robustness_requirements"),
+             "robustness_requirements"
+           ),
+         {:ok, linked_policy_packs} <-
+           optional_string_list(
+             Map.get(raw_refinement, "linked_policy_packs"),
+             "linked_policy_packs"
+           ),
+         {:ok, linked_benchmark_suites} <-
+           optional_string_list(
+             Map.get(raw_refinement, "linked_benchmark_suites"),
+             "linked_benchmark_suites"
+           ),
+         {:ok, promotion_gates} <-
+           optional_string_list(Map.get(raw_refinement, "promotion_gates"), "promotion_gates"),
          {:ok, allowed_semantic_changes} <-
            optional_string_list(
              Map.get(raw_refinement, "allowed_semantic_changes"),
@@ -4659,6 +4702,20 @@ defmodule ControlKeel.Mission do
           "implementation_steps" => implementation_steps,
           "validation_plan" => validation_plan,
           "code_snippets" => code_snippets,
+          "agent_spec_id" => agent_spec_id,
+          "task_spec_id" => task_spec_id,
+          "agent_role" => agent_role,
+          "task_scope" => task_scope,
+          "out_of_scope" => out_of_scope,
+          "business_rules" => business_rules,
+          "domain_terms" => domain_terms,
+          "persona_or_actor_context" => persona_or_actor_context,
+          "allowed_actions" => allowed_actions,
+          "prohibited_actions" => prohibited_actions,
+          "robustness_requirements" => robustness_requirements,
+          "linked_policy_packs" => linked_policy_packs,
+          "linked_benchmark_suites" => linked_benchmark_suites,
+          "promotion_gates" => promotion_gates,
           "allowed_semantic_changes" => allowed_semantic_changes,
           "forbidden_semantic_changes" => forbidden_semantic_changes,
           "invariant_boundaries" => invariant_boundaries,
@@ -4711,6 +4768,29 @@ defmodule ControlKeel.Mission do
     |> maybe_override_refinement("implementation_steps", Map.get(attrs, "implementation_steps"))
     |> maybe_override_refinement("validation_plan", Map.get(attrs, "validation_plan"))
     |> maybe_override_refinement("code_snippets", Map.get(attrs, "code_snippets"))
+    |> maybe_override_refinement("agent_spec_id", Map.get(attrs, "agent_spec_id"))
+    |> maybe_override_refinement("task_spec_id", Map.get(attrs, "task_spec_id"))
+    |> maybe_override_refinement("agent_role", Map.get(attrs, "agent_role"))
+    |> maybe_override_refinement("task_scope", Map.get(attrs, "task_scope"))
+    |> maybe_override_refinement("out_of_scope", Map.get(attrs, "out_of_scope"))
+    |> maybe_override_refinement("business_rules", Map.get(attrs, "business_rules"))
+    |> maybe_override_refinement("domain_terms", Map.get(attrs, "domain_terms"))
+    |> maybe_override_refinement(
+      "persona_or_actor_context",
+      Map.get(attrs, "persona_or_actor_context")
+    )
+    |> maybe_override_refinement("allowed_actions", Map.get(attrs, "allowed_actions"))
+    |> maybe_override_refinement("prohibited_actions", Map.get(attrs, "prohibited_actions"))
+    |> maybe_override_refinement(
+      "robustness_requirements",
+      Map.get(attrs, "robustness_requirements")
+    )
+    |> maybe_override_refinement("linked_policy_packs", Map.get(attrs, "linked_policy_packs"))
+    |> maybe_override_refinement(
+      "linked_benchmark_suites",
+      Map.get(attrs, "linked_benchmark_suites")
+    )
+    |> maybe_override_refinement("promotion_gates", Map.get(attrs, "promotion_gates"))
     |> maybe_override_refinement(
       "allowed_semantic_changes",
       Map.get(attrs, "allowed_semantic_changes")

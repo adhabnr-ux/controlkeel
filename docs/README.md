@@ -12,6 +12,7 @@ Essential documentation for ControlKeel governance.
 ## Product and behavior reference
 
 - [benchmarks.md](benchmarks.md): benchmark and evaluation surfaces
+- [agent-specs.md](agent-specs.md): reusable agent/task behavior contracts for specs, reviews, and benchmarks
 - [observability-feedback-loop.md](observability-feedback-loop.md): local eval-to-draft-to-benchmark-to-promotion-advisory workflow
 - [code-mode-governance.md](code-mode-governance.md): progressive discovery, generated scripts, and code-mode runtime guardrails
 - [cost-governance.md](cost-governance.md): token, rate-limit, subscription-window, and budget-control guidance

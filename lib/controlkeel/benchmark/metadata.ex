@@ -15,6 +15,15 @@ defmodule ControlKeel.Benchmark.Metadata do
   # Documented signal_source values (production signal eval seeds)
   @valid_signal_sources ~w(explicit implicit trajectory self_diagnostic)
 
+  @agent_spec_string_fields ~w(
+    agent_spec_id agent_spec_version task_spec_id agent_role task_scope persona_or_actor_context
+  )
+
+  @agent_spec_list_fields ~w(
+    out_of_scope business_rules domain_terms allowed_actions prohibited_actions
+    robustness_requirements linked_policy_packs linked_benchmark_suites promotion_gates
+  )
+
   def normalize_scenario_metadata(payload) when is_map(payload) do
     metadata =
       payload
@@ -81,6 +90,16 @@ defmodule ControlKeel.Benchmark.Metadata do
   """
   def valid_signal_sources, do: @valid_signal_sources
 
+  @doc """
+  Returns documented Agent/Task Spec metadata fields grouped by expected shape.
+  """
+  def agent_spec_fields do
+    %{
+      "string" => @agent_spec_string_fields,
+      "string_list" => @agent_spec_list_fields
+    }
+  end
+
   def default_metadata do
     %{
       "task_type" => "backend",
@@ -98,6 +117,52 @@ defmodule ControlKeel.Benchmark.Metadata do
     |> coerce_enum("eval_mode", @valid_eval_modes)
     |> coerce_enum("failure_dimension", @valid_failure_dimensions)
     |> coerce_enum("signal_source", @valid_signal_sources)
+    |> normalize_agent_spec_fields()
+  end
+
+  defp normalize_agent_spec_fields(metadata) do
+    metadata
+    |> normalize_string_fields(@agent_spec_string_fields)
+    |> normalize_string_list_fields(@agent_spec_list_fields)
+  end
+
+  defp normalize_string_fields(metadata, fields) do
+    Enum.reduce(fields, metadata, fn key, acc ->
+      case Map.get(acc, key) do
+        nil ->
+          acc
+
+        value when is_binary(value) ->
+          case String.trim(value) do
+            "" -> Map.delete(acc, key)
+            trimmed -> Map.put(acc, key, trimmed)
+          end
+
+        _ ->
+          Map.delete(acc, key)
+      end
+    end)
+  end
+
+  defp normalize_string_list_fields(metadata, fields) do
+    Enum.reduce(fields, metadata, fn key, acc ->
+      case Map.get(acc, key) do
+        nil ->
+          acc
+
+        values when is_list(values) ->
+          normalized =
+            values
+            |> Enum.filter(&is_binary/1)
+            |> Enum.map(&String.trim/1)
+            |> Enum.reject(&(&1 == ""))
+
+          if normalized == [], do: Map.delete(acc, key), else: Map.put(acc, key, normalized)
+
+        _ ->
+          Map.delete(acc, key)
+      end
+    end)
   end
 
   defp coerce_enum(metadata, key, valid_values) do

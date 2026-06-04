@@ -1453,6 +1453,14 @@ defmodule ControlKeel.MCP.ProtocolTest do
               "Check plan continuity in proof bundles"
             ],
             "validation_plan" => ["mix test", "mix precommit"],
+            "agent_spec_id" => "code reviewer v1",
+            "task_spec_id" => "plan review v1",
+            "agent_role" => "code reviewer",
+            "task_scope" => "Review implementation plans before execution",
+            "allowed_actions" => ["submit_review"],
+            "prohibited_actions" => ["bypass_review_gate"],
+            "robustness_requirements" => ["paraphrases"],
+            "promotion_gates" => ["held-out benchmark evidence passes"],
             "allowed_semantic_changes" => ["Extend review metadata"],
             "forbidden_semantic_changes" => ["Change execution gating"],
             "invariant_boundaries" => ["Review approval remains required"],
@@ -1475,6 +1483,27 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "alignment_context"
            ]) !=
              []
+
+    assert get_in(response, [
+             "result",
+             "structuredContent",
+             "plan_refinement",
+             "agent_spec_id"
+           ]) == "code reviewer v1"
+
+    assert get_in(response, [
+             "result",
+             "structuredContent",
+             "plan_refinement",
+             "task_spec_id"
+           ]) == "plan review v1"
+
+    assert get_in(response, [
+             "result",
+             "structuredContent",
+             "plan_refinement",
+             "allowed_actions"
+           ]) == ["submit_review"]
 
     assert get_in(response, [
              "result",
@@ -3077,6 +3106,33 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert resource["uri"] == "skills://controlkeel-governance"
     assert resource["text"] =~ "<skill_content"
     assert is_list(resource["resources"])
+  end
+
+  test "tools/call ck_load_resources loads multiple skill resources in order" do
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 65,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_load_resources",
+          "arguments" => %{
+            "uris" => ["skills://controlkeel-governance", "skills://investigate"],
+            "session_id" => 123
+          }
+        }
+      })
+
+    assert %{"result" => %{"structuredContent" => %{"resources" => resources, "total" => 2}}} =
+             response
+
+    assert Enum.map(resources, & &1["uri"]) == [
+             "skills://controlkeel-governance",
+             "skills://investigate"
+           ]
+
+    assert Enum.all?(resources, &String.contains?(&1["text"], "<skill_content"))
+    assert Enum.all?(resources, &is_list(&1["resources"]))
   end
 
   defp write_fake_controlkeel_cli_mixenv(tmp_dir) do

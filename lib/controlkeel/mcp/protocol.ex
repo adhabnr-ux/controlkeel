@@ -1528,7 +1528,7 @@ defmodule ControlKeel.MCP.Protocol do
           "review_type controls what is being submitted: plan (before implementation), diff (before merging), or completion (task done). " <>
           "submission_body is the full content: plan text, diff, or completion description. " <>
           "For iterative plan refinement, pass previous_review_id and plan_phase (ticket → research_packet → design_options → narrowed_decision → implementation_plan → code_backed_plan). " <>
-          "The plan-quality scorer evaluates structured fields, not just submission_body — populate research_summary, options_considered, selected_option, rejected_options, implementation_steps, validation_plan, code_snippets, alignment_context, consulted_roles, codebase_findings, prior_art_summary, allowed_semantic_changes, forbidden_semantic_changes, invariant_boundaries, requires_reapproval_if, harness_quality_checks, and scope_estimate for a strong score. " <>
+          "The plan-quality scorer evaluates structured fields, not just submission_body — populate research_summary, options_considered, selected_option, rejected_options, implementation_steps, validation_plan, code_snippets, alignment_context, consulted_roles, codebase_findings, prior_art_summary, agent_spec_id, task_spec_id, agent_role, task_scope, out_of_scope, business_rules, domain_terms, allowed_actions, prohibited_actions, robustness_requirements, linked_policy_packs, linked_benchmark_suites, promotion_gates, allowed_semantic_changes, forbidden_semantic_changes, invariant_boundaries, requires_reapproval_if, harness_quality_checks, and scope_estimate for a strong score. " <>
           "Returns review_id, status (pending), and a URL where the human reviewer can approve or deny. " <>
           "After submission, poll ck_review_status until the decision is approved or denied before proceeding. " <>
           "Use ck_review_feedback (human-facing) to record a decision on an existing review.",
@@ -1612,6 +1612,39 @@ defmodule ControlKeel.MCP.Protocol do
           "implementation_steps" => %{"type" => "array", "items" => %{"type" => "string"}},
           "validation_plan" => %{"type" => "array", "items" => %{"type" => "string"}},
           "code_snippets" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "agent_spec_id" => %{
+            "type" => "string",
+            "description" =>
+              "Stable identifier for the agent role or task contract this plan is implementing."
+          },
+          "task_spec_id" => %{
+            "type" => "string",
+            "description" =>
+              "Stable identifier for the task-level behavior contract this plan is implementing."
+          },
+          "agent_role" => %{
+            "type" => "string",
+            "description" =>
+              "Reviewed role label such as support agent, code reviewer, deployment agent, or sales assistant."
+          },
+          "task_scope" => %{
+            "type" => "string",
+            "description" => "What the agent or task is expected to accomplish under this plan."
+          },
+          "out_of_scope" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "business_rules" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "domain_terms" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "persona_or_actor_context" => %{
+            "type" => "string",
+            "description" =>
+              "User role, customer tier, permission state, or operating context relevant to behavior."
+          },
+          "allowed_actions" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "prohibited_actions" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "robustness_requirements" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "linked_policy_packs" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "linked_benchmark_suites" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "promotion_gates" => %{"type" => "array", "items" => %{"type" => "string"}},
           "allowed_semantic_changes" => %{
             "type" => "array",
             "items" => %{"type" => "string"},
@@ -2546,7 +2579,7 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_load_resources",
       "description" =>
-        "Fallback for clients that do not support MCP resources. Load one or more CK resource URIs such as skills://<name>.",
+        "Fallback for clients that do not support MCP resources or native bulk skill loading. Load one or more CK resource URIs such as skills://<name>; pass multiple skills:// URIs to activate several skills in one governed CK call.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["uris"],

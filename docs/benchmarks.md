@@ -236,6 +236,27 @@ For search-sensitive agent workflows, add retrieval-specific metadata instead of
 
 The goal is to measure whether a retrieval surface helps the agent choose the right file sooner. Faster search calls are useful, but promotion should depend on retrieval quality and held-out end-to-end outcomes, not latency alone.
 
+### Agent and task spec metadata
+
+For agent-facing products, scenario metadata should describe the behavior contract independently of the implementation. Treat this as an **Agent/Task Spec** layer: it should be portable across hosts, prompts, models, and orchestration frameworks, and it should not automatically mutate CK policy, router, prompt, or skill artifacts. See [agent-specs.md](agent-specs.md) for the full operating model.
+
+Useful fields include:
+
+- `agent_spec_id`: stable identifier for the role or task contract being evaluated
+- `agent_spec_version`: version of that contract when the scenario was created
+- `agent_role`: support agent, code reviewer, deployment agent, sales assistant, or another reviewed role label
+- `task_scope`: what the agent is expected to accomplish
+- `out_of_scope`: topics, actions, or requests the agent should refuse, redirect, or escalate
+- `business_rules`: domain or product rules that must hold, such as refund windows, discount limits, or release gates
+- `domain_terms`: ontology, dictionary, or internal terminology that constrains valid substitutions
+- `persona_or_actor_context`: user role, customer tier, permission state, or operating context relevant to the expected behavior
+- `allowed_actions` and `prohibited_actions`: tool or infrastructure actions that define the safe operating envelope
+- `robustness_requirements`: perturbations the behavior should survive, such as typos, paraphrases, frustrated users, ambiguous wording, or adversarial wrapping
+- `linked_policy_packs`: CK policy packs that should govern the scenario
+- `linked_benchmark_suites`: related suites that should be compared before promotion
+
+This keeps the specification separate from the agent implementation: the same spec can evaluate a raw host, a CK-attached host, a typed runtime, or a future model. If a spec reveals a recurring failure, promote it through the normal CK loop — finding, review, benchmark draft, materialized scenario, held-out evidence — rather than silently rewriting runtime behavior.
+
 **Context pruning warning**: Aggressive context pruning can "lobotomize" models. Mario found that some harnesses prune tool output after a minimum token amount, removing crucial context that models need to reason effectively. CK's compaction strategies (llm_summary, attention_guided_kv_compaction) are designed to preserve decision traceability while managing context growth, not to silently lobotomize the model.
 
 ControlKeel now exposes split summaries and behavior-tag summaries in benchmark run metadata and exports so teams can see whether a result came from optimization-friendly coverage, held-out evidence, or both.
