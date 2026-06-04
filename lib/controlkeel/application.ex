@@ -82,6 +82,7 @@ defmodule ControlKeel.Application do
       cloud_emitter_children() ++
       mailer_test_inbox_children() ++
       retention_scheduler_children() ++
+      db_maintenance_children() ++
       [ControlKeel.Cloud.RateLimiter, ControlKeel.Cloud.UsageMeter] ++
       [
         {DNSCluster, query: Application.get_env(:controlkeel, :dns_cluster_query) || :ignore},
@@ -277,6 +278,14 @@ defmodule ControlKeel.Application do
   defp retention_scheduler_children do
     if ControlKeel.Memory.RetentionScheduler.enabled?() do
       [ControlKeel.Memory.RetentionScheduler]
+    else
+      []
+    end
+  end
+
+  defp db_maintenance_children do
+    if ControlKeel.DatabaseMaintenance.enabled?() do
+      [ControlKeel.DatabaseMaintenance]
     else
       []
     end

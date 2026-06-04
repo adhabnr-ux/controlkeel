@@ -163,6 +163,63 @@ async function verifyChecksum(filePath, asset) {
   }
 }
 
+/**
+ * Verify a cosign keyless signature when cosign is available on PATH.
+ * Falls back gracefully when cosign is not installed.
+ */
+async function verifySignature(filePath, asset, baseUrl) {
+  if (process.env.CONTROLKEEL_SKIP_SIGNATURE === "1") return;
+
+  const { execFileSync } = require("node:child_process");
+
+  let cosignPath;
+  try {
+    cosignPath = require("node:child_process").execSync("which cosign 2>/dev/null || where cosign 2>nul", { encoding: "utf8" }).trim();
+  } catch {
+    // cosign not available — checksum-only mode
+    return;
+  }
+
+  if (!cosignPath) return;
+
+  const repo = `${Buffer.from("YXJ5YW1pbnVzL2NvbnRyb2xrZWVs", "base64")}`;
+
+  try {
+    const sigUrl = `${baseUrl}/${asset}.sig`;
+    const certUrl = `${baseUrl}/${asset}.pem`;
+    const sigFile = path.join(os.tmpdir(), `${asset}.sig`);
+    const certFile = path.join(os.tmpdir(), `${asset}.pem`);
+
+    await download(sigUrl, sigFile).catch(() => null);
+    await download(certUrl, certFile).catch(() => null);
+
+    if (!fs.existsSync(sigFile) || !fs.existsSync(certFile)) {
+      // No signature published for this release
+      return;
+    }
+
+    try {
+      execFileSync(cosignPath.split("\n")[0].trim(), [
+        "verify-blob", filePath,
+        "--signature", sigFile,
+        "--certificate", certFile,
+        "--certificate-identity", `https://github.com/${repo}/.github/workflows/release.yml@refs/heads/main`,
+        "--certificate-oidc-issuer", "https://token.actions.githubusercontent.com"
+      ], { stdio: "pipe", timeout: 30000 });
+
+      console.log(`[controlkeel] Verified ${asset} signature (cosign keyless)`);
+    } catch (err) {
+      console.warn(`[controlkeel] Warning: cosign signature verification failed for ${asset}`);
+      console.warn(`             Checksum verification still passed. Set CONTROLKEEL_SKIP_SIGNATURE=1 to suppress.`);
+    } finally {
+      fs.rmSync(sigFile, { force: true });
+      fs.rmSync(certFile, { force: true });
+    }
+  } catch {
+    // Non-fatal — signature verification is best-effort
+  }
+}
+
 async function ensureBinary({ forceDownload = false } = {}) {
   const destination = binaryPath();
 
@@ -177,6 +234,7 @@ async function ensureBinary({ forceDownload = false } = {}) {
 
   await download(url, tempPath);
   await verifyChecksum(tempPath, asset);
+  await verifySignature(tempPath, asset, releaseBaseUrl());
 
   fs.copyFileSync(tempPath, destination);
   fs.rmSync(tempPath, { force: true });

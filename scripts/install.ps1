@@ -66,6 +66,46 @@ function Confirm-Checksum {
   }
 
   Write-Host "Verified $Asset (sha256 $actual)"
+  Confirm-Signature -FilePath $FilePath -Asset $Asset -BaseUrl $BaseUrl
+}
+
+function Confirm-Signature {
+  param($FilePath, $Asset, $BaseUrl)
+
+  if ($env:CONTROLKEEL_SKIP_SIGNATURE -eq "1") { return }
+
+  $cosign = Get-Command cosign -ErrorAction SilentlyContinue
+  if (-not $cosign) {
+    Write-Host "note: cosign not found; skipping signature verification (checksum-only mode)"
+    return
+  }
+
+  $sigUrl = "$BaseUrl/$Asset.sig"
+  $certUrl = "$BaseUrl/$Asset.pem"
+  $sigFile = Join-Path ([System.IO.Path]::GetTempPath()) "$Asset.sig"
+  $certFile = Join-Path ([System.IO.Path]::GetTempPath()) "$Asset.pem"
+
+  try {
+    Invoke-WebRequest -Uri $sigUrl -OutFile $sigFile -ErrorAction SilentlyContinue
+    Invoke-WebRequest -Uri $certUrl -OutFile $certFile -ErrorAction SilentlyContinue
+
+    if ((Test-Path $sigFile) -and (Test-Path $certFile)) {
+      $result = & cosign verify-blob $FilePath --signature $sigFile --certificate $certFile `
+        --certificate-identity "https://github.com/$Repository/.github/workflows/release.yml@refs/heads/main" `
+        --certificate-oidc-issuer "https://token.actions.githubusercontent.com" 2>&1
+
+      if ($LASTEXITCODE -eq 0) {
+        Write-Host "Verified $Asset signature (cosign keyless)"
+      } else {
+        Write-Host "warning: cosign signature verification failed for $Asset" -ForegroundColor Yellow
+        Write-Host "         checksum verification still passed; set CONTROLKEEL_SKIP_SIGNATURE=1 to suppress" -ForegroundColor Yellow
+      }
+    }
+  }
+  finally {
+    if (Test-Path $sigFile) { Remove-Item $sigFile -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $certFile) { Remove-Item $certFile -Force -ErrorAction SilentlyContinue }
+  }
 }
 
 New-Item -ItemType Directory -Force -Path $DestinationRoot | Out-Null

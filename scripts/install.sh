@@ -94,6 +94,44 @@ verify_checksum() {
   fi
 
   echo "Verified ${asset} (sha256 ${actual})"
+  verify_signature "$file" "$asset" "$base_url"
+}
+
+# Verify the cosign signature when cosign is installed. Falls back gracefully
+# when cosign is not available. Cosign keyless signing uses GitHub OIDC identity.
+verify_signature() {
+  file="$1"
+  asset="$2"
+  base_url="$3"
+
+  if [ "${CONTROLKEEL_SKIP_SIGNATURE:-}" = "1" ]; then
+    return 0
+  fi
+
+  if ! command -v cosign >/dev/null 2>&1; then
+    echo "note: cosign not found; skipping signature verification (checksum-only mode)"
+    return 0
+  fi
+
+  sig_file="${TMP_DIR}/${asset}.sig"
+  cert_file="${TMP_DIR}/${asset}.pem"
+
+  if ! curl -fsSL "${base_url}/${asset}.sig" -o "$sig_file" 2>/dev/null; then
+    echo "note: no cosign signature available for ${asset}; skipping"
+    return 0
+  fi
+
+  if ! curl -fsSL "${base_url}/${asset}.pem" -o "$cert_file" 2>/dev/null; then
+    echo "note: no cosign certificate available for ${asset}; skipping"
+    return 0
+  fi
+
+  if cosign verify-blob "$file"     --signature "$sig_file"     --certificate "$cert_file"     --certificate-identity "https://github.com/${REPO}/.github/workflows/release.yml@refs/heads/main"     --certificate-oidc-issuer "https://token.actions.githubusercontent.com"     >/dev/null 2>&1; then
+    echo "Verified ${asset} signature (cosign keyless)"
+  else
+    echo "warning: cosign signature verification failed for ${asset}" >&2
+    echo "         checksum verification still passed; set CONTROLKEEL_SKIP_SIGNATURE=1 to suppress" >&2
+  fi
 }
 
 release_base_url() {

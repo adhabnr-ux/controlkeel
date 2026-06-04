@@ -241,6 +241,7 @@ defmodule ControlKeel.CLI.Parser do
     json: :boolean
   ]
   @plugin_switches [project_root: :string, scope: :string, mode: :string, json: :boolean]
+  @detach_switches [project_root: :string, json: :boolean, force: :boolean]
   @agents_doctor_switches [project_root: :string, json: :boolean]
   @cloud_doctor_switches [project_root: :string, json: :boolean]
   @cloud_connect_switches [
@@ -434,6 +435,13 @@ defmodule ControlKeel.CLI.Parser do
       ["attach", agent | rest] ->
         if agent in AgentIntegration.attachable_ids() do
           parse_attach(agent, rest)
+        else
+          {:error, ControlKeel.CLI.usage_text()}
+        end
+
+      ["detach", agent | rest] ->
+        if agent in AgentIntegration.attachable_ids() do
+          parse_detach(agent, rest)
         else
           {:error, ControlKeel.CLI.usage_text()}
         end
@@ -1075,6 +1083,21 @@ defmodule ControlKeel.CLI.Parser do
           {:error, message} ->
             {:error, message}
         end
+    end
+  end
+
+  defp parse_detach(agent, argv) do
+    {options, remainder, invalid} = OptionParser.parse(argv, strict: @detach_switches)
+
+    cond do
+      invalid != [] ->
+        {:error, Help.command_parse_error(:detach, invalid, remainder, argv)}
+
+      remainder != [] ->
+        {:error, Help.command_parse_error(:detach, invalid, remainder, argv)}
+
+      true ->
+        {:ok, %{command: :detach, options: options, args: [agent]}}
     end
   end
 

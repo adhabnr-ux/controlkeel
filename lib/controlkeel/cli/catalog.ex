@@ -148,6 +148,8 @@ defmodule ControlKeel.CLI.Catalog do
   defp command_path(:version), do: "version"
   defp command_path(:doctor), do: "doctor"
   defp command_path(:capabilities), do: "capabilities"
+  defp command_path(:detach), do: "detach <agent>"
+
   defp command_path(:attach), do: "attach <agent>"
   defp command_path(:runtime_export), do: "runtime export <id>"
   defp command_path(:review_diff), do: "review diff"
@@ -307,7 +309,7 @@ defmodule ControlKeel.CLI.Catalog do
       spec(
         :attach_hosts,
         "Attach supported agent hosts and verify host-native CK wiring.",
-        [:attach, :attach_doctor, :agents_discover, :agents_doctor, :agents_list],
+        [:attach, :detach, :attach_doctor, :agents_discover, :agents_doctor, :agents_list],
         help_topic: "attach",
         outputs: [:text, :json],
         safety: %{local_write: true, repo_write: true, mutates: true},
