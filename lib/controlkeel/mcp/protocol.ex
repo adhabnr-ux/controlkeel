@@ -1528,7 +1528,7 @@ defmodule ControlKeel.MCP.Protocol do
           "review_type controls what is being submitted: plan (before implementation), diff (before merging), or completion (task done). " <>
           "submission_body is the full content: plan text, diff, or completion description. " <>
           "For iterative plan refinement, pass previous_review_id and plan_phase (ticket → research_packet → design_options → narrowed_decision → implementation_plan → code_backed_plan). " <>
-          "The plan-quality scorer evaluates structured fields, not just submission_body — populate research_summary, options_considered, selected_option, rejected_options, implementation_steps, validation_plan, code_snippets, alignment_context, consulted_roles, codebase_findings, prior_art_summary, and scope_estimate for a strong score. " <>
+          "The plan-quality scorer evaluates structured fields, not just submission_body — populate research_summary, options_considered, selected_option, rejected_options, implementation_steps, validation_plan, code_snippets, alignment_context, consulted_roles, codebase_findings, prior_art_summary, allowed_semantic_changes, forbidden_semantic_changes, invariant_boundaries, requires_reapproval_if, harness_quality_checks, and scope_estimate for a strong score. " <>
           "Returns review_id, status (pending), and a URL where the human reviewer can approve or deny. " <>
           "After submission, poll ck_review_status until the decision is approved or denied before proceeding. " <>
           "Use ck_review_feedback (human-facing) to record a decision on an existing review.",
@@ -1612,6 +1612,34 @@ defmodule ControlKeel.MCP.Protocol do
           "implementation_steps" => %{"type" => "array", "items" => %{"type" => "string"}},
           "validation_plan" => %{"type" => "array", "items" => %{"type" => "string"}},
           "code_snippets" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "allowed_semantic_changes" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" => "Semantic behavior changes explicitly approved for this plan."
+          },
+          "forbidden_semantic_changes" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" =>
+              "Semantic behavior changes the agent must not introduce without a new review."
+          },
+          "invariant_boundaries" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" =>
+              "System invariants and boundaries that must remain true during execution."
+          },
+          "requires_reapproval_if" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" => "Conditions that require human re-approval before continuing."
+          },
+          "harness_quality_checks" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" =>
+              "Agent-harness quality checks such as context hygiene, proof completeness, rollback safety, and compaction fidelity."
+          },
           "scope_estimate" => %{
             "type" => "object",
             "properties" => %{

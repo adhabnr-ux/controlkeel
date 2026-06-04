@@ -378,6 +378,38 @@ defmodule ControlKeel.Scanner.PolicyPacksTest do
   end
 
   # ---------------------------------------------------------------------------
+  # Software governance rules
+  # ---------------------------------------------------------------------------
+
+  describe "software governance rules" do
+    @tag domain_pack: "software"
+    test "agent_semantic_drift warns on unplanned agent behavior changes" do
+      result =
+        FastPath.scan(%{
+          "content" =>
+            "The agent introduced a fallback authentication path without approval and not requested by the plan.",
+          "path" => "reviews/agent_output.md",
+          "domain_pack" => "software"
+        })
+
+      assert Enum.any?(result.findings, &(&1.rule_id == "software.agent_semantic_drift"))
+    end
+
+    @tag domain_pack: "software"
+    test "agent_semantic_drift does not warn when semantic changes are explicitly planned" do
+      result =
+        FastPath.scan(%{
+          "content" =>
+            "The approved plan allows adding a retry path for transient upstream failures and documents the invariant boundary.",
+          "path" => "reviews/approved_plan.md",
+          "domain_pack" => "software"
+        })
+
+      refute Enum.any?(result.findings, &(&1.rule_id == "software.agent_semantic_drift"))
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # Cross-cut: rules don't fire on wrong domain
   # ---------------------------------------------------------------------------
 

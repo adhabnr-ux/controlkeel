@@ -561,6 +561,7 @@ defmodule ControlKeel.MissionTest do
     assert Enum.any?(prompts, &String.starts_with?(&1, "Inversion:"))
     assert Enum.any?(prompts, &String.starts_with?(&1, "Evidence check:"))
     assert Enum.any?(prompts, &String.starts_with?(&1, "Alignment check:"))
+    assert Enum.any?(prompts, &String.starts_with?(&1, "Semantic drift check:"))
   end
 
   test "session-scoped plan reviews without task_id key supersede previous pending review" do
@@ -617,6 +618,11 @@ defmodule ControlKeel.MissionTest do
                  "mix test test/controlkeel/mission_test.exs",
                  "mix precommit"
                ],
+               "allowed_semantic_changes" => ["Add review metadata only"],
+               "forbidden_semantic_changes" => ["Change execution gating behavior"],
+               "invariant_boundaries" => ["Approved implementation plans still gate execution"],
+               "requires_reapproval_if" => ["Execution policy changes"],
+               "harness_quality_checks" => ["Proof bundle keeps plan metadata"],
                "scope_estimate" => %{
                  "files_touched_estimate" => 6,
                  "diff_size_estimate" => 180,
@@ -638,6 +644,22 @@ defmodule ControlKeel.MissionTest do
     assert gate["plan_quality_status"] in ["moderate", "strong"]
     assert gate["plan_quality_score"] >= 70
     assert is_list(gate["grill_questions"])
+
+    assert Enum.any?(
+             gate["grill_questions"],
+             &String.contains?(&1, "semantic changes are explicitly allowed")
+           )
+
+    refinement = get_in(review.metadata, ["plan_refinement"])
+    assert refinement["allowed_semantic_changes"] == ["Add review metadata only"]
+    assert refinement["forbidden_semantic_changes"] == ["Change execution gating behavior"]
+
+    assert refinement["invariant_boundaries"] == [
+             "Approved implementation plans still gate execution"
+           ]
+
+    assert refinement["requires_reapproval_if"] == ["Execution policy changes"]
+    assert refinement["harness_quality_checks"] == ["Proof bundle keeps plan metadata"]
   end
 
   test "reviews are included in the audit log and proof bundle summary" do

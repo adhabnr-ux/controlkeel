@@ -4611,6 +4611,31 @@ defmodule ControlKeel.Mission do
            optional_string_list(Map.get(raw_refinement, "validation_plan"), "validation_plan"),
          {:ok, code_snippets} <-
            optional_string_list(Map.get(raw_refinement, "code_snippets"), "code_snippets"),
+         {:ok, allowed_semantic_changes} <-
+           optional_string_list(
+             Map.get(raw_refinement, "allowed_semantic_changes"),
+             "allowed_semantic_changes"
+           ),
+         {:ok, forbidden_semantic_changes} <-
+           optional_string_list(
+             Map.get(raw_refinement, "forbidden_semantic_changes"),
+             "forbidden_semantic_changes"
+           ),
+         {:ok, invariant_boundaries} <-
+           optional_string_list(
+             Map.get(raw_refinement, "invariant_boundaries"),
+             "invariant_boundaries"
+           ),
+         {:ok, requires_reapproval_if} <-
+           optional_string_list(
+             Map.get(raw_refinement, "requires_reapproval_if"),
+             "requires_reapproval_if"
+           ),
+         {:ok, harness_quality_checks} <-
+           optional_string_list(
+             Map.get(raw_refinement, "harness_quality_checks"),
+             "harness_quality_checks"
+           ),
          {:ok, scope_estimate} <-
            normalize_scope_estimate(Map.get(raw_refinement, "scope_estimate")) do
       depth = next_plan_depth(previous_review)
@@ -4634,6 +4659,11 @@ defmodule ControlKeel.Mission do
           "implementation_steps" => implementation_steps,
           "validation_plan" => validation_plan,
           "code_snippets" => code_snippets,
+          "allowed_semantic_changes" => allowed_semantic_changes,
+          "forbidden_semantic_changes" => forbidden_semantic_changes,
+          "invariant_boundaries" => invariant_boundaries,
+          "requires_reapproval_if" => requires_reapproval_if,
+          "harness_quality_checks" => harness_quality_checks,
           "scope_estimate" => scope_estimate,
           "previous_phase" => previous_plan_phase(previous_review)
         }
@@ -4652,7 +4682,12 @@ defmodule ControlKeel.Mission do
             "rejected_options" => rejected_options,
             "implementation_steps" => implementation_steps,
             "validation_plan" => validation_plan,
-            "code_snippets" => code_snippets
+            "code_snippets" => code_snippets,
+            "allowed_semantic_changes" => allowed_semantic_changes,
+            "forbidden_semantic_changes" => forbidden_semantic_changes,
+            "invariant_boundaries" => invariant_boundaries,
+            "requires_reapproval_if" => requires_reapproval_if,
+            "harness_quality_checks" => harness_quality_checks
           })
         )
 
@@ -4676,6 +4711,23 @@ defmodule ControlKeel.Mission do
     |> maybe_override_refinement("implementation_steps", Map.get(attrs, "implementation_steps"))
     |> maybe_override_refinement("validation_plan", Map.get(attrs, "validation_plan"))
     |> maybe_override_refinement("code_snippets", Map.get(attrs, "code_snippets"))
+    |> maybe_override_refinement(
+      "allowed_semantic_changes",
+      Map.get(attrs, "allowed_semantic_changes")
+    )
+    |> maybe_override_refinement(
+      "forbidden_semantic_changes",
+      Map.get(attrs, "forbidden_semantic_changes")
+    )
+    |> maybe_override_refinement("invariant_boundaries", Map.get(attrs, "invariant_boundaries"))
+    |> maybe_override_refinement(
+      "requires_reapproval_if",
+      Map.get(attrs, "requires_reapproval_if")
+    )
+    |> maybe_override_refinement(
+      "harness_quality_checks",
+      Map.get(attrs, "harness_quality_checks")
+    )
     |> maybe_override_refinement("scope_estimate", Map.get(attrs, "scope_estimate"))
   end
 
@@ -4938,6 +4990,8 @@ defmodule ControlKeel.Mission do
             "What non-code alignment context from product, design, support, security, or prior team decisions shaped this plan?",
             "Which project domain terms, CONTEXT notes, or ADRs constrain this plan?",
             "What automated reviewer and human QA checks will verify behavior-first issues before merge?",
+            "Which semantic changes are explicitly allowed, which are forbidden, and which invariant boundaries require re-approval if the agent touches them?",
+            "What harness-quality evidence will you capture: context hygiene, proof completeness, rollback safety, and compaction/resume fidelity?",
             "What check would tell us early that the implementation is drifting from the plan?"
           ]
 
@@ -4956,7 +5010,7 @@ defmodule ControlKeel.Mission do
       phase in ["implementation_plan", "code_backed_plan"],
       "Night-shift check: can a planner select only unblocked DAG/backlog issues, then send each branch through automated review and human QA?"
     )
-    |> Enum.take(4)
+    |> Enum.take(8)
   end
 
   defp grill_question_for_missing("research_summary", _phase) do
@@ -5020,9 +5074,17 @@ defmodule ControlKeel.Mission do
         length(fields["rejected_options"] || []) == 0,
       "Alternative check: what option are we rejecting, and why is that rejection evidence-backed?"
     )
+    |> maybe_add_signal(
+      phase in ["implementation_plan", "code_backed_plan"],
+      "Semantic drift check: name the allowed semantic changes, forbidden changes, and invariant boundaries before execution."
+    )
+    |> maybe_add_signal(
+      phase in ["implementation_plan", "code_backed_plan"],
+      "Harness scorecard: record how context hygiene, proof completeness, rollback safety, and compaction/resume fidelity will be verified."
+    )
     |> Enum.reverse()
     |> Enum.uniq()
-    |> Enum.take(4)
+    |> Enum.take(6)
   end
 
   defp maybe_add_signal(signals, true, message), do: [message | signals]

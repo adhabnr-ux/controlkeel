@@ -247,5 +247,19 @@
         "interface\\{\\}"
       ]
     }
+  },
+  {
+    "id": "software.agent_semantic_drift",
+    "category": "governance",
+    "severity": "medium",
+    "action": "warn",
+    "plain_message": "Agent output appears to introduce a semantic behavior change that was not explicitly approved. Re-check the plan's allowed changes, forbidden changes, and invariant boundaries before proceeding.",
+    "matcher": {
+      "type": "regex",
+      "patterns": [
+        "(?is)(?:agent|assistant|model|codex|claude).{0,120}(?:add|added|introduce|introduced|created|invented).{0,80}(?:retry|fallback|auth(?:entication)?\\s+(?:bypass|skip|path)|authorization\\s+(?:bypass|skip|path)|auxiliary\\s+loss|new\\s+loss|abstraction|compatibility\\s+shim).{0,120}(?:not\\s+(?:in|part\\s+of)\\s+the\\s+plan|without\\s+(?:approval|being\\s+requested)|unrequested|not\\s+requested|unplanned)",
+        "(?is)(?:not\\s+(?:in|part\\s+of)\\s+the\\s+plan|without\\s+(?:approval|being\\s+requested)|unrequested|not\\s+requested|unplanned).{0,120}(?:agent|assistant|model|codex|claude).{0,120}(?:retry|fallback|auth(?:entication)?\\s+(?:bypass|skip|path)|authorization\\s+(?:bypass|skip|path)|auxiliary\\s+loss|new\\s+loss|abstraction|compatibility\\s+shim)"
+      ]
+    }
   }
 ]

@@ -619,6 +619,30 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert get_in(tool, [
              "inputSchema",
              "properties",
+             "allowed_semantic_changes",
+             "items",
+             "type"
+           ]) == "string"
+
+    assert get_in(tool, [
+             "inputSchema",
+             "properties",
+             "requires_reapproval_if",
+             "items",
+             "type"
+           ]) == "string"
+
+    assert get_in(tool, [
+             "inputSchema",
+             "properties",
+             "harness_quality_checks",
+             "items",
+             "type"
+           ]) == "string"
+
+    assert get_in(tool, [
+             "inputSchema",
+             "properties",
              "scope_estimate",
              "properties",
              "architectural_scope",
@@ -1429,6 +1453,11 @@ defmodule ControlKeel.MCP.ProtocolTest do
               "Check plan continuity in proof bundles"
             ],
             "validation_plan" => ["mix test", "mix precommit"],
+            "allowed_semantic_changes" => ["Extend review metadata"],
+            "forbidden_semantic_changes" => ["Change execution gating"],
+            "invariant_boundaries" => ["Review approval remains required"],
+            "requires_reapproval_if" => ["Planner semantics change"],
+            "harness_quality_checks" => ["Proof metadata is preserved"],
             "submission_body" => "Recursive implementation plan"
           }
         }
@@ -1446,6 +1475,20 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "alignment_context"
            ]) !=
              []
+
+    assert get_in(response, [
+             "result",
+             "structuredContent",
+             "plan_refinement",
+             "allowed_semantic_changes"
+           ]) == ["Extend review metadata"]
+
+    assert get_in(response, [
+             "result",
+             "structuredContent",
+             "plan_refinement",
+             "requires_reapproval_if"
+           ]) == ["Planner semantics change"]
 
     assert is_list(get_in(response, ["result", "structuredContent", "grill_questions"]))
   end
