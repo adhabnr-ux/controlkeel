@@ -1,6 +1,7 @@
 defmodule ControlKeel.Skills.Installer do
   @moduledoc false
 
+  alias ControlKeel.ProjectBinding
   alias ControlKeel.Skills.Exporter
   alias ControlKeel.Skills.Registry
   alias ControlKeel.Skills.SkillTarget
@@ -24,11 +25,49 @@ defmodule ControlKeel.Skills.Installer do
         }
       )
 
+      maybe_ignore_project_artifacts(scope, project_root, result)
+
       {:ok, result}
     else
       nil -> {:error, :unknown_target}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  # After a project-scoped install, add the exact repo-relative paths CK wrote
+  # to the managed .gitignore block. Specific subpaths (not parent dirs) are
+  # used so shared dirs like .github/.vscode are never wholesale-ignored.
+  # Best-effort: a gitignore failure must never fail the install itself.
+  defp maybe_ignore_project_artifacts("project", project_root, result) do
+    root = Path.expand(project_root)
+
+    entries =
+      result
+      |> collect_destination_paths()
+      |> Enum.map(&Path.expand(&1, root))
+      |> Enum.filter(&path_within?(root, &1))
+      |> Enum.map(&gitignore_entry_for(root, &1))
+      |> Enum.uniq()
+
+    if entries != [], do: ProjectBinding.ensure_gitignore(root, entries)
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  defp maybe_ignore_project_artifacts(_scope, _project_root, _result), do: :ok
+
+  defp collect_destination_paths(result) when is_map(result) do
+    result |> Map.values() |> Enum.filter(&is_binary/1)
+  end
+
+  defp collect_destination_paths(_), do: []
+
+  defp path_within?(root, candidate), do: String.starts_with?(candidate, root <> "/")
+
+  defp gitignore_entry_for(root, path) do
+    rel = Path.relative_to(path, root)
+    if File.dir?(path), do: "/" <> rel <> "/", else: "/" <> rel
   end
 
   defp do_install(%SkillTarget{id: "open-standard"}, scope, project_root, skills, _opts)

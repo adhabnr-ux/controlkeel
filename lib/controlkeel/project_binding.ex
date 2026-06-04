@@ -57,22 +57,83 @@ defmodule ControlKeel.ProjectBinding do
     Path.join(wrapper_dir(project_root), wrapper_filename())
   end
 
-  def ensure_gitignore(project_root \\ File.cwd!()) do
-    path = Path.join(canonical_root(project_root), ".gitignore")
-    marker = "/controlkeel"
+  @gitignore_block_start "# ControlKeel managed (do not edit) - artifacts that must not be committed"
+  @gitignore_block_end "# End ControlKeel managed"
 
-    contents =
+  # CK-owned paths written into a user's repo that must never be committed.
+  # `controlkeel/` holds the binding plus a machine-specific MCP wrapper (it
+  # embeds an absolute CK_PROJECT_ROOT), and `.controlkeel/` holds local tool
+  # usage telemetry. Callers may pass extra entries (e.g. project-scope agent
+  # dirs created by `attach`) which are merged into the same managed block.
+  @gitignore_entries ["/controlkeel/", "/.controlkeel/"]
+
+  def ensure_gitignore(project_root \\ File.cwd!(), extra_entries \\ []) do
+    path = Path.join(canonical_root(project_root), ".gitignore")
+
+    existing =
       case File.read(path) do
         {:ok, value} -> value
         {:error, :enoent} -> ""
       end
 
-    if String.contains?(contents, marker) do
-      :ok
+    entries =
+      (@gitignore_entries ++
+         existing_block_entries(existing) ++
+         normalize_gitignore_entries(extra_entries))
+      |> Enum.uniq()
+
+    updated = upsert_gitignore_block(existing, build_gitignore_block(entries))
+
+    if updated == existing, do: :ok, else: File.write(path, updated)
+  end
+
+  # Entries already inside a managed block, so repeated calls (e.g. attaching
+  # several agents) accumulate their dirs rather than overwriting each other.
+  defp existing_block_entries(existing) do
+    with [_, rest] <- String.split(existing, @gitignore_block_start, parts: 2),
+         [body, _tail] <- String.split(rest, @gitignore_block_end, parts: 2) do
+      body
+      |> String.split("\n", trim: true)
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
     else
-      separator = if contents == "" or String.ends_with?(contents, "\n"), do: "", else: "\n"
-      File.write(path, contents <> separator <> marker <> "\n")
+      _ -> []
     end
+  end
+
+  defp normalize_gitignore_entries(entries) when is_list(entries) do
+    entries
+    |> Enum.filter(&is_binary/1)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp normalize_gitignore_entries(_), do: []
+
+  defp build_gitignore_block(entries) do
+    @gitignore_block_start <> "\n" <> Enum.join(entries, "\n") <> "\n" <> @gitignore_block_end
+  end
+
+  # Replace an existing managed block in place (so the entry set stays current)
+  # or append a fresh one, preserving all user-authored .gitignore content.
+  defp upsert_gitignore_block(existing, block) do
+    base =
+      case String.split(existing, @gitignore_block_start, parts: 2) do
+        [before, rest] ->
+          tail =
+            case String.split(rest, @gitignore_block_end, parts: 2) do
+              [_body, after_block] -> after_block
+              [_] -> ""
+            end
+
+          String.trim_trailing(before, "\n") <> tail
+
+        [_] ->
+          existing
+      end
+      |> String.trim_trailing("\n")
+
+    if base == "", do: block <> "\n", else: base <> "\n\n" <> block <> "\n"
   end
 
   def ensure_mcp_wrapper(project_root \\ File.cwd!()) do
