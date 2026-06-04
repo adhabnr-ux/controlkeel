@@ -154,8 +154,8 @@ defmodule ControlKeel.MCP.Tools.CkTask do
     {:error, {:invalid_arguments, "`checks` must be an array"}}
   end
 
-  defp dispatch(%{"mode" => "checks", "task_id" => task_id, "checks" => checks}) do
-    case Platform.record_task_checks(task_id, nil, checks) do
+  defp dispatch(%{"mode" => "checks", "task_id" => task_id, "checks" => checks} = normalized) do
+    case Platform.record_task_checks(task_id, nil, checks, normalized["project_root"]) do
       {:ok, results} ->
         {:ok,
          %{
@@ -236,6 +236,8 @@ defmodule ControlKeel.MCP.Tools.CkTask do
     |> maybe_put("output_bytes", metadata["output_bytes"])
     |> maybe_put("artifact_sha256", metadata["artifact_sha256"])
     |> maybe_put("artifact_uri", metadata["artifact_uri"])
+    |> maybe_put("git_head_sha", metadata["git_head_sha"])
+    |> maybe_put("working_tree_dirty", metadata["working_tree_dirty"])
   end
 
   defp maybe_put(map, _key, nil), do: map

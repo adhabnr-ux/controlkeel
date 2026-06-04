@@ -3342,7 +3342,8 @@ defmodule ControlKeel.Mission do
         |> Enum.uniq(),
       "proof_strength_counts" => proof_strength_counts,
       "strongest_proof_strength" => strongest_proof_strength(check_results),
-      "hashed_outputs" => Enum.count(check_results, &task_check_output_hash?/1)
+      "hashed_outputs" => Enum.count(check_results, &task_check_output_hash?/1),
+      "git_shas" => unique_git_shas(check_results)
     }
   end
 
@@ -3382,6 +3383,13 @@ defmodule ControlKeel.Mission do
     is_binary(metadata["output_sha256"]) or is_binary(payload["output_sha256"])
   end
 
+  defp unique_git_shas(check_results) do
+    check_results
+    |> Enum.map(&get_in(&1.metadata || %{}, ["git_head_sha"]))
+    |> Enum.filter(&is_binary/1)
+    |> Enum.uniq()
+  end
+
   defp proof_strength_rank("cryptographic"), do: 5
   defp proof_strength_rank("external_artifact"), do: 4
   defp proof_strength_rank("command_output"), do: 3
@@ -3398,6 +3406,7 @@ defmodule ControlKeel.Mission do
       |> maybe_add_score(summary["passed"] > 0, 35)
       |> maybe_add_score(summary["warn"] == 0 and summary["failed"] == 0, 15)
       |> maybe_add_score(length(summary["evidence_sources"]) >= 2, 10)
+      |> maybe_add_score(summary["git_shas"] != [], 10)
       |> maybe_subtract_score(summary["failed"] > 0, 35)
       |> maybe_subtract_score(summary["warn"] > 0, 10)
       |> clamp_score()

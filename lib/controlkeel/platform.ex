@@ -453,11 +453,14 @@ defmodule ControlKeel.Platform do
     end
   end
 
-  def record_task_checks(task_id, service_account \\ nil, checks) when is_list(checks) do
+  def record_task_checks(task_id, service_account \\ nil, checks, project_root \\ nil)
+      when is_list(checks) do
     with %Task{} = task <- Mission.get_task(task_id),
          %TaskRun{} = run <- active_task_run(task_id) do
+      git = git_context(project_root)
+
       checks
-      |> Enum.map(&normalize_task_check/1)
+      |> Enum.map(&normalize_task_check(&1, git))
       |> Enum.with_index()
       |> Enum.reduce(Multi.new(), fn {check, index}, multi ->
         Multi.insert(multi, {:check, index}, fn _changes ->
@@ -488,23 +491,23 @@ defmodule ControlKeel.Platform do
     end
   end
 
-  defp normalize_task_check(check) when is_map(check) do
+  defp normalize_task_check(check, git) when is_map(check) do
     normalized = stringify_keys(check)
     payload = Map.get(normalized, "payload", %{}) |> normalize_check_map()
     metadata = Map.get(normalized, "metadata", %{}) |> normalize_check_map()
-    proof = task_check_proof_metadata(payload, metadata)
+    proof = task_check_proof_metadata(payload, metadata, git)
 
     normalized
     |> Map.put("payload", maybe_put_output_hash(payload, proof))
     |> Map.put("metadata", Map.merge(metadata, proof))
   end
 
-  defp normalize_task_check(_check), do: %{"payload" => %{}, "metadata" => %{}}
+  defp normalize_task_check(_check, _git), do: %{"payload" => %{}, "metadata" => %{}}
 
   defp normalize_check_map(value) when is_map(value), do: stringify_keys(value)
   defp normalize_check_map(_value), do: %{}
 
-  defp task_check_proof_metadata(payload, metadata) do
+  defp task_check_proof_metadata(payload, metadata, git) do
     output = check_output(payload)
     explicit_hash = first_binary(metadata, ["output_sha256", "artifact_sha256"])
     output_hash = explicit_hash || sha256(output)
@@ -529,6 +532,8 @@ defmodule ControlKeel.Platform do
       first_binary(metadata, ["artifact_uri", "artifact_url"]) ||
         first_binary(payload, ["artifact_uri", "artifact_url"])
     )
+    |> maybe_put_binary("git_head_sha", git[:head_sha])
+    |> maybe_put_value("working_tree_dirty", git[:dirty])
   end
 
   defp maybe_put_output_hash(payload, %{"output_sha256" => hash}) when is_binary(hash),
@@ -576,6 +581,29 @@ defmodule ControlKeel.Platform do
 
   defp sha256(nil), do: nil
   defp sha256(value), do: :crypto.hash(:sha256, value) |> Base.encode16(case: :lower)
+
+  defp git_context(nil), do: %{}
+
+  defp git_context(project_root) when is_binary(project_root) do
+    head_sha =
+      case System.cmd("git", ["rev-parse", "HEAD"], cd: project_root, stderr_to_stdout: true) do
+        {sha, 0} -> String.trim(sha)
+        _ -> nil
+      end
+
+    dirty =
+      case System.cmd("git", ["status", "--porcelain"], cd: project_root, stderr_to_stdout: true) do
+        {"", 0} -> false
+        {output, 0} when byte_size(output) > 0 -> true
+        _ -> nil
+      end
+
+    if head_sha != nil or dirty != nil do
+      %{head_sha: head_sha, dirty: dirty}
+    else
+      %{}
+    end
+  end
 
   defp first_binary(map, keys) do
     keys

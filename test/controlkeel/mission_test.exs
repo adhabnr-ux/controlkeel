@@ -968,6 +968,7 @@ defmodule ControlKeel.MissionTest do
       assert bundle["task_checks"]["proof_strength_counts"]["weak"] == 2
       assert bundle["task_checks"]["strongest_proof_strength"] == "weak"
       assert bundle["task_checks"]["hashed_outputs"] == 0
+      assert bundle["task_checks"]["git_shas"] == []
       assert "validation" in bundle["task_checks"]["evidence_sources"]
 
       assert bundle["runtime_context_integrity"]["status"] == "degraded"

@@ -216,6 +216,39 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
       assert is_binary(check["proof"]["output_sha256"])
     end
 
+    test "records git head sha and dirty state when project_root provided" do
+      session = session_fixture()
+      task = task_fixture(%{session: session, status: "in_progress"})
+      assert {:ok, _run} = Platform.claim_task(task.id)
+
+      project_root = File.cwd!()
+
+      checks = [
+        %{
+          "check_type" => "validation",
+          "status" => "passed",
+          "summary" => "All good",
+          "payload" => %{"stdout" => "validation passed"},
+          "metadata" => %{"command" => "mix test", "exit_code" => 0}
+        }
+      ]
+
+      assert {:ok, result} =
+               CkTask.call(%{
+                 "session_id" => session.id,
+                 "task_id" => task.id,
+                 "mode" => "checks",
+                 "checks" => checks,
+                 "project_root" => project_root
+               })
+
+      assert result["recorded"] == true
+      [check] = result["results"]
+      assert is_binary(check["proof"]["git_head_sha"])
+      assert check["proof"]["git_head_sha"] =~ ~r/^[0-9a-f]{40}$/
+      assert is_boolean(check["proof"]["working_tree_dirty"])
+    end
+
     test "returns error when checks is missing" do
       session = session_fixture()
       task = task_fixture(%{session: session})
