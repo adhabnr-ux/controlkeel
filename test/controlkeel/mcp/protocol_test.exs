@@ -2213,7 +2213,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert Mission.get_finding!(open_one.id).status == "open"
   end
 
-  test "tools/call surfaces a tool-execution failure as an isError result, not a -32000 protocol error" do
+  test "tools/call keeps ck_execute_code outcomes inside result instead of protocol error" do
     response =
       Protocol.handle_request(%{
         "jsonrpc" => "2.0",
@@ -2238,6 +2238,9 @@ defmodule ControlKeel.MCP.ProtocolTest do
 
       %{"result" => %{"structuredContent" => %{"exit_status" => _}}} ->
         :ok
+
+      other ->
+        flunk("unexpected tools/call response: #{inspect(other)}")
     end
   end
 

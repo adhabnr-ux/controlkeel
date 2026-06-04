@@ -300,7 +300,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
 
       assert Enum.any?(open_lines, &String.contains?(&1, "/reviews/#{review.id}"))
       assert Enum.any?(open_lines, &String.contains?(&1, "Review server serving:"))
-      assert Enum.any?(open_lines, &String.contains?(&1, "Opened browser:"))
+      assert Enum.any?(open_lines, &String.contains?(&1, "Opened browser: false"))
 
       assert Enum.any?(
                open_lines,

@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Ck.Benchmark do
 
     with {:ok, parsed} <- CLI.parse(["benchmark" | args]),
          {:ok, lines} <- CLI.run_command(parsed, File.cwd!()) do
-      Enum.each(lines, fn line -> IO.puts(line) end)
+      Enum.each(lines, fn line -> Mix.shell().info(line) end)
     else
       {:error, message} -> Mix.raise(message)
     end

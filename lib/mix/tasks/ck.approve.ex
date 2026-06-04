@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Ck.Approve do
 
     case CLI.run_command(parsed, File.cwd!()) do
       {:ok, lines} ->
-        Enum.each(lines, fn line -> IO.puts(line) end)
+        Enum.each(lines, fn line -> Mix.shell().info(line) end)
 
       {:error, message} ->
         Mix.raise(message)
