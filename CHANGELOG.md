@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.3.39 — 2026-06-04
+
+### What's changed
+
+- fix: 3 runtime bugs + 2 flaky test assertions from full-suite run
+- fix(dogfood): 3 runtime bugs found during full-surface dogfood
+- refactor(cli): eliminate 4 more dual-render blocks with render_format/3
+- refactor(cli): eliminate 29 dual-render case format do blocks with render_format/3
+- feat(annotations+exporter): complete annotation table + cloudflare host module
+- Merge refactor/ck-loop-hardening into main
+- fix(mcp): normalize advisory to object, fix nullable context_pack fields
+- fix(mcp): correct output schema types for nullable and nullable_object fields
+- feat(policy-packs): enrich healthcare/finance/education with actionable domain rules
+- feat(governance): finish bounded retention, ai_tools, and MCP dedup follow-ups
+- fix(mcp): allow object-shaped validate finding locations
+- fix(governance): close branch-review blockers before merge
+- feat(mcp): return tool execution failures as isError results (Tier B)
+- feat(mcp): conservative read-only/destructive tool annotations (Tier A.2)
+- test(skills): regression net — every export target produces a plan (Tier A)
+- fix: bounded host/SDK/doc parity fixes (Slice P3-G safe fixes)
+- feat(memory): detail_level verbosity knob + retention mechanism (Slice P2-F)
+- fix(scanner): reliability hardening of the core value prop (Slice P2-E)
+- fix(mcp): correct ck_context_pack + ck_execute_code outputSchemas + drift guard (Slice P1-D)
+- feat(router): close the learning loop into routing (Slice P1-C)
+- feat(sandbox): real runner image, opt-in host-exec enforcement, fail-fast (Slice P0-A)
+- feat(findings): agent-callable finding disposition (Slice P0-B of loop-hardening)
+- chore(cleanup): remove verified-dead code (Slice 0 of loop-hardening)
+- fix: restore deleted exporter modules, eliminate all compiler warnings
+- fix(cli): restore 11 command handlers lost in slices 8/9 refactor
+
 ## v0.3.38 — 2026-06-02
 
 ### What's changed
