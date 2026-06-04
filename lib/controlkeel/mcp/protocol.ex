@@ -2733,32 +2733,41 @@ defmodule ControlKeel.MCP.Protocol do
   # Smart default groups based on project characteristics
   defp smart_default_groups(project_root) do
     try do
-      # Detect project type and suggest appropriate groups
       has_git = File.exists?(Path.join(project_root, ".git"))
       has_tests = test_dir_exists?(project_root)
       has_package_json = File.exists?(Path.join(project_root, "package.json"))
       has_mix_exs = File.exists?(Path.join(project_root, "mix.exs"))
       has_cargo_toml = File.exists?(Path.join(project_root, "Cargo.toml"))
+      has_agents_md = File.exists?(Path.join(project_root, "AGENTS.md"))
 
-      base_groups = ["core", "governance"]
+      if has_agents_md do
+        :all
+      else
+        base_groups = ["core", "governance"]
 
-      additional_groups =
-        cond do
-          # Elixir/Phoenix project - likely needs filesystem tools
-          has_mix_exs -> ["filesystem", "git"]
-          # Node.js project - likely needs filesystem tools
-          has_package_json -> ["filesystem", "git"]
-          # Rust project - likely needs filesystem tools
-          has_cargo_toml -> ["filesystem", "git"]
-          # Has tests - likely needs filesystem and git
-          has_tests and has_git -> ["filesystem", "git"]
-          # Git repo - add git tools
-          has_git -> ["git"]
-          # Default - add filesystem for general development
-          true -> ["filesystem"]
-        end
+        additional_groups =
+          cond do
+            has_mix_exs ->
+              ["filesystem", "git", "observability", "skills", "checkpoints", "worktrees"]
 
-      Enum.uniq(base_groups ++ additional_groups)
+            has_package_json ->
+              ["filesystem", "git", "observability", "skills", "checkpoints", "worktrees"]
+
+            has_cargo_toml ->
+              ["filesystem", "git", "observability", "skills", "checkpoints", "worktrees"]
+
+            has_tests and has_git ->
+              ["filesystem", "git"]
+
+            has_git ->
+              ["git"]
+
+            true ->
+              ["filesystem"]
+          end
+
+        Enum.uniq(base_groups ++ additional_groups)
+      end
     rescue
       _ -> ["core", "governance"]
     catch

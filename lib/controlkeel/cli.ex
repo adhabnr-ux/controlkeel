@@ -2678,9 +2678,16 @@ defmodule ControlKeel.CLI do
 
   def native_attach_lines(_agent, _project_root, _options), do: []
 
-  def native_attach_skipped?(options) do
+  def native_attach_skipped?(options) when is_list(options) do
     Keyword.get(options, :mcp_only, false) or Keyword.get(options, :no_native, false)
   end
+
+  def native_attach_skipped?(options) when is_map(options) do
+    Map.get(options, "mcp_only", false) or Map.get(options, "no_native", false) or
+      Map.get(options, :mcp_only, false) or Map.get(options, :no_native, false)
+  end
+
+  def native_attach_skipped?(_), do: false
 
   def maybe_install_codex_native(project_root, scope, options) do
     if native_attach_skipped?(options) do

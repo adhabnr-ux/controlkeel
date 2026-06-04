@@ -1917,8 +1917,8 @@ defmodule ControlKeel.Mission do
       |> case do
         {:ok, %{rows: rows}} when is_list(rows) ->
           Enum.map(rows, fn row ->
-            [id, title, severity, category, plain_message, session_id, inserted_at] =
-              Tuple.to_list(row)
+            row_list = if is_tuple(row), do: Tuple.to_list(row), else: row
+            [id, title, severity, category, plain_message, session_id, inserted_at] = row_list
 
             %{
               type: "finding",
@@ -1953,7 +1953,8 @@ defmodule ControlKeel.Mission do
       |> case do
         {:ok, %{rows: rows}} when is_list(rows) ->
           Enum.map(rows, fn row ->
-            [id, title, status, validation_gate, session_id, inserted_at] = Tuple.to_list(row)
+            row_list = if is_tuple(row), do: Tuple.to_list(row), else: row
+            [id, title, status, validation_gate, session_id, inserted_at] = row_list
 
             %{
               type: "task",
