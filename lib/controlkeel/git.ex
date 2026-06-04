@@ -31,5 +31,15 @@ defmodule ControlKeel.Git do
     _ -> {"git executable not available", @missing_exit}
   end
 
+  @doc """
+  Whether a line from `git status --porcelain` output is a real status entry.
+
+  Porcelain v1 entries begin with a two-character status field drawn from a
+  fixed alphabet followed by a space. Warning, fatal, or hint lines from
+  stderr (merged via `stderr_to_stdout: true`) cannot match this pattern.
+  """
+  @spec porcelain_entry?(String.t()) :: boolean()
+  def porcelain_entry?(line), do: line =~ ~r/^[ MTADRCU?!]{2} /
+
   defp binary, do: Application.get_env(:controlkeel, :git_executable, "git")
 end

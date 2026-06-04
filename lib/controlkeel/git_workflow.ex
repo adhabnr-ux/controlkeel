@@ -198,7 +198,7 @@ defmodule ControlKeel.GitWorkflow do
     }
   end
 
-  defp porcelain_entry?(line), do: line =~ ~r/^[ MTADRCU?!]{2} /
+  defp porcelain_entry?(line), do: ControlKeel.Git.porcelain_entry?(line)
 
   defp count_status(lines, regex) do
     Enum.count(lines, fn line -> Regex.match?(regex, line) end)

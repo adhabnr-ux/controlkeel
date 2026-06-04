@@ -628,7 +628,20 @@ defmodule ControlKeel.Platform do
 
   # Porcelain v1 entries begin with a two-character status field drawn from a
   # fixed alphabet followed by a space; warning/fatal/hint text cannot match.
-  defp porcelain_entry?(line), do: line =~ ~r/^[ MTADRCU?!]{2} /
+  defp porcelain_entry?(line), do: ControlKeel.Git.porcelain_entry?(line)
+
+  defp redact_secret_text(nil), do: nil
+
+  defp redact_secret_text(value) when is_binary(value) do
+    value
+    |> String.replace(~r/(api[_-]?key|token|secret|password)=([^\s&]+)/i, "\1=[REDACTED]")
+    |> String.replace(~r/(Authorization:\s*Bearer\s+)[^\s]+/i, "\1[REDACTED]")
+    |> String.replace(~r/(X-[A-Za-z0-9_-]*Token:\s*)[^\s]+/i, "\1[REDACTED]")
+    |> String.replace(
+      ~r/([?&](?:X-Amz-Signature|signature|sig|token|access_token)=)[^&\s]+/i,
+      "\1[REDACTED]"
+    )
+  end
 
   defp redact_secret_text(nil), do: nil
 

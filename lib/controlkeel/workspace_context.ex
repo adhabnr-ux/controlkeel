@@ -183,7 +183,7 @@ defmodule ControlKeel.WorkspaceContext do
     end
   end
 
-  defp porcelain_entry?(line), do: line =~ ~r/^[ MTADRCU?!]{2} /
+  defp porcelain_entry?(line), do: ControlKeel.Git.porcelain_entry?(line)
 
   defp discovered_files(root, candidates) do
     Enum.flat_map(candidates, fn {relative_path, kind} ->
