@@ -317,7 +317,42 @@ defmodule ControlKeel.CLI.Catalog do
         related_skills: ["agent-integration"],
         related_hooks: ["SessionStart", "PreToolUse", "PostToolUse", "UserPromptSubmit"],
         related_plugins: ["codex", "claude", "copilot", "openclaw"],
-        examples: ["controlkeel attach codex-cli --scope project", "controlkeel attach doctor"]
+        examples: ["controlkeel attach codex-cli --scope project", "controlkeel attach doctor"],
+        overrides: %{
+          detach: %{
+            summary:
+              "Detach an agent host from this project and remove CK-owned MCP/config artifacts.",
+            examples: [
+              "controlkeel detach opencode",
+              "controlkeel detach codex-cli --json",
+              "controlkeel detach cursor --force"
+            ],
+            safety: %{local_write: true, repo_write: true, mutates: true, idempotent: true}
+          },
+          agents_discover: %{
+            summary: "Scan a directory for agent-host configuration evidence.",
+            examples: [
+              "controlkeel agents discover .",
+              "controlkeel agents discover ~/Developer --json"
+            ],
+            safety: %{local_write: false, repo_write: false, mutates: false}
+          },
+          agents_doctor: %{
+            summary: "Inspect attached and runnable agent execution paths.",
+            examples: ["controlkeel agents doctor", "controlkeel agents doctor --json"],
+            safety: %{local_write: false, repo_write: false, mutates: false}
+          },
+          agents_list: %{
+            summary: "List known agent integrations and their attached/runnable status.",
+            examples: ["controlkeel agents list", "controlkeel agents list --json"],
+            safety: %{local_write: false, repo_write: false, mutates: false}
+          },
+          attach_doctor: %{
+            summary: "Check attach readiness and host-native CK wiring health.",
+            examples: ["controlkeel attach doctor", "controlkeel attach doctor --json"],
+            safety: %{local_write: false, repo_write: false, mutates: false}
+          }
+        }
       ),
       spec(
         :governance,

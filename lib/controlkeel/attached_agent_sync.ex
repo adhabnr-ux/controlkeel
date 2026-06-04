@@ -159,7 +159,9 @@ defmodule ControlKeel.AttachedAgentSync do
     |> maybe_put("skills_destination", Map.get(result, :skills_destination))
     |> maybe_put("agents_destination", Map.get(result, :agents_destination))
     |> maybe_put("commands_destination", Map.get(result, :commands_destination))
+    |> maybe_put("plugins_destination", Map.get(result, :plugins_destination))
     |> maybe_put("rules_destination", Map.get(result, :rules_destination))
+    |> maybe_put("mcp_destination", Map.get(result, :mcp_destination))
     |> maybe_put("config_destination", Map.get(result, :config_destination))
   end
 

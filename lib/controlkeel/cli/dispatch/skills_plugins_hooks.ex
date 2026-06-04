@@ -165,6 +165,7 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
     analysis = Skills.analyze(root, report_identical_duplicates: true)
     integrations = Skills.agent_integrations()
     provider_status = ProviderBroker.status(root)
+    {:ok, format} = effective_cli_format(options)
 
     attach_clients =
       integrations
@@ -219,35 +220,54 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
         []
       end
 
-    {:ok,
-     [
-       "Project root: #{Path.expand(root)}",
-       "Trusted project skills: #{if(analysis.trusted_project?, do: "yes", else: "no")}",
-       "Catalog size: #{length(analysis.skills)}",
-       "Duplicate identical skill copies: #{duplicate_copy_count}",
-       "Hint: remove duplicate skill directories to reduce MCP host token overhead"
-     ] ++
-       token_hint ++
-       [
-         "Provider source: #{provider_status["selected_source"]}",
-         "Provider: #{provider_status["selected_provider"]}",
-         "Auth mode: #{provider_status["selected_auth_mode"]}",
-         "Auth owner: #{provider_status["selected_auth_owner"]}",
-         "Bootstrap mode: #{provider_status["bootstrap"]["mode"]}",
-         "Attachable clients: #{attach_clients}",
-         "Headless runtimes: #{if(runtimes == "", do: "none", else: runtimes)}",
-         "Framework adapters: #{if(frameworks == "", do: "none", else: frameworks)}"
-       ] ++
-       manifest_lines ++
-       Enum.map(analysis.diagnostics, fn diagnostic ->
-         "  [#{diagnostic.level}] #{diagnostic.code} — #{diagnostic.message}"
-       end)}
+    case format do
+      "json" ->
+        payload = %{
+          "project_root" => Path.expand(root),
+          "trusted_project_skills" => analysis.trusted_project?,
+          "catalog_size" => length(analysis.skills),
+          "duplicate_identical_skill_copies" => duplicate_copy_count,
+          "provider" => provider_status,
+          "attachable_clients" => attach_clients,
+          "headless_runtimes" => runtimes,
+          "framework_adapters" => frameworks,
+          "export_manifests" => manifests,
+          "diagnostics" => Enum.map(analysis.diagnostics, &skill_diagnostic_payload/1)
+        }
+
+        {:ok, [Jason.encode!(payload)]}
+
+      _ ->
+        {:ok,
+         [
+           "Project root: #{Path.expand(root)}",
+           "Trusted project skills: #{if(analysis.trusted_project?, do: "yes", else: "no")}",
+           "Catalog size: #{length(analysis.skills)}",
+           "Duplicate identical skill copies: #{duplicate_copy_count}",
+           "Hint: remove duplicate skill directories to reduce MCP host token overhead"
+         ] ++
+           token_hint ++
+           [
+             "Provider source: #{provider_status["selected_source"]}",
+             "Provider: #{provider_status["selected_provider"]}",
+             "Auth mode: #{provider_status["selected_auth_mode"]}",
+             "Auth owner: #{provider_status["selected_auth_owner"]}",
+             "Bootstrap mode: #{provider_status["bootstrap"]["mode"]}",
+             "Attachable clients: #{attach_clients}",
+             "Headless runtimes: #{if(runtimes == "", do: "none", else: runtimes)}",
+             "Framework adapters: #{if(frameworks == "", do: "none", else: frameworks)}"
+           ] ++
+           manifest_lines ++
+           Enum.map(analysis.diagnostics, fn diagnostic ->
+             "  [#{diagnostic.level}] #{diagnostic.code} — #{diagnostic.message}"
+           end)}
+    end
   end
 
   def run_command(%{command: :token_audit, options: options}, project_root) do
     root = options[:project_root] || project_root
     mode = options[:mode] || "full"
-    format = options[:format] || "text"
+    {:ok, format} = effective_cli_format(options)
 
     case mode do
       mode when mode in ["full", "rules", "skills", "tools"] ->
@@ -273,7 +293,7 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
 
   def run_command(%{command: :tool_groups_suggest, options: options}, project_root) do
     root = options[:project_root] || project_root
-    format = options[:format] || "text"
+    {:ok, format} = effective_cli_format(options)
     apply_preference = options[:apply] || false
 
     case ControlKeel.MCP.ToolGroupTracker.suggest_groups(root) do

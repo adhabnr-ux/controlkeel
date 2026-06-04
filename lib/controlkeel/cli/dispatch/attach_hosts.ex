@@ -389,18 +389,21 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   def run_command(%{command: :detach, args: [agent], options: options}, project_root) do
     root = options[:project_root] || project_root
 
-    with {:ok, binding, _session, _mode} <- load_binding_for_detach(root),
+    with {:ok, format} <- effective_cli_format(options),
+         {:ok, binding, _session, _mode} <- load_binding_for_detach(root),
          {:ok, agent_key, attrs} <- resolve_attached(agent, binding) do
-      remove_mcp_registration(agent_key, attrs, root)
-      cleanup_agent_artifacts(attrs, root, options[:force])
+      mcp_removed = remove_mcp_registration(agent_key, attrs, root)
+      removed_paths = cleanup_agent_artifacts(attrs, root, options[:force])
 
       updated_binding = remove_agent_from_binding(binding, agent_key)
       remaining = map_size(updated_binding["attached_agents"] || %{})
 
-      # If no agents remain, clean up the controlkeel/ directory
-      if remaining == 0 and not options[:keep_binding] do
-        cleanup_binding_dir(root)
-      end
+      binding_removed =
+        if remaining == 0 and not options[:keep_binding] do
+          cleanup_binding_dir(root)
+        else
+          false
+        end
 
       {:ok, _binding} =
         if remaining > 0 do
@@ -413,7 +416,16 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
           {:ok, updated_binding}
         end
 
-      detach_lines(agent_key, attrs, remaining)
+      payload = %{
+        "agent" => agent_key,
+        "scope" => attrs["scope"] || "project",
+        "remaining_attached_agents" => remaining,
+        "removed_paths" => removed_paths,
+        "mcp_registration_removed" => mcp_removed,
+        "binding_removed" => binding_removed
+      }
+
+      detach_response(format, payload)
     else
       {:error, :no_binding} ->
         {:error, "No ControlKeel binding found. Run `controlkeel init` first."}
@@ -476,66 +488,93 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   end
 
   def run_command(%{command: :agents_doctor, options: options}, project_root) do
-    root = resolve_project_root(options, project_root)
-    doctor = AgentExecution.doctor(root)
-    snapshot = SetupAdvisor.snapshot(root)
+    with {:ok, format} <- effective_cli_format(options) do
+      root = resolve_project_root(options, project_root)
+      doctor = AgentExecution.doctor(root)
+      snapshot = SetupAdvisor.snapshot(root)
 
-    agent_lines =
-      Enum.map(doctor["agents"], fn agent ->
-        "  #{agent.id}: #{agent.execution_support} / #{agent.ck_runs_agent_via} attached=#{if(agent.attached, do: "yes", else: "no")} runnable=#{if(agent.runnable, do: "yes", else: "no")}"
-      end)
+      case format do
+        "json" ->
+          {:ok,
+           [Jason.encode!(Map.put(doctor, "detected_hosts", snapshot["detected_hosts"] || []))]}
 
-    {:ok,
-     [
-       "Agent execution doctor",
-       "Project root: #{doctor["project_root"]}",
-       SetupAdvisor.detected_hosts_line(snapshot),
-       "Attached agents: #{if(doctor["attached_agents"] == [], do: "none", else: Enum.join(doctor["attached_agents"], ", "))}",
-       "Direct ready: #{length(doctor["direct_ready"])}",
-       "Handoff ready: #{length(doctor["handoff_ready"])}",
-       "Runtime ready: #{length(doctor["runtime_ready"])}",
-       "Core loop: #{SetupAdvisor.core_loop()}",
-       "Agents:"
-       | agent_lines
-     ]}
+        _ ->
+          agent_lines =
+            Enum.map(doctor["agents"], fn agent ->
+              "  #{agent.id}: #{agent.execution_support} / #{agent.ck_runs_agent_via} attached=#{if(agent.attached, do: "yes", else: "no")} runnable=#{if(agent.runnable, do: "yes", else: "no")}"
+            end)
+
+          {:ok,
+           [
+             "Agent execution doctor",
+             "Project root: #{doctor["project_root"]}",
+             SetupAdvisor.detected_hosts_line(snapshot),
+             "Attached agents: #{if(doctor["attached_agents"] == [], do: "none", else: Enum.join(doctor["attached_agents"], ", "))}",
+             "Direct ready: #{length(doctor["direct_ready"])}",
+             "Handoff ready: #{length(doctor["handoff_ready"])}",
+             "Runtime ready: #{length(doctor["runtime_ready"])}",
+             "Core loop: #{SetupAdvisor.core_loop()}",
+             "Agents:"
+             | agent_lines
+           ]}
+      end
+    end
   end
 
   def run_command(%{command: :attach_doctor, options: options}, project_root) do
-    root = resolve_project_root(options, project_root)
-    doctor = AgentExecution.doctor(root)
-    snapshot = SetupAdvisor.snapshot(root)
-    provider_status = ProviderBroker.status(root)
+    with {:ok, format} <- effective_cli_format(options) do
+      root = resolve_project_root(options, project_root)
+      doctor = AgentExecution.doctor(root)
+      snapshot = SetupAdvisor.snapshot(root)
+      provider_status = ProviderBroker.status(root)
 
-    attached = Enum.filter(doctor["agents"], & &1.attached)
-    runnable_attached = Enum.count(attached, & &1.runnable)
+      attached = Enum.filter(doctor["agents"], & &1.attached)
+      runnable_attached = Enum.count(attached, & &1.runnable)
 
-    attached_lines =
-      if attached == [] do
-        ["Attached agents: none (run `controlkeel attach <agent>`)."]
-      else
-        [
-          "Attached agents: #{Enum.join(Enum.map(attached, & &1.id), ", ")}",
-          "Runnable attached agents: #{runnable_attached}/#{length(attached)}",
-          "Attached details:"
-        ] ++
-          Enum.map(attached, fn agent ->
-            "  #{agent.id}: runnable=#{if(agent.runnable, do: "yes", else: "no")} support=#{agent.execution_support}/#{agent.ck_runs_agent_via}"
-          end)
+      case format do
+        "json" ->
+          payload = %{
+            "project_root" => doctor["project_root"],
+            "detected_hosts" => snapshot["detected_hosts"] || [],
+            "provider" => provider_status,
+            "attached_agents" => Enum.map(attached, & &1.id),
+            "runnable_attached_agents" => runnable_attached,
+            "agents" => doctor["agents"],
+            "core_loop" => SetupAdvisor.core_loop()
+          }
+
+          {:ok, [Jason.encode!(payload)]}
+
+        _ ->
+          attached_lines =
+            if attached == [] do
+              ["Attached agents: none (run `controlkeel attach <agent>`)."]
+            else
+              [
+                "Attached agents: #{Enum.join(Enum.map(attached, & &1.id), ", ")}",
+                "Runnable attached agents: #{runnable_attached}/#{length(attached)}",
+                "Attached details:"
+              ] ++
+                Enum.map(attached, fn agent ->
+                  "  #{agent.id}: runnable=#{if(agent.runnable, do: "yes", else: "no")} support=#{agent.execution_support}/#{agent.ck_runs_agent_via}"
+                end)
+            end
+
+          {:ok,
+           [
+             "Attach health check",
+             "Project root: #{doctor["project_root"]}",
+             SetupAdvisor.detected_hosts_line(snapshot),
+             "Provider source: #{provider_status["selected_source"]}",
+             "Provider: #{provider_status["selected_provider"]}",
+             "Core loop: #{SetupAdvisor.core_loop()}",
+             "Verification commands:",
+             "  - controlkeel status",
+             "  - controlkeel agents doctor",
+             "  - controlkeel provider doctor"
+           ] ++ attached_lines}
       end
-
-    {:ok,
-     [
-       "Attach health check",
-       "Project root: #{doctor["project_root"]}",
-       SetupAdvisor.detected_hosts_line(snapshot),
-       "Provider source: #{provider_status["selected_source"]}",
-       "Provider: #{provider_status["selected_provider"]}",
-       "Core loop: #{SetupAdvisor.core_loop()}",
-       "Verification commands:",
-       "  - controlkeel status",
-       "  - controlkeel agents doctor",
-       "  - controlkeel provider doctor"
-     ] ++ attached_lines}
+    end
   end
 
   def run_command(%{command: :agents_list, options: options}, project_root) do
@@ -600,23 +639,25 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     cond do
       claude_agent?(agent_key) ->
         ControlKeel.ClaudeCLI.detach_local(root, server)
+        true
 
       codex_agent?(agent_key) and is_binary(config_path) ->
         ControlKeel.CodexConfig.remove(config_path)
+        true
 
       is_binary(config_path) and String.ends_with?(config_path, ".toml") ->
         ControlKeel.CodexConfig.remove(config_path)
+        true
 
       is_binary(config_path) and String.ends_with?(config_path, ".json") ->
         remove_json_mcp_entry(config_path, server)
+        true
 
       true ->
-        :ok
+        false
     end
-
-    :ok
   rescue
-    _ -> :ok
+    _ -> false
   end
 
   defp claude_agent?(key), do: key in ["claude_code", "claude-code"]
@@ -668,63 +709,128 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   end
 
   # Remove project-scope files created by attach for a specific agent.
-  # Best-effort: failures to remove individual files are logged but don't fail the detach.
+  #
+  # Root cause fixed here: skills had a CK manifest, but generated agents,
+  # commands, plugins, and MCP files did not. Detach now treats skill dirs as
+  # manifest-owned and treats non-skill artifacts as CK-owned only when their
+  # filenames are ControlKeel-specific. User-authored files in shared host dirs
+  # are preserved unless --force is supplied. Legacy bindings that lack newer
+  # destination metadata are handled by inferring paths from target/destination.
   defp cleanup_agent_artifacts(attrs, root, force) do
-    scope = attrs["scope"] || "project"
-
-    # Collect all destination paths that are within the project root
-    destination_keys = [
-      "skills_destination",
-      "compat_skills_destination",
-      "compat_destination",
-      "agents_destination",
-      "commands_destination",
-      "plugins_destination",
-      "rules_destination"
-    ]
-
-    destinations =
-      destination_keys
-      |> Enum.map(&Map.get(attrs, &1))
-      |> Enum.filter(&is_binary/1)
-
-    if scope == "project" do
-      # Only remove project-scope dirs
+    if (attrs["scope"] || "project") == "project" do
       root_expanded = Path.expand(root)
 
-      Enum.each(destinations, fn dest ->
-        expanded = Path.expand(dest)
-
-        if String.starts_with?(expanded, root_expanded <> "/") and File.exists?(expanded) do
-          if force do
-            File.rm_rf!(expanded)
-          else
-            # Only remove if it looks like a CK-managed dir (has our manifest)
-            manifest = Path.join(expanded, ".controlkeel-skills.json")
-
-            if File.exists?(manifest) do
-              File.rm_rf!(expanded)
-            end
-          end
-        end
-      end)
-
-      # Also clean the MCP wrapper destination
-      if Map.get(attrs, "command") do
-        wrapper = ProjectBinding.mcp_wrapper_path(root)
-
-        if File.exists?(wrapper) do
-          # Only remove if this was the last agent using the wrapper
-          # (We check after updating the binding, so this is safe)
-          :ok
-        end
-      end
+      attrs
+      |> artifact_cleanup_targets(root_expanded)
+      |> Enum.flat_map(&cleanup_artifact_target(&1, root_expanded, force))
+      |> Enum.uniq()
+    else
+      []
     end
-
-    :ok
   rescue
-    _ -> :ok
+    _ -> []
   end
+
+  defp artifact_cleanup_targets(attrs, root) do
+    explicit = [
+      {:skill_dir, attrs["skills_destination"]},
+      {:skill_dir, attrs["compat_skills_destination"]},
+      {:skill_dir, attrs["compat_destination"]},
+      {:ck_dir, attrs["agents_destination"]},
+      {:ck_dir, attrs["commands_destination"]},
+      {:ck_dir, attrs["plugins_destination"]},
+      {:ck_dir, attrs["rules_destination"]},
+      {:file, attrs["mcp_destination"]}
+    ]
+
+    inferred = inferred_artifact_targets(attrs, root)
+
+    (explicit ++ inferred)
+    |> Enum.reject(fn {_kind, path} -> is_nil(path) or path == "" end)
+    |> Enum.uniq()
+  end
+
+  defp inferred_artifact_targets(%{"target" => "opencode-native"} = attrs, _root) do
+    case attrs["destination"] do
+      dest when is_binary(dest) ->
+        [
+          {:ck_dir, Path.join(dest, "agents")},
+          {:ck_dir, Path.join(dest, "commands")},
+          {:ck_dir, Path.join(dest, "plugins")},
+          {:file, Path.join(dest, "mcp.json")}
+        ]
+
+      _ ->
+        []
+    end
+  end
+
+  defp inferred_artifact_targets(_attrs, _root), do: []
+
+  defp cleanup_artifact_target({_kind, nil}, _root, _force), do: []
+
+  defp cleanup_artifact_target({kind, path}, root, force) do
+    expanded = Path.expand(path)
+
+    if path_within_root?(root, expanded) and File.exists?(expanded) do
+      do_cleanup_artifact(kind, expanded, force)
+    else
+      []
+    end
+  rescue
+    _ -> []
+  end
+
+  defp do_cleanup_artifact(:skill_dir, path, force) do
+    cond do
+      force -> remove_path(path)
+      File.exists?(Path.join(path, ".controlkeel-skills.json")) -> remove_path(path)
+      true -> []
+    end
+  end
+
+  defp do_cleanup_artifact(:ck_dir, path, force) do
+    if force do
+      remove_path(path)
+    else
+      path
+      |> ck_owned_children()
+      |> Enum.flat_map(&remove_path/1)
+      |> tap(fn _ -> remove_dir_if_empty(path) end)
+    end
+  end
+
+  defp do_cleanup_artifact(:file, path, _force), do: remove_path(path)
+
+  defp ck_owned_children(dir) do
+    patterns = [
+      "controlkeel*",
+      "controlkeel-*",
+      "controlkeel_*"
+    ]
+
+    patterns
+    |> Enum.flat_map(&Path.wildcard(Path.join(dir, &1)))
+    |> Enum.filter(&File.exists?/1)
+  end
+
+  defp remove_path(path) do
+    if File.exists?(path) do
+      File.rm_rf!(path)
+      [path]
+    else
+      []
+    end
+  end
+
+  defp remove_dir_if_empty(path) do
+    case File.ls(path) do
+      {:ok, []} -> File.rmdir(path)
+      _ -> :ok
+    end
+  end
+
+  defp path_within_root?(root, path), do: path == root or String.starts_with?(path, root <> "/")
 
   defp cleanup_binding_dir(root) do
     binding_dir = Path.join(Path.expand(root), "controlkeel")
@@ -738,19 +844,17 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     _ -> :ok
   end
 
-  defp detach_lines(agent_key, attrs, remaining) do
-    scope = attrs["scope"] || "project"
+  defp detach_response("json", payload), do: {:ok, [Jason.encode!(payload, pretty: true)]}
 
-    lines =
-      [
-        "Detached #{agent_key} (scope: #{scope}).",
-        if(remaining > 0,
-          do: "Remaining attached agents: #{remaining}",
-          else: "No agents remaining. Binding directory cleaned up."
-        )
-      ]
-      |> Enum.filter(&is_binary/1)
+  defp detach_response(_format, payload) do
+    lines = [
+      "Detached #{payload["agent"]} (scope: #{payload["scope"]}).",
+      if(payload["remaining_attached_agents"] > 0,
+        do: "Remaining attached agents: #{payload["remaining_attached_agents"]}",
+        else: "No agents remaining. Binding directory cleaned up."
+      )
+    ]
 
-    {:ok, lines}
+    {:ok, Enum.filter(lines, &is_binary/1)}
   end
 end

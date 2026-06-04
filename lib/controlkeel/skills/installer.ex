@@ -135,10 +135,23 @@ defmodule ControlKeel.Skills.Installer do
   end
 
   defp collect_destination_paths(result) when is_map(result) do
-    result |> Map.values() |> Enum.filter(&is_binary/1)
+    result
+    |> Map.values()
+    |> Enum.filter(&path_like_string?/1)
   end
 
   defp collect_destination_paths(_), do: []
+
+  # Install results include metadata strings such as target="opencode-native" and
+  # scope="project". Those are not paths and must never be converted into
+  # /.gitignore entries like /opencode-native or /project.
+  defp path_like_string?(value) when is_binary(value) do
+    Path.type(value) == :absolute or String.starts_with?(value, ".") or
+      String.contains?(value, "/") or
+      String.contains?(value, "\\")
+  end
+
+  defp path_like_string?(_), do: false
 
   defp path_within?(root, candidate), do: String.starts_with?(candidate, root <> "/")
 
@@ -682,9 +695,11 @@ defmodule ControlKeel.Skills.Installer do
     copy_tree_contents(Path.join(plan.output_dir, ".opencode/agents"), agents_root)
     copy_tree_contents(Path.join(plan.output_dir, ".opencode/commands"), commands_root)
 
+    mcp_path = Path.join(opencode_root, "mcp.json")
+
     File.cp!(
       Path.join(plan.output_dir, ".opencode/mcp.json"),
-      Path.join(opencode_root, "mcp.json")
+      mcp_path
     )
 
     maybe_install_project_agents_md!(plan.output_dir, project_root, opts)

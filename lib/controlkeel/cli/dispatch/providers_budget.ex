@@ -108,21 +108,29 @@ defmodule ControlKeel.CLI.Dispatch.ProvidersBudget do
   end
 
   def run_command(%{command: :provider_doctor, options: options}, project_root) do
-    root = options[:project_root] || project_root
-    doctor = ProviderBroker.doctor(root)
-    status = doctor["status"]
+    with {:ok, format} <- effective_cli_format(options) do
+      root = options[:project_root] || project_root
+      doctor = ProviderBroker.doctor(root)
+      status = doctor["status"]
 
-    {:ok,
-     [
-       "Provider doctor for #{status["project_root"]}",
-       "Selected source: #{status["selected_source"]}",
-       "Selected provider: #{status["selected_provider"]}",
-       "Trust boundary: #{get_in(status, ["selected_trust_profile", "trust_boundary"]) || "unknown"}",
-       "Intermediary risk: #{get_in(status, ["selected_trust_profile", "intermediary_risk"]) || "unknown"}",
-       "Auth mode: #{status["selected_auth_mode"]}",
-       "Auth owner: #{status["selected_auth_owner"]}",
-       "Bootstrap mode: #{status["bootstrap"]["mode"]}"
-     ] ++ Enum.map(doctor["suggestions"], &"  #{&1}")}
+      case format do
+        "json" ->
+          {:ok, [Jason.encode!(doctor)]}
+
+        _ ->
+          {:ok,
+           [
+             "Provider doctor for #{status["project_root"]}",
+             "Selected source: #{status["selected_source"]}",
+             "Selected provider: #{status["selected_provider"]}",
+             "Trust boundary: #{get_in(status, ["selected_trust_profile", "trust_boundary"]) || "unknown"}",
+             "Intermediary risk: #{get_in(status, ["selected_trust_profile", "intermediary_risk"]) || "unknown"}",
+             "Auth mode: #{status["selected_auth_mode"]}",
+             "Auth owner: #{status["selected_auth_owner"]}",
+             "Bootstrap mode: #{status["bootstrap"]["mode"]}"
+           ] ++ Enum.map(doctor["suggestions"], &"  #{&1}")}
+      end
+    end
   end
 
   def run_command(%{command: :provider_default, args: [source], options: options}, project_root) do
@@ -216,6 +224,7 @@ defmodule ControlKeel.CLI.Dispatch.ProvidersBudget do
   end
 
   def run_command(%{command: :cost_optimize, options: options}, _project_root) do
+    {:ok, format} = effective_cli_format(options)
     session_id = options[:session_id]
     provider = options[:provider]
     model = options[:model]
@@ -243,15 +252,22 @@ defmodule ControlKeel.CLI.Dispatch.ProvidersBudget do
            top_model: model
          ) do
       {:ok, []} ->
-        {:ok, ["No cost optimization suggestions at this time."]}
+        case format do
+          "json" -> {:ok, [Jason.encode!(%{"suggestions" => []})]}
+          _ -> {:ok, ["No cost optimization suggestions at this time."]}
+        end
 
       {:ok, suggestions} ->
-        lines =
-          Enum.map(suggestions, fn s ->
-            "[#{s.priority}] #{s.title}\n  #{s.description}\n  Potential savings: #{s.savings_percent}%"
-          end)
+        if format == "json" do
+          {:ok, [Jason.encode!(%{"suggestions" => suggestions})]}
+        else
+          lines =
+            Enum.map(suggestions, fn s ->
+              "[#{s.priority}] #{s.title}\n  #{s.description}\n  Potential savings: #{s.savings_percent}%"
+            end)
 
-        {:ok, ["Cost Optimization Suggestions:", "" | lines]}
+          {:ok, ["Cost Optimization Suggestions:", "" | lines]}
+        end
     end
   end
 
