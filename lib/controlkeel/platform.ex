@@ -591,7 +591,7 @@ defmodule ControlKeel.Platform do
   end
 
   defp git_head_sha(project_root) do
-    case safe_git(["rev-parse", "HEAD"], project_root, stderr_to_stdout: true) do
+    case ControlKeel.Git.cmd(["rev-parse", "HEAD"], cd: project_root, stderr_to_stdout: true) do
       {sha, 0} -> String.trim(sha)
       _ -> nil
     end
@@ -602,7 +602,7 @@ defmodule ControlKeel.Platform do
   # only by lines matching git's stable `--porcelain` format (`XY <path>`), so
   # a merged warning line can't masquerade as a pending change.
   defp git_working_tree_dirty(project_root) do
-    case safe_git(["status", "--porcelain"], project_root, stderr_to_stdout: true) do
+    case ControlKeel.Git.cmd(["status", "--porcelain"], cd: project_root, stderr_to_stdout: true) do
       {output, 0} when is_binary(output) ->
         output
         |> String.split("\n", trim: true)
@@ -616,14 +616,6 @@ defmodule ControlKeel.Platform do
   # Porcelain v1 entries begin with a two-character status field drawn from a
   # fixed alphabet followed by a space; warning/fatal/hint text cannot match.
   defp porcelain_entry?(line), do: line =~ ~r/^[ MTADRCU?!]{2} /
-
-  # System.cmd raises ErlangError when the git executable is absent; proof
-  # capture must never crash the task-check recording flow, so degrade to nil.
-  defp safe_git(args, project_root, opts) do
-    System.cmd("git", args, [cd: project_root] ++ opts)
-  rescue
-    _ -> {nil, :error}
-  end
 
   defp first_binary(map, keys) do
     keys

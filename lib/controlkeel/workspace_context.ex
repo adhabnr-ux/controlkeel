@@ -147,21 +147,21 @@ defmodule ControlKeel.WorkspaceContext do
   end
 
   defp repo_root(root) do
-    case System.cmd("git", ["rev-parse", "--show-toplevel"], cd: root, stderr_to_stdout: true) do
+    case ControlKeel.Git.cmd(["rev-parse", "--show-toplevel"], cd: root, stderr_to_stdout: true) do
       {output, 0} -> {:ok, String.trim(output)}
       _ -> {:error, "git_unavailable"}
     end
   end
 
   defp git_value(root, args) do
-    case System.cmd("git", args, cd: root, stderr_to_stdout: true) do
+    case ControlKeel.Git.cmd(args, cd: root, stderr_to_stdout: true) do
       {output, 0} -> String.trim(output)
       _ -> nil
     end
   end
 
   defp git_status_counts(root) do
-    case System.cmd("git", ["status", "--porcelain"], cd: root, stderr_to_stdout: true) do
+    case ControlKeel.Git.cmd(["status", "--porcelain"], cd: root, stderr_to_stdout: true) do
       {output, 0} ->
         output
         |> String.split("\n", trim: true)
@@ -512,8 +512,7 @@ defmodule ControlKeel.WorkspaceContext do
   end
 
   defp recent_commits(repo_root) do
-    case System.cmd(
-           "git",
+    case ControlKeel.Git.cmd(
            [
              "log",
              "--max-count=#{@recent_commit_limit}",
@@ -598,8 +597,7 @@ defmodule ControlKeel.WorkspaceContext do
   end
 
   defp recent_hotspots(repo_root) do
-    case System.cmd(
-           "git",
+    case ControlKeel.Git.cmd(
            ["log", "--max-count=#{@hotspot_commit_window}", "--name-only", "--pretty=format:"],
            cd: repo_root,
            stderr_to_stdout: true
@@ -721,7 +719,7 @@ defmodule ControlKeel.WorkspaceContext do
   defp complexity_budget_action(_level), do: "No complexity-budget action needed."
 
   defp tracked_source_files(repo_root) do
-    case System.cmd("git", ["ls-files"], cd: repo_root, stderr_to_stdout: true) do
+    case ControlKeel.Git.cmd(["ls-files"], cd: repo_root, stderr_to_stdout: true) do
       {output, 0} ->
         output
         |> String.split("\n", trim: true)
@@ -739,7 +737,7 @@ defmodule ControlKeel.WorkspaceContext do
   end
 
   def detect_worktrees(repo_root) do
-    case System.cmd("git", ["worktree", "list", "--porcelain"],
+    case ControlKeel.Git.cmd(["worktree", "list", "--porcelain"],
            cd: repo_root,
            stderr_to_stdout: true
          ) do
