@@ -61,6 +61,79 @@ defmodule ControlKeel.Skills.Installer do
 
   defp maybe_ignore_project_artifacts(_scope, _project_root, _result), do: :ok
 
+  @doc """
+  Remove CK-installed skill directories that are no longer in the current skill set.
+
+  Uses the per-destination manifest (`.controlkeel-skills.json`) to identify
+  CK-owned skills, then removes any that are not in the current canonical set.
+  User-authored skills are never touched.
+  """
+  def cleanup_stale_skills(project_root, attached_agents) when is_map(attached_agents) do
+    analysis = Registry.analyze(project_root, trust_project_skills: true)
+    current_names = Enum.map(analysis.skills, & &1.name)
+
+    skill_dirs =
+      attached_agents
+      |> Enum.flat_map(fn {_key, attrs} ->
+        [
+          Map.get(attrs, "skills_destination"),
+          Map.get(attrs, "compat_skills_destination"),
+          Map.get(attrs, "compat_destination")
+        ]
+        |> Enum.filter(&is_binary/1)
+      end)
+      |> Enum.filter(fn dir ->
+        is_binary(dir) and File.dir?(dir)
+      end)
+      |> Enum.uniq()
+
+    Enum.each(skill_dirs, fn dir ->
+      prune_orphaned_skills(dir, current_names)
+    end)
+
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  @doc """
+  Re-sync all attached targets' skill directories from the canonical skill source.
+
+  Called after any target sync to ensure all skill copies stay identical.
+  Safe to call multiple times — idempotent via manifest-based pruning.
+  """
+  def sync_all_skill_dirs(project_root, attached_agents) when is_map(attached_agents) do
+    analysis = Registry.analyze(project_root, trust_project_skills: true)
+    skills = analysis.skills
+
+    root = Path.expand(project_root)
+
+    # Collect all unique skill destination paths across all attached agents
+    skill_dirs =
+      attached_agents
+      |> Enum.flat_map(fn {_key, attrs} ->
+        [
+          Map.get(attrs, "skills_destination"),
+          Map.get(attrs, "compat_skills_destination"),
+          Map.get(attrs, "compat_destination")
+        ]
+        |> Enum.filter(&is_binary/1)
+      end)
+      |> Enum.filter(fn dir ->
+        # Only sync dirs that exist and are within the project root
+        is_binary(dir) and File.dir?(dir) and path_within?(root, dir)
+      end)
+      |> Enum.uniq()
+
+    Enum.each(skill_dirs, fn dir ->
+      copy_skills(skills, dir)
+    end)
+
+    :ok
+  rescue
+    _ -> :ok
+  end
+
   defp collect_destination_paths(result) when is_map(result) do
     result |> Map.values() |> Enum.filter(&is_binary/1)
   end

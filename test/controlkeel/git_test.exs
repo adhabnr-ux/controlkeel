@@ -43,7 +43,9 @@ defmodule ControlKeel.GitTest do
     end
 
     test "WorkspaceContext.build/1 degrades gracefully when git is missing" do
-      tmp_dir = Path.join(System.tmp_dir!(), "ck-git-absent-#{System.unique_integer([:positive])}")
+      tmp_dir =
+        Path.join(System.tmp_dir!(), "ck-git-absent-#{System.unique_integer([:positive])}")
+
       File.mkdir_p!(tmp_dir)
       on_exit(fn -> File.rm_rf!(tmp_dir) end)
 

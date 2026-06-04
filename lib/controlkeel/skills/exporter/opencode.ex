@@ -15,7 +15,7 @@ defmodule ControlKeel.Skills.Exporter.OpenCode do
 
     agent_path = Path.join(root, ".opencode/agents/controlkeel-operator.md")
     File.mkdir_p!(Path.dirname(agent_path))
-    File.write!(agent_path, E.opencode_agent_contents())
+    File.write!(agent_path, E.opencode_agent_contents(skills))
 
     command_path = Path.join(root, ".opencode/commands/controlkeel-review.md")
     File.mkdir_p!(Path.dirname(command_path))

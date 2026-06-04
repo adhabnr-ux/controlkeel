@@ -65,7 +65,7 @@ defmodule ControlKeel.ProjectBinding do
   # embeds an absolute CK_PROJECT_ROOT), and `.controlkeel/` holds local tool
   # usage telemetry. Callers may pass extra entries (e.g. project-scope agent
   # dirs created by `attach`) which are merged into the same managed block.
-  @gitignore_entries ["/controlkeel/", "/.controlkeel/"]
+  @gitignore_entries ["/controlkeel/", "/.controlkeel/", "/.agents/skills/"]
 
   def ensure_gitignore(project_root \\ File.cwd!(), extra_entries \\ []) do
     path = Path.join(canonical_root(project_root), ".gitignore")

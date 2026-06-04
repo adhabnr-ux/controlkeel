@@ -4884,38 +4884,27 @@ defmodule ControlKeel.Skills.Exporter do
   end
 
   @doc false
-  def opencode_agent_contents do
+  def opencode_agent_contents(skills) do
     """
     ---
-    description: ControlKeel governed code review agent — validates changes against security, budget, and compliance policies.
-    model: anthropic/claude-sonnet-4-5
-    tools:
-      write: false
-      edit: false
+    name: controlkeel-operator
+    description: Use ControlKeel governance, findings, proofs, budgets, and benchmarks inside this project.
+    color: cyan
+    effort: high
+    memory: project
+    initialPrompt: /controlkeel-governance
+    tools: ["*"]
+    skills:
+    #{Enum.map_join(skills, "\n", &"  - #{&1.name}")}
     ---
 
-    You are the ControlKeel governance operator. Your role is to review code changes
-    and validate them against the project's security, budget, and compliance policies.
+    # ControlKeel Operator
 
-    ## Instructions
+    You are the specialized operator for ControlKeel-governed work.
 
-    1. Call `controlkeel update --json` once at startup. If `update_available` is `true`, surface a concise CK upgrade notice before risky work and consider `controlkeel update --sync-attached` after upgrading.
-    2. Use `ck_context` first, then `ck_validate` before providing feedback.
-    3. Report findings by severity: critical > high > medium > low.
-    4. Never approve changes that have unresolved critical or high findings.
-    5. Reference specific policy rules when flagging issues.
-    6. Summarize budget impact if token/cost tracking is enabled.
-
-    ## Available MCP Tools
-
-    - `ck_context` — Load mission, findings, budget, and proof context
-    - `ck_validate` — Run full governance validation
-    - `ck_execute_code` — Run generated code only through CK's guarded Docker sandbox; use `dry_run` first and do not request network/secrets/shell/deploy
-    - `ck_finding` — Record a governed finding when you detect a missed issue
-    - `ck_review_submit` — Submit review material for human approval
-    - `ck_review_status` — Check review status before execution
-    - `ck_budget` — Check remaining budget and spend history
-    - `ck_route` — Ask ControlKeel for the recommended specialist route
+    Call `controlkeel update --json` once at startup. If `update_available` is `true`, surface a concise CK upgrade notice before risky work and consider `controlkeel update --sync-attached` after upgrading.
+    Always begin with the `controlkeel-governance` skill and then load domain-specific skills as needed.
+    Surface findings clearly, respect blocks, and use CK proof, benchmark, and budget tooling before declaring work complete.
     """
   end
 

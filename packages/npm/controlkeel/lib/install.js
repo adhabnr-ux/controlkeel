@@ -133,10 +133,11 @@ async function verifyChecksum(filePath, asset) {
   let checksumText;
   try {
     checksumText = await downloadText(checksumUrl);
-  } catch {
-    // Checksum file not available for this release — skip verification but warn.
-    console.warn(`[controlkeel] Warning: could not download checksum file from ${checksumUrl}. Skipping integrity check.`);
-    return;
+  } catch (err) {
+    throw new Error(
+      `[controlkeel] Failed to download checksum file from ${checksumUrl}. ` +
+      `Cannot verify binary integrity. Aborting installation. (${err.message})`
+    );
   }
 
   const expectedHash = checksumText
@@ -145,8 +146,10 @@ async function verifyChecksum(filePath, asset) {
     .find(([, name]) => name === asset || name === `./${asset}`)?.[0];
 
   if (!expectedHash) {
-    console.warn(`[controlkeel] Warning: no checksum entry found for ${asset}. Skipping integrity check.`);
-    return;
+    throw new Error(
+      `[controlkeel] No checksum entry found for ${asset} in checksums file. ` +
+      `Cannot verify binary integrity. Aborting installation.`
+    );
   }
 
   const actualHash = await sha256File(filePath);
