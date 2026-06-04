@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Ck.HostAudit do
     include_unverified? = Enum.member?(args, "--include-unverified")
     report = HostAudit.run(include_unverified: include_unverified?)
 
-    Enum.each(HostAudit.render(report), fn line -> Mix.shell().info(line) end)
+    Enum.each(HostAudit.render(report), fn line -> IO.puts(line) end)
 
     if report.summary.error > 0 do
       Mix.raise("Host audit found failing public surfaces.")

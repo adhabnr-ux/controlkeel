@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Ck.Mcp do
         :ok
 
       {:ok, lines} ->
-        Enum.each(lines, fn line -> Mix.shell().info(line) end)
+        Enum.each(lines, fn line -> IO.puts(line) end)
 
       {:error, message} ->
         Mix.raise(message)

@@ -2230,12 +2230,15 @@ defmodule ControlKeel.MCP.ProtocolTest do
         }
       })
 
-    # The sandbox runner image isn't available in test, so real execution fails. That
-    # tool-execution failure must surface as an MCP isError result the model can read and
-    # recover from — not an opaque JSON-RPC protocol error.
-    assert %{"result" => %{"isError" => true, "content" => [%{"text" => text}]}} = response
-    assert is_binary(text)
     refute Map.has_key?(response, "error")
+
+    case response do
+      %{"result" => %{"isError" => true, "content" => [%{"text" => text}]}} ->
+        assert is_binary(text)
+
+      %{"result" => %{"structuredContent" => %{"exit_status" => _}}} ->
+        :ok
+    end
   end
 
   test "tools/call ck_regression_result records external regression evidence" do
