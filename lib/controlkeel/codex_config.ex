@@ -47,6 +47,33 @@ defmodule ControlKeel.CodexConfig do
     end
   end
 
+  @doc """
+  Reverse of write/3: strip the controlkeel managed block from config.toml,
+  preserving any user-authored content outside the block. Deletes the file if
+  nothing else remains. Idempotent and best-effort.
+  """
+  def remove(config_path) do
+    case File.read(config_path) do
+      {:ok, contents} ->
+        case split_managed_block(contents) do
+          {:ok, prefix, suffix} ->
+            remaining = join_sections(prefix, "", suffix) |> String.trim()
+
+            if remaining == "" do
+              File.rm(config_path)
+            else
+              File.write(config_path, remaining <> "\n")
+            end
+
+          :error ->
+            :ok
+        end
+
+      _ ->
+        :ok
+    end
+  end
+
   defp managed_block(command, args, opts) do
     agent_key = Keyword.get(opts, :agent_key, @default_agent_key)
     agent_config = Keyword.get(opts, :agent_config, @default_agent_config)

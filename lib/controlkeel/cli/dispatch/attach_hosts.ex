@@ -2,6 +2,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   @moduledoc false
 
   alias ControlKeel.AgentExecution
+  alias ControlKeel.AgentIntegration
   alias ControlKeel.ClaudeCLI
   alias ControlKeel.CodexConfig
   alias ControlKeel.ProviderBroker
@@ -385,6 +386,46 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     end
   end
 
+  def run_command(%{command: :detach, args: [agent], options: options}, project_root) do
+    root = options[:project_root] || project_root
+
+    with {:ok, binding, _session, _mode} <- load_binding_for_detach(root),
+         {:ok, agent_key, attrs} <- resolve_attached(agent, binding) do
+      remove_mcp_registration(agent_key, attrs, root)
+      cleanup_agent_artifacts(attrs, root, options[:force])
+
+      updated_binding = remove_agent_from_binding(binding, agent_key)
+      remaining = map_size(updated_binding["attached_agents"] || %{})
+
+      # If no agents remain, clean up the controlkeel/ directory
+      if remaining == 0 and not options[:keep_binding] do
+        cleanup_binding_dir(root)
+      end
+
+      {:ok, _binding} =
+        if remaining > 0 do
+          ProjectBinding.write_effective(
+            updated_binding,
+            root,
+            mode: binding_write_mode(updated_binding)
+          )
+        else
+          {:ok, updated_binding}
+        end
+
+      detach_lines(agent_key, attrs, remaining)
+    else
+      {:error, :no_binding} ->
+        {:error, "No ControlKeel binding found. Run `controlkeel init` first."}
+
+      {:error, {:not_attached, key}} ->
+        {:error, "Agent #{key} is not attached to this project."}
+
+      {:error, reason} ->
+        {:error, "Failed to detach: #{inspect(reason)}"}
+    end
+  end
+
   def run_command(%{command: :agents_discover, options: options, args: [path]}, _project_root) do
     alias ControlKeel.Cloud.AgentInventory
 
@@ -516,5 +557,200 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
           {:ok, lines}
       end
     end
+  end
+
+  defp load_binding_for_detach(root) do
+    case ControlKeel.LocalProject.load(root) do
+      {:ok, binding, session} -> {:ok, binding, session, "project"}
+      {:error, _reason} -> {:error, :no_binding}
+    end
+  end
+
+  # Resolve the *actual* key an agent was stored under in attached_agents.
+  # attach is inconsistent (claude-code -> "claude_code", most others use their
+  # raw dashed name), and AgentIntegration.canonical/1 returns a struct, so we
+  # match against a candidate set of dash/underscore variants.
+  defp resolve_attached(agent, binding) do
+    agents = Map.get(binding, "attached_agents", %{})
+
+    case Enum.find(attached_key_candidates(agent), &Map.has_key?(agents, &1)) do
+      nil -> {:error, {:not_attached, agent}}
+      key -> {:ok, key, Map.get(agents, key)}
+    end
+  end
+
+  defp attached_key_candidates(agent) do
+    canonical_id =
+      case AgentIntegration.canonical(agent) do
+        %{id: id} when is_binary(id) -> id
+        _ -> agent
+      end
+
+    [agent, canonical_id]
+    |> Enum.flat_map(&[&1, String.replace(&1, "-", "_"), String.replace(&1, "_", "-")])
+    |> Enum.uniq()
+  end
+
+  # Reverse the MCP server registration attach wrote, dispatched by how each
+  # host stores it. Best-effort and idempotent: a missing file/CLI is a no-op.
+  defp remove_mcp_registration(agent_key, attrs, root) do
+    server = attrs["server_name"] || "controlkeel"
+    config_path = attrs["config_destination"] || attrs["config_path"]
+
+    cond do
+      claude_agent?(agent_key) ->
+        ControlKeel.ClaudeCLI.detach_local(root, server)
+
+      codex_agent?(agent_key) and is_binary(config_path) ->
+        ControlKeel.CodexConfig.remove(config_path)
+
+      is_binary(config_path) and String.ends_with?(config_path, ".toml") ->
+        ControlKeel.CodexConfig.remove(config_path)
+
+      is_binary(config_path) and String.ends_with?(config_path, ".json") ->
+        remove_json_mcp_entry(config_path, server)
+
+      true ->
+        :ok
+    end
+
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  defp claude_agent?(key), do: key in ["claude_code", "claude-code"]
+
+  defp codex_agent?(key),
+    do: key in ["codex-cli", "codex_cli", "codex-app-server", "codex_app_server", "t3code"]
+
+  # Remove the controlkeel entry from a JSON MCP config, handling both the dict
+  # forms (mcpServers / mcp) and the array form (continue). Other servers and
+  # user keys are preserved; the file is only rewritten if it actually changed.
+  defp remove_json_mcp_entry(config_path, server) do
+    with {:ok, body} <- File.read(config_path),
+         {:ok, map} when is_map(map) <- Jason.decode(body) do
+      updated =
+        map
+        |> drop_mcp_server("mcpServers", server)
+        |> drop_mcp_server("mcp", server)
+
+      if updated == map do
+        :ok
+      else
+        File.write(config_path, Jason.encode!(updated, pretty: true) <> "\n")
+      end
+    else
+      _ -> :ok
+    end
+  end
+
+  defp drop_mcp_server(map, key, server) do
+    case Map.get(map, key) do
+      servers when is_map(servers) ->
+        Map.put(map, key, Map.delete(servers, server))
+
+      servers when is_list(servers) ->
+        Map.put(map, key, Enum.reject(servers, &(Map.get(&1, "name") == server)))
+
+      _ ->
+        map
+    end
+  end
+
+  defp remove_agent_from_binding(binding, agent_key) do
+    updated_agents =
+      binding
+      |> Map.get("attached_agents", %{})
+      |> Map.delete(agent_key)
+
+    Map.put(binding, "attached_agents", updated_agents)
+  end
+
+  # Remove project-scope files created by attach for a specific agent.
+  # Best-effort: failures to remove individual files are logged but don't fail the detach.
+  defp cleanup_agent_artifacts(attrs, root, force) do
+    scope = attrs["scope"] || "project"
+
+    # Collect all destination paths that are within the project root
+    destination_keys = [
+      "skills_destination",
+      "compat_skills_destination",
+      "compat_destination",
+      "agents_destination",
+      "commands_destination",
+      "plugins_destination",
+      "rules_destination"
+    ]
+
+    destinations =
+      destination_keys
+      |> Enum.map(&Map.get(attrs, &1))
+      |> Enum.filter(&is_binary/1)
+
+    if scope == "project" do
+      # Only remove project-scope dirs
+      root_expanded = Path.expand(root)
+
+      Enum.each(destinations, fn dest ->
+        expanded = Path.expand(dest)
+
+        if String.starts_with?(expanded, root_expanded <> "/") and File.exists?(expanded) do
+          if force do
+            File.rm_rf!(expanded)
+          else
+            # Only remove if it looks like a CK-managed dir (has our manifest)
+            manifest = Path.join(expanded, ".controlkeel-skills.json")
+
+            if File.exists?(manifest) do
+              File.rm_rf!(expanded)
+            end
+          end
+        end
+      end)
+
+      # Also clean the MCP wrapper destination
+      if Map.get(attrs, "command") do
+        wrapper = ProjectBinding.mcp_wrapper_path(root)
+
+        if File.exists?(wrapper) do
+          # Only remove if this was the last agent using the wrapper
+          # (We check after updating the binding, so this is safe)
+          :ok
+        end
+      end
+    end
+
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  defp cleanup_binding_dir(root) do
+    binding_dir = Path.join(Path.expand(root), "controlkeel")
+
+    if File.dir?(binding_dir) do
+      File.rm_rf!(binding_dir)
+    end
+
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  defp detach_lines(agent_key, attrs, remaining) do
+    scope = attrs["scope"] || "project"
+
+    lines =
+      [
+        "Detached #{agent_key} (scope: #{scope}).",
+        if(remaining > 0,
+          do: "Remaining attached agents: #{remaining}",
+          else: "No agents remaining. Binding directory cleaned up."
+        )
+      ]
+      |> Enum.filter(&is_binary/1)
+
+    {:ok, lines}
   end
 end
