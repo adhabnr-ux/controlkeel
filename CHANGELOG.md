@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.43 — 2026-06-04
+
+### What's changed
+
+- fix: full-potential attach, skill sync, checksum parity, doctor skill consistency
+- fix(doctor): keep top-level status "ok"; surface health via install_health
+- fix(skills): prune CK's stale skills on re-install, never user-authored ones
+- feat(doctor): add install-health checks (git, gitignore, MCP, drift)
+- fix(install): verify SHA-256 checksum in shell and PowerShell installers
+- fix: gitignore every artifact CK writes into a user repo
+- fix: route git shell-outs through crash-safe ControlKeel.Git wrapper
+- fix: harden git_context proof capture against missing git and stderr noise
+
 ## v0.3.42 — 2026-06-04
 
 ### What's changed
