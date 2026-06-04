@@ -25,9 +25,15 @@ defmodule ControlKeelWeb.ApiController do
 
   def action(conn, _opts) do
     agent_json? = agent_json_requested?(conn)
-    conn = apply(__MODULE__, action_name(conn), [conn, conn.params])
 
-    if agent_json?, do: wrap_agent_json_response(conn), else: conn
+    conn =
+      if agent_json? do
+        Plug.Conn.register_before_send(conn, &wrap_agent_json_response/1)
+      else
+        conn
+      end
+
+    apply(__MODULE__, action_name(conn), [conn, conn.params])
   end
 
   # ─── Sessions ────────────────────────────────────────────────────────────────
@@ -1913,8 +1919,10 @@ defmodule ControlKeelWeb.ApiController do
       Map.get(conn.query_params, "format") == "agent" or
       Map.get(conn.params, "format") == "agent" or
       Enum.any?(conn.req_headers, fn {key, value} ->
-        String.downcase(to_string(key)) == "accept" and
-          String.contains?(to_string(value), "application/vnd.controlkeel.agent+json")
+        (String.downcase(to_string(key)) == "accept" and
+           String.contains?(to_string(value), "application/vnd.controlkeel.agent+json")) or
+          (String.downcase(to_string(key)) == "user-agent" and
+             String.contains?(String.downcase(to_string(value)), "opencode"))
       end)
   end
 
@@ -1927,10 +1935,19 @@ defmodule ControlKeelWeb.ApiController do
 
   defp raw_query_format_agent?(_query_string), do: false
 
-  defp wrap_agent_json_response(%{resp_body: body} = conn) when is_binary(body) do
-    case Jason.decode(body) do
-      {:ok, decoded} -> %{conn | resp_body: Jason.encode!(agent_envelope(conn, decoded))}
-      {:error, _} -> conn
+  defp wrap_agent_json_response(%{resp_body: body} = conn) when not is_nil(body) do
+    body_bin = IO.iodata_to_binary(body)
+
+    case Jason.decode(body_bin) do
+      {:ok, decoded} ->
+        new_body = Jason.encode!(agent_envelope(conn, decoded))
+
+        conn
+        |> Map.put(:resp_body, new_body)
+        |> Plug.Conn.put_resp_header("content-length", Integer.to_string(byte_size(new_body)))
+
+      {:error, _} ->
+        conn
     end
   end
 
@@ -1960,9 +1977,19 @@ defmodule ControlKeelWeb.ApiController do
   end
 
   defp api_command(conn) do
-    conn.private
-    |> Map.get(:phoenix_action, "api")
-    |> to_string()
+    explicit_command = conn.params["command"] || conn.params["method"]
+
+    if is_binary(explicit_command) and explicit_command != "" do
+      explicit_command
+    else
+      case Map.get(conn.private, :phoenix_action) do
+        :list_providers -> "provider.list"
+        :provider_status -> "config.providers"
+        :list_agents -> "app.agents"
+        :context -> "config.get"
+        other -> to_string(other || "api")
+      end
+    end
   end
 
   defp api_error_message(%{"error" => error}, _status) when is_binary(error), do: error

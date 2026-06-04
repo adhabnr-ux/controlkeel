@@ -234,6 +234,8 @@ defmodule ControlKeel.MCP.Tools.CkTask do
     |> maybe_put("exit_code", metadata["exit_code"])
     |> maybe_put("output_sha256", metadata["output_sha256"] || payload["output_sha256"])
     |> maybe_put("output_bytes", metadata["output_bytes"])
+    |> maybe_put("output_excerpt_bytes", metadata["output_excerpt_bytes"])
+    |> maybe_put("output_truncated", metadata["output_truncated"])
     |> maybe_put("artifact_sha256", metadata["artifact_sha256"])
     |> maybe_put("artifact_uri", metadata["artifact_uri"])
     |> maybe_put("git_head_sha", metadata["git_head_sha"])

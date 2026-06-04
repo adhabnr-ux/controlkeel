@@ -2940,6 +2940,7 @@ defmodule ControlKeel.Mission do
     approved_reviews = Enum.count(reviews, &(&1.status == "approved"))
     passed_checks = Enum.count(invocations, &(get_in(&1.metadata, ["outcome"]) == "passed"))
     passed_task_checks = task_check_summary["passed"]
+    passed_strong_task_checks = task_check_summary["passed_strong"]
     failed_task_checks = task_check_summary["failed"]
     external_regressions = test_outcomes["external_recorded"] || 0
     blocking_failures = test_outcomes["blocking_failures"] || 0
@@ -2958,6 +2959,7 @@ defmodule ControlKeel.Mission do
       |> maybe_add_score(completed_task_status?(task.status), 10)
       |> maybe_add_score(passed_checks > 0, 20)
       |> maybe_add_score(passed_task_checks > 0, 25)
+      |> maybe_add_score(passed_strong_task_checks > 0, 10)
       |> maybe_add_score(external_regressions > 0 and blocking_failures == 0, 30)
       |> maybe_add_score(approved_reviews > 0, 20)
       |> maybe_add_score(open_or_blocked == 0, 10)
@@ -2973,11 +2975,13 @@ defmodule ControlKeel.Mission do
       "score" => score,
       "status" => verification_status(score),
       "verification_ready" =>
-        failed_task_checks == 0 and blocking_failures == 0 and
+        (passed_checks > 0 or passed_task_checks > 0 or external_regressions > 0 or
+           approved_reviews > 0) and failed_task_checks == 0 and blocking_failures == 0 and
           not has_suspicious_severity?(suspicious_test_changes, "high"),
       "evidence" => %{
         "passed_checks" => passed_checks,
         "passed_task_checks" => passed_task_checks,
+        "passed_strong_task_checks" => passed_strong_task_checks,
         "failed_task_checks" => failed_task_checks,
         "external_regressions" => external_regressions,
         "approved_reviews" => approved_reviews,
@@ -3328,6 +3332,7 @@ defmodule ControlKeel.Mission do
     %{
       "total" => length(check_results),
       "passed" => passed,
+      "passed_strong" => Enum.count(check_results, &passed_strong_task_check?/1),
       "failed" => failed,
       "warn" => warned,
       "evidence_sources" =>
@@ -3345,6 +3350,15 @@ defmodule ControlKeel.Mission do
       "hashed_outputs" => Enum.count(check_results, &task_check_output_hash?/1),
       "git_shas" => unique_git_shas(check_results)
     }
+  end
+
+  defp passed_strong_task_check?(check_result) do
+    check_result.status == "passed" and
+      task_check_proof_strength(check_result) in [
+        "command_output",
+        "external_artifact",
+        "cryptographic"
+      ]
   end
 
   defp proof_strength_counts(check_results) do

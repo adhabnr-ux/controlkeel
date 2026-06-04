@@ -52,6 +52,11 @@ defmodule ControlKeel.DatabaseMaintenanceTest do
       {:ok, result} = DatabaseMaintenance.run_once(event_max_age_days: 90, vacuum_enabled: false)
       assert result.vacuumed == false
     end
+
+    test "does not run vacuum when nothing was pruned" do
+      assert {:ok, %{events_pruned: 0, vacuumed: false}} =
+               DatabaseMaintenance.run_once(event_max_age_days: 90, vacuum_enabled: true)
+    end
   end
 
   describe "policy/0" do
@@ -60,6 +65,8 @@ defmodule ControlKeel.DatabaseMaintenanceTest do
       assert Map.has_key?(policy, :enabled)
       assert Map.has_key?(policy, :session_events)
       assert Map.has_key?(policy, :sqlite)
+      assert policy.sqlite.mode == "full"
+      refute Map.has_key?(policy.sqlite, :incremental)
     end
   end
 

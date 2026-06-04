@@ -165,6 +165,7 @@ defmodule ControlKeel.WorkspaceContext do
       {output, 0} ->
         output
         |> String.split("\n", trim: true)
+        |> Enum.filter(&porcelain_entry?/1)
         |> Enum.reduce(%{"modified" => 0, "staged" => 0, "untracked" => 0}, fn line, acc ->
           cond do
             String.starts_with?(line, "??") ->
@@ -181,6 +182,8 @@ defmodule ControlKeel.WorkspaceContext do
         %{"modified" => 0, "staged" => 0, "untracked" => 0}
     end
   end
+
+  defp porcelain_entry?(line), do: line =~ ~r/^[ MTADRCU?!]{2} /
 
   defp discovered_files(root, candidates) do
     Enum.flat_map(candidates, fn {relative_path, kind} ->

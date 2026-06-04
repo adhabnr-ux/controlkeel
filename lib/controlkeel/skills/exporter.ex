@@ -3888,11 +3888,12 @@ defmodule ControlKeel.Skills.Exporter do
     ---
     name: controlkeel-operator
     description: Use ControlKeel governance, findings, proofs, budgets, and benchmarks inside this project.
-    color: cyan
+    color: "#06b6d4"
     effort: high
     memory: project
     initialPrompt: /controlkeel-governance
-    tools: ["*"]
+    tools:
+      "*": true
     mcpServers: ["controlkeel"]
     skills:
     #{Enum.map_join(skills, "\n", &"  - #{&1.name}")}
@@ -3914,11 +3915,12 @@ defmodule ControlKeel.Skills.Exporter do
     ---
     name: controlkeel-operator
     description: Use ControlKeel governance, findings, proofs, budgets, and benchmarks inside this project.
-    color: cyan
+    color: "#06b6d4"
     effort: high
     memory: project
     initialPrompt: /controlkeel-governance
-    tools: ["*"]
+    tools:
+      "*": true
     skills:
     #{Enum.map_join(skills, "\n", &"  - #{&1.name}")}
     ---
@@ -4081,7 +4083,8 @@ defmodule ControlKeel.Skills.Exporter do
     """
     ---
     description: Operate inside a ControlKeel-governed repository and use CK skills and MCP tools proactively.
-    tools: ["*"]
+    tools:
+      "*": true
     ---
 
     # ControlKeel Operator
@@ -4100,9 +4103,9 @@ defmodule ControlKeel.Skills.Exporter do
     ---
     name: controlkeel-operator
     description: Operate inside a ControlKeel-governed repository and use CK tools proactively.
-    color: cyan
+    color: "#06b6d4"
     tools:
-      - "*"
+      "*": true
     ---
 
     # ControlKeel Operator
@@ -4889,11 +4892,12 @@ defmodule ControlKeel.Skills.Exporter do
     ---
     name: controlkeel-operator
     description: Use ControlKeel governance, findings, proofs, budgets, and benchmarks inside this project.
-    color: cyan
+    color: "#06b6d4"
     effort: high
     memory: project
     initialPrompt: /controlkeel-governance
-    tools: ["*"]
+    tools:
+      "*": true
     skills:
     #{Enum.map_join(skills, "\n", &"  - #{&1.name}")}
     ---

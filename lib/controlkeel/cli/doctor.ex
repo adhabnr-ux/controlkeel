@@ -268,7 +268,7 @@ defmodule ControlKeel.CLI.Doctor do
     |> Enum.sort_by(fn {agent, _attrs} -> agent end)
     |> Enum.map(fn {agent, attrs} ->
       agent_version = attrs["controlkeel_version"] || "unknown"
-      dest = attrs["destination"] || attrs["config_destination"]
+      dest = attrs["destination"] || attrs["config_destination"] || attrs["config_path"]
 
       %{
         "agent" => agent,
@@ -325,7 +325,7 @@ defmodule ControlKeel.CLI.Doctor do
       if length(with_manifests) < 2 do
         %{"ok" => true, "drifted" => []}
       else
-        [baseline_dir, baseline_skills | rest] = with_manifests
+        [{baseline_dir, baseline_skills} | rest] = with_manifests
 
         drifted =
           rest

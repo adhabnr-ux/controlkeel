@@ -134,24 +134,22 @@ defmodule ControlKeel.Skills.Installer do
     _ -> :ok
   end
 
+  @gitignore_destination_keys ~w(
+    skills_destination compat_skills_destination compat_destination skill_destination
+    agent_destination agents_destination commands_destination plugins_destination
+    rules_destination guidance_destination workflows_destination hooks_destination
+    config_destination settings_destination instructions_destination marketplace_destination
+    mcp_destination
+  )
+
   defp collect_destination_paths(result) when is_map(result) do
     result
-    |> Map.values()
-    |> Enum.filter(&path_like_string?/1)
+    |> Enum.filter(fn {key, _value} -> to_string(key) in @gitignore_destination_keys end)
+    |> Enum.map(fn {_key, value} -> value end)
+    |> Enum.filter(&is_binary/1)
   end
 
   defp collect_destination_paths(_), do: []
-
-  # Install results include metadata strings such as target="opencode-native" and
-  # scope="project". Those are not paths and must never be converted into
-  # /.gitignore entries like /opencode-native or /project.
-  defp path_like_string?(value) when is_binary(value) do
-    Path.type(value) == :absolute or String.starts_with?(value, ".") or
-      String.contains?(value, "/") or
-      String.contains?(value, "\\")
-  end
-
-  defp path_like_string?(_), do: false
 
   defp path_within?(root, candidate), do: String.starts_with?(candidate, root <> "/")
 

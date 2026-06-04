@@ -508,30 +508,39 @@ defmodule ControlKeel.Platform do
   defp normalize_check_map(_value), do: %{}
 
   defp task_check_proof_metadata(payload, metadata, git) do
-    output = check_output(payload)
-    explicit_hash = first_binary(metadata, ["output_sha256", "artifact_sha256"])
-    output_hash = explicit_hash || sha256(output)
+    full_output = check_full_output(payload)
+    output_excerpt = output_excerpt(full_output)
+    explicit_output_hash = first_binary(metadata, ["output_sha256"])
+    output_hash = explicit_output_hash || sha256(full_output)
 
-    %{
-      "proof_strength" => proof_strength(metadata, output_hash),
-      "proof_normalized_at" => DateTime.to_iso8601(now())
-    }
-    |> maybe_put_binary(
-      "command",
-      first_binary(metadata, ["command"]) || first_binary(payload, ["command"])
-    )
-    |> maybe_put_value(
-      "exit_code",
-      first_value(metadata, ["exit_code"]) || first_value(payload, ["exit_code"])
-    )
-    |> maybe_put_binary("output_sha256", output_hash)
-    |> maybe_put_value("output_bytes", output && byte_size(output))
-    |> maybe_put_binary("artifact_sha256", first_binary(metadata, ["artifact_sha256"]))
-    |> maybe_put_binary(
-      "artifact_uri",
+    output_truncated? =
+      full_output && output_excerpt && byte_size(full_output) > byte_size(output_excerpt)
+
+    command = first_binary(metadata, ["command"]) || first_binary(payload, ["command"])
+    exit_code = first_value(metadata, ["exit_code"]) || first_value(payload, ["exit_code"])
+
+    artifact_uri =
       first_binary(metadata, ["artifact_uri", "artifact_url"]) ||
         first_binary(payload, ["artifact_uri", "artifact_url"])
-    )
+
+    proof_inputs =
+      metadata
+      |> Map.put("command", command)
+      |> Map.put("exit_code", exit_code)
+      |> Map.put("artifact_uri", artifact_uri)
+
+    %{
+      "proof_strength" => proof_strength(proof_inputs, output_hash),
+      "proof_normalized_at" => DateTime.to_iso8601(now())
+    }
+    |> maybe_put_binary("command", redact_secret_text(command))
+    |> maybe_put_value("exit_code", exit_code)
+    |> maybe_put_binary("output_sha256", output_hash)
+    |> maybe_put_value("output_bytes", full_output && byte_size(full_output))
+    |> maybe_put_value("output_excerpt_bytes", output_excerpt && byte_size(output_excerpt))
+    |> maybe_put_value("output_truncated", output_truncated?)
+    |> maybe_put_binary("artifact_sha256", first_binary(metadata, ["artifact_sha256"]))
+    |> maybe_put_binary("artifact_uri", redact_secret_text(artifact_uri))
     |> maybe_put_binary("git_head_sha", git[:head_sha])
     |> maybe_put_value("working_tree_dirty", git[:dirty])
   end
@@ -568,16 +577,20 @@ defmodule ControlKeel.Platform do
   defp proof_strength_values,
     do: ["none", "weak", "claimed", "command_output", "external_artifact", "cryptographic"]
 
-  defp check_output(payload) do
+  defp check_full_output(payload) do
     ["output", "stdout", "stderr"]
     |> Enum.map(&Map.get(payload, &1))
     |> Enum.filter(&is_binary/1)
-    |> Enum.join("\n")
+    |> Enum.join("
+")
     |> case do
       "" -> nil
-      output -> String.slice(output, 0, 32_000)
+      output -> output
     end
   end
+
+  defp output_excerpt(nil), do: nil
+  defp output_excerpt(output), do: String.slice(output, 0, 32_000)
 
   defp sha256(nil), do: nil
   defp sha256(value), do: :crypto.hash(:sha256, value) |> Base.encode16(case: :lower)
@@ -616,6 +629,19 @@ defmodule ControlKeel.Platform do
   # Porcelain v1 entries begin with a two-character status field drawn from a
   # fixed alphabet followed by a space; warning/fatal/hint text cannot match.
   defp porcelain_entry?(line), do: line =~ ~r/^[ MTADRCU?!]{2} /
+
+  defp redact_secret_text(nil), do: nil
+
+  defp redact_secret_text(value) when is_binary(value) do
+    value
+    |> String.replace(~r/(api[_-]?key|token|secret|password)=([^\s&]+)/i, "\1=[REDACTED]")
+    |> String.replace(~r/(Authorization:\s*Bearer\s+)[^\s]+/i, "\1[REDACTED]")
+    |> String.replace(~r/(X-[A-Za-z0-9_-]*Token:\s*)[^\s]+/i, "\1[REDACTED]")
+    |> String.replace(
+      ~r/([?&](?:X-Amz-Signature|signature|sig|token|access_token)=)[^&\s]+/i,
+      "\1[REDACTED]"
+    )
+  end
 
   defp first_binary(map, keys) do
     keys

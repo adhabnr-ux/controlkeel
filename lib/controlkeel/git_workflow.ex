@@ -183,7 +183,10 @@ defmodule ControlKeel.GitWorkflow do
   end
 
   defp parse_git_status(status_output) do
-    lines = String.split(status_output, "\n", trim: true)
+    lines =
+      status_output
+      |> String.split("\n", trim: true)
+      |> Enum.filter(&porcelain_entry?/1)
 
     %{
       "modified" => count_status(lines, ~r/^[AM]./),
@@ -194,6 +197,8 @@ defmodule ControlKeel.GitWorkflow do
       "total" => length(lines)
     }
   end
+
+  defp porcelain_entry?(line), do: line =~ ~r/^[ MTADRCU?!]{2} /
 
   defp count_status(lines, regex) do
     Enum.count(lines, fn line -> Regex.match?(regex, line) end)

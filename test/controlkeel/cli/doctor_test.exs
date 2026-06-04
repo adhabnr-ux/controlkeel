@@ -38,5 +38,40 @@ defmodule ControlKeel.CLI.DoctorTest do
       assert health["gitignore"]["complete"] == true
       assert health["gitignore"]["missing"] == []
     end
+
+    test "reports skill manifest drift across attached agent destinations", %{tmp: tmp} do
+      a = Path.join(tmp, ".a/skills")
+      b = Path.join(tmp, ".b/skills")
+      File.mkdir_p!(a)
+      File.mkdir_p!(b)
+
+      File.write!(
+        Path.join(a, ".controlkeel-skills.json"),
+        Jason.encode!(%{"skills" => ["one", "two"]})
+      )
+
+      File.write!(Path.join(b, ".controlkeel-skills.json"), Jason.encode!(%{"skills" => ["one"]}))
+
+      {:ok, binding, _session, _state} = ControlKeel.LocalProject.load_or_bootstrap(tmp)
+
+      binding =
+        binding
+        |> ControlKeel.ProjectBinding.update_attached_agent("a", %{
+          "controlkeel_version" => "9.9.9",
+          "skills_destination" => a
+        })
+        |> ControlKeel.ProjectBinding.update_attached_agent("b", %{
+          "controlkeel_version" => "9.9.9",
+          "skills_destination" => b
+        })
+
+      {:ok, _} = ControlKeel.ProjectBinding.write_effective(binding, tmp, mode: :project)
+
+      health = Doctor.payload(tmp, "9.9.9")["install_health"]
+      assert health["skill_consistency"]["ok"] == false
+
+      assert [%{"skill" => "two", "direction" => "missing"} | _] =
+               health["skill_consistency"]["drifted"]
+    end
   end
 end

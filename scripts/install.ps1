@@ -86,20 +86,25 @@ function Confirm-Signature {
   $certFile = Join-Path ([System.IO.Path]::GetTempPath()) "$Asset.pem"
 
   try {
-    Invoke-WebRequest -Uri $sigUrl -OutFile $sigFile -ErrorAction SilentlyContinue
-    Invoke-WebRequest -Uri $certUrl -OutFile $certFile -ErrorAction SilentlyContinue
+    try { Invoke-WebRequest -Uri $sigUrl -OutFile $sigFile -ErrorAction Stop } catch { }
+    try { Invoke-WebRequest -Uri $certUrl -OutFile $certFile -ErrorAction Stop } catch { }
 
-    if ((Test-Path $sigFile) -and (Test-Path $certFile)) {
-      $result = & cosign verify-blob $FilePath --signature $sigFile --certificate $certFile `
-        --certificate-identity "https://github.com/$Repository/.github/workflows/release.yml@refs/heads/main" `
-        --certificate-oidc-issuer "https://token.actions.githubusercontent.com" 2>&1
-
-      if ($LASTEXITCODE -eq 0) {
-        Write-Host "Verified $Asset signature (cosign keyless)"
-      } else {
-        Write-Host "warning: cosign signature verification failed for $Asset" -ForegroundColor Yellow
-        Write-Host "         checksum verification still passed; set CONTROLKEEL_SKIP_SIGNATURE=1 to suppress" -ForegroundColor Yellow
+    if (-not ((Test-Path $sigFile) -and (Test-Path $certFile))) {
+      if ($env:CONTROLKEEL_REQUIRE_SIGNATURE -eq "1") {
+        throw "No cosign signature/certificate available for $Asset"
       }
+      Write-Host "note: no cosign signature available for $Asset; skipping"
+      return
+    }
+
+    $result = & cosign verify-blob $FilePath --signature $sigFile --certificate $certFile `
+      --certificate-identity-regexp "^https://github.com/$Repository/.github/workflows/release.yml@refs/tags/v[0-9].*" `
+      --certificate-oidc-issuer "https://token.actions.githubusercontent.com" 2>&1
+
+    if ($LASTEXITCODE -eq 0) {
+      Write-Host "Verified $Asset signature (cosign keyless)"
+    } else {
+      throw "cosign signature verification failed for $Asset: $result"
     }
   }
   finally {

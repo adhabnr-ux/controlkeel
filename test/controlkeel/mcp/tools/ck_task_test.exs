@@ -322,6 +322,92 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
   end
 
+  test "payload command evidence is classified as command_output" do
+    session = session_fixture()
+    task = task_fixture(%{session: session, status: "in_progress"})
+    assert {:ok, _run} = Platform.claim_task(task.id)
+
+    assert {:ok, result} =
+             CkTask.call(%{
+               "session_id" => session.id,
+               "task_id" => task.id,
+               "mode" => "checks",
+               "checks" => [
+                 %{
+                   "check_type" => "validation",
+                   "status" => "passed",
+                   "summary" => "payload command",
+                   "payload" => %{
+                     "command" => "mix test",
+                     "exit_code" => 0,
+                     "stdout" => "ok"
+                   }
+                 }
+               ]
+             })
+
+    [check] = result["results"]
+    assert check["proof_strength"] == "command_output"
+    assert check["proof"]["command"] == "mix test"
+  end
+
+  test "artifact sha is not copied into output sha" do
+    session = session_fixture()
+    task = task_fixture(%{session: session, status: "in_progress"})
+    assert {:ok, _run} = Platform.claim_task(task.id)
+
+    artifact_hash = String.duplicate("a", 64)
+
+    assert {:ok, result} =
+             CkTask.call(%{
+               "session_id" => session.id,
+               "task_id" => task.id,
+               "mode" => "checks",
+               "checks" => [
+                 %{
+                   "check_type" => "artifact",
+                   "status" => "passed",
+                   "summary" => "artifact only",
+                   "payload" => %{},
+                   "metadata" => %{"artifact_sha256" => artifact_hash}
+                 }
+               ]
+             })
+
+    [check] = result["results"]
+    assert check["proof"]["artifact_sha256"] == artifact_hash
+    refute Map.has_key?(check["proof"], "output_sha256")
+  end
+
+  test "output sha covers full output and records truncation metadata" do
+    session = session_fixture()
+    task = task_fixture(%{session: session, status: "in_progress"})
+    assert {:ok, _run} = Platform.claim_task(task.id)
+
+    output = String.duplicate("x", 32_000) <> "tail"
+    expected = :crypto.hash(:sha256, output) |> Base.encode16(case: :lower)
+
+    assert {:ok, result} =
+             CkTask.call(%{
+               "session_id" => session.id,
+               "task_id" => task.id,
+               "mode" => "checks",
+               "checks" => [
+                 %{
+                   "check_type" => "validation",
+                   "status" => "passed",
+                   "summary" => "large output",
+                   "payload" => %{"stdout" => output}
+                 }
+               ]
+             })
+
+    [check] = result["results"]
+    assert check["proof"]["output_sha256"] == expected
+    assert check["proof"]["output_truncated"] == true
+    assert check["proof"]["output_bytes"] == byte_size(output)
+  end
+
   describe "report mode" do
     test "submits a task report" do
       session = session_fixture()

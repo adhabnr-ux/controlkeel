@@ -41,7 +41,7 @@ defmodule ControlKeel.DatabaseMaintenance do
       },
       sqlite: %{
         vacuum_enabled: Keyword.get(config, :vacuum_enabled, @default_vacuum_enabled),
-        incremental: true
+        mode: "full"
       }
     }
   end
@@ -54,8 +54,8 @@ defmodule ControlKeel.DatabaseMaintenance do
     events_pruned = prune_old_session_events(max_age_days)
 
     vacuumed =
-      if Keyword.get(config, :vacuum_enabled, @default_vacuum_enabled) do
-        run_sqlite_vacuum()
+      if events_pruned > 0 and Keyword.get(config, :vacuum_enabled, @default_vacuum_enabled) do
+        run_sqlite_vacuum(Keyword.get(config, :vacuum_timeout_ms, 30_000))
       else
         false
       end
@@ -99,7 +99,7 @@ defmodule ControlKeel.DatabaseMaintenance do
 
   # --- SQLite VACUUM ---
 
-  defp run_sqlite_vacuum do
+  defp run_sqlite_vacuum(timeout_ms) do
     if sqlite_adapter?() do
       # VACUUM cannot run inside a transaction. Use the raw connection.
       db_path = database_path()
@@ -112,13 +112,17 @@ defmodule ControlKeel.DatabaseMaintenance do
             false
 
           sqlite3 ->
-            case System.cmd(sqlite3, [db_path, "VACUUM"], stderr_to_stdout: true) do
+            case run_vacuum_cmd(sqlite3, db_path, timeout_ms) do
               {_, 0} ->
                 Logger.info("[db_maintenance] SQLite VACUUM completed")
                 true
 
               {output, _code} ->
                 Logger.warning("[db_maintenance] SQLite VACUUM failed: #{String.trim(output)}")
+                false
+
+              :timeout ->
+                Logger.warning("[db_maintenance] SQLite VACUUM timed out after #{timeout_ms}ms")
                 false
             end
         end
@@ -139,6 +143,15 @@ defmodule ControlKeel.DatabaseMaintenance do
     case Repo.config()[:database] do
       path when is_binary(path) -> path
       _ -> ""
+    end
+  end
+
+  defp run_vacuum_cmd(sqlite3, db_path, timeout_ms) do
+    task = Task.async(fn -> System.cmd(sqlite3, [db_path, "VACUUM"], stderr_to_stdout: true) end)
+
+    case Task.yield(task, timeout_ms) || Task.shutdown(task, :brutal_kill) do
+      {:ok, result} -> result
+      nil -> :timeout
     end
   end
 

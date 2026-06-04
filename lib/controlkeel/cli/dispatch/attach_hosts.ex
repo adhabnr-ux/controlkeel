@@ -186,6 +186,8 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
          command_spec <- ProjectBinding.mcp_command_spec(root),
          config_path <- config_path_fn[agent].(),
          {:ok, attached} <- write_ide_mcp_config(config_path, "controlkeel", command_spec, agent),
+         {:ok, native_attrs, native_lines} <- install_native_attach(agent, root, options),
+         attached <- Map.merge(attached, native_attrs),
          updated <- ProjectBinding.update_attached_agent(binding, agent, attached),
          {:ok, _} <-
            ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
@@ -200,7 +202,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
          )
        ] ++
          bootstrap_lines(root) ++
-         native_attach_lines(agent, root, options) ++
+         native_lines ++
          attach_guidance_lines(agent)}
     else
       {:error, message} when is_binary(message) ->
@@ -598,6 +600,52 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     end
   end
 
+  defp install_native_attach(agent, project_root, options) do
+    if native_attach_skipped?(options) do
+      {:ok, %{}, []}
+    else
+      target = native_attach_target(agent)
+
+      case Skills.install(target, project_root, scope: "project") do
+        {:ok, %{destination: destination} = result} ->
+          attrs =
+            result
+            |> Enum.into(%{}, fn {key, value} -> {to_string(key), value} end)
+            |> Map.put("target", target)
+            |> Map.put("scope", "project")
+
+          {:ok, attrs,
+           [
+             "Prepared native companion files for #{display_attach_agent(agent)}.",
+             "Destination: #{destination}"
+           ]}
+
+        {:ok, plan} ->
+          {:ok, %{"target" => target, "scope" => "project"},
+           [
+             "Prepared native instruction snippets for #{display_attach_agent(agent)}.",
+             "Instructions bundle: #{plan.output_dir}"
+           ]}
+
+        {:error, reason} ->
+          {:ok, %{"target" => target, "scope" => "project"},
+           ["Instruction bundle was not prepared: #{inspect(reason)}"]}
+      end
+    end
+  end
+
+  defp native_attach_target(agent) do
+    %{
+      "kiro" => "kiro-native",
+      "kilo" => "kilo-native",
+      "amp" => "amp-native",
+      "augment" => "augment-native",
+      "opencode" => "opencode-native",
+      "gemini-cli" => "gemini-cli-native",
+      "cline" => "cline-native"
+    }[agent]
+  end
+
   defp load_binding_for_detach(root) do
     case ControlKeel.LocalProject.load(root) do
       {:ok, binding, session} -> {:ok, binding, session, "project"}
@@ -740,7 +788,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
       {:ck_dir, attrs["commands_destination"]},
       {:ck_dir, attrs["plugins_destination"]},
       {:ck_dir, attrs["rules_destination"]},
-      {:file, attrs["mcp_destination"]}
+      {:mcp_file, attrs["mcp_destination"]}
     ]
 
     inferred = inferred_artifact_targets(attrs, root)
@@ -757,7 +805,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
           {:ck_dir, Path.join(dest, "agents")},
           {:ck_dir, Path.join(dest, "commands")},
           {:ck_dir, Path.join(dest, "plugins")},
-          {:file, Path.join(dest, "mcp.json")}
+          {:mcp_file, Path.join(dest, "mcp.json")}
         ]
 
       _ ->
@@ -800,7 +848,62 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     end
   end
 
+  defp do_cleanup_artifact(:mcp_file, path, force) do
+    cond do
+      force ->
+        remove_path(path)
+
+      String.ends_with?(path, ".json") ->
+        cleanup_json_mcp_file(path, "controlkeel")
+
+      Path.basename(path) =~ ~r/^controlkeel/ ->
+        remove_path(path)
+
+      true ->
+        []
+    end
+  end
+
   defp do_cleanup_artifact(:file, path, _force), do: remove_path(path)
+
+  defp cleanup_json_mcp_file(path, server) do
+    with {:ok, body} <- File.read(path),
+         {:ok, map} when is_map(map) <- Jason.decode(body) do
+      updated =
+        map
+        |> drop_mcp_server("mcpServers", server)
+        |> drop_mcp_server("mcp", server)
+        |> prune_empty_mcp_keys()
+
+      cond do
+        updated == map ->
+          []
+
+        updated == %{} ->
+          remove_path(path)
+
+        true ->
+          File.write!(path, Jason.encode!(updated, pretty: true) <> "
+")
+          [path]
+      end
+    else
+      _ -> []
+    end
+  end
+
+  defp prune_empty_mcp_keys(map) do
+    map
+    |> drop_empty_map_key("mcpServers")
+    |> drop_empty_map_key("mcp")
+  end
+
+  defp drop_empty_map_key(map, key) do
+    case Map.get(map, key) do
+      value when value == %{} or value == [] -> Map.delete(map, key)
+      _ -> map
+    end
+  end
 
   defp ck_owned_children(dir) do
     patterns = [
@@ -837,11 +940,12 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
 
     if File.dir?(binding_dir) do
       File.rm_rf!(binding_dir)
+      true
+    else
+      false
     end
-
-    :ok
   rescue
-    _ -> :ok
+    _ -> false
   end
 
   defp detach_response("json", payload), do: {:ok, [Jason.encode!(payload, pretty: true)]}

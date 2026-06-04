@@ -117,20 +117,28 @@ verify_signature() {
   cert_file="${TMP_DIR}/${asset}.pem"
 
   if ! curl -fsSL "${base_url}/${asset}.sig" -o "$sig_file" 2>/dev/null; then
+    if [ "${CONTROLKEEL_REQUIRE_SIGNATURE:-}" = "1" ]; then
+      echo "error: no cosign signature available for ${asset}" >&2
+      exit 1
+    fi
     echo "note: no cosign signature available for ${asset}; skipping"
     return 0
   fi
 
   if ! curl -fsSL "${base_url}/${asset}.pem" -o "$cert_file" 2>/dev/null; then
+    if [ "${CONTROLKEEL_REQUIRE_SIGNATURE:-}" = "1" ]; then
+      echo "error: no cosign certificate available for ${asset}" >&2
+      exit 1
+    fi
     echo "note: no cosign certificate available for ${asset}; skipping"
     return 0
   fi
 
-  if cosign verify-blob "$file"     --signature "$sig_file"     --certificate "$cert_file"     --certificate-identity "https://github.com/${REPO}/.github/workflows/release.yml@refs/heads/main"     --certificate-oidc-issuer "https://token.actions.githubusercontent.com"     >/dev/null 2>&1; then
+  if cosign verify-blob "$file"     --signature "$sig_file"     --certificate "$cert_file"     --certificate-identity-regexp "^https://github.com/${REPO}/.github/workflows/release.yml@refs/tags/v[0-9].*"     --certificate-oidc-issuer "https://token.actions.githubusercontent.com"     >/dev/null 2>&1; then
     echo "Verified ${asset} signature (cosign keyless)"
   else
-    echo "warning: cosign signature verification failed for ${asset}" >&2
-    echo "         checksum verification still passed; set CONTROLKEEL_SKIP_SIGNATURE=1 to suppress" >&2
+    echo "error: cosign signature verification failed for ${asset}" >&2
+    exit 1
   fi
 }
 
