@@ -9,6 +9,10 @@ defmodule ControlKeel.Skills.Installer do
   @managed_agents_start "<!-- controlkeel:start -->"
   @managed_agents_end "<!-- controlkeel:end -->"
 
+  # Per-destination record of the skill names CK last installed there, so a
+  # later install can prune only CK's own orphans without touching user skills.
+  @skills_manifest_file ".controlkeel-skills.json"
+
   def install(target_id, project_root, opts \\ []) do
     with %SkillTarget{} = target <- SkillTarget.get(target_id),
          scope <- normalize_scope(target, Keyword.get(opts, :scope, target.default_scope)),
@@ -982,6 +986,9 @@ defmodule ControlKeel.Skills.Installer do
   defp copy_skills(skills, destination_root) do
     File.mkdir_p!(destination_root)
 
+    current_names = Enum.map(skills, & &1.name)
+    prune_orphaned_skills(destination_root, current_names)
+
     Enum.each(skills, fn skill ->
       destination = Path.join(destination_root, skill.name)
 
@@ -989,6 +996,49 @@ defmodule ControlKeel.Skills.Installer do
         replace_directory!(skill.skill_dir, destination)
       end
     end)
+
+    write_skills_manifest(destination_root, current_names)
+  end
+
+  # Remove skill dirs CK installed on a previous run but is no longer
+  # installing. Only names recorded in CK's own per-destination manifest are
+  # pruned, so user-authored skills sharing the directory are never deleted.
+  defp prune_orphaned_skills(destination_root, current_names) do
+    orphans = read_skills_manifest(destination_root) -- current_names
+
+    Enum.each(orphans, fn name ->
+      if safe_skill_name?(name), do: File.rm_rf!(Path.join(destination_root, name))
+    end)
+  end
+
+  defp safe_skill_name?(name) do
+    is_binary(name) and name not in ["", ".", ".."] and
+      not String.contains?(name, "/") and not String.contains?(name, "\\")
+  end
+
+  defp read_skills_manifest(destination_root) do
+    path = Path.join(destination_root, @skills_manifest_file)
+
+    with {:ok, body} <- File.read(path),
+         {:ok, %{"skills" => skills}} when is_list(skills) <- Jason.decode(body) do
+      Enum.filter(skills, &is_binary/1)
+    else
+      _ -> []
+    end
+  end
+
+  defp write_skills_manifest(destination_root, names) do
+    payload = %{
+      "schema_version" => 1,
+      "controlkeel_version" => to_string(Application.spec(:controlkeel, :vsn) || "unknown"),
+      "updated_at" => DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601(),
+      "skills" => names
+    }
+
+    File.write!(
+      Path.join(destination_root, @skills_manifest_file),
+      Jason.encode!(payload, pretty: true) <> "\n"
+    )
   end
 
   defp copy_tree_contents(source_root, destination_root) do

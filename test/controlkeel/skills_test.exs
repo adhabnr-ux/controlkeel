@@ -822,6 +822,41 @@ defmodule ControlKeel.SkillsTest do
            )
   end
 
+  test "re-install prunes CK's stale skills but never user-authored ones", %{tmp_dir: tmp_dir} do
+    assert {:ok, install} = Skills.install("claude-standalone", tmp_dir, scope: "project")
+    skills_root = install.destination
+    manifest_path = Path.join(skills_root, ".controlkeel-skills.json")
+
+    # CK wrote a manifest of the skills it installed.
+    assert File.exists?(manifest_path)
+    %{"skills" => installed} = Jason.decode!(File.read!(manifest_path))
+    assert is_list(installed) and installed != []
+
+    # Simulate a skill CK installed in a PRIOR run that no longer exists, plus
+    # a skill the USER authored by hand in the same directory.
+    stale_ck = Path.join(skills_root, "retired-ck-skill")
+    File.mkdir_p!(stale_ck)
+    File.write!(Path.join(stale_ck, "SKILL.md"), "old\n")
+
+    user_skill = Path.join(skills_root, "my-handwritten-skill")
+    File.mkdir_p!(user_skill)
+    File.write!(Path.join(user_skill, "SKILL.md"), "mine\n")
+
+    # Record the stale skill (but NOT the user's) in CK's manifest.
+    File.write!(
+      manifest_path,
+      Jason.encode!(%{"schema_version" => 1, "skills" => installed ++ ["retired-ck-skill"]}) <>
+        "\n"
+    )
+
+    assert {:ok, _} = Skills.install("claude-standalone", tmp_dir, scope: "project")
+
+    # CK's orphan is pruned; the user's hand-authored skill is untouched.
+    refute File.exists?(stale_ck)
+    assert File.exists?(Path.join(user_skill, "SKILL.md"))
+    refute Jason.decode!(File.read!(manifest_path))["skills"] |> Enum.member?("retired-ck-skill")
+  end
+
   test "codex post-tool-use hook only warns on explicit failures", %{tmp_dir: tmp_dir} do
     assert {:ok, _install} = Skills.install("codex", tmp_dir, scope: "project")
 
