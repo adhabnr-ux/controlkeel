@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.40 — 2026-06-04
+
+### What's changed
+
+- Merge branch 'main' of https://github.com/aryaminus/controlkeel
+- fix: correct dogfood follow-up scope
+- fix(self_host): deterministic tar.gz sha256 by zeroing gzip MTIME header
+
 ## v0.3.39 — 2026-06-04
 
 ### What's changed
