@@ -9,9 +9,9 @@ defmodule ControlKeel.DatabaseMaintenanceTest do
     test "prunes session events older than max age" do
       session = insert_session()
 
-      # Insert an event with a timestamp 91 days ago via raw SQL
-      cutoff = DateTime.utc_now() |> DateTime.add(-91 * 86400, :second)
-      cutoff_str = DateTime.to_iso8601(cutoff)
+      # Insert an event with a timestamp 91 days ago.
+      cutoff =
+        DateTime.utc_now() |> DateTime.add(-91 * 86400, :second) |> DateTime.truncate(:second)
 
       Repo.insert_all("session_events", [
         %{
@@ -22,8 +22,8 @@ defmodule ControlKeel.DatabaseMaintenanceTest do
           payload: "{}",
           metadata: "{}",
           session_id: session.id,
-          inserted_at: cutoff_str,
-          updated_at: cutoff_str
+          inserted_at: cutoff,
+          updated_at: cutoff
         }
       ])
 
