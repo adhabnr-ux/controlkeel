@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.44 — 2026-06-05
+
+### What's changed
+
+- fix(test): use DateTime structs for Postgres-compatible insert_all
+- fix(maintenance): use to_string comparison for adapter type check
+- fix(npm): repair broken regex in cosign path lookup split()
+- fix(audit): proof metadata, verification scoring, porcelain filter, attach metadata, install signing, DB safety
+- fix(audit): proof metadata, verification scoring, porcelain filter, attach metadata, install signing, DB safety
+- fix(cli): honor JSON diagnostics and clean detach artifacts safely
+- feat: cosign signing, database maintenance, session event TTL, SQLite VACUUM
+- fix(detach): resolve stored agent key and remove the MCP registration
+
 ## v0.3.43 — 2026-06-04
 
 ### What's changed
