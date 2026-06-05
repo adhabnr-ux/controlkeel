@@ -156,7 +156,7 @@ defmodule ControlKeel.DatabaseMaintenance do
   end
 
   defp sqlite_adapter? do
-    Repo.__adapter__() == Ecto.Adapters.SQLite3
+    to_string(Repo.__adapter__()) == "Elixir.Ecto.Adapters.SQLite3"
   end
 
   # --- GenServer callbacks ---
