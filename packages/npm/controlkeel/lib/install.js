@@ -176,8 +176,7 @@ async function verifySignature(filePath, asset, baseUrl) {
 
   let cosignPath;
   try {
-    cosignPath = execFileSync(lookupCommand, lookupArgs, { encoding: "utf8", shell: false }).split(/?
-/)[0].trim();
+    cosignPath = execFileSync(lookupCommand, lookupArgs, { encoding: "utf8", shell: false }).split(/\r?\n/)[0].trim();
   } catch {
     // cosign not available — checksum-only mode
     return;
