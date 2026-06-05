@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.46 — 2026-06-05
+
+### What's changed
+
+- Refactor documentation and UI terminology for clarity and consistency
+
 ## v0.3.45 — 2026-06-05
 
 ### What's changed
