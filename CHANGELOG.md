@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.47 — 2026-06-05
+
+### What's changed
+
+- Add with-vs-without-CK benchmark comparison with cost/time/token deltas
+- Revise ControlKeel description for clarity
+- Refine README description for ControlKeel
+- Revise descriptions in README for clarity
+
 ## v0.3.46 — 2026-06-05
 
 ### What's changed
