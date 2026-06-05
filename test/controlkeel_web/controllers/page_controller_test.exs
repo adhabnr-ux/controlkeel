@@ -5,7 +5,7 @@ defmodule ControlKeelWeb.PageControllerTest do
     conn = get(conn, ~p"/")
     body = html_response(conn, 200)
 
-    assert body =~ "Governed Delivery Monitor"
+    assert body =~ "Agent Control Plane"
     assert body =~ "Dashboard"
     assert body =~ "Missions"
     assert body =~ "Proofs"
@@ -37,8 +37,8 @@ defmodule ControlKeelWeb.PageControllerTest do
     body = html_response(conn, 200)
 
     assert body =~ "Go from install to first finding in five minutes"
-    assert body =~ "agent-generated work into secure, scoped, validated"
-    assert body =~ "ControlKeel turns agent output into production engineering"
+    assert body =~ "agent control plane for governed AI engineering"
+    assert body =~ "findings, proofs, approval gates, budgets"
     assert body =~ "controlkeel attach opencode"
     assert body =~ "controlkeel bootstrap"
     assert body =~ "controlkeel attach codex-cli"
