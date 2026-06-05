@@ -154,7 +154,7 @@ jobs:
           # Upload all .sig and .pem files to the release
           for f in dist/*.sig dist/*.pem; do
             if [ -f "$f" ]; then
-              gh release upload "${TAG}" "$f" --clobber
+              gh release upload "${TAG}" "$f" --clobber --repo "${{ github.repository }}"
             fi
           done
 
