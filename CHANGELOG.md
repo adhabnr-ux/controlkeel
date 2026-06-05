@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.45 — 2026-06-05
+
+### What's changed
+
+- fix(ci): add --repo flag to gh release upload in sign-release job
+
 ## v0.3.44 — 2026-06-05
 
 ### What's changed
