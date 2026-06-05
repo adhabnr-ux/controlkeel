@@ -9,7 +9,7 @@
 
 > Turn the way your team works into enforceable memory for AI agents.
 
-**ControlKeel is an agent control plane for governed AI engineering.** It turns your project rules, review taste and delivery habits into typed memory, policy checks and proof bundles through observation, findings and evaluation. It sits between your coding agents and production as a portable "company brain": comparing *intended* delivery against *actual* delivery and turning raw agent intent into audited tasks.
+**ControlKeel is an agent control plane for governed AI engineering.** It turns your project rules, review taste and delivery habits into typed memory, policy checks and proof bundles through observation, finding and evaluation. CK sits between your coding agents and production as a portable "company brain": comparing *intended* delivery against *actual* delivery and turning raw agent intent into audited tasks.
 
 If you're using an AI agent today, you probably have an `*.md` telling it how to behave. But a rules/specs file is just a promise made *to* the model. **ControlKeel enforces the output.** Beyond just catching bugs, CK solves the "Unknown Unknowns" problem: having to re-explain your domain knowledge in every single session.
 
