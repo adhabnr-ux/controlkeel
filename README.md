@@ -9,7 +9,7 @@
 
 > Turn the way your team works into enforceable memory for AI agents.
 
-**ControlKeel is an agent control plane for governed AI engineering.** It turns your project rules, review taste and delivery habits into typed memory, policy checks and proof bundles through approval gates and benchmarks. It sits between your coding agents and production as a portable "company brain": comparing *intended* delivery against *actual* delivery and turning raw agent intent into audited tasks.
+**ControlKeel is an agent control plane for governed AI engineering.** It turns your project rules, review taste and delivery habits into typed memory, policy checks and proof bundles through observation, findings and evaluation. It sits between your coding agents and production as a portable "company brain": comparing *intended* delivery against *actual* delivery and turning raw agent intent into audited tasks.
 
 If you're using an AI agent today, you probably have an `*.md` telling it how to behave. But a rules/specs file is just a promise made *to* the model. **ControlKeel enforces the output.** Beyond just catching bugs, CK solves the "Unknown Unknowns" problem: having to re-explain your domain knowledge in every single session.
 
@@ -19,7 +19,7 @@ If you're using an AI agent today, you probably have an `*.md` telling it how to
 2. **Validate agent output** — deterministic checks and optional advisory review produce findings before risky work reaches main.
 3. **Gate only when needed** — humans approve high-impact actions when intent, risk, or policy requires it.
 4. **Persist evidence** — findings, reviews, proofs, memory, cost, and task outcomes survive host switches.
-5. **Improve with benchmarks** — traces and recurring failures become bounded regression evidence for specific suites and subjects.
+5. **Improve with evals** — traces and recurring failures become bounded regression evidence for specific suites and subjects.
 
 ControlKeel transforms your domain knowledge from "raw" intent and "shelfware" documentation into a living system that remembers, enforces, and evolves.
 
