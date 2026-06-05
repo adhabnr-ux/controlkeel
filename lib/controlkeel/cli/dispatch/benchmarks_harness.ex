@@ -240,6 +240,23 @@ defmodule ControlKeel.CLI.Dispatch.BenchmarksHarness do
     end
   end
 
+  def run_command(%{command: :benchmark_compare, args: [id], options: options}, _project_root) do
+    with {:ok, format} <- cli_output_format(options),
+         {:ok, run_id} <- parse_id(id),
+         {:ok, comparison} <- Benchmark.compare_run(run_id) do
+      render_format(format, comparison, &benchmark_compare_lines/1)
+    else
+      {:error, {:invalid_output_format, message}} ->
+        {:error, message}
+
+      {:error, :invalid_id} ->
+        {:error, "Benchmark run id must be an integer."}
+
+      {:error, :not_found} ->
+        {:error, "Benchmark run not found."}
+    end
+  end
+
   def run_command(
         %{command: :benchmark_import, args: [run_id, subject, file_path]},
         _project_root
@@ -291,4 +308,84 @@ defmodule ControlKeel.CLI.Dispatch.BenchmarksHarness do
         {:error, "Benchmark run was not found."}
     end
   end
+
+  defp benchmark_compare_lines(%{"run" => run, "summary" => summary} = comparison) do
+    subject_lines =
+      Enum.flat_map(comparison["subjects"], fn metrics ->
+        delta = metrics["delta_vs_baseline"] || %{}
+        classification = metrics["classification"] || %{}
+
+        [
+          "  #{metrics["subject"]}: catch #{format_percent(metrics["catch_rate"])} (Δ #{format_delta(delta["catch_rate_points"])} pts), block #{format_percent(metrics["block_rate"])} (Δ #{format_delta(delta["block_rate_points"])} pts), expected-rule #{format_percent(metrics["expected_rule_hit_rate"])}",
+          "    completion #{format_percent(metrics["completion_rate"])} unsafe-final #{format_percent(metrics["unsafe_final_output_rate"])} TPR #{format_ratio(classification["tpr"])} FPR #{format_ratio(classification["fpr"])}",
+          "    median latency #{format_ms(metrics["median_latency_ms"])} (Δ #{format_signed_ms(delta["latency_ms"])}), tokens #{metrics["total_tokens"] || 0} (Δ #{format_signed_int(delta["total_tokens"])}), cost #{format_cents(metrics["estimated_cost_cents"] || 0)} (Δ #{format_signed_cents(delta["estimated_cost_cents"])})",
+          "    tokens/success #{format_number(metrics["tokens_per_completed_result"])} (Δ #{format_signed_number(delta["tokens_per_completed_result"])}), cost/success #{format_cents(metrics["cost_per_completed_result_cents"])} (Δ #{format_signed_cents(delta["cost_per_completed_result_cents"])})",
+          "    tool calls #{metrics["tool_call_count"] || 0} (#{format_percent(metrics["tool_call_rate"])} of tasks), CK tool calls #{metrics["ck_tool_call_count"] || 0} (#{format_percent(metrics["ck_tool_call_rate"])} of tasks)"
+        ]
+      end)
+
+    chart_lines = Enum.map(comparison["chart"], &("  " <> &1["label"]))
+
+    [
+      "Benchmark comparison ##{run["id"]}",
+      "Suite: #{run["suite"]["slug"]} v#{run["suite"]["version"]}",
+      "Baseline: #{run["baseline_subject"]}",
+      "Headline: #{summary["headline"]}",
+      "Cost/time/tokens: #{summary["efficiency_headline"]}",
+      "Best subject: #{summary["best_subject"] || "n/a"} (catch #{format_percent(summary["best_catch_rate"] || 0.0)})",
+      "Max catch-rate lift: #{format_delta(summary["max_catch_rate_lift_points"])} points",
+      "",
+      "Catch-rate chart:",
+      chart_lines,
+      "",
+      "Subject metrics:",
+      subject_lines,
+      "",
+      "Claim caveat: #{comparison["claim_guidance"]["caveat"]}"
+    ]
+    |> List.flatten()
+  end
+
+  defp format_delta(nil), do: "n/a"
+
+  defp format_delta(value) when is_number(value),
+    do: :erlang.float_to_binary(value / 1, decimals: 1)
+
+  defp format_ratio(nil), do: "n/a"
+  defp format_ratio(value) when is_number(value), do: :erlang.float_to_binary(value, decimals: 3)
+
+  defp format_cents(value) when is_number(value), do: "#{value}¢"
+  defp format_cents(_value), do: "n/a"
+
+  defp format_signed_int(value) when is_number(value) do
+    rounded = round(value)
+    if rounded >= 0, do: "+#{rounded}", else: Integer.to_string(rounded)
+  end
+
+  defp format_signed_int(_value), do: "n/a"
+
+  defp format_signed_ms(value) when is_number(value) do
+    rounded = round(value)
+    if rounded >= 0, do: "+#{rounded} ms", else: "#{rounded} ms"
+  end
+
+  defp format_signed_ms(_value), do: "n/a"
+
+  defp format_signed_number(value) when is_number(value) do
+    formatted = :erlang.float_to_binary(value / 1, decimals: 1)
+    if value >= 0, do: "+#{formatted}", else: formatted
+  end
+
+  defp format_signed_number(_value), do: "n/a"
+
+  defp format_signed_cents(value) when is_number(value) do
+    formatted = :erlang.float_to_binary(value / 1, decimals: 1)
+    if value >= 0, do: "+#{formatted}¢", else: "#{formatted}¢"
+  end
+
+  defp format_signed_cents(_value), do: "n/a"
+
+  defp format_number(nil), do: "n/a"
+  defp format_number(value) when is_integer(value), do: Integer.to_string(value)
+  defp format_number(value) when is_float(value), do: :erlang.float_to_binary(value, decimals: 1)
 end

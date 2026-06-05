@@ -120,6 +120,7 @@ defmodule ControlKeel.CLI.Parser do
     json: :boolean
   ]
   @benchmark_list_switches [domain_pack: :string, format: :string, json: :boolean]
+  @benchmark_compare_switches [format: :string, json: :boolean]
   @benchmark_export_switches [format: :string, json: :boolean]
   @watch_switches [interval: :integer, status: :boolean, json: :boolean]
   @obs_switches [
@@ -821,6 +822,9 @@ defmodule ControlKeel.CLI.Parser do
       ["benchmark", "show", id] ->
         {:ok, %{command: :benchmark_show, options: %{}, args: [id]}}
 
+      ["benchmark", "compare", run_id | rest] ->
+        parse_benchmark_compare(run_id, rest)
+
       ["benchmark", "import", run_id, subject, file_path] ->
         {:ok, %{command: :benchmark_import, options: %{}, args: [run_id, subject, file_path]}}
 
@@ -1138,6 +1142,21 @@ defmodule ControlKeel.CLI.Parser do
 
       true ->
         {:ok, %{command: :benchmark_export, options: options, args: [run_id]}}
+    end
+  end
+
+  defp parse_benchmark_compare(run_id, argv) do
+    {options, remainder, invalid} = OptionParser.parse(argv, strict: @benchmark_compare_switches)
+
+    cond do
+      invalid != [] ->
+        {:error, ControlKeel.CLI.usage_text()}
+
+      remainder != [] ->
+        {:error, ControlKeel.CLI.usage_text()}
+
+      true ->
+        {:ok, %{command: :benchmark_compare, options: options, args: [run_id]}}
     end
   end
 

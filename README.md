@@ -67,19 +67,16 @@ For the complete first-run path, use [docs/getting-started.md](docs/getting-star
 
 ## Benchmark-backed evidence
 
-ControlKeel includes a persisted benchmark engine. Current user-facing evidence is bounded to the named suite, subject, and scoring definition below; full caveats live in [docs/benchmarks.md](docs/benchmarks.md).
+ControlKeel includes a persisted benchmark engine. Current user-facing evidence is bounded to the named suite, subject, and scoring definition below; [docs/benchmarks.md](docs/benchmarks.md) is the canonical reference for full tables, caveats, JSON exports, and agent-host protocols.
 
-### OpenCode / GPT-5.5 comparison (`host_comparison_v1`, 12 risky scenarios)
+### Verified with-vs-without-CK baseline (`host_comparison_v1`, 12 risky scenarios)
 
-| Option | What it means | Catch | Block | Median time | Tokens | Best use |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| Raw OpenCode | Ask the model and trust the answer | 1/12 | 0/12 | 17,050 ms | 290,327 | Baseline only; not enough for risky changes |
-| CK-attached | CK is installed/available, model may call it | 4/12 | 3/12 | **10,818 ms** | 254,581 | Lightweight default when you want CK available without forcing tool use |
-| Exhaustive CK-active | Ask the model to inspect every CK surface | 2/12 | 0/12 | 47,560 ms | 510,280 | Demonstrates surface availability, but too slow/expensive for routine use |
-| **CK-bounded active** | Model calls CK context + validation, then stops | **5/12** | **3/12** | 23,772 ms | **255,941** | Best practical active-governance tradeoff so far |
-| **CK deterministic scanner** | CK validates directly, no model required | **12/12** | **9/12** | **~50 ms** | **0 provider tokens** | Fastest enforcement baseline; ideal for preflight and CI-style checks |
+Verified with ControlKeel `0.3.45`:
 
-Read the numbers precisely: *Catch* means CK produced the correct block/warn decision; *Block* means CK actively blocked. The stricter expected-rule-hit metric and reproduction notes are in [docs/benchmarks.md](docs/benchmarks.md).
+- Risky suite `host_comparison_v1`: `ungoverned_baseline` caught **0/12**; `controlkeel_validate` caught **12/12**, blocked **9/12**, and hit expected rules **9/12** with median deterministic validation time **52 ms**, **0 provider tokens**.
+- Paired benign suite `benign_baseline_v1`: `controlkeel_validate` produced **0/10 catches**, **0/10 blocks**, FPR **0.000**, median deterministic validation time **42 ms**, **0 provider tokens**.
+
+Read the numbers precisely: deterministic scanner evidence is not the same as model-backed agent-host evidence. Reproduction commands and the OpenCode/Copilot/Claude/Codex comparison protocol live in [docs/benchmarks.md](docs/benchmarks.md).
 
 ## What ships today
 

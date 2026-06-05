@@ -28,7 +28,7 @@ controlkeel setup
 controlkeel attach opencode
 ```
 
-OpenCode is the fastest current first-run path because it has the strongest benchmark evidence in this repo. For other hosts, use the canonical [support matrix](support-matrix.md) and mechanism guide in [agent integrations](agent-integrations.md).
+OpenCode is the fastest current first-run attach path. The fastest value proof is host-independent: run the with-vs-without CK benchmark below, then attach any supported host from the canonical [support matrix](support-matrix.md) and mechanism guide in [agent integrations](agent-integrations.md).
 
 Useful verification loop:
 
@@ -73,8 +73,14 @@ Treat custom gateways as trust boundaries. Benchmark the concrete setup before m
 Use a real pending change, or run a controlled validation benchmark:
 
 ```bash
-controlkeel benchmark run --suite vibe_failures_v1 --subjects controlkeel_validate --baseline-subject controlkeel_validate
+controlkeel benchmark run \
+  --suite host_comparison_v1 \
+  --subjects ungoverned_baseline,controlkeel_validate \
+  --baseline-subject ungoverned_baseline
+controlkeel benchmark compare <run-id>
 ```
+
+This produces a reproducible with-vs-without score: no CK policy gate vs deterministic CK validation. Pair it with `benign_baseline_v1` before making user-facing claims.
 
 For live work, ask the attached agent to make the actual change and let CK validate the diff before it lands.
 

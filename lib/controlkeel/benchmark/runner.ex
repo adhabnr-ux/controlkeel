@@ -28,6 +28,10 @@ defmodule ControlKeel.Benchmark.Runner do
     finalize(ControlKeelProxy.run(scenario, subject, opts), scenario)
   end
 
+  def run_subject(%Scenario{} = scenario, %{"type" => "ungoverned_baseline"} = subject, _opts) do
+    finalize(ungoverned_outcome(subject), scenario)
+  end
+
   def run_subject(%Scenario{} = scenario, %{"type" => "shell"} = subject, opts) do
     finalize(Shell.run(scenario, subject, opts), scenario)
   end
@@ -137,6 +141,29 @@ defmodule ControlKeel.Benchmark.Runner do
     }
   end
 
+  def ungoverned_outcome(subject) do
+    %{
+      "status" => "completed",
+      "decision" => "allow",
+      "findings_count" => 0,
+      "latency_ms" => 0,
+      "metadata" => %{
+        "runner" => subject["type"],
+        "label" => subject["label"],
+        "configured" => true,
+        "comparison_role" => "without_controlkeel_policy_gate",
+        "input_tokens" => 0,
+        "output_tokens" => 0,
+        "total_tokens" => 0,
+        "cost_cents" => 0
+      },
+      "payload" => %{
+        "summary" => "No ControlKeel policy gate applied; raw output would proceed.",
+        "findings" => []
+      }
+    }
+  end
+
   def error_outcome(status, reason, latency_ms) do
     %{
       "status" => status,
@@ -199,6 +226,7 @@ defmodule ControlKeel.Benchmark.Runner do
     Path.join(output_dir, "**/*")
     |> Path.wildcard()
     |> Enum.filter(&File.regular?/1)
+    |> Enum.reject(&(Path.basename(&1) == ".controlkeel_metrics.json"))
   end
 
   def subject_ids_from_input(nil), do: SubjectLoader.default_subject_ids()

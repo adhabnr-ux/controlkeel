@@ -239,6 +239,7 @@ defmodule ControlKeel.CLI.Catalog do
   defp command_path(:benchmark_list), do: "benchmark list"
   defp command_path(:benchmark_run), do: "benchmark run"
   defp command_path(:benchmark_show), do: "benchmark show <id>"
+  defp command_path(:benchmark_compare), do: "benchmark compare <id>"
   defp command_path(:benchmark_import), do: "benchmark import <run-id> <subject> <json-file>"
   defp command_path(:benchmark_export), do: "benchmark export <run-id>"
   defp command_path(:provider_set_key), do: "provider set-key <provider>"
@@ -676,6 +677,7 @@ defmodule ControlKeel.CLI.Catalog do
           :benchmark_list,
           :benchmark_run,
           :benchmark_show,
+          :benchmark_compare,
           :benchmark_import,
           :benchmark_export
         ],
@@ -687,7 +689,8 @@ defmodule ControlKeel.CLI.Catalog do
         related_skills: ["benchmark-operator"],
         examples: [
           "controlkeel eval run --suite governance-regression",
-          "controlkeel benchmark list --format json"
+          "controlkeel benchmark run --suite host_comparison_v1 --subjects ungoverned_baseline,controlkeel_validate --baseline-subject ungoverned_baseline",
+          "controlkeel benchmark compare <run-id> --json"
         ]
       ),
       spec(

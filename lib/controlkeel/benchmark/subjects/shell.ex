@@ -43,6 +43,8 @@ defmodule ControlKeel.Benchmark.Subjects.Shell do
       try do
         case run_command(subject, working_dir, env, project_root) do
           {:ok, output, exit_status} ->
+            metrics = read_metrics(output_dir)
+
             scan_payload =
               Runner.scan_generated_output(
                 output,
@@ -58,13 +60,14 @@ defmodule ControlKeel.Benchmark.Subjects.Shell do
               %{
                 "status" => status,
                 "latency_ms" => System.monotonic_time(:millisecond) - started_at,
-                "metadata" => %{
-                  "runner" => "shell",
-                  "command" => subject["command"],
-                  "args" => subject["args"] || [],
-                  "exit_status" => exit_status,
-                  "working_dir" => working_dir
-                },
+                "metadata" =>
+                  Map.merge(metrics, %{
+                    "runner" => "shell",
+                    "command" => subject["command"],
+                    "args" => subject["args"] || [],
+                    "exit_status" => exit_status,
+                    "working_dir" => working_dir
+                  }),
                 "payload" => %{
                   "stdout" => output,
                   "output_files" => Runner.output_files(output_dir),
@@ -138,6 +141,19 @@ defmodule ControlKeel.Benchmark.Subjects.Shell do
     case Task.yield(task, timeout_ms) || Task.shutdown(task, :brutal_kill) do
       {:ok, {output, exit_status}} -> {:ok, output, exit_status}
       _other -> :timeout
+    end
+  end
+
+  defp read_metrics(output_dir) do
+    path = Path.join(output_dir, ".controlkeel_metrics.json")
+
+    with true <- File.exists?(path),
+         {:ok, contents} <- File.read(path),
+         {:ok, decoded} <- Jason.decode(contents),
+         true <- is_map(decoded) do
+      decoded
+    else
+      _ -> %{}
     end
   end
 

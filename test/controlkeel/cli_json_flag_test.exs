@@ -134,6 +134,10 @@ defmodule ControlKeel.CLI.JsonFlagTest do
       assert_json_parsed!(["benchmark", "export", "1", "--json"], :benchmark_export)
     end
 
+    test "benchmark compare --json" do
+      assert_json_parsed!(["benchmark", "compare", "1", "--json"], :benchmark_compare)
+    end
+
     test "obs status --json" do
       assert_json_parsed!(["obs", "status", "--json"], :obs_status)
     end

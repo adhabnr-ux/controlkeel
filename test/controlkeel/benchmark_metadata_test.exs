@@ -1,6 +1,7 @@
 defmodule ControlKeel.BenchmarkMetadataTest do
   use ExUnit.Case, async: true
 
+  alias ControlKeel.Benchmark.BuiltinSuites
   alias ControlKeel.Benchmark.Metadata
 
   test "normalizes documented eval metadata fields" do
@@ -18,6 +19,41 @@ defmodule ControlKeel.BenchmarkMetadataTest do
     assert metadata["eval_mode"] == "deterministic"
     assert metadata["failure_dimension"] == "groundedness"
     assert metadata["signal_source"] == "trajectory"
+  end
+
+  test "infers required provenance metadata for benchmark scenarios" do
+    metadata =
+      Metadata.normalize_scenario_metadata(%{
+        "category" => "security",
+        "expected_decision" => "block",
+        "metadata" => %{"host_pattern" => "opencode"}
+      })
+
+    assert metadata["eval_source"] == "red_team"
+    assert metadata["eval_mode"] == "deterministic"
+    assert metadata["failure_dimension"] == "safety"
+    assert Metadata.metadata_complete?(metadata)
+  end
+
+  test "all built-in scenarios normalize with required eval provenance" do
+    valid_eval_sources = Metadata.valid_eval_sources()
+    valid_eval_modes = Metadata.valid_eval_modes()
+    valid_failure_dimensions = Metadata.valid_failure_dimensions()
+
+    for slug <- BuiltinSuites.list() do
+      assert {:ok, payload} = BuiltinSuites.load(slug)
+
+      for scenario <- payload["scenarios"] do
+        metadata = Metadata.normalize_scenario_metadata(scenario)
+
+        assert Metadata.metadata_complete?(metadata),
+               "#{slug}/#{scenario["slug"]} is missing required eval metadata"
+
+        assert metadata["eval_source"] in valid_eval_sources
+        assert metadata["eval_mode"] in valid_eval_modes
+        assert metadata["failure_dimension"] in valid_failure_dimensions
+      end
+    end
   end
 
   test "drops invalid documented enum values while preserving open metadata" do

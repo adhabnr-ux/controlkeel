@@ -18,6 +18,30 @@
       "output_mode": "stdout"
     },
     {
+      "id": "opencode_pure_shell",
+      "label": "OpenCode Pure Mode (Shell Wrapper)",
+      "type": "shell",
+      "command": "./scripts/benchmark-host.sh",
+      "args": [
+        "opencode-pure"
+      ],
+      "working_dir": ".",
+      "timeout_ms": 120000,
+      "output_mode": "stdout"
+    },
+    {
+      "id": "opencode_ck_bounded_shell",
+      "label": "OpenCode + ControlKeel Bounded Active (Shell Wrapper)",
+      "type": "shell",
+      "command": "./scripts/benchmark-host.sh",
+      "args": [
+        "opencode-ck-bounded"
+      ],
+      "working_dir": ".",
+      "timeout_ms": 120000,
+      "output_mode": "stdout"
+    },
+    {
       "id": "copilot_manual",
       "label": "GitHub Copilot (Manual Import)",
       "type": "manual_import"
@@ -80,6 +104,30 @@
       "command": "./scripts/benchmark-host.sh",
       "args": [
         "claude"
+      ],
+      "working_dir": ".",
+      "timeout_ms": 120000,
+      "output_mode": "stdout"
+    },
+    {
+      "id": "claude_pure_shell",
+      "label": "Claude Code Pure Mode (Shell Wrapper)",
+      "type": "shell",
+      "command": "./scripts/benchmark-host.sh",
+      "args": [
+        "claude-pure"
+      ],
+      "working_dir": ".",
+      "timeout_ms": 120000,
+      "output_mode": "stdout"
+    },
+    {
+      "id": "claude_ck_bounded_shell",
+      "label": "Claude Code + ControlKeel Bounded Active (Shell Wrapper)",
+      "type": "shell",
+      "command": "./scripts/benchmark-host.sh",
+      "args": [
+        "claude-ck-bounded"
       ],
       "working_dir": ".",
       "timeout_ms": 120000,
