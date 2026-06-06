@@ -212,9 +212,9 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
         [
           "",
           "⚠️  TOKEN OPTIMIZATION WARNING:",
-          "  Found #{duplicate_copy_count} duplicate skill copies wasting tokens.",
-          "  Run 'controlkeel token audit' for detailed analysis and recommendations.",
-          "  Run 'controlkeel token audit --mode skills' to see skill-specific optimization guidance."
+          "  Found #{duplicate_copy_count} duplicate skill copies on disk.",
+          "  CK now counts effective skills once in token audit, but some MCP hosts may still load duplicate native skill directories.",
+          "  Run 'controlkeel token audit --mode skills' to see effective skills, installed copies, and excess duplicate tokens."
         ]
       else
         []
@@ -240,12 +240,12 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
       _ ->
         {:ok,
          [
-           "Project root: #{Path.expand(root)}",
-           "Trusted project skills: #{if(analysis.trusted_project?, do: "yes", else: "no")}",
-           "Catalog size: #{length(analysis.skills)}",
-           "Duplicate identical skill copies: #{duplicate_copy_count}",
-           "Hint: remove duplicate skill directories to reduce MCP host token overhead"
-         ] ++
+            "Project root: #{Path.expand(root)}",
+            "Trusted project skills: #{if(analysis.trusted_project?, do: "yes", else: "no")}",
+            "Catalog size: #{length(analysis.skills)}",
+            "Duplicate identical skill copies: #{duplicate_copy_count}",
+            "Hint: token audit deduplicates effective CK skills, but host-native skill directories can still add context overhead"
+          ] ++
            token_hint ++
            [
              "Provider source: #{provider_status["selected_source"]}",
