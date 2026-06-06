@@ -25,10 +25,11 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
   end
 
   def run_command(%{command: :context, options: options}, project_root) do
+    project_root_resolved = resolve_project_root(options, project_root)
+
     with {:ok, format} <- effective_cli_format(options),
-         {:ok, _binding, default_session, _mode} <- ensure_local_project(project_root) do
+         {:ok, _binding, default_session, _mode} <- ensure_local_project(project_root_resolved) do
       session_id = options[:session_id] || default_session.id
-      project_root_resolved = options[:project_root] || project_root
 
       args =
         %{

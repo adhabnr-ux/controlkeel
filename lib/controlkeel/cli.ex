@@ -307,7 +307,8 @@ defmodule ControlKeel.CLI do
     case mode do
       "full" ->
         rule_files = result["rule_files"] || []
-        skills = result["skills"] || []
+        skills = result["effective_skills"] || result["skills"] || []
+        installed_skill_copies = result["installed_skill_copies"] || length(skills)
         duplicates = result["skill_duplicates"] || result["duplicates"] || []
 
         recommendations =
@@ -320,7 +321,8 @@ defmodule ControlKeel.CLI do
           "Project root: #{result["project_root"]}",
           "Total estimated tokens: #{result["estimated_tokens"]}",
           "Rule files: #{length(rule_files)}",
-          "Skills: #{length(skills)}",
+          "Effective skills: #{length(skills)}",
+          "Installed skill copies: #{installed_skill_copies}",
           "Skill tokens: #{result["total_skill_tokens"] || 0}",
           "Duplicate skill groups: #{length(duplicates)}",
           "Duplicate skill tokens: #{result["duplicate_token_count"] || 0}",
@@ -359,7 +361,8 @@ defmodule ControlKeel.CLI do
           Enum.map(rule_files, fn rf -> "  - #{rf["path"]} (#{token_count(rf)} tokens)" end)
 
       "skills" ->
-        skills = result["skills"] || []
+        skills = result["effective_skills"] || result["skills"] || []
+        installed_skill_copies = result["installed_skill_copies"] || length(skills)
         duplicates = result["duplicates"] || []
 
         [
@@ -369,7 +372,8 @@ defmodule ControlKeel.CLI do
           "Project root: #{result["project_root"]}",
           "Total skill tokens: #{result["total_skill_tokens"] || result["estimated_tokens"] || 0}",
           "Duplicate skill tokens: #{result["duplicate_token_count"] || 0}",
-          "Skills: #{length(skills)}",
+          "Effective skills: #{length(skills)}",
+          "Installed skill copies: #{installed_skill_copies}",
           "Duplicate skill groups: #{length(duplicates)}",
           ""
         ] ++

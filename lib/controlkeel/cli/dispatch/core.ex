@@ -142,6 +142,8 @@ defmodule ControlKeel.CLI.Dispatch.Core do
   end
 
   def run_command(%{command: :status, options: options}, project_root) do
+    project_root = resolve_project_root(options, project_root)
+
     with {:ok, format} <- effective_cli_format(options),
          {:ok, binding, session, _mode} <- ensure_local_project(project_root) do
       metrics = Analytics.session_metrics(session.id) || %{}

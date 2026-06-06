@@ -25,7 +25,7 @@ defmodule ControlKeel.CLI.Parser do
     scope: :string,
     json: :boolean
   ]
-  @status_switches [format: :string, json: :boolean]
+  @status_switches [format: :string, json: :boolean, project_root: :string]
   @doctor_switches [project_root: :string, format: :string, json: :boolean]
   @capabilities_switches [format: :string, json: :boolean]
   @update_switches [

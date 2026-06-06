@@ -193,7 +193,10 @@ defmodule ControlKeel.Skills.Installer do
         do: Path.join(user_home(), ".codex/agents"),
         else: Path.join(project_root, ".codex/agents")
 
-    copy_skills(skills, compat_skill_root)
+    unless compat_skills_already_populated?(compat_skill_root, skills) do
+      copy_skills(skills, compat_skill_root)
+    end
+
     copy_skills(skills, native_skill_root)
     File.mkdir_p!(agent_root)
 
@@ -293,6 +296,13 @@ defmodule ControlKeel.Skills.Installer do
     {:ok, plan} = Exporter.export("claude-standalone", project_root, scope: scope)
     copy_tree_contents(Path.join(plan.output_dir, ".claude/agents"), agent_root)
 
+    hooks_src = Path.join(plan.output_dir, ".claude/hooks")
+    hooks_dst = Path.join(base, "hooks")
+
+    if File.dir?(hooks_src) do
+      copy_tree_contents(hooks_src, hooks_dst)
+    end
+
     settings_path = Path.join(base, "settings.json")
     merge_claude_settings(settings_path, Exporter.claude_manual_settings())
 
@@ -348,7 +358,10 @@ defmodule ControlKeel.Skills.Installer do
     copy_tree_contents(Path.join(plan.output_dir, ".devin/skills"), native_skill_root)
     copy_tree_contents(Path.join(plan.output_dir, ".devin/agents"), agent_root)
     copy_tree_contents(Path.join(plan.output_dir, ".devin/hooks"), hooks_root)
-    copy_tree_contents(Path.join(plan.output_dir, ".agents/skills"), compat_root)
+
+    unless compat_dir_populated?(compat_root) do
+      copy_tree_contents(Path.join(plan.output_dir, ".agents/skills"), compat_root)
+    end
 
     merge_json_file!(
       Path.join(plan.output_dir, ".devin/config.json"),
@@ -628,7 +641,10 @@ defmodule ControlKeel.Skills.Installer do
     File.mkdir_p!(compat_root)
 
     copy_tree_contents(Path.join(plan.output_dir, ".warp/skills"), native_skill_root)
-    copy_tree_contents(Path.join(plan.output_dir, ".agents/skills"), compat_root)
+
+    unless compat_dir_populated?(compat_root) do
+      copy_tree_contents(Path.join(plan.output_dir, ".agents/skills"), compat_root)
+    end
 
     File.cp!(
       Path.join(plan.output_dir, ".warp/controlkeel-mcp.json"),
@@ -683,7 +699,11 @@ defmodule ControlKeel.Skills.Installer do
     commands_root = Path.join(opencode_root, "commands")
 
     copy_skills(skills, native_skills_root)
-    copy_skills(skills, compat_skills_root)
+    # Only write compat .agents/skills/ if not already populated by another
+    # agent with native skill support — avoids redundant copies wasting tokens.
+    unless compat_skills_already_populated?(compat_skills_root, skills) do
+      copy_skills(skills, compat_skills_root)
+    end
 
     File.mkdir_p!(plugins_root)
     File.mkdir_p!(agents_root)
@@ -1067,6 +1087,22 @@ defmodule ControlKeel.Skills.Installer do
       end)
 
     File.write!(path, Jason.encode!(merged, pretty: true) <> "\n")
+  end
+
+  # Check whether .agents/skills/ already has all the skills we'd write,
+  # meaning another agent with native skill support already populated it.
+  # Avoids redundant copies that waste MCP host context tokens.
+  defp compat_skills_already_populated?(compat_root, skills) do
+    manifest = read_skills_manifest(compat_root)
+    current_names = Enum.map(skills, & &1.name)
+    Enum.all?(current_names, &(&1 in manifest))
+  end
+
+  # Variant for copy_tree_contents-based flows that don't have a skills list.
+  # Checks if the compat dir already has any CK-managed skill directories.
+  defp compat_dir_populated?(compat_root) do
+    manifest = read_skills_manifest(compat_root)
+    length(manifest) > 0
   end
 
   defp copy_skills(skills, destination_root) do
