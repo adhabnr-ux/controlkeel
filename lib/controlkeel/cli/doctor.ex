@@ -114,11 +114,24 @@ defmodule ControlKeel.CLI.Doctor do
       "Install health: #{if health["ok"], do: "ok", else: "attention"}",
       "  git: #{if health["git_available"], do: "available", else: "MISSING"}",
       "  gitignore: #{gitignore_status}",
-      "  mcp wrapper: #{if get_in(health, ["mcp_wrapper", "present"]), do: "present", else: "missing"}"
+      "  mcp wrapper: #{mcp_wrapper_line(health)}"
     ]
 
     if(skill_line != "", do: base_lines ++ [skill_line], else: base_lines) ++
       Enum.map(health["problems"] || [], &"  ! #{&1}")
+  end
+
+  defp mcp_wrapper_line(health) do
+    cond do
+      not get_in(health, ["mcp_wrapper", "present"]) ->
+        "missing"
+
+      get_in(health, ["mcp_wrapper", "cli_runnable"]) == false ->
+        "present but CLI target is Burrito ERTS shim"
+
+      true ->
+        "present"
+    end
   end
 
   defp load_binding(root) do
@@ -206,6 +219,7 @@ defmodule ControlKeel.CLI.Doctor do
     gitignore = gitignore_health(root)
     wrapper_path = ProjectBinding.mcp_wrapper_path(root)
     wrapper_present = File.exists?(wrapper_path)
+    wrapper_cli_runnable = ProjectBinding.mcp_wrapper_cli_runnable?(root)
     attached = attached_health(version, binding)
 
     drifted = Enum.filter(attached, & &1["version_drift"])
@@ -220,6 +234,10 @@ defmodule ControlKeel.CLI.Doctor do
           do: "gitignore missing: " <> Enum.join(gitignore["missing"], ", ")
         ),
         unless(wrapper_present, do: "MCP wrapper missing (run: controlkeel attach <agent>)"),
+        unless(wrapper_cli_runnable,
+          do:
+            "MCP wrapper points at Burrito ERTS shim (run: controlkeel setup or controlkeel attach <agent> to refresh)"
+        ),
         if(drifted != [], do: "version drift: " <> Enum.map_join(drifted, ", ", & &1["agent"])),
         if(missing_dest != [],
           do:
@@ -241,7 +259,11 @@ defmodule ControlKeel.CLI.Doctor do
     %{
       "git_available" => git_available,
       "gitignore" => gitignore,
-      "mcp_wrapper" => %{"present" => wrapper_present, "path" => wrapper_path},
+      "mcp_wrapper" => %{
+        "present" => wrapper_present,
+        "path" => wrapper_path,
+        "cli_runnable" => wrapper_cli_runnable
+      },
       "attached" => attached,
       "skill_consistency" => skill_consistency,
       "problems" => problems,

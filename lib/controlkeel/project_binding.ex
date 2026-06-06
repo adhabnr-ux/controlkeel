@@ -423,37 +423,90 @@ defmodule ControlKeel.ProjectBinding do
     end
   end
 
-  defp default_cli_command do
-    candidate =
-      case :os.type() do
-        {:win32, _} -> "controlkeel.exe"
-        _ -> "controlkeel"
-      end
+  @doc false
+  def resolve_cli_executable(path) when is_binary(path) do
+    cond do
+      burrito_erts_shim?(path) ->
+        find_path_native_cli() || unwrap_burrito_sibling(path) || path
 
-    found = System.find_executable(candidate) || candidate
-    unwrap_burrito_path(found)
+      true ->
+        path
+    end
   end
 
-  # When running inside a Burrito-wrapped binary, System.find_executable/1
-  # resolves to the extracted ERTS shim (<dir>/.burrito/controlkeel_erts-*/bin/controlkeel)
-  # which only understands mix release commands — not the native CLI surface like `mcp`.
-  # The actual native binary sits at <dir>/controlkeel (one directory up from the ERTS bin/).
-  defp unwrap_burrito_path(path) do
-    if String.contains?(path, ".burrito") and String.contains?(path, "erts-") do
-      # Path layout: <base>/.burrito/controlkeel_erts-<vsn>/bin/controlkeel
-      # We want:  <base>/controlkeel
-      bin_dir = Path.dirname(path)
-      erts_dir = Path.dirname(bin_dir)
-      base_dir = Path.dirname(erts_dir)
-      native = Path.join(base_dir, Path.basename(path))
+  @doc false
+  def cli_executable_command, do: default_cli_command()
 
-      if File.exists?(native) do
-        native
-      else
-        path
+  @doc false
+  def burrito_erts_shim?(path) when is_binary(path) do
+    String.contains?(path, ".burrito") and String.contains?(path, "erts-")
+  end
+
+  def burrito_erts_shim?(_), do: false
+
+  @doc false
+  def mcp_wrapper_default_cli(project_root \\ File.cwd!()) do
+    path = mcp_wrapper_path(project_root)
+
+    with true <- File.exists?(path),
+         {:ok, body} <- File.read(path) do
+      case Regex.run(~r/BINARY="\$\{CONTROLKEEL_BIN:-([^}]+)\}"/, body) do
+        [_, cli_path] -> {:ok, String.trim(cli_path, "\"")}
+        _ -> :error
       end
     else
-      path
+      _ -> :error
+    end
+  end
+
+  @doc false
+  def mcp_wrapper_cli_runnable?(project_root \\ File.cwd!()) do
+    case mcp_wrapper_default_cli(project_root) do
+      {:ok, cli_path} -> not burrito_erts_shim?(cli_path)
+      _ -> false
+    end
+  end
+
+  defp default_cli_command do
+    candidate = cli_candidate_name()
+    found = System.find_executable(candidate) || candidate
+    resolve_cli_executable(found)
+  end
+
+  defp cli_candidate_name do
+    case :os.type() do
+      {:win32, _} -> "controlkeel.exe"
+      _ -> "controlkeel"
+    end
+  end
+
+  defp unwrap_burrito_sibling(path) do
+    bin_dir = Path.dirname(path)
+    erts_dir = Path.dirname(bin_dir)
+    base_dir = Path.dirname(erts_dir)
+    native = Path.join(base_dir, Path.basename(path))
+
+    if File.exists?(native), do: native, else: nil
+  end
+
+  defp find_path_native_cli do
+    name = cli_candidate_name()
+
+    (System.get_env("PATH") || "")
+    |> String.split(path_separator(), trim: true)
+    |> Enum.find_value(fn dir ->
+      candidate = Path.join(dir, name)
+
+      if File.exists?(candidate) and not burrito_erts_shim?(candidate) do
+        candidate
+      end
+    end)
+  end
+
+  defp path_separator do
+    case :os.type() do
+      {:win32, _} -> ";"
+      _ -> ":"
     end
   end
 

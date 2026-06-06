@@ -106,11 +106,42 @@ defmodule ControlKeel.ProjectBindingTest do
         assert body =~ "mcp"
 
       _ ->
-        executable = System.find_executable("controlkeel") || "controlkeel"
+        executable = ProjectBinding.cli_executable_command()
         assert body =~ "export CK_PROJECT_ROOT="
         assert body =~ executable
         assert body =~ "mcp --project-root"
+        refute ProjectBinding.burrito_erts_shim?(executable)
     end
+  end
+
+  test "cli_executable_command avoids Burrito ERTS shim when PATH has native wrapper" do
+    executable = ProjectBinding.cli_executable_command()
+    assert is_binary(executable)
+    refute ProjectBinding.burrito_erts_shim?(executable)
+  end
+
+  test "resolve_cli_executable scans PATH when given Burrito ERTS shim" do
+    shim = "/tmp/.burrito/controlkeel_erts-15.2.7.2_0.3.47/bin/controlkeel"
+    resolved = ProjectBinding.resolve_cli_executable(shim)
+
+    assert is_binary(resolved)
+    refute ProjectBinding.burrito_erts_shim?(resolved)
+  end
+
+  test "mcp_wrapper_cli_runnable? flags Burrito ERTS shim default target", %{tmp: tmp} do
+    File.write!(Path.join(tmp, "README.md"), "not a controlkeel app")
+    assert :ok = ProjectBinding.ensure_mcp_wrapper(tmp)
+
+    shim =
+      "/tmp/.burrito/controlkeel_erts-15.2.7.2_0.3.47/bin/controlkeel"
+
+    broken =
+      File.read!(ProjectBinding.mcp_wrapper_path(tmp))
+      |> String.replace(ProjectBinding.cli_executable_command(), shim)
+
+    File.write!(ProjectBinding.mcp_wrapper_path(tmp), broken)
+
+    refute ProjectBinding.mcp_wrapper_cli_runnable?(tmp)
   end
 
   describe "ensure_gitignore/3" do
