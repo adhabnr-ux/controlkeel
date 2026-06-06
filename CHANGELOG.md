@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.49 — 2026-06-06
+
+### What's changed
+
+- test(setup): isolate MCP wrapper PATH resolution on CI
+
 ## v0.3.48 — 2026-06-06
 
 ### What's changed
