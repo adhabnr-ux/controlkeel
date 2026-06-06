@@ -33,4 +33,32 @@ defmodule ControlKeel.ProjectRootTest do
 
     assert ProjectRoot.resolve(tmp_dir) == ProjectRoot.resolve(Path.expand(tmp_dir))
   end
+
+  test "project_root? reflects whether the resolved directory has a project marker" do
+    tmp_dir =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-project-root-flag-#{System.unique_integer([:positive])}"
+      )
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(Path.join(tmp_dir, "lib/trial"))
+    File.write!(Path.join(tmp_dir, "mix.exs"), "defmodule Trial.MixProject do\nend\n")
+
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    assert ProjectRoot.project_root?(Path.join(tmp_dir, "lib/trial"))
+
+    other_dir =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-project-root-flag-other-#{System.unique_integer([:positive])}"
+      )
+
+    File.rm_rf!(other_dir)
+    File.mkdir_p!(other_dir)
+    on_exit(fn -> File.rm_rf!(other_dir) end)
+
+    refute ProjectRoot.project_root?(other_dir)
+  end
 end

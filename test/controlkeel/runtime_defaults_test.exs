@@ -18,11 +18,45 @@ defmodule ControlKeel.RuntimeDefaultsTest do
   end
 
   test "database_path falls back to a local app-data directory", %{tmp_home: tmp_home} do
-    with_envs(%{"DATABASE_PATH" => nil, "HOME" => tmp_home}, fn ->
-      path = RuntimeDefaults.database_path()
+    tmp_dir =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-runtime-defaults-cwd-#{System.unique_integer([:positive])}"
+      )
 
-      assert String.ends_with?(path, "controlkeel.db")
-      assert File.dir?(Path.dirname(path))
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    with_envs(%{"DATABASE_PATH" => nil, "HOME" => tmp_home}, fn ->
+      File.cd!(tmp_dir, fn ->
+        path = RuntimeDefaults.database_path()
+
+        refute String.starts_with?(path, tmp_dir)
+        assert String.ends_with?(path, "controlkeel.db")
+        assert File.dir?(Path.dirname(path))
+      end)
+    end)
+  end
+
+  test "database_path prefers a project-local sqlite db when inside a repo", %{tmp_home: tmp_home} do
+    tmp_dir =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-runtime-defaults-project-#{System.unique_integer([:positive])}"
+      )
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(Path.join(tmp_dir, "lib/trial"))
+    File.write!(Path.join(tmp_dir, "mix.exs"), "defmodule Trial.MixProject do\nend\n")
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    with_envs(%{"DATABASE_PATH" => nil, "HOME" => tmp_home}, fn ->
+      File.cd!(tmp_dir, fn ->
+        path = RuntimeDefaults.database_path()
+
+        assert path == Path.join([File.cwd!(), "controlkeel", "controlkeel.db"])
+      end)
     end)
   end
 

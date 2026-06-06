@@ -24,7 +24,9 @@ defmodule ControlKeel.RuntimeDefaults do
   end
 
   def database_path do
-    System.get_env("DATABASE_PATH") || Path.join(app_data_dir(), "controlkeel.db")
+    System.get_env("DATABASE_PATH") ||
+      project_database_path(File.cwd!()) ||
+      Path.join(app_data_dir(), "controlkeel.db")
   end
 
   def secret_key_base do
@@ -95,6 +97,14 @@ defmodule ControlKeel.RuntimeDefaults do
 
   defp default_home do
     System.user_home!()
+  end
+
+  defp project_database_path(cwd) do
+    root = ControlKeel.ProjectRoot.resolve(cwd)
+
+    if ControlKeel.ProjectRoot.project_root?(root) do
+      Path.join([root, "controlkeel", "controlkeel.db"])
+    end
   end
 
   defp ensure_dir!(path) do

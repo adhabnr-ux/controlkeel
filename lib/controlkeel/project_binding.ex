@@ -430,7 +430,31 @@ defmodule ControlKeel.ProjectBinding do
         _ -> "controlkeel"
       end
 
-    System.find_executable(candidate) || candidate
+    found = System.find_executable(candidate) || candidate
+    unwrap_burrito_path(found)
+  end
+
+  # When running inside a Burrito-wrapped binary, System.find_executable/1
+  # resolves to the extracted ERTS shim (<dir>/.burrito/controlkeel_erts-*/bin/controlkeel)
+  # which only understands mix release commands — not the native CLI surface like `mcp`.
+  # The actual native binary sits at <dir>/controlkeel (one directory up from the ERTS bin/).
+  defp unwrap_burrito_path(path) do
+    if String.contains?(path, ".burrito") and String.contains?(path, "erts-") do
+      # Path layout: <base>/.burrito/controlkeel_erts-<vsn>/bin/controlkeel
+      # We want:  <base>/controlkeel
+      bin_dir = Path.dirname(path)
+      erts_dir = Path.dirname(bin_dir)
+      base_dir = Path.dirname(erts_dir)
+      native = Path.join(base_dir, Path.basename(path))
+
+      if File.exists?(native) do
+        native
+      else
+        path
+      end
+    else
+      path
+    end
   end
 
   defp source_repo_mcp_launcher_path do
