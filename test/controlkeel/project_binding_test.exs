@@ -1,5 +1,5 @@
 defmodule ControlKeel.ProjectBindingTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias ControlKeel.ProjectBinding
 
@@ -120,11 +120,27 @@ defmodule ControlKeel.ProjectBindingTest do
     refute ProjectBinding.burrito_erts_shim?(executable)
   end
 
-  test "resolve_cli_executable scans PATH when given Burrito ERTS shim" do
-    shim = "/tmp/.burrito/controlkeel_erts-15.2.7.2_0.3.47/bin/controlkeel"
+  test "resolve_cli_executable scans PATH when given Burrito ERTS shim", %{tmp: tmp} do
+    native_dir = Path.join(tmp, "bin")
+    File.mkdir_p!(native_dir)
+    native = Path.join(native_dir, "controlkeel")
+    File.write!(native, "#!/usr/bin/env sh\nexit 0\n")
+    File.chmod!(native, 0o755)
+
+    old_path = System.get_env("PATH") || ""
+    System.put_env("PATH", native_dir <> ":" <> old_path)
+    on_exit(fn -> System.put_env("PATH", old_path) end)
+
+    shim =
+      Path.join(tmp, ".burrito/controlkeel_erts-15.2.7.2_0.3.47/bin/controlkeel")
+
+    File.mkdir_p!(Path.dirname(shim))
+    File.write!(shim, "#!/usr/bin/env sh\nexit 0\n")
+    File.chmod!(shim, 0o755)
+
     resolved = ProjectBinding.resolve_cli_executable(shim)
 
-    assert is_binary(resolved)
+    assert resolved == native
     refute ProjectBinding.burrito_erts_shim?(resolved)
   end
 
