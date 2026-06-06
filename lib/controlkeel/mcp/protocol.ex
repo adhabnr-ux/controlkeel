@@ -66,10 +66,12 @@ defmodule ControlKeel.MCP.Protocol do
     CkMonitorSubscribe
   }
 
-  @server_info %{
-    "name" => "controlkeel",
-    "version" => to_string(Application.spec(:controlkeel, :vsn) || "0.2.0")
-  }
+  defp server_info do
+    %{
+      "name" => "controlkeel",
+      "version" => ControlKeel.CLI.version()
+    }
+  end
 
   def handle_json(payload, opts \\ []) when is_binary(payload) do
     case Jason.decode(payload) do
@@ -129,7 +131,7 @@ defmodule ControlKeel.MCP.Protocol do
           "tools" => %{"listChanged" => false},
           "resources" => %{"subscribe" => false, "listChanged" => false}
         },
-        "serverInfo" => @server_info
+        "serverInfo" => server_info()
       })
     rescue
       e ->
@@ -141,7 +143,7 @@ defmodule ControlKeel.MCP.Protocol do
             "tools" => %{"listChanged" => false},
             "resources" => %{"subscribe" => false, "listChanged" => false}
           },
-          "serverInfo" => @server_info
+          "serverInfo" => server_info()
         })
     catch
       :exit, e ->
@@ -153,7 +155,7 @@ defmodule ControlKeel.MCP.Protocol do
             "tools" => %{"listChanged" => false},
             "resources" => %{"subscribe" => false, "listChanged" => false}
           },
-          "serverInfo" => @server_info
+          "serverInfo" => server_info()
         })
 
       :throw, e ->
@@ -165,7 +167,7 @@ defmodule ControlKeel.MCP.Protocol do
             "tools" => %{"listChanged" => false},
             "resources" => %{"subscribe" => false, "listChanged" => false}
           },
-          "serverInfo" => @server_info
+          "serverInfo" => server_info()
         })
     end
   end
