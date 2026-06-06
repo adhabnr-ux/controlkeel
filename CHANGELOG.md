@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.48 — 2026-06-06
+
+### What's changed
+
+- fix(setup): detect non-runnable MCP wrapper shims
+- fix(skills): clarify duplicate token warning
+- fix(cli): reduce skill token overhead
+- fix(setup): isolate fresh project runtime state
+- fix(migrations): use explicit column lists in SQLite table rebuilds
+
 ## v0.3.47 — 2026-06-05
 
 ### What's changed
