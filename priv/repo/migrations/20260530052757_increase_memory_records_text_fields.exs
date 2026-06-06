@@ -29,8 +29,16 @@ defmodule ControlKeel.Repo.Migrations.IncreaseMemoryRecordsTextFields do
       """)
 
       execute("""
-      INSERT INTO memory_records_new
-      SELECT * FROM memory_records
+      INSERT INTO memory_records_new (
+        id, workspace_id, session_id, task_id, external_id, record_type, title, summary, body, tags,
+        source_type, source_id, metadata, archived_at, visibility, shared_org_id, synced_at,
+        inserted_at, updated_at
+      )
+      SELECT
+        id, workspace_id, session_id, task_id, external_id, record_type, title, summary, body, tags,
+        source_type, source_id, metadata, archived_at, visibility, shared_org_id, synced_at,
+        inserted_at, updated_at
+      FROM memory_records
       """)
 
       execute("DROP TABLE memory_records")
@@ -118,8 +126,16 @@ defmodule ControlKeel.Repo.Migrations.IncreaseMemoryRecordsTextFields do
       """)
 
       execute("""
-      INSERT INTO memory_records_old
-      SELECT * FROM memory_records
+      INSERT INTO memory_records_old (
+        id, workspace_id, session_id, task_id, external_id, record_type, title, summary, body, tags,
+        source_type, source_id, metadata, archived_at, visibility, shared_org_id, synced_at,
+        inserted_at, updated_at
+      )
+      SELECT
+        id, workspace_id, session_id, task_id, external_id, record_type, title, summary, body, tags,
+        source_type, source_id, metadata, archived_at, visibility, shared_org_id, synced_at,
+        inserted_at, updated_at
+      FROM memory_records
       """)
 
       execute("DROP TABLE memory_records")
