@@ -1,6 +1,7 @@
 defmodule ControlKeelWeb.SkillsLive do
   use ControlKeelWeb, :live_view
 
+  alias ControlKeel.ProviderBroker
   alias ControlKeel.Skills
 
   @impl true
@@ -15,6 +16,7 @@ defmodule ControlKeelWeb.SkillsLive do
      |> assign(:target_options, target_options())
      |> assign(:scope_options, [{"Export", "export"}, {"User", "user"}, {"Project", "project"}])
      |> assign_analysis(project_root)
+     |> assign_doctor(project_root)
      |> assign(:project_form, project_form(project_root))
      |> assign(:action_form, action_form())
      |> assign(:skill_search, "")
@@ -73,6 +75,7 @@ defmodule ControlKeelWeb.SkillsLive do
     {:noreply,
      socket
      |> assign_analysis(project_root)
+     |> assign_doctor(project_root)
      |> assign(:project_form, project_form(project_root))
      |> assign(:selected, nil)}
   end
@@ -107,7 +110,8 @@ defmodule ControlKeelWeb.SkillsLive do
      |> put_flash(elem(result, 0), elem(result, 1))
      |> assign(:last_result, result)
      |> assign(:action_form, action_form(params))
-     |> assign_analysis(project_root)}
+     |> assign_analysis(project_root)
+     |> assign_doctor(project_root)}
   end
 
   def handle_event("install", params, socket) do
@@ -139,7 +143,8 @@ defmodule ControlKeelWeb.SkillsLive do
      |> put_flash(elem(result, 0), elem(result, 1))
      |> assign(:last_result, result)
      |> assign(:action_form, action_form(params))
-     |> assign_analysis(project_root)}
+     |> assign_analysis(project_root)
+     |> assign_doctor(project_root)}
   end
 
   @impl true
@@ -154,6 +159,21 @@ defmodule ControlKeelWeb.SkillsLive do
           <p class="text-[var(--ck-muted)]">
             Native skills and plugin operator console
           </p>
+        </div>
+
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mb-4">
+          <p class="text-lg font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mb-3">
+            How this works
+          </p>
+          <ul class="text-[var(--ck-muted)] text-sm leading-[1.7] list-disc px-4 grid gap-1">
+            <li>Skills live in `priv/skills/`, validated and cataloged at startup.</li>
+            <li>`ck_skill_list` / `ck_skill_load` are the universal MCP fallback.</li>
+            <li>Native targets generated from the catalog — no hand-maintained lists.</li>
+            <li>Project-local skills load only when the project is trusted or allowed.</li>
+            <li>
+              Can export or install the same capability set for Codex, Claude Code, Cline, Copilot / VS Code, and MCP-only tools.
+            </li>
+          </ul>
         </div>
 
         <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mb-4">
@@ -181,7 +201,7 @@ defmodule ControlKeelWeb.SkillsLive do
           </.form>
         </div>
 
-        <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
+        <div class="grid grid-cols-3 gap-4 mt-5">
           <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
             <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
               Total skills
@@ -206,32 +226,52 @@ defmodule ControlKeelWeb.SkillsLive do
             </p>
             <strong>{if @trusted_project?, do: "allowed", else: "gated"}</strong>
           </div>
+
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+              Bootstrap
+            </p>
+            <strong>{@bootstrap_mode}</strong>
+          </div>
+
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+              Duplicate copies
+            </p>
+            <strong class={if @duplicate_copy_count > 0, do: "text-[#ffd6cb]", else: ""}>
+              {@duplicate_copy_count}
+            </strong>
+          </div>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 my-4">
-          <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
-            Skill diagnostics
-          </p>
-          <div :if={@diagnostics == []} class="text-[var(--ck-muted)]">
-            No skill diagnostics were recorded.
+        <%= if @export_manifests != [] do %>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 my-4">
+            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+              Export manifests ({length(@export_manifests)})
+            </p>
+            <div class="grid gap-3 mt-3">
+              <%= for %{path: path, manifest: manifest} <- @export_manifests do %>
+                <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)] grid gap-[0.35rem]">
+                  <div class="flex items-center justify-between gap-4">
+                    <h3>{manifest["target"]}</h3>
+                    <span class="border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem]">
+                      {manifest["scope"]}
+                    </span>
+                  </div>
+                  <p class="text-[var(--ck-muted)] text-xs">
+                    ck={manifest["controlkeel_version"]} &middot; {manifest["installed_at"]}
+                  </p>
+                  <p class="text-[var(--ck-muted)] text-xs font-mono">
+                    {Path.relative_to(path, @project_root)}
+                  </p>
+                </article>
+              <% end %>
+            </div>
+            <p :if={@duplicate_copy_count > 0} class="text-[#ffd6cb] text-xs mt-3">
+              ⚠ {duplicate_token_warning(@duplicate_copy_count)}
+            </p>
           </div>
-          <div :if={@diagnostics != []} class="grid gap-4 m-0 p-0 list-none">
-            <%= for diagnostic <- @diagnostics do %>
-              <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)] grid gap-[0.55rem]">
-                <div class="flex items-center justify-between gap-4">
-                  <h3>{diagnostic.code}</h3>
-                  <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{diagnostic_pill_class(diagnostic.level)}"}>
-                    {diagnostic.level}
-                  </span>
-                </div>
-                <p class="text-[var(--ck-muted)]">{diagnostic.message}</p>
-                <p class="text-[var(--ck-muted)] mt-[0.35rem] font-mono">
-                  {diagnostic.path}
-                </p>
-              </article>
-            <% end %>
-          </div>
-        </div>
+        <% end %>
 
         <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 my-4">
           <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
@@ -286,8 +326,8 @@ defmodule ControlKeelWeb.SkillsLive do
           <% end %>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-          <%= if @selected do %>
+        <%= if @selected do %>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
             <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
               {@selected.name}
             </p>
@@ -332,25 +372,8 @@ defmodule ControlKeelWeb.SkillsLive do
               Instructions preview
             </p>
             <pre class="text-[0.72rem] leading-[1.5] whitespace-pre-wrap break-words max-h-[420px] overflow-y-auto mt-2">{@selected.body}</pre>
-          <% else %>
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
-              How this works
-            </p>
-            <ul class="grid gap-4 m-0 p-0 list-none">
-              <li>`priv/skills/` is the canonical built-in source of truth.</li>
-              <li>`ck_skill_list` and `ck_skill_load` remain the universal MCP fallback.</li>
-              <li>
-                Native targets are generated from the same catalog instead of being hand-maintained.
-              </li>
-              <li>
-                Project-local skills are only loaded when the project is trusted by ControlKeel.
-              </li>
-            </ul>
-            <p class="text-[var(--ck-muted)] text-sm leading-[1.7] mt-4">
-              ControlKeel keeps `priv/skills/` as the canonical source of truth, validates every skill package, and can export or install the same capability set for Codex, Claude Code, Cline, Copilot / VS Code, and MCP-only tools.
-            </p>
-          <% end %>
-        </div>
+          </div>
+        <% end %>
 
         <div class="space-y-4 mt-10">
           <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
@@ -460,13 +483,42 @@ defmodule ControlKeelWeb.SkillsLive do
             #targets-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
           </style>
         </div>
+
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 my-8">
+          <p class="text-lg font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mb-4">
+            Skill diagnostics
+          </p>
+          <div :if={@diagnostics == []} class="text-[var(--ck-muted)]">
+            No skill diagnostics were recorded.
+          </div>
+          <div
+            :if={@diagnostics != []}
+            class="grid gap-4 m-0 p-0 list-none overflow-y-auto max-h-[720px] pr-2"
+            style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent;"
+          >
+            <%= for diagnostic <- @diagnostics do %>
+              <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)] grid gap-[0.55rem]">
+                <div class="flex items-center justify-between gap-4">
+                  <h3>{diagnostic.code}</h3>
+                  <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-xs #{diagnostic_pill_class(diagnostic.level)}"}>
+                    {diagnostic.level}
+                  </span>
+                </div>
+                <p class="text-[var(--ck-muted)] text-xs">{diagnostic.message}</p>
+                <p class="text-[var(--ck-muted)] font-mono text-xs">
+                  {diagnostic.path}
+                </p>
+              </article>
+            <% end %>
+          </div>
+        </div>
       </section>
     </Layouts.app>
     """
   end
 
   defp assign_analysis(socket, project_root) do
-    analysis = Skills.analyze(project_root)
+    analysis = Skills.analyze(project_root, report_identical_duplicates: true)
 
     socket
     |> assign(:project_root, project_root)
@@ -476,6 +528,34 @@ defmodule ControlKeelWeb.SkillsLive do
     |> assign(:targets, Skills.targets())
     |> assign(:filtered_targets, Skills.targets())
     |> assign(:trusted_project?, analysis.trusted_project?)
+  end
+
+  defp assign_doctor(socket, project_root) do
+    integrations = Skills.agent_integrations()
+    provider_status = ProviderBroker.status(project_root)
+
+    attachable_clients =
+      integrations
+      |> Enum.filter(&(&1.support_class == "attach_client"))
+      |> Enum.map(& &1.label)
+      |> Enum.join(", ")
+
+    headless_runtimes =
+      integrations
+      |> Enum.filter(&(&1.support_class == "headless_runtime"))
+      |> Enum.map(& &1.label)
+      |> Enum.join(", ")
+
+    duplicate_copy_count =
+      Enum.count(socket.assigns.diagnostics, &(&1.code == "duplicate_skill_copy"))
+
+    socket
+    |> assign(:provider_status, provider_status)
+    |> assign(:bootstrap_mode, provider_status["bootstrap"]["mode"])
+    |> assign(:attachable_clients, attachable_clients)
+    |> assign(:headless_runtimes, headless_runtimes)
+    |> assign(:duplicate_copy_count, duplicate_copy_count)
+    |> assign(:export_manifests, Skills.export_manifests(project_root))
   end
 
   defp project_form(project_root), do: to_form(%{"project_root" => project_root}, as: :project)
@@ -504,4 +584,11 @@ defmodule ControlKeelWeb.SkillsLive do
   defp diagnostic_pill_class("error"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
   defp diagnostic_pill_class("warn"), do: "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
   defp diagnostic_pill_class(_), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+
+  defp duplicate_token_warning(count) do
+    "Found #{count} duplicate skill #{pluralize("copy", count)} wasting tokens. Run `controlkeel token audit --mode skills` for optimization guidance."
+  end
+
+  defp pluralize(word, 1), do: word
+  defp pluralize(word, _), do: word <> "s"
 end
