@@ -63,7 +63,7 @@ defmodule ControlKeel.MissionTest do
     assert length(session.tasks) >= 3
   end
 
-  test "create_launch_from_brief/2 rejects duplicate project names" do
+  test "create_launch_from_brief/2 reuses the workspace when the project name already exists" do
     brief =
       execution_brief_fixture(
         payload: %{
@@ -83,17 +83,26 @@ defmodule ControlKeel.MissionTest do
         }
       )
 
-    assert {:ok, _session} =
+    assert {:ok, first} =
              Mission.create_launch_from_brief(
                %{"agent" => "codex", "project_root" => "/tmp/controlkeel-duplicate"},
                brief
              )
 
-    assert {:error, :project_name_taken, "Duplicate launchpad"} =
+    # A second launch with the same project name reuses the existing workspace
+    # and adds a new session inside it, rather than failing. This keeps
+    # bootstrap/re-launch idempotent for an already-initialized project. The
+    # interactive onboarding wizard still warns on duplicate names up front via
+    # Mission.project_name_taken?/1.
+    assert {:ok, second} =
              Mission.create_launch_from_brief(
                %{"agent" => "codex", "project_root" => "/tmp/controlkeel-duplicate-2"},
                brief
              )
+
+    assert second.workspace_id == first.workspace_id
+    assert second.id != first.id
+    assert Mission.project_name_taken?("Duplicate launchpad")
   end
 
   test "create_launch_from_brief/2 preserves the domain pack for every supported domain" do
