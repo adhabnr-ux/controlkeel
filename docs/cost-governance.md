@@ -58,9 +58,7 @@ loading large MCP tool catalogs. MCP remains the right fit for small tool
 surfaces and interactive agent-time actions.
 
 Treat the question as "which surface gives this agent the smallest reliable
-working set?" rather than "SDK or MCP everywhere." The full cost case study and
-operating checklist are maintained in
-[code-mode-governance.md](code-mode-governance.md).
+working set?" rather than "SDK or MCP everywhere." The generated-code execution contract and operating checklist are maintained in [code-mode-governance.md](code-mode-governance.md).
 
 ## Proxy observability
 

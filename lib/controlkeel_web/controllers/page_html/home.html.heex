@@ -40,11 +40,11 @@
   <%= if cloud_mode? and anonymous? do %>
     <section class="mx-auto max-w-5xl flex flex-col items-center text-center pt-16 pb-12">
       <h1 class="text-5xl font-bold tracking-tight text-white sm:text-6xl">
-        The control tower for<br />
-        <span class="text-lime-300">AI-built software</span>
+        Turn team knowledge into<br />
+        <span class="text-lime-300">agent control plane</span>
       </h1>
       <p class="mt-6 max-w-2xl text-lg text-zinc-400">
-        ControlKeel governs every agent action — from intent to ship — with findings, proofs, policy, and cost control. Ship production-ready code with confidence.
+        ControlKeel turns policies, review taste, and domain rules from static docs into findings, proofs, approval gates, budgets, evals, and durable context across supported hosts and fallback governance paths.
       </p>
       <div class="mt-8 flex gap-4">
         <a
@@ -67,27 +67,27 @@
         <div class="mb-3 text-2xl">
           <span class="hero-shield-check size-8 text-lime-300"></span>
         </div>
-        <h3 class="text-lg font-semibold text-white mb-2">Governance by default</h3>
+        <h3 class="text-lg font-semibold text-white mb-2">Policy gates for agents</h3>
         <p class="text-sm text-zinc-400">
-          Every agent action produces findings and proofs. Policy violations surface before code reaches production.
+          Convert domain knowledge and review decisions into typed memory, policy checks, governed findings, and approval gates.
         </p>
       </div>
       <div class="rounded-xl border border-white/10 bg-zinc-900 p-6">
         <div class="mb-3 text-2xl">
           <span class="hero-chart-bar-square size-8 text-lime-300"></span>
         </div>
-        <h3 class="text-lg font-semibold text-white mb-2">Cost control</h3>
+        <h3 class="text-lg font-semibold text-white mb-2">Evidence, not vibes</h3>
         <p class="text-sm text-zinc-400">
-          Per-session budgets, usage metering, and real-time spend tracking. Never get a surprise AI bill again.
+          Proof bundles, benchmark runs, and cost signals show whether agent workflows are getting safer and cheaper.
         </p>
       </div>
       <div class="rounded-xl border border-white/10 bg-zinc-900 p-6">
         <div class="mb-3 text-2xl">
           <span class="hero-bolt-solid size-8 text-lime-300"></span>
         </div>
-        <h3 class="text-lg font-semibold text-white mb-2">Agent-agnostic</h3>
+        <h3 class="text-lg font-semibold text-white mb-2">Host-agnostic control</h3>
         <p class="text-sm text-zinc-400">
-          Works with Claude, GPT, Gemini, and any MCP-compatible agent. Same governance layer across every tool.
+          Keep governance state outside the chat window so teams can move between supported agents without losing context.
         </p>
       </div>
     </section>
@@ -99,29 +99,29 @@
           <div class="flex size-12 items-center justify-center rounded-full bg-lime-300/10 text-lime-300 font-bold text-xl mb-3">
             1
           </div>
-          <h4 class="text-sm font-semibold text-white">Define intent</h4>
-          <p class="text-xs text-zinc-500 mt-1">Describe what you want to build</p>
+          <h4 class="text-sm font-semibold text-white">Capture intent</h4>
+          <p class="text-xs text-zinc-500 mt-1">Set scope, policy, risk, and budget</p>
         </div>
         <div class="flex flex-col items-center">
           <div class="flex size-12 items-center justify-center rounded-full bg-lime-300/10 text-lime-300 font-bold text-xl mb-3">
             2
           </div>
-          <h4 class="text-sm font-semibold text-white">Agent executes</h4>
-          <p class="text-xs text-zinc-500 mt-1">Agent works within your policy boundaries</p>
+          <h4 class="text-sm font-semibold text-white">Agent works</h4>
+          <p class="text-xs text-zinc-500 mt-1">Use the host your team already likes</p>
         </div>
         <div class="flex flex-col items-center">
           <div class="flex size-12 items-center justify-center rounded-full bg-lime-300/10 text-lime-300 font-bold text-xl mb-3">
             3
           </div>
           <h4 class="text-sm font-semibold text-white">CK validates</h4>
-          <p class="text-xs text-zinc-500 mt-1">Findings, proofs, and benchmarks generated</p>
+          <p class="text-xs text-zinc-500 mt-1">Findings, proofs, and gates fire as needed</p>
         </div>
         <div class="flex flex-col items-center">
           <div class="flex size-12 items-center justify-center rounded-full bg-lime-300/10 text-lime-300 font-bold text-xl mb-3">
             4
           </div>
-          <h4 class="text-sm font-semibold text-white">Ship with confidence</h4>
-          <p class="text-xs text-zinc-500 mt-1">Review evidence, approve, and deploy</p>
+          <h4 class="text-sm font-semibold text-white">Improve the loop</h4>
+          <p class="text-xs text-zinc-500 mt-1">Evals show what changed</p>
         </div>
       </div>
     </section>
@@ -131,10 +131,10 @@
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.2em] text-lime-300">Dashboard</p>
           <h1 class="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            Governed Delivery Monitor
+            Agent Control Plane
           </h1>
           <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
-            Live mission state, benchmark signal, proof coverage, and ship readiness in one operator view.
+            Live mission state, findings, proof coverage, benchmark signal, and ship readiness in one operator view.
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -286,7 +286,7 @@
         </section>
       </aside>
 
-      <.current_status provider_status={@provider_status} />
+        <.current_status provider_status={@provider_status} />
 
       <.provider_bootstrap_detail provider_status={@provider_status} />
 

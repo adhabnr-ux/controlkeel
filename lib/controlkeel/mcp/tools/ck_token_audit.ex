@@ -122,6 +122,9 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
          "rule_tokens" => rule_tokens,
          "estimated_tokens" => rule_tokens + skill_tokens,
          "skills" => skills_data["skills"],
+         "effective_skills" => skills_data["effective_skills"],
+         "effective_skill_count" => skills_data["effective_skill_count"],
+         "installed_skill_copies" => skills_data["installed_skill_copies"],
          "skill_duplicates" => skills_data["duplicates"],
          "duplicate_token_count" => skills_data["duplicate_token_count"],
          "duplicate_word_count" => skills_data["duplicate_word_count"],
@@ -182,19 +185,41 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
     # Find duplicates by skill name
     duplicates = find_duplicate_skills(all_skills)
 
-    # Calculate token cost
-    total_skill_words = Enum.sum(Enum.map(all_skills, & &1["word_count"]))
+    # Deduplicate for token counting: each unique skill counted once.
+    # MCP hosts load skills from their native dir (e.g. .claude/skills/) first,
+    # so duplicate copies in .agents/skills/ or user-level dirs are wasted tokens.
+    # Prefer project-level agent-specific dirs over compat/user dirs.
+    deduplicated_skills =
+      all_skills
+      |> Enum.sort_by(fn skill ->
+        # Prefer project-level agent-specific dirs, then project compat, then user-level
+        cond do
+          String.starts_with?(skill["location"], "project:.claude/") -> 0
+          String.starts_with?(skill["location"], "project:.opencode/") -> 0
+          String.starts_with?(skill["location"], "project:.codex/") -> 0
+          String.starts_with?(skill["location"], "project:.cursor/") -> 0
+          String.starts_with?(skill["location"], "project:") -> 1
+          true -> 2
+        end
+      end)
+      |> Enum.uniq_by(& &1["name"])
+
+    # Calculate token cost using deduplicated set
+    total_skill_words = Enum.sum(Enum.map(deduplicated_skills, & &1["word_count"]))
     total_skill_tokens = estimate_tokens_from_words(total_skill_words)
-    duplicate_words = Enum.sum(Enum.map(duplicates, & &1["total_word_count"]))
+    duplicate_words = Enum.sum(Enum.map(duplicates, & &1["duplicate_word_count"]))
     duplicate_tokens = estimate_tokens_from_words(duplicate_words)
 
-    recommendations = build_skill_recommendations(all_skills, duplicates)
+    recommendations = build_skill_recommendations(all_skills, duplicates, deduplicated_skills)
 
     {:ok,
      %{
        "project_root" => project_root,
        "estimated_tokens" => total_skill_tokens,
        "skills" => all_skills,
+       "effective_skills" => deduplicated_skills,
+       "installed_skill_copies" => length(all_skills),
+       "effective_skill_count" => length(deduplicated_skills),
        "duplicates" => duplicates,
        "total_skill_words" => total_skill_words,
        "total_skill_tokens" => total_skill_tokens,
@@ -469,21 +494,38 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
     |> Enum.group_by(& &1["name"])
     |> Enum.filter(fn {_name, skills} -> length(skills) > 1 end)
     |> Enum.map(fn {name, skills} ->
-      total_word_count = Enum.sum(Enum.map(skills, & &1["word_count"]))
-      total_tokens = estimate_tokens_from_words(total_word_count)
+      sorted_skills =
+        Enum.sort_by(skills, fn skill ->
+          cond do
+            String.starts_with?(skill["location"], "project:.claude/") -> 0
+            String.starts_with?(skill["location"], "project:.opencode/") -> 0
+            String.starts_with?(skill["location"], "project:.codex/") -> 0
+            String.starts_with?(skill["location"], "project:.cursor/") -> 0
+            String.starts_with?(skill["location"], "project:") -> 1
+            true -> 2
+          end
+        end)
+
+      retained_word_count = sorted_skills |> List.first() |> Map.get("word_count", 0)
+      total_word_count = Enum.sum(Enum.map(sorted_skills, & &1["word_count"]))
+      duplicate_word_count = max(total_word_count - retained_word_count, 0)
+      duplicate_tokens = estimate_tokens_from_words(duplicate_word_count)
 
       %{
         "name" => name,
-        "instances" => skills,
-        "count" => length(skills),
+        "instances" => sorted_skills,
+        "count" => length(sorted_skills),
         "total_word_count" => total_word_count,
-        "total_tokens" => total_tokens,
-        "locations" => Enum.map(skills, & &1["location"])
+        "retained_word_count" => retained_word_count,
+        "duplicate_word_count" => duplicate_word_count,
+        "total_tokens" => duplicate_tokens,
+        "duplicate_tokens" => duplicate_tokens,
+        "locations" => Enum.map(sorted_skills, & &1["location"])
       }
     end)
   end
 
-  defp build_skill_recommendations(all_skills, duplicates) do
+  defp build_skill_recommendations(all_skills, duplicates, effective_skills) do
     recommendations = []
 
     # Check for duplicates
@@ -514,11 +556,11 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
 
     # Check for oversized individual skills
     recommendations =
-      all_skills
+      effective_skills
       |> Enum.filter(&(&1["word_count"] > 500))
       |> Enum.reduce(recommendations, fn skill, acc ->
         [
-          "Skill '#{skill["name"]}' is #{skill["word_count"]} words (#{skill["location"]}). Consider splitting into smaller skills."
+          "Skill '#{skill["name"]}' is #{skill["word_count"]} words (#{skill["location"]}). Prefer concise gotcha guidance and validate with a with-skill vs without-skill eval before adding more instructions."
           | acc
         ]
       end)

@@ -170,11 +170,21 @@ config :controlkeel, ControlKeel.Intent,
 if config_env() == :prod do
   database_path = ControlKeel.RuntimeDefaults.database_path()
 
+  # One-time global -> project-local migration: if we resolved to a project DB
+  # that doesn't exist yet, seed it from the legacy global DB before the Repo
+  # opens. No-op for already-migrated projects or explicit DATABASE_PATH.
+  ControlKeel.RuntimeDefaults.maybe_seed_project_database()
+
   config :controlkeel, ControlKeel.Repo,
     database: database_path,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     journal_mode: :wal,
     synchronous: :normal,
+    # Wait for a held SQLite lock instead of failing immediately. Multiple
+    # controlkeel processes (CLI exports, the MCP server, hooks) share one
+    # WAL database; without this, brief startup overlap surfaces as transient
+    # "database is locked" errors. Dev/test already set this; prod did not.
+    busy_timeout: String.to_integer(System.get_env("CONTROLKEEL_BUSY_TIMEOUT") || "15000"),
     queue_target: 50,
     queue_interval: 1_000
 

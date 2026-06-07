@@ -15,6 +15,21 @@ defmodule ControlKeel.Benchmark.Metadata do
   # Documented signal_source values (production signal eval seeds)
   @valid_signal_sources ~w(explicit implicit trajectory self_diagnostic)
 
+  @agent_spec_string_fields ~w(
+    agent_spec_id agent_spec_version task_spec_id agent_role task_scope persona_or_actor_context
+  )
+
+  @skill_eval_string_fields ~w(
+    skill_name skill_variant baseline_variant skill_delta_score
+  )
+
+  @agent_spec_list_fields ~w(
+    out_of_scope business_rules domain_terms allowed_actions prohibited_actions
+    robustness_requirements linked_policy_packs linked_benchmark_suites promotion_gates
+  )
+
+  @skill_eval_boolean_fields ~w(skill_loaded baseline_without_skill skill_harmed_performance)
+
   def normalize_scenario_metadata(payload) when is_map(payload) do
     metadata =
       payload
@@ -25,7 +40,10 @@ defmodule ControlKeel.Benchmark.Metadata do
       "task_type" => infer_task_type(payload, metadata),
       "risk_tier" => infer_risk_tier(payload, metadata),
       "domain_pack" => infer_domain_pack(payload, metadata),
-      "budget_tier" => infer_budget_tier(payload, metadata)
+      "budget_tier" => infer_budget_tier(payload, metadata),
+      "eval_source" => infer_eval_source(payload, metadata),
+      "eval_mode" => infer_eval_mode(payload, metadata),
+      "failure_dimension" => infer_failure_dimension(payload, metadata)
     }
 
     base
@@ -81,6 +99,37 @@ defmodule ControlKeel.Benchmark.Metadata do
   """
   def valid_signal_sources, do: @valid_signal_sources
 
+  @doc """
+  Returns the scenario metadata fields required for benchmark provenance.
+  """
+  def required_eval_fields, do: ~w(eval_source eval_mode failure_dimension)
+
+  @doc """
+  Checks whether normalized metadata has the required benchmark provenance fields.
+  """
+  def metadata_complete?(metadata) when is_map(metadata) do
+    Enum.all?(required_eval_fields(), fn field ->
+      case Map.get(metadata, field) do
+        value when is_binary(value) -> String.trim(value) != ""
+        _ -> false
+      end
+    end)
+  end
+
+  def metadata_complete?(_metadata), do: false
+
+  @doc """
+  Returns documented Agent/Task Spec metadata fields grouped by expected shape.
+  """
+  def agent_spec_fields do
+    %{
+      "string" => @agent_spec_string_fields,
+      "string_list" => @agent_spec_list_fields,
+      "skill_eval_string" => @skill_eval_string_fields,
+      "skill_eval_boolean" => @skill_eval_boolean_fields
+    }
+  end
+
   def default_metadata do
     %{
       "task_type" => "backend",
@@ -98,6 +147,71 @@ defmodule ControlKeel.Benchmark.Metadata do
     |> coerce_enum("eval_mode", @valid_eval_modes)
     |> coerce_enum("failure_dimension", @valid_failure_dimensions)
     |> coerce_enum("signal_source", @valid_signal_sources)
+    |> normalize_agent_spec_fields()
+    |> normalize_skill_eval_fields()
+  end
+
+  defp normalize_agent_spec_fields(metadata) do
+    metadata
+    |> normalize_string_fields(@agent_spec_string_fields)
+    |> normalize_string_list_fields(@agent_spec_list_fields)
+  end
+
+  defp normalize_skill_eval_fields(metadata) do
+    metadata
+    |> normalize_string_fields(@skill_eval_string_fields)
+    |> normalize_boolean_fields(@skill_eval_boolean_fields)
+  end
+
+  defp normalize_string_fields(metadata, fields) do
+    Enum.reduce(fields, metadata, fn key, acc ->
+      case Map.get(acc, key) do
+        nil ->
+          acc
+
+        value when is_binary(value) ->
+          case String.trim(value) do
+            "" -> Map.delete(acc, key)
+            trimmed -> Map.put(acc, key, trimmed)
+          end
+
+        _ ->
+          Map.delete(acc, key)
+      end
+    end)
+  end
+
+  defp normalize_string_list_fields(metadata, fields) do
+    Enum.reduce(fields, metadata, fn key, acc ->
+      case Map.get(acc, key) do
+        nil ->
+          acc
+
+        values when is_list(values) ->
+          normalized =
+            values
+            |> Enum.filter(&is_binary/1)
+            |> Enum.map(&String.trim/1)
+            |> Enum.reject(&(&1 == ""))
+
+          if normalized == [], do: Map.delete(acc, key), else: Map.put(acc, key, normalized)
+
+        _ ->
+          Map.delete(acc, key)
+      end
+    end)
+  end
+
+  defp normalize_boolean_fields(metadata, fields) do
+    Enum.reduce(fields, metadata, fn key, acc ->
+      case Map.get(acc, key) do
+        nil -> acc
+        value when is_boolean(value) -> Map.put(acc, key, value)
+        "true" -> Map.put(acc, key, true)
+        "false" -> Map.put(acc, key, false)
+        _ -> Map.delete(acc, key)
+      end
+    end)
   end
 
   defp coerce_enum(metadata, key, valid_values) do
@@ -150,6 +264,27 @@ defmodule ControlKeel.Benchmark.Metadata do
         path(payload) =~ ~r/(docker|deploy|infra|production)/ -> "high"
         category(payload) == "security" -> "medium"
         true -> "low"
+      end
+  end
+
+  defp infer_eval_source(payload, metadata) do
+    metadata["eval_source"] ||
+      cond do
+        metadata["source"] == "controlkeel_internal" -> "red_team"
+        metadata["host_pattern"] in ["copilot", "opencode", "both"] -> "red_team"
+        category(payload) == "security" -> "red_team"
+        true -> "synthetic"
+      end
+  end
+
+  defp infer_eval_mode(_payload, metadata), do: metadata["eval_mode"] || "deterministic"
+
+  defp infer_failure_dimension(payload, metadata) do
+    metadata["failure_dimension"] ||
+      cond do
+        category(payload) in ["security", "privacy", "compliance"] -> "safety"
+        Map.get(payload, "expected_rules", []) != [] -> "schema"
+        true -> "correctness"
       end
   end
 

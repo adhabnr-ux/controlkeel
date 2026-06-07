@@ -879,53 +879,91 @@ defmodule ControlKeel.Mission do
   end
 
   defp persist_launch_plan(plan) do
-    if project_name_taken?(plan.workspace.name) do
-      {:error, :project_name_taken, plan.workspace.name}
-    else
-      plan = ensure_unique_workspace_slug(plan)
+    case find_workspace_by_name(plan.workspace.name) do
+      %Workspace{} = existing_workspace ->
+        # Workspace name already taken — reuse it and create a new session inside.
+        persist_launch_plan_in_workspace(plan, existing_workspace)
 
-      Multi.new()
-      |> Multi.insert(:workspace, Workspace.changeset(%Workspace{}, plan.workspace))
-      |> Multi.insert(:session, fn %{workspace: workspace} ->
-        Session.changeset(%Session{}, Map.put(plan.session, :workspace_id, workspace.id))
-      end)
-      |> Multi.run(:tasks, fn repo, %{session: session} ->
-        insert_many(repo, Task, plan.tasks, :session_id, session.id)
-      end)
-      |> Multi.run(:task_edges, fn repo, %{session: session, tasks: tasks} ->
-        insert_task_edges(repo, session.id, tasks)
-      end)
-      |> Multi.run(:findings, fn repo, %{session: session} ->
-        insert_many(repo, Finding, plan.findings, :session_id, session.id)
-      end)
-      |> transaction_with_busy_retry()
-      |> case do
-        {:ok, %{session: session}} ->
-          emit_mission_created(plan, session)
-          record_brief_memory(session)
-          loaded = get_session_with_details!(session.id)
-          Enum.each(loaded.tasks, &record_task_memory(:created, &1))
-          Enum.each(loaded.findings, &record_finding_memory(:created, &1))
-          {:ok, loaded}
+      nil ->
+        plan = ensure_unique_workspace_slug(plan)
 
-        {:error, :workspace, changeset, _changes} ->
-          {:error, :workspace, changeset}
+        Multi.new()
+        |> Multi.insert(:workspace, Workspace.changeset(%Workspace{}, plan.workspace))
+        |> Multi.insert(:session, fn %{workspace: workspace} ->
+          Session.changeset(%Session{}, Map.put(plan.session, :workspace_id, workspace.id))
+        end)
+        |> Multi.run(:tasks, fn repo, %{session: session} ->
+          insert_many(repo, Task, plan.tasks, :session_id, session.id)
+        end)
+        |> Multi.run(:task_edges, fn repo, %{session: session, tasks: tasks} ->
+          insert_task_edges(repo, session.id, tasks)
+        end)
+        |> Multi.run(:findings, fn repo, %{session: session} ->
+          insert_many(repo, Finding, plan.findings, :session_id, session.id)
+        end)
+        |> transaction_with_busy_retry()
+        |> case do
+          {:ok, %{session: session}} ->
+            emit_mission_created(plan, session)
+            record_brief_memory(session)
+            loaded = get_session_with_details!(session.id)
+            Enum.each(loaded.tasks, &record_task_memory(:created, &1))
+            Enum.each(loaded.findings, &record_finding_memory(:created, &1))
+            {:ok, loaded}
 
-        {:error, _step, changeset, _changes} ->
-          {:error, :session, changeset}
-      end
+          {:error, :workspace, changeset, _changes} ->
+            {:error, :workspace, changeset}
+
+          {:error, _step, changeset, _changes} ->
+            {:error, :session, changeset}
+        end
     end
   end
 
-  def project_name_taken?(nil), do: false
+  defp persist_launch_plan_in_workspace(plan, workspace) do
+    Multi.new()
+    |> Multi.insert(:session, fn _ ->
+      Session.changeset(%Session{}, Map.put(plan.session, :workspace_id, workspace.id))
+    end)
+    |> Multi.run(:tasks, fn repo, %{session: session} ->
+      insert_many(repo, Task, plan.tasks, :session_id, session.id)
+    end)
+    |> Multi.run(:task_edges, fn repo, %{session: session, tasks: tasks} ->
+      insert_task_edges(repo, session.id, tasks)
+    end)
+    |> Multi.run(:findings, fn repo, %{session: session} ->
+      insert_many(repo, Finding, plan.findings, :session_id, session.id)
+    end)
+    |> transaction_with_busy_retry()
+    |> case do
+      {:ok, %{session: session}} ->
+        emit_mission_created(plan, session)
+        record_brief_memory(session)
+        loaded = get_session_with_details!(session.id)
+        Enum.each(loaded.tasks, &record_task_memory(:created, &1))
+        Enum.each(loaded.findings, &record_finding_memory(:created, &1))
+        {:ok, loaded}
 
-  def project_name_taken?(name) when is_binary(name) do
+      {:error, _step, changeset, _changes} ->
+        {:error, :session, changeset}
+    end
+  end
+
+  def find_workspace_by_name(nil), do: nil
+
+  def find_workspace_by_name(name) when is_binary(name) do
     normalized = String.downcase(String.trim(name))
 
     from(w in Workspace,
       where: fragment("lower(?)", w.name) == ^normalized
     )
-    |> Repo.exists?()
+    |> Repo.one()
+  end
+
+  def project_name_taken?(nil), do: false
+
+  def project_name_taken?(name) when is_binary(name) do
+    find_workspace_by_name(name) != nil
   end
 
   defp ensure_unique_workspace_slug(%{workspace: %{slug: slug}} = plan) do
@@ -1127,6 +1165,78 @@ defmodule ControlKeel.Mission do
         other
     end
   end
+
+  @disposition_actions ~w(resolve dismiss escalate)
+
+  @doc """
+  Disposition a single finding via a high-level action so agents (and bulk paths) can
+  resolve the findings they create instead of only filing compensating records:
+
+    * `"resolve"`  -> approved
+    * `"dismiss"`  -> rejected (records `opts[:reason]`)
+    * `"escalate"` -> escalated
+
+  Accepts a `%Finding{}` or an integer id. Returns `{:ok, finding}` / `{:error, reason}`.
+  """
+  def dispose_finding(action, finding_or_id, opts \\ [])
+
+  def dispose_finding(action, %Finding{} = finding, opts),
+    do: do_dispose_finding(action, finding, opts)
+
+  def dispose_finding(action, id, opts) when is_integer(id) do
+    case get_finding(id) do
+      nil -> {:error, :not_found}
+      finding -> do_dispose_finding(action, finding, opts)
+    end
+  end
+
+  defp do_dispose_finding("resolve", finding, _opts), do: approve_finding(finding)
+
+  defp do_dispose_finding("dismiss", finding, opts),
+    do: reject_finding(finding, Keyword.get(opts, :reason))
+
+  defp do_dispose_finding("escalate", finding, _opts), do: escalate_finding(finding)
+  defp do_dispose_finding(_action, _finding, _opts), do: {:error, :invalid_action}
+
+  @doc """
+  Bulk-disposition findings in a session matching a filter map.
+
+  Filter keys: `:rule_id`, `:category`, `:statuses` (defaults to the active set
+  `~w(open blocked escalated)`), and `:reason` (recorded when dismissing). Only findings
+  currently in the matched statuses are touched, so the operation is idempotent. Returns
+  `{:ok, %{count: n, ids: [finding_id]}}`.
+  """
+  def dispose_session_findings(session_id, filter, action)
+      when is_integer(session_id) and action in @disposition_actions do
+    reason = Map.get(filter, :reason)
+
+    ids =
+      session_id
+      |> list_findings_for_session()
+      |> Enum.filter(&matches_disposition_filter?(&1, filter))
+      |> Enum.reduce([], fn finding, acc ->
+        case do_dispose_finding(action, finding, reason: reason) do
+          {:ok, updated} -> [updated.id | acc]
+          _ -> acc
+        end
+      end)
+      |> Enum.reverse()
+
+    {:ok, %{count: length(ids), ids: ids}}
+  end
+
+  def dispose_session_findings(_session_id, _filter, _action), do: {:error, :invalid_action}
+
+  defp matches_disposition_filter?(finding, filter) do
+    statuses = Map.get(filter, :statuses) || ~w(open blocked escalated)
+
+    finding.status in statuses and
+      disposition_filter_match?(finding.rule_id, Map.get(filter, :rule_id)) and
+      disposition_filter_match?(finding.category, Map.get(filter, :category))
+  end
+
+  defp disposition_filter_match?(_value, nil), do: true
+  defp disposition_filter_match?(value, expected), do: value == expected
 
   @doc """
   Complete a task, gating on open/blocked findings.
@@ -1845,8 +1955,8 @@ defmodule ControlKeel.Mission do
       |> case do
         {:ok, %{rows: rows}} when is_list(rows) ->
           Enum.map(rows, fn row ->
-            [id, title, severity, category, plain_message, session_id, inserted_at] =
-              Tuple.to_list(row)
+            row_list = if is_tuple(row), do: Tuple.to_list(row), else: row
+            [id, title, severity, category, plain_message, session_id, inserted_at] = row_list
 
             %{
               type: "finding",
@@ -1881,7 +1991,8 @@ defmodule ControlKeel.Mission do
       |> case do
         {:ok, %{rows: rows}} when is_list(rows) ->
           Enum.map(rows, fn row ->
-            [id, title, status, validation_gate, session_id, inserted_at] = Tuple.to_list(row)
+            row_list = if is_tuple(row), do: Tuple.to_list(row), else: row
+            [id, title, status, validation_gate, session_id, inserted_at] = row_list
 
             %{
               type: "task",
@@ -2863,10 +2974,12 @@ defmodule ControlKeel.Mission do
          check_results
        ) do
     suspicious_test_changes = suspicious_test_changes(reviews)
+    task_check_summary = summarize_task_checks(check_results)
     approved_reviews = Enum.count(reviews, &(&1.status == "approved"))
     passed_checks = Enum.count(invocations, &(get_in(&1.metadata, ["outcome"]) == "passed"))
-    passed_task_checks = Enum.count(check_results, &(&1.status == "passed"))
-    failed_task_checks = Enum.count(check_results, &(&1.status == "failed"))
+    passed_task_checks = task_check_summary["passed"]
+    passed_strong_task_checks = task_check_summary["passed_strong"]
+    failed_task_checks = task_check_summary["failed"]
     external_regressions = test_outcomes["external_recorded"] || 0
     blocking_failures = test_outcomes["blocking_failures"] || 0
     skipped = test_outcomes["skipped"] || 0
@@ -2884,6 +2997,7 @@ defmodule ControlKeel.Mission do
       |> maybe_add_score(completed_task_status?(task.status), 10)
       |> maybe_add_score(passed_checks > 0, 20)
       |> maybe_add_score(passed_task_checks > 0, 25)
+      |> maybe_add_score(passed_strong_task_checks > 0, 10)
       |> maybe_add_score(external_regressions > 0 and blocking_failures == 0, 30)
       |> maybe_add_score(approved_reviews > 0, 20)
       |> maybe_add_score(open_or_blocked == 0, 10)
@@ -2899,11 +3013,13 @@ defmodule ControlKeel.Mission do
       "score" => score,
       "status" => verification_status(score),
       "verification_ready" =>
-        failed_task_checks == 0 and blocking_failures == 0 and
+        (passed_checks > 0 or passed_task_checks > 0 or external_regressions > 0 or
+           approved_reviews > 0) and failed_task_checks == 0 and blocking_failures == 0 and
           not has_suspicious_severity?(suspicious_test_changes, "high"),
       "evidence" => %{
         "passed_checks" => passed_checks,
         "passed_task_checks" => passed_task_checks,
+        "passed_strong_task_checks" => passed_strong_task_checks,
         "failed_task_checks" => failed_task_checks,
         "external_regressions" => external_regressions,
         "approved_reviews" => approved_reviews,
@@ -2915,7 +3031,8 @@ defmodule ControlKeel.Mission do
           evidence_sources,
           blocking_failures,
           skipped,
-          suspicious_test_changes
+          suspicious_test_changes,
+          task_check_summary
         ),
       "suspicious_test_changes" => suspicious_test_changes
     }
@@ -3209,7 +3326,8 @@ defmodule ControlKeel.Mission do
          evidence_sources,
          blocking_failures,
          skipped,
-         suspicious_test_changes
+         suspicious_test_changes,
+         task_check_summary
        ) do
     []
     |> maybe_add_verification_signal(
@@ -3232,16 +3350,27 @@ defmodule ControlKeel.Mission do
       suspicious_test_changes != [],
       "The submitted diff contains test-related changes that may weaken proof strength."
     )
+    |> maybe_add_verification_signal(
+      task_check_summary["total"] == 0,
+      "No task-check evidence was recorded; completion relies on claims, findings state, or review context rather than objective checks."
+    )
+    |> maybe_add_verification_signal(
+      task_check_summary["total"] > 0 and
+        task_check_summary["strongest_proof_strength"] in [nil, "none", "weak", "claimed"],
+      "Task-check evidence is weak or claim-like; prefer command output, external artifacts, or cryptographic hashes."
+    )
   end
 
   defp summarize_task_checks(check_results) do
     passed = Enum.count(check_results, &(&1.status == "passed"))
     failed = Enum.count(check_results, &(&1.status == "failed"))
     warned = Enum.count(check_results, &(&1.status == "warn"))
+    proof_strength_counts = proof_strength_counts(check_results)
 
     %{
       "total" => length(check_results),
       "passed" => passed,
+      "passed_strong" => Enum.count(check_results, &passed_strong_task_check?/1),
       "failed" => failed,
       "warn" => warned,
       "evidence_sources" =>
@@ -3253,9 +3382,72 @@ defmodule ControlKeel.Mission do
         check_results
         |> Enum.filter(&(&1.status == "failed"))
         |> Enum.map(& &1.check_type)
-        |> Enum.uniq()
+        |> Enum.uniq(),
+      "proof_strength_counts" => proof_strength_counts,
+      "strongest_proof_strength" => strongest_proof_strength(check_results),
+      "hashed_outputs" => Enum.count(check_results, &task_check_output_hash?/1),
+      "git_shas" => unique_git_shas(check_results)
     }
   end
+
+  defp passed_strong_task_check?(check_result) do
+    check_result.status == "passed" and
+      task_check_proof_strength(check_result) in [
+        "command_output",
+        "external_artifact",
+        "cryptographic"
+      ]
+  end
+
+  defp proof_strength_counts(check_results) do
+    check_results
+    |> Enum.map(&task_check_proof_strength/1)
+    |> Enum.frequencies()
+  end
+
+  defp strongest_proof_strength(check_results) do
+    check_results
+    |> Enum.map(&task_check_proof_strength/1)
+    |> Enum.max_by(&proof_strength_rank/1, fn -> nil end)
+  end
+
+  defp task_check_proof_strength(check_result) do
+    case get_in(check_result.metadata || %{}, ["proof_strength"]) do
+      value
+      when value in [
+             "none",
+             "weak",
+             "claimed",
+             "command_output",
+             "external_artifact",
+             "cryptographic"
+           ] ->
+        value
+
+      _ ->
+        "weak"
+    end
+  end
+
+  defp task_check_output_hash?(check_result) do
+    metadata = check_result.metadata || %{}
+    payload = check_result.payload || %{}
+    is_binary(metadata["output_sha256"]) or is_binary(payload["output_sha256"])
+  end
+
+  defp unique_git_shas(check_results) do
+    check_results
+    |> Enum.map(&get_in(&1.metadata || %{}, ["git_head_sha"]))
+    |> Enum.filter(&is_binary/1)
+    |> Enum.uniq()
+  end
+
+  defp proof_strength_rank("cryptographic"), do: 5
+  defp proof_strength_rank("external_artifact"), do: 4
+  defp proof_strength_rank("command_output"), do: 3
+  defp proof_strength_rank("claimed"), do: 2
+  defp proof_strength_rank("weak"), do: 1
+  defp proof_strength_rank(_), do: 0
 
   defp derive_task_check_verification(task, check_results) do
     summary = summarize_task_checks(check_results)
@@ -3266,6 +3458,7 @@ defmodule ControlKeel.Mission do
       |> maybe_add_score(summary["passed"] > 0, 35)
       |> maybe_add_score(summary["warn"] == 0 and summary["failed"] == 0, 15)
       |> maybe_add_score(length(summary["evidence_sources"]) >= 2, 10)
+      |> maybe_add_score(summary["git_shas"] != [], 10)
       |> maybe_subtract_score(summary["failed"] > 0, 35)
       |> maybe_subtract_score(summary["warn"] > 0, 10)
       |> clamp_score()
@@ -3428,7 +3621,7 @@ defmodule ControlKeel.Mission do
   defp unresolved_findings(session_id) do
     Finding
     |> where([finding], finding.session_id == ^session_id)
-    |> where([finding], finding.status in ["open", "blocked"])
+    |> where([finding], finding.status in ["open", "blocked", "escalated"])
     |> Repo.all()
   end
 
@@ -4538,6 +4731,74 @@ defmodule ControlKeel.Mission do
            optional_string_list(Map.get(raw_refinement, "validation_plan"), "validation_plan"),
          {:ok, code_snippets} <-
            optional_string_list(Map.get(raw_refinement, "code_snippets"), "code_snippets"),
+         {:ok, agent_spec_id} <-
+           optional_trimmed_string(Map.get(raw_refinement, "agent_spec_id"), "agent_spec_id"),
+         {:ok, task_spec_id} <-
+           optional_trimmed_string(Map.get(raw_refinement, "task_spec_id"), "task_spec_id"),
+         {:ok, agent_role} <-
+           optional_trimmed_string(Map.get(raw_refinement, "agent_role"), "agent_role"),
+         {:ok, task_scope} <-
+           optional_trimmed_string(Map.get(raw_refinement, "task_scope"), "task_scope"),
+         {:ok, out_of_scope} <-
+           optional_string_list(Map.get(raw_refinement, "out_of_scope"), "out_of_scope"),
+         {:ok, business_rules} <-
+           optional_string_list(Map.get(raw_refinement, "business_rules"), "business_rules"),
+         {:ok, domain_terms} <-
+           optional_string_list(Map.get(raw_refinement, "domain_terms"), "domain_terms"),
+         {:ok, persona_or_actor_context} <-
+           optional_trimmed_string(
+             Map.get(raw_refinement, "persona_or_actor_context"),
+             "persona_or_actor_context"
+           ),
+         {:ok, allowed_actions} <-
+           optional_string_list(Map.get(raw_refinement, "allowed_actions"), "allowed_actions"),
+         {:ok, prohibited_actions} <-
+           optional_string_list(
+             Map.get(raw_refinement, "prohibited_actions"),
+             "prohibited_actions"
+           ),
+         {:ok, robustness_requirements} <-
+           optional_string_list(
+             Map.get(raw_refinement, "robustness_requirements"),
+             "robustness_requirements"
+           ),
+         {:ok, linked_policy_packs} <-
+           optional_string_list(
+             Map.get(raw_refinement, "linked_policy_packs"),
+             "linked_policy_packs"
+           ),
+         {:ok, linked_benchmark_suites} <-
+           optional_string_list(
+             Map.get(raw_refinement, "linked_benchmark_suites"),
+             "linked_benchmark_suites"
+           ),
+         {:ok, promotion_gates} <-
+           optional_string_list(Map.get(raw_refinement, "promotion_gates"), "promotion_gates"),
+         {:ok, allowed_semantic_changes} <-
+           optional_string_list(
+             Map.get(raw_refinement, "allowed_semantic_changes"),
+             "allowed_semantic_changes"
+           ),
+         {:ok, forbidden_semantic_changes} <-
+           optional_string_list(
+             Map.get(raw_refinement, "forbidden_semantic_changes"),
+             "forbidden_semantic_changes"
+           ),
+         {:ok, invariant_boundaries} <-
+           optional_string_list(
+             Map.get(raw_refinement, "invariant_boundaries"),
+             "invariant_boundaries"
+           ),
+         {:ok, requires_reapproval_if} <-
+           optional_string_list(
+             Map.get(raw_refinement, "requires_reapproval_if"),
+             "requires_reapproval_if"
+           ),
+         {:ok, harness_quality_checks} <-
+           optional_string_list(
+             Map.get(raw_refinement, "harness_quality_checks"),
+             "harness_quality_checks"
+           ),
          {:ok, scope_estimate} <-
            normalize_scope_estimate(Map.get(raw_refinement, "scope_estimate")) do
       depth = next_plan_depth(previous_review)
@@ -4561,6 +4822,25 @@ defmodule ControlKeel.Mission do
           "implementation_steps" => implementation_steps,
           "validation_plan" => validation_plan,
           "code_snippets" => code_snippets,
+          "agent_spec_id" => agent_spec_id,
+          "task_spec_id" => task_spec_id,
+          "agent_role" => agent_role,
+          "task_scope" => task_scope,
+          "out_of_scope" => out_of_scope,
+          "business_rules" => business_rules,
+          "domain_terms" => domain_terms,
+          "persona_or_actor_context" => persona_or_actor_context,
+          "allowed_actions" => allowed_actions,
+          "prohibited_actions" => prohibited_actions,
+          "robustness_requirements" => robustness_requirements,
+          "linked_policy_packs" => linked_policy_packs,
+          "linked_benchmark_suites" => linked_benchmark_suites,
+          "promotion_gates" => promotion_gates,
+          "allowed_semantic_changes" => allowed_semantic_changes,
+          "forbidden_semantic_changes" => forbidden_semantic_changes,
+          "invariant_boundaries" => invariant_boundaries,
+          "requires_reapproval_if" => requires_reapproval_if,
+          "harness_quality_checks" => harness_quality_checks,
           "scope_estimate" => scope_estimate,
           "previous_phase" => previous_plan_phase(previous_review)
         }
@@ -4579,7 +4859,12 @@ defmodule ControlKeel.Mission do
             "rejected_options" => rejected_options,
             "implementation_steps" => implementation_steps,
             "validation_plan" => validation_plan,
-            "code_snippets" => code_snippets
+            "code_snippets" => code_snippets,
+            "allowed_semantic_changes" => allowed_semantic_changes,
+            "forbidden_semantic_changes" => forbidden_semantic_changes,
+            "invariant_boundaries" => invariant_boundaries,
+            "requires_reapproval_if" => requires_reapproval_if,
+            "harness_quality_checks" => harness_quality_checks
           })
         )
 
@@ -4603,6 +4888,46 @@ defmodule ControlKeel.Mission do
     |> maybe_override_refinement("implementation_steps", Map.get(attrs, "implementation_steps"))
     |> maybe_override_refinement("validation_plan", Map.get(attrs, "validation_plan"))
     |> maybe_override_refinement("code_snippets", Map.get(attrs, "code_snippets"))
+    |> maybe_override_refinement("agent_spec_id", Map.get(attrs, "agent_spec_id"))
+    |> maybe_override_refinement("task_spec_id", Map.get(attrs, "task_spec_id"))
+    |> maybe_override_refinement("agent_role", Map.get(attrs, "agent_role"))
+    |> maybe_override_refinement("task_scope", Map.get(attrs, "task_scope"))
+    |> maybe_override_refinement("out_of_scope", Map.get(attrs, "out_of_scope"))
+    |> maybe_override_refinement("business_rules", Map.get(attrs, "business_rules"))
+    |> maybe_override_refinement("domain_terms", Map.get(attrs, "domain_terms"))
+    |> maybe_override_refinement(
+      "persona_or_actor_context",
+      Map.get(attrs, "persona_or_actor_context")
+    )
+    |> maybe_override_refinement("allowed_actions", Map.get(attrs, "allowed_actions"))
+    |> maybe_override_refinement("prohibited_actions", Map.get(attrs, "prohibited_actions"))
+    |> maybe_override_refinement(
+      "robustness_requirements",
+      Map.get(attrs, "robustness_requirements")
+    )
+    |> maybe_override_refinement("linked_policy_packs", Map.get(attrs, "linked_policy_packs"))
+    |> maybe_override_refinement(
+      "linked_benchmark_suites",
+      Map.get(attrs, "linked_benchmark_suites")
+    )
+    |> maybe_override_refinement("promotion_gates", Map.get(attrs, "promotion_gates"))
+    |> maybe_override_refinement(
+      "allowed_semantic_changes",
+      Map.get(attrs, "allowed_semantic_changes")
+    )
+    |> maybe_override_refinement(
+      "forbidden_semantic_changes",
+      Map.get(attrs, "forbidden_semantic_changes")
+    )
+    |> maybe_override_refinement("invariant_boundaries", Map.get(attrs, "invariant_boundaries"))
+    |> maybe_override_refinement(
+      "requires_reapproval_if",
+      Map.get(attrs, "requires_reapproval_if")
+    )
+    |> maybe_override_refinement(
+      "harness_quality_checks",
+      Map.get(attrs, "harness_quality_checks")
+    )
     |> maybe_override_refinement("scope_estimate", Map.get(attrs, "scope_estimate"))
   end
 
@@ -4865,6 +5190,8 @@ defmodule ControlKeel.Mission do
             "What non-code alignment context from product, design, support, security, or prior team decisions shaped this plan?",
             "Which project domain terms, CONTEXT notes, or ADRs constrain this plan?",
             "What automated reviewer and human QA checks will verify behavior-first issues before merge?",
+            "Which semantic changes are explicitly allowed, which are forbidden, and which invariant boundaries require re-approval if the agent touches them?",
+            "What harness-quality evidence will you capture: context hygiene, proof completeness, rollback safety, and compaction/resume fidelity?",
             "What check would tell us early that the implementation is drifting from the plan?"
           ]
 
@@ -4883,7 +5210,7 @@ defmodule ControlKeel.Mission do
       phase in ["implementation_plan", "code_backed_plan"],
       "Night-shift check: can a planner select only unblocked DAG/backlog issues, then send each branch through automated review and human QA?"
     )
-    |> Enum.take(4)
+    |> Enum.take(8)
   end
 
   defp grill_question_for_missing("research_summary", _phase) do
@@ -4947,9 +5274,17 @@ defmodule ControlKeel.Mission do
         length(fields["rejected_options"] || []) == 0,
       "Alternative check: what option are we rejecting, and why is that rejection evidence-backed?"
     )
+    |> maybe_add_signal(
+      phase in ["implementation_plan", "code_backed_plan"],
+      "Semantic drift check: name the allowed semantic changes, forbidden changes, and invariant boundaries before execution."
+    )
+    |> maybe_add_signal(
+      phase in ["implementation_plan", "code_backed_plan"],
+      "Harness scorecard: record how context hygiene, proof completeness, rollback safety, and compaction/resume fidelity will be verified."
+    )
     |> Enum.reverse()
     |> Enum.uniq()
-    |> Enum.take(4)
+    |> Enum.take(6)
   end
 
   defp maybe_add_signal(signals, true, message), do: [message | signals]
@@ -5433,10 +5768,18 @@ defmodule ControlKeel.Mission do
     |> String.capitalize()
   end
 
-  defp status_for_decision("block"), do: "blocked"
-  defp status_for_decision("escalate_to_human"), do: "escalated"
-  defp status_for_decision("warn"), do: "open"
-  defp status_for_decision(_decision), do: "open"
+  @doc """
+  Canonical mapping from a governance ruling decision to a persisted finding status.
+
+  Single source of truth shared by the runtime governance path (persist_findings) and
+  the `ck_finding` MCP tool, so the same decision can never produce a different status
+  depending on the entry point.
+  """
+  def status_for_decision("block"), do: "blocked"
+  def status_for_decision("escalate_to_human"), do: "escalated"
+  def status_for_decision("allow"), do: "approved"
+  def status_for_decision("warn"), do: "open"
+  def status_for_decision(_decision), do: "open"
 
   defp findings_query(session_id, opts) do
     from(f in Finding, where: f.session_id == ^session_id, order_by: [desc: f.inserted_at])

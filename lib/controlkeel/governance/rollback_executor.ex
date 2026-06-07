@@ -143,12 +143,12 @@ defmodule ControlKeel.Governance.RollbackExecutor do
 
     case snapshot.rollback_method do
       "git_revert" ->
-        case System.cmd("git", ["revert", "--no-commit", "#{before_sha}..#{after_sha}"],
+        case ControlKeel.Git.cmd(["revert", "--no-commit", "#{before_sha}..#{after_sha}"],
                cd: project_root,
                stderr_to_stdout: true
              ) do
           {_, 0} ->
-            case System.cmd("git", ["commit", "-m", "ck_rollback: task #{snapshot.task_id}"],
+            case ControlKeel.Git.cmd(["commit", "-m", "ck_rollback: task #{snapshot.task_id}"],
                    cd: project_root,
                    stderr_to_stdout: true
                  ) do
@@ -161,7 +161,7 @@ defmodule ControlKeel.Governance.RollbackExecutor do
         end
 
       "git_reset" ->
-        case System.cmd("git", ["reset", "--hard", before_sha],
+        case ControlKeel.Git.cmd(["reset", "--hard", before_sha],
                cd: project_root,
                stderr_to_stdout: true
              ) do
@@ -175,7 +175,7 @@ defmodule ControlKeel.Governance.RollbackExecutor do
   end
 
   defp git_head_sha(project_root) do
-    case System.cmd("git", ["rev-parse", "HEAD"], cd: project_root, stderr_to_stdout: true) do
+    case ControlKeel.Git.cmd(["rev-parse", "HEAD"], cd: project_root, stderr_to_stdout: true) do
       {sha, 0} -> {:ok, String.trim(sha)}
       {error, _} -> {:error, error}
     end

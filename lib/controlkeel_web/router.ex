@@ -79,7 +79,7 @@ defmodule ControlKeelWeb.Router do
     live_session :cloud_auth,
       on_mount: [{ControlKeelWeb.LiveAuth, :require_cloud_auth}] do
       live "/missions", MissionsLive, :index
-    live "/missions/start", OnboardingLive, :new
+      live "/missions/start", OnboardingLive, :new
       live "/findings", FindingsLive, :index
       live "/benchmarks", BenchmarksLive, :index
       live "/benchmarks/runs/:id", BenchmarksLive, :show

@@ -4,6 +4,7 @@ defmodule ControlKeel.AttachedAgentSync do
   alias ControlKeel.AgentIntegration
   alias ControlKeel.ProjectBinding
   alias ControlKeel.Skills
+  alias ControlKeel.Skills.Installer
 
   def sync(binding, project_root, opts \\ []) when is_map(binding) do
     mode = Keyword.get(opts, :mode, :project)
@@ -31,6 +32,15 @@ defmodule ControlKeel.AttachedAgentSync do
              ]}
         end
       end)
+
+    # After syncing individual targets, re-sync all skill directories to
+    # eliminate drift when multiple hosts are attached to the same project.
+    if changes != [] do
+      Installer.sync_all_skill_dirs(
+        project_root,
+        Map.get(updated_binding, "attached_agents", %{})
+      )
+    end
 
     if updated_binding != binding do
       case ProjectBinding.write_effective(updated_binding, project_root, mode: mode) do
@@ -149,7 +159,9 @@ defmodule ControlKeel.AttachedAgentSync do
     |> maybe_put("skills_destination", Map.get(result, :skills_destination))
     |> maybe_put("agents_destination", Map.get(result, :agents_destination))
     |> maybe_put("commands_destination", Map.get(result, :commands_destination))
+    |> maybe_put("plugins_destination", Map.get(result, :plugins_destination))
     |> maybe_put("rules_destination", Map.get(result, :rules_destination))
+    |> maybe_put("mcp_destination", Map.get(result, :mcp_destination))
     |> maybe_put("config_destination", Map.get(result, :config_destination))
   end
 
@@ -162,5 +174,39 @@ defmodule ControlKeel.AttachedAgentSync do
 
   defp controlkeel_version do
     to_string(Application.spec(:controlkeel, :vsn) || "0.2.0")
+  end
+
+  @doc """
+  Remove stale ephemeral bindings older than the given number of days.
+  Called periodically to prevent unbounded accumulation in ~/.controlkeel/cache/bindings/.
+  """
+  def clean_stale_ephemeral_bindings(max_age_days \\ 90) do
+    cache_dir = Path.join(System.user_home!(), ".controlkeel/cache/bindings")
+
+    if File.dir?(cache_dir) do
+      cutoff = DateTime.utc_now() |> DateTime.add(-max_age_days * 86400, :second)
+
+      File.ls!(cache_dir)
+      |> Enum.filter(&String.ends_with?(&1, ".json"))
+      |> Enum.each(fn filename ->
+        path = Path.join(cache_dir, filename)
+
+        case File.stat(path) do
+          {:ok, %File.Stat{mtime: mtime}} ->
+            mtime_datetime = NaiveDateTime.from_erl!(mtime) |> DateTime.from_naive!("Etc/UTC")
+
+            if DateTime.compare(mtime_datetime, cutoff) == :lt do
+              File.rm(path)
+            end
+
+          _ ->
+            :ok
+        end
+      end)
+    end
+
+    :ok
+  rescue
+    _ -> :ok
   end
 end

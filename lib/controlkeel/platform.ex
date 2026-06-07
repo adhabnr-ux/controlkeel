@@ -453,10 +453,14 @@ defmodule ControlKeel.Platform do
     end
   end
 
-  def record_task_checks(task_id, service_account \\ nil, checks) when is_list(checks) do
+  def record_task_checks(task_id, service_account \\ nil, checks, project_root \\ nil)
+      when is_list(checks) do
     with %Task{} = task <- Mission.get_task(task_id),
          %TaskRun{} = run <- active_task_run(task_id) do
+      git = git_context(project_root)
+
       checks
+      |> Enum.map(&normalize_task_check(&1, git))
       |> Enum.with_index()
       |> Enum.reduce(Multi.new(), fn {check, index}, multi ->
         Multi.insert(multi, {:check, index}, fn _changes ->
@@ -465,11 +469,11 @@ defmodule ControlKeel.Platform do
             task_run_id: run.id,
             task_id: task.id,
             session_id: task.session_id,
-            check_type: Map.get(check, "check_type", Map.get(check, :check_type, "external")),
-            status: Map.get(check, "status", Map.get(check, :status, "passed")),
-            summary: Map.get(check, "summary", Map.get(check, :summary)),
-            payload: Map.get(check, "payload", Map.get(check, :payload, %{})),
-            metadata: Map.get(check, "metadata", Map.get(check, :metadata, %{}))
+            check_type: Map.get(check, "check_type", "external"),
+            status: Map.get(check, "status", "passed"),
+            summary: Map.get(check, "summary"),
+            payload: Map.get(check, "payload", %{}),
+            metadata: Map.get(check, "metadata", %{})
           })
         end)
       end)
@@ -486,6 +490,190 @@ defmodule ControlKeel.Platform do
       nil -> {:error, :not_found}
     end
   end
+
+  defp normalize_task_check(check, git) when is_map(check) do
+    normalized = stringify_keys(check)
+    payload = Map.get(normalized, "payload", %{}) |> normalize_check_map()
+    metadata = Map.get(normalized, "metadata", %{}) |> normalize_check_map()
+    proof = task_check_proof_metadata(payload, metadata, git)
+
+    normalized
+    |> Map.put("payload", maybe_put_output_hash(payload, proof))
+    |> Map.put("metadata", Map.merge(metadata, proof))
+  end
+
+  defp normalize_task_check(_check, _git), do: %{"payload" => %{}, "metadata" => %{}}
+
+  defp normalize_check_map(value) when is_map(value), do: stringify_keys(value)
+  defp normalize_check_map(_value), do: %{}
+
+  defp task_check_proof_metadata(payload, metadata, git) do
+    full_output = check_full_output(payload)
+    output_excerpt = output_excerpt(full_output)
+    explicit_output_hash = first_binary(metadata, ["output_sha256"])
+    output_hash = explicit_output_hash || sha256(full_output)
+
+    output_truncated? =
+      full_output && output_excerpt && byte_size(full_output) > byte_size(output_excerpt)
+
+    command = first_binary(metadata, ["command"]) || first_binary(payload, ["command"])
+    exit_code = first_value(metadata, ["exit_code"]) || first_value(payload, ["exit_code"])
+
+    artifact_uri =
+      first_binary(metadata, ["artifact_uri", "artifact_url"]) ||
+        first_binary(payload, ["artifact_uri", "artifact_url"])
+
+    proof_inputs =
+      metadata
+      |> Map.put("command", command)
+      |> Map.put("exit_code", exit_code)
+      |> Map.put("artifact_uri", artifact_uri)
+
+    %{
+      "proof_strength" => proof_strength(proof_inputs, output_hash),
+      "proof_normalized_at" => DateTime.to_iso8601(now())
+    }
+    |> maybe_put_binary("command", redact_secret_text(command))
+    |> maybe_put_value("exit_code", exit_code)
+    |> maybe_put_binary("output_sha256", output_hash)
+    |> maybe_put_value("output_bytes", full_output && byte_size(full_output))
+    |> maybe_put_value("output_excerpt_bytes", output_excerpt && byte_size(output_excerpt))
+    |> maybe_put_value("output_truncated", output_truncated?)
+    |> maybe_put_binary("artifact_sha256", first_binary(metadata, ["artifact_sha256"]))
+    |> maybe_put_binary("artifact_uri", redact_secret_text(artifact_uri))
+    |> maybe_put_binary("git_head_sha", git[:head_sha])
+    |> maybe_put_value("working_tree_dirty", git[:dirty])
+  end
+
+  defp maybe_put_output_hash(payload, %{"output_sha256" => hash}) when is_binary(hash),
+    do: Map.put_new(payload, "output_sha256", hash)
+
+  defp maybe_put_output_hash(payload, _proof), do: payload
+
+  defp proof_strength(metadata, output_hash) do
+    explicit = first_binary(metadata, ["proof_strength"])
+
+    cond do
+      explicit in proof_strength_values() ->
+        explicit
+
+      first_binary(metadata, ["artifact_sha256"]) ->
+        "cryptographic"
+
+      output_hash && (Map.has_key?(metadata, "command") || Map.has_key?(metadata, "exit_code")) ->
+        "command_output"
+
+      first_binary(metadata, ["artifact_uri", "artifact_url"]) ->
+        "external_artifact"
+
+      output_hash ->
+        "claimed"
+
+      true ->
+        "weak"
+    end
+  end
+
+  defp proof_strength_values,
+    do: ["none", "weak", "claimed", "command_output", "external_artifact", "cryptographic"]
+
+  defp check_full_output(payload) do
+    ["output", "stdout", "stderr"]
+    |> Enum.map(&Map.get(payload, &1))
+    |> Enum.filter(&is_binary/1)
+    |> Enum.join("
+")
+    |> case do
+      "" -> nil
+      output -> output
+    end
+  end
+
+  defp output_excerpt(nil), do: nil
+  defp output_excerpt(output), do: String.slice(output, 0, 32_000)
+
+  defp sha256(nil), do: nil
+  defp sha256(value), do: :crypto.hash(:sha256, value) |> Base.encode16(case: :lower)
+
+  defp git_context(nil), do: %{}
+
+  defp git_context(project_root) when is_binary(project_root) do
+    %{head_sha: git_head_sha(project_root), dirty: git_working_tree_dirty(project_root)}
+    |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+    |> Map.new()
+  end
+
+  defp git_head_sha(project_root) do
+    case ControlKeel.Git.cmd(["rev-parse", "HEAD"], cd: project_root, stderr_to_stdout: true) do
+      {sha, 0} -> String.trim(sha)
+      _ -> nil
+    end
+  end
+
+  # stderr is merged so git advisories (safe.directory, autocrlf) and the
+  # not-a-repo fatal never leak to the host console. Dirtiness is then decided
+  # only by lines matching git's stable `--porcelain` format (`XY <path>`), so
+  # a merged warning line can't masquerade as a pending change.
+  defp git_working_tree_dirty(project_root) do
+    case ControlKeel.Git.cmd(["status", "--porcelain"], cd: project_root, stderr_to_stdout: true) do
+      {output, 0} when is_binary(output) ->
+        output
+        |> String.split("\n", trim: true)
+        |> Enum.any?(&porcelain_entry?/1)
+
+      _ ->
+        nil
+    end
+  end
+
+  # Porcelain v1 entries begin with a two-character status field drawn from a
+  # fixed alphabet followed by a space; warning/fatal/hint text cannot match.
+  defp porcelain_entry?(line), do: ControlKeel.Git.porcelain_entry?(line)
+
+  defp redact_secret_text(nil), do: nil
+
+  defp redact_secret_text(value) when is_binary(value) do
+    value
+    |> String.replace(~r/(api[_-]?key|token|secret|password)=([^\s&]+)/i, "\1=[REDACTED]")
+    |> String.replace(~r/(Authorization:\s*Bearer\s+)[^\s]+/i, "\1[REDACTED]")
+    |> String.replace(~r/(X-[A-Za-z0-9_-]*Token:\s*)[^\s]+/i, "\1[REDACTED]")
+    |> String.replace(
+      ~r/([?&](?:X-Amz-Signature|signature|sig|token|access_token)=)[^&\s]+/i,
+      "\1[REDACTED]"
+    )
+  end
+
+  defp redact_secret_text(nil), do: nil
+
+  defp redact_secret_text(value) when is_binary(value) do
+    value
+    |> String.replace(~r/(api[_-]?key|token|secret|password)=([^\s&]+)/i, "\1=[REDACTED]")
+    |> String.replace(~r/(Authorization:\s*Bearer\s+)[^\s]+/i, "\1[REDACTED]")
+    |> String.replace(~r/(X-[A-Za-z0-9_-]*Token:\s*)[^\s]+/i, "\1[REDACTED]")
+    |> String.replace(
+      ~r/([?&](?:X-Amz-Signature|signature|sig|token|access_token)=)[^&\s]+/i,
+      "\1[REDACTED]"
+    )
+  end
+
+  defp first_binary(map, keys) do
+    keys
+    |> Enum.map(&Map.get(map, &1))
+    |> Enum.find(&is_binary/1)
+  end
+
+  defp first_value(map, keys) do
+    keys
+    |> Enum.map(&Map.get(map, &1))
+    |> Enum.find(&(!is_nil(&1)))
+  end
+
+  defp maybe_put_binary(map, _key, nil), do: map
+  defp maybe_put_binary(map, key, value) when is_binary(value), do: Map.put(map, key, value)
+  defp maybe_put_binary(map, _key, _value), do: map
+
+  defp maybe_put_value(map, _key, nil), do: map
+  defp maybe_put_value(map, key, value), do: Map.put(map, key, value)
 
   def report_task(task_id, service_account \\ nil, attrs) do
     requested_status = Map.get(attrs, "status", Map.get(attrs, :status, "done"))

@@ -17,7 +17,6 @@ defmodule ControlKeel.SelfHostPackTest do
     end
 
     test "creates a tar.gz and returns path + sha256", %{tmp: tmp} do
-      # Seed the minimum manifest paths so pack has something to tar
       release_dir = Path.join([tmp, "_build", "prod", "rel", "controlkeel"])
       File.mkdir_p!(release_dir)
       File.write!(Path.join(release_dir, "start.sh"), "#!/bin/sh\necho ok\n")
@@ -49,7 +48,6 @@ defmodule ControlKeel.SelfHostPackTest do
       {:ok, r1} = SelfHost.pack(tmp, output: output1)
       {:ok, r2} = SelfHost.pack(tmp, output: output2)
 
-      # Both tars contain the same files; hashes should match
       assert r1.sha256 == r2.sha256
     end
   end

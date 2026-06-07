@@ -12,8 +12,7 @@ This document is the **single inventory** for attach targets, MCP tools, and bun
 
 If you want the smaller user-facing docs map first, start with [README.md](README.md).
 
-For install paths and proxy URLs, see [agent-integrations.md](agent-integrations.md), [getting-started.md](getting-started.md), [host-surface-parity.md](host-surface-parity.md), and [direct-host-installs.md](direct-host-installs.md).
-Product intent and acceptance criteria for this matrix live in [agent-support-prd.md](agent-support-prd.md) and [agent-support-requirements.md](agent-support-requirements.md).
+For install paths and proxy URLs, see [agent-integrations.md](agent-integrations.md), [getting-started.md](getting-started.md), and [packages.md](packages.md).
 
 ## Typed integration catalog (`AgentIntegration.catalog/0`)
 
@@ -74,7 +73,7 @@ For defensive-security sessions, CK layers additional behavior on top of the sam
 - reproduction-phase work requires `verified_research` and isolated runtime execution
 - disclosure artifacts default to redaction and proof references
 - release readiness can block on unresolved critical vulnerability cases
-- the dedicated behavior guide is [defensive-security-with-controlkeel.md](defensive-security-with-controlkeel.md)
+- use the `security` domain pack and [autonomy-and-findings.md](autonomy-and-findings.md) for release-blocking behavior
 
 ## Host parity classes
 
@@ -98,7 +97,7 @@ For OpenCode specifically, CK now installs native `.opencode/skills` alongside `
 
 For Codex specifically, CK now installs native `.codex/skills` and repo-scoped `.codex/hooks` alongside `.agents/skills` compatibility copies so the governed skill set works in the current Codex home/project model without dropping the open-standard AgentSkills path.
 
-Use [direct-host-installs.md](direct-host-installs.md) for the exact companion package names, install commands, and current package-manager truth.
+Use [packages.md](packages.md) for package names, install commands, and current package-manager truth.
 
 For the broader `skills.sh` agent list, CK currently splits support into:
 
@@ -277,7 +276,7 @@ Registry data never creates new attach targets and never mutates shipped install
 
 ## Cloud-capable runtime surfaces
 
-Runtime surfaces that already support hosted MCP, A2A, or service-account-driven remote access are marked cloud-capable. These surfaces can run against a shared CK instance without requiring a local binary once the cloud-agent runtime loop is shipped (see [cloud-enterprise-roadmap.md](cloud-enterprise-roadmap.md)).
+Runtime surfaces that already support hosted MCP, A2A, or service-account-driven remote access are marked cloud-capable. These surfaces can run against a shared CK instance when the matching hosted runtime loop is configured.
 
 | Runtime | Export command | Cloud protocol support | Status |
 | --- | --- | --- | --- |
@@ -289,9 +288,7 @@ Runtime surfaces that already support hosted MCP, A2A, or service-account-driven
 | `cloudflare-workers` | `controlkeel runtime export cloudflare-workers` | Hosted MCP | Shipped (headless runtime) |
 | `forge` | `controlkeel attach forge` | Hosted MCP, A2A | Shipped (attach client) |
 
-Attach clients that use only local stdio MCP (`local_mcp` only) are local-first and do not require cloud connectivity. They can participate in cloud governance through the hybrid mode described in the roadmap (local agents + hosted governance sync).
-
-The phased build path for full cloud-agent compatibility is documented in [cloud-enterprise-roadmap.md](cloud-enterprise-roadmap.md).
+Attach clients that use only local stdio MCP (`local_mcp` only) are local-first and do not require cloud connectivity. They can participate in cloud governance through hybrid local-agent plus hosted-governance sync when configured.
 
 ## Hosted protocol interop
 

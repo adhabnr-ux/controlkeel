@@ -1,6 +1,6 @@
 # Control Plane Architecture
 
-ControlKeel is architected as the "control plane" for agent-led software delivery. It sits between coding agents (Claude, Codex, OpenCode, Cursor, etc.) and production, acting as a company brain and governance gate.
+ControlKeel is architected as the control plane for agent-led software delivery. It sits between coding agents (Claude, Codex, OpenCode, Cursor, etc.) and production, acting as a company brain to coordinate policy gates, findings, proofs, budgets, evals, and durable context.
 
 ## Core Stack
 - **Phoenix + LiveView:** The core web and local UI layer.

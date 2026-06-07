@@ -104,6 +104,8 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "ck_workspace_agent",
              "ck_copilot",
              "ck_external_service",
+             "ck_task",
+             "ck_session",
              "ck_skill_list",
              "ck_skill_load",
              "ck_skill_validate"
@@ -179,6 +181,23 @@ defmodule ControlKeel.MCP.ProtocolTest do
     refute "ck_validate" in names
   end
 
+  test "tool_schemas/1 always exposes the required skill tools even when their group is filtered out" do
+    System.delete_env("CK_TOOL_GROUPS")
+
+    # "core" deliberately excludes the "skills" group, but ck_skill_list/load/validate
+    # are part of the required CK tool contract advertised by `controlkeel attach`,
+    # so adaptive/group filtering must never drop them. Regression: a plain project
+    # selected core+governance+git and the declared skill tools went missing.
+    tools = Protocol.tool_schemas(tool_groups: ["core"])
+    names = Enum.map(tools, & &1["name"])
+
+    assert "ck_skill_list" in names
+    assert "ck_skill_load" in names
+    assert "ck_skill_validate" in names
+    # A non-required tool from an unselected group still gets filtered out.
+    refute "ck_git_status" in names
+  end
+
   test "ck_budget schema exposes include_token_overhead and project_root parameters" do
     response =
       Protocol.handle_request(%{
@@ -218,6 +237,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
              [
                "overview",
                "loop_status",
+               "loop_diagnostics",
                "session_run",
                "timeline",
                "memory",
@@ -410,7 +430,9 @@ defmodule ControlKeel.MCP.ProtocolTest do
         }
       })
 
-    assert %{"error" => %{"message" => message}} = response
+    # A policy block is a tool-execution outcome the model should read and recover from,
+    # so it now comes back as an MCP isError result (not an opaque -32000 protocol error).
+    assert %{"result" => %{"isError" => true, "content" => [%{"text" => message}]}} = response
     assert message =~ "blocked"
   end
 
@@ -615,6 +637,30 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert get_in(tool, [
              "inputSchema",
              "properties",
+             "allowed_semantic_changes",
+             "items",
+             "type"
+           ]) == "string"
+
+    assert get_in(tool, [
+             "inputSchema",
+             "properties",
+             "requires_reapproval_if",
+             "items",
+             "type"
+           ]) == "string"
+
+    assert get_in(tool, [
+             "inputSchema",
+             "properties",
+             "harness_quality_checks",
+             "items",
+             "type"
+           ]) == "string"
+
+    assert get_in(tool, [
+             "inputSchema",
+             "properties",
              "scope_estimate",
              "properties",
              "architectural_scope",
@@ -778,7 +824,8 @@ defmodule ControlKeel.MCP.ProtocolTest do
              }
            } = response
 
-    assert is_binary(content)
+    assert content =~ "Structured result returned in structuredContent"
+    refute String.starts_with?(String.trim(content), "{")
     assert is_list(findings)
     assert Enum.any?(findings, &(&1["rule_id"] == "security.sql_injection"))
     assert summary =~ "Blocked"
@@ -1424,6 +1471,19 @@ defmodule ControlKeel.MCP.ProtocolTest do
               "Check plan continuity in proof bundles"
             ],
             "validation_plan" => ["mix test", "mix precommit"],
+            "agent_spec_id" => "code reviewer v1",
+            "task_spec_id" => "plan review v1",
+            "agent_role" => "code reviewer",
+            "task_scope" => "Review implementation plans before execution",
+            "allowed_actions" => ["submit_review"],
+            "prohibited_actions" => ["bypass_review_gate"],
+            "robustness_requirements" => ["paraphrases"],
+            "promotion_gates" => ["held-out benchmark evidence passes"],
+            "allowed_semantic_changes" => ["Extend review metadata"],
+            "forbidden_semantic_changes" => ["Change execution gating"],
+            "invariant_boundaries" => ["Review approval remains required"],
+            "requires_reapproval_if" => ["Planner semantics change"],
+            "harness_quality_checks" => ["Proof metadata is preserved"],
             "submission_body" => "Recursive implementation plan"
           }
         }
@@ -1441,6 +1501,41 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "alignment_context"
            ]) !=
              []
+
+    assert get_in(response, [
+             "result",
+             "structuredContent",
+             "plan_refinement",
+             "agent_spec_id"
+           ]) == "code reviewer v1"
+
+    assert get_in(response, [
+             "result",
+             "structuredContent",
+             "plan_refinement",
+             "task_spec_id"
+           ]) == "plan review v1"
+
+    assert get_in(response, [
+             "result",
+             "structuredContent",
+             "plan_refinement",
+             "allowed_actions"
+           ]) == ["submit_review"]
+
+    assert get_in(response, [
+             "result",
+             "structuredContent",
+             "plan_refinement",
+             "allowed_semantic_changes"
+           ]) == ["Extend review metadata"]
+
+    assert get_in(response, [
+             "result",
+             "structuredContent",
+             "plan_refinement",
+             "requires_reapproval_if"
+           ]) == ["Planner semantics change"]
 
     assert is_list(get_in(response, ["result", "structuredContent", "grill_questions"]))
   end
@@ -2101,6 +2196,142 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert Mission.get_finding!(blocked_two.id).status == "approved"
     assert Mission.get_finding!(escalated_same_rule.id).status == "escalated"
     assert Mission.get_finding!(finding_id).status == "approved"
+  end
+
+  test "tools/call ck_finding mode=resolve disposes a single finding by id" do
+    session = session_fixture()
+
+    blocked =
+      finding_fixture(%{
+        session: session,
+        category: "security",
+        severity: "high",
+        rule_id: "security.workflow.single_resolve",
+        status: "blocked"
+      })
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 210,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_finding",
+          "arguments" => %{
+            "session_id" => session.id,
+            "mode" => "resolve",
+            "finding_id" => blocked.id
+          }
+        }
+      })
+
+    assert %{
+             "result" => %{
+               "structuredContent" => %{
+                 "mode" => "resolve",
+                 "finding_id" => fid,
+                 "status" => "approved",
+                 "disposed_count" => 1
+               }
+             }
+           } = response
+
+    assert fid == blocked.id
+    assert Mission.get_finding!(blocked.id).status == "approved"
+  end
+
+  test "tools/call ck_finding mode=dismiss bulk-disposes active findings by status filter" do
+    session = session_fixture()
+
+    one =
+      finding_fixture(%{
+        session: session,
+        category: "security",
+        severity: "high",
+        rule_id: "security.workflow.stale_one",
+        status: "blocked"
+      })
+
+    two =
+      finding_fixture(%{
+        session: session,
+        category: "security",
+        severity: "medium",
+        rule_id: "security.workflow.stale_two",
+        status: "blocked"
+      })
+
+    open_one =
+      finding_fixture(%{
+        session: session,
+        category: "quality",
+        severity: "low",
+        rule_id: "quality.style.spacing",
+        status: "open"
+      })
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 211,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_finding",
+          "arguments" => %{
+            "session_id" => session.id,
+            "mode" => "dismiss",
+            "status" => "blocked",
+            "reason" => "stale: pre-governance run"
+          }
+        }
+      })
+
+    assert %{
+             "result" => %{
+               "structuredContent" => %{
+                 "mode" => "dismiss",
+                 "disposed_count" => 2,
+                 "disposed_finding_ids" => ids
+               }
+             }
+           } = response
+
+    assert Enum.sort(ids) == Enum.sort([one.id, two.id])
+    assert Mission.get_finding!(one.id).status == "rejected"
+    assert Mission.get_finding!(two.id).status == "rejected"
+    # finding in a different status is left untouched by the status-scoped filter
+    assert Mission.get_finding!(open_one.id).status == "open"
+  end
+
+  test "tools/call keeps ck_execute_code outcomes inside result instead of protocol error" do
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 777,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_execute_code",
+          "arguments" => %{
+            "code" => "console.log(1)",
+            "language" => "javascript",
+            "sandbox" => "docker",
+            "dry_run" => false
+          }
+        }
+      })
+
+    refute Map.has_key?(response, "error")
+
+    case response do
+      %{"result" => %{"isError" => true, "content" => [%{"text" => text}]}} ->
+        assert is_binary(text)
+
+      %{"result" => %{"structuredContent" => %{"exit_status" => _}}} ->
+        :ok
+
+      other ->
+        flunk("unexpected tools/call response: #{inspect(other)}")
+    end
   end
 
   test "tools/call ck_regression_result records external regression evidence" do
@@ -2893,6 +3124,33 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert resource["uri"] == "skills://controlkeel-governance"
     assert resource["text"] =~ "<skill_content"
     assert is_list(resource["resources"])
+  end
+
+  test "tools/call ck_load_resources loads multiple skill resources in order" do
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 65,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_load_resources",
+          "arguments" => %{
+            "uris" => ["skills://controlkeel-governance", "skills://investigate"],
+            "session_id" => 123
+          }
+        }
+      })
+
+    assert %{"result" => %{"structuredContent" => %{"resources" => resources, "total" => 2}}} =
+             response
+
+    assert Enum.map(resources, & &1["uri"]) == [
+             "skills://controlkeel-governance",
+             "skills://investigate"
+           ]
+
+    assert Enum.all?(resources, &String.contains?(&1["text"], "<skill_content"))
+    assert Enum.all?(resources, &is_list(&1["resources"]))
   end
 
   defp write_fake_controlkeel_cli_mixenv(tmp_dir) do

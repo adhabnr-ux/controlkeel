@@ -148,6 +148,8 @@ defmodule ControlKeel.CLI.Catalog do
   defp command_path(:version), do: "version"
   defp command_path(:doctor), do: "doctor"
   defp command_path(:capabilities), do: "capabilities"
+  defp command_path(:detach), do: "detach <agent>"
+
   defp command_path(:attach), do: "attach <agent>"
   defp command_path(:runtime_export), do: "runtime export <id>"
   defp command_path(:review_diff), do: "review diff"
@@ -158,10 +160,6 @@ defmodule ControlKeel.CLI.Catalog do
   defp command_path(:review_plan_wait), do: "review plan wait"
   defp command_path(:review_plan_respond), do: "review plan respond <id>"
   defp command_path(:release_ready), do: "release-ready"
-  defp command_path(:govern_install_github), do: "govern install github"
-  defp command_path(:govern_bind_github), do: "govern bind github"
-  defp command_path(:govern_unbind_github), do: "govern unbind github"
-  defp command_path(:govern_list_github), do: "govern list github"
   defp command_path(:plugin_export), do: "plugin export <host>"
   defp command_path(:plugin_install), do: "plugin install <host>"
   defp command_path(:cloud_doctor), do: "cloud doctor"
@@ -169,16 +167,16 @@ defmodule ControlKeel.CLI.Catalog do
   defp command_path(:cloud_sync_push), do: "cloud push"
   defp command_path(:cloud_sync_pull), do: "cloud pull"
   defp command_path(:cloud_sync_migrate), do: "cloud migrate"
-  defp command_path(:telemetry_enable), do: "telemetry enable"
-  defp command_path(:telemetry_disable), do: "telemetry disable"
-  defp command_path(:telemetry_queue), do: "telemetry queue"
-  defp command_path(:telemetry_flush), do: "telemetry flush"
-  defp command_path(:telemetry_status), do: "telemetry status"
-  defp command_path(:baseline_compute), do: "baseline compute"
+  defp command_path(:govern_bind_github), do: "govern bind github"
+  defp command_path(:govern_unbind_github), do: "govern unbind github"
+  defp command_path(:govern_list_github), do: "govern list github"
   defp command_path(:selfhost_pack), do: "selfhost pack"
   defp command_path(:selfhost_verify), do: "selfhost verify"
   defp command_path(:selfhost_manifest), do: "selfhost manifest"
   defp command_path(:selfhost_install_guide), do: "selfhost install-guide"
+  defp command_path(:telemetry_enable), do: "telemetry enable"
+  defp command_path(:telemetry_disable), do: "telemetry disable"
+  defp command_path(:baseline_compute), do: "baseline compute"
   defp command_path(:agents_discover), do: "agents discover <path>"
   defp command_path(:audit_export), do: "audit export"
   defp command_path(:eval_list), do: "eval list"
@@ -241,6 +239,7 @@ defmodule ControlKeel.CLI.Catalog do
   defp command_path(:benchmark_list), do: "benchmark list"
   defp command_path(:benchmark_run), do: "benchmark run"
   defp command_path(:benchmark_show), do: "benchmark show <id>"
+  defp command_path(:benchmark_compare), do: "benchmark compare <id>"
   defp command_path(:benchmark_import), do: "benchmark import <run-id> <subject> <json-file>"
   defp command_path(:benchmark_export), do: "benchmark export <run-id>"
   defp command_path(:provider_set_key), do: "provider set-key <provider>"
@@ -311,7 +310,7 @@ defmodule ControlKeel.CLI.Catalog do
       spec(
         :attach_hosts,
         "Attach supported agent hosts and verify host-native CK wiring.",
-        [:attach, :attach_doctor, :agents_discover, :agents_doctor, :agents_list],
+        [:attach, :detach, :attach_doctor, :agents_discover, :agents_doctor, :agents_list],
         help_topic: "attach",
         outputs: [:text, :json],
         safety: %{local_write: true, repo_write: true, mutates: true},
@@ -319,7 +318,42 @@ defmodule ControlKeel.CLI.Catalog do
         related_skills: ["agent-integration"],
         related_hooks: ["SessionStart", "PreToolUse", "PostToolUse", "UserPromptSubmit"],
         related_plugins: ["codex", "claude", "copilot", "openclaw"],
-        examples: ["controlkeel attach codex-cli --scope project", "controlkeel attach doctor"]
+        examples: ["controlkeel attach codex-cli --scope project", "controlkeel attach doctor"],
+        overrides: %{
+          detach: %{
+            summary:
+              "Detach an agent host from this project and remove CK-owned MCP/config artifacts.",
+            examples: [
+              "controlkeel detach opencode",
+              "controlkeel detach codex-cli --json",
+              "controlkeel detach cursor --force"
+            ],
+            safety: %{local_write: true, repo_write: true, mutates: true, idempotent: true}
+          },
+          agents_discover: %{
+            summary: "Scan a directory for agent-host configuration evidence.",
+            examples: [
+              "controlkeel agents discover .",
+              "controlkeel agents discover ~/Developer --json"
+            ],
+            safety: %{local_write: false, repo_write: false, mutates: false}
+          },
+          agents_doctor: %{
+            summary: "Inspect attached and runnable agent execution paths.",
+            examples: ["controlkeel agents doctor", "controlkeel agents doctor --json"],
+            safety: %{local_write: false, repo_write: false, mutates: false}
+          },
+          agents_list: %{
+            summary: "List known agent integrations and their attached/runnable status.",
+            examples: ["controlkeel agents list", "controlkeel agents list --json"],
+            safety: %{local_write: false, repo_write: false, mutates: false}
+          },
+          attach_doctor: %{
+            summary: "Check attach readiness and host-native CK wiring health.",
+            examples: ["controlkeel attach doctor", "controlkeel attach doctor --json"],
+            safety: %{local_write: false, repo_write: false, mutates: false}
+          }
+        }
       ),
       spec(
         :governance,
@@ -448,11 +482,8 @@ defmodule ControlKeel.CLI.Catalog do
           :obs_export,
           :obs_import,
           :obs_workshop,
-          :telemetry_status,
           :telemetry_enable,
           :telemetry_disable,
-          :telemetry_queue,
-          :telemetry_flush,
           :baseline_compute
         ],
         help_topic: "observability",
@@ -543,18 +574,7 @@ defmodule ControlKeel.CLI.Catalog do
         [
           :cloud_doctor,
           :cloud_connect,
-          :cloud_sync_push,
-          :cloud_sync_pull,
-          :cloud_sync_migrate,
-          :govern_install_github,
-          :govern_bind_github,
-          :govern_unbind_github,
-          :govern_list_github,
           :audit_export,
-          :selfhost_pack,
-          :selfhost_verify,
-          :selfhost_manifest,
-          :selfhost_install_guide,
           :user_create,
           :org_create,
           :org_list,
@@ -571,6 +591,16 @@ defmodule ControlKeel.CLI.Catalog do
           :policy_set_create,
           :policy_set_list,
           :policy_set_apply,
+          :cloud_sync_push,
+          :cloud_sync_pull,
+          :cloud_sync_migrate,
+          :govern_bind_github,
+          :govern_unbind_github,
+          :govern_list_github,
+          :selfhost_pack,
+          :selfhost_verify,
+          :selfhost_manifest,
+          :selfhost_install_guide,
           :webhook_create,
           :webhook_list,
           :webhook_replay
@@ -647,6 +677,7 @@ defmodule ControlKeel.CLI.Catalog do
           :benchmark_list,
           :benchmark_run,
           :benchmark_show,
+          :benchmark_compare,
           :benchmark_import,
           :benchmark_export
         ],
@@ -658,7 +689,8 @@ defmodule ControlKeel.CLI.Catalog do
         related_skills: ["benchmark-operator"],
         examples: [
           "controlkeel eval run --suite governance-regression",
-          "controlkeel benchmark list --format json"
+          "controlkeel benchmark run --suite host_comparison_v1 --subjects ungoverned_baseline,controlkeel_validate --baseline-subject ungoverned_baseline",
+          "controlkeel benchmark compare <run-id> --json"
         ]
       ),
       spec(

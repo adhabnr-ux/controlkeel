@@ -111,19 +111,6 @@ defmodule ControlKeelWeb.OnboardingLive do
          socket
          |> push_navigate(to: ~p"/missions/#{session.id}?launched=1")}
 
-      {:error, :project_name_taken, _name} ->
-        {:noreply,
-         socket
-         |> put_flash(
-           :error,
-           "A mission with this project name already exists. Choose a different name."
-         )
-         |> assign(:step, 2)
-         |> assign(:errors, %{
-           "project_name" => "This project name is already used by an existing mission."
-         })
-         |> assign_form()}
-
       {:error, _scope, _changeset} ->
         {:noreply,
          socket

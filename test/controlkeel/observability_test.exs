@@ -14,17 +14,6 @@ defmodule ControlKeel.ObservabilityTest do
   alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
   alias ControlKeel.Repo
 
-  test "documents production signal families and agentic eval checkpoints" do
-    assert Observability.classify_signal("tool_error_rate") == :explicit
-    assert Observability.classify_signal("user_frustration") == :implicit
-    assert Observability.classify_signal("loop_detected") == :trajectory
-    assert Observability.classify_signal("unknown_signal") == :unknown
-
-    assert "cost_cents" in Observability.signal_names(:explicit)
-    assert Observability.valid_checkpoint_dimension?("tool_selection")
-    refute Observability.valid_checkpoint_dimension?("tool_choice")
-  end
-
   test "session_run/1 composes health, costs, gates, memory, proofs, timeline, and calls" do
     session = session_fixture(%{budget_cents: 1_000, daily_budget_cents: 2_000, spent_cents: 850})
     task = task_fixture(%{session: session, status: "in_progress"})
@@ -91,6 +80,51 @@ defmodule ControlKeel.ObservabilityTest do
     assert run.hosts_models_tools.estimated_cost_cents == 12
     assert run.budget["decision"] == "warn"
     assert Enum.any?(run.recommendations, &String.contains?(&1, "blocked or critical"))
+  end
+
+  test "loop_diagnostics reports repeated tool event and invocation runs" do
+    session = session_fixture()
+
+    for _ <- 1..3 do
+      assert {:ok, _event} =
+               %SessionEvent{}
+               |> SessionEvent.changeset(%{
+                 session_id: session.id,
+                 event_type: "tool_call",
+                 actor: "agent",
+                 summary: "Repeated validation call",
+                 payload: %{},
+                 metadata: %{}
+               })
+               |> Repo.insert()
+    end
+
+    for _ <- 1..3 do
+      assert {:ok, _invocation} =
+               %Invocation{}
+               |> Invocation.changeset(%{
+                 session_id: session.id,
+                 source: "opencode",
+                 tool: "ck_validate",
+                 provider: "openai",
+                 model: "gpt-5.5",
+                 estimated_cost_cents: 1,
+                 decision: "allow",
+                 metadata: %{}
+               })
+               |> Repo.insert()
+    end
+
+    diagnostics =
+      Observability.loop_diagnostics(session_id: session.id, workspace_id: session.workspace_id)
+
+    assert diagnostics.read_only == true
+    assert diagnostics.mutation == "none"
+    assert diagnostics.totals.event_runs == 1
+    assert diagnostics.totals.invocation_runs == 1
+    assert [%{count: 3}] = diagnostics.repeated_tool_events
+    assert [%{count: 3}] = diagnostics.repeated_invocations
+    assert Enum.any?(diagnostics.recommendations, &String.contains?(&1, "Repeated identical"))
   end
 
   test "timeline/2 summarizes recent session events" do

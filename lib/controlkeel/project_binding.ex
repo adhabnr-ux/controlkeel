@@ -57,22 +57,83 @@ defmodule ControlKeel.ProjectBinding do
     Path.join(wrapper_dir(project_root), wrapper_filename())
   end
 
-  def ensure_gitignore(project_root \\ File.cwd!()) do
-    path = Path.join(canonical_root(project_root), ".gitignore")
-    marker = "/controlkeel"
+  @gitignore_block_start "# ControlKeel managed (do not edit) - artifacts that must not be committed"
+  @gitignore_block_end "# End ControlKeel managed"
 
-    contents =
+  # CK-owned paths written into a user's repo that must never be committed.
+  # `controlkeel/` holds the binding plus a machine-specific MCP wrapper (it
+  # embeds an absolute CK_PROJECT_ROOT), and `.controlkeel/` holds local tool
+  # usage telemetry. Callers may pass extra entries (e.g. project-scope agent
+  # dirs created by `attach`) which are merged into the same managed block.
+  @gitignore_entries ["/controlkeel/", "/.controlkeel/", "/.agents/skills/"]
+
+  def ensure_gitignore(project_root \\ File.cwd!(), extra_entries \\ []) do
+    path = Path.join(canonical_root(project_root), ".gitignore")
+
+    existing =
       case File.read(path) do
         {:ok, value} -> value
         {:error, :enoent} -> ""
       end
 
-    if String.contains?(contents, marker) do
-      :ok
+    entries =
+      (@gitignore_entries ++
+         existing_block_entries(existing) ++
+         normalize_gitignore_entries(extra_entries))
+      |> Enum.uniq()
+
+    updated = upsert_gitignore_block(existing, build_gitignore_block(entries))
+
+    if updated == existing, do: :ok, else: File.write(path, updated)
+  end
+
+  # Entries already inside a managed block, so repeated calls (e.g. attaching
+  # several agents) accumulate their dirs rather than overwriting each other.
+  defp existing_block_entries(existing) do
+    with [_, rest] <- String.split(existing, @gitignore_block_start, parts: 2),
+         [body, _tail] <- String.split(rest, @gitignore_block_end, parts: 2) do
+      body
+      |> String.split("\n", trim: true)
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
     else
-      separator = if contents == "" or String.ends_with?(contents, "\n"), do: "", else: "\n"
-      File.write(path, contents <> separator <> marker <> "\n")
+      _ -> []
     end
+  end
+
+  defp normalize_gitignore_entries(entries) when is_list(entries) do
+    entries
+    |> Enum.filter(&is_binary/1)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp normalize_gitignore_entries(_), do: []
+
+  defp build_gitignore_block(entries) do
+    @gitignore_block_start <> "\n" <> Enum.join(entries, "\n") <> "\n" <> @gitignore_block_end
+  end
+
+  # Replace an existing managed block in place (so the entry set stays current)
+  # or append a fresh one, preserving all user-authored .gitignore content.
+  defp upsert_gitignore_block(existing, block) do
+    base =
+      case String.split(existing, @gitignore_block_start, parts: 2) do
+        [before, rest] ->
+          tail =
+            case String.split(rest, @gitignore_block_end, parts: 2) do
+              [_body, after_block] -> after_block
+              [_] -> ""
+            end
+
+          String.trim_trailing(before, "\n") <> tail
+
+        [_] ->
+          existing
+      end
+      |> String.trim_trailing("\n")
+
+    if base == "", do: block <> "\n", else: base <> "\n\n" <> block <> "\n"
   end
 
   def ensure_mcp_wrapper(project_root \\ File.cwd!()) do
@@ -298,7 +359,13 @@ defmodule ControlKeel.ProjectBinding do
 
   defp wrapper_contents(project_root) do
     escaped_root = String.replace(project_root, "\"", "\\\"")
-    escaped_default = String.replace(default_cli_command(), "\"", "\\\"")
+    default = default_cli_command()
+    # When the resolved default is a dev/build artifact (mix release script wrapper,
+    # _build/..., erts- shim), prefer the bare command name. MCP hosts inherit their
+    # own PATH and can resolve `controlkeel` to an installed Burrito binary, but a
+    # hard-coded build path locks the wrapper to whichever machine generated it.
+    default = if dev_or_build_path?(default), do: cli_candidate_name(), else: default
+    escaped_default = String.replace(default, "\"", "\\\"")
 
     source_launcher = source_repo_mcp_launcher_path() || ""
     escaped_source_launcher = String.replace(source_launcher, "\"", "\\\"")
@@ -362,14 +429,109 @@ defmodule ControlKeel.ProjectBinding do
     end
   end
 
-  defp default_cli_command do
-    candidate =
-      case :os.type() do
-        {:win32, _} -> "controlkeel.exe"
-        _ -> "controlkeel"
-      end
+  @doc false
+  def resolve_cli_executable(path) when is_binary(path) do
+    cond do
+      burrito_erts_shim?(path) ->
+        find_path_native_cli() || unwrap_burrito_sibling(path) || path
 
-    System.find_executable(candidate) || candidate
+      true ->
+        path
+    end
+  end
+
+  @doc false
+  def cli_executable_command, do: default_cli_command()
+
+  @doc false
+  def burrito_erts_shim?(path) when is_binary(path) do
+    String.contains?(path, ".burrito") and String.contains?(path, "erts-")
+  end
+
+  def burrito_erts_shim?(_), do: false
+
+  @doc false
+  def mcp_wrapper_default_cli(project_root \\ File.cwd!()) do
+    path = mcp_wrapper_path(project_root)
+
+    with true <- File.exists?(path),
+         {:ok, body} <- File.read(path) do
+      case Regex.run(~r/BINARY="\$\{CONTROLKEEL_BIN:-([^}]+)\}"/, body) do
+        [_, cli_path] -> {:ok, String.trim(cli_path, "\"")}
+        _ -> :error
+      end
+    else
+      _ -> :error
+    end
+  end
+
+  @doc false
+  def mcp_wrapper_cli_runnable?(project_root \\ File.cwd!()) do
+    case mcp_wrapper_default_cli(project_root) do
+      {:ok, cli_path} -> not burrito_erts_shim?(cli_path)
+      _ -> false
+    end
+  end
+
+  defp default_cli_command do
+    candidate = cli_candidate_name()
+    found = System.find_executable(candidate) || candidate
+    resolve_cli_executable(found)
+  end
+
+  defp cli_candidate_name do
+    case :os.type() do
+      {:win32, _} -> "controlkeel.exe"
+      _ -> "controlkeel"
+    end
+  end
+
+  # Detect dev/build artifact paths so the MCP wrapper can fall back to a bare
+  # `controlkeel` command on PATH. We don't want to hard-code machine-specific
+  # build paths into wrappers that ship to other machines.
+  @doc false
+  def dev_or_build_path?(""), do: true
+  def dev_or_build_path?(nil), do: true
+
+  def dev_or_build_path?(path) do
+    String.contains?(path, "/_build/") or
+      String.contains?(path, "/.burrito/") or
+      String.contains?(path, "/erts-") or
+      String.contains?(path, "/deps/") or
+      String.contains?(path, "/bin/mix")
+  end
+
+  # Burrito ERTS layout: <install_dir>/.burrito/controlkeel_erts-<vsn>/bin/controlkeel
+  # The native binary sits at: <install_dir>/controlkeel
+  defp unwrap_burrito_sibling(path) do
+    bin_dir = Path.dirname(path)
+    erts_dir = Path.dirname(bin_dir)
+    dot_burrito_dir = Path.dirname(erts_dir)
+    install_dir = Path.dirname(dot_burrito_dir)
+    native = Path.join(install_dir, Path.basename(path))
+
+    if File.exists?(native), do: native, else: nil
+  end
+
+  defp find_path_native_cli do
+    name = cli_candidate_name()
+
+    (System.get_env("PATH") || "")
+    |> String.split(path_separator(), trim: true)
+    |> Enum.find_value(fn dir ->
+      candidate = Path.join(dir, name)
+
+      if File.exists?(candidate) and not burrito_erts_shim?(candidate) do
+        candidate
+      end
+    end)
+  end
+
+  defp path_separator do
+    case :os.type() do
+      {:win32, _} -> ";"
+      _ -> ":"
+    end
   end
 
   defp source_repo_mcp_launcher_path do

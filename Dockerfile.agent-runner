@@ -1,0 +1,32 @@
+# ControlKeel agent-runner: the sandbox runtime image for code-mode
+# (ck_execute_code) and embedded agent execution. Pulled by the Docker execution
+# adapter (lib/controlkeel/execution_sandbox/docker.ex) as @default_image.
+#
+# Kept deliberately minimal and non-root. The Docker adapter additionally runs
+# every container with `--network none` by default, strips sensitive env vars,
+# and applies cgroup memory/cpu limits — this image only supplies the runtime.
+#
+# Published by .github/workflows/agent-runner-image.yml to
+# ghcr.io/aryaminus/controlkeel-agent-runner:latest using the built-in
+# GITHUB_TOKEN (no external registry credentials required).
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      coreutils \
+      python3 \
+      nodejs \
+ && rm -rf /var/lib/apt/lists/*
+
+# Non-root execution user with a writable, isolated workspace.
+RUN useradd --create-home --uid 10001 runner \
+ && mkdir -p /workspace \
+ && chown -R runner:runner /workspace
+
+USER runner
+WORKDIR /workspace
+
+# No ENTRYPOINT: the execution adapter passes the command + args directly to
+# `docker run … <image> <command> <args…>`.
+CMD ["/bin/sh"]

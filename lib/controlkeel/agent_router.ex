@@ -768,20 +768,46 @@ defmodule ControlKeel.AgentRouter do
   defp budget_ok?(%{cost_tier: :high}, remaining) when remaining > 1000, do: true
   defp budget_ok?(_, _), do: false
 
+  # Max influence of the learned outcome signal on a candidate's score, and the minimum
+  # number of recorded outcomes an agent needs before its learned weight counts. Keeps the
+  # static heuristic dominant while letting real outcome history nudge ranking.
+  @learning_influence 0.15
+  @min_router_outcome_samples 5
+
   defp rank_candidates(candidates, task_type, risk_tier, budget_remaining, _domain_pack) do
     budget_tier = budget_tier(budget_remaining)
+    learned = learned_router_weights()
+    learned? = map_size(learned) > 0
 
-    Enum.map(candidates, fn {id, agent} ->
+    candidates
+    |> Enum.map(fn {id, agent} ->
+      learned_bias = Map.get(learned, id, 0.0) * @learning_influence
+
       %{
         id: id,
         agent: agent,
-        score: score(agent, task_type, risk_tier),
-        policy_source: "heuristic",
+        score: score(agent, task_type, risk_tier) + learned_bias,
+        policy_source: if(learned?, do: "heuristic+learned", else: "heuristic"),
         artifact_version: nil,
         budget_tier: budget_tier
       }
     end)
     |> Enum.sort_by(& &1.score, :desc)
+  end
+
+  # Learned routing bias from recorded outcomes (the self-learning loop closing back into
+  # routing), gated by a minimum sample size via OutcomeTracker. Resilient by design: any
+  # failure or absence of data yields no learned input, so routing degrades to pure
+  # heuristic rather than erroring.
+  defp learned_router_weights do
+    case ControlKeel.Learning.OutcomeTracker.compute_router_weights(
+           min_samples: @min_router_outcome_samples
+         ) do
+      {:ok, weights} when is_map(weights) -> weights
+      _ -> %{}
+    end
+  rescue
+    _ -> %{}
   end
 
   defp score(

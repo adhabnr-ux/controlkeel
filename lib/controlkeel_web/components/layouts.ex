@@ -43,7 +43,7 @@ defmodule ControlKeelWeb.Layouts do
           </span>
           <span>
             <span class="block text-sm font-semibold tracking-wide text-white">ControlKeel</span>
-            <span class="block text-xs text-zinc-500">Governed delivery</span>
+            <span class="block text-xs text-zinc-500">Governance memory</span>
           </span>
         </a>
 

@@ -12,77 +12,12 @@ defmodule ControlKeel.Observability do
   alias ControlKeel.Mission
   alias ControlKeel.MCP.Tools.CkTokenAudit
   alias ControlKeel.Observability.{BenchmarkDraft, EvalCandidate, ImportedEnvelope}
-  alias ControlKeel.Mission.{Finding, Invocation, Session}
+  alias ControlKeel.Mission.{Finding, Invocation, Session, SessionEvent}
   alias ControlKeel.Repo
 
   @active_finding_statuses ~w(open blocked escalated)
   @active_task_statuses ~w(queued in_progress blocked paused)
   @cost_group_fields ~w(model tool source provider)
-
-  # Production signal families documented in docs/observability-feedback-loop.md.
-  # Explicit signals are measurable system events; implicit signals require inference;
-  # trajectory signals describe multi-step behavioral patterns.
-  @signal_families %{
-    explicit: ~w(
-      tool_error_rate
-      validation_failure_rate
-      retry_rate
-      regeneration_rate
-      latency_ms
-      token_usage
-      cost_cents
-      timeout_rate
-      queue_depth
-    ),
-    implicit: ~w(
-      refusal_rate
-      task_failure_rate
-      user_frustration
-      capability_gap
-      jailbreak_pressure
-      content_moderation_pressure
-      lazy_answer
-      incomplete_answer
-      win_rate
-    ),
-    trajectory: ~w(
-      repeated_tool_failure
-      loop_detected
-      unexpected_bypass
-      self_correction
-      unusual_tool_call_topology
-    )
-  }
-
-  # Agentic eval checkpoint dimensions documented in docs/observability-feedback-loop.md.
-  # Used to label which phase of an agent trace a benchmark row tests.
-  @eval_checkpoint_dimensions ~w(
-    intent_resolution
-    tool_selection
-    tool_result_handling
-    task_adherence
-    final_response
-  )
-
-  @doc "Returns the signal family vocabulary map (:explicit | :implicit | :trajectory -> [signal_name])."
-  def signal_families, do: @signal_families
-
-  @doc "Returns the list of valid signal names for a given family atom."
-  def signal_names(family) when family in [:explicit, :implicit, :trajectory],
-    do: Map.fetch!(@signal_families, family)
-
-  @doc "Classifies a signal name string into its family atom, or :unknown."
-  def classify_signal(name) when is_binary(name) do
-    Enum.find_value(@signal_families, :unknown, fn {family, names} ->
-      if name in names, do: family
-    end)
-  end
-
-  @doc "Returns the documented agentic eval checkpoint dimension vocabulary."
-  def eval_checkpoint_dimensions, do: @eval_checkpoint_dimensions
-
-  @doc "Returns true if the given string is a valid checkpoint dimension."
-  def valid_checkpoint_dimension?(dim), do: dim in @eval_checkpoint_dimensions
 
   def workspace_overview(opts \\ []) do
     limit = Keyword.get(opts, :limit, 6)
@@ -135,6 +70,31 @@ defmodule ControlKeel.Observability do
       by_integrity: frequencies(snapshots, &(&1.integrity_status || "unknown")),
       by_health: frequencies(snapshots, &(&1.health || "unknown")),
       recommendations: import_recommendations(snapshots)
+    }
+  end
+
+  def loop_diagnostics(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 20)
+    session_id = Keyword.get(opts, :session_id)
+    workspace_id = Keyword.get(opts, :workspace_id)
+
+    events = diagnostic_events(session_id, workspace_id, limit * 5)
+    invocations = cost_invocations(opts) |> Enum.take(limit * 5)
+    repeated_events = repeated_event_runs(events, limit)
+    repeated_invocations = repeated_invocation_runs(invocations, limit)
+
+    %{
+      read_only: true,
+      mutation: "none",
+      session_id: session_id,
+      workspace_id: workspace_id,
+      repeated_tool_events: repeated_events,
+      repeated_invocations: repeated_invocations,
+      totals: %{
+        event_runs: length(repeated_events),
+        invocation_runs: length(repeated_invocations)
+      },
+      recommendations: loop_diagnostic_recommendations(repeated_events, repeated_invocations)
     }
   end
 
@@ -1217,6 +1177,107 @@ defmodule ControlKeel.Observability do
     |> order_by([s], desc: s.inserted_at, desc: s.id)
     |> limit(^limit)
     |> Repo.all()
+  end
+
+  defp diagnostic_events(session_id, workspace_id, limit) do
+    SessionEvent
+    |> join(:left, [e], s in assoc(e, :session))
+    |> maybe_filter_event_session(session_id)
+    |> maybe_filter_event_workspace(workspace_id)
+    |> order_by([e, _s], asc: e.inserted_at, asc: e.id)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  defp maybe_filter_event_session(query, nil), do: query
+
+  defp maybe_filter_event_session(query, session_id),
+    do: where(query, [e, _s], e.session_id == ^session_id)
+
+  defp maybe_filter_event_workspace(query, nil), do: query
+
+  defp maybe_filter_event_workspace(query, workspace_id),
+    do: where(query, [_e, s], s.workspace_id == ^workspace_id)
+
+  defp repeated_event_runs(events, limit) do
+    events
+    |> Enum.map(fn event ->
+      %{
+        key: event_key(event),
+        event_type: event.event_type,
+        actor: event.actor,
+        summary: event.summary,
+        session_id: event.session_id,
+        task_id: event.task_id,
+        inserted_at: event.inserted_at
+      }
+    end)
+    |> repeated_runs(limit)
+  end
+
+  defp repeated_invocation_runs(invocations, limit) do
+    invocations
+    |> Enum.reverse()
+    |> Enum.map(fn invocation ->
+      %{
+        key: invocation_key(invocation),
+        tool: invocation.tool,
+        source: invocation.source,
+        provider: invocation.provider,
+        model: invocation.model,
+        session_id: invocation.session_id,
+        task_id: invocation.task_id,
+        inserted_at: invocation.inserted_at
+      }
+    end)
+    |> repeated_runs(limit)
+  end
+
+  defp repeated_runs(items, limit) do
+    items
+    |> Enum.chunk_by(& &1.key)
+    |> Enum.filter(&(length(&1) >= 3))
+    |> Enum.map(fn run ->
+      first = List.first(run)
+      last = List.last(run)
+
+      %{
+        key: first.key,
+        count: length(run),
+        first_at: first.inserted_at,
+        last_at: last.inserted_at,
+        sample: Map.drop(first, [:key, :inserted_at])
+      }
+    end)
+    |> Enum.take(limit)
+  end
+
+  defp event_key(event) do
+    [event.event_type, event.actor, event.summary]
+    |> Enum.map(&to_string(&1 || ""))
+    |> Enum.join(":")
+  end
+
+  defp invocation_key(invocation) do
+    [invocation.source, invocation.tool, invocation.provider, invocation.model]
+    |> Enum.map(&to_string(&1 || ""))
+    |> Enum.join(":")
+  end
+
+  defp loop_diagnostic_recommendations([], []) do
+    ["No repeated identical tool or invocation loops were detected in the sampled window."]
+  end
+
+  defp loop_diagnostic_recommendations(event_runs, invocation_runs) do
+    []
+    |> maybe_reason(
+      event_runs != [],
+      "Repeated identical session events detected; inspect for agent retry or stale-context loops."
+    )
+    |> maybe_reason(
+      invocation_runs != [],
+      "Repeated identical invocations detected; add a harness gate or memory note to avoid tool doom loops."
+    )
   end
 
   defp maybe_filter_session_workspace(query, nil), do: query

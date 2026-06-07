@@ -1,11 +1,40 @@
 #!/usr/bin/env bash
 set -e
 
-# If we are in the source tree, forward to mix tasks or Elixir script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 cd "$ROOT_DIR"
+
+_has_json_flag() {
+  for arg in "$@"; do
+    case "$arg" in
+      --json|--format)
+        return 0
+        ;;
+      *)
+        ;;
+    esac
+  done
+  for i in $(seq 1 $#); do
+    eval "arg=\${$i}"
+    if [ "$arg" = "--format" ]; then
+      next=$((i + 1))
+      if [ "$next" -le "$#" ]; then
+        eval "val=\${$next}"
+        case "$val" in
+          json|JSON) return 0 ;;
+        esac
+      fi
+    fi
+  done
+  return 1
+}
+
+if _has_json_flag "$@"; then
+  export MIX_QUIET=1
+  export LOGGER_LEVEL=error
+fi
 
 CMD="$1"
 if [ -z "$CMD" ]; then
@@ -23,15 +52,20 @@ elif [ "$CMD" = "finding" ]; then
   shift
   mix ck.findings "$@"
 else
-  # Use execute/1 (not run_command/2) to ensure the JSON success envelope
-  # interceptor applies for --json and --format json output.
   mix run -e '
-    case ControlKeel.CLI.parse(System.argv()) do
+    argv = System.argv()
+    json? = ControlKeel.CLI.Output.json_requested?(argv)
+
+    case ControlKeel.CLI.parse(argv) do
       {:ok, parsed} ->
         System.halt(ControlKeel.CLI.execute(parsed, []))
 
       {:error, message} ->
-        IO.puts(:stderr, message)
+        if json? do
+          IO.puts(ControlKeel.CLI.Output.error_json(message, :parse_error, nil))
+        else
+          IO.puts(:stderr, message)
+        end
         System.halt(1)
     end
   ' -- "$@"

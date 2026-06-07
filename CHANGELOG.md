@@ -1,5 +1,149 @@
 # Changelog
 
+## v0.3.50 — 2026-06-07
+
+### What's changed
+
+- test(binding): cover dev_or_build_path? guard branches
+- fix(runtime): seed project DB from legacy global DB on first boot
+- test(mission): assert workspace reuse on duplicate project name
+- fix(onboarding): drop dead project_name_taken error match
+- fix(binding): avoid hard-coding dev/build paths in MCP wrapper
+- fix(mcp): pass effective_skills through audit_full merge
+- fix(mission): refactor persist_launch_plan to handle existing workspaces
+- fix(codex): use repo-local hook paths instead of $HOME for project-scoped attach
+- fix(runtime): add busy_timeout for SQLite lock handling in production
+- feat(mcp): ensure required skill tools are always exposed in tool_schemas/1 feat(project_binding): update unwrap_burrito_sibling to correctly resolve native binary path test(skills): add tests for repo_hook_command scope resolution and fallback behavior
+- fix(mcp): report runtime version in initialize serverInfo
+
+## v0.3.49 — 2026-06-06
+
+### What's changed
+
+- test(setup): isolate MCP wrapper PATH resolution on CI
+
+## v0.3.48 — 2026-06-06
+
+### What's changed
+
+- fix(setup): detect non-runnable MCP wrapper shims
+- fix(skills): clarify duplicate token warning
+- fix(cli): reduce skill token overhead
+- fix(setup): isolate fresh project runtime state
+- fix(migrations): use explicit column lists in SQLite table rebuilds
+
+## v0.3.47 — 2026-06-05
+
+### What's changed
+
+- Add with-vs-without-CK benchmark comparison with cost/time/token deltas
+- Revise ControlKeel description for clarity
+- Refine README description for ControlKeel
+- Revise descriptions in README for clarity
+
+## v0.3.46 — 2026-06-05
+
+### What's changed
+
+- Refactor documentation and UI terminology for clarity and consistency
+
+## v0.3.45 — 2026-06-05
+
+### What's changed
+
+- fix(ci): add --repo flag to gh release upload in sign-release job
+
+## v0.3.44 — 2026-06-05
+
+### What's changed
+
+- fix(test): use DateTime structs for Postgres-compatible insert_all
+- fix(maintenance): use to_string comparison for adapter type check
+- fix(npm): repair broken regex in cosign path lookup split()
+- fix(audit): proof metadata, verification scoring, porcelain filter, attach metadata, install signing, DB safety
+- fix(audit): proof metadata, verification scoring, porcelain filter, attach metadata, install signing, DB safety
+- fix(cli): honor JSON diagnostics and clean detach artifacts safely
+- feat: cosign signing, database maintenance, session event TTL, SQLite VACUUM
+- fix(detach): resolve stored agent key and remove the MCP registration
+
+## v0.3.43 — 2026-06-04
+
+### What's changed
+
+- fix: full-potential attach, skill sync, checksum parity, doctor skill consistency
+- fix(doctor): keep top-level status "ok"; surface health via install_health
+- fix(skills): prune CK's stale skills on re-install, never user-authored ones
+- feat(doctor): add install-health checks (git, gitignore, MCP, drift)
+- fix(install): verify SHA-256 checksum in shell and PowerShell installers
+- fix: gitignore every artifact CK writes into a user repo
+- fix: route git shell-outs through crash-safe ControlKeel.Git wrapper
+- fix: harden git_context proof capture against missing git and stderr noise
+
+## v0.3.42 — 2026-06-04
+
+### What's changed
+
+- feat: capture git HEAD SHA and working tree state in proof records
+- feat: verifiable proof, loop diagnostics, skill eval metadata
+
+## v0.3.41 — 2026-06-04
+
+### What's changed
+
+- Merge branch 'main' of https://github.com/aryaminus/controlkeel
+- feat: add agent spec metadata bridge
+- feat: add semantic drift scanner guardrails
+- feat: enhance review submission with semantic change tracking and governance rules
+
+## v0.3.40 — 2026-06-04
+
+### What's changed
+
+- Merge branch 'main' of https://github.com/aryaminus/controlkeel
+- fix: correct dogfood follow-up scope
+- fix(self_host): deterministic tar.gz sha256 by zeroing gzip MTIME header
+
+## v0.3.39 — 2026-06-04
+
+### What's changed
+
+- fix: 3 runtime bugs + 2 flaky test assertions from full-suite run
+- fix(dogfood): 3 runtime bugs found during full-surface dogfood
+- refactor(cli): eliminate 4 more dual-render blocks with render_format/3
+- refactor(cli): eliminate 29 dual-render case format do blocks with render_format/3
+- feat(annotations+exporter): complete annotation table + cloudflare host module
+- Merge refactor/ck-loop-hardening into main
+- fix(mcp): normalize advisory to object, fix nullable context_pack fields
+- fix(mcp): correct output schema types for nullable and nullable_object fields
+- feat(policy-packs): enrich healthcare/finance/education with actionable domain rules
+- feat(governance): finish bounded retention, ai_tools, and MCP dedup follow-ups
+- fix(mcp): allow object-shaped validate finding locations
+- fix(governance): close branch-review blockers before merge
+- feat(mcp): return tool execution failures as isError results (Tier B)
+- feat(mcp): conservative read-only/destructive tool annotations (Tier A.2)
+- test(skills): regression net — every export target produces a plan (Tier A)
+- fix: bounded host/SDK/doc parity fixes (Slice P3-G safe fixes)
+- feat(memory): detail_level verbosity knob + retention mechanism (Slice P2-F)
+- fix(scanner): reliability hardening of the core value prop (Slice P2-E)
+- fix(mcp): correct ck_context_pack + ck_execute_code outputSchemas + drift guard (Slice P1-D)
+- feat(router): close the learning loop into routing (Slice P1-C)
+- feat(sandbox): real runner image, opt-in host-exec enforcement, fail-fast (Slice P0-A)
+- feat(findings): agent-callable finding disposition (Slice P0-B of loop-hardening)
+- chore(cleanup): remove verified-dead code (Slice 0 of loop-hardening)
+- fix: restore deleted exporter modules, eliminate all compiler warnings
+- fix(cli): restore 11 command handlers lost in slices 8/9 refactor
+
+## v0.3.38 — 2026-06-02
+
+### What's changed
+
+- docs: add text fence to README bootstrap snippet
+- Merge branch 'main' of https://github.com/aryaminus/controlkeel
+- feat: slices 7+9+11+12 - CLI parser, exporter targets, plugin registry, sandbox preflight
+- feat: slices 4+6+partial-7 - persist tool groups, task/session MCP tools, CLI parser module
+- feat: slices 1+3 - MCP outputSchema for all 54 tools, --json consistency
+- feat: slices 2+5 - JSON error envelopes, log suppression, shared tool group mapping
+
 ## v0.3.37 — 2026-06-02
 
 ### What's changed

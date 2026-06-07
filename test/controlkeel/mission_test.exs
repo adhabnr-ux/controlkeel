@@ -63,7 +63,7 @@ defmodule ControlKeel.MissionTest do
     assert length(session.tasks) >= 3
   end
 
-  test "create_launch_from_brief/2 rejects duplicate project names" do
+  test "create_launch_from_brief/2 reuses the workspace when the project name already exists" do
     brief =
       execution_brief_fixture(
         payload: %{
@@ -83,17 +83,26 @@ defmodule ControlKeel.MissionTest do
         }
       )
 
-    assert {:ok, _session} =
+    assert {:ok, first} =
              Mission.create_launch_from_brief(
                %{"agent" => "codex", "project_root" => "/tmp/controlkeel-duplicate"},
                brief
              )
 
-    assert {:error, :project_name_taken, "Duplicate launchpad"} =
+    # A second launch with the same project name reuses the existing workspace
+    # and adds a new session inside it, rather than failing. This keeps
+    # bootstrap/re-launch idempotent for an already-initialized project. The
+    # interactive onboarding wizard still warns on duplicate names up front via
+    # Mission.project_name_taken?/1.
+    assert {:ok, second} =
              Mission.create_launch_from_brief(
                %{"agent" => "codex", "project_root" => "/tmp/controlkeel-duplicate-2"},
                brief
              )
+
+    assert second.workspace_id == first.workspace_id
+    assert second.id != first.id
+    assert Mission.project_name_taken?("Duplicate launchpad")
   end
 
   test "create_launch_from_brief/2 preserves the domain pack for every supported domain" do
@@ -561,6 +570,7 @@ defmodule ControlKeel.MissionTest do
     assert Enum.any?(prompts, &String.starts_with?(&1, "Inversion:"))
     assert Enum.any?(prompts, &String.starts_with?(&1, "Evidence check:"))
     assert Enum.any?(prompts, &String.starts_with?(&1, "Alignment check:"))
+    assert Enum.any?(prompts, &String.starts_with?(&1, "Semantic drift check:"))
   end
 
   test "session-scoped plan reviews without task_id key supersede previous pending review" do
@@ -617,6 +627,25 @@ defmodule ControlKeel.MissionTest do
                  "mix test test/controlkeel/mission_test.exs",
                  "mix precommit"
                ],
+               "agent_spec_id" => "code reviewer v1",
+               "task_spec_id" => "review plan metadata v1",
+               "agent_role" => "code reviewer",
+               "task_scope" => "Review implementation plans before execution",
+               "out_of_scope" => ["Approve production deploys without evidence"],
+               "business_rules" => ["Approved plans still gate execution"],
+               "domain_terms" => ["review gate", "proof bundle"],
+               "persona_or_actor_context" => "forward-deployed engineer",
+               "allowed_actions" => ["submit_review", "record_finding"],
+               "prohibited_actions" => ["bypass_review_gate"],
+               "robustness_requirements" => ["paraphrased semantic changes still require review"],
+               "linked_policy_packs" => ["software"],
+               "linked_benchmark_suites" => ["host_comparison_v1"],
+               "promotion_gates" => ["held-out benchmark evidence passes"],
+               "allowed_semantic_changes" => ["Add review metadata only"],
+               "forbidden_semantic_changes" => ["Change execution gating behavior"],
+               "invariant_boundaries" => ["Approved implementation plans still gate execution"],
+               "requires_reapproval_if" => ["Execution policy changes"],
+               "harness_quality_checks" => ["Proof bundle keeps plan metadata"],
                "scope_estimate" => %{
                  "files_touched_estimate" => 6,
                  "diff_size_estimate" => 180,
@@ -638,6 +667,40 @@ defmodule ControlKeel.MissionTest do
     assert gate["plan_quality_status"] in ["moderate", "strong"]
     assert gate["plan_quality_score"] >= 70
     assert is_list(gate["grill_questions"])
+
+    assert Enum.any?(
+             gate["grill_questions"],
+             &String.contains?(&1, "semantic changes are explicitly allowed")
+           )
+
+    refinement = get_in(review.metadata, ["plan_refinement"])
+    assert refinement["agent_spec_id"] == "code reviewer v1"
+    assert refinement["task_spec_id"] == "review plan metadata v1"
+    assert refinement["agent_role"] == "code reviewer"
+    assert refinement["task_scope"] == "Review implementation plans before execution"
+    assert refinement["out_of_scope"] == ["Approve production deploys without evidence"]
+    assert refinement["business_rules"] == ["Approved plans still gate execution"]
+    assert refinement["domain_terms"] == ["review gate", "proof bundle"]
+    assert refinement["persona_or_actor_context"] == "forward-deployed engineer"
+    assert refinement["allowed_actions"] == ["submit_review", "record_finding"]
+    assert refinement["prohibited_actions"] == ["bypass_review_gate"]
+
+    assert refinement["robustness_requirements"] == [
+             "paraphrased semantic changes still require review"
+           ]
+
+    assert refinement["linked_policy_packs"] == ["software"]
+    assert refinement["linked_benchmark_suites"] == ["host_comparison_v1"]
+    assert refinement["promotion_gates"] == ["held-out benchmark evidence passes"]
+    assert refinement["allowed_semantic_changes"] == ["Add review metadata only"]
+    assert refinement["forbidden_semantic_changes"] == ["Change execution gating behavior"]
+
+    assert refinement["invariant_boundaries"] == [
+             "Approved implementation plans still gate execution"
+           ]
+
+    assert refinement["requires_reapproval_if"] == ["Execution policy changes"]
+    assert refinement["harness_quality_checks"] == ["Proof bundle keeps plan metadata"]
   end
 
   test "reviews are included in the audit log and proof bundle summary" do
@@ -675,6 +738,20 @@ defmodule ControlKeel.MissionTest do
       assert {:ok, done_task} = Mission.complete_task(task)
       assert done_task.status == "done"
       assert %ProofBundle{} = Mission.latest_proof_bundle_for_task(task.id)
+    end
+
+    test "records advisory signal when completion has no task-check evidence" do
+      session = session_fixture()
+      task = task_fixture(%{session: session, status: "in_progress"})
+
+      assert {:ok, done_task} = Mission.complete_task(task)
+      assert done_task.status == "done"
+      assert %ProofBundle{} = proof = Mission.latest_proof_bundle_for_task(task.id)
+
+      assert Enum.any?(
+               proof.bundle["verification_assessment"]["signals"],
+               &String.contains?(&1, "No task-check evidence")
+             )
     end
 
     test "marks task verified when completion has sufficient governed evidence" do
@@ -718,6 +795,15 @@ defmodule ControlKeel.MissionTest do
       _blocked = finding_fixture(%{session: session, status: "blocked"})
 
       assert {:error, :unresolved_findings, _} = Mission.complete_task(task)
+    end
+
+    test "returns error when escalated findings exist" do
+      session = session_fixture()
+      task = task_fixture(%{session: session})
+      _escalated = finding_fixture(%{session: session, status: "escalated"})
+
+      assert {:error, :unresolved_findings, findings} = Mission.complete_task(task)
+      assert Enum.any?(findings, &(&1.status == "escalated"))
     end
 
     test "accepts integer task_id" do
@@ -888,6 +974,10 @@ defmodule ControlKeel.MissionTest do
       assert bundle["task_checks"]["passed"] == 1
       assert bundle["task_checks"]["warn"] == 1
       assert bundle["task_checks"]["failed"] == 0
+      assert bundle["task_checks"]["proof_strength_counts"]["weak"] == 2
+      assert bundle["task_checks"]["strongest_proof_strength"] == "weak"
+      assert bundle["task_checks"]["hashed_outputs"] == 0
+      assert bundle["task_checks"]["git_shas"] == []
       assert "validation" in bundle["task_checks"]["evidence_sources"]
 
       assert bundle["runtime_context_integrity"]["status"] == "degraded"

@@ -1,12 +1,17 @@
 defmodule ControlKeel.Skills.Installer do
   @moduledoc false
 
+  alias ControlKeel.ProjectBinding
   alias ControlKeel.Skills.Exporter
   alias ControlKeel.Skills.Registry
   alias ControlKeel.Skills.SkillTarget
 
   @managed_agents_start "<!-- controlkeel:start -->"
   @managed_agents_end "<!-- controlkeel:end -->"
+
+  # Per-destination record of the skill names CK last installed there, so a
+  # later install can prune only CK's own orphans without touching user skills.
+  @skills_manifest_file ".controlkeel-skills.json"
 
   def install(target_id, project_root, opts \\ []) do
     with %SkillTarget{} = target <- SkillTarget.get(target_id),
@@ -24,11 +29,133 @@ defmodule ControlKeel.Skills.Installer do
         }
       )
 
+      maybe_ignore_project_artifacts(scope, project_root, result)
+
       {:ok, result}
     else
       nil -> {:error, :unknown_target}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  # After a project-scoped install, add the exact repo-relative paths CK wrote
+  # to the managed .gitignore block. Specific subpaths (not parent dirs) are
+  # used so shared dirs like .github/.vscode are never wholesale-ignored.
+  # Best-effort: a gitignore failure must never fail the install itself.
+  defp maybe_ignore_project_artifacts("project", project_root, result) do
+    root = Path.expand(project_root)
+
+    entries =
+      result
+      |> collect_destination_paths()
+      |> Enum.map(&Path.expand(&1, root))
+      |> Enum.filter(&path_within?(root, &1))
+      |> Enum.map(&gitignore_entry_for(root, &1))
+      |> Enum.uniq()
+
+    if entries != [], do: ProjectBinding.ensure_gitignore(root, entries)
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  defp maybe_ignore_project_artifacts(_scope, _project_root, _result), do: :ok
+
+  @doc """
+  Remove CK-installed skill directories that are no longer in the current skill set.
+
+  Uses the per-destination manifest (`.controlkeel-skills.json`) to identify
+  CK-owned skills, then removes any that are not in the current canonical set.
+  User-authored skills are never touched.
+  """
+  def cleanup_stale_skills(project_root, attached_agents) when is_map(attached_agents) do
+    analysis = Registry.analyze(project_root, trust_project_skills: true)
+    current_names = Enum.map(analysis.skills, & &1.name)
+
+    skill_dirs =
+      attached_agents
+      |> Enum.flat_map(fn {_key, attrs} ->
+        [
+          Map.get(attrs, "skills_destination"),
+          Map.get(attrs, "compat_skills_destination"),
+          Map.get(attrs, "compat_destination")
+        ]
+        |> Enum.filter(&is_binary/1)
+      end)
+      |> Enum.filter(fn dir ->
+        is_binary(dir) and File.dir?(dir)
+      end)
+      |> Enum.uniq()
+
+    Enum.each(skill_dirs, fn dir ->
+      prune_orphaned_skills(dir, current_names)
+    end)
+
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  @doc """
+  Re-sync all attached targets' skill directories from the canonical skill source.
+
+  Called after any target sync to ensure all skill copies stay identical.
+  Safe to call multiple times — idempotent via manifest-based pruning.
+  """
+  def sync_all_skill_dirs(project_root, attached_agents) when is_map(attached_agents) do
+    analysis = Registry.analyze(project_root, trust_project_skills: true)
+    skills = analysis.skills
+
+    root = Path.expand(project_root)
+
+    # Collect all unique skill destination paths across all attached agents
+    skill_dirs =
+      attached_agents
+      |> Enum.flat_map(fn {_key, attrs} ->
+        [
+          Map.get(attrs, "skills_destination"),
+          Map.get(attrs, "compat_skills_destination"),
+          Map.get(attrs, "compat_destination")
+        ]
+        |> Enum.filter(&is_binary/1)
+      end)
+      |> Enum.filter(fn dir ->
+        # Only sync dirs that exist and are within the project root
+        is_binary(dir) and File.dir?(dir) and path_within?(root, dir)
+      end)
+      |> Enum.uniq()
+
+    Enum.each(skill_dirs, fn dir ->
+      copy_skills(skills, dir)
+    end)
+
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  @gitignore_destination_keys ~w(
+    skills_destination compat_skills_destination compat_destination skill_destination
+    agent_destination agents_destination commands_destination plugins_destination
+    rules_destination guidance_destination workflows_destination hooks_destination
+    config_destination settings_destination instructions_destination marketplace_destination
+    mcp_destination
+  )
+
+  defp collect_destination_paths(result) when is_map(result) do
+    result
+    |> Enum.filter(fn {key, _value} -> to_string(key) in @gitignore_destination_keys end)
+    |> Enum.map(fn {_key, value} -> value end)
+    |> Enum.filter(&is_binary/1)
+  end
+
+  defp collect_destination_paths(_), do: []
+
+  defp path_within?(root, candidate), do: String.starts_with?(candidate, root <> "/")
+
+  defp gitignore_entry_for(root, path) do
+    rel = Path.relative_to(path, root)
+    if File.dir?(path), do: "/" <> rel <> "/", else: "/" <> rel
   end
 
   defp do_install(%SkillTarget{id: "open-standard"}, scope, project_root, skills, _opts)
@@ -66,7 +193,10 @@ defmodule ControlKeel.Skills.Installer do
         do: Path.join(user_home(), ".codex/agents"),
         else: Path.join(project_root, ".codex/agents")
 
-    copy_skills(skills, compat_skill_root)
+    unless compat_skills_already_populated?(compat_skill_root, skills) do
+      copy_skills(skills, compat_skill_root)
+    end
+
     copy_skills(skills, native_skill_root)
     File.mkdir_p!(agent_root)
 
@@ -166,6 +296,13 @@ defmodule ControlKeel.Skills.Installer do
     {:ok, plan} = Exporter.export("claude-standalone", project_root, scope: scope)
     copy_tree_contents(Path.join(plan.output_dir, ".claude/agents"), agent_root)
 
+    hooks_src = Path.join(plan.output_dir, ".claude/hooks")
+    hooks_dst = Path.join(base, "hooks")
+
+    if File.dir?(hooks_src) do
+      copy_tree_contents(hooks_src, hooks_dst)
+    end
+
     settings_path = Path.join(base, "settings.json")
     merge_claude_settings(settings_path, Exporter.claude_manual_settings())
 
@@ -221,7 +358,10 @@ defmodule ControlKeel.Skills.Installer do
     copy_tree_contents(Path.join(plan.output_dir, ".devin/skills"), native_skill_root)
     copy_tree_contents(Path.join(plan.output_dir, ".devin/agents"), agent_root)
     copy_tree_contents(Path.join(plan.output_dir, ".devin/hooks"), hooks_root)
-    copy_tree_contents(Path.join(plan.output_dir, ".agents/skills"), compat_root)
+
+    unless compat_dir_populated?(compat_root) do
+      copy_tree_contents(Path.join(plan.output_dir, ".agents/skills"), compat_root)
+    end
 
     merge_json_file!(
       Path.join(plan.output_dir, ".devin/config.json"),
@@ -501,7 +641,10 @@ defmodule ControlKeel.Skills.Installer do
     File.mkdir_p!(compat_root)
 
     copy_tree_contents(Path.join(plan.output_dir, ".warp/skills"), native_skill_root)
-    copy_tree_contents(Path.join(plan.output_dir, ".agents/skills"), compat_root)
+
+    unless compat_dir_populated?(compat_root) do
+      copy_tree_contents(Path.join(plan.output_dir, ".agents/skills"), compat_root)
+    end
 
     File.cp!(
       Path.join(plan.output_dir, ".warp/controlkeel-mcp.json"),
@@ -556,7 +699,11 @@ defmodule ControlKeel.Skills.Installer do
     commands_root = Path.join(opencode_root, "commands")
 
     copy_skills(skills, native_skills_root)
-    copy_skills(skills, compat_skills_root)
+    # Only write compat .agents/skills/ if not already populated by another
+    # agent with native skill support — avoids redundant copies wasting tokens.
+    unless compat_skills_already_populated?(compat_skills_root, skills) do
+      copy_skills(skills, compat_skills_root)
+    end
 
     File.mkdir_p!(plugins_root)
     File.mkdir_p!(agents_root)
@@ -566,9 +713,11 @@ defmodule ControlKeel.Skills.Installer do
     copy_tree_contents(Path.join(plan.output_dir, ".opencode/agents"), agents_root)
     copy_tree_contents(Path.join(plan.output_dir, ".opencode/commands"), commands_root)
 
+    mcp_path = Path.join(opencode_root, "mcp.json")
+
     File.cp!(
       Path.join(plan.output_dir, ".opencode/mcp.json"),
-      Path.join(opencode_root, "mcp.json")
+      mcp_path
     )
 
     maybe_install_project_agents_md!(plan.output_dir, project_root, opts)
@@ -940,8 +1089,27 @@ defmodule ControlKeel.Skills.Installer do
     File.write!(path, Jason.encode!(merged, pretty: true) <> "\n")
   end
 
+  # Check whether .agents/skills/ already has all the skills we'd write,
+  # meaning another agent with native skill support already populated it.
+  # Avoids redundant copies that waste MCP host context tokens.
+  defp compat_skills_already_populated?(compat_root, skills) do
+    manifest = read_skills_manifest(compat_root)
+    current_names = Enum.map(skills, & &1.name)
+    Enum.all?(current_names, &(&1 in manifest))
+  end
+
+  # Variant for copy_tree_contents-based flows that don't have a skills list.
+  # Checks if the compat dir already has any CK-managed skill directories.
+  defp compat_dir_populated?(compat_root) do
+    manifest = read_skills_manifest(compat_root)
+    length(manifest) > 0
+  end
+
   defp copy_skills(skills, destination_root) do
     File.mkdir_p!(destination_root)
+
+    current_names = Enum.map(skills, & &1.name)
+    prune_orphaned_skills(destination_root, current_names)
 
     Enum.each(skills, fn skill ->
       destination = Path.join(destination_root, skill.name)
@@ -950,6 +1118,49 @@ defmodule ControlKeel.Skills.Installer do
         replace_directory!(skill.skill_dir, destination)
       end
     end)
+
+    write_skills_manifest(destination_root, current_names)
+  end
+
+  # Remove skill dirs CK installed on a previous run but is no longer
+  # installing. Only names recorded in CK's own per-destination manifest are
+  # pruned, so user-authored skills sharing the directory are never deleted.
+  defp prune_orphaned_skills(destination_root, current_names) do
+    orphans = read_skills_manifest(destination_root) -- current_names
+
+    Enum.each(orphans, fn name ->
+      if safe_skill_name?(name), do: File.rm_rf!(Path.join(destination_root, name))
+    end)
+  end
+
+  defp safe_skill_name?(name) do
+    is_binary(name) and name not in ["", ".", ".."] and
+      not String.contains?(name, "/") and not String.contains?(name, "\\")
+  end
+
+  defp read_skills_manifest(destination_root) do
+    path = Path.join(destination_root, @skills_manifest_file)
+
+    with {:ok, body} <- File.read(path),
+         {:ok, %{"skills" => skills}} when is_list(skills) <- Jason.decode(body) do
+      Enum.filter(skills, &is_binary/1)
+    else
+      _ -> []
+    end
+  end
+
+  defp write_skills_manifest(destination_root, names) do
+    payload = %{
+      "schema_version" => 1,
+      "controlkeel_version" => to_string(Application.spec(:controlkeel, :vsn) || "unknown"),
+      "updated_at" => DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601(),
+      "skills" => names
+    }
+
+    File.write!(
+      Path.join(destination_root, @skills_manifest_file),
+      Jason.encode!(payload, pretty: true) <> "\n"
+    )
   end
 
   defp copy_tree_contents(source_root, destination_root) do

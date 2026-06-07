@@ -95,7 +95,9 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
     error_html =
       render_submit(form(view, "form", launch: %{"project_name" => "Tiny", "idea" => "short"}))
 
-    assert error_html =~ "Describe the product in a few concrete sentences (at least 12 characters)."
+    assert error_html =~
+             "Describe the product in a few concrete sentences (at least 12 characters)."
+
     refute error_html =~ "sk-secret-test"
   end
 

@@ -7,6 +7,9 @@ defmodule ControlKeel.MCP.Protocol do
   alias ControlKeel.Skills.Registry
   alias ControlKeel.TrustBoundary
 
+  alias ControlKeel.MCP.OutputSchemas
+  alias ControlKeel.MCP.ToolGroups
+
   alias ControlKeel.MCP.Tools.{
     CkBudget,
     CkContext,
@@ -63,10 +66,12 @@ defmodule ControlKeel.MCP.Protocol do
     CkMonitorSubscribe
   }
 
-  @server_info %{
-    "name" => "controlkeel",
-    "version" => to_string(Application.spec(:controlkeel, :vsn) || "0.2.0")
-  }
+  defp server_info do
+    %{
+      "name" => "controlkeel",
+      "version" => ControlKeel.CLI.version()
+    }
+  end
 
   def handle_json(payload, opts \\ []) when is_binary(payload) do
     case Jason.decode(payload) do
@@ -126,7 +131,7 @@ defmodule ControlKeel.MCP.Protocol do
           "tools" => %{"listChanged" => false},
           "resources" => %{"subscribe" => false, "listChanged" => false}
         },
-        "serverInfo" => @server_info
+        "serverInfo" => server_info()
       })
     rescue
       e ->
@@ -138,7 +143,7 @@ defmodule ControlKeel.MCP.Protocol do
             "tools" => %{"listChanged" => false},
             "resources" => %{"subscribe" => false, "listChanged" => false}
           },
-          "serverInfo" => @server_info
+          "serverInfo" => server_info()
         })
     catch
       :exit, e ->
@@ -150,7 +155,7 @@ defmodule ControlKeel.MCP.Protocol do
             "tools" => %{"listChanged" => false},
             "resources" => %{"subscribe" => false, "listChanged" => false}
           },
-          "serverInfo" => @server_info
+          "serverInfo" => server_info()
         })
 
       :throw, e ->
@@ -162,7 +167,7 @@ defmodule ControlKeel.MCP.Protocol do
             "tools" => %{"listChanged" => false},
             "resources" => %{"subscribe" => false, "listChanged" => false}
           },
-          "serverInfo" => @server_info
+          "serverInfo" => server_info()
         })
     end
   end
@@ -178,42 +183,45 @@ defmodule ControlKeel.MCP.Protocol do
         Logger.error("MCP tools/list failed: #{Exception.message(e)}")
         # Return core tools as a safe fallback
         ok_response(id, %{
-          "tools" => [
-            ck_validate_tool(),
-            ck_context_tool(),
-            ck_finding_tool(),
-            ck_memory_search_tool(),
-            ck_memory_record_tool(),
-            ck_budget_tool()
-          ]
+          "tools" =>
+            OutputSchemas.inject_all([
+              ck_validate_tool(),
+              ck_context_tool(),
+              ck_finding_tool(),
+              ck_memory_search_tool(),
+              ck_memory_record_tool(),
+              ck_budget_tool()
+            ])
         })
     catch
       :exit, e ->
         Logger.error("MCP tools/list exited: #{inspect(e)}")
 
         ok_response(id, %{
-          "tools" => [
-            ck_validate_tool(),
-            ck_context_tool(),
-            ck_finding_tool(),
-            ck_memory_search_tool(),
-            ck_memory_record_tool(),
-            ck_budget_tool()
-          ]
+          "tools" =>
+            OutputSchemas.inject_all([
+              ck_validate_tool(),
+              ck_context_tool(),
+              ck_finding_tool(),
+              ck_memory_search_tool(),
+              ck_memory_record_tool(),
+              ck_budget_tool()
+            ])
         })
 
       :throw, e ->
         Logger.error("MCP tools/list threw: #{inspect(e)}")
 
         ok_response(id, %{
-          "tools" => [
-            ck_validate_tool(),
-            ck_context_tool(),
-            ck_finding_tool(),
-            ck_memory_search_tool(),
-            ck_memory_record_tool(),
-            ck_budget_tool()
-          ]
+          "tools" =>
+            OutputSchemas.inject_all([
+              ck_validate_tool(),
+              ck_context_tool(),
+              ck_finding_tool(),
+              ck_memory_search_tool(),
+              ck_memory_record_tool(),
+              ck_budget_tool()
+            ])
         })
     end
   end
@@ -281,78 +289,12 @@ defmodule ControlKeel.MCP.Protocol do
     error_response(nil, -32600, "Invalid Request")
   end
 
-  @tool_groups %{
-    "core" => [
-      "ck_validate",
-      "ck_context",
-      "ck_context_pack",
-      "ck_execute_code",
-      "ck_budget",
-      "ck_route",
-      "ck_mcp_discover",
-      "ck_token_audit",
-      "ck_attach"
-    ],
-    "governance" => [
-      "ck_review_submit",
-      "ck_review_status",
-      "ck_review_feedback",
-      "ck_regression_result",
-      "ck_finding",
-      "ck_goal",
-      "ck_memory_record",
-      "ck_memory_search",
-      "ck_memory_archive",
-      "ck_delegate",
-      "ck_result_peek",
-      "ck_cost_optimizer",
-      "ck_deployment_advisor",
-      "ck_outcome_tracker",
-      "ck_engineer_mirror",
-      "ck_session_digest",
-      "ck_rollback",
-      "ck_workspace_agent",
-      "ck_copilot",
-      "ck_external_service"
-    ],
-    "observability" => [
-      "ck_observability",
-      "ck_experience_index",
-      "ck_experience_read",
-      "ck_experience_search",
-      "ck_trace_packet",
-      "ck_failure_clusters",
-      "ck_monitor_subscribe",
-      "ck_tool_health",
-      "ck_skill_evolution"
-    ],
-    "skills" => [
-      "ck_skill_list",
-      "ck_skill_load",
-      "ck_skill_validate",
-      "ck_load_resources"
-    ],
-    "filesystem" => [
-      "ck_fs_ls",
-      "ck_fs_read",
-      "ck_fs_find",
-      "ck_fs_grep"
-    ],
-    "git" => [
-      "ck_git_status",
-      "ck_git_diff",
-      "ck_git_commit"
-    ],
-    "checkpoints" => [
-      "ck_checkpoint_create",
-      "ck_checkpoint_restore",
-      "ck_checkpoint_list"
-    ],
-    "worktrees" => [
-      "ck_worktree_list",
-      "ck_worktree_switch"
-    ]
-  }
+  @tool_groups ToolGroups.tool_groups_map()
+
+  # Tools that must survive adaptive tool-group filtering because they are part of
+  # the required CK tool contract surfaced by `controlkeel attach`. Kept in sync
+  # with the `base ++ [...]` skill tools appended in tool_schemas/1.
+  @always_exposed_tools ["ck_skill_list", "ck_skill_load", "ck_skill_validate"]
 
   def tool_schemas(opts \\ []) do
     try do
@@ -407,13 +349,18 @@ defmodule ControlKeel.MCP.Protocol do
         ck_rollback_tool(),
         ck_workspace_agent_tool(),
         ck_copilot_tool(),
-        ck_external_service_tool()
+        ck_external_service_tool(),
+        ck_task_tool(),
+        ck_session_tool()
       ]
 
       # Always expose ck_skill_list / ck_skill_load / ck_skill_validate. Do not call Registry here: a full
       # catalog walk (every agent skill dir under $HOME) can take 10–30s and blocks this
       # process while Cursor expects tools/list under a ~20s connect budget.
-      tools = base ++ [ck_skill_list_tool(), ck_skill_load_tool(), ck_skill_validate_tool()]
+      tools =
+        OutputSchemas.inject_all(
+          base ++ [ck_skill_list_tool(), ck_skill_load_tool(), ck_skill_validate_tool()]
+        )
 
       # Apply tool_names filtering (takes precedence over tool_groups and adaptive mode)
       # This is used by hosted mode for security - explicit tool whitelisting
@@ -451,9 +398,17 @@ defmodule ControlKeel.MCP.Protocol do
                 tools
 
               groups when is_list(groups) ->
+                # The skill tools are part of the required CK tool contract that
+                # `controlkeel attach` advertises (ck_skill_list / ck_skill_load /
+                # ck_skill_validate). Adaptive group selection must never drop them,
+                # otherwise a plain project (no mix.exs/package.json/AGENTS.md) gets
+                # core+governance+git only and the declared "Required CK tools" go
+                # missing from tools/list. Union them back so the "always expose"
+                # intent above holds regardless of which groups are selected.
                 allowed_tool_names =
                   groups
                   |> Enum.flat_map(fn group -> Map.get(@tool_groups, group, []) end)
+                  |> Enum.concat(@always_exposed_tools)
                   |> MapSet.new()
 
                 filtered = Enum.filter(tools, &(&1["name"] in allowed_tool_names))
@@ -474,39 +429,39 @@ defmodule ControlKeel.MCP.Protocol do
       e ->
         # If anything fails during tool schema generation, log it and return a safe fallback
         Logger.error("MCP tool schema generation failed: #{Exception.message(e)}")
-        # Return core tools as a safe fallback
-        [
+
+        OutputSchemas.inject_all([
           ck_validate_tool(),
           ck_context_tool(),
           ck_finding_tool(),
           ck_memory_search_tool(),
           ck_memory_record_tool(),
           ck_budget_tool()
-        ]
+        ])
     catch
       :exit, e ->
         Logger.error("MCP tool schema generation exited: #{inspect(e)}")
 
-        [
+        OutputSchemas.inject_all([
           ck_validate_tool(),
           ck_context_tool(),
           ck_finding_tool(),
           ck_memory_search_tool(),
           ck_memory_record_tool(),
           ck_budget_tool()
-        ]
+        ])
 
       :throw, e ->
         Logger.error("MCP tool schema generation threw: #{inspect(e)}")
 
-        [
+        OutputSchemas.inject_all([
           ck_validate_tool(),
           ck_context_tool(),
           ck_finding_tool(),
           ck_memory_search_tool(),
           ck_memory_record_tool(),
           ck_budget_tool()
-        ]
+        ])
     end
   end
 
@@ -582,6 +537,10 @@ defmodule ControlKeel.MCP.Protocol do
   defp do_dispatch_tool("ck_workspace_agent", arguments), do: CkWorkspaceAgent.call(arguments)
   defp do_dispatch_tool("ck_copilot", arguments), do: CkCopilot.call(arguments)
   defp do_dispatch_tool("ck_external_service", arguments), do: CkExternalService.call(arguments)
+  defp do_dispatch_tool("ck_task", arguments), do: ControlKeel.MCP.Tools.CkTask.call(arguments)
+
+  defp do_dispatch_tool("ck_session", arguments),
+    do: ControlKeel.MCP.Tools.CkSession.call(arguments)
 
   defp do_dispatch_tool(unknown, _arguments),
     do: {:error, {:invalid_arguments, "Unknown tool: #{unknown}"}}
@@ -593,7 +552,7 @@ defmodule ControlKeel.MCP.Protocol do
     end)
   end
 
-  def tool_groups, do: Map.keys(@tool_groups)
+  def tool_groups, do: ToolGroups.groups()
 
   def ck_validate_tool do
     %{
@@ -627,6 +586,12 @@ defmodule ControlKeel.MCP.Protocol do
             "type" => "string",
             "enum" => Domains.supported_packs(),
             "description" => "Domain-specific policy pack to apply during validation."
+          },
+          "policy_packs" => %{
+            "type" => "array",
+            "items" => %{"type" => "string", "enum" => ["ai_tools"]},
+            "description" =>
+              "Additional explicit policy packs to apply. Currently supports ai_tools for AI tool configuration review."
           },
           "session_id" => %{
             "type" => ["integer", "string"],
@@ -1008,16 +973,14 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_finding",
       "description" =>
-        "Persist a governed finding with a ruling decision (allow, warn, block, escalate_to_human). " <>
-          "Findings are the durable audit trail in ControlKeel: every policy check, validation failure, or human review should produce a finding. " <>
-          "Write operation — creates or updates a DB record. Idempotent for the same rule_id within a session. " <>
-          "Returns the finding ID, status, and ruling state. " <>
-          "Required fields: session_id, category (e.g., security/compliance/performance), severity (critical/high/medium/low), rule_id (dotted policy identifier such as CK-SEC-001), and plain_message. " <>
-          "decision defaults to block; use allow for approved exceptions. " <>
-          "Use ck_finding to record issues discovered during agent work; use ck_memory_record for general knowledge or decisions not tied to a policy rule.",
+        "Record or disposition a governed finding. mode=create (default) persists a finding with a ruling decision (allow, warn, block, escalate_to_human); findings are the durable audit trail in ControlKeel. " <>
+          "mode=resolve|dismiss|escalate disposition EXISTING findings so the agent that created them can also clear them: pass `finding_id` for a single finding, or `rule_id`/`category`/`status` to bulk-disposition all matching active findings in the session (resolve->approved, dismiss->rejected, escalate->escalated). " <>
+          "Write operation. For create, required fields are session_id, category, severity, rule_id, plain_message; decision defaults to warn, use allow for an approved exception (which also auto-resolves matching open/blocked findings). " <>
+          "Returns finding_id + status for create, or disposed_count + disposed_finding_ids for disposition. " <>
+          "Use ck_finding to record and clear policy findings; use ck_memory_record for general knowledge not tied to a policy rule.",
       "inputSchema" => %{
         "type" => "object",
-        "required" => ["session_id", "category", "severity", "rule_id", "plain_message"],
+        "required" => ["session_id"],
         "properties" => %{
           "session_id" => %{
             "type" => ["integer", "string"],
@@ -1053,7 +1016,27 @@ defmodule ControlKeel.MCP.Protocol do
             "enum" => ["allow", "warn", "block", "escalate_to_human"],
             "description" => "Governance decision: allow, warn, block, or escalate to human."
           },
-          "metadata" => %{"type" => "object"}
+          "metadata" => %{"type" => "object"},
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["create", "resolve", "dismiss", "escalate"],
+            "description" =>
+              "create (default) records a finding. resolve/dismiss/escalate disposition existing findings, by `finding_id` (single) or `rule_id`/`category`/`status` (bulk)."
+          },
+          "finding_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Target finding id for single disposition (resolve/dismiss/escalate modes)."
+          },
+          "status" => %{
+            "type" => "string",
+            "description" =>
+              "Bulk disposition filter: only findings currently in this status are dispositioned (e.g. blocked, open, escalated)."
+          },
+          "reason" => %{
+            "type" => "string",
+            "description" => "Reason recorded on the finding(s) when dismissing."
+          }
         }
       }
     }
@@ -1560,7 +1543,7 @@ defmodule ControlKeel.MCP.Protocol do
           "review_type controls what is being submitted: plan (before implementation), diff (before merging), or completion (task done). " <>
           "submission_body is the full content: plan text, diff, or completion description. " <>
           "For iterative plan refinement, pass previous_review_id and plan_phase (ticket → research_packet → design_options → narrowed_decision → implementation_plan → code_backed_plan). " <>
-          "The plan-quality scorer evaluates structured fields, not just submission_body — populate research_summary, options_considered, selected_option, rejected_options, implementation_steps, validation_plan, code_snippets, alignment_context, consulted_roles, codebase_findings, prior_art_summary, and scope_estimate for a strong score. " <>
+          "The plan-quality scorer evaluates structured fields, not just submission_body — populate research_summary, options_considered, selected_option, rejected_options, implementation_steps, validation_plan, code_snippets, alignment_context, consulted_roles, codebase_findings, prior_art_summary, agent_spec_id, task_spec_id, agent_role, task_scope, out_of_scope, business_rules, domain_terms, allowed_actions, prohibited_actions, robustness_requirements, linked_policy_packs, linked_benchmark_suites, promotion_gates, allowed_semantic_changes, forbidden_semantic_changes, invariant_boundaries, requires_reapproval_if, harness_quality_checks, and scope_estimate for a strong score. " <>
           "Returns review_id, status (pending), and a URL where the human reviewer can approve or deny. " <>
           "After submission, poll ck_review_status until the decision is approved or denied before proceeding. " <>
           "Use ck_review_feedback (human-facing) to record a decision on an existing review.",
@@ -1644,6 +1627,67 @@ defmodule ControlKeel.MCP.Protocol do
           "implementation_steps" => %{"type" => "array", "items" => %{"type" => "string"}},
           "validation_plan" => %{"type" => "array", "items" => %{"type" => "string"}},
           "code_snippets" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "agent_spec_id" => %{
+            "type" => "string",
+            "description" =>
+              "Stable identifier for the agent role or task contract this plan is implementing."
+          },
+          "task_spec_id" => %{
+            "type" => "string",
+            "description" =>
+              "Stable identifier for the task-level behavior contract this plan is implementing."
+          },
+          "agent_role" => %{
+            "type" => "string",
+            "description" =>
+              "Reviewed role label such as support agent, code reviewer, deployment agent, or sales assistant."
+          },
+          "task_scope" => %{
+            "type" => "string",
+            "description" => "What the agent or task is expected to accomplish under this plan."
+          },
+          "out_of_scope" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "business_rules" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "domain_terms" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "persona_or_actor_context" => %{
+            "type" => "string",
+            "description" =>
+              "User role, customer tier, permission state, or operating context relevant to behavior."
+          },
+          "allowed_actions" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "prohibited_actions" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "robustness_requirements" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "linked_policy_packs" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "linked_benchmark_suites" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "promotion_gates" => %{"type" => "array", "items" => %{"type" => "string"}},
+          "allowed_semantic_changes" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" => "Semantic behavior changes explicitly approved for this plan."
+          },
+          "forbidden_semantic_changes" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" =>
+              "Semantic behavior changes the agent must not introduce without a new review."
+          },
+          "invariant_boundaries" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" =>
+              "System invariants and boundaries that must remain true during execution."
+          },
+          "requires_reapproval_if" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" => "Conditions that require human re-approval before continuing."
+          },
+          "harness_quality_checks" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" =>
+              "Agent-harness quality checks such as context hygiene, proof completeness, rollback safety, and compaction fidelity."
+          },
           "scope_estimate" => %{
             "type" => "object",
             "properties" => %{
@@ -1829,7 +1873,13 @@ defmodule ControlKeel.MCP.Protocol do
             "description" =>
               "Origin category of the record (e.g., developer, tool_output, human_review)."
           },
-          "source_id" => %{"type" => "string"}
+          "source_id" => %{"type" => "string"},
+          "detail_level" => %{
+            "type" => "string",
+            "enum" => ["compact", "full"],
+            "description" =>
+              "compact (default) returns title/summary/tags per record; full additionally includes each record's body and metadata. Use compact to save tokens, full when you need the record contents."
+          }
         }
       }
     }
@@ -2544,7 +2594,7 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_load_resources",
       "description" =>
-        "Fallback for clients that do not support MCP resources. Load one or more CK resource URIs such as skills://<name>.",
+        "Fallback for clients that do not support MCP resources or native bulk skill loading. Load one or more CK resource URIs such as skills://<name>; pass multiple skills:// URIs to activate several skills in one governed CK call.",
       "inputSchema" => %{
         "type" => "object",
         "required" => ["uris"],
@@ -2759,32 +2809,41 @@ defmodule ControlKeel.MCP.Protocol do
   # Smart default groups based on project characteristics
   defp smart_default_groups(project_root) do
     try do
-      # Detect project type and suggest appropriate groups
       has_git = File.exists?(Path.join(project_root, ".git"))
       has_tests = test_dir_exists?(project_root)
       has_package_json = File.exists?(Path.join(project_root, "package.json"))
       has_mix_exs = File.exists?(Path.join(project_root, "mix.exs"))
       has_cargo_toml = File.exists?(Path.join(project_root, "Cargo.toml"))
+      has_agents_md = File.exists?(Path.join(project_root, "AGENTS.md"))
 
-      base_groups = ["core", "governance"]
+      if has_agents_md do
+        :all
+      else
+        base_groups = ["core", "governance"]
 
-      additional_groups =
-        cond do
-          # Elixir/Phoenix project - likely needs filesystem tools
-          has_mix_exs -> ["filesystem", "git"]
-          # Node.js project - likely needs filesystem tools
-          has_package_json -> ["filesystem", "git"]
-          # Rust project - likely needs filesystem tools
-          has_cargo_toml -> ["filesystem", "git"]
-          # Has tests - likely needs filesystem and git
-          has_tests and has_git -> ["filesystem", "git"]
-          # Git repo - add git tools
-          has_git -> ["git"]
-          # Default - add filesystem for general development
-          true -> ["filesystem"]
-        end
+        additional_groups =
+          cond do
+            has_mix_exs ->
+              ["filesystem", "git", "observability", "skills", "checkpoints", "worktrees"]
 
-      Enum.uniq(base_groups ++ additional_groups)
+            has_package_json ->
+              ["filesystem", "git", "observability", "skills", "checkpoints", "worktrees"]
+
+            has_cargo_toml ->
+              ["filesystem", "git", "observability", "skills", "checkpoints", "worktrees"]
+
+            has_tests and has_git ->
+              ["filesystem", "git"]
+
+            has_git ->
+              ["git"]
+
+            true ->
+              ["filesystem"]
+          end
+
+        Enum.uniq(base_groups ++ additional_groups)
+      end
     rescue
       _ -> ["core", "governance"]
     catch
@@ -2840,7 +2899,7 @@ defmodule ControlKeel.MCP.Protocol do
 
   defp tool_response(id, {:ok, result}) do
     ok_response(id, %{
-      "content" => [%{"type" => "text", "text" => Jason.encode!(result)}],
+      "content" => [%{"type" => "text", "text" => success_content_summary(result)}],
       "structuredContent" => result
     })
   end
@@ -2848,7 +2907,37 @@ defmodule ControlKeel.MCP.Protocol do
   defp tool_response(id, {:error, {:invalid_arguments, reason}}),
     do: error_response(id, -32602, reason)
 
-  defp tool_response(id, {:error, reason}), do: error_response(id, -32000, inspect(reason))
+  # Tool EXECUTION failure (not a malformed request): per the MCP June-2025 tools spec,
+  # return a tool result with isError:true so the model can read the failure and
+  # self-correct, instead of an opaque JSON-RPC protocol error. Protocol-level errors
+  # (-32602) stay reserved for invalid/malformed arguments, which the clause above handles.
+  defp tool_response(id, {:error, reason}) do
+    ok_response(id, %{
+      "content" => [%{"type" => "text", "text" => tool_error_text(reason)}],
+      "isError" => true
+    })
+  end
+
+  defp success_content_summary(result) when is_map(result) do
+    keys =
+      result
+      |> Map.keys()
+      |> Enum.map(&to_string/1)
+      |> Enum.sort()
+      |> Enum.take(8)
+      |> Enum.join(", ")
+
+    suffix = if map_size(result) > 8, do: ", …", else: ""
+    "Structured result returned in structuredContent (keys: #{keys}#{suffix})."
+  end
+
+  defp success_content_summary(result) when is_list(result),
+    do: "Structured result returned in structuredContent (list length: #{length(result)})."
+
+  defp success_content_summary(_result), do: "Structured result returned in structuredContent."
+
+  defp tool_error_text(reason) when is_binary(reason), do: reason
+  defp tool_error_text(reason), do: inspect(reason)
 
   defp resource_response(id, {:ok, result}) do
     ok_response(id, %{
@@ -3187,6 +3276,102 @@ defmodule ControlKeel.MCP.Protocol do
           "metadata" => %{
             "type" => "object",
             "description" => "Additional metadata."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_task_tool do
+    %{
+      "name" => "ck_task",
+      "description" =>
+        "Manage governed tasks within a session. Six modes: status (return task details for a given task_id); claim (claim an available task for execution); complete (mark a task as done, blocked if unresolved findings exist); heartbeat (signal the agent is alive and working on a task); checks (record task quality check results); report (submit a task report with output and metadata).",
+      "inputSchema" => %{
+        "type" => "object",
+        "required" => ["session_id"],
+        "properties" => %{
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
+          },
+          "task_id" => %{
+            "type" => ["integer", "string"],
+            "description" => "Task identifier within the session for scoped operations."
+          },
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["status", "claim", "complete", "heartbeat", "checks", "report"],
+            "description" => "Operation mode that determines the tool behavior and return shape."
+          },
+          "execution_mode" => %{
+            "type" => "string",
+            "description" => "Execution mode for claim (e.g., local, external)."
+          },
+          "progress" => %{
+            "type" => "string",
+            "description" => "Progress indicator for heartbeat mode."
+          },
+          "note" => %{
+            "type" => "string",
+            "description" => "Freeform note for heartbeat mode."
+          },
+          "checks" => %{
+            "type" => "array",
+            "items" => %{"type" => "object"},
+            "description" => "Array of check result objects for checks mode."
+          },
+          "status" => %{
+            "type" => "string",
+            "description" => "Target status for report mode (e.g., done, failed, blocked)."
+          },
+          "output" => %{
+            "type" => "object",
+            "description" => "Structured output payload for report mode."
+          },
+          "metadata" => %{
+            "type" => "object",
+            "description" => "Arbitrary key-value metadata for report mode."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" => "Absolute path to project root."
+          }
+        }
+      }
+    }
+  end
+
+  def ck_session_tool do
+    %{
+      "name" => "ck_session",
+      "description" =>
+        "Enumerate and manage governed sessions. Three modes: list (enumerate sessions for the project); status (get current session details, resolves from project binding if session_id omitted); switch (change active session binding — REQUIRES confirm: true).",
+      "inputSchema" => %{
+        "type" => "object",
+        "properties" => %{
+          "session_id" => %{
+            "type" => ["integer", "string"],
+            "description" =>
+              "Unique session identifier. Required for switch mode. Omit or pass nil to resolve from project binding."
+          },
+          "mode" => %{
+            "type" => "string",
+            "enum" => ["list", "status", "switch"],
+            "description" => "Operation mode that determines the tool behavior and return shape."
+          },
+          "limit" => %{
+            "type" => ["integer", "string"],
+            "description" => "Max sessions to return for list mode. Default: 20, max: 100."
+          },
+          "confirm" => %{
+            "type" => "boolean",
+            "description" => "Must be true to authorize a session switch."
+          },
+          "project_root" => %{
+            "type" => "string",
+            "description" => "Absolute path to project root. Required for switch mode."
           }
         }
       }

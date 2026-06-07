@@ -1,5 +1,5 @@
 defmodule ControlKeel.ProjectBindingTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias ControlKeel.ProjectBinding
 
@@ -106,10 +106,126 @@ defmodule ControlKeel.ProjectBindingTest do
         assert body =~ "mcp"
 
       _ ->
-        executable = System.find_executable("controlkeel") || "controlkeel"
+        executable = ProjectBinding.cli_executable_command()
         assert body =~ "export CK_PROJECT_ROOT="
         assert body =~ executable
         assert body =~ "mcp --project-root"
+        refute ProjectBinding.burrito_erts_shim?(executable)
+    end
+  end
+
+  test "cli_executable_command avoids Burrito ERTS shim when PATH has native wrapper" do
+    executable = ProjectBinding.cli_executable_command()
+    assert is_binary(executable)
+    refute ProjectBinding.burrito_erts_shim?(executable)
+  end
+
+  test "resolve_cli_executable scans PATH when given Burrito ERTS shim", %{tmp: tmp} do
+    native_dir = Path.join(tmp, "bin")
+    File.mkdir_p!(native_dir)
+    native = Path.join(native_dir, "controlkeel")
+    File.write!(native, "#!/usr/bin/env sh\nexit 0\n")
+    File.chmod!(native, 0o755)
+
+    old_path = System.get_env("PATH") || ""
+    System.put_env("PATH", native_dir <> ":" <> old_path)
+    on_exit(fn -> System.put_env("PATH", old_path) end)
+
+    shim =
+      Path.join(tmp, ".burrito/controlkeel_erts-15.2.7.2_0.3.47/bin/controlkeel")
+
+    File.mkdir_p!(Path.dirname(shim))
+    File.write!(shim, "#!/usr/bin/env sh\nexit 0\n")
+    File.chmod!(shim, 0o755)
+
+    resolved = ProjectBinding.resolve_cli_executable(shim)
+
+    assert resolved == native
+    refute ProjectBinding.burrito_erts_shim?(resolved)
+  end
+
+  test "mcp_wrapper_cli_runnable? flags Burrito ERTS shim default target", %{tmp: tmp} do
+    File.write!(Path.join(tmp, "README.md"), "not a controlkeel app")
+    assert :ok = ProjectBinding.ensure_mcp_wrapper(tmp)
+
+    shim =
+      "/tmp/.burrito/controlkeel_erts-15.2.7.2_0.3.47/bin/controlkeel"
+
+    broken =
+      File.read!(ProjectBinding.mcp_wrapper_path(tmp))
+      |> String.replace(ProjectBinding.cli_executable_command(), shim)
+
+    File.write!(ProjectBinding.mcp_wrapper_path(tmp), broken)
+
+    refute ProjectBinding.mcp_wrapper_cli_runnable?(tmp)
+  end
+
+  test "dev_or_build_path? flags dev/build artifacts but not installed binaries" do
+    # Empty/nil resolve to a dev fallback (bare command name on PATH).
+    assert ProjectBinding.dev_or_build_path?("")
+    assert ProjectBinding.dev_or_build_path?(nil)
+
+    # Dev/build artifact paths that must not be baked into a shipped wrapper.
+    assert ProjectBinding.dev_or_build_path?("/repo/_build/prod/rel/controlkeel/bin/controlkeel")
+
+    assert ProjectBinding.dev_or_build_path?(
+             "/home/u/.burrito/controlkeel_erts-15/bin/controlkeel"
+           )
+
+    assert ProjectBinding.dev_or_build_path?("/opt/app/erts-15.2/bin/controlkeel")
+    assert ProjectBinding.dev_or_build_path?("/repo/deps/controlkeel/controlkeel")
+    assert ProjectBinding.dev_or_build_path?("/usr/local/bin/mix")
+
+    # Installed/native locations and bare names stay as-is.
+    refute ProjectBinding.dev_or_build_path?("controlkeel")
+    refute ProjectBinding.dev_or_build_path?("/usr/local/bin/controlkeel")
+    refute ProjectBinding.dev_or_build_path?("/opt/homebrew/bin/controlkeel")
+  end
+
+  describe "ensure_gitignore/3" do
+    test "creates a managed block covering controlkeel/ and .controlkeel/", %{tmp: tmp} do
+      assert :ok = ProjectBinding.ensure_gitignore(tmp)
+
+      contents = File.read!(Path.join(tmp, ".gitignore"))
+      assert contents =~ "# ControlKeel managed"
+      assert contents =~ "/controlkeel/"
+      # The verified bug: .controlkeel/tool_usage.json must now be ignored.
+      assert contents =~ "/.controlkeel/"
+    end
+
+    test "preserves existing user content and is idempotent", %{tmp: tmp} do
+      path = Path.join(tmp, ".gitignore")
+      File.write!(path, "node_modules/\n/_build/\n")
+
+      assert :ok = ProjectBinding.ensure_gitignore(tmp)
+      first = File.read!(path)
+      assert first =~ "node_modules/"
+      assert first =~ "/_build/"
+      assert first =~ "/.controlkeel/"
+
+      # Running again must not change the file or duplicate the block.
+      assert :ok = ProjectBinding.ensure_gitignore(tmp)
+      assert File.read!(path) == first
+
+      [_, _] = String.split(first, "# ControlKeel managed", parts: 2)
+    end
+
+    test "merges extra entries (e.g. project-scope agent dirs) into the block", %{tmp: tmp} do
+      assert :ok = ProjectBinding.ensure_gitignore(tmp, ["/.windsurf/", "/.cline/"])
+
+      contents = File.read!(Path.join(tmp, ".gitignore"))
+      assert contents =~ "/.windsurf/"
+      assert contents =~ "/.cline/"
+      assert contents =~ "/.controlkeel/"
+
+      # A later call without the extras accumulates: previously-managed dirs
+      # persist (so attaching agent B doesn't drop agent A's entry) and no
+      # duplicate managed block is left behind.
+      assert :ok = ProjectBinding.ensure_gitignore(tmp)
+      refreshed = File.read!(Path.join(tmp, ".gitignore"))
+      assert refreshed =~ "/.windsurf/"
+      assert refreshed =~ "/.cline/"
+      assert [_, _] = String.split(refreshed, "# ControlKeel managed", parts: 2)
     end
   end
 end

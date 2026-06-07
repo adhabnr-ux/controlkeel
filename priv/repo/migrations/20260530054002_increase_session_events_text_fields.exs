@@ -20,9 +20,19 @@ defmodule ControlKeel.Repo.Migrations.IncreaseSessionEventsTextFields do
       )
       """)
 
+      # Explicit column list: the live session_events column order has diverged
+      # from this fresh-schema order (later ALTER ADD COLUMN migrations append at
+      # the end), so a positional `SELECT *` would misalign columns and violate
+      # NOT NULL on whichever column lands in a nullable source slot.
       execute("""
-      INSERT INTO session_events_new
-      SELECT * FROM session_events
+      INSERT INTO session_events_new (
+        id, session_id, task_id, event_type, actor, summary, body, payload, metadata,
+        inserted_at, updated_at
+      )
+      SELECT
+        id, session_id, task_id, event_type, actor, summary, body, payload, metadata,
+        inserted_at, updated_at
+      FROM session_events
       """)
 
       execute("DROP TABLE session_events")

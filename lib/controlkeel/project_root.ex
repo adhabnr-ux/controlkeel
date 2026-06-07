@@ -40,6 +40,11 @@ defmodule ControlKeel.ProjectRoot do
     |> realpath()
   end
 
+  def project_root?(path \\ File.cwd!()) do
+    resolve(path)
+    |> has_project_marker?()
+  end
+
   defp normalize_start_path(path) do
     expanded = Path.expand(path)
 

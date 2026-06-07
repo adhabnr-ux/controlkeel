@@ -11,9 +11,7 @@ defmodule ControlKeel.GitWorkflow do
     diff_args = diff_args(base_ref, head_ref)
 
     # Generate diff
-    case System.cmd(
-           "git",
-           diff_args,
+    case ControlKeel.Git.cmd(diff_args,
            cd: project_root,
            stderr_to_stdout: true
          ) do
@@ -46,7 +44,7 @@ defmodule ControlKeel.GitWorkflow do
           :ok ->
             commit_args = ["commit", "-m", message]
 
-            case System.cmd("git", commit_args, cd: project_root, stderr_to_stdout: true) do
+            case ControlKeel.Git.cmd(commit_args, cd: project_root, stderr_to_stdout: true) do
               {output, 0} ->
                 head_sha = get_current_sha(project_root)
 
@@ -75,7 +73,7 @@ defmodule ControlKeel.GitWorkflow do
 
   def status(project_root, opts \\ []) do
     # Get git status
-    case System.cmd("git", ["status", "--porcelain"], cd: project_root, stderr_to_stdout: true) do
+    case ControlKeel.Git.cmd(["status", "--porcelain"], cd: project_root, stderr_to_stdout: true) do
       {status_output, 0} ->
         # Parse status
         status_info = parse_git_status(status_output)
@@ -185,7 +183,10 @@ defmodule ControlKeel.GitWorkflow do
   end
 
   defp parse_git_status(status_output) do
-    lines = String.split(status_output, "\n", trim: true)
+    lines =
+      status_output
+      |> String.split("\n", trim: true)
+      |> Enum.filter(&porcelain_entry?/1)
 
     %{
       "modified" => count_status(lines, ~r/^[AM]./),
@@ -197,12 +198,14 @@ defmodule ControlKeel.GitWorkflow do
     }
   end
 
+  defp porcelain_entry?(line), do: ControlKeel.Git.porcelain_entry?(line)
+
   defp count_status(lines, regex) do
     Enum.count(lines, fn line -> Regex.match?(regex, line) end)
   end
 
   defp get_current_branch(project_root) do
-    case System.cmd("git", ["rev-parse", "--abbrev-ref", "HEAD"],
+    case ControlKeel.Git.cmd(["rev-parse", "--abbrev-ref", "HEAD"],
            cd: project_root,
            stderr_to_stdout: true
          ) do
@@ -212,7 +215,7 @@ defmodule ControlKeel.GitWorkflow do
   end
 
   defp get_current_sha(project_root) do
-    case System.cmd("git", ["rev-parse", "HEAD"], cd: project_root, stderr_to_stdout: true) do
+    case ControlKeel.Git.cmd(["rev-parse", "HEAD"], cd: project_root, stderr_to_stdout: true) do
       {sha, 0} -> String.trim(sha)
       _ -> "unknown"
     end

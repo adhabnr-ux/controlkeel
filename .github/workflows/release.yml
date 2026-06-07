@@ -119,6 +119,45 @@ jobs:
               --latest
           fi
 
+  sign-release:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-candidate-dist
+          path: dist
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Sign release binaries and checksums
+        env:
+          COSIGN_EXPERIMENTAL: true
+        run: |
+          # Keyless signing via GitHub OIDC identity — no secrets required.
+          # Verifiers can check signatures with:
+          #   cosign verify-blob <file> --certificate <file>.pem --signature <file>.sig \
+          #     --certificate-identity-regexp '^https://github.com/aryaminus/controlkeel/.github/workflows/release.yml@refs/tags/v[0-9].*'  \
+          #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          for f in dist/*; do
+            if [ -f "$f" ]; then
+              cosign sign-blob "$f" --output-signature "$f.sig" --output-certificate "$f.pem" --yes
+            fi
+          done
+      - name: Upload signatures and certificates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Upload all .sig and .pem files to the release
+          for f in dist/*.sig dist/*.pem; do
+            if [ -f "$f" ]; then
+              gh release upload "${TAG}" "$f" --clobber --repo "${{ github.repository }}"
+            fi
+          done
+
   publish-homebrew:
     needs: [prepare-release-candidate, release]
     runs-on: ubuntu-latest

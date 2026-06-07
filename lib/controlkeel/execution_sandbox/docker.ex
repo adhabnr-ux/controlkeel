@@ -3,7 +3,7 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
 
   @behaviour ControlKeel.ExecutionSandbox
 
-  @default_image "controlkeel/agent-runner:latest"
+  @default_image "ghcr.io/aryaminus/controlkeel-agent-runner:latest"
 
   @impl true
   def run(command, args, opts) do
@@ -13,16 +13,45 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
     image = Keyword.get(opts, :docker_image, config_image())
     timeout = Keyword.get(opts, :timeout, 600)
 
-    env_vars = merge_env_vars(env, allowed_env_vars)
+    with :ok <- ensure_image_available(image) do
+      env_vars = merge_env_vars(env, allowed_env_vars)
 
-    docker_args = build_docker_args(command, args, env_vars, cwd, image, timeout)
+      docker_args = build_docker_args(command, args, env_vars, cwd, image, timeout)
 
-    try do
-      {output, exit_status} = System.cmd("docker", docker_args, stderr_to_stdout: true)
-      {:ok, %{output: output, exit_status: exit_status}}
-    rescue
-      e -> {:error, {:docker_execution_failed, Exception.message(e)}}
+      try do
+        {output, exit_status} = System.cmd("docker", docker_args, stderr_to_stdout: true)
+        {:ok, %{output: output, exit_status: exit_status}}
+      rescue
+        e -> {:error, {:docker_execution_failed, Exception.message(e)}}
+      end
     end
+  end
+
+  @doc """
+  Fail fast with an actionable error when the sandbox image is missing, instead of
+  surfacing an opaque `docker run` pull failure. Tries a local inspect, then a pull.
+  """
+  def ensure_image_available(image) do
+    case System.cmd("docker", ["image", "inspect", image], stderr_to_stdout: true) do
+      {_out, 0} ->
+        :ok
+
+      _ ->
+        case System.cmd("docker", ["pull", image], stderr_to_stdout: true) do
+          {_out, 0} ->
+            :ok
+
+          {out, _} ->
+            {:error,
+             {:image_unavailable,
+              "Sandbox image #{image} is not present locally and could not be pulled. " <>
+                "Build and publish it (see Dockerfile.agent-runner and " <>
+                ".github/workflows/agent-runner-image.yml), or set " <>
+                "execution_sandbox_docker.image in config. Detail: #{String.slice(out, 0, 200)}"}}
+        end
+    end
+  rescue
+    e -> {:error, {:image_unavailable, Exception.message(e)}}
   end
 
   @impl true

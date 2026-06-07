@@ -112,7 +112,7 @@ defmodule ControlKeel.Governance.TechDebtDetector do
   defp refactor_seen?(_path, nil), do: false
 
   defp refactor_seen?(path, project_root) do
-    case System.cmd("git", ["log", "-n", "20", "--pretty=%s", "--", path],
+    case ControlKeel.Git.cmd(["log", "-n", "20", "--pretty=%s", "--", path],
            cd: project_root,
            stderr_to_stdout: true
          ) do

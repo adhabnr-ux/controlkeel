@@ -139,11 +139,30 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
              "requested_capabilities" => requested_capabilities,
              "security_workflow_phase" => security_workflow_phase,
              "artifact_type" => artifact_type,
-             "target_scope" => target_scope
+             "target_scope" => target_scope,
+             "policy_packs" => normalize_policy_packs(Map.get(arguments, "policy_packs"))
            }}
         end
     end
   end
+
+  defp normalize_policy_packs(nil), do: []
+
+  defp normalize_policy_packs(values) when is_list(values) do
+    values
+    |> Enum.map(&to_string/1)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.uniq()
+  end
+
+  defp normalize_policy_packs(value) when is_binary(value) do
+    value
+    |> String.split(",")
+    |> normalize_policy_packs()
+  end
+
+  defp normalize_policy_packs(_value), do: []
 
   defp normalize_optional_integer(arguments, key) do
     case Map.get(arguments, key) do
@@ -237,8 +256,8 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
 
     advisory =
       case trust_advisory do
-        nil -> result.advisory
-        msg -> Enum.join(Enum.reject([result.advisory, msg], &is_nil/1), " ")
+        nil -> normalize_advisory(result.advisory)
+        msg -> normalize_advisory(Enum.join(Enum.reject([result.advisory, msg], &is_nil/1), " "))
       end
 
     %{
@@ -252,6 +271,10 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
       "trust_policy_advisory" => trust_advisory
     }
   end
+
+  defp normalize_advisory(nil), do: nil
+  defp normalize_advisory(advisory) when is_map(advisory), do: advisory
+  defp normalize_advisory(advisory) when is_binary(advisory), do: %{"message" => advisory}
 
   defp trust_policy_advisory(nil), do: nil
 

@@ -17,6 +17,22 @@ defmodule ControlKeel.MCP.ProtocolInitializeTest do
              })
   end
 
+  test "initialize reports the runtime ControlKeel version in serverInfo" do
+    assert %{"result" => %{"serverInfo" => %{"name" => "controlkeel", "version" => version}}} =
+             Protocol.handle_request(%{
+               "jsonrpc" => "2.0",
+               "id" => 3,
+               "method" => "initialize",
+               "params" => %{
+                 "protocolVersion" => "2024-11-05",
+                 "capabilities" => %{},
+                 "clientInfo" => %{"name" => "t", "version" => "1"}
+               }
+             })
+
+    assert version == ControlKeel.CLI.version()
+  end
+
   test "initialize falls back for unknown protocol versions" do
     assert %{"result" => %{"protocolVersion" => "2024-11-05"}} =
              Protocol.handle_request(%{

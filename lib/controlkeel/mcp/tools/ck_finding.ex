@@ -4,17 +4,46 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
   alias ControlKeel.Mission
 
   @allowed_decisions ~w(allow warn block escalate_to_human)
+  @disposition_modes ~w(resolve dismiss escalate)
 
   def call(arguments) when is_map(arguments) do
     with {:ok, session_id} <- required_integer(arguments, "session_id"),
-         {:ok, task_id} <- optional_integer(arguments, "task_id"),
          {:ok, _session} <- fetch_session(session_id),
+         {:ok, mode} <- normalize_mode(arguments) do
+      case mode do
+        "create" -> do_create(arguments, session_id)
+        disposition -> do_dispose(disposition, arguments, session_id)
+      end
+    end
+  end
+
+  def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
+
+  defp normalize_mode(arguments) do
+    case Map.get(arguments, "mode", "create") do
+      "create" ->
+        {:ok, "create"}
+
+      mode when mode in @disposition_modes ->
+        {:ok, mode}
+
+      _ ->
+        {:error,
+         {:invalid_arguments, "`mode` must be one of: create, resolve, dismiss, escalate"}}
+    end
+  end
+
+  # ---- create (default mode) ----
+
+  defp do_create(arguments, session_id) do
+    with {:ok, task_id} <- optional_integer(arguments, "task_id"),
          {:ok, _task_id} <- validate_task(task_id, session_id),
          {:ok, attrs} <- normalize(arguments, session_id, task_id),
          {:ok, resolved_ids} <- resolve_matching_findings(attrs),
          {:ok, finding} <- Mission.create_finding(attrs) do
       {:ok,
        %{
+         "mode" => "create",
          "finding_id" => finding.id,
          "status" => finding.status,
          "requires_human" => finding.status in ["blocked", "escalated"],
@@ -28,7 +57,91 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
     end
   end
 
-  def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
+  # ---- disposition modes (resolve | dismiss | escalate) ----
+
+  defp do_dispose(mode, arguments, session_id) do
+    reason = optional_binary(arguments, "reason")
+
+    case optional_integer(arguments, "finding_id") do
+      {:ok, nil} -> dispose_bulk(mode, arguments, session_id, reason)
+      {:ok, finding_id} -> dispose_single(mode, finding_id, session_id, reason)
+      error -> error
+    end
+  end
+
+  defp dispose_single(mode, finding_id, session_id, reason) do
+    case Mission.get_finding(finding_id) do
+      nil ->
+        {:error, {:invalid_arguments, "`finding_id` #{finding_id} was not found"}}
+
+      %{session_id: ^session_id} = finding ->
+        case Mission.dispose_finding(mode, finding, reason: reason) do
+          {:ok, updated} ->
+            {:ok,
+             %{
+               "mode" => mode,
+               "finding_id" => updated.id,
+               "status" => updated.status,
+               "disposed_finding_ids" => [updated.id],
+               "disposed_count" => 1,
+               "summary" =>
+                 "#{disposition_verb(mode)} finding #{updated.id} (now #{updated.status})."
+             }}
+
+          {:error, err} ->
+            {:error, {:invalid_arguments, "Could not #{mode} finding: #{inspect(err)}"}}
+        end
+
+      _other ->
+        {:error,
+         {:invalid_arguments, "`finding_id` #{finding_id} does not belong to this session"}}
+    end
+  end
+
+  defp dispose_bulk(mode, arguments, session_id, reason) do
+    filter =
+      %{reason: reason}
+      |> put_filter(:rule_id, optional_binary(arguments, "rule_id"))
+      |> put_filter(:category, optional_binary(arguments, "category"))
+      |> put_filter(:statuses, bulk_statuses(arguments))
+
+    if filter_present?(filter) do
+      {:ok, %{count: count, ids: ids}} =
+        Mission.dispose_session_findings(session_id, filter, mode)
+
+      {:ok,
+       %{
+         "mode" => mode,
+         "disposed_finding_ids" => ids,
+         "disposed_count" => count,
+         "summary" => "#{disposition_verb(mode)} #{count} finding(s) by filter."
+       }}
+    else
+      {:error,
+       {:invalid_arguments,
+        "Bulk disposition requires `finding_id`, or at least one of `rule_id` / `category` / `status`."}}
+    end
+  end
+
+  defp bulk_statuses(arguments) do
+    case optional_binary(arguments, "status") do
+      nil -> nil
+      status -> [status]
+    end
+  end
+
+  defp put_filter(map, _key, nil), do: map
+  defp put_filter(map, key, value), do: Map.put(map, key, value)
+
+  defp filter_present?(filter) do
+    Enum.any?([:rule_id, :category, :statuses], &Map.has_key?(filter, &1))
+  end
+
+  defp disposition_verb("resolve"), do: "Resolved"
+  defp disposition_verb("dismiss"), do: "Dismissed"
+  defp disposition_verb("escalate"), do: "Escalated"
+
+  # ---- create-path helpers ----
 
   defp normalize(arguments, session_id, task_id) do
     with {:ok, category} <- required_binary(arguments, "category"),
@@ -57,7 +170,7 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
           category: category,
           rule_id: rule_id,
           plain_message: plain_message,
-          status: status_for_decision(decision),
+          status: Mission.status_for_decision(decision),
           auto_resolved: decision == "allow",
           metadata: metadata,
           session_id: session_id
@@ -150,6 +263,19 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
     end
   end
 
+  defp optional_binary(arguments, key) do
+    case Map.get(arguments, key) do
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> nil
+          trimmed -> trimmed
+        end
+
+      _ ->
+        nil
+    end
+  end
+
   defp optional_decision(arguments) do
     case Map.get(arguments, "decision", "warn") do
       decision when decision in @allowed_decisions ->
@@ -174,9 +300,4 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
     |> String.replace("_", " ")
     |> String.capitalize()
   end
-
-  defp status_for_decision("block"), do: "blocked"
-  defp status_for_decision("escalate_to_human"), do: "escalated"
-  defp status_for_decision("allow"), do: "approved"
-  defp status_for_decision(_decision), do: "open"
 end

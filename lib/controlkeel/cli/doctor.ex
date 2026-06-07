@@ -5,9 +5,12 @@ defmodule ControlKeel.CLI.Doctor do
   alias ControlKeel.CLI.Catalog
   alias ControlKeel.ExecutionSandbox
   alias ControlKeel.LocalProject
+  alias ControlKeel.ProjectBinding
   alias ControlKeel.ProjectRoot
   alias ControlKeel.ProviderBroker
   alias ControlKeel.SetupAdvisor
+
+  @ck_gitignore_required ["/controlkeel/", "/.controlkeel/"]
 
   def payload(project_root, version) do
     root = ProjectRoot.resolve(project_root)
@@ -47,13 +50,18 @@ defmodule ControlKeel.CLI.Doctor do
     }
 
     {binding_status, binding, session} = load_binding(root)
+    health = install_health(root, version, binding)
 
+    # Note: top-level "status" stays "ok" (it signals the command ran, a
+    # stable contract for JSON consumers). Setup health is surfaced via the
+    # dedicated install_health block, the human lines, and next_steps.
     base
     |> Map.put("binding", binding_status)
     |> Map.put("session", session_payload(session))
     |> Map.put("governance", governance_payload(session))
+    |> Map.put("install_health", health)
     |> Map.put("attached_agents", if(binding, do: attached_agent_payload(binding), else: []))
-    |> Map.put("next_steps", next_steps(binding_status, session, agents))
+    |> Map.put("next_steps", next_steps(binding_status, session, agents, health))
   end
 
   def lines(payload) do
@@ -75,9 +83,55 @@ defmodule ControlKeel.CLI.Doctor do
       "Sandbox: #{get_in(payload, ["sandbox", "adapter"])}",
       "Attached agents: #{if agents["attached"] == [], do: "none", else: Enum.join(agents["attached"], ", ")}",
       "Agent readiness: direct=#{length(agents["direct_ready"])} handoff=#{length(agents["handoff_ready"])} runtime=#{length(agents["runtime_ready"])}",
-      "CLI capabilities: #{capabilities["command_count"]} command(s) across #{length(capabilities["families"])} families",
-      "Next steps:"
-    ] ++ Enum.map(payload["next_steps"], &"  - #{&1}")
+      "CLI capabilities: #{capabilities["command_count"]} command(s) across #{length(capabilities["families"])} families"
+    ] ++
+      install_health_lines(payload["install_health"]) ++
+      ["Next steps:"] ++ Enum.map(payload["next_steps"], &"  - #{&1}")
+  end
+
+  defp install_health_lines(nil), do: []
+
+  defp install_health_lines(health) do
+    gitignore = health["gitignore"]
+
+    gitignore_status =
+      if gitignore["complete"],
+        do: "complete",
+        else: "incomplete (missing #{Enum.join(gitignore["missing"], ", ")})"
+
+    skill_consistency = get_in(health, ["skill_consistency"])
+
+    skill_line =
+      if skill_consistency do
+        if skill_consistency["ok"],
+          do: "  skill consistency: ok",
+          else: "  skill consistency: DRIFT (#{length(skill_consistency["drifted"])} differences)"
+      else
+        ""
+      end
+
+    base_lines = [
+      "Install health: #{if health["ok"], do: "ok", else: "attention"}",
+      "  git: #{if health["git_available"], do: "available", else: "MISSING"}",
+      "  gitignore: #{gitignore_status}",
+      "  mcp wrapper: #{mcp_wrapper_line(health)}"
+    ]
+
+    if(skill_line != "", do: base_lines ++ [skill_line], else: base_lines) ++
+      Enum.map(health["problems"] || [], &"  ! #{&1}")
+  end
+
+  defp mcp_wrapper_line(health) do
+    cond do
+      not get_in(health, ["mcp_wrapper", "present"]) ->
+        "missing"
+
+      get_in(health, ["mcp_wrapper", "cli_runnable"]) == false ->
+        "present but CLI target is Burrito ERTS shim"
+
+      true ->
+        "present"
+    end
   end
 
   defp load_binding(root) do
@@ -132,18 +186,195 @@ defmodule ControlKeel.CLI.Doctor do
   defp loaded_assoc(nil), do: []
   defp loaded_assoc(values) when is_list(values), do: values
 
-  defp next_steps(%{"status" => "missing"}, _session, _agents) do
+  defp next_steps(%{"status" => "missing"}, _session, _agents, _health) do
     ["controlkeel init", "controlkeel attach <agent>", "controlkeel doctor --json"]
   end
 
-  defp next_steps(_binding, session, agents) do
+  defp next_steps(_binding, session, agents, health) do
     base = ["controlkeel status --json", "controlkeel findings"]
 
     attach =
       if (agents["attached_agents"] || []) == [], do: ["controlkeel attach doctor"], else: []
 
     proof = if session, do: ["controlkeel proofs"], else: []
-    base ++ attach ++ proof
+    base ++ attach ++ proof ++ install_health_next_steps(health)
+  end
+
+  defp install_health_next_steps(%{"ok" => true}), do: []
+
+  defp install_health_next_steps(health) do
+    drift = if Enum.any?(health["attached"] || [], & &1["version_drift"]), do: true, else: false
+
+    []
+    |> prepend_if(not get_in(health, ["mcp_wrapper", "present"]), "controlkeel attach <agent>")
+    |> prepend_if(not get_in(health, ["gitignore", "complete"]), "controlkeel init")
+    |> prepend_if(drift, "controlkeel update --sync-attached")
+  end
+
+  defp prepend_if(list, true, step), do: list ++ [step]
+  defp prepend_if(list, _false, _step), do: list
+
+  defp install_health(root, version, binding) do
+    git_available = ControlKeel.Git.available?()
+    gitignore = gitignore_health(root)
+    wrapper_path = ProjectBinding.mcp_wrapper_path(root)
+    wrapper_present = File.exists?(wrapper_path)
+    wrapper_cli_runnable = ProjectBinding.mcp_wrapper_cli_runnable?(root)
+    attached = attached_health(version, binding)
+
+    drifted = Enum.filter(attached, & &1["version_drift"])
+    missing_dest = Enum.filter(attached, &(&1["destination_present"] == false))
+
+    skill_consistency = skill_consistency_health(binding)
+
+    problems =
+      [
+        unless(git_available, do: "git not on PATH (git-backed proof/worktrees unavailable)"),
+        unless(gitignore["complete"],
+          do: "gitignore missing: " <> Enum.join(gitignore["missing"], ", ")
+        ),
+        unless(wrapper_present, do: "MCP wrapper missing (run: controlkeel attach <agent>)"),
+        unless(wrapper_cli_runnable,
+          do:
+            "MCP wrapper points at Burrito ERTS shim (run: controlkeel setup or controlkeel attach <agent> to refresh)"
+        ),
+        if(drifted != [], do: "version drift: " <> Enum.map_join(drifted, ", ", & &1["agent"])),
+        if(missing_dest != [],
+          do:
+            "attached skills missing on disk: " <>
+              Enum.map_join(missing_dest, ", ", & &1["agent"])
+        ),
+        if(skill_consistency["drifted"] != [],
+          do:
+            "skill drift across targets: " <>
+              Enum.map_join(
+                skill_consistency["drifted"],
+                ", ",
+                &(&1["skill"] <> " in " <> &1["path"])
+              )
+        )
+      ]
+      |> Enum.reject(&is_nil/1)
+
+    %{
+      "git_available" => git_available,
+      "gitignore" => gitignore,
+      "mcp_wrapper" => %{
+        "present" => wrapper_present,
+        "path" => wrapper_path,
+        "cli_runnable" => wrapper_cli_runnable
+      },
+      "attached" => attached,
+      "skill_consistency" => skill_consistency,
+      "problems" => problems,
+      "ok" => problems == []
+    }
+  end
+
+  defp gitignore_health(root) do
+    contents =
+      case File.read(Path.join(root, ".gitignore")) do
+        {:ok, value} -> value
+        _ -> ""
+      end
+
+    missing = Enum.reject(@ck_gitignore_required, &String.contains?(contents, &1))
+    %{"present" => contents != "", "missing" => missing, "complete" => missing == []}
+  end
+
+  defp attached_health(_version, nil), do: []
+
+  defp attached_health(version, binding) do
+    binding
+    |> Map.get("attached_agents", %{})
+    |> Enum.sort_by(fn {agent, _attrs} -> agent end)
+    |> Enum.map(fn {agent, attrs} ->
+      agent_version = attrs["controlkeel_version"] || "unknown"
+      dest = attrs["destination"] || attrs["config_destination"] || attrs["config_path"]
+
+      %{
+        "agent" => agent,
+        "controlkeel_version" => agent_version,
+        "version_drift" => agent_version != "unknown" and agent_version != version,
+        "destination" => dest,
+        "destination_present" => if(is_binary(dest), do: File.exists?(dest), else: nil)
+      }
+    end)
+  end
+
+  defp skill_consistency_health(nil), do: %{"ok" => true, "drifted" => []}
+
+  defp skill_consistency_health(binding) do
+    agents = Map.get(binding, "attached_agents", %{})
+
+    # Collect all skill directories with their manifests
+    skill_dirs =
+      agents
+      |> Enum.flat_map(fn {_key, attrs} ->
+        [
+          Map.get(attrs, "skills_destination"),
+          Map.get(attrs, "compat_skills_destination"),
+          Map.get(attrs, "compat_destination")
+        ]
+        |> Enum.filter(&is_binary/1)
+      end)
+      |> Enum.filter(fn dir -> is_binary(dir) and File.dir?(dir) end)
+      |> Enum.uniq()
+
+    if skill_dirs == [] do
+      %{"ok" => true, "drifted" => []}
+    else
+      # Read manifest from each dir and compare skill sets
+      dir_skills =
+        skill_dirs
+        |> Enum.map(fn dir ->
+          manifest_path = Path.join(dir, ".controlkeel-skills.json")
+
+          skills =
+            with {:ok, body} <- File.read(manifest_path),
+                 {:ok, %{"skills" => s}} when is_list(s) <- Jason.decode(body) do
+              Enum.filter(s, &is_binary/1) |> Enum.sort()
+            else
+              _ -> nil
+            end
+
+          {dir, skills}
+        end)
+
+      # Find dirs with manifest and check consistency
+      with_manifests = Enum.filter(dir_skills, fn {_, s} -> s != nil end)
+
+      if length(with_manifests) < 2 do
+        %{"ok" => true, "drifted" => []}
+      else
+        [{baseline_dir, baseline_skills} | rest] = with_manifests
+
+        drifted =
+          rest
+          |> Enum.flat_map(fn {dir, skills} ->
+            if skills != baseline_skills do
+              only_in_baseline = baseline_skills -- skills
+              only_in_dir = skills -- baseline_skills
+
+              diffs =
+                Enum.map(
+                  only_in_baseline,
+                  &%{"skill" => &1, "direction" => "missing", "path" => Path.basename(dir)}
+                ) ++
+                  Enum.map(
+                    only_in_dir,
+                    &%{"skill" => &1, "direction" => "extra", "path" => Path.basename(dir)}
+                  )
+
+              diffs
+            else
+              []
+            end
+          end)
+
+        %{"ok" => drifted == [], "drifted" => drifted, "baseline" => Path.basename(baseline_dir)}
+      end
+    end
   end
 
   defp attached_agent_payload(binding) do

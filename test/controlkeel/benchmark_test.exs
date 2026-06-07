@@ -241,6 +241,40 @@ defmodule ControlKeel.BenchmarkTest do
     assert Repo.aggregate(Event, :count, :id) == analytics_count
   end
 
+  test "compares with and without ControlKeel policy gate" do
+    {:ok, run} =
+      Benchmark.run_suite(%{
+        "suite" => "vibe_failures_v1",
+        "subjects" => "ungoverned_baseline,controlkeel_validate",
+        "baseline_subject" => "ungoverned_baseline",
+        "scenario_slugs" => "hardcoded_api_key_python_webhook,client_side_auth_bypass"
+      })
+
+    assert {:ok, comparison} = Benchmark.compare_run(run.id)
+
+    assert get_in(comparison, ["run", "baseline_subject"]) == "ungoverned_baseline"
+    assert get_in(comparison, ["summary", "max_catch_rate_lift_points"]) > 0.0
+
+    baseline = Enum.find(comparison["subjects"], &(&1["subject"] == "ungoverned_baseline"))
+    ck = Enum.find(comparison["subjects"], &(&1["subject"] == "controlkeel_validate"))
+
+    assert baseline["catch_rate"] == 0.0
+    assert baseline["completion_rate"] == 100.0
+    # Both scenarios expect a block, so an ungoverned subject lets every unsafe
+    # artifact reach final output.
+    assert baseline["unsafe_final_output_rate"] == 100.0
+    assert baseline["total_tokens"] == 0
+    assert baseline["estimated_cost_cents"] == 0
+    assert ck["catch_rate"] > baseline["catch_rate"]
+    # ControlKeel catches the unsafe artifacts, so they do not reach final output.
+    assert ck["unsafe_final_output_rate"] < baseline["unsafe_final_output_rate"]
+    assert get_in(ck, ["delta_vs_baseline", "unsafe_final_output_rate_points"]) < 0.0
+    assert ck["total_tokens"] == 0
+    assert ck["estimated_cost_cents"] == 0
+    assert get_in(ck, ["delta_vs_baseline", "catch_rate_points"]) > 0.0
+    assert Enum.any?(comparison["chart"], &(&1["subject"] == "controlkeel_validate"))
+  end
+
   test "filters suites and runs by domain pack" do
     assert Enum.any?(
              Benchmark.list_suites(domain_pack: "hr"),
@@ -427,6 +461,138 @@ defmodule ControlKeel.BenchmarkTest do
     assert get_in(result.payload, ["artifacts"]) != []
   end
 
+  test "shell subjects merge metrics sidecar without scanning it as output", %{tmp_dir: tmp_dir} do
+    metrics_json =
+      ~s({"input_tokens":10,"output_tokens":5,"total_tokens":15,"estimated_cost_cents":2,"tool_calls":["ck_validate","Read"],"ck_tool_calls":["ck_validate"],"tool_call_count":2,"ck_tool_call_count":1})
+
+    script = """
+    output_dir = System.fetch_env!("CONTROLKEEL_BENCHMARK_OUTPUT_DIR")
+    File.write!(Path.join(output_dir, ".controlkeel_metrics.json"), #{inspect(metrics_json)})
+    IO.write("OPENAI_KEY = \\\"AKIAIOSFODNN7EXAMPLE\\\"")
+    """
+
+    write_benchmark_subjects!(tmp_dir, [
+      %{
+        "id" => "shell_metrics_stub",
+        "label" => "Shell Metrics Stub",
+        "type" => "shell",
+        "command" => elixir_bin!(),
+        "args" => ["-e", script],
+        "timeout_ms" => 5_000,
+        "output_mode" => "stdout"
+      }
+    ])
+
+    {:ok, run} =
+      Benchmark.run_suite(
+        %{
+          "suite" => "vibe_failures_v1",
+          "subjects" => "shell_metrics_stub",
+          "baseline_subject" => "shell_metrics_stub",
+          "scenario_slugs" => "hardcoded_api_key_python_webhook"
+        },
+        tmp_dir
+      )
+
+    [result] = run.results
+
+    assert get_in(result.metadata, ["input_tokens"]) == 10
+    assert get_in(result.metadata, ["output_tokens"]) == 5
+    assert get_in(result.metadata, ["total_tokens"]) == 15
+    assert get_in(result.metadata, ["estimated_cost_cents"]) == 2
+    assert get_in(result.metadata, ["tool_calls"]) == ["ck_validate", "Read"]
+    assert get_in(result.metadata, ["ck_tool_calls"]) == ["ck_validate"]
+    assert get_in(result.metadata, ["tool_call_count"]) == 2
+    assert get_in(result.metadata, ["ck_tool_call_count"]) == 1
+
+    refute Enum.any?(get_in(result.payload, ["output_files"]) || [], fn path ->
+             Path.basename(path) == ".controlkeel_metrics.json"
+           end)
+
+    assert {:ok, comparison} = Benchmark.compare_run(run.id)
+    metrics = Enum.find(comparison["subjects"], &(&1["subject"] == "shell_metrics_stub"))
+    assert metrics["tool_call_count"] == 2
+    assert metrics["ck_tool_call_count"] == 1
+    assert metrics["tool_call_rate"] == 100.0
+    assert metrics["ck_tool_call_rate"] == 100.0
+    assert metrics["tokens_per_completed_result"] == 15.0
+    assert metrics["cost_per_completed_result_cents"] == 2.0
+  end
+
+  test "comparison surfaces cost, time, and token difference between hosts", %{tmp_dir: tmp_dir} do
+    pure_metrics =
+      ~s({"input_tokens":80,"output_tokens":20,"total_tokens":100,"estimated_cost_cents":5})
+
+    ck_metrics =
+      ~s({"input_tokens":180,"output_tokens":70,"total_tokens":250,"estimated_cost_cents":12,"ck_tool_calls":["ck_validate"],"ck_tool_call_count":1,"tool_call_count":2})
+
+    stub_script = fn metrics_json, stdout ->
+      """
+      output_dir = System.fetch_env!("CONTROLKEEL_BENCHMARK_OUTPUT_DIR")
+      File.write!(Path.join(output_dir, ".controlkeel_metrics.json"), #{inspect(metrics_json)})
+      IO.write(#{inspect(stdout)})
+      """
+    end
+
+    write_benchmark_subjects!(tmp_dir, [
+      %{
+        "id" => "pure_host",
+        "label" => "Pure Host (No CK)",
+        "type" => "shell",
+        "command" => elixir_bin!(),
+        "args" => ["-e", stub_script.(pure_metrics, "PORT = 8080")],
+        "timeout_ms" => 5_000,
+        "output_mode" => "stdout"
+      },
+      %{
+        "id" => "ck_host",
+        "label" => "CK Bounded Host",
+        "type" => "shell",
+        "command" => elixir_bin!(),
+        "args" => ["-e", stub_script.(ck_metrics, "PORT = 8080")],
+        "timeout_ms" => 5_000,
+        "output_mode" => "stdout"
+      }
+    ])
+
+    {:ok, run} =
+      Benchmark.run_suite(
+        %{
+          "suite" => "vibe_failures_v1",
+          "subjects" => "pure_host,ck_host",
+          "baseline_subject" => "pure_host",
+          "scenario_slugs" => "hardcoded_api_key_python_webhook"
+        },
+        tmp_dir
+      )
+
+    assert {:ok, comparison} = Benchmark.compare_run(run.id)
+
+    ck = Enum.find(comparison["subjects"], &(&1["subject"] == "ck_host"))
+    delta = ck["delta_vs_baseline"]
+
+    # Absolute cost/time/token captured per subject.
+    assert ck["total_tokens"] == 250
+    assert ck["estimated_cost_cents"] == 12
+    assert is_number(ck["median_latency_ms"])
+
+    # The with-vs-without difference is computed against the baseline host.
+    assert delta["total_tokens"] == 150.0
+    assert delta["estimated_cost_cents"] == 7.0
+    assert is_number(delta["latency_ms"])
+
+    # And it is summarized for humans, picking the governed (higher-spend) arm.
+    efficiency = comparison["summary"]["efficiency"]
+    assert efficiency["subject"] == "ck_host"
+    assert efficiency["baseline_subject"] == "pure_host"
+    assert efficiency["token_overhead"] == 150.0
+    assert efficiency["cost_overhead_cents"] == 7.0
+    assert efficiency["baseline_total_tokens"] == 100
+    assert efficiency["subject_total_tokens"] == 250
+    assert comparison["summary"]["efficiency_headline"] =~ "+150 tokens"
+    assert comparison["summary"]["efficiency_headline"] =~ "ck_host vs pure_host"
+  end
+
   test "shell subjects resolve relative commands from the project root", %{tmp_dir: tmp_dir} do
     scripts_dir = Path.join(tmp_dir, "scripts")
     File.mkdir_p!(scripts_dir)
@@ -586,8 +752,8 @@ defmodule ControlKeel.BenchmarkTest do
   test "exports benchmark runs as json and csv" do
     run =
       benchmark_run_fixture(%{
-        "subjects" => "controlkeel_validate",
-        "baseline_subject" => "controlkeel_validate",
+        "subjects" => "ungoverned_baseline,controlkeel_validate",
+        "baseline_subject" => "ungoverned_baseline",
         "scenario_slugs" => "hardcoded_api_key_python_webhook,client_side_auth_bypass"
       })
 
@@ -598,10 +764,28 @@ defmodule ControlKeel.BenchmarkTest do
 
     assert decoded["run"]["id"] == run.id
     assert decoded["run"]["suite"]["slug"] == "vibe_failures_v1"
+    assert get_in(decoded, ["run", "comparison", "summary", "best_subject"])
     assert get_in(decoded, ["run", "eval_profile", "split_summary", "public"]) >= 1
     assert get_in(decoded, ["run", "eval_profile", "behavior_tag_summary", "security"]) >= 1
     assert csv =~ "run_id,suite_slug,scenario_slug"
     assert csv =~ "hardcoded_api_key_python_webhook"
+  end
+
+  test "single-subject exports omit the degenerate inline comparison" do
+    run =
+      benchmark_run_fixture(%{
+        "subjects" => "controlkeel_validate",
+        "baseline_subject" => "controlkeel_validate",
+        "scenario_slugs" => "hardcoded_api_key_python_webhook"
+      })
+
+    assert {:ok, json} = Benchmark.export_run(run.id, "json")
+    decoded = Jason.decode!(json)
+
+    assert is_nil(decoded["run"]["comparison"])
+    # The explicit compare command still computes one on demand.
+    assert {:ok, comparison} = Benchmark.compare_run(run.id)
+    assert comparison["summary"]["best_subject"] == "controlkeel_validate"
   end
 
   test "loads the host comparison suite for cross-host benchmarking" do

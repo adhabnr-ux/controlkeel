@@ -25,9 +25,19 @@ defmodule ControlKeel.Repo.Migrations.IncreaseBenchmarkScenariosContentSize do
       )
       """)
 
+      # Explicit column list rather than a positional `SELECT *`: if the live
+      # table's column order ever diverges from this fresh-schema order (later
+      # ALTER ADD COLUMN migrations append at the end), a positional copy would
+      # misalign columns and violate NOT NULL constraints.
       execute("""
-      INSERT INTO benchmark_scenarios_new
-      SELECT * FROM benchmark_scenarios
+      INSERT INTO benchmark_scenarios_new (
+        id, suite_id, slug, name, category, incident_label, path, kind, content,
+        expected_rules, expected_decision, position, split, metadata, inserted_at, updated_at
+      )
+      SELECT
+        id, suite_id, slug, name, category, incident_label, path, kind, content,
+        expected_rules, expected_decision, position, split, metadata, inserted_at, updated_at
+      FROM benchmark_scenarios
       """)
 
       execute("DROP TABLE benchmark_scenarios")

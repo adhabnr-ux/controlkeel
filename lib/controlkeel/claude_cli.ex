@@ -25,6 +25,27 @@ defmodule ControlKeel.ClaudeCLI do
     end
   end
 
+  @doc """
+  Best-effort reversal of attach_local: removes the MCP server registration via
+  `claude mcp remove`. Returns :ok if claude is absent or the server was already
+  gone (detach must be idempotent and must not fail when there is nothing to do).
+  """
+  def detach_local(project_root, server_name \\ "controlkeel") do
+    case ensure_available() do
+      :ok ->
+        case run(["mcp", "remove", server_name, "--scope", "local"], cd: project_root) do
+          {:ok, _output} -> :ok
+          # Already-removed / unknown-server is success for an idempotent detach.
+          {:error, _output} -> :ok
+        end
+
+      {:error, _} ->
+        :ok
+    end
+  rescue
+    _ -> :ok
+  end
+
   defp ensure_server_registered(project_root, server_name, config) do
     case run(["mcp", "add-json", server_name, Jason.encode!(config), "--scope", "local"],
            cd: project_root

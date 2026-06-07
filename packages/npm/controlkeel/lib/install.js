@@ -133,10 +133,11 @@ async function verifyChecksum(filePath, asset) {
   let checksumText;
   try {
     checksumText = await downloadText(checksumUrl);
-  } catch {
-    // Checksum file not available for this release — skip verification but warn.
-    console.warn(`[controlkeel] Warning: could not download checksum file from ${checksumUrl}. Skipping integrity check.`);
-    return;
+  } catch (err) {
+    throw new Error(
+      `[controlkeel] Failed to download checksum file from ${checksumUrl}. ` +
+      `Cannot verify binary integrity. Aborting installation. (${err.message})`
+    );
   }
 
   const expectedHash = checksumText
@@ -145,8 +146,10 @@ async function verifyChecksum(filePath, asset) {
     .find(([, name]) => name === asset || name === `./${asset}`)?.[0];
 
   if (!expectedHash) {
-    console.warn(`[controlkeel] Warning: no checksum entry found for ${asset}. Skipping integrity check.`);
-    return;
+    throw new Error(
+      `[controlkeel] No checksum entry found for ${asset} in checksums file. ` +
+      `Cannot verify binary integrity. Aborting installation.`
+    );
   }
 
   const actualHash = await sha256File(filePath);
@@ -157,6 +160,65 @@ async function verifyChecksum(filePath, asset) {
       `Checksum mismatch for ${asset}.\n  Expected: ${expectedHash}\n  Got:      ${actualHash}\n` +
       `The downloaded binary has been removed. Please retry the installation or download manually from GitHub Releases.`
     );
+  }
+}
+
+/**
+ * Verify a cosign keyless signature when cosign is available on PATH.
+ * Falls back gracefully when cosign is not installed.
+ */
+async function verifySignature(filePath, asset, baseUrl) {
+  if (process.env.CONTROLKEEL_SKIP_SIGNATURE === "1") return;
+
+  const { execFileSync } = require("node:child_process");
+  const lookupCommand = process.platform === "win32" ? "where" : "command";
+  const lookupArgs = process.platform === "win32" ? ["cosign"] : ["-v", "cosign"];
+
+  let cosignPath;
+  try {
+    cosignPath = execFileSync(lookupCommand, lookupArgs, { encoding: "utf8", shell: false }).split(/\r?\n/)[0].trim();
+  } catch {
+    // cosign not available — checksum-only mode
+    return;
+  }
+
+  if (!cosignPath) return;
+
+  const repo = `${Buffer.from("YXJ5YW1pbnVzL2NvbnRyb2xrZWVs", "base64")}`;
+  const sigUrl = `${baseUrl}/${asset}.sig`;
+  const certUrl = `${baseUrl}/${asset}.pem`;
+  const sigFile = path.join(os.tmpdir(), `${asset}.sig`);
+  const certFile = path.join(os.tmpdir(), `${asset}.pem`);
+
+  await download(sigUrl, sigFile).catch(() => null);
+  await download(certUrl, certFile).catch(() => null);
+
+  if (!fs.existsSync(sigFile) || !fs.existsSync(certFile)) {
+    fs.rmSync(sigFile, { force: true });
+    fs.rmSync(certFile, { force: true });
+
+    if (process.env.CONTROLKEEL_REQUIRE_SIGNATURE === "1") {
+      throw new Error(`[controlkeel] No cosign signature/certificate available for ${asset}`);
+    }
+
+    return;
+  }
+
+  try {
+    execFileSync(cosignPath, [
+      "verify-blob", filePath,
+      "--signature", sigFile,
+      "--certificate", certFile,
+      "--certificate-identity-regexp", `^https://github.com/${repo}/.github/workflows/release.yml@refs/tags/v[0-9].*`,
+      "--certificate-oidc-issuer", "https://token.actions.githubusercontent.com"
+    ], { stdio: "pipe", timeout: 30000 });
+
+    console.log(`[controlkeel] Verified ${asset} signature (cosign keyless)`);
+  } catch (err) {
+    throw new Error(`[controlkeel] cosign signature verification failed for ${asset}`);
+  } finally {
+    fs.rmSync(sigFile, { force: true });
+    fs.rmSync(certFile, { force: true });
   }
 }
 
@@ -174,6 +236,7 @@ async function ensureBinary({ forceDownload = false } = {}) {
 
   await download(url, tempPath);
   await verifyChecksum(tempPath, asset);
+  await verifySignature(tempPath, asset, releaseBaseUrl());
 
   fs.copyFileSync(tempPath, destination);
   fs.rmSync(tempPath, { force: true });
