@@ -359,7 +359,13 @@ defmodule ControlKeel.ProjectBinding do
 
   defp wrapper_contents(project_root) do
     escaped_root = String.replace(project_root, "\"", "\\\"")
-    escaped_default = String.replace(default_cli_command(), "\"", "\\\"")
+    default = default_cli_command()
+    # When the resolved default is a dev/build artifact (mix release script wrapper,
+    # _build/..., erts- shim), prefer the bare command name. MCP hosts inherit their
+    # own PATH and can resolve `controlkeel` to an installed Burrito binary, but a
+    # hard-coded build path locks the wrapper to whichever machine generated it.
+    default = if dev_or_build_path?(default), do: cli_candidate_name(), else: default
+    escaped_default = String.replace(default, "\"", "\\\"")
 
     source_launcher = source_repo_mcp_launcher_path() || ""
     escaped_source_launcher = String.replace(source_launcher, "\"", "\\\"")
@@ -478,6 +484,20 @@ defmodule ControlKeel.ProjectBinding do
       {:win32, _} -> "controlkeel.exe"
       _ -> "controlkeel"
     end
+  end
+
+  # Detect dev/build artifact paths so the MCP wrapper can fall back to a bare
+  # `controlkeel` command on PATH. We don't want to hard-code machine-specific
+  # build paths into wrappers that ship to other machines.
+  defp dev_or_build_path?(""), do: true
+  defp dev_or_build_path?(nil), do: true
+
+  defp dev_or_build_path?(path) do
+    String.contains?(path, "/_build/") or
+      String.contains?(path, "/.burrito/") or
+      String.contains?(path, "/erts-") or
+      String.contains?(path, "/deps/") or
+      String.contains?(path, "/bin/mix")
   end
 
   # Burrito ERTS layout: <install_dir>/.burrito/controlkeel_erts-<vsn>/bin/controlkeel
