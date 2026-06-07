@@ -541,6 +541,8 @@ defmodule ControlKeelWeb.SkillsLive do
     |> assign(:targets, Skills.targets())
     |> assign(:filtered_targets, Skills.targets())
     |> assign(:trusted_project?, analysis.trusted_project?)
+    |> assign(:skill_search, "")
+    |> assign(:target_search, "")
   end
 
   defp assign_doctor(socket, project_root) do
