@@ -480,11 +480,14 @@ defmodule ControlKeel.ProjectBinding do
     end
   end
 
+  # Burrito ERTS layout: <install_dir>/.burrito/controlkeel_erts-<vsn>/bin/controlkeel
+  # The native binary sits at: <install_dir>/controlkeel
   defp unwrap_burrito_sibling(path) do
     bin_dir = Path.dirname(path)
     erts_dir = Path.dirname(bin_dir)
-    base_dir = Path.dirname(erts_dir)
-    native = Path.join(base_dir, Path.basename(path))
+    dot_burrito_dir = Path.dirname(erts_dir)
+    install_dir = Path.dirname(dot_burrito_dir)
+    native = Path.join(install_dir, Path.basename(path))
 
     if File.exists?(native), do: native, else: nil
   end

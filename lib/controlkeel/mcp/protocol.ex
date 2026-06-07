@@ -291,6 +291,11 @@ defmodule ControlKeel.MCP.Protocol do
 
   @tool_groups ToolGroups.tool_groups_map()
 
+  # Tools that must survive adaptive tool-group filtering because they are part of
+  # the required CK tool contract surfaced by `controlkeel attach`. Kept in sync
+  # with the `base ++ [...]` skill tools appended in tool_schemas/1.
+  @always_exposed_tools ["ck_skill_list", "ck_skill_load", "ck_skill_validate"]
+
   def tool_schemas(opts \\ []) do
     try do
       base = [
@@ -393,9 +398,17 @@ defmodule ControlKeel.MCP.Protocol do
                 tools
 
               groups when is_list(groups) ->
+                # The skill tools are part of the required CK tool contract that
+                # `controlkeel attach` advertises (ck_skill_list / ck_skill_load /
+                # ck_skill_validate). Adaptive group selection must never drop them,
+                # otherwise a plain project (no mix.exs/package.json/AGENTS.md) gets
+                # core+governance+git only and the declared "Required CK tools" go
+                # missing from tools/list. Union them back so the "always expose"
+                # intent above holds regardless of which groups are selected.
                 allowed_tool_names =
                   groups
                   |> Enum.flat_map(fn group -> Map.get(@tool_groups, group, []) end)
+                  |> Enum.concat(@always_exposed_tools)
                   |> MapSet.new()
 
                 filtered = Enum.filter(tools, &(&1["name"] in allowed_tool_names))

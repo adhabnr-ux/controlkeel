@@ -181,6 +181,23 @@ defmodule ControlKeel.MCP.ProtocolTest do
     refute "ck_validate" in names
   end
 
+  test "tool_schemas/1 always exposes the required skill tools even when their group is filtered out" do
+    System.delete_env("CK_TOOL_GROUPS")
+
+    # "core" deliberately excludes the "skills" group, but ck_skill_list/load/validate
+    # are part of the required CK tool contract advertised by `controlkeel attach`,
+    # so adaptive/group filtering must never drop them. Regression: a plain project
+    # selected core+governance+git and the declared skill tools went missing.
+    tools = Protocol.tool_schemas(tool_groups: ["core"])
+    names = Enum.map(tools, & &1["name"])
+
+    assert "ck_skill_list" in names
+    assert "ck_skill_load" in names
+    assert "ck_skill_validate" in names
+    # A non-required tool from an unselected group still gets filtered out.
+    refute "ck_git_status" in names
+  end
+
   test "ck_budget schema exposes include_token_overhead and project_root parameters" do
     response =
       Protocol.handle_request(%{

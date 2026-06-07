@@ -1167,4 +1167,45 @@ defmodule ControlKeel.SkillsTest do
     # lost-and-restored twice during the exporter/CLI refactors).
     assert length(ids) >= 40
   end
+
+  describe "repo_hook_command/1 scope resolution" do
+    alias ControlKeel.Skills.Exporter.Shared
+
+    # Regression: claude-code's default attach scope is "user", which installs
+    # hook scripts under $HOME/.claude/hooks while the generated settings.json
+    # used a project-only "$root/.claude/hooks/..." reference -> every hook
+    # exited 127 on a fresh install. The command must resolve from either scope.
+    test "resolves a user-scope hook script that lives only under $HOME", %{tmp_dir: tmp_dir} do
+      home = Path.join(tmp_dir, "home")
+      project = Path.join(tmp_dir, "project")
+      File.mkdir_p!(Path.join(home, ".claude/hooks"))
+      File.mkdir_p!(project)
+
+      script = Path.join(home, ".claude/hooks/session-start.sh")
+      File.write!(script, "#!/usr/bin/env sh\nprintf RAN\n")
+      File.chmod!(script, 0o755)
+
+      cmd = Shared.repo_hook_command(".claude/hooks/session-start.sh")
+
+      {out, status} =
+        System.cmd("sh", ["-c", cmd], env: [{"HOME", home}, {"CK_PROJECT_ROOT", project}])
+
+      assert status == 0
+      assert out == "RAN"
+    end
+
+    test "no-ops cleanly (exit 0) when neither scope has the script", %{tmp_dir: tmp_dir} do
+      home = Path.join(tmp_dir, "home")
+      project = Path.join(tmp_dir, "project")
+      File.mkdir_p!(home)
+      File.mkdir_p!(project)
+
+      cmd = Shared.repo_hook_command(".claude/hooks/missing.sh")
+
+      {_out, status} =
+        System.cmd("sh", ["-c", cmd], env: [{"HOME", home}, {"CK_PROJECT_ROOT", project}])
+
+      assert status == 0
+    end
+  end
 end
