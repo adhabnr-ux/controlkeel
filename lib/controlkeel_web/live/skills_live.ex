@@ -191,7 +191,7 @@ defmodule ControlKeelWeb.SkillsLive do
                     type="text"
                     label="Project root"
                     placeholder="/absolute/path/to/project"
-                    class="p-3 w-full focus:outline-[var(--ck-stroke)] border-r-1 border-[var(--ck-stroke)]"
+                    class="p-3 w-full focus:outline-[var(--ck-stroke)] border-r-2 border-[var(--ck-stroke)]"
                   />
                 </div>
                 <div class="flex items-end">

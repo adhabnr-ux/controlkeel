@@ -259,10 +259,10 @@ defmodule ControlKeelWeb.ProviderStatusComponents do
             Auth: {@provider_status["selected_auth_mode"]} / {@provider_status["selected_auth_owner"]}
           </p>
           <p class="text-sm text-zinc-400">
-            Bootstrap mode: {@provider_status["bootstrap"]["mode"]}
+            Bootstrap mode: {get_in(@provider_status, ["bootstrap", "mode"]) || "unknown"}
           </p>
           <p class="text-sm text-zinc-400">
-            Fallback chain: {Enum.join(@provider_status["fallback_chain"], ", ")}
+            Fallback chain: {Enum.join(@provider_status["fallback_chain"] || [], ", ")}
           </p>
         </article>
       </div>
