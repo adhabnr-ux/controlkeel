@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.50 — 2026-06-07
+
+### What's changed
+
+- test(binding): cover dev_or_build_path? guard branches
+- fix(runtime): seed project DB from legacy global DB on first boot
+- test(mission): assert workspace reuse on duplicate project name
+- fix(onboarding): drop dead project_name_taken error match
+- fix(binding): avoid hard-coding dev/build paths in MCP wrapper
+- fix(mcp): pass effective_skills through audit_full merge
+- fix(mission): refactor persist_launch_plan to handle existing workspaces
+- fix(codex): use repo-local hook paths instead of $HOME for project-scoped attach
+- fix(runtime): add busy_timeout for SQLite lock handling in production
+- feat(mcp): ensure required skill tools are always exposed in tool_schemas/1 feat(project_binding): update unwrap_burrito_sibling to correctly resolve native binary path test(skills): add tests for repo_hook_command scope resolution and fallback behavior
+- fix(mcp): report runtime version in initialize serverInfo
+
 ## v0.3.49 — 2026-06-06
 
 ### What's changed
