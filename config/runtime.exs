@@ -170,6 +170,11 @@ config :controlkeel, ControlKeel.Intent,
 if config_env() == :prod do
   database_path = ControlKeel.RuntimeDefaults.database_path()
 
+  # One-time global -> project-local migration: if we resolved to a project DB
+  # that doesn't exist yet, seed it from the legacy global DB before the Repo
+  # opens. No-op for already-migrated projects or explicit DATABASE_PATH.
+  ControlKeel.RuntimeDefaults.maybe_seed_project_database()
+
   config :controlkeel, ControlKeel.Repo,
     database: database_path,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
