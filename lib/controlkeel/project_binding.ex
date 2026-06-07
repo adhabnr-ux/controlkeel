@@ -489,10 +489,11 @@ defmodule ControlKeel.ProjectBinding do
   # Detect dev/build artifact paths so the MCP wrapper can fall back to a bare
   # `controlkeel` command on PATH. We don't want to hard-code machine-specific
   # build paths into wrappers that ship to other machines.
-  defp dev_or_build_path?(""), do: true
-  defp dev_or_build_path?(nil), do: true
+  @doc false
+  def dev_or_build_path?(""), do: true
+  def dev_or_build_path?(nil), do: true
 
-  defp dev_or_build_path?(path) do
+  def dev_or_build_path?(path) do
     String.contains?(path, "/_build/") or
       String.contains?(path, "/.burrito/") or
       String.contains?(path, "/erts-") or

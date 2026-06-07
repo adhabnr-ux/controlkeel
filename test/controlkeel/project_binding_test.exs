@@ -160,6 +160,28 @@ defmodule ControlKeel.ProjectBindingTest do
     refute ProjectBinding.mcp_wrapper_cli_runnable?(tmp)
   end
 
+  test "dev_or_build_path? flags dev/build artifacts but not installed binaries" do
+    # Empty/nil resolve to a dev fallback (bare command name on PATH).
+    assert ProjectBinding.dev_or_build_path?("")
+    assert ProjectBinding.dev_or_build_path?(nil)
+
+    # Dev/build artifact paths that must not be baked into a shipped wrapper.
+    assert ProjectBinding.dev_or_build_path?("/repo/_build/prod/rel/controlkeel/bin/controlkeel")
+
+    assert ProjectBinding.dev_or_build_path?(
+             "/home/u/.burrito/controlkeel_erts-15/bin/controlkeel"
+           )
+
+    assert ProjectBinding.dev_or_build_path?("/opt/app/erts-15.2/bin/controlkeel")
+    assert ProjectBinding.dev_or_build_path?("/repo/deps/controlkeel/controlkeel")
+    assert ProjectBinding.dev_or_build_path?("/usr/local/bin/mix")
+
+    # Installed/native locations and bare names stay as-is.
+    refute ProjectBinding.dev_or_build_path?("controlkeel")
+    refute ProjectBinding.dev_or_build_path?("/usr/local/bin/controlkeel")
+    refute ProjectBinding.dev_or_build_path?("/opt/homebrew/bin/controlkeel")
+  end
+
   describe "ensure_gitignore/3" do
     test "creates a managed block covering controlkeel/ and .controlkeel/", %{tmp: tmp} do
       assert :ok = ProjectBinding.ensure_gitignore(tmp)
