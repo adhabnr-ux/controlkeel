@@ -5,7 +5,7 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
 
   def available_where(assigns) do
     ~H"""
-    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-10">
+    <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-10">
       <p class="text-lg font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
         Available where
       </p>
@@ -26,7 +26,7 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
             class="group border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] bg-[rgba(255,255,255,0.03)] open:bg-[rgba(255,255,255,0.05)] transition-colors duration-200"
           >
             <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 select-none [&::-webkit-details-marker]:hidden">
-              <h3 class="text-lg font-semibold">{integration.label}</h3>
+              <p class="text-lg font-semibold">{integration.label}</p>
               <span class="text-xs text-[var(--ck-muted)] transition-transform duration-200 group-open:rotate-180">
                 ▼
               </span>
@@ -48,7 +48,7 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
                 </p>
 
                 <p class="text-[var(--ck-muted)] text-sm">
-                  Scope: {Enum.join(integration.supported_scopes, ", ")}
+                  Scope: {format_targets(integration.supported_scopes)}
                 </p>
                 <p class="text-[var(--ck-muted)] text-sm">
                   Install: {human_install_experience(integration.install_experience)}
@@ -182,6 +182,7 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
   defp format_targets(values), do: Enum.join(values, ", ")
 
   defp format_install_channels([]), do: "none"
+  defp format_install_channels(nil), do: "none"
 
   defp format_install_channels(ids) do
     ids
@@ -281,8 +282,15 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
   defp format_provider_bridge(%{supported: true, provider: provider, mode: mode}),
     do: "#{mode}: #{provider}"
 
+  defp format_provider_bridge(%{"supported" => true, "provider" => provider, "mode" => mode}),
+    do: "#{mode}: #{provider}"
+
   defp format_provider_bridge(%{supported: true, mode: mode}), do: mode
+  defp format_provider_bridge(%{"supported" => true, "mode" => mode}), do: mode
+
   defp format_provider_bridge(%{mode: "ck_owned"}), do: "ck-owned"
+  defp format_provider_bridge(%{"mode" => "ck_owned"}), do: "ck-owned"
+
   defp format_provider_bridge(_bridge), do: "none"
 
   defp registry_label(%{registry_match: true, registry_version: version, registry_stale: stale}) do
