@@ -240,12 +240,12 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
       _ ->
         {:ok,
          [
-            "Project root: #{Path.expand(root)}",
-            "Trusted project skills: #{if(analysis.trusted_project?, do: "yes", else: "no")}",
-            "Catalog size: #{length(analysis.skills)}",
-            "Duplicate identical skill copies: #{duplicate_copy_count}",
-            "Hint: token audit deduplicates effective CK skills, but host-native skill directories can still add context overhead"
-          ] ++
+           "Project root: #{Path.expand(root)}",
+           "Trusted project skills: #{if(analysis.trusted_project?, do: "yes", else: "no")}",
+           "Catalog size: #{length(analysis.skills)}",
+           "Duplicate identical skill copies: #{duplicate_copy_count}",
+           "Hint: token audit deduplicates effective CK skills, but host-native skill directories can still add context overhead"
+         ] ++
            token_hint ++
            [
              "Provider source: #{provider_status["selected_source"]}",
