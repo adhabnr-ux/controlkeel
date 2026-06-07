@@ -25,10 +25,30 @@ defmodule ControlKeelWeb.SkillsLiveTest do
     assert has_element?(view, "#skills-export-button")
     assert has_element?(view, "#skills-install-button")
     assert has_element?(view, "#skills-target-matrix")
+    assert has_element?(view, "#skills-list")
+    assert has_element?(view, "#targets-list")
     assert has_element?(view, "#skill-controlkeel-governance")
+
+    assert html =~ "Bootstrap"
+    assert html =~ "Duplicate copies"
 
     render_click(element(view, "#skill-controlkeel-governance"))
     assert render(view) =~ "Required CK MCP tools"
+
+    assert has_element?(view, "#skills-list article")
+    assert has_element?(view, "#skills-target-matrix tbody tr")
+
+    render_change(view, "search_skills", %{"skill_search" => "governance"})
+    assert render(view) =~ "controlkeel-governance"
+
+    render_change(view, "search_targets", %{"target_search" => "claude"})
+    assert render(view) =~ "Claude Code"
+
+    render_change(view, "search_skills", %{"skill_search" => "zzzznotexist"})
+    refute has_element?(view, "#skills-list article")
+
+    render_change(view, "search_targets", %{"target_search" => ""})
+    assert has_element?(view, "#skills-target-matrix tbody tr")
 
     render_submit(form(view, "#skills-project-form", project: %{"project_root" => tmp_dir}))
 

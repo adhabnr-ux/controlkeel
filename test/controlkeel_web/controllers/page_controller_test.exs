@@ -16,6 +16,12 @@ defmodule ControlKeelWeb.PageControllerTest do
     assert body =~ "Deploy Ready Rate"
     assert body =~ "Recent Missions"
     assert body =~ "Provider and Autonomy Status"
+    assert body =~ "Provider and bootstrap status"
+    assert body =~ "Active provider"
+    assert body =~ "ACP registry cache"
+    assert body =~ "Cache status"
+    assert body =~ "skills-provider-status"
+    assert body =~ "skills-registry-status"
     assert body =~ "Delivery Flow"
     assert body =~ "Signal Preview"
     assert body =~ "New Mission"
@@ -29,6 +35,7 @@ defmodule ControlKeelWeb.PageControllerTest do
 
     assert body =~ "Install ControlKeel"
     assert body =~ "Choose a bootstrap channel"
+    assert body =~ "Available where"
     assert body =~ "Copy"
   end
 
