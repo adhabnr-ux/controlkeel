@@ -88,6 +88,26 @@ defmodule ControlKeel.CLI do
         end
 
         1
+
+      {:error, _reason, detail} when is_binary(detail) ->
+        if json_mode?(parsed) do
+          entry = Catalog.for_command(parsed.command)
+          json_error_printer.(ControlKeel.CLI.Output.error_json(detail, :command_error, entry))
+        else
+          error_printer.("Failed: #{detail}")
+        end
+
+        1
+
+      {:error, reason, _extra} ->
+        if json_mode?(parsed) do
+          entry = Catalog.for_command(parsed.command)
+          json_error_printer.(ControlKeel.CLI.Output.error_json(inspect(reason), :command_error, entry))
+        else
+          error_printer.("Failed: #{inspect(reason)}")
+        end
+
+        1
     end
   end
 
