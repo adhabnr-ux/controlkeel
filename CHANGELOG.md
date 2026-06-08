@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.3.51 — 2026-06-08
+
+### What's changed
+
+- Merge pull request #10 from aryaminus/refactor/skills-web
+- refactor/skills-web: improve HTML structure and enhance formatting functions in AvailableInstallComponents
+- refactor/skills-web: update provider status display and improve project root input styling
+- refactor/skills-web: initialize skill and target search in assign_analysis
+- refactor/skills-web*: fix indentation of
+- Merge branch 'main' of github.com:aryaminus/controlkeel into refactor/skills-web
+- test: fix test code according to the new changes
+- refactor/skills-web: redesign skills studio layout
+- refactor/skills-web: integrate enhanced diagnostics
+- refactor/skills-web: implement filtering for skills and targets in SkillsLive and add available install component.
+- refactor/skills-web: add provider and registry status components to home page
+- refactor/skills-web: enhance UI components and replace with tailwind
+- refactor/skills-web: skills warning and error label alignment
+
 ## v0.3.50 — 2026-06-07
 
 ### What's changed
