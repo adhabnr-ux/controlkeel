@@ -2,13 +2,15 @@ defmodule ControlKeelWeb.InstallLive do
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Skills
+  import ControlKeelWeb.AvailableInstallComponents
 
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
      socket
      |> assign(:page_title, "Install ControlKeel")
-     |> assign(:install_channels, Skills.install_channels())}
+     |> assign(:install_channels, Skills.install_channels())
+     |> assign(:agent_integrations, Skills.agent_integrations())}
   end
 
   @impl true
@@ -74,6 +76,8 @@ defmodule ControlKeelWeb.InstallLive do
             </div>
           </div>
         </div>
+
+        <.available_where agent_integrations={@agent_integrations} />
       </section>
     </Layouts.app>
     """

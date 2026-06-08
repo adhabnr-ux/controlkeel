@@ -21,27 +21,34 @@ defmodule ControlKeelWeb.SkillsLiveTest do
 
     assert html =~ "Skills Studio"
     assert has_element?(view, "#skills-project-form")
-    assert has_element?(view, "#skills-provider-status")
     assert has_element?(view, "#skills-action-form")
     assert has_element?(view, "#skills-export-button")
     assert has_element?(view, "#skills-install-button")
     assert has_element?(view, "#skills-target-matrix")
-    assert has_element?(view, "#skills-agent-matrix")
-    assert has_element?(view, "#skills-registry-status")
+    assert has_element?(view, "#skills-list")
+    assert has_element?(view, "#targets-list")
     assert has_element?(view, "#skill-controlkeel-governance")
-    assert has_element?(view, "#agent-claude-code")
-    assert has_element?(view, "#agent-cline")
-    assert has_element?(view, "#copy-agent-claude-code")
-    assert has_element?(view, "#agent-open-swe")
-    assert has_element?(view, "#agent-devin")
-    assert has_element?(view, "#agent-vllm")
+
+    assert html =~ "Bootstrap"
+    assert html =~ "Duplicate copies"
 
     render_click(element(view, "#skill-controlkeel-governance"))
     assert render(view) =~ "Required CK MCP tools"
-    assert render(view) =~ "controlkeel attach claude-code"
-    assert render(view) =~ "Attachable client"
-    assert render(view) =~ "Headless runtime"
-    assert render(view) =~ "ACP registry cache"
+
+    assert has_element?(view, "#skills-list article")
+    assert has_element?(view, "#skills-target-matrix tbody tr")
+
+    render_change(view, "search_skills", %{"skill_search" => "governance"})
+    assert render(view) =~ "controlkeel-governance"
+
+    render_change(view, "search_targets", %{"target_search" => "claude"})
+    assert render(view) =~ "Claude Code"
+
+    render_change(view, "search_skills", %{"skill_search" => "zzzznotexist"})
+    refute has_element?(view, "#skills-list article")
+
+    render_change(view, "search_targets", %{"target_search" => ""})
+    assert has_element?(view, "#skills-target-matrix tbody tr")
 
     render_submit(form(view, "#skills-project-form", project: %{"project_root" => tmp_dir}))
 

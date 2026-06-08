@@ -1,6 +1,7 @@
 defmodule ControlKeelWeb.PageController do
   use ControlKeelWeb, :controller
 
+  alias ControlKeel.ACPRegistry
   alias ControlKeel.Analytics
   alias ControlKeel.Benchmark
   alias ControlKeel.Mission
@@ -14,6 +15,7 @@ defmodule ControlKeelWeb.PageController do
       benchmark_summary: Benchmark.benchmark_summary(),
       provider_status: ProviderBroker.status(project_root),
       recent_sessions: Mission.list_recent_sessions(4),
+      registry_status: ACPRegistry.status(),
       ship_summary: Analytics.funnel_summary(),
       runtime_mode: RuntimeMode.current(),
       current_user: conn.assigns[:current_user]
