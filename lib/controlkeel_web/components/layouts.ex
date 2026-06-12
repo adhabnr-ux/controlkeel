@@ -145,27 +145,6 @@ defmodule ControlKeelWeb.Layouts do
       </aside>
 
       <div class="lg:pl-64">
-        <header class="sticky top-0 z-30 border-b border-white/10 bg-zinc-950/85 backdrop-blur-xl">
-          <div class="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div class="flex min-w-0 items-center gap-3">
-              <a href={~p"/"} class="flex items-center gap-2 lg:hidden">
-                <span class="flex size-9 items-center justify-center rounded-xl bg-lime-300 text-zinc-950">
-                  <.icon name="hero-bolt-solid" class="size-5" />
-                </span>
-                <span class="text-sm font-semibold text-white">ControlKeel</span>
-              </a>
-              <div class="hidden min-w-0 lg:block">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
-                  Mission Control
-                </p>
-                <p class="truncate text-sm text-zinc-400">
-                  Live governance, proof, and delivery telemetry
-                </p>
-              </div>
-            </div>
-          </div>
-        </header>
-
         <main class="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,rgba(190,242,100,0.12),transparent_28rem),linear-gradient(180deg,#0a0a0a_0%,#111113_48%,#18181b_100%)] px-4 py-6 sm:px-6 lg:px-8">
           {render_slot(@inner_block)}
         </main>
