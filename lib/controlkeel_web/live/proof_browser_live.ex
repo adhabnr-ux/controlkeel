@@ -356,10 +356,19 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               </div>
             </form>
 
-            <p class="text-neutral-400 tracking-tight">
-              <span class="text-[var(--ck-lime)] mr-1">{@browser.total_count}</span>
-              total proof bundles found
-            </p>
+            <div class="flex items-center justify-between">
+              <p class="text-neutral-400 tracking-tight">
+                <span class="text-[var(--ck-lime)] mr-1">{@browser.total_count}</span>
+                total proof bundles found
+              </p>
+
+              <.link
+                patch={~p"/proofs"}
+                class="self-end rounded-md border border-white/10 bg-black/40 px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-400 transition hover:border-red-500/40 hover:text-red-400 text-center"
+              >
+                Reset all
+              </.link>
+            </div>
           </div>
 
           <div class="overflow-x-auto w-full">
@@ -471,7 +480,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                       </td>
 
                       <td class="px-2 py-6 text-right align-top">
-                        <div class="flex justify-end gap-4 font-semibold text-sm">
+                        <div class="flex justify-end gap-2 font-semibold text-sm">
                           <.link
                             navigate={~p"/missions/#{proof.session_id}"}
                             class="text-zinc-400 transition hover:text-white border px-2 py-1 rounded-md"
@@ -558,7 +567,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
       "q" => filters.q,
       "session_id" => filters.session_id,
       "task_id" => filters.task_id,
-      "deploy_ready" => filters.deploy_ready,
+      "deploy_ready" => if(filters.deploy_ready != nil, do: to_string(filters.deploy_ready)),
       "risk_tier" => filters.risk_tier
     }
     |> Enum.reject(fn {_key, value} -> value in [nil, ""] end)
