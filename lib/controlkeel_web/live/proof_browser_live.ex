@@ -68,70 +68,94 @@ defmodule ControlKeelWeb.ProofBrowserLive do
   def render(%{live_action: :show} = assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+      <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
+        <div class="mt-6 mb-4 flex items-center justify-between gap-4">
           <div>
-            <p class="ck-kicker">Proof browser</p>
-            <h1 class="ck-section-title">Immutable proof snapshot</h1>
-            <p class="ck-lead ck-lead-tight">
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              Proof browser
+            </p>
+            <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-tight">Immutable proof snapshot</h1>
+            <p class="max-w-3xl text-base leading-relaxed text-[var(--ck-muted)]">
               Every proof bundle is a frozen audit artifact for a single task version.
             </p>
           </div>
-          <div class="ck-badge-stack">
-            <.link navigate={~p"/proofs"} class="ck-link">Back to proofs</.link>
-            <.link navigate={~p"/missions/#{@proof.session_id}"} class="ck-link">Open mission</.link>
+          <div class="flex flex-wrap gap-2">
+            <.link
+              navigate={~p"/proofs"}
+              class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]"
+            >
+              Back to proofs
+            </.link>
+            <.link
+              navigate={~p"/missions/#{@proof.session_id}"}
+              class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]"
+            >
+              Open mission
+            </.link>
           </div>
         </div>
 
-        <div class="ck-stat-grid">
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Task</p>
+        <div class="mt-5 grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
+          <div class="rounded-2xl border border-[var(--ck-stroke)] bg-[var(--ck-panel)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              Task
+            </p>
             <strong>{@proof.task.title}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Version</p>
+          <div class="rounded-2xl border border-[var(--ck-stroke)] bg-[var(--ck-panel)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              Version
+            </p>
             <strong>v{@proof.version}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Risk score</p>
+          <div class="rounded-2xl border border-[var(--ck-stroke)] bg-[var(--ck-panel)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              Risk score
+            </p>
             <strong>{@proof.risk_score}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Deploy ready</p>
+          <div class="rounded-2xl border border-[var(--ck-stroke)] bg-[var(--ck-panel)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              Deploy ready
+            </p>
             <strong>{if @proof.deploy_ready, do: "Yes", else: "No"}</strong>
           </div>
         </div>
 
-        <div class="ck-grid ck-grid-dashboard">
-          <div class="ck-card">
-            <p class="ck-mini-label">Snapshot</p>
-            <div class="ck-brief-grid">
+        <div class="mt-6 grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)] gap-6 max-[900px]:grid-cols-1">
+          <div class="rounded-2xl border border-[var(--ck-stroke)] bg-[var(--ck-panel)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              Snapshot
+            </p>
+            <div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
               <div>
                 <h3>Mission</h3>
-                <p class="ck-note">{@proof.session.title}</p>
+                <p class="text-[var(--ck-muted)]">{@proof.session.title}</p>
               </div>
               <div>
                 <h3>Generated</h3>
-                <p class="ck-note">{format_datetime(@proof.generated_at)}</p>
+                <p class="text-[var(--ck-muted)]">{format_datetime(@proof.generated_at)}</p>
               </div>
               <div>
                 <h3>Open findings</h3>
-                <p class="ck-note">{@proof.open_findings_count}</p>
+                <p class="text-[var(--ck-muted)]">{@proof.open_findings_count}</p>
               </div>
               <div>
                 <h3>Blocked findings</h3>
-                <p class="ck-note">{@proof.blocked_findings_count}</p>
+                <p class="text-[var(--ck-muted)]">{@proof.blocked_findings_count}</p>
               </div>
               <div>
                 <h3>Domain pack</h3>
-                <p class="ck-note">
+                <p class="text-[var(--ck-muted)]">
                   {format_domain_pack(get_in(@proof.session.execution_brief || %{}, ["domain_pack"]))}
                 </p>
               </div>
             </div>
 
-            <p class="ck-mini-label" style="margin-top: 1.5rem;">Compliance attestations</p>
-            <ul class="ck-mini-list">
+            <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              Compliance attestations
+            </p>
+            <ul class="m-0 grid gap-4 p-0 list-none">
               <%= for attestation <- List.wrap(@proof.bundle["compliance_attestations"]) do %>
                 <li>
                   {format_domain_pack(attestation["pack"])}: {attestation["status"]} ({attestation[
@@ -141,53 +165,69 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               <% end %>
             </ul>
 
-            <p class="ck-mini-label" style="margin-top: 1.5rem;">Rollback instructions</p>
-            <pre class="ck-code-block">{@proof.bundle["rollback_instructions"]}</pre>
+            <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              Rollback instructions
+            </p>
+            <pre class="m-0 rounded-2xl border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.03)] p-4 font-mono text-sm leading-relaxed text-[var(--ck-sand)] whitespace-pre-wrap break-words">{@proof.bundle["rollback_instructions"]}</pre>
 
-            <p class="ck-mini-label" style="margin-top: 1.5rem;">Proof payload</p>
-            <pre class="ck-code-block">{Jason.encode!(@proof.bundle, pretty: true)}</pre>
+            <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              Proof payload
+            </p>
+            <pre class="m-0 rounded-2xl border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.03)] p-4 font-mono text-sm leading-relaxed text-[var(--ck-sand)] whitespace-pre-wrap break-words">{Jason.encode!(@proof.bundle, pretty: true)}</pre>
           </div>
 
-          <div class="ck-side-stack">
-            <div class="ck-card">
-              <p class="ck-mini-label">Related memory</p>
+          <div class="grid gap-4">
+            <div class="rounded-2xl border border-[var(--ck-stroke)] bg-[var(--ck-panel)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                Related memory
+              </p>
               <%= if @memory_hits == [] do %>
-                <p class="ck-note">No related memory hits for this task yet.</p>
+                <p class="text-[var(--ck-muted)]">No related memory hits for this task yet.</p>
               <% else %>
-                <ul class="ck-mini-list">
+                <ul class="m-0 grid gap-4 p-0 list-none">
                   <%= for hit <- @memory_hits do %>
                     <li>
                       <strong>{hit.title}</strong>
-                      <p class="ck-note">{hit.summary}</p>
+                      <p class="text-[var(--ck-muted)]">{hit.summary}</p>
                     </li>
                   <% end %>
                 </ul>
               <% end %>
             </div>
 
-            <div class="ck-card">
-              <p class="ck-mini-label">Finding resolution summary</p>
-              <div class="ck-stat-grid">
-                <div class="ck-stat-card">
-                  <p class="ck-mini-label">Approved</p>
+            <div class="rounded-2xl border border-[var(--ck-stroke)] bg-[var(--ck-panel)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                Finding resolution summary
+              </p>
+              <div class="mt-5 grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                    Approved
+                  </p>
                   <strong>
                     {get_in(@proof.bundle, ["finding_resolution_summary", "approved"]) || 0}
                   </strong>
                 </div>
-                <div class="ck-stat-card">
-                  <p class="ck-mini-label">Resolved</p>
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                    Resolved
+                  </p>
                   <strong>
                     {get_in(@proof.bundle, ["finding_resolution_summary", "resolved"]) || 0}
                   </strong>
                 </div>
-                <div class="ck-stat-card">
-                  <p class="ck-mini-label">Open</p>
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                    Open
+                  </p>
                   <strong>
                     {get_in(@proof.bundle, ["finding_resolution_summary", "open"]) || 0}
                   </strong>
                 </div>
-                <div class="ck-stat-card">
-                  <p class="ck-mini-label">Blocked</p>
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                    Blocked
+                  </p>
                   <strong>
                     {get_in(@proof.bundle, ["finding_resolution_summary", "blocked"]) || 0}
                   </strong>
@@ -204,7 +244,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
+      <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
         <div class="space-y-1">
           <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
             Proof browser
