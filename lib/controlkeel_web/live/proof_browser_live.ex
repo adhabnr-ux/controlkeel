@@ -22,21 +22,42 @@ defmodule ControlKeelWeb.ProofBrowserLive do
 
   @impl true
   def handle_params(%{"id" => id}, _uri, socket) do
-    case Mission.get_proof_bundle_with_context(String.to_integer(id)) do
+    case parse_int(id) do
       nil ->
         {:noreply,
          socket
-         |> put_flash(:error, "Proof bundle not found.")
-         |> push_navigate(to: ~p"/proofs")}
+         |> assign(:page_title, "Proof not found")
+         |> assign(:proof, nil)
+         |> assign(:memory_hits, [])}
 
-      proof ->
-        memory_hits = related_memory_hits(proof)
+      parsed_id ->
+        case Mission.get_proof_bundle_with_context(parsed_id) do
+          nil ->
+            {:noreply,
+             socket
+             |> assign(:page_title, "Proof not found")
+             |> assign(:proof, nil)
+             |> assign(:memory_hits, [])}
 
-        {:noreply,
-         socket
-         |> assign(:page_title, "Proof #{proof.id}")
-         |> assign(:proof, proof)
-         |> assign(:memory_hits, memory_hits)}
+          proof ->
+            workspace_ids = org_workspace_ids(socket.assigns[:current_org_id])
+
+            if workspace_ids != [] and proof.session.workspace_id not in workspace_ids do
+              {:noreply,
+               socket
+               |> assign(:page_title, "Proof not found")
+               |> assign(:proof, nil)
+               |> assign(:memory_hits, [])}
+            else
+              memory_hits = related_memory_hits(proof)
+
+              {:noreply,
+               socket
+               |> assign(:page_title, "Proof #{proof.id}")
+               |> assign(:proof, proof)
+               |> assign(:memory_hits, memory_hits)}
+            end
+        end
     end
   end
 
@@ -68,24 +89,24 @@ defmodule ControlKeelWeb.ProofBrowserLive do
   def render(%{live_action: :show} = assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
-        <div class="mt-6 mb-4 flex items-center justify-between gap-4">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
-              Proof browser
-            </p>
-            <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-tight">Immutable proof snapshot</h1>
-            <p class="max-w-3xl text-base leading-relaxed text-[var(--ck-muted)]">
-              Every proof bundle is a frozen audit artifact for a single task version.
-            </p>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <.link
-              navigate={~p"/proofs"}
-              class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]"
-            >
-              Back to proofs
-            </.link>
+      <section class="mx-auto w-[min(1180px,calc(100%-2rem))]">
+        <div :if={@proof} class="space-y-8">
+          <.link
+            navigate={~p"/proofs"}
+            class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 hover:text-neutral-200"
+          >
+            <.icon name="hero-arrow-left" class="w-3 h-3" /> Back to proofs
+          </.link>
+
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                Immutable proof snapshot
+              </p>
+              <p class="max-w-3xl text-base leading-relaxed text-[var(--ck-muted)]">
+                Every proof bundle is a frozen audit artifact for a single task version.
+              </p>
+            </div>
             <.link
               navigate={~p"/missions/#{@proof.session_id}"}
               class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]"
@@ -95,7 +116,25 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           </div>
         </div>
 
-        <div class="mt-5 grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
+        <div :if={!@proof} class="flex flex-col mt-28 items-center gap-4 text-center">
+          <div>
+            <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-tight font-sans font-semibold">
+              Proof not found
+            </h1>
+          </div>
+
+          <p class="text-lg text-zinc-400">
+            No proof bundle exists with this identifier.
+          </p>
+          <.link
+            navigate={~p"/proofs"}
+            class="rounded-md border border-white/10 bg-black/40 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400 inline-flex items-center gap-2"
+          >
+            <.icon name="hero-arrow-left" class="w-4 h-4" /> Browse proofs
+          </.link>
+        </div>
+
+        <div :if={@proof} class="mt-5 grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
           <div class="rounded-2xl border border-[var(--ck-stroke)] bg-[var(--ck-panel)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
               Task
@@ -122,7 +161,10 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           </div>
         </div>
 
-        <div class="mt-6 grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)] gap-6 max-[900px]:grid-cols-1">
+        <div
+          :if={@proof}
+          class="mt-6 grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)] gap-6 max-[900px]:grid-cols-1"
+        >
           <div class="rounded-2xl border border-[var(--ck-stroke)] bg-[var(--ck-panel)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
               Snapshot
@@ -244,7 +286,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
+      <section class="mx-auto w-[min(1180px,calc(100%-2rem))]">
         <div class="space-y-1">
           <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
             Proof browser
@@ -573,6 +615,15 @@ defmodule ControlKeelWeb.ProofBrowserLive do
     |> Enum.reject(fn {_key, value} -> value in [nil, ""] end)
     |> Enum.into(%{})
   end
+
+  defp parse_int(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {parsed, ""} when parsed > 0 -> parsed
+      _ -> nil
+    end
+  end
+
+  defp parse_int(_), do: nil
 
   defp filter_params(filters) do
     filters
