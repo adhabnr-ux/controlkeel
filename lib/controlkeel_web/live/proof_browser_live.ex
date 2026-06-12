@@ -205,120 +205,293 @@ defmodule ControlKeelWeb.ProofBrowserLive do
     ~H"""
     <Layouts.app flash={@flash}>
       <section class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">Proof browser</p>
-            <h1 class="ck-section-title">Search proof bundles across missions</h1>
-            <p class="ck-lead ck-lead-tight">
-              Review immutable task evidence, filter by readiness and risk, and jump back to the mission that generated each bundle.
+        <div class="space-y-1">
+          <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+            Proof browser
+          </h2>
+          <p class="text-[var(--ck-muted)]">
+            Review immutable task evidence, filter by readiness and risk, and jump back to the mission that generated each bundle.
+          </p>
+        </div>
+
+        <div class="mt-8 rounded-lg border border-[var(--ck-stroke)] bg-neutral-900">
+          <div class="space-y-4 p-4">
+            <form id="proof-filters" phx-change="filter" class="grid gap-4 xl:grid-cols-5">
+              <div class="space-y-4">
+                <label
+                  for="filters-q"
+                  class="text-xs uppercase tracking-[0.28em]"
+                >
+                  Search
+                </label>
+                <input
+                  id="filters-q"
+                  name="filters[q]"
+                  type="text"
+                  value={@form[:q].value}
+                  placeholder="Mission or task..."
+                  phx-debounce="300"
+                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label
+                  for="filters-session_id"
+                  class="text-xs uppercase tracking-[0.28em]"
+                >
+                  Mission
+                </label>
+                <select
+                  id="filters-session_id"
+                  name="filters[session_id]"
+                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                >
+                  <option value="">All missions</option>
+                  <%= for session_option <- @session_options do %>
+                    <option
+                      value={session_option.id}
+                      selected={to_string(@form[:session_id].value) == to_string(session_option.id)}
+                    >
+                      {session_option.title}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+
+              <div class="space-y-2">
+                <label
+                  for="filters-task_id"
+                  class="text-xs uppercase tracking-[0.28em]"
+                >
+                  Task ID
+                </label>
+                <input
+                  id="filters-task_id"
+                  name="filters[task_id]"
+                  type="text"
+                  value={@form[:task_id].value}
+                  placeholder="Task id"
+                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label
+                  for="filters-deploy_ready"
+                  class="text-xs uppercase tracking-[0.28em]"
+                >
+                  Deploy ready
+                </label>
+                <select
+                  id="filters-deploy_ready"
+                  name="filters[deploy_ready]"
+                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                >
+                  <option value="">All</option>
+                  <option value="true" selected={@form[:deploy_ready].value == "true"}>Yes</option>
+                  <option value="false" selected={@form[:deploy_ready].value == "false"}>No</option>
+                </select>
+              </div>
+
+              <div class="space-y-2">
+                <label
+                  for="filters-risk_tier"
+                  class="text-xs uppercase tracking-[0.28em]"
+                >
+                  Risk tier
+                </label>
+                <select
+                  id="filters-risk_tier"
+                  name="filters[risk_tier]"
+                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                >
+                  <option value="">All tiers</option>
+                  <%= for tier <- @risk_tiers do %>
+                    <option value={tier} selected={@form[:risk_tier].value == tier}>
+                      {String.capitalize(tier)}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+            </form>
+
+            <p class="text-neutral-400 tracking-tight">
+              <span class="text-[var(--ck-lime)] mr-1">{@browser.total_count}</span>
+              total proof bundles found
             </p>
           </div>
-          <.link navigate={~p"/"} class="ck-link">Back home</.link>
-        </div>
 
-        <div class="ck-card ck-browser-filters">
-          <.form for={@form} id="proof-filters" phx-change="filter">
-            <div class="ck-filter-grid">
-              <.input
-                field={@form[:q]}
-                type="text"
-                label="Search"
-                placeholder="Mission or task..."
-                phx-debounce="300"
-              />
-              <.input
-                field={@form[:session_id]}
-                type="select"
-                label="Mission"
-                prompt="All missions"
-                options={Enum.map(@session_options, &{&1.title, &1.id})}
-              />
-              <.input
-                field={@form[:task_id]}
-                type="text"
-                label="Task ID"
-                placeholder="Task id"
-              />
-              <.input
-                field={@form[:deploy_ready]}
-                type="select"
-                label="Deploy ready"
-                prompt="All"
-                options={[{"Yes", "true"}, {"No", "false"}]}
-              />
-              <.input
-                field={@form[:risk_tier]}
-                type="select"
-                label="Risk tier"
-                prompt="All tiers"
-                options={Enum.map(@risk_tiers, &{String.capitalize(&1), &1})}
-              />
+          <div class="overflow-x-auto w-full">
+            <div class="overflow-hidden border border-white/10 bg-black/30">
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-white/10">
+                  <thead class="bg-white/5">
+                    <tr>
+                      <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                        Task
+                      </th>
+
+                      <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                        Version
+                      </th>
+
+                      <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                        Risk
+                      </th>
+
+                      <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                        Readiness
+                      </th>
+
+                      <th class="px-8 py-6 text-right text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody class="divide-y divide-white/5">
+                    <tr :if={@browser.entries == []}>
+                      <td colspan="5" class="px-8 py-12 text-center text-sm text-zinc-500">
+                        No proof bundles match the current filters.
+                      </td>
+                    </tr>
+                    <tr
+                      :for={proof <- @browser.entries}
+                      class="transition hover:bg-white/[0.02]"
+                    >
+                      <td class="px-8 py-6 align-top">
+                        <div>
+                          <p class="font-bold text-white">
+                            {proof.task.title}
+                          </p>
+
+                          <p class="mt-2 max-w-md text-sm text-zinc-400">
+                            {proof.session.title}
+                          </p>
+                        </div>
+                      </td>
+
+                      <td class="px-8 py-6 align-top">
+                        <div>
+                          <p class="font-semibold text-white">
+                            v{proof.version}
+                          </p>
+
+                          <p class="mt-2 text-xs uppercase tracking-wider text-lime-400">
+                            {proof.status}
+                          </p>
+                        </div>
+                      </td>
+
+                      <td class="px-8 py-6 align-top">
+                        <div class="flex items-center gap-3">
+                          <span class={[
+                            "inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider",
+                            proof.session.risk_tier == "low" &&
+                              "border-lime-500/40 bg-lime-500/10 text-lime-400",
+                            proof.session.risk_tier == "moderate" &&
+                              "border-cyan-500/40 bg-cyan-500/10 text-cyan-400",
+                            proof.session.risk_tier == "high" &&
+                              "border-red-500/40 bg-red-500/10 text-red-400"
+                          ]}>
+                            {proof.session.risk_tier}
+                          </span>
+
+                          <span class="inline-flex rounded-full border border-white/10 px-4 py-2 text-sm text-zinc-300">
+                            {proof.risk_score}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td class="px-8 py-6 align-top">
+                        <div class="flex items-center gap-4">
+                          <span class={[
+                            "inline-flex h-8 w-8 items-center justify-center rounded-full border text-xs",
+                            proof.deploy_ready &&
+                              "border-lime-500/40 text-lime-400",
+                            !proof.deploy_ready &&
+                              "border-yellow-500/40 text-yellow-400"
+                          ]}>
+                            {proof.risk_score}
+                          </span>
+
+                          <span class={[
+                            "text-sm",
+                            proof.deploy_ready &&
+                              "text-white",
+                            !proof.deploy_ready &&
+                              "text-zinc-300"
+                          ]}>
+                            {if proof.deploy_ready,
+                              do: "Certified ready",
+                              else: "Review required"}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td class="px-2 py-6 text-right align-top">
+                        <div class="flex justify-end gap-4 font-semibold text-sm">
+                          <.link
+                            navigate={~p"/missions/#{proof.session_id}"}
+                            class="text-zinc-400 transition hover:text-white border px-2 py-1 rounded-md"
+                          >
+                            Mission
+                          </.link>
+
+                          <.link
+                            navigate={~p"/proofs/#{proof.id}"}
+                            class="text-lime-400 transition hover:text-lime-300 border px-2 py-1 rounded-md"
+                          >
+                            View
+                          </.link>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="border-t border-white/10 bg-black/40 px-6 py-4">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                  <div class="text-xs uppercase tracking-[0.15em] text-zinc-400">
+                    Page {@browser.page} of {@browser.total_pages}
+                  </div>
+
+                  <div class="flex gap-3">
+                    <%= if @browser.page > 1 do %>
+                      <.link
+                        patch={
+                          ~p"/proofs?#{Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page - 1})}"
+                        }
+                        class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
+                      >
+                        Previous
+                      </.link>
+                    <% else %>
+                      <span class="cursor-not-allowed rounded-md border border-white/10 bg-white/5 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-600">
+                        Previous
+                      </span>
+                    <% end %>
+
+                    <%= if @browser.page < @browser.total_pages do %>
+                      <.link
+                        patch={
+                          ~p"/proofs?#{Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page + 1})}"
+                        }
+                        class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
+                      >
+                        Next
+                      </.link>
+                    <% else %>
+                      <span class="cursor-not-allowed rounded-md border border-white/10 bg-white/5 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-600">
+                        Next
+                      </span>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
             </div>
-          </.form>
-
-          <div class="ck-metric-row">
-            <span>{@browser.total_count} total proof bundles</span>
-            <span>Page {@browser.page} of {@browser.total_pages}</span>
-          </div>
-        </div>
-
-        <div class="ck-card">
-          <div class="ck-table-wrap">
-            <.table id="proofs-browser" rows={@browser.entries}>
-              <:col :let={proof} label="Task">
-                <div>
-                  <strong>{proof.task.title}</strong>
-                  <p class="ck-note">{proof.session.title}</p>
-                </div>
-              </:col>
-              <:col :let={proof} label="Version">
-                <div>
-                  <strong>v{proof.version}</strong>
-                  <p class="ck-note">{proof.status}</p>
-                </div>
-              </:col>
-              <:col :let={proof} label="Risk">
-                <div class="ck-badge-stack">
-                  <span class={["ck-pill", "ck-pill-#{proof.session.risk_tier}"]}>
-                    {proof.session.risk_tier}
-                  </span>
-                  <span class="ck-pill ck-pill-neutral">{proof.risk_score}</span>
-                </div>
-              </:col>
-              <:col :let={proof} label="Readiness">
-                <span class="ck-note">
-                  {if proof.deploy_ready, do: "Deploy ready", else: "Review required"}
-                </span>
-              </:col>
-              <:action :let={proof}>
-                <.link navigate={~p"/missions/#{proof.session_id}"} class="ck-link">Mission</.link>
-              </:action>
-              <:action :let={proof}>
-                <.link navigate={~p"/proofs/#{proof.id}"} class="ck-link">View proof</.link>
-              </:action>
-            </.table>
-          </div>
-
-          <div class="ck-action-row" style="margin-top: 1rem;">
-            <.link
-              :if={@browser.page > 1}
-              patch={
-                ~p"/proofs?#{Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page - 1})}"
-              }
-              class="ck-link"
-            >
-              Previous page
-            </.link>
-            <div />
-            <.link
-              :if={@browser.page < @browser.total_pages}
-              patch={
-                ~p"/proofs?#{Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page + 1})}"
-              }
-              class="ck-link"
-            >
-              Next page
-            </.link>
           </div>
         </div>
       </section>
