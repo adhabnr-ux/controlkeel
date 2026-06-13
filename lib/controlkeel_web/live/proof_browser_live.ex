@@ -40,9 +40,10 @@ defmodule ControlKeelWeb.ProofBrowserLive do
              |> assign(:memory_hits, [])}
 
           proof ->
-            workspace_ids = org_workspace_ids(socket.assigns[:current_org_id])
+            current_org_id = socket.assigns[:current_org_id]
+            workspace_ids = org_workspace_ids(current_org_id)
 
-            if workspace_ids != [] and proof.session.workspace_id not in workspace_ids do
+            if current_org_id && proof.session.workspace_id not in workspace_ids do
               {:noreply,
                socket
                |> assign(:page_title, "Proof not found")
@@ -910,7 +911,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
   defp format_datetime(value), do: Calendar.strftime(value, "%Y-%m-%d %H:%M:%S UTC")
 
   defp bundle_get(proof, keys, default \\ nil) do
-    get_in(proof.bundle || %{}, keys) || default
+    if proof, do: get_in(proof.bundle || %{}, keys) || default, else: default
   end
 
   defp verification_score_color(score) when is_integer(score) do
