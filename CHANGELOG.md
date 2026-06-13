@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.3.52 — 2026-06-13
+
+### What's changed
+
+- Merge pull request #12 from aryaminus/refactor/proofs-web
+- refactor/proofs-web: improve organization ID handling and enhance bundle retrieval logic
+- refactor/proofs-web: remove footer slot from table component
+- refactor/proofs-web: remove header component from main layout
+- refactor/proofs-web: enhance proof browser UI with status badges for risk, verification, and runtime integrity metrics
+- refactor/proofs-web: add org-based access control and inline not-found states to proof browser detail view
+- refactor/proofs-web: add reset filter button and fix deploy_ready filter serialization
+- refactor/proofs-web: replace legacy CSS classes with Tailwind utility classes in ProofBrowserLive view
+- refactor/skills-web: add footer slot to table component and update proof browser UI layout
+
 ## v0.3.51 — 2026-06-08
 
 ### What's changed
