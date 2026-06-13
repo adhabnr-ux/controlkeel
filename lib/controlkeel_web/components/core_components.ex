@@ -289,8 +289,6 @@ defmodule ControlKeelWeb.CoreComponents do
 
   slot :action, doc: "the slot for showing user actions in the last table column"
 
-  slot :footer, doc: "the slot for rendering footer content in a table footer row"
-
   def table(assigns) do
     assigns =
       with %{rows: %Phoenix.LiveView.LiveStream{}} <- assigns do
@@ -325,15 +323,6 @@ defmodule ControlKeelWeb.CoreComponents do
           </td>
         </tr>
       </tbody>
-      <tfoot :if={@footer != []}>
-        <tr>
-          <td colspan={length(@col) + if(@action != [], do: 1, else: 0)}>
-            <%= for footer <- @footer do %>
-              {render_slot(footer)}
-            <% end %>
-          </td>
-        </tr>
-      </tfoot>
     </table>
     """
   end
