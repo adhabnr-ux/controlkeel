@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.53 — 2026-06-14
+
+### What's changed
+
+- fix(attach): emit portable MCP commands for global host configs
+
 ## v0.3.52 — 2026-06-13
 
 ### What's changed
