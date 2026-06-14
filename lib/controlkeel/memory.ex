@@ -6,7 +6,7 @@ defmodule ControlKeel.Memory do
   alias ControlKeel.Memory.{Embeddings, Record, Store}
   alias ControlKeel.Repo
 
-  @record_types ~w(brief task finding proof checkpoint budget decision incident review goal)
+  @record_types ~w(brief task finding proof checkpoint budget decision incident review goal regression)
 
   def record_types, do: @record_types
 
@@ -16,13 +16,38 @@ defmodule ControlKeel.Memory do
   def record(attrs) when is_map(attrs) do
     attrs = normalize_attrs(attrs)
 
-    with {:ok, record} <-
-           %Record{}
-           |> Record.changeset(attrs)
-           |> Repo.insert() do
+    with {:ok, record} <- upsert_record(attrs) do
       _ = Embeddings.upsert_record_embedding(record)
       {:ok, record}
     end
+  end
+
+  defp upsert_record(
+         %{workspace_id: workspace_id, source_type: source_type, source_id: source_id} = attrs
+       )
+       when is_integer(workspace_id) and is_binary(source_type) and is_binary(source_id) and
+              source_id != "" do
+    case Repo.get_by(Record,
+           workspace_id: workspace_id,
+           source_type: source_type,
+           source_id: source_id
+         ) do
+      nil ->
+        %Record{}
+        |> Record.changeset(attrs)
+        |> Repo.insert()
+
+      %Record{} = existing ->
+        existing
+        |> Record.changeset(attrs)
+        |> Repo.update()
+    end
+  end
+
+  defp upsert_record(attrs) do
+    %Record{}
+    |> Record.changeset(attrs)
+    |> Repo.insert()
   end
 
   def archive_record(%Record{} = record) do
@@ -137,7 +162,10 @@ defmodule ControlKeel.Memory do
       source_type: attrs["source_type"] || "system",
       source_id: normalize_source_id(attrs["source_id"]),
       metadata: normalize_metadata(attrs["metadata"]),
-      archived_at: attrs["archived_at"]
+      archived_at: attrs["archived_at"],
+      visibility: normalize_visibility(attrs["visibility"]),
+      shared_org_id: attrs["shared_org_id"],
+      synced_at: attrs["synced_at"]
     }
   end
 
@@ -178,4 +206,8 @@ defmodule ControlKeel.Memory do
   end
 
   defp normalize_metadata(_value), do: %{}
+
+  defp normalize_visibility(nil), do: "workspace"
+  defp normalize_visibility(value) when value in ["workspace", "org", "admin"], do: value
+  defp normalize_visibility(value), do: to_string(value)
 end

@@ -1001,7 +1001,7 @@ defmodule ControlKeel.MissionTest do
       session = session_fixture()
       task = task_fixture(%{session: session, status: "done"})
 
-      assert {:ok, _result} =
+      assert {:ok, result} =
                Mission.record_regression_result(%{
                  "session_id" => session.id,
                  "task_id" => task.id,
@@ -1011,6 +1011,22 @@ defmodule ControlKeel.MissionTest do
                  "summary" => "Checkout button no longer completes purchase",
                  "evidence" => %{"video_url" => "https://example.test/run.mp4"}
                })
+
+      assert is_integer(result["memory_id"])
+
+      memory = Memory.get_record!(result["memory_id"])
+      assert memory.record_type == "regression"
+      assert memory.source_type == "external_qa"
+      assert memory.metadata["invocation_id"] == result["invocation_id"]
+
+      search =
+        Memory.search("checkout happy path",
+          workspace_id: session.workspace_id,
+          session_id: session.id,
+          record_type: "regression"
+        )
+
+      assert Enum.any?(search.entries, &(&1.id == memory.id))
 
       assert {:ok, bundle} = Mission.proof_bundle(task.id)
 

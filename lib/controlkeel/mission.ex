@@ -534,6 +534,7 @@ defmodule ControlKeel.Mission do
 
   def record_regression_result(attrs) when is_map(attrs) do
     with {:ok, normalized} <- normalize_regression_result(attrs),
+         %Session{} = session <- get_session(normalized["session_id"]) || {:error, :not_found},
          {:ok, invocation} <-
            create_invocation(%{
              source: "external_qa",
@@ -545,11 +546,13 @@ defmodule ControlKeel.Mission do
              metadata: regression_metadata(normalized),
              session_id: normalized["session_id"],
              task_id: normalized["task_id"]
-           }) do
+           }),
+         {:ok, memory} <- record_regression_memory(session, normalized, invocation) do
       {:ok,
        %{
          "recorded" => true,
          "invocation_id" => invocation.id,
+         "memory_id" => memory.id,
          "session_id" => invocation.session_id,
          "task_id" => invocation.task_id,
          "engine" => normalized["engine"],
@@ -559,6 +562,38 @@ defmodule ControlKeel.Mission do
          "evidence" => normalized["evidence"]
        }}
     end
+  end
+
+  defp record_regression_memory(%Session{} = session, normalized, invocation) do
+    Memory.record(%{
+      workspace_id: session.workspace_id,
+      session_id: session.id,
+      task_id: normalized["task_id"],
+      record_type: "regression",
+      title: regression_memory_title(normalized),
+      summary: normalized["summary"] || regression_memory_summary(normalized),
+      body: Jason.encode!(regression_metadata(normalized)["regression"], pretty: true),
+      tags: ["regression", normalized["engine"], normalized["outcome"]],
+      source_type: "external_qa",
+      source_id: regression_memory_source_id(normalized, invocation),
+      metadata:
+        regression_metadata(normalized)
+        |> Map.put("invocation_id", invocation.id)
+        |> Map.put("source", "regression_result")
+    })
+  end
+
+  defp regression_memory_title(normalized) do
+    "Regression #{normalized["outcome"]}: #{normalized["flow_name"]}"
+  end
+
+  defp regression_memory_summary(normalized) do
+    "#{normalized["engine"]} reported #{normalized["outcome"]} for #{normalized["flow_name"]}."
+  end
+
+  defp regression_memory_source_id(normalized, invocation) do
+    normalized["external_run_id"] ||
+      "regression:#{normalized["engine"]}:#{normalized["flow_name"]}:#{invocation.id}"
   end
 
   def get_proof_bundle(id), do: Repo.get(ProofBundle, id)

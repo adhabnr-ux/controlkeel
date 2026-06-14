@@ -135,4 +135,39 @@ defmodule ControlKeel.MCP.Tools.CkMemoryToolsTest do
     assert full_row["body"] == "full body contents here"
     assert full_row["metadata"]["k"] == "v"
   end
+
+  test "ck_memory_record is source-id idempotent and accepts visibility controls" do
+    session = session_fixture()
+
+    assert {:ok, first} =
+             CkMemoryRecord.call(%{
+               "session_id" => session.id,
+               "memory" => "Original org-wide guidance",
+               "record_type" => "decision",
+               "title" => "Org guidance",
+               "source_type" => "human_review",
+               "source_id" => "guidance-1",
+               "visibility" => "org",
+               "shared_org_id" => 123
+             })
+
+    assert {:ok, second} =
+             CkMemoryRecord.call(%{
+               "session_id" => session.id,
+               "memory" => "Updated org-wide guidance",
+               "record_type" => "decision",
+               "title" => "Updated org guidance",
+               "source_type" => "human_review",
+               "source_id" => "guidance-1",
+               "visibility" => "org",
+               "shared_org_id" => 123
+             })
+
+    assert second["memory_id"] == first["memory_id"]
+
+    record = ControlKeel.Memory.get_record!(first["memory_id"])
+    assert record.title == "Updated org guidance"
+    assert record.visibility == "org"
+    assert record.shared_org_id == 123
+  end
 end

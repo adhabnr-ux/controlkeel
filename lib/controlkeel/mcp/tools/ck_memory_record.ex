@@ -43,7 +43,11 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
       tags: normalize_tags(Map.get(payload, "tags")),
       source_type: Map.get(payload, "source_type", "generated"),
       source_id: Map.get(payload, "source_id"),
-      metadata: metadata
+      metadata:
+        metadata
+        |> maybe_put_metadata("visibility", Map.get(payload, "visibility")),
+      visibility: Map.get(payload, "visibility", "workspace"),
+      shared_org_id: Map.get(payload, "shared_org_id")
     })
   end
 
@@ -134,6 +138,9 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
 
   defp ensure_map(value) when is_map(value), do: value
   defp ensure_map(_value), do: %{}
+
+  defp maybe_put_metadata(map, _key, nil), do: map
+  defp maybe_put_metadata(map, key, value), do: Map.put(map, key, value)
 
   defp first_present_binary(values) do
     Enum.find_value(values, fn

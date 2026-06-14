@@ -31,6 +31,7 @@ defmodule ControlKeel.Memory.Record do
   end
 
   @external_id_prefix "mem_"
+  @visibilities ~w(workspace org admin)
 
   def changeset(record, attrs) do
     record
@@ -63,11 +64,20 @@ defmodule ControlKeel.Memory.Record do
       :source_type,
       :metadata
     ])
+    |> validate_inclusion(:visibility, @visibilities)
+    |> validate_org_visibility_scope()
     |> maybe_generate_external_id()
     |> unique_constraint(:external_id)
     |> assoc_constraint(:workspace)
     |> assoc_constraint(:session)
     |> assoc_constraint(:task)
+  end
+
+  defp validate_org_visibility_scope(changeset) do
+    case get_field(changeset, :visibility) do
+      "org" -> validate_required(changeset, [:shared_org_id])
+      _ -> changeset
+    end
   end
 
   @doc """

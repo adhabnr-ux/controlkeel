@@ -135,7 +135,7 @@ defmodule ControlKeel.MissionFixtures do
         body: "Detailed memory body.",
         tags: ["memory"],
         source_type: "test",
-        source_id: "fixture",
+        source_id: "fixture-#{System.unique_integer([:positive])}",
         metadata: %{"domain_pack" => "software"}
       })
       |> Map.delete(:session)

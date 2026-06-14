@@ -102,7 +102,10 @@ defmodule ControlKeel.CLI do
       {:error, reason, _extra} ->
         if json_mode?(parsed) do
           entry = Catalog.for_command(parsed.command)
-          json_error_printer.(ControlKeel.CLI.Output.error_json(inspect(reason), :command_error, entry))
+
+          json_error_printer.(
+            ControlKeel.CLI.Output.error_json(inspect(reason), :command_error, entry)
+          )
         else
           error_printer.("Failed: #{inspect(reason)}")
         end

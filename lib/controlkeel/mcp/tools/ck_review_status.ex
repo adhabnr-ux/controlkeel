@@ -26,7 +26,10 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
          "grill_questions" => get_in(plan_refinement, ["quality", "grill_questions"]) || [],
          "agent_feedback" => review_agent_feedback(review),
          "responded_at" => review.responded_at,
-         "browser_url" => review_browser_url(review)
+         "browser_url" => review_browser_url(review),
+         "review_url" => review_browser_url(review),
+         "approval_instructions" => approval_instructions(review, review_browser_url(review)),
+         "review_roles" => review_roles(review.review_type, plan_refinement)
        }}
     end
   end
@@ -198,6 +201,35 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
   end
 
   defp review_browser_url(review), do: safe_review_url(review.id)
+
+  defp approval_instructions(review, nil) do
+    %{
+      "primary" =>
+        "Review #{review.review_type} ##{review.id} in the ControlKeel UI when available.",
+      "fallback_status_command" => "controlkeel review status #{review.id}",
+      "fallback_approve_command" => "controlkeel review approve #{review.id}",
+      "fallback_deny_command" => "controlkeel review deny #{review.id} --feedback '<reason>'"
+    }
+  end
+
+  defp approval_instructions(review, browser_url) do
+    %{
+      "primary" => "Open #{browser_url} to approve or deny #{review.review_type} ##{review.id}.",
+      "fallback_status_command" => "controlkeel review status #{review.id}",
+      "fallback_approve_command" => "controlkeel review approve #{review.id}",
+      "fallback_deny_command" => "controlkeel review deny #{review.id} --feedback '<reason>'"
+    }
+  end
+
+  defp review_roles("completion", _plan_refinement),
+    do: ["operator", "security reviewer", "product/human QA"]
+
+  defp review_roles(_review_type, plan_refinement) do
+    case Map.get(plan_refinement, "consulted_roles") do
+      roles when is_list(roles) and roles != [] -> roles
+      _ -> ["operator", "security reviewer", "platform maintainer"]
+    end
+  end
 
   defp review_metadata(%{metadata: metadata}) when is_map(metadata), do: metadata
   defp review_metadata(_review), do: %{}

@@ -44,12 +44,20 @@ defmodule ControlKeelWeb.ApiController do
   end
 
   def get_session(conn, %{"id" => id}) do
-    case Mission.get_session_context(id) do
+    with {:ok, session_id} <- parse_integer_param(id),
+         %{} = session <- Mission.get_session(session_id),
+         :ok <- authorize_workspace_for_conn(conn, session.workspace_id, "sessions:read"),
+         %{} = context <- Mission.get_session_context(session_id) do
+      json(conn, %{session: session_detail(context)})
+    else
+      {:error, :invalid_integer} ->
+        conn |> put_status(:not_found) |> json(%{error: "session not found"})
+
       nil ->
         conn |> put_status(:not_found) |> json(%{error: "session not found"})
 
-      session ->
-        json(conn, %{session: session_detail(session)})
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
     end
   end
 
@@ -60,15 +68,18 @@ defmodule ControlKeelWeb.ApiController do
         ~w(session_id task_id title review_type submission_body annotations feedback_notes submitted_by metadata previous_review_id)
       )
 
-    case Mission.submit_review(attrs) do
-      {:ok, review} ->
-        conn |> put_status(:created) |> json(%{review: review_summary(review)})
+    with :ok <- authorize_review_target(conn, attrs),
+         {:ok, review} <- Mission.submit_review(attrs) do
+      conn |> put_status(:created) |> json(%{review: review_summary(review)})
+    else
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "review target not found"})
 
       {:error, {:invalid_arguments, message}} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: message})
-
-      {:error, :not_found} ->
-        conn |> put_status(:not_found) |> json(%{error: "task not found"})
 
       {:error, %Ecto.Changeset{} = changeset} ->
         conn
@@ -84,8 +95,17 @@ defmodule ControlKeelWeb.ApiController do
     case parse_integer_param(id) do
       {:ok, review_id} ->
         case Mission.get_review_with_context(review_id) do
-          nil -> conn |> put_status(:not_found) |> json(%{error: "review not found"})
-          review -> json(conn, %{review: review_summary(review)})
+          nil ->
+            conn |> put_status(:not_found) |> json(%{error: "review not found"})
+
+          review ->
+            case authorize_workspace_for_conn(conn, review.session.workspace_id, "reviews:read") do
+              :ok ->
+                json(conn, %{review: review_summary(review)})
+
+              {:error, :forbidden} ->
+                conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
+            end
         end
 
       {:error, :invalid_integer} ->
@@ -100,6 +120,7 @@ defmodule ControlKeelWeb.ApiController do
 
     with {:ok, review_id} <- parse_integer_param(id),
          {:ok, review} <- fetch_review(review_id),
+         :ok <- authorize_session_access(conn, review.session_id, "reviews:write"),
          {:ok, updated} <- Mission.respond_review(review, attrs) do
       json(conn, %{review: review_summary(updated)})
     else
@@ -110,6 +131,9 @@ defmodule ControlKeelWeb.ApiController do
 
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "review not found"})
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
 
       {:error, {:invalid_arguments, message}} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: message})
@@ -127,9 +151,20 @@ defmodule ControlKeelWeb.ApiController do
   def create_session(conn, params) do
     attrs = session_create_attrs(params)
 
-    case Mission.create_session(attrs) do
-      {:ok, session} ->
-        conn |> put_status(:created) |> json(%{session: session_summary(session)})
+    with :ok <-
+           maybe_authorize_workspace_id(
+             conn,
+             attrs["workspace_id"] || attrs[:workspace_id],
+             "sessions:write"
+           ),
+         {:ok, session} <- Mission.create_session(attrs) do
+      conn |> put_status(:created) |> json(%{session: session_summary(session)})
+    else
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "session not found"})
 
       {:error, changeset} ->
         conn
@@ -228,19 +263,23 @@ defmodule ControlKeelWeb.ApiController do
         conn |> put_status(:not_found) |> json(%{error: "session not found"})
 
       _session ->
-        attrs =
-          params
-          |> Map.take(~w(title validation_gate estimated_cost_cents position))
-          |> Map.put("session_id", session_id)
+        with :ok <- authorize_session_access(conn, session_id, "tasks:execute") do
+          attrs =
+            params
+            |> Map.take(~w(title validation_gate estimated_cost_cents position))
+            |> Map.put("session_id", session_id)
 
-        case Mission.create_task(attrs) do
-          {:ok, task} ->
-            conn |> put_status(:created) |> json(%{task: task_summary(task)})
+          case Mission.create_task(attrs) do
+            {:ok, task} ->
+              conn |> put_status(:created) |> json(%{task: task_summary(task)})
 
-          {:error, changeset} ->
-            conn
-            |> put_status(:unprocessable_entity)
-            |> json(%{error: "invalid task", details: changeset_errors(changeset)})
+            {:error, changeset} ->
+              conn
+              |> put_status(:unprocessable_entity)
+              |> json(%{error: "invalid task", details: changeset_errors(changeset)})
+          end
+        else
+          {:error, :forbidden} -> conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
         end
     end
   end
@@ -249,6 +288,7 @@ defmodule ControlKeelWeb.ApiController do
     project_root = Map.get(params, "project_root", File.cwd!())
 
     with {:ok, task_id} <- parse_integer_param(id),
+         :ok <- authorize_task_access(conn, task_id, "tasks:execute"),
          {:ok, result} <-
            AgentExecution.run_task(task_id,
              project_root: project_root,
@@ -266,6 +306,9 @@ defmodule ControlKeelWeb.ApiController do
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "task not found"})
 
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
+
       {:error, reason} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
@@ -275,6 +318,7 @@ defmodule ControlKeelWeb.ApiController do
     project_root = Map.get(params, "project_root", File.cwd!())
 
     with {:ok, session_id} <- parse_integer_param(id),
+         :ok <- authorize_session_access(conn, session_id, "tasks:execute"),
          {:ok, result} <-
            AgentExecution.run_session(session_id,
              project_root: project_root,
@@ -290,6 +334,9 @@ defmodule ControlKeelWeb.ApiController do
 
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "session not found"})
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
 
       {:error, reason} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
@@ -341,24 +388,28 @@ defmodule ControlKeelWeb.ApiController do
         conn |> put_status(:not_found) |> json(%{error: "finding not found"})
 
       finding ->
-        case action do
-          "approve" ->
-            {:ok, updated} = Mission.approve_finding(finding)
-            json(conn, %{finding: finding_summary(updated)})
+        with :ok <- authorize_finding_access(conn, finding, "findings:write") do
+          case action do
+            "approve" ->
+              {:ok, updated} = Mission.approve_finding(finding)
+              json(conn, %{finding: finding_summary(updated)})
 
-          "reject" ->
-            reason = Map.get(params, "reason")
-            {:ok, updated} = Mission.reject_finding(finding, reason)
-            json(conn, %{finding: finding_summary(updated)})
+            "reject" ->
+              reason = Map.get(params, "reason")
+              {:ok, updated} = Mission.reject_finding(finding, reason)
+              json(conn, %{finding: finding_summary(updated)})
 
-          "escalate" ->
-            {:ok, updated} = Mission.escalate_finding(finding)
-            json(conn, %{finding: finding_summary(updated)})
+            "escalate" ->
+              {:ok, updated} = Mission.escalate_finding(finding)
+              json(conn, %{finding: finding_summary(updated)})
 
-          _ ->
-            conn
-            |> put_status(:unprocessable_entity)
-            |> json(%{error: "unknown action", valid_actions: ~w(approve reject escalate)})
+            _ ->
+              conn
+              |> put_status(:unprocessable_entity)
+              |> json(%{error: "unknown action", valid_actions: ~w(approve reject escalate)})
+          end
+        else
+          {:error, :forbidden} -> conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
         end
     end
   end
@@ -382,9 +433,12 @@ defmodule ControlKeelWeb.ApiController do
       "metadata" => Map.get(params, "metadata", %{})
     }
 
-    case Mission.create_finding(attrs) do
-      {:ok, finding} ->
-        conn |> put_status(:created) |> json(%{finding: finding_summary(finding)})
+    with :ok <- authorize_session_access(conn, session_id, "findings:write"),
+         {:ok, finding} <- Mission.create_finding(attrs) do
+      conn |> put_status(:created) |> json(%{finding: finding_summary(finding)})
+    else
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
 
       {:error, changeset} ->
         conn
@@ -404,16 +458,20 @@ defmodule ControlKeelWeb.ApiController do
           conn |> put_status(:not_found) |> json(%{error: "session not found"})
 
         session ->
-          rolling_24h = Budget.rolling_24h_spend_cents(session.id)
+          with :ok <- authorize_workspace_for_conn(conn, session.workspace_id, "budget:read") do
+            rolling_24h = Budget.rolling_24h_spend_cents(session.id)
 
-          json(conn, %{
-            session_id: session.id,
-            budget_cents: session.budget_cents,
-            daily_budget_cents: session.daily_budget_cents,
-            spent_cents: session.spent_cents,
-            rolling_24h_spend_cents: rolling_24h,
-            remaining_cents: max((session.budget_cents || 0) - (session.spent_cents || 0), 0)
-          })
+            json(conn, %{
+              session_id: session.id,
+              budget_cents: session.budget_cents,
+              daily_budget_cents: session.daily_budget_cents,
+              spent_cents: session.spent_cents,
+              rolling_24h_spend_cents: rolling_24h,
+              remaining_cents: max((session.budget_cents || 0) - (session.spent_cents || 0), 0)
+            })
+          else
+            {:error, :forbidden} -> conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
+          end
       end
     else
       sessions = Mission.list_recent_sessions(100, current_workspace_id(conn))
@@ -437,16 +495,20 @@ defmodule ControlKeelWeb.ApiController do
         conn |> put_status(:not_found) |> json(%{error: "task not found"})
 
       task ->
-        attrs = Map.take(params, ~w(status title validation_gate metadata))
+        with :ok <- authorize_task_access(conn, task.id, "tasks:execute") do
+          attrs = Map.take(params, ~w(status title validation_gate metadata))
 
-        case Mission.update_task(task, attrs) do
-          {:ok, updated} ->
-            json(conn, %{task: task_summary(updated)})
+          case Mission.update_task(task, attrs) do
+            {:ok, updated} ->
+              json(conn, %{task: task_summary(updated)})
 
-          {:error, changeset} ->
-            conn
-            |> put_status(:unprocessable_entity)
-            |> json(%{error: "invalid attrs", details: changeset_errors(changeset)})
+            {:error, changeset} ->
+              conn
+              |> put_status(:unprocessable_entity)
+              |> json(%{error: "invalid attrs", details: changeset_errors(changeset)})
+          end
+        else
+          {:error, :forbidden} -> conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
         end
     end
   rescue
@@ -457,12 +519,19 @@ defmodule ControlKeelWeb.ApiController do
   # ─── Proof Bundle ─────────────────────────────────────────────────────────────
 
   def proof_bundle(conn, %{"task_id" => task_id}) do
-    case Mission.proof_bundle(task_id) do
-      {:ok, bundle} ->
-        json(conn, %{proof: bundle})
+    with {:ok, parsed_task_id} <- parse_integer_param(task_id),
+         :ok <- authorize_task_access(conn, parsed_task_id, "proofs:read"),
+         {:ok, bundle} <- Mission.proof_bundle(parsed_task_id) do
+      json(conn, %{proof: bundle})
+    else
+      {:error, :invalid_integer} ->
+        conn |> put_status(:not_found) |> json(%{error: "task not found"})
 
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "task not found"})
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
     end
   end
 
@@ -479,12 +548,19 @@ defmodule ControlKeelWeb.ApiController do
   end
 
   def get_proof(conn, %{"id" => id}) do
-    case Mission.get_proof_bundle_with_context(String.to_integer(id)) do
+    with {:ok, proof_id} <- parse_integer_param(id),
+         %{} = proof <- Mission.get_proof_bundle_with_context(proof_id),
+         :ok <- authorize_workspace_for_conn(conn, proof.session.workspace_id, "proofs:read") do
+      json(conn, %{proof: proof_detail(proof)})
+    else
+      {:error, :invalid_integer} ->
+        conn |> put_status(:not_found) |> json(%{error: "proof not found"})
+
       nil ->
         conn |> put_status(:not_found) |> json(%{error: "proof not found"})
 
-      proof ->
-        json(conn, %{proof: proof_detail(proof)})
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
     end
   end
 
@@ -604,29 +680,50 @@ defmodule ControlKeelWeb.ApiController do
   def search_memory(conn, params) do
     query = Map.get(params, "q", "")
 
-    result =
-      Memory.search(query, %{
-        workspace_id: nil,
-        session_id: normalize_integer_param(params["session_id"]),
-        task_id: normalize_integer_param(params["task_id"]),
-        record_type: params["type"]
-      })
+    with {:ok, opts} <- memory_search_opts(conn, params) do
+      result =
+        Memory.search(query, %{
+          workspace_id: opts.workspace_id,
+          org_id: opts.org_id,
+          visibility: opts.visibility,
+          session_id: opts.session_id,
+          task_id: normalize_integer_param(params["task_id"]),
+          record_type: params["type"]
+        })
 
-    json(conn, %{
-      query: result.query,
-      semantic_available: result.semantic_available,
-      records: Enum.map(result.entries, &memory_hit_summary/1),
-      total: result.total_count
-    })
+      json(conn, %{
+        query: result.query,
+        semantic_available: result.semantic_available,
+        records: Enum.map(result.entries, &memory_hit_summary/1),
+        total: result.total_count
+      })
+    else
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "session not found"})
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
+    end
   end
 
   def archive_memory(conn, %{"id" => id}) do
-    case Memory.archive_record(String.to_integer(id)) do
-      {:ok, record} ->
-        json(conn, %{memory: %{id: record.id, archived_at: record.archived_at}})
+    with {:ok, parsed_id} <- parse_integer_param(id),
+         %{} = record <- Memory.get_record(parsed_id),
+         :ok <- authorize_workspace_for_conn(conn, record.workspace_id, "memory:write"),
+         {:ok, archived} <- Memory.archive_record(record) do
+      json(conn, %{memory: %{id: archived.id, archived_at: archived.archived_at}})
+    else
+      {:error, :invalid_integer} ->
+        conn |> put_status(:not_found) |> json(%{error: "memory record not found"})
+
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "memory record not found"})
 
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "memory record not found"})
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
     end
   end
 
@@ -636,30 +733,38 @@ defmodule ControlKeelWeb.ApiController do
 
     case session_id && Mission.get_session(session_id) do
       %{} = session ->
-        attrs = %{
-          "workspace_id" => session.workspace_id,
-          "session_id" => session_id,
-          "task_id" => normalize_integer_param(params["task_id"]),
-          "record_type" => Map.get(params, "record_type", "decision"),
-          "title" => Map.get(params, "title", String.slice(body, 0, 80)),
-          "summary" => Map.get(params, "summary", body),
-          "body" => body,
-          "tags" => Map.get(params, "tags", []),
-          "source_type" => "user"
-        }
+        with :ok <- authorize_session_access(conn, session_id, "memory:write") do
+          attrs = %{
+            "workspace_id" => session.workspace_id,
+            "session_id" => session_id,
+            "task_id" => normalize_integer_param(params["task_id"]),
+            "record_type" => Map.get(params, "record_type", "decision"),
+            "title" => Map.get(params, "title", String.slice(body, 0, 80)),
+            "summary" => Map.get(params, "summary", body),
+            "body" => body,
+            "tags" => Map.get(params, "tags", []),
+            "source_type" => Map.get(params, "source_type", "user"),
+            "source_id" => Map.get(params, "source_id"),
+            "visibility" => Map.get(params, "visibility", "workspace"),
+            "shared_org_id" => normalize_integer_param(params["shared_org_id"]),
+            "metadata" => Map.get(params, "metadata", %{})
+          }
 
-        case Memory.record(attrs) do
-          {:ok, record} ->
-            conn
-            |> put_status(:created)
-            |> json(%{
-              memory: %{id: record.id, record_type: record.record_type, title: record.title}
-            })
+          case Memory.record(attrs) do
+            {:ok, record} ->
+              conn
+              |> put_status(:created)
+              |> json(%{
+                memory: %{id: record.id, record_type: record.record_type, title: record.title}
+              })
 
-          {:error, changeset} ->
-            conn
-            |> put_status(:unprocessable_entity)
-            |> json(%{error: "invalid memory", details: changeset_errors(changeset)})
+            {:error, changeset} ->
+              conn
+              |> put_status(:unprocessable_entity)
+              |> json(%{error: "invalid memory", details: changeset_errors(changeset)})
+          end
+        else
+          {:error, :forbidden} -> conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
         end
 
       _ ->
@@ -2070,6 +2175,63 @@ defmodule ControlKeelWeb.ApiController do
     case conn.assigns[:api_auth] do
       %{type: :service_account, service_account: service_account} -> service_account
       _ -> nil
+    end
+  end
+
+  defp memory_search_opts(conn, params) do
+    session_id = normalize_integer_param(params["session_id"])
+
+    case {session_id, current_service_account(conn)} do
+      {nil, nil} ->
+        {:ok, %{workspace_id: nil, org_id: nil, visibility: nil, session_id: nil}}
+
+      {nil, %{workspace_id: workspace_id}} ->
+        with :ok <- authorize_workspace_for_conn(conn, workspace_id, "memory:read") do
+          {:ok, %{workspace_id: workspace_id, org_id: nil, visibility: nil, session_id: nil}}
+        end
+
+      {session_id, _account} when is_integer(session_id) ->
+        with %{} = session <- Mission.get_session(session_id),
+             :ok <- authorize_workspace_for_conn(conn, session.workspace_id, "memory:read") do
+          {:ok,
+           %{
+             workspace_id: session.workspace_id,
+             org_id: nil,
+             visibility: nil,
+             session_id: session_id
+           }}
+        else
+          nil -> {:error, :not_found}
+          {:error, :forbidden} -> {:error, :forbidden}
+        end
+    end
+  end
+
+  defp maybe_authorize_workspace_id(conn, workspace_id, scope) do
+    case normalize_integer_param(workspace_id) do
+      nil -> :ok
+      parsed_id -> authorize_workspace_for_conn(conn, parsed_id, scope)
+    end
+  end
+
+  defp authorize_review_target(conn, attrs) do
+    cond do
+      task_id = normalize_integer_param(attrs["task_id"] || attrs[:task_id]) ->
+        authorize_task_access(conn, task_id, "reviews:write")
+
+      session_id = normalize_integer_param(attrs["session_id"] || attrs[:session_id]) ->
+        authorize_session_access(conn, session_id, "reviews:write")
+
+      true ->
+        :ok
+    end
+  end
+
+  defp authorize_finding_access(conn, finding, scope) do
+    with %{} = session <- Mission.get_session(finding.session_id) do
+      authorize_workspace_for_conn(conn, session.workspace_id, scope)
+    else
+      nil -> {:error, :not_found}
     end
   end
 

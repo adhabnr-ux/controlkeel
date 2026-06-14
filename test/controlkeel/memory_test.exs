@@ -64,6 +64,63 @@ defmodule ControlKeel.MemoryTest do
     assert result.semantic_available == true
   end
 
+  test "record/1 updates an existing source record instead of duplicating it" do
+    session = session_fixture()
+
+    attrs = %{
+      workspace_id: session.workspace_id,
+      session_id: session.id,
+      record_type: "decision",
+      title: "Original decision",
+      summary: "Original summary",
+      source_type: "review",
+      source_id: "review-123"
+    }
+
+    assert {:ok, original} = Memory.record(attrs)
+
+    assert {:ok, updated} =
+             Memory.record(
+               Map.merge(attrs, %{
+                 title: "Updated decision",
+                 summary: "Updated summary",
+                 body: "Updated body"
+               })
+             )
+
+    assert updated.id == original.id
+    assert updated.title == "Updated decision"
+
+    result = Memory.search("Updated", workspace_id: session.workspace_id, source_id: "review-123")
+    assert Enum.map(result.entries, & &1.id) == [original.id]
+  end
+
+  test "record/1 validates visibility and org sharing scope" do
+    session = session_fixture()
+
+    base = %{
+      workspace_id: session.workspace_id,
+      session_id: session.id,
+      record_type: "decision",
+      title: "Shared memory",
+      summary: "Shared summary",
+      source_type: "test",
+      source_id: "shared-memory"
+    }
+
+    assert {:error, changeset} = Memory.record(Map.put(base, :visibility, "public"))
+    assert %{visibility: ["is invalid"]} = errors_on(changeset)
+
+    assert {:error, changeset} = Memory.record(Map.put(base, :visibility, "org"))
+    assert %{shared_org_id: ["can't be blank"]} = errors_on(changeset)
+
+    assert {:ok, record} =
+             Memory.record(Map.merge(base, %{visibility: "org", shared_org_id: 42}))
+
+    assert record.visibility == "org"
+    assert record.shared_org_id == 42
+  end
+
   test "archive_record/1 removes a memory hit from retrieval" do
     session = session_fixture()
 
