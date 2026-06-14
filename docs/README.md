@@ -17,9 +17,10 @@ ControlKeel is the control plane for AI-agent work: policy gates, findings, proo
 
 ## Govern work, not just prompts
 
-- [autonomy-and-findings.md](autonomy-and-findings.md): findings, approvals, autonomy posture, and intent-based human gates
+- [autonomy-and-findings.md](autonomy-and-findings.md): findings, approvals, autonomy posture, hook enforcement, typed memory lifecycle, and intent-based human gates
 - [agent-specs.md](agent-specs.md): reusable agent/task behavior contracts for specs, reviews, and benchmarks
-- [observability-feedback-loop.md](observability-feedback-loop.md): local eval-to-draft-to-benchmark-to-promotion-advisory workflow
+- [observability-feedback-loop.md](observability-feedback-loop.md): local eval-to-draft-to-benchmark-to-promotion-advisory workflow with regression evidence
+- [control-plane-claim-matrix.md](control-plane-claim-matrix.md): README claim-to-test matrix for governance, memory, cloud sync, and human gates
 
 ## Operate teams, projects, and cloud deployments
 

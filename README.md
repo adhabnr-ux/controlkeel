@@ -94,6 +94,7 @@ Read the numbers precisely: deterministic scanner evidence is not the same as mo
 - [docs/agent-integrations.md](docs/agent-integrations.md) — integration mechanisms and support tiers
 - [docs/benchmarks.md](docs/benchmarks.md) — benchmark scoring, metadata, and claim discipline
 - [docs/observability-feedback-loop.md](docs/observability-feedback-loop.md) — local evidence-to-regression loop
+- [docs/control-plane-claim-matrix.md](docs/control-plane-claim-matrix.md) — README claim-to-test matrix for governance, memory, cloud sync, and human gates
 - [docs/api-reference.md](docs/api-reference.md) and [docs/cli-reference.md](docs/cli-reference.md) — code-aligned surfaces
 - [docs/packages.md](docs/packages.md) — package and distribution catalog
 - [docs/self-hosting.md](docs/self-hosting.md) — self-host deployment guidance

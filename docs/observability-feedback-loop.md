@@ -98,6 +98,16 @@ Telemetry sync is off by default. When teams need shared observability across in
 
 The local loop works without telemetry sync. Sync must apply redaction before data leaves the node and must not auto-escalate between levels.
 
+## Regression evidence and memory
+
+External regression results recorded through `ck_regression_result` produce two artifacts:
+1. An **invocation** (source: `external_qa`, tool: `regression_test`) consumed by proof bundle scoring and deploy-readiness gates.
+2. A **regression memory record** (record_type: `regression`) retrievable through `ck_memory_search` with `record_type: "regression"`.
+
+This means regression evidence is both proof-consumable (for the current task) and memory-retrievable (for future agents and sessions).
+
 ## Agent-facing use
 
-Agents can consume observability through `ck_observability`, `ck_failure_clusters`, and `ck_skill_evolution`, but their outputs remain advisory. The goal is continual learning that is explicit, reviewable, and benchmarked before promotion.
+Agents can consume observability through `ck_observability`, `ck_failure_clusters`, `ck_skill_evolution`, and `ck_context_pack`, but their outputs remain advisory. The goal is continual learning that is explicit, reviewable, and benchmarked before promotion.
+
+`ck_context` surfaces the improvement loop bottleneck and recommended next step automatically — the agent does not need to call observability tools explicitly to see what to do next.
