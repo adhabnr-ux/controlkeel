@@ -182,6 +182,47 @@ defmodule ControlKeel.ProjectBindingTest do
     refute ProjectBinding.dev_or_build_path?("/opt/homebrew/bin/controlkeel")
   end
 
+  describe "mcp_command_spec/2 portable mode" do
+    # Regression: a project-specific absolute wrapper path must never be written
+    # into a global/shared host config. The wrapper can live in a temp or moved
+    # folder and break MCP for every project sharing the global config.
+    test "portable: true never returns the project wrapper path", %{tmp: tmp} do
+      # Install a wrapper so the non-portable branch would pick it up.
+      assert :ok = ProjectBinding.ensure_mcp_wrapper(tmp)
+
+      spec = ProjectBinding.mcp_command_spec(tmp, portable: true)
+
+      wrapper = ProjectBinding.mcp_wrapper_path(tmp)
+
+      refute spec[:command] == wrapper
+      assert spec[:args] == ["mcp"]
+      assert String.ends_with?(spec[:command], "controlkeel")
+      refute ProjectBinding.burrito_erts_shim?(spec[:command])
+    end
+
+    test "portable: false (default) still uses the wrapper when present", %{tmp: tmp} do
+      assert :ok = ProjectBinding.ensure_mcp_wrapper(tmp)
+
+      spec = ProjectBinding.mcp_command_spec(tmp)
+      wrapper = ProjectBinding.mcp_wrapper_path(tmp)
+
+      assert spec[:command] == wrapper
+      assert spec[:args] == []
+    end
+
+    test "default falls back to installed CLI when no wrapper exists", %{tmp: tmp} do
+      spec = ProjectBinding.mcp_command_spec(tmp)
+
+      refute spec[:command] == ProjectBinding.mcp_wrapper_path(tmp)
+      # macOS may canonicalize /var -> /private/var, so compare by basename.
+      [mcp_flag, root_flag, resolved_root] = spec[:args]
+      assert mcp_flag == "mcp"
+      assert root_flag == "--project-root"
+      assert Path.basename(resolved_root) == Path.basename(tmp)
+      assert String.ends_with?(spec[:command], "controlkeel")
+    end
+  end
+
   describe "ensure_gitignore/3" do
     test "creates a managed block covering controlkeel/ and .controlkeel/", %{tmp: tmp} do
       assert :ok = ProjectBinding.ensure_gitignore(tmp)

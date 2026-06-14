@@ -251,18 +251,34 @@ defmodule ControlKeel.ProjectBinding do
     end
   end
 
-  def mcp_command_spec(project_root \\ File.cwd!()) do
+  def mcp_command_spec(project_root \\ File.cwd!(), opts \\ []) do
     root = canonical_root(project_root)
-    wrapper = mcp_wrapper_path(root)
 
-    if File.exists?(wrapper) do
-      %{command: wrapper, args: [], binding_mode: "project"}
-    else
+    if Keyword.get(opts, :portable, false) do
+      # Global/shared host configs (e.g. ~/.config/opencode/opencode.json,
+      # ~/.codex/config.toml at user scope, Cursor/Windsurf/Goose global MCP
+      # files) must NOT embed a project-specific absolute wrapper path. Such a
+      # wrapper can live in a temp or moved folder and break MCP for every
+      # project that shares the global config. The MCP server resolves the
+      # project root from CK_PROJECT_ROOT or its working directory at runtime
+      # (see ControlKeel.MCP.Server.stdio_project_root/0).
       %{
         command: default_cli_command(),
-        args: ["mcp", "--project-root", root],
+        args: ["mcp"],
         binding_mode: binding_mode(root)
       }
+    else
+      wrapper = mcp_wrapper_path(root)
+
+      if File.exists?(wrapper) do
+        %{command: wrapper, args: [], binding_mode: "project"}
+      else
+        %{
+          command: default_cli_command(),
+          args: ["mcp", "--project-root", root],
+          binding_mode: binding_mode(root)
+        }
+      end
     end
   end
 

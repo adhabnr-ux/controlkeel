@@ -1045,6 +1045,27 @@ defmodule ControlKeel.SkillsTest do
     assert get_in(mcp, ["mcpServers", "controlkeel", "args"]) == []
   end
 
+  test "project-local MCP configs stay portable even when a bootstrap wrapper exists", %{
+    tmp_dir: tmp_dir
+  } do
+    # A bootstrap wrapper exists on disk — the legacy behavior baked its
+    # absolute path into committed configs, breaking teammates/moves.
+    :ok = ControlKeel.ProjectBinding.ensure_mcp_wrapper(tmp_dir)
+    wrapper = ControlKeel.ProjectBinding.mcp_wrapper_path(tmp_dir)
+    assert File.exists?(wrapper)
+
+    assert {:ok, _} = Skills.install("opencode-native", tmp_dir, scope: "project")
+
+    opencode_mcp = Jason.decode!(File.read!(Path.join(tmp_dir, ".opencode/mcp.json")))
+    command = get_in(opencode_mcp, ["mcp", "controlkeel", "command"])
+
+    # The absolute wrapper path must never leak into the committable config.
+    refute command == [wrapper]
+    refute Enum.any?(command, &String.starts_with?(&1, tmp_dir))
+    assert hd(command) == "controlkeel"
+    assert tl(command) == ["mcp", "--project-root", "."]
+  end
+
   test "cursor-native install does not downgrade plugin.json when existing version is newer", %{
     tmp_dir: tmp_dir
   } do

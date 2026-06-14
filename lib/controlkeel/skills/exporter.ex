@@ -631,8 +631,14 @@ defmodule ControlKeel.Skills.Exporter do
           path
 
         :error ->
-          wrapper = ProjectBinding.mcp_wrapper_path(root)
-          if File.exists?(wrapper), do: wrapper, else: "controlkeel"
+          # Portable default: bare `controlkeel` resolved by the host via PATH,
+          # never a machine-specific absolute wrapper path. The bootstrap
+          # wrapper bakes an absolute CK_PROJECT_ROOT that breaks when a
+          # project-local MCP config (e.g. .opencode/mcp.json, .codex/config) is
+          # committed, shared with a teammate, or the project folder is moved.
+          # The MCP server resolves the real root from CK_PROJECT_ROOT or its
+          # working directory at runtime (stdio_project_root/0).
+          "controlkeel"
       end
     end
   end
@@ -649,13 +655,10 @@ defmodule ControlKeel.Skills.Exporter do
           []
 
         :error ->
-          wrapper = ProjectBinding.mcp_wrapper_path(root)
-
-          if File.exists?(wrapper) do
-            []
-          else
-            ["mcp", "--project-root", root]
-          end
+          # Relative "." keeps the config portable across machines; the host
+          # resolves it against the workspace cwd, and the server falls back to
+          # CK_PROJECT_ROOT when set.
+          ["mcp", "--project-root", Distribution.portable_project_root()]
       end
     end
   end

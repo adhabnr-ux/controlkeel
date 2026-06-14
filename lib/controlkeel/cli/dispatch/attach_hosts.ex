@@ -57,7 +57,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => "cursor"}),
          {:ok, _scope} <- validate_attach_scope("cursor", options),
-         command_spec <- ProjectBinding.mcp_command_spec(root),
+         command_spec <- ProjectBinding.mcp_command_spec(root, portable: true),
          {:ok, attached} <- attach_to_cursor(command_spec),
          updated <- ProjectBinding.update_attached_agent(binding, "cursor", attached),
          {:ok, _} <-
@@ -85,7 +85,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => "windsurf"}),
          {:ok, _scope} <- validate_attach_scope("windsurf", options),
-         command_spec <- ProjectBinding.mcp_command_spec(root),
+         command_spec <- ProjectBinding.mcp_command_spec(root, portable: true),
          {:ok, attached} <- attach_to_windsurf(command_spec),
          updated <- ProjectBinding.update_attached_agent(binding, "windsurf", attached),
          {:ok, _} <-
@@ -115,7 +115,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => agent}),
          {:ok, scope} <- validate_attach_scope(agent, options),
-         command_spec <- ProjectBinding.mcp_command_spec(root),
+         command_spec <- ProjectBinding.mcp_command_spec(root, portable: scope == "user"),
          config_path <- CodexConfig.path_for_scope(root, scope),
          {:ok, _} <- CodexConfig.write(config_path, command_spec),
          {:ok, install_result} <- maybe_install_codex_native(root, scope, options),
@@ -183,7 +183,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => agent}),
          {:ok, _scope} <- validate_attach_scope(agent, options),
-         command_spec <- ProjectBinding.mcp_command_spec(root),
+         command_spec <- ProjectBinding.mcp_command_spec(root, portable: true),
          config_path <- config_path_fn[agent].(),
          {:ok, attached} <- write_ide_mcp_config(config_path, "controlkeel", command_spec, agent),
          {:ok, native_attrs, native_lines} <- install_native_attach(agent, root, options),
@@ -219,7 +219,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => "goose"}),
          {:ok, _scope} <- validate_attach_scope("goose", options),
-         command_spec <- ProjectBinding.mcp_command_spec(root),
+         command_spec <- ProjectBinding.mcp_command_spec(root, portable: true),
          {:ok, attached} <- attach_to_goose(command_spec, root),
          updated <- ProjectBinding.update_attached_agent(binding, "goose", attached),
          {:ok, _} <-
@@ -248,7 +248,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => "continue"}),
          {:ok, _scope} <- validate_attach_scope("continue", options),
-         command_spec <- ProjectBinding.mcp_command_spec(root),
+         command_spec <- ProjectBinding.mcp_command_spec(root, portable: true),
          {:ok, attached} <-
            write_continue_mcp_config(continue_config_path(), "controlkeel", command_spec),
          updated <- ProjectBinding.update_attached_agent(binding, "continue", attached),
