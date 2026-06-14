@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.54 — 2026-06-14
+
+### What's changed
+
+- docs: update documentation for clarity and completeness, add control plane claim matrix
+- fix: harden memory idempotence, API scoping, cloud sync evidence, review UX
+
 ## v0.3.53 — 2026-06-14
 
 ### What's changed
