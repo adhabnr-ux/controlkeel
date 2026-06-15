@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.55 — 2026-06-15
+
+### What's changed
+
+- fix(npm): de-obfuscate installer URLs (Socket urlStrings alert) (#16)
+- chore(docker): bump base image to Debian trixie (supersedes #2) (#15)
+- feat: decision lineage, snapshots, precedent & learning-loop closure (#14)
+
 ## v0.3.54 — 2026-06-14
 
 ### What's changed
