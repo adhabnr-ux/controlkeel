@@ -27,52 +27,71 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+      <section class="mx-auto max-w-[1180px] px-4 py-12 pb-16 pt-8">
+        <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
           <div>
-            <p class="ck-kicker">Policy Studio</p>
-            <h1 class="ck-section-title">Active governance rules</h1>
-            <p class="ck-lead ck-lead-tight">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Policy Studio
+            </p>
+            <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Active governance rules</h1>
+            <p class="text-[var(--ck-muted)] max-w-3xl text-base leading-relaxed">
               Every agent action passes through these policy packs before it executes. Rules that block are enforced automatically — no action required from you.
             </p>
           </div>
-          <a href={~p"/"} class="ck-link">Back home</a>
+          <a
+            href={~p"/"}
+            class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+          >
+            Back home
+          </a>
         </div>
 
-        <div class="ck-stat-grid">
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Active packs</p>
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Active packs
+            </p>
             <strong>{@pack_count}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Total rules</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Total rules
+            </p>
             <strong>{@rule_count}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Blocking rules</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Blocking rules
+            </p>
             <strong>{@block_count}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Active sessions</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Active sessions
+            </p>
             <strong>{length(@sessions)}</strong>
           </div>
         </div>
 
-        <div class="ck-grid ck-grid-dashboard">
+        <div class="grid gap-6 mt-6 max-[900px]:grid-cols-1 min-[901px]:grid-cols-[1.35fr_0.75fr]">
           <div>
-            <div class="ck-card">
-              <p class="ck-mini-label">Policy packs</p>
-              <div class="ck-finding-list">
+            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                Policy packs
+              </p>
+              <div class="grid gap-4 list-none m-0 p-0">
                 <%= for {name, rules} <- @packs do %>
-                  <article class="ck-finding-item">
-                    <div class="ck-finding-head">
+                  <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
+                    <div class="flex items-center justify-between gap-4">
                       <h3>{pack_label(name)}</h3>
-                      <span class={"ck-pill #{pack_pill_class(name)}"}>{length(rules)} rules</span>
+                      <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{pack_pill_class(name)}"}>
+                        {length(rules)} rules
+                      </span>
                     </div>
-                    <p class="ck-note">{pack_description(name)}</p>
-                    <div class="ck-tag-list" style="margin-top: 0.5rem;">
+                    <p class="text-[var(--ck-muted)]">{pack_description(name)}</p>
+                    <div class="flex flex-wrap gap-2 mt-2">
                       <%= for rule <- rules do %>
-                        <span class={"ck-tag ck-severity-#{rule.severity}"}>
+                        <span class="border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem]">
                           {rule.action}: {rule.category}
                         </span>
                       <% end %>
@@ -84,42 +103,50 @@ defmodule ControlKeelWeb.PolicyStudioLive do
           </div>
 
           <div>
-            <div class="ck-card" style="margin-bottom: 1rem;">
-              <p class="ck-mini-label">Session budgets</p>
+            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6 mb-4">
+              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                Session budgets
+              </p>
               <%= if @sessions == [] do %>
-                <p class="ck-note">
-                  No active sessions. Start a mission at <a href={~p"/missions/start"} class="ck-link">/missions/start</a>.
+                <p class="text-[var(--ck-muted)]">
+                  No active sessions. Start a mission at <a
+                    href={~p"/missions/start"}
+                    class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+                  >/missions/start</a>.
                 </p>
               <% else %>
-                <div class="ck-finding-list">
+                <div class="grid gap-4 list-none m-0 p-0">
                   <%= for session <- @sessions do %>
-                    <article class="ck-finding-item">
-                      <div class="ck-finding-head">
+                    <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
+                      <div class="flex items-center justify-between gap-4">
                         <h3>
-                          <.link navigate={~p"/missions/#{session.id}"} class="ck-link">
+                          <.link
+                            navigate={~p"/missions/#{session.id}"}
+                            class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+                          >
                             {session.title}
                           </.link>
                         </h3>
-                        <span class={"ck-pill #{risk_pill_class(session.risk_tier)}"}>
+                        <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{risk_pill_class(session.risk_tier)}"}>
                           {session.risk_tier}
                         </span>
                       </div>
-                      <div class="ck-metric-row" style="margin-top: 0.5rem;">
-                        <span class="ck-note">
+                      <div class="flex items-center justify-between gap-4 mt-2">
+                        <span class="text-[var(--ck-muted)]">
                           Budget: {format_cents(session.budget_cents)}
                         </span>
-                        <span class="ck-note">
+                        <span class="text-[var(--ck-muted)]">
                           Spent: {format_cents(session.spent_cents)}
                         </span>
-                        <span class="ck-note">
+                        <span class="text-[var(--ck-muted)]">
                           Daily cap: {format_cents(session.daily_budget_cents)}
                         </span>
                       </div>
                       <%= if (session.budget_cents || 0) > 0 do %>
                         <% pct = budget_pct(session.spent_cents, session.budget_cents) %>
-                        <div class="ck-progress-bar">
+                        <div class="w-full rounded-full bg-[var(--ck-panel)] h-2 mt-2">
                           <div
-                            class={"ck-progress-fill #{budget_fill_class(pct)}"}
+                            class={"h-full rounded-full transition-all #{budget_fill_class(pct)}"}
                             style={"width: #{pct}%"}
                           >
                           </div>
@@ -131,51 +158,53 @@ defmodule ControlKeelWeb.PolicyStudioLive do
               <% end %>
             </div>
 
-            <div class="ck-card">
-              <p class="ck-mini-label">
+            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
                 What gets blocked automatically
-                <span class="ck-pill ck-pill-critical" style="margin-left: 0.5rem;">
+                <span class="border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb] ml-2">
                   {@block_count} rules
                 </span>
               </p>
               <%= if @blocked_rules == [] do %>
-                <p class="ck-note">No blocking rules loaded.</p>
+                <p class="text-[var(--ck-muted)]">No blocking rules loaded.</p>
               <% else %>
-                <ul class="ck-mini-list">
+                <ul class="grid gap-4 list-none m-0 p-0">
                   <%= for {pack_name, rules} <- @blocked_rules do %>
                     <%= for rule <- rules do %>
                       <li>
                         <strong>{rule.category}</strong>
-                        <span class="ck-note"> ({pack_label(pack_name)} pack)</span>
+                        <span class="text-[var(--ck-muted)]"> ({pack_label(pack_name)} pack)</span>
                       </li>
                     <% end %>
                   <% end %>
                 </ul>
               <% end %>
-              <p class="ck-note" style="margin-top: 1rem;">
+              <p class="text-[var(--ck-muted)] mt-4">
                 Warnings let the agent continue but surface a finding for your review. Blocks stop execution and require a policy fix before proceeding.
               </p>
             </div>
 
-            <div class="ck-card" style="margin-top: 1rem;">
-              <p class="ck-mini-label">Workspace tool policies</p>
+            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6 mt-4">
+              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                Workspace tool policies
+              </p>
               <%= if @tool_policies == [] do %>
-                <p class="ck-note">
+                <p class="text-[var(--ck-muted)]">
                   All workspaces inherit global tool access. Set a workspace policy with <code>controlkeel workspace tool-policy set</code>.
                 </p>
               <% else %>
-                <div class="ck-finding-list">
+                <div class="grid gap-4 list-none m-0 p-0">
                   <%= for {ws, policy} <- @tool_policies do %>
-                    <article class="ck-finding-item">
-                      <div class="ck-finding-head">
+                    <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
+                      <div class="flex items-center justify-between gap-4">
                         <h3>{ws.name}</h3>
-                        <span class={"ck-pill #{tool_policy_pill_class(policy.mode)}"}>
+                        <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{tool_policy_pill_class(policy.mode)}"}>
                           {policy.mode}
                         </span>
                       </div>
                       <% tools = WorkspaceToolPolicy.decode_tools(policy) %>
                       <%= if tools != [] do %>
-                        <p class="ck-note" style="margin-top: 0.25rem;">
+                        <p class="text-[var(--ck-muted)] mt-1">
                           Tools: {Enum.join(tools, ", ")}
                         </p>
                       <% end %>
@@ -316,18 +345,18 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
   defp pack_description(_), do: "Domain-specific policy rules."
 
-  defp pack_pill_class("baseline"), do: "ck-pill-critical"
-  defp pack_pill_class("cost"), do: "ck-pill-medium"
-  defp pack_pill_class(_), do: "ck-pill-neutral"
+  defp pack_pill_class("baseline"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+  defp pack_pill_class("cost"), do: "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+  defp pack_pill_class(_), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp pack_sort_order("baseline"), do: 0
   defp pack_sort_order("cost"), do: 1
   defp pack_sort_order("software"), do: 2
   defp pack_sort_order(_), do: 3
 
-  defp risk_pill_class("critical"), do: "ck-pill-critical"
-  defp risk_pill_class("high"), do: "ck-pill-high"
-  defp risk_pill_class(_), do: "ck-pill-neutral"
+  defp risk_pill_class("critical"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+  defp risk_pill_class("high"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+  defp risk_pill_class(_), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp format_cents(nil), do: "not set"
   defp format_cents(0), do: "$0"
@@ -340,11 +369,11 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   defp budget_pct(_spent, 0), do: 0
   defp budget_pct(spent, budget), do: min(round((spent || 0) / budget * 100), 100)
 
-  defp budget_fill_class(pct) when pct >= 90, do: "ck-progress-critical"
-  defp budget_fill_class(pct) when pct >= 75, do: "ck-progress-warn"
-  defp budget_fill_class(_), do: "ck-progress-ok"
+  defp budget_fill_class(pct) when pct >= 90, do: "bg-[var(--ck-danger)]"
+  defp budget_fill_class(pct) when pct >= 75, do: "bg-[var(--ck-warning)]"
+  defp budget_fill_class(_), do: "bg-[var(--ck-success)]"
 
-  defp tool_policy_pill_class("allowlist"), do: "ck-pill-success"
-  defp tool_policy_pill_class("denylist"), do: "ck-pill-high"
-  defp tool_policy_pill_class(_), do: "ck-pill-neutral"
+  defp tool_policy_pill_class("allowlist"), do: "bg-[rgba(125,226,174,0.12)] text-[#7de2ae]"
+  defp tool_policy_pill_class("denylist"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+  defp tool_policy_pill_class(_), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 end
