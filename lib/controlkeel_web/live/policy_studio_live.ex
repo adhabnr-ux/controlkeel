@@ -18,9 +18,24 @@ defmodule ControlKeelWeb.PolicyStudioLive do
      socket
      |> assign(:page_title, "Policy Studio")
      |> assign(:current_org_id, org_id)
+     |> assign(:open_packs, MapSet.new())
      |> assign_packs()
      |> assign_sessions(org_id)
      |> assign_tool_policies(org_id)}
+  end
+
+  @impl true
+  def handle_event("toggle_pack", %{"name" => name}, socket) do
+    open_packs = socket.assigns.open_packs
+
+    open_packs =
+      if MapSet.member?(open_packs, name) do
+        MapSet.delete(open_packs, name)
+      else
+        MapSet.put(open_packs, name)
+      end
+
+    {:noreply, assign(socket, :open_packs, open_packs)}
   end
 
   @impl true
@@ -79,28 +94,55 @@ defmodule ControlKeelWeb.PolicyStudioLive do
               <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
                 Policy packs
               </p>
-
-              <p class="text-[var(--ck-muted)] text-sm mt-4 mb-6">
+              <p class="text-[var(--ck-muted)] text-sm mt-4 mb-4">
                 <span class="rounded-full p-2 text-xs bg-red-500/15 text-red-300 border border-red-500/15 mr-1 font-bold uppercase">
                   {@block_count} rules
                 </span>
                 are block agent actions when violated. Other rules only generate warnings.
               </p>
-              <div class="grid gap-4 list-none m-0 p-0">
+
+              <div class="grid gap-2 list-none m-0 p-0 max-h-[48rem] overflow-y-auto pr-1">
                 <%= for {name, rules} <- @packs do %>
-                  <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
-                    <h3>{pack_label(name)}</h3>
-                    <p class="text-[var(--ck-muted)]">{pack_description(name)}</p>
-                    <div class="flex flex-wrap gap-2 mt-2">
-                      <%= for rule <- rules do %>
-                        <span
-                          title={rule.action <> ", " <> rule.category}
-                          class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{rule_tag_class(rule.action)}"}
+                  <% open? = MapSet.member?(@open_packs, name) %>
+                  <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] bg-[rgba(255,255,255,0.03)]">
+                    <div
+                      phx-click="toggle_pack"
+                      phx-value-name={name}
+                      class="flex items-center justify-between gap-4 p-4 cursor-pointer select-none"
+                    >
+                      <h3>{pack_label(name)}</h3>
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs text-[var(--ck-muted)]">{length(rules)} rules</span>
+                        <svg
+                          class={"w-4 h-4 text-[var(--ck-muted)] transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
                         >
-                          {rule_name(rule.id)}
-                        </span>
-                      <% end %>
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
                     </div>
+                    <%= if open? do %>
+                      <div class="px-4 pb-4">
+                        <p class="text-[var(--ck-muted)] text-sm">{pack_description(name)}</p>
+                        <div class="flex flex-wrap gap-2 mt-3">
+                          <%= for rule <- rules do %>
+                            <span
+                              title={rule.action <> ", " <> rule.category}
+                              class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{rule_tag_class(rule.action)}"}
+                            >
+                              {rule_name(rule.id)}
+                            </span>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% end %>
                   </article>
                 <% end %>
               </div>
