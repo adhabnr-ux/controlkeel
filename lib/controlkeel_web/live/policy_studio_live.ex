@@ -79,20 +79,25 @@ defmodule ControlKeelWeb.PolicyStudioLive do
               <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
                 Policy packs
               </p>
+
+              <p class="text-[var(--ck-muted)] text-sm mt-4 mb-6">
+                <span class="rounded-full p-2 text-xs bg-red-500/15 text-red-300 border border-red-500/15 mr-1 font-bold uppercase">
+                  {@block_count} rules
+                </span>
+                are block agent actions when violated. Other rules only generate warnings.
+              </p>
               <div class="grid gap-4 list-none m-0 p-0">
                 <%= for {name, rules} <- @packs do %>
                   <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
-                    <div class="flex items-center justify-between gap-4">
-                      <h3>{pack_label(name)}</h3>
-                      <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{pack_pill_class(name)}"}>
-                        {length(rules)} rules
-                      </span>
-                    </div>
+                    <h3>{pack_label(name)}</h3>
                     <p class="text-[var(--ck-muted)]">{pack_description(name)}</p>
                     <div class="flex flex-wrap gap-2 mt-2">
                       <%= for rule <- rules do %>
-                        <span class="border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem]">
-                          {rule.action}: {rule.category}
+                        <span
+                          title={rule.action <> ", " <> rule.category}
+                          class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{rule_tag_class(rule.action)}"}
+                        >
+                          {rule_name(rule.id)}
                         </span>
                       <% end %>
                     </div>
@@ -156,32 +161,6 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                   <% end %>
                 </div>
               <% end %>
-            </div>
-
-            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-                What gets blocked automatically
-                <span class="border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb] ml-2">
-                  {@block_count} rules
-                </span>
-              </p>
-              <%= if @blocked_rules == [] do %>
-                <p class="text-[var(--ck-muted)]">No blocking rules loaded.</p>
-              <% else %>
-                <ul class="grid gap-4 list-none m-0 p-0">
-                  <%= for {pack_name, rules} <- @blocked_rules do %>
-                    <%= for rule <- rules do %>
-                      <li>
-                        <strong>{rule.category}</strong>
-                        <span class="text-[var(--ck-muted)]"> ({pack_label(pack_name)} pack)</span>
-                      </li>
-                    <% end %>
-                  <% end %>
-                </ul>
-              <% end %>
-              <p class="text-[var(--ck-muted)] mt-4">
-                Warnings let the agent continue but surface a finding for your review. Blocks stop execution and require a policy fix before proceeding.
-              </p>
             </div>
 
             <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6 mt-4">
@@ -345,10 +324,6 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
   defp pack_description(_), do: "Domain-specific policy rules."
 
-  defp pack_pill_class("baseline"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
-  defp pack_pill_class("cost"), do: "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
-  defp pack_pill_class(_), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
-
   defp pack_sort_order("baseline"), do: 0
   defp pack_sort_order("cost"), do: 1
   defp pack_sort_order("software"), do: 2
@@ -376,4 +351,11 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   defp tool_policy_pill_class("allowlist"), do: "bg-[rgba(125,226,174,0.12)] text-[#7de2ae]"
   defp tool_policy_pill_class("denylist"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
   defp tool_policy_pill_class(_), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+
+  defp rule_name(id) do
+    id |> String.split(".") |> List.last() |> String.replace("_", " ")
+  end
+
+  defp rule_tag_class("block"), do: "bg-red-500/15 text-red-300 border-red-500/15"
+  defp rule_tag_class("warn"), do: "bg-yellow-500/15 text-yellow-300 border-yellow-500/15"
 end
