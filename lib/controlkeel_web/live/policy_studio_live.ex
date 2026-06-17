@@ -41,22 +41,13 @@ defmodule ControlKeelWeb.PolicyStudioLive do
     ~H"""
     <Layouts.app flash={@flash}>
       <section class="mx-auto max-w-[1180px] px-4 py-12 pb-16 pt-8">
-        <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
-          <div>
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Policy Studio
-            </p>
-            <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Active governance rules</h1>
-            <p class="text-[var(--ck-muted)] max-w-3xl text-base leading-relaxed">
-              Every agent action passes through these policy packs before it executes. Rules that block are enforced automatically — no action required from you.
-            </p>
-          </div>
-          <a
-            href={~p"/"}
-            class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
-          >
-            Back home
-          </a>
+        <div class="space-y-1 mb-12">
+          <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+            Policy Studio
+          </h2>
+          <p class="text-[var(--ck-muted)]">
+            Every agent action passes through these policy packs before it executes. Rules that block are enforced automatically — no action required from you.
+          </p>
         </div>
 
         <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
