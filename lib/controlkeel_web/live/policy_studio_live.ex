@@ -81,7 +81,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                 <span class="rounded-full p-2 text-xs bg-red-500/15 text-red-300 border border-red-500/15 mr-1 font-bold uppercase">
                   {@block_count} rules
                 </span>
-                are block agent actions when violated. Other rules only generate warnings.
+                block agent actions when violated. Other rules only generate warnings.
               </p>
 
               <div class="grid gap-2 list-none m-0 p-0 max-h-[48rem] overflow-y-auto pr-1">
