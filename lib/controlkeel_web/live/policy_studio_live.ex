@@ -4,7 +4,6 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   alias ControlKeel.Accounts
   alias ControlKeel.Accounts.WorkspaceToolPolicy
   alias ControlKeel.Intent
-  alias ControlKeel.Mission
   alias ControlKeel.Policy.PackLoader
 
   @impl true
@@ -20,7 +19,6 @@ defmodule ControlKeelWeb.PolicyStudioLive do
      |> assign(:current_org_id, org_id)
      |> assign(:open_packs, MapSet.new())
      |> assign_packs()
-     |> assign_sessions(org_id)
      |> assign_tool_policies(org_id)}
   end
 
@@ -79,12 +77,6 @@ defmodule ControlKeelWeb.PolicyStudioLive do
               Blocking rules
             </p>
             <strong>{@block_count}</strong>
-          </div>
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Active sessions
-            </p>
-            <strong>{length(@sessions)}</strong>
           </div>
         </div>
 
@@ -150,62 +142,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
           </div>
 
           <div>
-            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6 mb-4">
-              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-                Session budgets
-              </p>
-              <%= if @sessions == [] do %>
-                <p class="text-[var(--ck-muted)]">
-                  No active sessions. Start a mission at <a
-                    href={~p"/missions/start"}
-                    class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
-                  >/missions/start</a>.
-                </p>
-              <% else %>
-                <div class="grid gap-4 list-none m-0 p-0">
-                  <%= for session <- @sessions do %>
-                    <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
-                      <div class="flex items-center justify-between gap-4">
-                        <h3>
-                          <.link
-                            navigate={~p"/missions/#{session.id}"}
-                            class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
-                          >
-                            {session.title}
-                          </.link>
-                        </h3>
-                        <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{risk_pill_class(session.risk_tier)}"}>
-                          {session.risk_tier}
-                        </span>
-                      </div>
-                      <div class="flex items-center justify-between gap-4 mt-2">
-                        <span class="text-[var(--ck-muted)]">
-                          Budget: {format_cents(session.budget_cents)}
-                        </span>
-                        <span class="text-[var(--ck-muted)]">
-                          Spent: {format_cents(session.spent_cents)}
-                        </span>
-                        <span class="text-[var(--ck-muted)]">
-                          Daily cap: {format_cents(session.daily_budget_cents)}
-                        </span>
-                      </div>
-                      <%= if (session.budget_cents || 0) > 0 do %>
-                        <% pct = budget_pct(session.spent_cents, session.budget_cents) %>
-                        <div class="w-full rounded-full bg-[var(--ck-panel)] h-2 mt-2">
-                          <div
-                            class={"h-full rounded-full transition-all #{budget_fill_class(pct)}"}
-                            style={"width: #{pct}%"}
-                          >
-                          </div>
-                        </div>
-                      <% end %>
-                    </article>
-                  <% end %>
-                </div>
-              <% end %>
-            </div>
-
-            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6 mt-4">
+            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
               <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
                 Workspace tool policies
               </p>
@@ -257,22 +194,6 @@ defmodule ControlKeelWeb.PolicyStudioLive do
     |> assign(:rule_count, length(all_rules))
     |> assign(:block_count, Enum.count(all_rules, &(&1.action == "block")))
     |> assign(:blocked_rules, blocked_rules)
-  end
-
-  defp assign_sessions(socket, nil) do
-    assign(socket, :sessions, [])
-  end
-
-  defp assign_sessions(socket, org_id) when is_integer(org_id) do
-    workspaces = Accounts.list_workspaces_for_org(org_id)
-
-    sessions =
-      workspaces
-      |> Enum.flat_map(fn ws -> Mission.list_sessions_for_workspace(ws.id) end)
-      |> Enum.sort_by(& &1.inserted_at, {:desc, DateTime})
-      |> Enum.take(20)
-
-    assign(socket, :sessions, sessions)
   end
 
   defp assign_tool_policies(socket, nil) do
@@ -370,25 +291,6 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   defp pack_sort_order("cost"), do: 1
   defp pack_sort_order("software"), do: 2
   defp pack_sort_order(_), do: 3
-
-  defp risk_pill_class("critical"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
-  defp risk_pill_class("high"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
-  defp risk_pill_class(_), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
-
-  defp format_cents(nil), do: "not set"
-  defp format_cents(0), do: "$0"
-
-  defp format_cents(cents),
-    do:
-      "$#{div(cents, 100)}.#{rem(cents, 100) |> Integer.to_string() |> String.pad_leading(2, "0")}"
-
-  defp budget_pct(_spent, nil), do: 0
-  defp budget_pct(_spent, 0), do: 0
-  defp budget_pct(spent, budget), do: min(round((spent || 0) / budget * 100), 100)
-
-  defp budget_fill_class(pct) when pct >= 90, do: "bg-[var(--ck-danger)]"
-  defp budget_fill_class(pct) when pct >= 75, do: "bg-[var(--ck-warning)]"
-  defp budget_fill_class(_), do: "bg-[var(--ck-success)]"
 
   defp tool_policy_pill_class("allowlist"), do: "bg-[rgba(125,226,174,0.12)] text-[#7de2ae]"
   defp tool_policy_pill_class("denylist"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
