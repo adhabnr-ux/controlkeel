@@ -11,7 +11,6 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
 
     assert html =~ "Benchmark engine"
     assert html =~ "OpenCode vs ControlKeel"
-    assert has_element?(view, "#benchmark-filters")
     assert has_element?(view, "#benchmark-runner")
     assert has_element?(view, "#benchmark-preset-opencode")
     assert has_element?(view, "#benchmark-subjects-input")
@@ -38,12 +37,23 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
     {:ok, view, _html} = live(conn, ~p"/benchmarks")
 
     view |> element("#benchmark-preset-proxy") |> render_click()
-    html = render(view)
-    assert html =~ ~r/selected(?:="")?\s+value="controlkeel_validate"/
-    assert html =~ ~r/selected(?:="")?\s+value="controlkeel_proxy"/
+
+    assert has_element?(
+             view,
+             "#benchmark-runner input[name='benchmark[subjects][]'][value='controlkeel_validate']"
+           )
+
+    assert has_element?(
+             view,
+             "#benchmark-runner input[name='benchmark[subjects][]'][value='controlkeel_proxy']"
+           )
 
     view |> element("#benchmark-preset-opencode") |> render_click()
-    assert render(view) =~ ~r/selected(?:="")?\s+value="opencode_manual"/
+
+    assert has_element?(
+             view,
+             "#benchmark-runner input[name='benchmark[subjects][]'][value='opencode_manual']"
+           )
 
     view |> element("#benchmark-preset-ck-only") |> render_click()
     assert render(view) =~ "benchmark-subjects-input"
@@ -77,14 +87,6 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
     {:ok, _view, html} = live(conn, ~p"/benchmarks")
 
     assert html =~ "OpenCode Manual Import (external)"
-  end
-
-  test "index filters suites by domain pack", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/benchmarks?domain_pack=hr")
-
-    assert has_element?(view, "#benchmark-filters")
-    assert has_element?(view, "#suite-domain_expansion_v1")
-    refute has_element?(view, "#suite-vibe_failures_v1")
   end
 
   test "show renders the persisted scenario matrix", %{conn: conn} do

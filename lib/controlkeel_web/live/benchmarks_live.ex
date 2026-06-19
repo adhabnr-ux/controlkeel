@@ -12,8 +12,9 @@ defmodule ControlKeelWeb.BenchmarksLive do
      |> assign(:run, nil)
      |> assign(:matrix, %{subjects: [], scenarios: []})
      |> assign(:detail_metrics, %{})
+     |> assign(:subjects_dropdown_open, false)
+     |> assign(:active_preset, "opencode_compare")
      |> assign(:form, to_form(default_form_params(), as: :benchmark))
-     |> assign(:filter_form, to_form(%{"domain_pack" => ""}, as: :filters))
      |> assign(:domain_pack_options, domain_pack_options())
      |> refresh_dashboard_assigns()}
   end
@@ -37,17 +38,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
     end
   end
 
-  def handle_params(%{"domain_pack" => domain_pack} = _params, _uri, socket) do
-    {:noreply,
-     socket
-     |> assign(:run, nil)
-     |> assign(:matrix, %{subjects: [], scenarios: []})
-     |> assign(:detail_metrics, %{})
-     |> assign(:page_title, "Benchmarks")
-     |> assign(:filter_form, to_form(%{"domain_pack" => domain_pack}, as: :filters))
-     |> refresh_dashboard_assigns(domain_pack)}
-  end
-
   def handle_params(_params, _uri, socket) do
     {:noreply,
      socket
@@ -55,7 +45,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
      |> assign(:matrix, %{subjects: [], scenarios: []})
      |> assign(:detail_metrics, %{})
      |> assign(:page_title, "Benchmarks")
-     |> assign(:filter_form, to_form(%{"domain_pack" => ""}, as: :filters))
      |> refresh_dashboard_assigns()}
   end
 
@@ -73,10 +62,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
     end
   end
 
-  def handle_event("filter_domain", %{"filters" => filters}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/benchmarks?#{domain_filter_params(filters)}")}
-  end
-
   def handle_event("preset_benchmark", %{"preset" => preset}, socket) do
     case benchmark_presets()[preset] do
       nil ->
@@ -87,8 +72,37 @@ defmodule ControlKeelWeb.BenchmarksLive do
           socket.assigns.form.params
           |> Map.merge(patch)
 
-        {:noreply, assign(socket, :form, to_form(merged, as: :benchmark))}
+        {:noreply,
+         socket
+         |> assign(:form, to_form(merged, as: :benchmark))
+         |> assign(:active_preset, preset)}
     end
+  end
+
+  def handle_event("toggle_subject", %{"id" => id}, socket) do
+    current = List.wrap(socket.assigns.form.params["subjects"])
+    updated = if id in current, do: List.delete(current, id), else: current ++ [id]
+    new_params = Map.put(socket.assigns.form.params, "subjects", updated)
+
+    {:noreply,
+     socket
+     |> assign(:form, to_form(new_params, as: :benchmark))
+     |> assign(:active_preset, nil)}
+  end
+
+  def handle_event("toggle_subjects_dropdown", _params, socket) do
+    {:noreply, assign(socket, :subjects_dropdown_open, !socket.assigns.subjects_dropdown_open)}
+  end
+
+  def handle_event("close_subjects_dropdown", _params, socket) do
+    {:noreply, assign(socket, :subjects_dropdown_open, false)}
+  end
+
+  def handle_event("benchmark_form_change", %{"benchmark" => params}, socket) do
+    {:noreply,
+     socket
+     |> assign(:form, to_form(params, as: :benchmark))
+     |> assign(:active_preset, nil)}
   end
 
   @impl true
@@ -358,85 +372,50 @@ defmodule ControlKeelWeb.BenchmarksLive do
           </div>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4 mt-6">
-          <.form for={@filter_form} id="benchmark-filters" phx-change="filter_domain">
-            <div class="grid grid-cols-5 gap-4 max-[900px]:grid-cols-1">
-              <.input
-                field={@filter_form[:domain_pack]}
-                type="select"
-                label="Domain pack"
-                prompt="All domains"
-                options={@domain_pack_options}
-              />
-            </div>
-          </.form>
-        </div>
-
         <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold mb-2">
-            Quick presets
-          </p>
-          <div class="flex items-center justify-between gap-2 mb-4 flex-wrap max-[900px]:flex-col max-[900px]:items-start">
-            <button
-              type="button"
-              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
-              id="benchmark-preset-opencode"
-              phx-click="preset_benchmark"
-              phx-value-preset="opencode_compare"
-            >
-              OpenCode comparison
-            </button>
-            <button
-              type="button"
-              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
-              id="benchmark-preset-ck-only"
-              phx-click="preset_benchmark"
-              phx-value-preset="ck_only"
-            >
-              ControlKeel validate only
-            </button>
-            <button
-              type="button"
-              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
-              id="benchmark-preset-proxy"
-              phx-click="preset_benchmark"
-              phx-value-preset="ck_proxy"
-            >
-              Validate + governed proxy
-            </button>
-            <button
-              type="button"
-              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
-              id="benchmark-preset-copilot-vs-opencode"
-              phx-click="preset_benchmark"
-              phx-value-preset="copilot_vs_opencode"
-            >
-              Copilot vs OpenCode
-            </button>
-            <button
-              type="button"
-              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
-              id="benchmark-preset-full-compare"
-              phx-click="preset_benchmark"
-              phx-value-preset="full_compare"
-            >
-              Full host comparison
-            </button>
+          <div class="flex flex-col gap-3 mb-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Quick presets
+            </p>
+            <p class="text-[var(--ck-muted)] text-sm mb-2 max-w-[42rem] leading-relaxed">
+              One-click subject and suite configurations. Pick one to populate the form below.
+            </p>
+
+            <div class="flex flex-wrap gap-2">
+              <button
+                :for={{preset_id, preset_value, preset_label} <- preset_chips()}
+                type="button"
+                id={preset_id}
+                phx-click="preset_benchmark"
+                phx-value-preset={preset_value}
+                aria-pressed={to_string(preset_value == @active_preset)}
+                class={[
+                  "group inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition-all duration-150 active:scale-[0.98]",
+                  if(preset_value == @active_preset,
+                    do: "border-[var(--ck-lime)] bg-[rgba(196,240,66,0.16)] text-[var(--ck-lime)]",
+                    else:
+                      "border-[var(--ck-stroke)] bg-white/5 text-[var(--ck-text)] hover:-translate-y-px hover:border-[var(--ck-lime)] hover:bg-[rgba(196,240,66,0.08)] hover:text-[var(--ck-lime)]"
+                  )
+                ]}
+              >
+                {preset_label}
+              </button>
+            </div>
           </div>
-          <.form for={@form} id="benchmark-runner" phx-submit="run">
-            <div class="grid grid-cols-5 gap-4 max-[900px]:grid-cols-1">
+          <.form for={@form} id="benchmark-runner" phx-submit="run" phx-change="benchmark_form_change">
+            <div class="flex flex-col gap-4">
               <.input
                 field={@form[:suite]}
                 type="select"
                 label="Suite"
-                options={Enum.map(@suites, &{"#{&1.name} (#{&1.slug})", &1.slug})}
+                options={Enum.map(@all_suites, &{"#{&1.name} (#{&1.slug})", &1.slug})}
               />
-              <.input
+              <.subject_multi_select
                 field={@form[:subjects]}
-                type="select"
-                multiple={true}
                 label="Subjects"
                 options={subject_options(@available_subjects)}
+                selected={@form[:subjects].value}
+                open={@subjects_dropdown_open}
                 id="benchmark-subjects-input"
               />
               <.input
@@ -457,13 +436,13 @@ defmodule ControlKeelWeb.BenchmarksLive do
             <div class="flex items-center justify-between gap-4 mt-4 max-[900px]:flex-col max-[900px]:items-start">
               <button
                 type="submit"
-                class="inline-flex items-center justify-center gap-[0.4rem] px-5 py-[0.95rem] rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-transform transition-shadow duration-150 hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
+                class="inline-flex items-center justify-center gap-[0.4rem] px-4 py-2 rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-transform transition-shadow duration-150 hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
               >
                 Run benchmark
               </button>
             </div>
           </.form>
-          <p class="text-[var(--ck-muted)] mt-4">
+          <p class="text-[var(--ck-muted)] text-sm mt-4">
             For a reproducible external comparison, start with `controlkeel_validate,opencode_manual`
             and import the OpenCode output after the awaiting-import run finishes.
           </p>
@@ -550,6 +529,16 @@ defmodule ControlKeelWeb.BenchmarksLive do
     }
   end
 
+  defp preset_chips do
+    [
+      {"benchmark-preset-opencode", "opencode_compare", "OpenCode comparison"},
+      {"benchmark-preset-ck-only", "ck_only", "ControlKeel validate only"},
+      {"benchmark-preset-proxy", "ck_proxy", "Validate + governed proxy"},
+      {"benchmark-preset-copilot-vs-opencode", "copilot_vs_opencode", "Copilot vs OpenCode"},
+      {"benchmark-preset-full-compare", "full_compare", "Full host comparison"}
+    ]
+  end
+
   defp benchmark_presets do
     %{
       "opencode_compare" => %{
@@ -584,13 +573,12 @@ defmodule ControlKeelWeb.BenchmarksLive do
     }
   end
 
-  defp refresh_dashboard_assigns(socket, domain_pack \\ nil) do
-    filter_opts = benchmark_filter_opts(domain_pack)
-
+  defp refresh_dashboard_assigns(socket) do
     socket
-    |> assign(:summary, Benchmark.benchmark_summary(filter_opts))
-    |> assign(:suites, Benchmark.list_suites(filter_opts))
-    |> assign(:recent_runs, Benchmark.list_recent_runs(filter_opts))
+    |> assign(:summary, Benchmark.benchmark_summary([]))
+    |> assign(:suites, Benchmark.list_suites([]))
+    |> assign(:all_suites, Benchmark.list_suites([]))
+    |> assign(:recent_runs, Benchmark.list_recent_runs([]))
     |> assign(:available_subjects, Benchmark.available_subjects())
   end
 
@@ -602,6 +590,99 @@ defmodule ControlKeelWeb.BenchmarksLive do
     Enum.map(subjects, fn subject ->
       {subject_label(subject), subject["id"]}
     end)
+  end
+
+  defp subject_multi_select(assigns) do
+    assigns =
+      assigns
+      |> assign(:selected, List.wrap(assigns[:selected]))
+      |> assign(
+        :labels_by_value,
+        Map.new(assigns[:options] || [], fn {label, value} -> {value, label} end)
+      )
+      |> assign_new(:open, fn -> false end)
+
+    ~H"""
+    <div
+      class="fieldset mb-2 relative"
+      id={@id}
+      phx-click-away={@open && "close_subjects_dropdown"}
+    >
+      <span :if={@label} class="label mb-1 block">{@label}</span>
+      <div :if={@selected != []} class="flex flex-wrap gap-2 mb-2">
+        <span
+          :for={selected_value <- @selected}
+          class="inline-flex items-center gap-1 rounded-full border border-[var(--ck-stroke)] text-[var(--ck-muted)] pl-3 pr-1.5 py-1 text-xs"
+        >
+          {Map.get(@labels_by_value, selected_value, selected_value)}
+          <button
+            type="button"
+            phx-click="toggle_subject"
+            phx-value-id={selected_value}
+            aria-label={"Remove #{Map.get(@labels_by_value, selected_value, selected_value)}"}
+            class="inline-flex items-center justify-center rounded-full p-0.5 hover:text-[var(--ck-lime)] transition-colors"
+          >
+            <.icon name="hero-x-mark" class="w-3 h-3" />
+          </button>
+        </span>
+      </div>
+      <button
+        type="button"
+        phx-click="toggle_subjects_dropdown"
+        aria-haspopup="listbox"
+        aria-expanded={to_string(@open)}
+        class={[
+          "select w-full flex items-center justify-between gap-2 px-3 py-2 text-left",
+          "focus:outline-none focus:border-[var(--ck-lime)]"
+        ]}
+      >
+        <span class="text-[var(--ck-muted)]">Select subjects</span>
+        <.icon
+          name="hero-chevron-down"
+          class={["w-4 h-4 shrink-0 transition-transform", @open && "rotate-180"]}
+        />
+      </button>
+      <div
+        :if={@open}
+        class="absolute z-30 mt-1 w-full max-h-72 overflow-y-auto rounded-[1rem] border border-[var(--ck-stroke)] bg-[#0d1216] shadow-[0_24px_80px_rgba(0,0,0,0.45)] p-1"
+        role="listbox"
+        aria-label={@label}
+        aria-multiselectable="true"
+      >
+        <button
+          :for={{option_label, option_value} <- @options}
+          type="button"
+          role="option"
+          aria-selected={if(option_value in @selected, do: "true", else: "false")}
+          data-subject-id={option_value}
+          phx-click="toggle_subject"
+          phx-value-id={option_value}
+          class={[
+            "w-full flex items-center gap-2 px-3 py-2 rounded-[0.6rem] text-left text-sm transition-colors cursor-pointer",
+            if(option_value in @selected,
+              do: "bg-[rgba(196,240,66,0.14)] text-[#d2ffe7]",
+              else: "text-[var(--ck-text)] hover:bg-white/5"
+            )
+          ]}
+        >
+          <.icon
+            name="hero-check"
+            class={[
+              "w-4 h-4 shrink-0",
+              if(option_value in @selected, do: "text-[var(--ck-lime)]", else: "opacity-0")
+            ]}
+          />
+          <span class="truncate">{option_label}</span>
+        </button>
+      </div>
+      <input
+        :for={selected_value <- @selected}
+        type="hidden"
+        name={"#{@field.name}[]"}
+        value={selected_value}
+      />
+    </div>
+    """
   end
 
   defp subject_label(subject) do
@@ -619,16 +700,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
   defp format_latency(nil), do: "n/a"
   defp format_latency(value), do: "#{value}ms"
-
-  defp benchmark_filter_opts(nil), do: []
-  defp benchmark_filter_opts(""), do: []
-  defp benchmark_filter_opts(domain_pack), do: [domain_pack: domain_pack]
-
-  defp domain_filter_params(filters) do
-    filters
-    |> Enum.reject(fn {_key, value} -> value in [nil, ""] end)
-    |> Enum.into(%{})
-  end
 
   defp domain_pack_options do
     Enum.map(Intent.supported_packs(), &{Intent.pack_label(&1), &1})
