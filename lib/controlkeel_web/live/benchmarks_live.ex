@@ -284,44 +284,17 @@ defmodule ControlKeelWeb.BenchmarksLive do
     ~H"""
     <Layouts.app flash={@flash}>
       <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-8 pb-16 max-[900px]:w-[min(calc(100%-1.25rem),1180px)] max-[900px]:pt-6">
-        <div>
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        <div class="space-y-1">
+          <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
             Benchmark engine
-          </p>
-          <p class="text-[var(--ck-muted)] max-w-[48rem] text-[1.05rem] leading-[1.7]">
+          </h2>
+          <p class="text-[var(--ck-muted)]">
             Compare governed subjects and external agents on the same scenario suites, then keep the results as product evidence.
           </p>
         </div>
 
-        <div class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(180px,1fr))] mt-5">
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Suites
-            </p>
-            <strong>{@summary.total_suites}</strong>
-          </div>
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Runs
-            </p>
-            <strong>{@summary.total_runs}</strong>
-          </div>
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Average catch rate
-            </p>
-            <strong>{format_percent(@summary.average_catch_rate)}</strong>
-          </div>
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Average overhead
-            </p>
-            <strong>{format_percent(@summary.average_overhead_percent)}</strong>
-          </div>
-        </div>
-
         <div class="grid gap-4 grid-cols-[2fr_1fr] mt-6">
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
+          <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
             <div class="flex flex-col gap-3 mb-6">
               <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
                 Quick presets
@@ -403,7 +376,31 @@ defmodule ControlKeelWeb.BenchmarksLive do
           </div>
 
           <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 h-fit">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            <div class="space-y-2 border-b border-[var(--ck-stroke)] pb-4 mb-4">
+              <p>
+                Suites: <span class="text-[var(--ck-lime)]">{@summary.total_suites}</span>
+              </p>
+
+              <p>
+                Runs: <span class="text-[var(--ck-lime)]">{@summary.total_runs}</span>
+              </p>
+
+              <p>
+                Average catch rate:
+                <span class="text-[var(--ck-lime)]">
+                  {format_percent(@summary.average_catch_rate)}
+                </span>
+              </p>
+
+              <p>
+                Average overhead:
+                <span class="text-[var(--ck-lime)]">
+                  {format_percent(@summary.average_overhead_percent)}
+                </span>
+              </p>
+            </div>
+
+            <p class="uppercase tracking-[0.14em] text-[var(--ck-lime)] font-semibold mt-4">
               Blessed external path
             </p>
             <h3 class="my-2">OpenCode vs ControlKeel</h3>
@@ -426,7 +423,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
           </div>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+        <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
           <div class="flex items-center justify-between gap-4">
             <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
               Recent runs
@@ -505,7 +502,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
           <% end %>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+        <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
           <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
             Built-in suites
           </p>
