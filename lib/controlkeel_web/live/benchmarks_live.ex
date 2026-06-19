@@ -95,80 +95,104 @@ defmodule ControlKeelWeb.BenchmarksLive do
   def render(%{live_action: :show} = assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+      <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-8 pb-16 max-[900px]:w-[min(calc(100%-1.25rem),1180px)] max-[900px]:pt-6">
+        <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
           <div>
-            <p class="ck-kicker">Benchmark run</p>
-            <h1 class="ck-section-title">Run ##{@run.id} — {@run.suite.name}</h1>
-            <p class="ck-lead ck-lead-tight">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Benchmark run
+            </p>
+            <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">
+              Run ##{@run.id} — {@run.suite.name}
+            </h1>
+            <p class="text-[var(--ck-muted)] max-w-[48rem] text-[1.05rem] leading-[1.7]">
               Compare governed and external subjects across the same failure scenarios without polluting mission data.
             </p>
           </div>
-          <div class="ck-action-row">
-            <.link navigate={~p"/benchmarks"} class="ck-link">Back to benchmarks</.link>
-            <a href={~p"/api/v1/benchmarks/runs/#{@run.id}/export?format=csv"} class="ck-link">
+          <div class="flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start">
+            <.link
+              navigate={~p"/benchmarks"}
+              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+            >
+              Back to benchmarks
+            </.link>
+            <a
+              href={~p"/api/v1/benchmarks/runs/#{@run.id}/export?format=csv"}
+              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+            >
               Export CSV
             </a>
           </div>
         </div>
 
-        <div class="ck-stat-grid">
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Catch rate</p>
+        <div class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(180px,1fr))] mt-5">
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Catch rate
+            </p>
             <strong>{@run.catch_rate}%</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Block rate</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Block rate
+            </p>
             <strong>{@detail_metrics.block_rate}%</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Expected rule hit rate</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Expected rule hit rate
+            </p>
             <strong>{@detail_metrics.expected_rule_hit_rate}%</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Average overhead</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Average overhead
+            </p>
             <strong>{format_percent(@run.average_overhead_percent)}</strong>
           </div>
         </div>
 
-        <div class="ck-card">
-          <p class="ck-mini-label">Run metadata</p>
-          <div class="ck-brief-grid">
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Run metadata
+          </p>
+          <div class="grid gap-4 grid-cols-2 max-[900px]:grid-cols-1">
             <div>
               <h3>Status</h3>
-              <p class="ck-note">{@run.status}</p>
+              <p class="text-[var(--ck-muted)]">{@run.status}</p>
             </div>
             <div>
               <h3>Baseline subject</h3>
-              <p class="ck-note">{@run.baseline_subject}</p>
+              <p class="text-[var(--ck-muted)]">{@run.baseline_subject}</p>
             </div>
             <div>
               <h3>Subjects</h3>
-              <p class="ck-note">{Enum.join(@run.subjects, ", ")}</p>
+              <p class="text-[var(--ck-muted)]">{Enum.join(@run.subjects, ", ")}</p>
             </div>
             <div>
               <h3>Median latency</h3>
-              <p class="ck-note">{format_latency(@run.median_latency_ms)}</p>
+              <p class="text-[var(--ck-muted)]">{format_latency(@run.median_latency_ms)}</p>
             </div>
             <div>
               <h3>Domain packs</h3>
-              <p class="ck-note">
+              <p class="text-[var(--ck-muted)]">
                 {Enum.map_join(Benchmark.domain_packs_for_run(@run), ", ", &format_domain_pack/1)}
               </p>
             </div>
           </div>
         </div>
 
-        <div class="ck-card">
-          <p class="ck-mini-label">Promotion integrity</p>
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Promotion integrity
+          </p>
           <% integrity = get_in(Benchmark.run_eval_profile(@run), ["promotion_integrity"]) || %{} %>
-          <div class="ck-finding-head">
+          <div class="flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start">
             <h3>{integrity["status"] || "unknown"}</h3>
-            <span class="ck-pill ck-pill-neutral">
+            <span class="border border-[var(--ck-stroke)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
               {Enum.join(integrity["evidence_channels"] || [], ", ")}
             </span>
           </div>
-          <p class="ck-note">
+          <p class="text-[var(--ck-muted)]">
             <%= case integrity["warnings"] || [] do %>
               <% [] -> %>
                 Held-out, diversity, and classification evidence are present for this run.
@@ -178,10 +202,12 @@ defmodule ControlKeelWeb.BenchmarksLive do
           </p>
         </div>
 
-        <div class="ck-card">
-          <p class="ck-mini-label">Scenario matrix</p>
-          <div class="ck-table-wrap">
-            <table class="min-w-full text-sm" id="benchmark-matrix">
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Scenario matrix
+          </p>
+          <div class="overflow-x-auto">
+            <table class="min-w-full w-full text-sm" id="benchmark-matrix">
               <thead>
                 <tr>
                   <th class="text-left py-2 pr-4">Scenario</th>
@@ -195,8 +221,8 @@ defmodule ControlKeelWeb.BenchmarksLive do
                   <tr id={"scenario-#{row.scenario.slug}"}>
                     <td class="align-top py-3 pr-4">
                       <strong>{row.scenario.name}</strong>
-                      <p class="ck-note">{row.scenario.incident_label}</p>
-                      <p class="ck-note">
+                      <p class="text-[var(--ck-muted)]">{row.scenario.incident_label}</p>
+                      <p class="text-[var(--ck-muted)]">
                         {format_domain_pack(get_in(row.scenario.metadata || %{}, ["domain_pack"]))} • {get_in(
                           row.scenario.metadata || %{},
                           ["risk_tier"]
@@ -206,17 +232,26 @@ defmodule ControlKeelWeb.BenchmarksLive do
                     <%= for result <- row.results do %>
                       <td class="align-top py-3 pr-4">
                         <%= if result do %>
-                          <div class="ck-badge-stack">
-                            <span class="ck-pill ck-pill-neutral">{result.status}</span>
-                            <span :if={result.decision} class="ck-pill ck-pill-neutral">
+                          <div class="flex flex-wrap gap-2">
+                            <span class="border border-[var(--ck-stroke)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                              {result.status}
+                            </span>
+                            <span
+                              :if={result.decision}
+                              class="border border-[var(--ck-stroke)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+                            >
                               {result.decision}
                             </span>
                           </div>
-                          <p class="ck-note">{result.findings_count} findings</p>
-                          <p class="ck-note">latency {format_latency(result.latency_ms)}</p>
-                          <p class="ck-note">overhead {format_percent(result.overhead_percent)}</p>
+                          <p class="text-[var(--ck-muted)]">{result.findings_count} findings</p>
+                          <p class="text-[var(--ck-muted)]">
+                            latency {format_latency(result.latency_ms)}
+                          </p>
+                          <p class="text-[var(--ck-muted)]">
+                            overhead {format_percent(result.overhead_percent)}
+                          </p>
                         <% else %>
-                          <p class="ck-note">No result</p>
+                          <p class="text-[var(--ck-muted)]">No result</p>
                         <% end %>
                       </td>
                     <% end %>
@@ -234,47 +269,66 @@ defmodule ControlKeelWeb.BenchmarksLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+      <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-8 pb-16 max-[900px]:w-[min(calc(100%-1.25rem),1180px)] max-[900px]:pt-6">
+        <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
           <div>
-            <p class="ck-kicker">Benchmark engine</p>
-            <h1 class="ck-section-title">Run persisted benchmark matrices</h1>
-            <p class="ck-lead ck-lead-tight">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Benchmark engine
+            </p>
+            <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">
+              Run persisted benchmark matrices
+            </h1>
+            <p class="text-[var(--ck-muted)] max-w-[48rem] text-[1.05rem] leading-[1.7]">
               Compare governed subjects and external agents on the same scenario suites, then keep the results as product evidence.
             </p>
           </div>
-          <.link navigate={~p"/"} class="ck-link">Back home</.link>
+          <.link
+            navigate={~p"/"}
+            class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+          >
+            Back home
+          </.link>
         </div>
 
-        <div class="ck-stat-grid">
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Suites</p>
+        <div class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(180px,1fr))] mt-5">
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Suites
+            </p>
             <strong>{@summary.total_suites}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Runs</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Runs
+            </p>
             <strong>{@summary.total_runs}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Average catch rate</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Average catch rate
+            </p>
             <strong>{format_percent(@summary.average_catch_rate)}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Average overhead</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Average overhead
+            </p>
             <strong>{format_percent(@summary.average_overhead_percent)}</strong>
           </div>
         </div>
 
-        <div class="ck-grid ck-grid-dashboard" style="margin-top: 1.5rem;">
-          <div class="ck-card">
-            <p class="ck-mini-label">Blessed external path</p>
-            <h3 style="margin: 0 0 0.5rem;">OpenCode vs ControlKeel</h3>
-            <p class="ck-note">
+        <div class="grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)] gap-6 max-[900px]:grid-cols-1 mt-6">
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Blessed external path
+            </p>
+            <h3 class="mb-2">OpenCode vs ControlKeel</h3>
+            <p class="text-[var(--ck-muted)]">
               The recommended first external comparison path is OpenCode. Start with a manual import
               subject for the quickest reproducible run, then swap to a shell-based wrapper if you
               want fully scripted replay.
             </p>
-            <ul class="ck-mini-list" style="margin-top: 0.75rem;">
+            <ul class="grid gap-4 m-0 mt-3 p-0 list-none">
               <li>
                 Create or review `controlkeel/benchmark_subjects.json` with the OpenCode subject you want to import.
               </li>
@@ -286,23 +340,27 @@ defmodule ControlKeelWeb.BenchmarksLive do
               </li>
             </ul>
           </div>
-          <div class="ck-card">
-            <p class="ck-mini-label">Available subjects</p>
-            <div class="ck-tag-list">
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Available subjects
+            </p>
+            <div class="flex flex-wrap gap-2">
               <%= for subject <- @available_subjects do %>
-                <span class="ck-tag">{subject_label(subject)}</span>
+                <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]">
+                  {subject_label(subject)}
+                </span>
               <% end %>
             </div>
-            <p class="ck-note" style="margin-top: 0.75rem;">
+            <p class="text-[var(--ck-muted)] mt-3">
               Built-ins are always present. External subjects appear when the current project has a
               `controlkeel/benchmark_subjects.json` file.
             </p>
           </div>
         </div>
 
-        <div class="ck-card ck-browser-filters" style="margin-top: 1.5rem;">
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4 mt-6">
           <.form for={@filter_form} id="benchmark-filters" phx-change="filter_domain">
-            <div class="ck-filter-grid">
+            <div class="grid grid-cols-5 gap-4 max-[900px]:grid-cols-1">
               <.input
                 field={@filter_form[:domain_pack]}
                 type="select"
@@ -314,17 +372,19 @@ defmodule ControlKeelWeb.BenchmarksLive do
           </.form>
         </div>
 
-        <div class="ck-card ck-browser-filters">
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
           <datalist id="benchmark-subject-suggestions">
             <%= for subject <- @available_subjects do %>
               <option value={subject["id"]}>{subject["label"] || subject["id"]}</option>
             <% end %>
           </datalist>
-          <p class="ck-mini-label" style="margin-bottom: 0.5rem;">Quick presets</p>
-          <div class="ck-action-row" style="margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold mb-2">
+            Quick presets
+          </p>
+          <div class="flex items-center justify-between gap-2 mb-4 flex-wrap max-[900px]:flex-col max-[900px]:items-start">
             <button
               type="button"
-              class="ck-link"
+              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
               id="benchmark-preset-opencode"
               phx-click="preset_benchmark"
               phx-value-preset="opencode_compare"
@@ -333,7 +393,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
             </button>
             <button
               type="button"
-              class="ck-link"
+              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
               id="benchmark-preset-ck-only"
               phx-click="preset_benchmark"
               phx-value-preset="ck_only"
@@ -342,7 +402,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
             </button>
             <button
               type="button"
-              class="ck-link"
+              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
               id="benchmark-preset-proxy"
               phx-click="preset_benchmark"
               phx-value-preset="ck_proxy"
@@ -351,7 +411,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
             </button>
             <button
               type="button"
-              class="ck-link"
+              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
               id="benchmark-preset-copilot-vs-opencode"
               phx-click="preset_benchmark"
               phx-value-preset="copilot_vs_opencode"
@@ -360,7 +420,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
             </button>
             <button
               type="button"
-              class="ck-link"
+              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
               id="benchmark-preset-full-compare"
               phx-click="preset_benchmark"
               phx-value-preset="full_compare"
@@ -369,7 +429,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
             </button>
           </div>
           <.form for={@form} id="benchmark-runner" phx-submit="run">
-            <div class="ck-filter-grid">
+            <div class="grid grid-cols-5 gap-4 max-[900px]:grid-cols-1">
               <.input
                 field={@form[:suite]}
                 type="select"
@@ -400,41 +460,55 @@ defmodule ControlKeelWeb.BenchmarksLive do
                 options={@domain_pack_options}
               />
             </div>
-            <div class="ck-action-row" style="margin-top: 1rem;">
-              <button type="submit" class="ck-button-primary">Run benchmark</button>
+            <div class="flex items-center justify-between gap-4 mt-4 max-[900px]:flex-col max-[900px]:items-start">
+              <button
+                type="submit"
+                class="inline-flex items-center justify-center gap-[0.4rem] px-5 py-[0.95rem] rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-transform transition-shadow duration-150 hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
+              >
+                Run benchmark
+              </button>
             </div>
           </.form>
-          <p class="ck-note" style="margin-top: 1rem;">
+          <p class="text-[var(--ck-muted)] mt-4">
             Subjects currently visible to this server process: {Enum.map_join(
               @available_subjects,
               ", ",
               & &1["id"]
             )}
           </p>
-          <p class="ck-note" style="margin-top: 0.5rem;">
+          <p class="text-[var(--ck-muted)] mt-2">
             For a reproducible external comparison, start with `controlkeel_validate,opencode_manual`
             and import the OpenCode output after the awaiting-import run finishes.
           </p>
         </div>
 
-        <div class="ck-grid ck-grid-dashboard">
-          <div class="ck-card">
-            <p class="ck-mini-label">Built-in suites</p>
-            <div class="ck-finding-list">
+        <div class="grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)] gap-6 max-[900px]:grid-cols-1 mt-6">
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Built-in suites
+            </p>
+            <div class="grid gap-4 m-0 p-0 list-none">
               <%= for suite <- @suites do %>
-                <article class="ck-finding-item" id={"suite-#{suite.slug}"}>
-                  <div class="ck-finding-head">
+                <article
+                  class="border border-white/[0.07] rounded-[1.1rem] p-4 bg-white/[0.03] grid gap-[0.55rem]"
+                  id={"suite-#{suite.slug}"}
+                >
+                  <div class="flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start">
                     <h3>{suite.name}</h3>
-                    <span class="ck-pill ck-pill-neutral">v{suite.version}</span>
+                    <span class="border border-[var(--ck-stroke)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                      v{suite.version}
+                    </span>
                   </div>
-                  <p class="ck-note">{suite.description}</p>
-                  <div class="ck-metric-row">
+                  <p class="text-[var(--ck-muted)]">{suite.description}</p>
+                  <div class="flex items-center justify-between gap-4">
                     <span>{length(suite.scenarios)} scenarios</span>
                     <span>{suite.status}</span>
                   </div>
-                  <div class="ck-tag-list" style="margin-top: 0.5rem;">
+                  <div class="flex flex-wrap gap-2 mt-2">
                     <%= for pack <- Benchmark.domain_packs_for_suite(suite) do %>
-                      <span class="ck-tag">{format_domain_pack(pack)}</span>
+                      <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]">
+                        {format_domain_pack(pack)}
+                      </span>
                     <% end %>
                   </div>
                 </article>
@@ -442,12 +516,17 @@ defmodule ControlKeelWeb.BenchmarksLive do
             </div>
           </div>
 
-          <div class="ck-card">
-            <p class="ck-mini-label">Recent runs</p>
-            <div class="ck-table-wrap">
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recent runs
+            </p>
+            <div class="overflow-x-auto">
               <.table id="benchmark-runs" rows={@recent_runs}>
                 <:col :let={run} label="Run">
-                  <.link navigate={~p"/benchmarks/runs/#{run.id}"} class="ck-link">
+                  <.link
+                    navigate={~p"/benchmarks/runs/#{run.id}"}
+                    class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+                  >
                     ##{run.id}
                   </.link>
                 </:col>
