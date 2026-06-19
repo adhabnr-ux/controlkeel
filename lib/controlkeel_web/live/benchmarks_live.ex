@@ -172,7 +172,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
           <div class="grid gap-4 grid-cols-2 max-[900px]:grid-cols-1">
             <div>
               <h3>Status</h3>
-              <p class="text-[var(--ck-muted)]">{@run.status}</p>
+              <p class="text-[var(--ck-muted)]">{run_status_label(@run.status)}</p>
             </div>
             <div>
               <h3>Baseline subject</h3>
@@ -427,36 +427,82 @@ defmodule ControlKeelWeb.BenchmarksLive do
         </div>
 
         <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-            Recent runs
-          </p>
-          <div class="overflow-x-auto">
-            <.table id="benchmark-runs" rows={@recent_runs}>
-              <:col :let={run} label="Run">
-                <.link
-                  navigate={~p"/benchmarks/runs/#{run.id}"}
-                  class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
-                >
-                  ##{run.id}
-                </.link>
-              </:col>
-              <:col :let={run} label="Suite">
-                {run.suite.slug}
-              </:col>
-              <:col :let={run} label="Status">
-                {run.status}
-              </:col>
-              <:col :let={run} label="Catch rate">
-                {run.catch_rate}%
-              </:col>
-              <:col :let={run} label="Baseline">
-                {run.baseline_subject}
-              </:col>
-              <:col :let={run} label="Domains">
-                {Enum.map_join(Benchmark.domain_packs_for_run(run), ", ", &format_domain_pack/1)}
-              </:col>
-            </.table>
+          <div class="flex items-center justify-between gap-4">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recent runs
+            </p>
+            <span :if={@recent_runs != []} class="text-xs text-[var(--ck-muted)]">
+              {length(@recent_runs)} {if length(@recent_runs) == 1, do: "run", else: "runs"}
+            </span>
           </div>
+          <%= if @recent_runs == [] do %>
+            <div class="mt-4 rounded-[1rem] border border-dashed border-[var(--ck-stroke)] p-8 text-center">
+              <p class="text-[var(--ck-text)] text-sm font-medium">
+                No benchmark runs yet
+              </p>
+              <p class="text-[var(--ck-muted)] text-sm mt-1">
+                Pick a preset above and run your first suite to see results here.
+              </p>
+            </div>
+          <% else %>
+            <div class="overflow-x-auto mt-4">
+              <table id="benchmark-runs" class="min-w-full text-sm">
+                <thead>
+                  <tr class="text-left text-xs text-[var(--ck-muted)] uppercase tracking-wider">
+                    <th class="py-2 pr-4">Run</th>
+                    <th class="py-2 pr-4">Suite</th>
+                    <th class="py-2 pr-4">Status</th>
+                    <th class="py-2 pr-4">Catch rate</th>
+                    <th class="py-2 pr-4">Baseline</th>
+                    <th class="py-2 pr-4">Domains</th>
+                    <th class="py-2 pr-4 text-right">Overhead</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-[var(--ck-stroke)]">
+                  <%= for run <- @recent_runs do %>
+                    <tr id={"run-#{run.id}"} class="align-top">
+                      <td class="py-3 pr-4">
+                        <.link
+                          navigate={~p"/benchmarks/runs/#{run.id}"}
+                          class="font-semibold text-[var(--ck-lime)]"
+                        >
+                          ##{run.id}
+                        </.link>
+                      </td>
+                      <td class="py-3 pr-4 text-[var(--ck-muted)] truncate">
+                        {run.suite.name || run.suite.slug}
+                      </td>
+                      <td class="py-3 pr-4">
+                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs bg-white/5 border border-[var(--ck-stroke)]">
+                          {run_status_label(run.status)}
+                        </span>
+                      </td>
+                      <td class="py-3 pr-4"><strong>{format_percent(run.catch_rate)}</strong></td>
+                      <td class="py-3 pr-4 text-[var(--ck-muted)]">
+                        {subject_label(
+                          Enum.find(@available_subjects || [], fn s ->
+                            s["id"] == run.baseline_subject
+                          end) || %{"id" => run.baseline_subject}
+                        )}
+                      </td>
+                      <td class="py-3 pr-4">
+                        <div class="flex flex-wrap gap-2">
+                          <%= for pack <- Benchmark.domain_packs_for_run(run) do %>
+                            <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-2 py-0.5 text-[0.75rem]">
+                              {format_domain_pack(pack)}
+                            </span>
+                          <% end %>
+                        </div>
+                      </td>
+                      <td class="py-3 pr-4 text-right text-[var(--ck-muted)]">
+                        {format_percent(run.average_overhead_percent)}
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% end %>
         </div>
 
         <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
@@ -688,4 +734,13 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
   defp format_domain_pack(nil), do: "Unknown"
   defp format_domain_pack(domain_pack), do: Intent.pack_label(domain_pack)
+
+  defp run_status_label(nil), do: "unknown"
+
+  defp run_status_label(status) when is_binary(status) do
+    status
+    |> String.replace("_", " ")
+    |> String.trim()
+    |> String.capitalize()
+  end
 end
