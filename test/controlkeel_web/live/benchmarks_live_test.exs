@@ -24,7 +24,7 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
       form(view, "#benchmark-runner",
         benchmark: %{
           "suite" => "vibe_failures_v1",
-          "subjects" => "controlkeel_validate",
+          "subjects" => ["controlkeel_validate"],
           "baseline_subject" => "controlkeel_validate"
         }
       )
@@ -38,10 +38,12 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
     {:ok, view, _html} = live(conn, ~p"/benchmarks")
 
     view |> element("#benchmark-preset-proxy") |> render_click()
-    assert render(view) =~ "controlkeel_validate,controlkeel_proxy"
+    html = render(view)
+    assert html =~ ~r/selected(?:="")?\s+value="controlkeel_validate"/
+    assert html =~ ~r/selected(?:="")?\s+value="controlkeel_proxy"/
 
     view |> element("#benchmark-preset-opencode") |> render_click()
-    assert render(view) =~ "controlkeel_validate,opencode_manual"
+    assert render(view) =~ ~r/selected(?:="")?\s+value="opencode_manual"/
 
     view |> element("#benchmark-preset-ck-only") |> render_click()
     assert render(view) =~ "benchmark-subjects-input"

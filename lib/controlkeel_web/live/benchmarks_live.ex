@@ -373,11 +373,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
         </div>
 
         <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
-          <datalist id="benchmark-subject-suggestions">
-            <%= for subject <- @available_subjects do %>
-              <option value={subject["id"]}>{subject["label"] || subject["id"]}</option>
-            <% end %>
-          </datalist>
           <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold mb-2">
             Quick presets
           </p>
@@ -438,18 +433,17 @@ defmodule ControlKeelWeb.BenchmarksLive do
               />
               <.input
                 field={@form[:subjects]}
-                type="text"
-                label="Subjects (comma-separated)"
-                placeholder="controlkeel_validate,opencode_manual"
-                list="benchmark-subject-suggestions"
+                type="select"
+                multiple={true}
+                label="Subjects"
+                options={subject_options(@available_subjects)}
                 id="benchmark-subjects-input"
               />
               <.input
                 field={@form[:baseline_subject]}
-                type="text"
+                type="select"
                 label="Baseline subject"
-                placeholder="controlkeel_validate"
-                list="benchmark-subject-suggestions"
+                options={subject_options(@available_subjects)}
                 id="benchmark-baseline-input"
               />
               <.input
@@ -470,13 +464,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
             </div>
           </.form>
           <p class="text-[var(--ck-muted)] mt-4">
-            Subjects currently visible to this server process: {Enum.map_join(
-              @available_subjects,
-              ", ",
-              & &1["id"]
-            )}
-          </p>
-          <p class="text-[var(--ck-muted)] mt-2">
             For a reproducible external comparison, start with `controlkeel_validate,opencode_manual`
             and import the OpenCode output after the awaiting-import run finishes.
           </p>
@@ -557,7 +544,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
   defp default_form_params do
     %{
       "suite" => "vibe_failures_v1",
-      "subjects" => "controlkeel_validate,opencode_manual",
+      "subjects" => ["controlkeel_validate", "opencode_manual"],
       "baseline_subject" => "controlkeel_validate",
       "domain_pack" => ""
     }
@@ -566,26 +553,32 @@ defmodule ControlKeelWeb.BenchmarksLive do
   defp benchmark_presets do
     %{
       "opencode_compare" => %{
-        "subjects" => "controlkeel_validate,opencode_manual",
+        "subjects" => ["controlkeel_validate", "opencode_manual"],
         "baseline_subject" => "controlkeel_validate"
       },
       "ck_only" => %{
-        "subjects" => "controlkeel_validate",
+        "subjects" => ["controlkeel_validate"],
         "baseline_subject" => "controlkeel_validate"
       },
       "ck_proxy" => %{
-        "subjects" => "controlkeel_validate,controlkeel_proxy",
+        "subjects" => ["controlkeel_validate", "controlkeel_proxy"],
         "baseline_subject" => "controlkeel_validate"
       },
       "copilot_vs_opencode" => %{
         "suite" => "host_comparison_v1",
-        "subjects" => "controlkeel_validate,opencode_manual,copilot_manual",
+        "subjects" => ["controlkeel_validate", "opencode_manual", "copilot_manual"],
         "baseline_subject" => "controlkeel_validate"
       },
       "full_compare" => %{
         "suite" => "host_comparison_v1",
-        "subjects" =>
-          "controlkeel_validate,opencode_manual,copilot_manual,gemini_manual,codex_manual,claude_manual",
+        "subjects" => [
+          "controlkeel_validate",
+          "opencode_manual",
+          "copilot_manual",
+          "gemini_manual",
+          "codex_manual",
+          "claude_manual"
+        ],
         "baseline_subject" => "controlkeel_validate"
       }
     }
@@ -604,6 +597,12 @@ defmodule ControlKeelWeb.BenchmarksLive do
   defp format_percent(nil), do: "Not recorded"
   defp format_percent(value) when is_integer(value), do: "#{value}%"
   defp format_percent(value), do: "#{Float.round(value, 1)}%"
+
+  defp subject_options(subjects) do
+    Enum.map(subjects, fn subject ->
+      {subject_label(subject), subject["id"]}
+    end)
+  end
 
   defp subject_label(subject) do
     label = subject["label"] || subject["id"] || "Unknown subject"
