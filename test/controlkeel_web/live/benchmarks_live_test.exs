@@ -103,9 +103,23 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
     assert html =~ "Scenario matrix"
     assert html =~ "Catch rate"
     assert html =~ "Promotion integrity"
-    assert has_element?(view, "#benchmark-matrix")
     assert has_element?(view, "#scenario-hr_discriminatory_candidate_filter")
     assert has_element?(view, "a[href=\"/api/v1/benchmarks/runs/#{run.id}/export?format=csv\"]")
+
+    # Loop access: each subject label renders (zip alignment + subject lookup).
+    assert html =~ "ControlKeel Validate"
+    assert html =~ "ControlKeel Proxy"
+
+    # Loop access: result fields resolve inside scenario_result/1.
+    assert html =~ "findings"
+    assert html =~ "latency"
+    assert html =~ "overhead"
+
+    # Status badge renders (was previously suppressed for "completed").
+    assert html =~ "completed"
+
+    # Loop access: the second scenario row renders too.
+    assert has_element?(view, "#scenario-legal_privileged_memo_logging")
   end
 
   test "index preset buttons fill multi-host subject fields", %{conn: conn} do
