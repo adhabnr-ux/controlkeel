@@ -4,7 +4,6 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   alias ControlKeel.Accounts
   alias ControlKeel.Accounts.WorkspaceToolPolicy
   alias ControlKeel.Intent
-  alias ControlKeel.Mission
   alias ControlKeel.Policy.PackLoader
 
   @impl true
@@ -18,65 +17,127 @@ defmodule ControlKeelWeb.PolicyStudioLive do
      socket
      |> assign(:page_title, "Policy Studio")
      |> assign(:current_org_id, org_id)
+     |> assign(:open_packs, MapSet.new())
      |> assign_packs()
-     |> assign_sessions(org_id)
      |> assign_tool_policies(org_id)}
+  end
+
+  @impl true
+  def handle_event("toggle_pack", %{"name" => name}, socket) do
+    if MapSet.member?(socket.assigns.pack_names, name) do
+      open_packs = socket.assigns.open_packs
+
+      open_packs =
+        if MapSet.member?(open_packs, name) do
+          MapSet.delete(open_packs, name)
+        else
+          MapSet.put(open_packs, name)
+        end
+
+      {:noreply, assign(socket, :open_packs, open_packs)}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">Policy Studio</p>
-            <h1 class="ck-section-title">Active governance rules</h1>
-            <p class="ck-lead ck-lead-tight">
-              Every agent action passes through these policy packs before it executes. Rules that block are enforced automatically — no action required from you.
-            </p>
-          </div>
-          <a href={~p"/"} class="ck-link">Back home</a>
+      <section class="mx-auto max-w-[1180px] px-4 py-12 pb-16 pt-8">
+        <div class="space-y-1 mb-12">
+          <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+            Policy Studio
+          </h2>
+          <p class="text-[var(--ck-muted)]">
+            Every agent action passes through these policy packs before it executes. Rules that block are enforced automatically — no action required from you.
+          </p>
         </div>
 
-        <div class="ck-stat-grid">
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Active packs</p>
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Active packs
+            </p>
             <strong>{@pack_count}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Total rules</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Total rules
+            </p>
             <strong>{@rule_count}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Blocking rules</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Blocking rules
+            </p>
             <strong>{@block_count}</strong>
-          </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Active sessions</p>
-            <strong>{length(@sessions)}</strong>
           </div>
         </div>
 
-        <div class="ck-grid ck-grid-dashboard">
+        <div class="grid gap-6 mt-6 max-[900px]:grid-cols-1 min-[901px]:grid-cols-[1.35fr_0.75fr]">
           <div>
-            <div class="ck-card">
-              <p class="ck-mini-label">Policy packs</p>
-              <div class="ck-finding-list">
+            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                Policy packs
+              </p>
+              <p class="text-[var(--ck-muted)] text-sm mt-4 mb-4">
+                <span class="rounded-full p-2 text-xs bg-red-500/15 text-red-300 border border-red-500/15 mr-1 font-bold uppercase">
+                  {@block_count} rules
+                </span>
+                block agent actions when violated. Other rules only generate warnings.
+              </p>
+
+              <div class="grid gap-2 list-none m-0 p-0 max-h-[48rem] overflow-y-auto pr-1">
                 <%= for {name, rules} <- @packs do %>
-                  <article class="ck-finding-item">
-                    <div class="ck-finding-head">
-                      <h3>{pack_label(name)}</h3>
-                      <span class={"ck-pill #{pack_pill_class(name)}"}>{length(rules)} rules</span>
-                    </div>
-                    <p class="ck-note">{pack_description(name)}</p>
-                    <div class="ck-tag-list" style="margin-top: 0.5rem;">
-                      <%= for rule <- rules do %>
-                        <span class={"ck-tag ck-severity-#{rule.severity}"}>
-                          {rule.action}: {rule.category}
+                  <% open? = MapSet.member?(@open_packs, name) %>
+                  <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] bg-[rgba(255,255,255,0.03)]">
+                    <% panel_id = "pack-panel-#{name}"
+                    label_id = "#{panel_id}-label" %>
+                    <h3 class="m-0">
+                      <button
+                        type="button"
+                        phx-click="toggle_pack"
+                        phx-value-name={name}
+                        aria-expanded={open?}
+                        aria-controls={panel_id}
+                        class="flex w-full items-center justify-between gap-4 p-4 cursor-pointer select-none text-left"
+                      >
+                        <span id={label_id}>{pack_label(name)}</span>
+                        <span class="flex items-center gap-2">
+                          <span class="text-xs text-[var(--ck-muted)]">{length(rules)} rules</span>
+                          <svg
+                            aria-hidden="true"
+                            class={"w-4 h-4 text-[var(--ck-muted)] transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
                         </span>
-                      <% end %>
-                    </div>
+                      </button>
+                    </h3>
+                    <%= if open? do %>
+                      <div id={panel_id} role="region" aria-labelledby={label_id} class="px-4 pb-4">
+                        <p class="text-[var(--ck-muted)] text-sm">{pack_description(name)}</p>
+                        <div class="flex flex-wrap gap-2 mt-3">
+                          <%= for rule <- rules do %>
+                            <span
+                              title={rule.action <> ", " <> rule.category}
+                              class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{rule_tag_class(rule.action)}"}
+                            >
+                              {rule_name(rule.id)}
+                            </span>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% end %>
                   </article>
                 <% end %>
               </div>
@@ -84,98 +145,27 @@ defmodule ControlKeelWeb.PolicyStudioLive do
           </div>
 
           <div>
-            <div class="ck-card" style="margin-bottom: 1rem;">
-              <p class="ck-mini-label">Session budgets</p>
-              <%= if @sessions == [] do %>
-                <p class="ck-note">
-                  No active sessions. Start a mission at <a href={~p"/missions/start"} class="ck-link">/missions/start</a>.
-                </p>
-              <% else %>
-                <div class="ck-finding-list">
-                  <%= for session <- @sessions do %>
-                    <article class="ck-finding-item">
-                      <div class="ck-finding-head">
-                        <h3>
-                          <.link navigate={~p"/missions/#{session.id}"} class="ck-link">
-                            {session.title}
-                          </.link>
-                        </h3>
-                        <span class={"ck-pill #{risk_pill_class(session.risk_tier)}"}>
-                          {session.risk_tier}
-                        </span>
-                      </div>
-                      <div class="ck-metric-row" style="margin-top: 0.5rem;">
-                        <span class="ck-note">
-                          Budget: {format_cents(session.budget_cents)}
-                        </span>
-                        <span class="ck-note">
-                          Spent: {format_cents(session.spent_cents)}
-                        </span>
-                        <span class="ck-note">
-                          Daily cap: {format_cents(session.daily_budget_cents)}
-                        </span>
-                      </div>
-                      <%= if (session.budget_cents || 0) > 0 do %>
-                        <% pct = budget_pct(session.spent_cents, session.budget_cents) %>
-                        <div class="ck-progress-bar">
-                          <div
-                            class={"ck-progress-fill #{budget_fill_class(pct)}"}
-                            style={"width: #{pct}%"}
-                          >
-                          </div>
-                        </div>
-                      <% end %>
-                    </article>
-                  <% end %>
-                </div>
-              <% end %>
-            </div>
-
-            <div class="ck-card">
-              <p class="ck-mini-label">
-                What gets blocked automatically
-                <span class="ck-pill ck-pill-critical" style="margin-left: 0.5rem;">
-                  {@block_count} rules
-                </span>
+            <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                Workspace tool policies
               </p>
-              <%= if @blocked_rules == [] do %>
-                <p class="ck-note">No blocking rules loaded.</p>
-              <% else %>
-                <ul class="ck-mini-list">
-                  <%= for {pack_name, rules} <- @blocked_rules do %>
-                    <%= for rule <- rules do %>
-                      <li>
-                        <strong>{rule.category}</strong>
-                        <span class="ck-note"> ({pack_label(pack_name)} pack)</span>
-                      </li>
-                    <% end %>
-                  <% end %>
-                </ul>
-              <% end %>
-              <p class="ck-note" style="margin-top: 1rem;">
-                Warnings let the agent continue but surface a finding for your review. Blocks stop execution and require a policy fix before proceeding.
-              </p>
-            </div>
-
-            <div class="ck-card" style="margin-top: 1rem;">
-              <p class="ck-mini-label">Workspace tool policies</p>
               <%= if @tool_policies == [] do %>
-                <p class="ck-note">
+                <p class="text-[var(--ck-muted)]">
                   All workspaces inherit global tool access. Set a workspace policy with <code>controlkeel workspace tool-policy set</code>.
                 </p>
               <% else %>
-                <div class="ck-finding-list">
+                <div class="grid gap-4 list-none m-0 p-0">
                   <%= for {ws, policy} <- @tool_policies do %>
-                    <article class="ck-finding-item">
-                      <div class="ck-finding-head">
+                    <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
+                      <div class="flex items-center justify-between gap-4">
                         <h3>{ws.name}</h3>
-                        <span class={"ck-pill #{tool_policy_pill_class(policy.mode)}"}>
+                        <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{tool_policy_pill_class(policy.mode)}"}>
                           {policy.mode}
                         </span>
                       </div>
                       <% tools = WorkspaceToolPolicy.decode_tools(policy) %>
                       <%= if tools != [] do %>
-                        <p class="ck-note" style="margin-top: 0.25rem;">
+                        <p class="text-[var(--ck-muted)] mt-1">
                           Tools: {Enum.join(tools, ", ")}
                         </p>
                       <% end %>
@@ -203,26 +193,11 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
     socket
     |> assign(:packs, Enum.sort_by(packs, fn {name, _} -> pack_sort_order(name) end))
+    |> assign(:pack_names, MapSet.new(Map.keys(packs)))
     |> assign(:pack_count, map_size(packs))
     |> assign(:rule_count, length(all_rules))
     |> assign(:block_count, Enum.count(all_rules, &(&1.action == "block")))
     |> assign(:blocked_rules, blocked_rules)
-  end
-
-  defp assign_sessions(socket, nil) do
-    assign(socket, :sessions, [])
-  end
-
-  defp assign_sessions(socket, org_id) when is_integer(org_id) do
-    workspaces = Accounts.list_workspaces_for_org(org_id)
-
-    sessions =
-      workspaces
-      |> Enum.flat_map(fn ws -> Mission.list_sessions_for_workspace(ws.id) end)
-      |> Enum.sort_by(& &1.inserted_at, {:desc, DateTime})
-      |> Enum.take(20)
-
-    assign(socket, :sessions, sessions)
   end
 
   defp assign_tool_policies(socket, nil) do
@@ -316,35 +291,19 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
   defp pack_description(_), do: "Domain-specific policy rules."
 
-  defp pack_pill_class("baseline"), do: "ck-pill-critical"
-  defp pack_pill_class("cost"), do: "ck-pill-medium"
-  defp pack_pill_class(_), do: "ck-pill-neutral"
-
   defp pack_sort_order("baseline"), do: 0
   defp pack_sort_order("cost"), do: 1
   defp pack_sort_order("software"), do: 2
   defp pack_sort_order(_), do: 3
 
-  defp risk_pill_class("critical"), do: "ck-pill-critical"
-  defp risk_pill_class("high"), do: "ck-pill-high"
-  defp risk_pill_class(_), do: "ck-pill-neutral"
+  defp tool_policy_pill_class("allowlist"), do: "bg-[rgba(125,226,174,0.12)] text-[#7de2ae]"
+  defp tool_policy_pill_class("denylist"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+  defp tool_policy_pill_class(_), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
-  defp format_cents(nil), do: "not set"
-  defp format_cents(0), do: "$0"
+  defp rule_name(id) do
+    id |> String.split(".") |> List.last() |> String.replace("_", " ")
+  end
 
-  defp format_cents(cents),
-    do:
-      "$#{div(cents, 100)}.#{rem(cents, 100) |> Integer.to_string() |> String.pad_leading(2, "0")}"
-
-  defp budget_pct(_spent, nil), do: 0
-  defp budget_pct(_spent, 0), do: 0
-  defp budget_pct(spent, budget), do: min(round((spent || 0) / budget * 100), 100)
-
-  defp budget_fill_class(pct) when pct >= 90, do: "ck-progress-critical"
-  defp budget_fill_class(pct) when pct >= 75, do: "ck-progress-warn"
-  defp budget_fill_class(_), do: "ck-progress-ok"
-
-  defp tool_policy_pill_class("allowlist"), do: "ck-pill-success"
-  defp tool_policy_pill_class("denylist"), do: "ck-pill-high"
-  defp tool_policy_pill_class(_), do: "ck-pill-neutral"
+  defp rule_tag_class("block"), do: "bg-red-500/15 text-red-300 border-red-500/15"
+  defp rule_tag_class("warn"), do: "bg-yellow-500/15 text-yellow-300 border-yellow-500/15"
 end
