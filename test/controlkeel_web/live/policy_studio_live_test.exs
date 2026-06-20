@@ -15,12 +15,26 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
     assert html =~ "Blocking rules"
   end
 
+  test "toggle_pack ignores unknown pack names", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/policies")
+
+    before_click = render(view)
+    render_click(view, "toggle_pack", %{"name" => "not-a-real-pack"})
+
+    assert render(view) == before_click
+  end
+
   test "toggle_pack expands and collapses baseline pack", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/policies")
 
-    render_click(element(view, "div[phx-value-name=\"baseline\"]"))
+    trigger = element(view, "button[phx-value-name=\"baseline\"]")
+    render_click(trigger)
 
-    assert render(view) =~ "Always active"
+    assert render(view) =~ "Detects secrets, injection, and XSS"
+
+    render_click(trigger)
+
+    refute render(view) =~ "Detects secrets, injection, and XSS"
   end
 
   test "shows empty tool-policies state when no org_id is present", %{conn: conn} do
@@ -54,7 +68,7 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
   test "warn rules show yellow class when pack is expanded", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/policies")
 
-    render_click(element(view, "div[phx-value-name=\"software\"]"))
+    render_click(element(view, "button[phx-value-name=\"software\"]"))
 
     assert render(view) =~ "yellow-300"
   end

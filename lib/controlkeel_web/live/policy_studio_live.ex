@@ -24,16 +24,20 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
   @impl true
   def handle_event("toggle_pack", %{"name" => name}, socket) do
-    open_packs = socket.assigns.open_packs
+    if MapSet.member?(socket.assigns.pack_names, name) do
+      open_packs = socket.assigns.open_packs
 
-    open_packs =
-      if MapSet.member?(open_packs, name) do
-        MapSet.delete(open_packs, name)
-      else
-        MapSet.put(open_packs, name)
-      end
+      open_packs =
+        if MapSet.member?(open_packs, name) do
+          MapSet.delete(open_packs, name)
+        else
+          MapSet.put(open_packs, name)
+        end
 
-    {:noreply, assign(socket, :open_packs, open_packs)}
+      {:noreply, assign(socket, :open_packs, open_packs)}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -88,31 +92,39 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                 <%= for {name, rules} <- @packs do %>
                   <% open? = MapSet.member?(@open_packs, name) %>
                   <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] bg-[rgba(255,255,255,0.03)]">
-                    <div
-                      phx-click="toggle_pack"
-                      phx-value-name={name}
-                      class="flex items-center justify-between gap-4 p-4 cursor-pointer select-none"
-                    >
-                      <h3>{pack_label(name)}</h3>
-                      <div class="flex items-center gap-2">
-                        <span class="text-xs text-[var(--ck-muted)]">{length(rules)} rules</span>
-                        <svg
-                          class={"w-4 h-4 text-[var(--ck-muted)] transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
+                    <% panel_id = "pack-panel-#{name}"
+                    label_id = "#{panel_id}-label" %>
+                    <h3 class="m-0">
+                      <button
+                        type="button"
+                        phx-click="toggle_pack"
+                        phx-value-name={name}
+                        aria-expanded={open?}
+                        aria-controls={panel_id}
+                        class="flex w-full items-center justify-between gap-4 p-4 cursor-pointer select-none text-left"
+                      >
+                        <span id={label_id}>{pack_label(name)}</span>
+                        <span class="flex items-center gap-2">
+                          <span class="text-xs text-[var(--ck-muted)]">{length(rules)} rules</span>
+                          <svg
+                            aria-hidden="true"
+                            class={"w-4 h-4 text-[var(--ck-muted)] transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </span>
+                      </button>
+                    </h3>
                     <%= if open? do %>
-                      <div class="px-4 pb-4">
+                      <div id={panel_id} role="region" aria-labelledby={label_id} class="px-4 pb-4">
                         <p class="text-[var(--ck-muted)] text-sm">{pack_description(name)}</p>
                         <div class="flex flex-wrap gap-2 mt-3">
                           <%= for rule <- rules do %>
@@ -181,6 +193,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
     socket
     |> assign(:packs, Enum.sort_by(packs, fn {name, _} -> pack_sort_order(name) end))
+    |> assign(:pack_names, MapSet.new(Map.keys(packs)))
     |> assign(:pack_count, map_size(packs))
     |> assign(:rule_count, length(all_rules))
     |> assign(:block_count, Enum.count(all_rules, &(&1.action == "block")))
