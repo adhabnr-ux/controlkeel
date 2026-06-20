@@ -34,6 +34,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
          |> assign(:run, run)
          |> assign(:matrix, Benchmark.run_matrix(run))
          |> assign(:detail_metrics, Benchmark.run_detail_metrics(run))
+         |> assign(:eval_profile, Benchmark.run_eval_profile(run))
          |> assign(:page_title, "Benchmark Run #{run.id}")}
     end
   end
@@ -44,6 +45,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
      |> assign(:run, nil)
      |> assign(:matrix, %{subjects: [], scenarios: []})
      |> assign(:detail_metrics, %{})
+     |> assign(:eval_profile, %{})
      |> assign(:page_title, "Benchmarks")
      |> refresh_dashboard_assigns()}
   end
@@ -196,7 +198,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
           <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
             Promotion integrity
           </p>
-          <% integrity = get_in(Benchmark.run_eval_profile(@run), ["promotion_integrity"]) || %{} %>
+          <% integrity = get_in(@eval_profile, ["promotion_integrity"]) || %{} %>
           <div class="flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start">
             <h3>{integrity["status"] || "unknown"}</h3>
             <span class="border border-[var(--ck-stroke)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
@@ -325,7 +327,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
                   field={@form[:suite]}
                   type="select"
                   label="Suite"
-                  options={Enum.map(@all_suites, &{"#{&1.name} (#{&1.slug})", &1.slug})}
+                  options={Enum.map(@suites, &{"#{&1.name} (#{&1.slug})", &1.slug})}
                 />
                 <.subject_multi_select
                   field={@form[:subjects]}
@@ -589,7 +591,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
     socket
     |> assign(:summary, Benchmark.benchmark_summary([]))
     |> assign(:suites, Benchmark.list_suites([]))
-    |> assign(:all_suites, Benchmark.list_suites([]))
     |> assign(:recent_runs, Benchmark.list_recent_runs([]))
     |> assign(:available_subjects, subjects)
     |> assign(:subjects_by_id, Map.new(subjects, fn s -> {s["id"], s} end))
