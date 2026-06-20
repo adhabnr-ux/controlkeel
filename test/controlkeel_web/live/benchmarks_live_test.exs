@@ -137,4 +137,72 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
     assert html =~ "codex_manual"
     assert html =~ "claude_manual"
   end
+
+  test "multi-select subject dropdown toggles subjects on and off", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/benchmarks")
+
+    refute has_element?(view, "#benchmark-subjects-input [role='listbox']")
+
+    view
+    |> element("#benchmark-subjects-input button[phx-click='toggle_subjects_dropdown']")
+    |> render_click()
+
+    assert has_element?(view, "#benchmark-subjects-input [role='listbox']")
+
+    view
+    |> element(
+      "#benchmark-subjects-input button[role='option'][data-subject-id='controlkeel_proxy']"
+    )
+    |> render_click()
+
+    assert has_element?(
+             view,
+             "#benchmark-subjects-input input[name='benchmark[subjects][]'][value='controlkeel_proxy']"
+           )
+
+    view
+    |> element(
+      "#benchmark-subjects-input button[role='option'][data-subject-id='controlkeel_proxy']"
+    )
+    |> render_click()
+
+    refute has_element?(
+             view,
+             "#benchmark-subjects-input input[name='benchmark[subjects][]'][value='controlkeel_proxy']"
+           )
+  end
+
+  test "manually toggling a subject clears the active preset", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/benchmarks")
+
+    assert has_element?(view, "#benchmark-preset-opencode[aria-pressed='true']")
+
+    view |> element("#benchmark-preset-ck-only") |> render_click()
+    assert has_element?(view, "#benchmark-preset-ck-only[aria-pressed='true']")
+
+    view
+    |> element("#benchmark-subjects-input button[phx-click='toggle_subjects_dropdown']")
+    |> render_click()
+
+    view
+    |> element(
+      "#benchmark-subjects-input button[role='option'][data-subject-id='controlkeel_proxy']"
+    )
+    |> render_click()
+
+    refute has_element?(view, "#benchmark-preset-ck-only[aria-pressed='true']")
+  end
+
+  test "index renders an empty state when there are no runs", %{conn: conn} do
+    {:ok, _view, html} = live(conn, ~p"/benchmarks")
+
+    assert html =~ "No benchmark runs yet"
+  end
+
+  test "show redirects to index when the run is not found", %{conn: conn} do
+    assert {:error, {:live_redirect, %{to: "/benchmarks", flash: flash}}} =
+             live(conn, ~p"/benchmarks/runs/999999")
+
+    assert flash["error"] == "Benchmark run not found."
+  end
 end

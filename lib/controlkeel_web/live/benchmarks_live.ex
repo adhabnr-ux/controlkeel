@@ -132,7 +132,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
           </a>
         </div>
 
-        <div class="border border-[var(--ck-stroke)]  rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+        <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
           <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold mb-4">
             Performance metrics
           </p>
