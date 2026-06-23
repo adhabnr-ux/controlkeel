@@ -783,95 +783,122 @@ defmodule ControlKeelWeb.MissionControlLive do
               </ul>
             <% end %>
           </div>
+        </div>
 
-          <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+        <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6">
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/5">
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
               Recent transcript
             </p>
-            <div class="flex flex-wrap gap-2 mt-2">
-              <span>{@current_transcript_summary["total_events"] || 0} events</span>
-              <span>{length(@current_recent_events)} recent</span>
+            <div class="flex flex-wrap gap-2">
+              <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">
+                {@current_transcript_summary["total_events"] || 0} events
+              </span>
+              <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">
+                {length(@current_recent_events)} recent
+              </span>
             </div>
-            <%= if @current_recent_events == [] do %>
-              <p class="text-sm text-zinc-400 mt-3">No transcript events recorded yet.</p>
-            <% else %>
-              <ul class="space-y-3 list-none p-0 m-0 mt-3">
-                <%= for event <- @current_recent_events do %>
-                  <li>
-                    <strong>{event["summary"]}</strong>
-                    <p class="text-sm text-zinc-400">
-                      {event["event_type"]} • {event["actor"]} • {event_timestamp(
-                        event["inserted_at"]
-                      )}
-                    </p>
-                  </li>
-                <% end %>
-              </ul>
-            <% end %>
-            <details class="mt-4">
-              <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 cursor-pointer select-none">
-                View transcript summary JSON
-              </summary>
-              <pre class="p-4 border border-white/10 rounded-2xl bg-white/[0.03] text-sm text-[#f2e6c9] font-mono whitespace-pre-wrap break-all leading-relaxed mt-4">{Jason.encode!(@current_transcript_summary, pretty: true)}</pre>
-            </details>
           </div>
-
-          <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
-              Resume packet
-            </p>
-            <%= if @current_resume_packet do %>
-              <div class="flex flex-wrap gap-2 mt-2">
-                <span>{length(@current_resume_packet["unresolved_findings"])} unresolved</span>
-                <span>{length(@current_resume_packet["latest_invocations"])} recent runs</span>
-                <span>{length(@current_resume_packet["memory_hits"])} memory hits</span>
-              </div>
-              <pre class="p-4 max-h-96 overflow-auto border border-white/10 rounded-2xl bg-white/[0.03] text-sm text-[#f2e6c9] font-mono whitespace-pre-wrap break-all leading-relaxed mt-4">{Jason.encode!(@current_resume_packet, pretty: true)}</pre>
-            <% else %>
-              <p class="text-sm text-zinc-400 mt-3">
-                Pause a task to capture a durable resume packet.
-              </p>
-            <% end %>
-          </div>
+          <%= if @current_recent_events == [] do %>
+            <p class="text-sm text-zinc-400 mt-4">No transcript events recorded yet.</p>
+          <% else %>
+            <ul class="space-y-2 list-none p-0 m-0 mt-4">
+              <%= for event <- @current_recent_events do %>
+                <li class="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 transition hover:bg-white/[0.05]">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <strong class="text-sm text-zinc-100">{event["summary"]}</strong>
+                    <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[0.65rem] text-zinc-300">
+                      {event["event_type"]}
+                    </span>
+                  </div>
+                  <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                    <span class="inline-flex items-center rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5">
+                      {event["actor"]}
+                    </span>
+                    <span class="font-mono tabular-nums tracking-tight">
+                      {event_timestamp(event["inserted_at"])}
+                    </span>
+                  </div>
+                </li>
+              <% end %>
+            </ul>
+          <% end %>
+          <details class="mt-4">
+            <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 cursor-pointer select-none">
+              View transcript summary JSON
+            </summary>
+            <pre class="p-4 max-h-96 overflow-auto border border-white/10 rounded-2xl bg-white/[0.03] text-sm text-[#f2e6c9] font-mono whitespace-pre-wrap break-all leading-relaxed mt-4">{Jason.encode!(@current_transcript_summary, pretty: true)}</pre>
+          </details>
         </div>
 
         <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6">
           <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+            Resume packet
+          </p>
+          <%= if @current_resume_packet do %>
+            <div class="flex flex-wrap gap-2 mt-2">
+              <span>{length(@current_resume_packet["unresolved_findings"])} unresolved</span>
+              <span>{length(@current_resume_packet["latest_invocations"])} recent runs</span>
+              <span>{length(@current_resume_packet["memory_hits"])} memory hits</span>
+            </div>
+            <details class="mt-4">
+              <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 cursor-pointer select-none">
+                View resume packet JSON
+              </summary>
+              <pre class="p-4 max-h-96 overflow-auto border border-white/10 rounded-2xl bg-white/[0.03] text-sm text-[#f2e6c9] font-mono whitespace-pre-wrap break-all leading-relaxed mt-4">{Jason.encode!(@current_resume_packet, pretty: true)}</pre>
+            </details>
+          <% else %>
+            <p class="text-sm text-zinc-400 mt-3">
+              Pause a task to capture a durable resume packet.
+            </p>
+          <% end %>
+
+          <p class="mt-6 pt-6 border-t border-white/5 text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
             Proxy endpoints
           </p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-            <div>
-              <h3 class="text-sm font-semibold text-zinc-300 mb-1">OpenAI responses</h3>
-              <p class="text-sm text-zinc-400 font-mono break-all">{@proxy_urls.openai_responses}</p>
-            </div>
-            <div>
-              <h3 class="text-sm font-semibold text-zinc-300 mb-1">OpenAI chat</h3>
-              <p class="text-sm text-zinc-400 font-mono break-all">{@proxy_urls.openai_chat}</p>
-            </div>
-            <div>
-              <h3 class="text-sm font-semibold text-zinc-300 mb-1">OpenAI completions</h3>
-              <p class="text-sm text-zinc-400 font-mono break-all">
-                {@proxy_urls.openai_completions}
-              </p>
-            </div>
-            <div>
-              <h3 class="text-sm font-semibold text-zinc-300 mb-1">OpenAI embeddings</h3>
-              <p class="text-sm text-zinc-400 font-mono break-all">{@proxy_urls.openai_embeddings}</p>
-            </div>
-            <div>
-              <h3 class="text-sm font-semibold text-zinc-300 mb-1">OpenAI models</h3>
-              <p class="text-sm text-zinc-400 font-mono break-all">{@proxy_urls.openai_models}</p>
-            </div>
-            <div>
-              <h3 class="text-sm font-semibold text-zinc-300 mb-1">OpenAI realtime</h3>
-              <p class="text-sm text-zinc-400 font-mono break-all">{@proxy_urls.openai_realtime}</p>
-            </div>
-            <div>
-              <h3 class="text-sm font-semibold text-zinc-300 mb-1">Anthropic messages</h3>
-              <p class="text-sm text-zinc-400 font-mono break-all">
-                {@proxy_urls.anthropic_messages}
-              </p>
-            </div>
+          <div class="grid grid-cols-2 gap-3 mt-3">
+            <a
+              href={@proxy_urls.openai_responses}
+              class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/[0.08] hover:text-white transition"
+            >
+              OpenAI responses
+            </a>
+            <a
+              href={@proxy_urls.openai_chat}
+              class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/[0.08] hover:text-white transition"
+            >
+              OpenAI chat
+            </a>
+            <a
+              href={@proxy_urls.openai_completions}
+              class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/[0.08] hover:text-white transition"
+            >
+              OpenAI completions
+            </a>
+            <a
+              href={@proxy_urls.openai_embeddings}
+              class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/[0.08] hover:text-white transition"
+            >
+              OpenAI embeddings
+            </a>
+            <a
+              href={@proxy_urls.openai_models}
+              class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/[0.08] hover:text-white transition"
+            >
+              OpenAI models
+            </a>
+            <a
+              href={@proxy_urls.openai_realtime}
+              class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/[0.08] hover:text-white transition"
+            >
+              OpenAI realtime
+            </a>
+            <a
+              href={@proxy_urls.anthropic_messages}
+              class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/[0.08] hover:text-white transition"
+            >
+              Anthropic messages
+            </a>
           </div>
         </div>
 
