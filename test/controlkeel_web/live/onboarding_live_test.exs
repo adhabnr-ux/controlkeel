@@ -62,7 +62,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
       |> get(path)
       |> html_response(200)
 
-    assert redirected_html =~ "Mission control"
+    assert redirected_html =~ "Clinic Intake"
     assert length(Mission.list_sessions()) == 1
   end
 

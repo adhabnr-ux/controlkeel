@@ -190,9 +190,7 @@ defmodule ControlKeelWeb.MissionControlLive do
     <Layouts.app flash={@flash}>
       <section class="mx-auto max-w-[1180px] w-full px-4 pt-8 pb-16">
         <%= if @launched do %>
-          <div
-            class="p-6 rounded-3xl border border-white/10 bg-emerald-50 text-zinc-900 border-l-4 border-l-emerald-500 mb-6"
-          >
+          <div class="p-6 rounded-3xl border border-white/10 bg-emerald-50 text-zinc-900 border-l-4 border-l-emerald-500 mb-6">
             <div class="flex items-start gap-4">
               <span class="text-2xl leading-none">✓</span>
               <div>
@@ -214,37 +212,32 @@ defmodule ControlKeelWeb.MissionControlLive do
             </div>
           </div>
         <% end %>
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-6 mb-4">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300">Mission control</p>
-            <h1 class="text-3xl md:text-5xl font-bold tracking-tight text-white leading-none">{@session.title}</h1>
-            <p class="max-w-3xl text-base md:text-lg leading-relaxed text-zinc-400">{@session.objective}</p>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <span class={[
-              "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
-              @session.risk_tier in ["critical", "high"] && "bg-red-400/10 text-red-200 ring-red-300/20",
-              @session.risk_tier in ["medium", "moderate"] && "bg-amber-300/10 text-amber-100 ring-amber-200/20",
-              @session.risk_tier in ["low"] && "bg-emerald-300/10 text-emerald-100 ring-emerald-200/20",
-              @session.risk_tier not in ["critical", "high", "medium", "moderate", "low"] && "bg-white/10 text-zinc-300 ring-white/15"
-            ]}>
-              {@session.risk_tier} risk
-            </span>
-            <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 bg-white/10 text-zinc-300 ring-white/15">{@workspace.compliance_profile}</span>
-          </div>
+        <div class="space-y-1 mb-12">
+          <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+            {@session.title}
+          </h2>
+          <p class="text-[var(--ck-muted)]">
+            {@session.objective}
+          </p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-5">
           <div class="p-5 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-lg">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Primary agent</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Primary agent
+            </p>
             <strong>{@agent_label}</strong>
           </div>
           <div class="p-5 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-lg">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Needs review</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Needs review
+            </p>
             <strong>{@active_findings} finding{if @active_findings != 1, do: "s"}</strong>
           </div>
           <div class="p-5 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-lg">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Compliance score</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Compliance score
+            </p>
             <div class="flex items-center gap-3">
               <svg
                 viewBox="0 0 36 36"
@@ -268,27 +261,36 @@ defmodule ControlKeelWeb.MissionControlLive do
             </div>
           </div>
           <div class="p-5 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-lg">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Budget spent</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Budget spent
+            </p>
             <strong>
               {format_currency(@session.spent_cents)} / {format_currency(@session.budget_cents)}
             </strong>
           </div>
           <div class="p-5 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-lg">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Proof bundles</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Proof bundles
+            </p>
             <strong>{map_size(@latest_proofs)}</strong>
           </div>
         </div>
 
-        <div id="mission-observability-panel" class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6">
+        <div
+          id="mission-observability-panel"
+          class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6"
+        >
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-6 mb-4">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Session run observability</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+                Session run observability
+              </p>
               <h2 class="m-0 text-xl font-bold text-white">{@observability.health.label}</h2>
               <p class="text-sm text-zinc-400 mt-1.5">
                 Compact local-first view of health, events, findings, gates, memory, proofs, and cost.
               </p>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2 items-center">
               <span
                 id="mission-observability-health"
                 class={obs_health_pill_class(@observability.health.status)}
@@ -306,8 +308,13 @@ defmodule ControlKeelWeb.MissionControlLive do
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
-            <div id="mission-observability-budget" class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Budget health</p>
+            <div
+              id="mission-observability-budget"
+              class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg"
+            >
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+                Budget health
+              </p>
               <strong>{@observability.budget["decision"] || "unknown"}</strong>
               <p class="text-xs text-zinc-500 mt-1">
                 {format_currency(@observability.budget["spent_cents"] || 0)} / {format_currency(
@@ -315,20 +322,37 @@ defmodule ControlKeelWeb.MissionControlLive do
                 )} used
               </p>
             </div>
-            <div id="mission-observability-findings" class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Findings</p>
+            <div
+              id="mission-observability-findings"
+              class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg"
+            >
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+                Findings
+              </p>
               <strong>{@observability.findings.active} active</strong>
               <p class="text-xs text-zinc-500 mt-1">
                 {@observability.findings.critical} critical · {@observability.findings.high} high · {@observability.findings.blocked} blocked
               </p>
             </div>
-            <div id="mission-observability-gates" class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Gates</p>
+            <div
+              id="mission-observability-gates"
+              class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg"
+            >
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+                Gates
+              </p>
               <strong>{@observability.gates.pending_reviews} pending</strong>
-              <p class="text-xs text-zinc-500 mt-1">{@observability.gates.total_reviews} total review gates</p>
+              <p class="text-xs text-zinc-500 mt-1">
+                {@observability.gates.total_reviews} total review gates
+              </p>
             </div>
-            <div id="mission-observability-timeline" class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Timeline</p>
+            <div
+              id="mission-observability-timeline"
+              class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg"
+            >
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+                Timeline
+              </p>
               <strong>{@observability.timeline.count} events</strong>
               <p class="text-xs text-zinc-500 mt-1">
                 {@observability.memory.records} memory · {@observability.proofs.count} proofs · {@observability.hosts_models_tools.invocations} calls
@@ -337,7 +361,9 @@ defmodule ControlKeelWeb.MissionControlLive do
           </div>
 
           <div class="mt-4">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Recommendations</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Recommendations
+            </p>
             <ul id="mission-observability-recommendations" class="space-y-2 list-none p-0 m-0">
               <%= for recommendation <- Enum.take(@observability.recommendations, 3) do %>
                 <li>{recommendation}</li>
@@ -347,22 +373,32 @@ defmodule ControlKeelWeb.MissionControlLive do
         </div>
 
         <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Session metrics</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+            Session metrics
+          </p>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
             <div class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Current funnel stage</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+                Current funnel stage
+              </p>
               <strong>{Analytics.stage_label(@session_metrics.funnel_stage)}</strong>
             </div>
             <div class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">First finding time</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+                First finding time
+              </p>
               <strong>{format_duration(@session_metrics.time_to_first_finding_seconds)}</strong>
             </div>
             <div class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Total findings</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+                Total findings
+              </p>
               <strong>{@session_metrics.total_findings}</strong>
             </div>
             <div class="p-5 rounded-3xl border border-white/10 bg-white/[0.03] shadow-lg">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Blocked findings</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+                Blocked findings
+              </p>
               <strong>{@session_metrics.blocked_findings_total}</strong>
             </div>
           </div>
@@ -370,11 +406,15 @@ defmodule ControlKeelWeb.MissionControlLive do
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Execution brief</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Execution brief
+            </p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <div>
                 <h3 class="text-sm font-semibold text-zinc-300 mb-1">Domain pack</h3>
-                <p class="text-sm text-zinc-400">{format_domain_pack(brief_value(@brief, "domain_pack"))}</p>
+                <p class="text-sm text-zinc-400">
+                  {format_domain_pack(brief_value(@brief, "domain_pack"))}
+                </p>
               </div>
               <div>
                 <h3 class="text-sm font-semibold text-zinc-300 mb-1">Occupation</h3>
@@ -397,22 +437,6 @@ defmodule ControlKeelWeb.MissionControlLive do
                 </ul>
               </div>
               <div>
-                <h3 class="text-sm font-semibold text-zinc-300 mb-1">Open questions</h3>
-                <ul class="space-y-1 text-sm text-zinc-400 list-none p-0 m-0">
-                  <%= for item <- brief_list(@brief, "open_questions") do %>
-                    <li>{item}</li>
-                  <% end %>
-                </ul>
-              </div>
-              <div>
-                <h3 class="text-sm font-semibold text-zinc-300 mb-1">Compliance</h3>
-                <ul class="flex flex-wrap gap-1.5 mt-1">
-                  <%= for item <- brief_list(@brief, "compliance") do %>
-                    <li><span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">{item}</span></li>
-                  <% end %>
-                </ul>
-              </div>
-              <div>
                 <h3 class="text-sm font-semibold text-zinc-300 mb-1">Compiler</h3>
                 <p class="text-sm text-zinc-400">
                   {brief_value(@compiler, "provider")} / {brief_value(@compiler, "model")}
@@ -422,7 +446,9 @@ defmodule ControlKeelWeb.MissionControlLive do
           </div>
 
           <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Production boundary</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Production boundary
+            </p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <div>
                 <h3 class="text-sm font-semibold text-zinc-300 mb-1">Risk tier</h3>
@@ -430,19 +456,21 @@ defmodule ControlKeelWeb.MissionControlLive do
               </div>
               <div>
                 <h3 class="text-sm font-semibold text-zinc-300 mb-1">Budget note</h3>
-                <p class="text-sm text-zinc-400">{boundary_value(@boundary_summary, "budget_note")}</p>
+                <p class="text-sm text-zinc-400">
+                  {boundary_value(@boundary_summary, "budget_note")}
+                </p>
               </div>
               <div>
                 <h3 class="text-sm font-semibold text-zinc-300 mb-1">Launch window</h3>
-                <p class="text-sm text-zinc-400">{boundary_value(@boundary_summary, "launch_window")}</p>
-              </div>
-              <div>
-                <h3 class="text-sm font-semibold text-zinc-300 mb-1">Next step</h3>
-                <p class="text-sm text-zinc-400">{boundary_value(@boundary_summary, "next_step")}</p>
+                <p class="text-sm text-zinc-400">
+                  {boundary_value(@boundary_summary, "launch_window")}
+                </p>
               </div>
               <div>
                 <h3 class="text-sm font-semibold text-zinc-300 mb-1">Data summary</h3>
-                <p class="text-sm text-zinc-400">{boundary_value(@boundary_summary, "data_summary")}</p>
+                <p class="text-sm text-zinc-400">
+                  {boundary_value(@boundary_summary, "data_summary")}
+                </p>
               </div>
               <div>
                 <h3 class="text-sm font-semibold text-zinc-300 mb-1">Constraints</h3>
@@ -456,7 +484,11 @@ defmodule ControlKeelWeb.MissionControlLive do
                 <h3 class="text-sm font-semibold text-zinc-300 mb-1">Compliance</h3>
                 <ul class="flex flex-wrap gap-1.5 mt-1">
                   <%= for item <- boundary_list(@boundary_summary, "compliance") do %>
-                    <li><span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">{item}</span></li>
+                    <li>
+                      <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">
+                        {item}
+                      </span>
+                    </li>
                   <% end %>
                 </ul>
               </div>
@@ -471,29 +503,34 @@ defmodule ControlKeelWeb.MissionControlLive do
             </div>
           </div>
 
-          <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Current task context</p>
+          <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20 lg:col-span-2">
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 pb-3 border-b border-white/5">
+              Current task context
+            </p>
             <%= if @current_task do %>
-              <div class="flex items-center justify-between gap-4 mt-2">
-                <span class={[
-                  "size-2.5 rounded-full inline-block shrink-0",
-                  @current_task.status in ["done", "verified"] && "bg-emerald-400",
-                  @current_task.status == "in_progress" && "bg-lime-400",
-                  @current_task.status == "queued" && "bg-amber-400",
-                  @current_task.status == "paused" && "bg-blue-400",
-                  @current_task.status == "blocked" && "bg-red-400"
-                ]}></span>
-                <strong>{@current_task.title}</strong>
+              <div class="flex items-center justify-between gap-4 mt-4">
+                <div class="flex items-center gap-3 min-w-0">
+                  <span class={[
+                    "size-2.5 rounded-full inline-block shrink-0",
+                    @current_task.status in ["done", "verified"] && "bg-emerald-400",
+                    @current_task.status == "in_progress" && "bg-lime-400",
+                    @current_task.status == "queued" && "bg-amber-400",
+                    @current_task.status == "paused" && "bg-blue-400",
+                    @current_task.status == "blocked" && "bg-red-400"
+                  ]}>
+                  </span>
+                  <strong class="truncate">{@current_task.title}</strong>
+                </div>
                 <span class={task_status_pill_class(@current_task.status)}>
                   {task_status_label(@current_task)}
                 </span>
               </div>
               <p class="text-sm text-zinc-400 mt-1">{@current_task.validation_gate}</p>
-              <div class="flex items-center gap-4 mt-3">
+              <div class="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 pt-4 border-t border-white/5">
                 <button
                   id={"current-task-generate-proof-#{@current_task.id}"}
                   type="button"
-                  class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
+                  class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition bg-lime-400/15 text-lime-300 border border-lime-400/30 hover:bg-lime-400/25 hover:text-lime-200 cursor-pointer"
                   phx-click="generate_proof"
                   phx-value-id={@current_task.id}
                 >
@@ -503,7 +540,7 @@ defmodule ControlKeelWeb.MissionControlLive do
                   :if={@current_task.status in ["queued", "in_progress", "blocked"]}
                   id={"current-task-pause-#{@current_task.id}"}
                   type="button"
-                  class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
+                  class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition border border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] hover:text-white cursor-pointer"
                   phx-click="pause_task"
                   phx-value-id={@current_task.id}
                 >
@@ -513,7 +550,7 @@ defmodule ControlKeelWeb.MissionControlLive do
                   :if={@current_task.status == "paused"}
                   id={"current-task-resume-#{@current_task.id}"}
                   type="button"
-                  class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
+                  class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition border border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] hover:text-white cursor-pointer"
                   phx-click="resume_task"
                   phx-value-id={@current_task.id}
                 >
@@ -522,16 +559,22 @@ defmodule ControlKeelWeb.MissionControlLive do
                 <.link
                   :if={Map.get(@latest_proofs, @current_task.id)}
                   navigate={~p"/proofs/#{Map.fetch!(@latest_proofs, @current_task.id).id}"}
-                  class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
+                  class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition border border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] hover:text-white cursor-pointer"
                 >
                   View proof
                 </.link>
               </div>
               <%= if @current_proof_summary do %>
                 <div class="flex flex-wrap gap-2 mt-3">
-                  <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">v{@current_proof_summary["version"]}</span>
-                  <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">risk {@current_proof_summary["risk_score"]}</span>
-                  <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">{task_verification_label(@current_task, @current_proof_summary)}</span>
+                  <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">
+                    v{@current_proof_summary["version"]}
+                  </span>
+                  <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">
+                    risk {@current_proof_summary["risk_score"]}
+                  </span>
+                  <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">
+                    {task_verification_label(@current_task, @current_proof_summary)}
+                  </span>
                   <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">
                     {if @current_proof_summary["deploy_ready"],
                       do: "deploy ready",
@@ -547,39 +590,47 @@ defmodule ControlKeelWeb.MissionControlLive do
               <p class="text-sm text-zinc-400 mt-1">No active task context is available yet.</p>
             <% end %>
 
-            <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Task dependencies</p>
+            <p class="mt-8 pt-6 border-t border-white/5 text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Task dependencies
+            </p>
             <%= if @task_graph.edges == [] do %>
               <p class="text-sm text-zinc-400 mt-1" id="mission-task-deps-empty">
                 No dependency edges are recorded yet. When tasks include architecture, feature, and release tracks, edges appear here. The checklist below stays ordered by position.
               </p>
             <% else %>
-              <ul class="space-y-2 list-none p-0 m-0 mb-4 mt-2" id="mission-task-edges">
-                <%= for edge <- @task_graph.edges do %>
-                  <li>
-                    {Map.get(@task_title_by_id, edge.from_task_id, "Task #{edge.from_task_id}")}
-                    <span class="text-zinc-500"> → </span>
-                    {Map.get(@task_title_by_id, edge.to_task_id, "Task #{edge.to_task_id}")}
-                    <span
-                      class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[0.65rem] text-zinc-300 ml-1.5"
-                    >
-                      {edge.dependency_type}
-                    </span>
-                  </li>
-                <% end %>
-              </ul>
-              <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Ready (dependencies satisfied)</p>
-              <p class="text-sm text-zinc-400 mt-1" id="mission-task-ready">
-                <%= if @task_graph.ready_task_ids == [] do %>
-                  No tasks are ready to advance right now.
-                <% else %>
-                  {Enum.map_join(@task_graph.ready_task_ids, ", ", fn id ->
-                    Map.get(@task_title_by_id, id, "Task #{id}")
-                  end)}
-                <% end %>
-              </p>
+              <div class="mt-4 space-y-6">
+                <ul class="space-y-2 list-none p-0 m-0 mt-2" id="mission-task-edges">
+                  <%= for edge <- @task_graph.edges do %>
+                    <li>
+                      {Map.get(@task_title_by_id, edge.from_task_id, "Task #{edge.from_task_id}")}
+                      <span class="text-zinc-500"> → </span>
+                      {Map.get(@task_title_by_id, edge.to_task_id, "Task #{edge.to_task_id}")}
+                      <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[0.65rem] text-zinc-300 ml-1.5">
+                        {edge.dependency_type}
+                      </span>
+                    </li>
+                  <% end %>
+                </ul>
+                <div class="mt-6">
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+                    Ready (dependencies satisfied)
+                  </p>
+                  <p class="text-sm text-zinc-400 mt-1" id="mission-task-ready">
+                    <%= if @task_graph.ready_task_ids == [] do %>
+                      No tasks are ready to advance right now.
+                    <% else %>
+                      {Enum.map_join(@task_graph.ready_task_ids, ", ", fn id ->
+                        Map.get(@task_title_by_id, id, "Task #{id}")
+                      end)}
+                    <% end %>
+                  </p>
+                </div>
+              </div>
             <% end %>
 
-            <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Task checklist</p>
+            <p class="mt-8 pt-6 border-t border-white/5 text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Task checklist
+            </p>
             <ol class="space-y-3 list-none p-0 m-0 mt-3" id="mission-task-checklist">
               <%= for task <- @session.tasks do %>
                 <li class="p-4 rounded-2xl border border-white/10 bg-white/[0.03] flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -592,7 +643,8 @@ defmodule ControlKeelWeb.MissionControlLive do
                         task.status == "queued" && "bg-amber-400",
                         task.status == "paused" && "bg-blue-400",
                         task.status == "blocked" && "bg-red-400"
-                      ]}></span>
+                      ]}>
+                      </span>
                       <strong>{task.title}</strong>
                       <span class={task_status_pill_class(task.status)}>
                         {task_status_label(task)}
@@ -600,29 +652,22 @@ defmodule ControlKeelWeb.MissionControlLive do
                     </div>
                     <p class="text-sm text-zinc-400">{task.validation_gate}</p>
                     <%= if task.rollback_boundary do %>
-                      <p
-                        class="text-xs text-zinc-500 mt-0.5"
-                      >
+                      <p class="text-xs text-zinc-500 mt-0.5">
                         Rollback: {task.rollback_boundary}
                       </p>
                     <% end %>
                     <%= if task.status == "in_progress" and @active_findings > 0 do %>
-                      <p
-                        class="text-sm text-amber-500 mt-1"
-                      >
+                      <p class="text-sm text-amber-500 mt-1">
                         {@active_findings} unresolved finding{if @active_findings != 1, do: "s"} — review before marking done
                       </p>
                     <% end %>
                     <%= for prompt <- task_decision_prompts(task) do %>
-                      <p
-                        class="text-xs text-zinc-500 mt-0.5"
-                      >
+                      <p class="text-xs text-zinc-500 mt-0.5">
                         {prompt}
                       </p>
                     <% end %>
                   </div>
                   <div class="flex flex-col items-start md:items-end gap-1 shrink-0">
-                    <span class={task_status_pill_class(task.status)}>{task_status_label(task)}</span>
                     <%= if task.confidence_score do %>
                       <span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[0.7rem] text-zinc-300">
                         {trunc(task.confidence_score * 100)}% confidence
@@ -640,43 +685,45 @@ defmodule ControlKeelWeb.MissionControlLive do
                     >
                       needs verification evidence
                     </span>
-                    <%= if Map.get(@latest_proofs, task.id) do %>
-                      <.link
-                        navigate={~p"/proofs/#{Map.fetch!(@latest_proofs, task.id).id}"}
-                        class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
+                    <div class="flex flex-wrap items-center justify-start md:justify-end gap-2 mt-1">
+                      <%= if Map.get(@latest_proofs, task.id) do %>
+                        <.link
+                          navigate={~p"/proofs/#{Map.fetch!(@latest_proofs, task.id).id}"}
+                          class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition border border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] hover:text-white cursor-pointer"
+                        >
+                          View proof
+                        </.link>
+                      <% end %>
+                      <button
+                        id={"task-generate-proof-#{task.id}"}
+                        type="button"
+                        class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition bg-lime-400/15 text-lime-300 border border-lime-400/30 hover:bg-lime-400/25 hover:text-lime-200 cursor-pointer"
+                        phx-click="generate_proof"
+                        phx-value-id={task.id}
                       >
-                        View proof
-                      </.link>
-                    <% end %>
-                    <button
-                      id={"task-generate-proof-#{task.id}"}
-                      type="button"
-                      class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
-                      phx-click="generate_proof"
-                      phx-value-id={task.id}
-                    >
-                      Generate proof
-                    </button>
-                    <button
-                      :if={task.status in ["queued", "in_progress", "blocked"]}
-                      id={"task-pause-#{task.id}"}
-                      type="button"
-                      class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
-                      phx-click="pause_task"
-                      phx-value-id={task.id}
-                    >
-                      Pause
-                    </button>
-                    <button
-                      :if={task.status == "paused"}
-                      id={"task-resume-#{task.id}"}
-                      type="button"
-                      class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
-                      phx-click="resume_task"
-                      phx-value-id={task.id}
-                    >
-                      Resume
-                    </button>
+                        Generate proof
+                      </button>
+                      <button
+                        :if={task.status in ["queued", "in_progress", "blocked"]}
+                        id={"task-pause-#{task.id}"}
+                        type="button"
+                        class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition border border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] hover:text-white cursor-pointer"
+                        phx-click="pause_task"
+                        phx-value-id={task.id}
+                      >
+                        Pause
+                      </button>
+                      <button
+                        :if={task.status == "paused"}
+                        id={"task-resume-#{task.id}"}
+                        type="button"
+                        class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition border border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] hover:text-white cursor-pointer"
+                        phx-click="resume_task"
+                        phx-value-id={task.id}
+                      >
+                        Resume
+                      </button>
+                    </div>
                   </div>
                 </li>
               <% end %>
@@ -686,7 +733,9 @@ defmodule ControlKeelWeb.MissionControlLive do
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Workspace context</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Workspace context
+            </p>
             <div class="flex flex-wrap gap-2 mt-2">
               <span>{workspace_status_label(@current_workspace_context)}</span>
               <span>{get_in(@current_workspace_context, ["git", "branch"]) || "no-branch"}</span>
@@ -708,15 +757,21 @@ defmodule ControlKeelWeb.MissionControlLive do
               <span>{length(@current_workspace_context["key_files"] || [])} key files</span>
             </div>
             <details class="mt-4">
-              <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 cursor-pointer select-none">View raw workspace JSON</summary>
+              <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 cursor-pointer select-none">
+                View raw workspace JSON
+              </summary>
               <pre class="p-4 border border-white/10 rounded-2xl bg-white/[0.03] text-sm text-[#f2e6c9] font-mono whitespace-pre-wrap break-all leading-relaxed mt-4">{Jason.encode!(@current_workspace_context, pretty: true)}</pre>
             </details>
           </div>
 
           <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Relevant memory</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Relevant memory
+            </p>
             <%= if @current_memory_hits == [] do %>
-              <p class="text-sm text-zinc-400 mt-3">No matching memory has been captured for this task yet.</p>
+              <p class="text-sm text-zinc-400 mt-3">
+                No matching memory has been captured for this task yet.
+              </p>
             <% else %>
               <ul class="space-y-3 list-none p-0 m-0 mt-3">
                 <%= for hit <- @current_memory_hits do %>
@@ -730,7 +785,9 @@ defmodule ControlKeelWeb.MissionControlLive do
           </div>
 
           <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Recent transcript</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Recent transcript
+            </p>
             <div class="flex flex-wrap gap-2 mt-2">
               <span>{@current_transcript_summary["total_events"] || 0} events</span>
               <span>{length(@current_recent_events)} recent</span>
@@ -752,13 +809,17 @@ defmodule ControlKeelWeb.MissionControlLive do
               </ul>
             <% end %>
             <details class="mt-4">
-              <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 cursor-pointer select-none">View transcript summary JSON</summary>
+              <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 cursor-pointer select-none">
+                View transcript summary JSON
+              </summary>
               <pre class="p-4 border border-white/10 rounded-2xl bg-white/[0.03] text-sm text-[#f2e6c9] font-mono whitespace-pre-wrap break-all leading-relaxed mt-4">{Jason.encode!(@current_transcript_summary, pretty: true)}</pre>
             </details>
           </div>
 
           <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Resume packet</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+              Resume packet
+            </p>
             <%= if @current_resume_packet do %>
               <div class="flex flex-wrap gap-2 mt-2">
                 <span>{length(@current_resume_packet["unresolved_findings"])} unresolved</span>
@@ -767,13 +828,17 @@ defmodule ControlKeelWeb.MissionControlLive do
               </div>
               <pre class="p-4 border border-white/10 rounded-2xl bg-white/[0.03] text-sm text-[#f2e6c9] font-mono whitespace-pre-wrap break-all leading-relaxed mt-4">{Jason.encode!(@current_resume_packet, pretty: true)}</pre>
             <% else %>
-              <p class="text-sm text-zinc-400 mt-3">Pause a task to capture a durable resume packet.</p>
+              <p class="text-sm text-zinc-400 mt-3">
+                Pause a task to capture a durable resume packet.
+              </p>
             <% end %>
           </div>
         </div>
 
         <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Proxy endpoints</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+            Proxy endpoints
+          </p>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
             <div>
               <h3 class="text-sm font-semibold text-zinc-300 mb-1">OpenAI responses</h3>
@@ -785,7 +850,9 @@ defmodule ControlKeelWeb.MissionControlLive do
             </div>
             <div>
               <h3 class="text-sm font-semibold text-zinc-300 mb-1">OpenAI completions</h3>
-              <p class="text-sm text-zinc-400 font-mono break-all">{@proxy_urls.openai_completions}</p>
+              <p class="text-sm text-zinc-400 font-mono break-all">
+                {@proxy_urls.openai_completions}
+              </p>
             </div>
             <div>
               <h3 class="text-sm font-semibold text-zinc-300 mb-1">OpenAI embeddings</h3>
@@ -801,15 +868,21 @@ defmodule ControlKeelWeb.MissionControlLive do
             </div>
             <div>
               <h3 class="text-sm font-semibold text-zinc-300 mb-1">Anthropic messages</h3>
-              <p class="text-sm text-zinc-400 font-mono break-all">{@proxy_urls.anthropic_messages}</p>
+              <p class="text-sm text-zinc-400 font-mono break-all">
+                {@proxy_urls.anthropic_messages}
+              </p>
             </div>
           </div>
         </div>
 
         <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">Findings feed</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 mb-1">
+            Findings feed
+          </p>
           <%= if @session.findings == [] do %>
-            <p class="text-sm text-zinc-400 mt-3">No findings yet. ControlKeel is monitoring every agent action.</p>
+            <p class="text-sm text-zinc-400 mt-3">
+              No findings yet. ControlKeel is monitoring every agent action.
+            </p>
           <% else %>
             <div class="space-y-4 mt-3">
               <%= for finding <- @session.findings do %>
@@ -819,14 +892,20 @@ defmodule ControlKeelWeb.MissionControlLive do
                     <div class="flex gap-2 items-center">
                       <span class={[
                         "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
-                        finding.severity in ["critical", "high"] && "bg-red-400/10 text-red-200 ring-red-300/20",
-                        finding.severity in ["medium", "moderate"] && "bg-amber-300/10 text-amber-100 ring-amber-200/20",
-                        finding.severity in ["low"] && "bg-emerald-300/10 text-emerald-100 ring-emerald-200/20",
-                        finding.severity not in ["critical", "high", "medium", "moderate", "low"] && "bg-white/10 text-zinc-300 ring-white/15"
+                        finding.severity in ["critical", "high"] &&
+                          "bg-red-400/10 text-red-200 ring-red-300/20",
+                        finding.severity in ["medium", "moderate"] &&
+                          "bg-amber-300/10 text-amber-100 ring-amber-200/20",
+                        finding.severity in ["low"] &&
+                          "bg-emerald-300/10 text-emerald-100 ring-emerald-200/20",
+                        finding.severity not in ["critical", "high", "medium", "moderate", "low"] &&
+                          "bg-white/10 text-zinc-300 ring-white/15"
                       ]}>
                         {finding.severity}
                       </span>
-                      <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 bg-white/10 text-zinc-300 ring-white/15">{finding.status}</span>
+                      <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 bg-white/10 text-zinc-300 ring-white/15">
+                        {finding.status}
+                      </span>
                     </div>
                   </div>
                   <p class="text-sm text-zinc-400">{finding.plain_message}</p>

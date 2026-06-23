@@ -91,7 +91,7 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
 
     {:ok, _view, html} = live(conn, ~p"/missions/#{session.id}")
 
-    assert html =~ "Mission control"
+    assert html =~ "Build the first governed workflow"
     assert html =~ "Sql injection"
     assert html =~ "blocked"
     assert html =~ "/proxy/openai/"
