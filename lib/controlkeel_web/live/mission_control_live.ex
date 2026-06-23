@@ -760,7 +760,7 @@ defmodule ControlKeelWeb.MissionControlLive do
               <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 cursor-pointer select-none">
                 View raw workspace JSON
               </summary>
-              <pre class="p-4 border border-white/10 rounded-2xl bg-white/[0.03] text-sm text-[#f2e6c9] font-mono whitespace-pre-wrap break-all leading-relaxed mt-4">{Jason.encode!(@current_workspace_context, pretty: true)}</pre>
+              <pre class="p-4 max-h-96 overflow-auto border border-white/10 rounded-2xl bg-white/[0.03] text-sm text-[#f2e6c9] font-mono whitespace-pre-wrap break-all leading-relaxed mt-4">{Jason.encode!(@current_workspace_context, pretty: true)}</pre>
             </details>
           </div>
 
@@ -826,7 +826,7 @@ defmodule ControlKeelWeb.MissionControlLive do
                 <span>{length(@current_resume_packet["latest_invocations"])} recent runs</span>
                 <span>{length(@current_resume_packet["memory_hits"])} memory hits</span>
               </div>
-              <pre class="p-4 border border-white/10 rounded-2xl bg-white/[0.03] text-sm text-[#f2e6c9] font-mono whitespace-pre-wrap break-all leading-relaxed mt-4">{Jason.encode!(@current_resume_packet, pretty: true)}</pre>
+              <pre class="p-4 max-h-96 overflow-auto border border-white/10 rounded-2xl bg-white/[0.03] text-sm text-[#f2e6c9] font-mono whitespace-pre-wrap break-all leading-relaxed mt-4">{Jason.encode!(@current_resume_packet, pretty: true)}</pre>
             <% else %>
               <p class="text-sm text-zinc-400 mt-3">
                 Pause a task to capture a durable resume packet.
