@@ -2,11 +2,13 @@ defmodule ControlKeelWeb.MissionControlLive do
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Analytics
+  alias ControlKeel.AutonomyLoop
   alias ControlKeel.Intent
   alias ControlKeel.Mission
   alias ControlKeel.Observability
   alias ControlKeel.Proxy
   alias ControlKeelWeb.FindingComponents
+  alias ControlKeelWeb.ShipReadiness
 
   @refresh_interval_ms 2_000
 
@@ -403,6 +405,15 @@ defmodule ControlKeelWeb.MissionControlLive do
             </div>
           </div>
         </div>
+
+        <ShipReadiness.ship_readiness
+          verdict={@ship_verdict}
+          improvement_loop={@improvement_loop}
+          outcome_metrics={@ship_outcome_metrics}
+          autonomy_profile={@autonomy_profile}
+          outcome_profile={@outcome_profile}
+          agent_outcomes={@ship_agent_outcomes}
+        />
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20">
@@ -1037,6 +1048,10 @@ defmodule ControlKeelWeb.MissionControlLive do
     task_graph = Mission.session_task_graph(session.id)
     task_title_by_id = Map.new(task_graph.tasks, &{&1.id, &1.title})
 
+    {autonomy_profile, outcome_profile, improvement_loop, ship_outcome_metrics,
+     ship_agent_outcomes} =
+      safe_ship_profile(session)
+
     assign(socket,
       session: session,
       workspace: session.workspace,
@@ -1063,8 +1078,53 @@ defmodule ControlKeelWeb.MissionControlLive do
       task_title_by_id: task_title_by_id,
       agent_label:
         Map.get(Mission.agent_labels(), session.workspace.agent, brief_value(brief, "agent")),
-      proxy_urls: Proxy.endpoint_urls(session)
+      proxy_urls: Proxy.endpoint_urls(session),
+      autonomy_profile: autonomy_profile,
+      outcome_profile: outcome_profile,
+      improvement_loop: improvement_loop,
+      ship_outcome_metrics: ship_outcome_metrics,
+      ship_agent_outcomes: ship_agent_outcomes,
+      ship_verdict: ship_verdict(improvement_loop, ship_outcome_metrics)
     )
+  end
+
+  # Ship-readiness profile is isolated so a raise in the autonomy/outcome
+  # computations can never take down the rest of assign_session.
+  defp safe_ship_profile(session) do
+    {
+      AutonomyLoop.session_autonomy_profile(session),
+      AutonomyLoop.session_outcome_profile(session),
+      AutonomyLoop.session_improvement_loop(session),
+      Analytics.session_outcome_metrics(session.id),
+      Analytics.session_agent_outcomes(session.id)
+    }
+  rescue
+    e ->
+      require Logger
+
+      Logger.warning("MissionControlLive ship profile rescued: #{inspect(e)}")
+
+      default_metrics = %{
+        proof_backed_task_coverage_percent: nil,
+        deploy_ready_task_rate_percent: nil,
+        cost_per_deploy_ready_task_cents: nil,
+        risky_intervention_rate_percent: nil,
+        resume_success_rate_percent: nil,
+        average_time_to_first_deploy_ready_proof_seconds: nil
+      }
+
+      improvement = %{
+        "bottleneck_summary" => %{"primary" => "none", "recommendation" => nil, "signals" => %{}},
+        "recommended_next_step" => nil
+      }
+
+      {
+        %{"label" => "—", "human_role" => nil, "operator_posture" => nil},
+        %{"label" => "—", "status" => nil, "target" => nil},
+        improvement,
+        default_metrics,
+        []
+      }
   end
 
   defp schedule_refresh, do: Process.send_after(self(), :refresh, @refresh_interval_ms)
@@ -1105,6 +1165,42 @@ defmodule ControlKeelWeb.MissionControlLive do
 
   defp event_timestamp(%DateTime{} = timestamp),
     do: Calendar.strftime(timestamp, "%Y-%m-%d %H:%M:%S UTC")
+
+  # Ship-readiness verdict, derived from the session's improvement loop signals.
+  defp ship_verdict(improvement_loop, _outcome_metrics) do
+    bottleneck = get_in(improvement_loop || %{}, ["bottleneck_summary", "primary"]) || "none"
+    signals = get_in(improvement_loop || %{}, ["bottleneck_summary", "signals"]) || %{}
+    blocked = signals["blocked_findings"] || 0
+    deploy_ready = signals["deploy_ready"] == true
+
+    {label, tone} =
+      cond do
+        blocked > 0 or bottleneck == "unresolved_findings" ->
+          {"Blocked", "blocked"}
+
+        bottleneck == "review_wait" ->
+          {"Needs review", "review"}
+
+        bottleneck == "missing_deploy_ready_proof" ->
+          {"Needs proof evidence", "proof"}
+
+        bottleneck == "budget_pressure" ->
+          {"Budget-constrained", "budget"}
+
+        bottleneck == "none" and deploy_ready and blocked == 0 ->
+          {"Ready to ship", "ready"}
+
+        true ->
+          {"In progress", "progress"}
+      end
+
+    %{label: label, tone: tone}
+  end
+
+  defp format_duration(nil), do: "Not recorded"
+  defp format_duration(seconds) when seconds < 60, do: "#{seconds}s"
+  defp format_duration(seconds) when seconds < 3_600, do: "#{Float.round(seconds / 60, 1)}m"
+  defp format_duration(seconds), do: "#{Float.round(seconds / 3_600, 1)}h"
 
   defp workspace_status_label(%{"available" => true}), do: "available"
   defp workspace_status_label(_context), do: "unavailable"
@@ -1163,10 +1259,7 @@ defmodule ControlKeelWeb.MissionControlLive do
   end
 
   defp format_currency(cents), do: cents |> Kernel./(100) |> Float.round(2)
-  defp format_duration(nil), do: "Not recorded"
-  defp format_duration(seconds) when seconds < 60, do: "#{seconds}s"
-  defp format_duration(seconds) when seconds < 3_600, do: "#{Float.round(seconds / 60, 1)}m"
-  defp format_duration(seconds), do: "#{Float.round(seconds / 3_600, 1)}h"
+
   defp brief_value(map, key), do: Map.get(map, key, "Not specified")
   defp brief_list(map, key), do: List.wrap(Map.get(map, key, []))
   defp boundary_value(map, key), do: Map.get(map, key) || "Not specified"

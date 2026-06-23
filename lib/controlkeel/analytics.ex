@@ -57,6 +57,24 @@ defmodule ControlKeel.Analytics do
     end
   end
 
+  def session_outcome_metrics(session_id) when is_integer(session_id) do
+    case fetch_session_for_outcome(session_id) do
+      nil -> default_outcome_metrics()
+      session -> elem(outcome_metrics([session]), 0)
+    end
+  end
+
+  def session_agent_outcomes(session_id) when is_integer(session_id) do
+    case fetch_session_for_outcome(session_id) do
+      nil -> []
+      session -> elem(outcome_metrics([session]), 1)
+    end
+  end
+
+  defp fetch_session_for_outcome(session_id) do
+    Session |> Repo.get(session_id) |> Repo.preload(:workspace)
+  end
+
   def funnel_summary(opts \\ []) do
     limit = Keyword.get(opts, :limit, @aggregate_session_limit)
     sessions = recent_sessions(limit)

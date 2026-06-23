@@ -86,7 +86,6 @@ defmodule ControlKeelWeb.Router do
       live "/proofs", ProofBrowserLive, :index
       live "/proofs/:id", ProofBrowserLive, :show
       live "/reviews/:id", ReviewLive, :show
-      live "/ship", ShipLive, :index
       live "/cloud/telemetry", CloudTelemetryLive, :index
       live "/cloud/projects", CloudProjectsLive, :index
       live "/cloud/projects/:ws_id", CloudProjectsLive, :show
@@ -124,6 +123,8 @@ defmodule ControlKeelWeb.Router do
     end
 
     get "/observability/sessions/:id/export.json", ObservabilityController, :export_session
+
+    get "/ship", PageController, :ship_redirect
   end
 
   scope "/api/v1", ControlKeelWeb do
