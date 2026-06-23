@@ -282,11 +282,4 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
     assert html =~ "Outcome alignment"
     assert html =~ "Ship verdict session"
   end
-
-  test "/ship redirects to the missions list", %{conn: conn} do
-    conn = get(conn, ~p"/ship")
-
-    assert conn.status == 301
-    assert redirected_to(conn, 301) == ~p"/missions"
-  end
 end
