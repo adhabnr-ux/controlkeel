@@ -941,12 +941,14 @@ defmodule ControlKeelWeb.MissionControlLive do
                   </p>
                   <div class="flex justify-between items-center text-xs text-zinc-500 border-t border-white/5 pt-2">
                     <span>{finding.category}</span>
-                    <span>{finding.rule_id}</span>
+                    <span class="font-mono tabular-nums tracking-tight">
+                      {event_timestamp(finding.inserted_at)}
+                    </span>
                   </div>
-                  <div class="flex flex-wrap items-center gap-4 border-t border-white/5 pt-2">
+                  <div class="flex flex-wrap items-center gap-2 border-t border-white/5 pt-2">
                     <button
                       type="button"
-                      class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
+                      class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition bg-lime-400/15 text-lime-300 border border-lime-400/30 hover:bg-lime-400/25 hover:text-lime-200 cursor-pointer"
                       phx-click="view_fix"
                       phx-value-id={finding.id}
                     >
@@ -955,7 +957,7 @@ defmodule ControlKeelWeb.MissionControlLive do
                     <%= if finding.status in ["open", "blocked"] do %>
                       <button
                         type="button"
-                        class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
+                        class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-400/25 hover:text-emerald-200 cursor-pointer"
                         phx-click="approve_finding"
                         phx-value-id={finding.id}
                       >
@@ -963,7 +965,7 @@ defmodule ControlKeelWeb.MissionControlLive do
                       </button>
                       <button
                         type="button"
-                        class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
+                        class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition bg-red-400/15 text-red-300 border border-red-400/30 hover:bg-red-400/25 hover:text-red-200 cursor-pointer"
                         phx-click="reject_finding"
                         phx-value-id={finding.id}
                       >
@@ -974,7 +976,7 @@ defmodule ControlKeelWeb.MissionControlLive do
                       navigate={
                         ~p"/findings?#{%{"session_id" => @session.id, "q" => finding.rule_id}}"
                       }
-                      class="text-xs font-semibold uppercase tracking-[0.14em] text-lime-300 hover:text-lime-200 transition bg-transparent border-0 p-0 cursor-pointer"
+                      class="inline-flex items-center rounded-xl px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition border border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] hover:text-white cursor-pointer"
                     >
                       Open in browser
                     </.link>
