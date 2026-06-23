@@ -673,7 +673,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
               {decision_label(@result.decision)}
             </span>
             <span
-              :if={status_label(@result.status)}
               class={[
                 "rounded-full px-2 py-0.5 text-[0.7rem] border",
                 status_badge_class(@result.status)
