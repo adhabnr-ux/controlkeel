@@ -82,8 +82,18 @@ defmodule ControlKeelWeb.BenchmarksLive do
   end
 
   def handle_event("toggle_subject", %{"id" => id}, socket) do
-    current = List.wrap(socket.assigns.form.params["subjects"])
-    updated = if id in current, do: List.delete(current, id), else: current ++ [id]
+    current =
+      socket.assigns.form.params["subjects"]
+      |> List.wrap()
+      |> Enum.map(&to_string/1)
+      |> Enum.uniq()
+
+    updated =
+      if id in current do
+        Enum.reject(current, &(&1 == id))
+      else
+        current ++ [id]
+      end
     new_params = Map.put(socket.assigns.form.params, "subjects", updated)
 
     {:noreply,
