@@ -123,8 +123,6 @@ defmodule ControlKeelWeb.Router do
     end
 
     get "/observability/sessions/:id/export.json", ObservabilityController, :export_session
-
-    get "/ship", PageController, :ship_redirect
   end
 
   scope "/api/v1", ControlKeelWeb do
