@@ -1091,12 +1091,14 @@ defmodule ControlKeelWeb.MissionControlLive do
   # Ship-readiness profile is isolated so a raise in the autonomy/outcome
   # computations can never take down the rest of assign_session.
   defp safe_ship_profile(session) do
+    {outcome_metrics, agent_outcomes} = Analytics.session_outcome_data(session.id)
+
     {
       AutonomyLoop.session_autonomy_profile(session),
       AutonomyLoop.session_outcome_profile(session),
       AutonomyLoop.session_improvement_loop(session),
-      Analytics.session_outcome_metrics(session.id),
-      Analytics.session_agent_outcomes(session.id)
+      outcome_metrics,
+      agent_outcomes
     }
   rescue
     e ->
