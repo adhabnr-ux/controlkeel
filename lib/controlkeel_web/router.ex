@@ -86,7 +86,6 @@ defmodule ControlKeelWeb.Router do
       live "/proofs", ProofBrowserLive, :index
       live "/proofs/:id", ProofBrowserLive, :show
       live "/reviews/:id", ReviewLive, :show
-      live "/ship", ShipLive, :index
       live "/cloud/telemetry", CloudTelemetryLive, :index
       live "/cloud/projects", CloudProjectsLive, :index
       live "/cloud/projects/:ws_id", CloudProjectsLive, :show
