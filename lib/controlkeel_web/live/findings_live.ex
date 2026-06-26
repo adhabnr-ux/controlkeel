@@ -304,19 +304,22 @@ defmodule ControlKeelWeb.FindingsLive do
                       Mission
                     </th>
                     <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Severity
+                    </th>
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
                       Status
                     </th>
                     <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
                       Rule
                     </th>
-                    <th class="px-8 py-6 text-right text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                    <th class="w-0 px-2 py-6 text-right text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-white/5">
                   <tr :if={@browser.entries == []}>
-                    <td colspan="5" class="px-8 py-12 text-center text-sm text-zinc-500">
+                    <td colspan="6" class="px-8 py-12 text-center text-sm text-zinc-500">
                       No findings match the current filters.
                     </td>
                   </tr>
@@ -331,31 +334,25 @@ defmodule ControlKeelWeb.FindingsLive do
                       </div>
                     </td>
                     <td class="px-8 py-6 align-top">
-                      <div>
-                        <.link
-                          navigate={~p"/missions/#{finding.session_id}"}
-                          class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
-                        >
-                          {finding.session.title}
-                        </.link>
-                        <p class="mt-2 text-sm text-zinc-400">{finding.session.workspace.name}</p>
-                      </div>
+                      <.link
+                        navigate={~p"/missions/#{finding.session_id}"}
+                        class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] hover:underline"
+                      >
+                        {finding.session.title}
+                      </.link>
                     </td>
                     <td class="px-8 py-6 align-top">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <span class={[pill_base(), severity_colors(finding.severity)]}>
-                          {finding.severity}
-                        </span>
-                        <span class={[pill_base(), "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"]}>
-                          {finding.status}
-                        </span>
-                      </div>
+                      <span class={[pill_base(), severity_colors(finding.severity)]}>
+                        {finding.severity}
+                      </span>
                     </td>
                     <td class="px-8 py-6 align-top">
-                      <div>
-                        <p class="font-bold text-white">{finding.rule_id}</p>
-                        <p class="mt-2 text-sm text-zinc-400">{finding.category}</p>
-                      </div>
+                      <span class={[pill_base(), "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"]}>
+                        {finding.status}
+                      </span>
+                    </td>
+                    <td class="px-8 py-6 align-top">
+                      <p>{finding.category}</p>
                     </td>
                     <td class="px-2 py-6 text-right align-top">
                       <%= if @reject_id == to_string(finding.id) do %>
