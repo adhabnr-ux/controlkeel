@@ -4,7 +4,7 @@ defmodule ControlKeelWeb.FindingsLive do
   alias ControlKeel.Mission
 
   @severities ~w(critical high medium low)
-  @statuses ~w(open blocked escalated rejected)
+  @statuses ~w(open blocked escalated approved rejected)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -686,8 +686,7 @@ defmodule ControlKeelWeb.FindingsLive do
 
   defp session_filter_options(sessions) do
     Enum.map(sessions, fn session ->
-      workspace = (session.workspace && session.workspace.name) || "Workspace"
-      {"#{session.title} (#{workspace})", session.id}
+      {session.title, session.id}
     end)
   end
 
