@@ -100,7 +100,7 @@ defmodule ControlKeelWeb.FindingsLiveTest do
 
     {:ok, view, html} = live(conn, ~p"/findings")
     assert html =~ "Page 1 of 2"
-    assert has_element?(view, "a[href*=\"page=2\"]", "Next page")
+    assert has_element?(view, "a[href*=\"page=2\"]", "Next")
 
     # Open 3-dot menu then click approve
     render_click(

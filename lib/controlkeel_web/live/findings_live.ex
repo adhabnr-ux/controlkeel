@@ -179,206 +179,304 @@ defmodule ControlKeelWeb.FindingsLive do
     ~H"""
     <Layouts.app flash={@flash}>
       <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
-        <div class="flex items-center justify-between gap-4 mt-6 mb-4">
-          <div>
-            <p class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase">
-              Findings browser
-            </p>
-            <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-tight">
-              Review findings across all missions
-            </h1>
-            <p class="text-[var(--ck-muted)] max-w-[48rem] text-base leading-relaxed">
-              Filter, approve, reject, and inspect guided fixes without leaving the governed ControlKeel workflow.
-            </p>
-          </div>
-          <a
-            href={~p"/"}
-            class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
-          >
-            Back home
-          </a>
+        <div class="space-y-1 mb-12">
+          <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+            Findings browser
+          </h2>
+          <p class="text-[var(--ck-muted)]">
+            Filter, approve, reject, and inspect guided fixes without leaving the governed ControlKeel workflow.
+          </p>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6 grid gap-4">
-          <.form for={@form} phx-change="filter">
-            <div class="grid grid-cols-5 max-[900px]:grid-cols-1 gap-4">
-              <.input
-                field={@form[:q]}
-                type="text"
-                label="Search"
-                placeholder="Rule, title, session..."
-                phx-debounce="300"
-              />
-              <.input
-                field={@form[:severity]}
-                type="select"
-                label="Severity"
-                prompt="All severities"
-                options={Enum.map(@severities, &{String.capitalize(&1), &1})}
-              />
-              <.input
-                field={@form[:status]}
-                type="select"
-                label="Status"
-                prompt="All statuses"
-                options={Enum.map(@statuses, &{String.capitalize(&1), &1})}
-              />
-              <.input
-                field={@form[:category]}
-                type="select"
-                label="Category"
-                prompt="All categories"
-                options={Enum.map(@categories, &{String.capitalize(&1), &1})}
-              />
-              <.input
-                field={@form[:session_id]}
-                type="select"
-                label="Mission"
-                prompt="All missions"
-                options={session_filter_options(@session_options)}
-              />
-            </div>
-          </.form>
-
-          <div class="flex items-center justify-between gap-4 text-sm text-[var(--ck-muted)]">
-            <span>{@browser.total_count} total findings</span>
-            <span>Page {@browser.page} of {@browser.total_pages}</span>
-          </div>
-        </div>
-
-        <div class="border border-[var(--ck-stroke)]  rounded-2xl backdrop-blur-lg shadow-2xl p-6 mt-6">
-          <div class="overflow-x-auto">
-            <.table id="findings-browser" rows={@browser.entries}>
-              <:col :let={finding} label="Finding">
-                <div>
-                  <strong>{finding.title}</strong>
-                  <p class="text-[var(--ck-muted)] text-sm">{finding.plain_message}</p>
+        <div class="rounded-lg border border-[var(--ck-stroke)] bg-neutral-900">
+          <div class="space-y-4 p-4">
+            <.form for={@form} phx-change="filter">
+              <div class="grid gap-4 xl:grid-cols-5">
+                <div class="space-y-2">
+                  <label for="filters-q" class="text-xs uppercase tracking-[0.28em]">Search</label>
+                  <input
+                    id="filters-q"
+                    name="filters[q]"
+                    type="text"
+                    value={@form[:q].value}
+                    placeholder="Rule, title, session..."
+                    phx-debounce="300"
+                    class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  />
                 </div>
-              </:col>
-              <:col :let={finding} label="Mission">
-                <div>
-                  <.link
-                    navigate={~p"/missions/#{finding.session_id}"}
-                    class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
+                <div class="space-y-2">
+                  <label for="filters-severity" class="text-xs uppercase tracking-[0.28em]">
+                    Severity
+                  </label>
+                  <select
+                    id="filters-severity"
+                    name="filters[severity]"
+                    class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
                   >
-                    {finding.session.title}
-                  </.link>
-                  <p class="text-[var(--ck-muted)] text-sm">{finding.session.workspace.name}</p>
+                    <option value="">All severities</option>
+                    <%= for s <- @severities do %>
+                      <option value={s} selected={@form[:severity].value == s}>
+                        {String.capitalize(s)}
+                      </option>
+                    <% end %>
+                  </select>
                 </div>
-              </:col>
-              <:col :let={finding} label="Status">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class={[pill_base(), severity_colors(finding.severity)]}>
-                    {finding.severity}
-                  </span>
-                  <span class={[pill_base(), "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"]}>
-                    {finding.status}
-                  </span>
+                <div class="space-y-2">
+                  <label for="filters-status" class="text-xs uppercase tracking-[0.28em]">
+                    Status
+                  </label>
+                  <select
+                    id="filters-status"
+                    name="filters[status]"
+                    class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  >
+                    <option value="">All statuses</option>
+                    <%= for s <- @statuses do %>
+                      <option value={s} selected={@form[:status].value == s}>
+                        {String.capitalize(s)}
+                      </option>
+                    <% end %>
+                  </select>
                 </div>
-              </:col>
-              <:col :let={finding} label="Rule">
-                <div>
-                  <strong>{finding.rule_id}</strong>
-                  <p class="text-[var(--ck-muted)] text-sm">{finding.category}</p>
+                <div class="space-y-2">
+                  <label for="filters-category" class="text-xs uppercase tracking-[0.28em]">
+                    Category
+                  </label>
+                  <select
+                    id="filters-category"
+                    name="filters[category]"
+                    class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  >
+                    <option value="">All categories</option>
+                    <%= for c <- @categories do %>
+                      <option value={c} selected={@form[:category].value == c}>
+                        {String.capitalize(c)}
+                      </option>
+                    <% end %>
+                  </select>
                 </div>
-              </:col>
-              <:action :let={finding}>
-                <%= if @reject_id == to_string(finding.id) do %>
-                  <div class="flex items-center gap-1">
-                    <input
-                      type="text"
-                      class="w-48 rounded-xl border border-[var(--ck-stroke)] bg-white/5 text-white px-3 py-1.5 text-sm"
-                      placeholder="Reason (optional)"
-                      value={@reject_reason}
-                      phx-keyup="set_reject_reason"
-                      phx-key="Enter"
-                      phx-click-away="cancel_reject"
-                    />
-                    <button
-                      type="button"
-                      class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
-                      phx-click="confirm_reject"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      type="button"
-                      class="text-xs font-semibold tracking-[0.14em] text-white/50 uppercase hover:text-white/70"
-                      phx-click="cancel_reject"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                <% else %>
-                  <div class="relative">
-                    <button
-                      type="button"
-                      class="flex items-center justify-center w-8 h-8 rounded-xl border border-[var(--ck-stroke)] bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
-                      phx-click="toggle_dropdown"
-                      phx-value-id={finding.id}
-                    >
-                      ⋮
-                    </button>
-                    <div
-                      :if={@open_dropdown_id == to_string(finding.id)}
-                      class="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-xl border border-[var(--ck-stroke)] bg-neutral-800 shadow-2xl py-1"
-                      phx-click-away="close_dropdown"
-                    >
-                      <button
-                        type="button"
-                        class="w-full text-left px-4 py-2 text-sm text-[var(--ck-lime)] hover:bg-white/5 transition-colors"
-                        phx-click="approve"
-                        phx-value-id={finding.id}
+                <div class="space-y-2">
+                  <label for="filters-session_id" class="text-xs uppercase tracking-[0.28em]">
+                    Mission
+                  </label>
+                  <select
+                    id="filters-session_id"
+                    name="filters[session_id]"
+                    class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  >
+                    <option value="">All missions</option>
+                    <%= for {label, id} <- session_filter_options(@session_options) do %>
+                      <option
+                        value={id}
+                        selected={to_string(@form[:session_id].value) == to_string(id)}
                       >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        class="w-full text-left px-4 py-2 text-sm text-white/80 hover:bg-white/5 transition-colors"
-                        phx-click="reject"
-                        phx-value-id={finding.id}
-                      >
-                        Reject
-                      </button>
-                      <button
-                        type="button"
-                        class="w-full text-left px-4 py-2 text-sm text-white/80 hover:bg-white/5 transition-colors"
-                        phx-click="view_fix"
-                        phx-value-id={finding.id}
-                      >
-                        View fix
-                      </button>
-                    </div>
-                  </div>
-                <% end %>
-              </:action>
-            </.table>
+                        {label}
+                      </option>
+                    <% end %>
+                  </select>
+                </div>
+              </div>
+            </.form>
+
+            <div class="flex items-center justify-between">
+              <p class="text-neutral-400 tracking-tight">
+                <span class="text-[var(--ck-lime)] mr-1">{@browser.total_count}</span> total findings
+              </p>
+
+              <.link
+                patch={findings_path(%{})}
+                class="self-end rounded-md border border-white/10 bg-black/40 px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-400 transition hover:border-red-500/40 hover:text-red-400 text-center"
+              >
+                Reset all
+              </.link>
+            </div>
           </div>
 
-          <div class="flex items-center justify-between gap-4 mt-4">
-            <.link
-              :if={@browser.page > 1}
-              patch={
-                findings_path(
-                  Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page - 1})
-                )
-              }
-              class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
-            >
-              Previous page
-            </.link>
-            <div />
-            <.link
-              :if={@browser.page < @browser.total_pages}
-              patch={
-                findings_path(
-                  Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page + 1})
-                )
-              }
-              class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
-            >
-              Next page
-            </.link>
+          <div class="overflow-x-auto w-full">
+            <div class="overflow-hidden border-t border-white/10 bg-black/30">
+              <table class="min-w-full divide-y divide-white/10">
+                <thead class="bg-white/5">
+                  <tr>
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Finding
+                    </th>
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Mission
+                    </th>
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Status
+                    </th>
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Rule
+                    </th>
+                    <th class="px-8 py-6 text-right text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                  <tr :if={@browser.entries == []}>
+                    <td colspan="5" class="px-8 py-12 text-center text-sm text-zinc-500">
+                      No findings match the current filters.
+                    </td>
+                  </tr>
+                  <tr
+                    :for={finding <- @browser.entries}
+                    class="transition hover:bg-white/[0.02]"
+                  >
+                    <td class="px-8 py-6 align-top">
+                      <div>
+                        <p class="font-bold text-white">{finding.title}</p>
+                        <p class="mt-2 max-w-md text-sm text-zinc-400">{finding.plain_message}</p>
+                      </div>
+                    </td>
+                    <td class="px-8 py-6 align-top">
+                      <div>
+                        <.link
+                          navigate={~p"/missions/#{finding.session_id}"}
+                          class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
+                        >
+                          {finding.session.title}
+                        </.link>
+                        <p class="mt-2 text-sm text-zinc-400">{finding.session.workspace.name}</p>
+                      </div>
+                    </td>
+                    <td class="px-8 py-6 align-top">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class={[pill_base(), severity_colors(finding.severity)]}>
+                          {finding.severity}
+                        </span>
+                        <span class={[pill_base(), "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"]}>
+                          {finding.status}
+                        </span>
+                      </div>
+                    </td>
+                    <td class="px-8 py-6 align-top">
+                      <div>
+                        <p class="font-bold text-white">{finding.rule_id}</p>
+                        <p class="mt-2 text-sm text-zinc-400">{finding.category}</p>
+                      </div>
+                    </td>
+                    <td class="px-2 py-6 text-right align-top">
+                      <%= if @reject_id == to_string(finding.id) do %>
+                        <div class="flex items-center justify-end gap-1">
+                          <input
+                            type="text"
+                            class="w-36 rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                            placeholder="Reason"
+                            value={@reject_reason}
+                            phx-keyup="set_reject_reason"
+                            phx-key="Enter"
+                            phx-click-away="cancel_reject"
+                          />
+                          <button
+                            type="button"
+                            class="rounded-md border border-white/10 bg-black px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
+                            phx-click="confirm_reject"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded-md border border-white/10 bg-black px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-400 transition hover:border-red-500/40 hover:text-red-400"
+                            phx-click="cancel_reject"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      <% else %>
+                        <div class="relative inline-flex">
+                          <button
+                            type="button"
+                            class="flex items-center justify-center w-8 h-8 rounded-md border border-white/10 bg-black/40 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                            phx-click="toggle_dropdown"
+                            phx-value-id={finding.id}
+                          >
+                            ⋮
+                          </button>
+                          <div
+                            :if={@open_dropdown_id == to_string(finding.id)}
+                            class="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg border border-white/10 bg-neutral-900 shadow-2xl py-1"
+                            phx-click-away="close_dropdown"
+                          >
+                            <button
+                              type="button"
+                              class="w-full text-left px-4 py-2 text-sm text-lime-400 hover:bg-white/5 transition-colors"
+                              phx-click="approve"
+                              phx-value-id={finding.id}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors"
+                              phx-click="reject"
+                              phx-value-id={finding.id}
+                            >
+                              Reject
+                            </button>
+                            <button
+                              type="button"
+                              class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors"
+                              phx-click="view_fix"
+                              phx-value-id={finding.id}
+                            >
+                              View fix
+                            </button>
+                          </div>
+                        </div>
+                      <% end %>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="border-t border-white/10 bg-black/40 px-6 py-4">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div class="text-xs uppercase tracking-[0.15em] text-zinc-400">
+                Page {@browser.page} of {@browser.total_pages}
+              </div>
+              <div class="flex gap-3">
+                <%= if @browser.page > 1 do %>
+                  <.link
+                    patch={
+                      findings_path(
+                        Map.merge(browser_form_params(@browser.filters), %{
+                          "page" => @browser.page - 1
+                        })
+                      )
+                    }
+                    class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
+                  >
+                    Previous
+                  </.link>
+                <% else %>
+                  <span class="cursor-not-allowed rounded-md border border-white/10 bg-white/5 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-600">
+                    Previous
+                  </span>
+                <% end %>
+                <%= if @browser.page < @browser.total_pages do %>
+                  <.link
+                    patch={
+                      findings_path(
+                        Map.merge(browser_form_params(@browser.filters), %{
+                          "page" => @browser.page + 1
+                        })
+                      )
+                    }
+                    class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
+                  >
+                    Next
+                  </.link>
+                <% else %>
+                  <span class="cursor-not-allowed rounded-md border border-white/10 bg-white/5 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-600">
+                    Next
+                  </span>
+                <% end %>
+              </div>
+            </div>
           </div>
         </div>
 
