@@ -145,21 +145,30 @@ defmodule ControlKeelWeb.FindingsLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+      <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
+        <div class="flex items-center justify-between gap-4 mt-6 mb-4">
           <div>
-            <p class="ck-kicker">Findings browser</p>
-            <h1 class="ck-section-title">Review findings across all missions</h1>
-            <p class="ck-lead ck-lead-tight">
+            <p class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase">
+              Findings browser
+            </p>
+            <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-tight">
+              Review findings across all missions
+            </h1>
+            <p class="text-[var(--ck-muted)] max-w-[48rem] text-base leading-relaxed">
               Filter, approve, reject, and inspect guided fixes without leaving the governed ControlKeel workflow.
             </p>
           </div>
-          <a href={~p"/"} class="ck-link">Back home</a>
+          <a
+            href={~p"/"}
+            class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
+          >
+            Back home
+          </a>
         </div>
 
-        <div class="ck-card ck-browser-filters">
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6 grid gap-4">
           <.form for={@form} phx-change="filter">
-            <div class="ck-filter-grid">
+            <div class="grid grid-cols-5 max-[900px]:grid-cols-1 gap-4">
               <.input
                 field={@form[:q]}
                 type="text"
@@ -198,79 +207,110 @@ defmodule ControlKeelWeb.FindingsLive do
             </div>
           </.form>
 
-          <div class="ck-metric-row">
+          <div class="flex items-center justify-between gap-4 text-sm text-[var(--ck-muted)]">
             <span>{@browser.total_count} total findings</span>
             <span>Page {@browser.page} of {@browser.total_pages}</span>
           </div>
         </div>
 
-        <div class="ck-card">
-          <div class="ck-table-wrap">
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6 mt-6">
+          <div class="overflow-x-auto">
             <.table id="findings-browser" rows={@browser.entries}>
               <:col :let={finding} label="Finding">
                 <div>
                   <strong>{finding.title}</strong>
-                  <p class="ck-note">{finding.plain_message}</p>
+                  <p class="text-[var(--ck-muted)] text-sm">{finding.plain_message}</p>
                 </div>
               </:col>
               <:col :let={finding} label="Mission">
                 <div>
-                  <.link navigate={~p"/missions/#{finding.session_id}"} class="ck-link">
+                  <.link
+                    navigate={~p"/missions/#{finding.session_id}"}
+                    class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
+                  >
                     {finding.session.title}
                   </.link>
-                  <p class="ck-note">{finding.session.workspace.name}</p>
+                  <p class="text-[var(--ck-muted)] text-sm">{finding.session.workspace.name}</p>
                 </div>
               </:col>
               <:col :let={finding} label="Status">
-                <div class="ck-badge-stack">
-                  <span class={["ck-pill", "ck-pill-#{finding.severity}"]}>{finding.severity}</span>
-                  <span class="ck-pill ck-pill-neutral">{finding.status}</span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class={[pill_base(), severity_colors(finding.severity)]}>
+                    {finding.severity}
+                  </span>
+                  <span class={[pill_base(), "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"]}>
+                    {finding.status}
+                  </span>
                 </div>
               </:col>
               <:col :let={finding} label="Rule">
                 <div>
                   <strong>{finding.rule_id}</strong>
-                  <p class="ck-note">{finding.category}</p>
+                  <p class="text-[var(--ck-muted)] text-sm">{finding.category}</p>
                 </div>
               </:col>
               <:action :let={finding}>
-                <button type="button" class="ck-link" phx-click="approve" phx-value-id={finding.id}>
+                <button
+                  type="button"
+                  class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
+                  phx-click="approve"
+                  phx-value-id={finding.id}
+                >
                   Approve
                 </button>
               </:action>
               <:action :let={finding}>
                 <%= if @reject_id == to_string(finding.id) do %>
-                  <div class="ck-inline-form" style="display:flex;gap:0.25rem;align-items:center;">
+                  <div class="flex items-center gap-1">
                     <input
                       type="text"
-                      class="ck-input ck-input-sm"
+                      class="w-48 rounded-xl border border-[var(--ck-stroke)] bg-white/5 text-white px-3 py-1.5 text-sm"
                       placeholder="Reason (optional)"
                       value={@reject_reason}
                       phx-keyup="set_reject_reason"
                       phx-key="Enter"
                       phx-click-away="cancel_reject"
-                      style="width:12rem;"
                     />
-                    <button type="button" class="ck-link" phx-click="confirm_reject">Confirm</button>
-                    <button type="button" class="ck-link ck-link-muted" phx-click="cancel_reject">
+                    <button
+                      type="button"
+                      class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
+                      phx-click="confirm_reject"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      type="button"
+                      class="text-xs font-semibold tracking-[0.14em] text-white/50 uppercase hover:text-white/70"
+                      phx-click="cancel_reject"
+                    >
                       Cancel
                     </button>
                   </div>
                 <% else %>
-                  <button type="button" class="ck-link" phx-click="reject" phx-value-id={finding.id}>
+                  <button
+                    type="button"
+                    class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
+                    phx-click="reject"
+                    phx-value-id={finding.id}
+                  >
                     Reject
                   </button>
                 <% end %>
               </:action>
               <:action :let={finding}>
-                <button type="button" class="ck-link" phx-click="view_fix" phx-value-id={finding.id}>
+                <button
+                  type="button"
+                  class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
+                  phx-click="view_fix"
+                  phx-value-id={finding.id}
+                >
                   View fix
                 </button>
               </:action>
             </.table>
           </div>
 
-          <div class="ck-action-row" style="margin-top: 1rem;">
+          <div class="flex items-center justify-between gap-4 mt-4">
             <.link
               :if={@browser.page > 1}
               patch={
@@ -278,7 +318,7 @@ defmodule ControlKeelWeb.FindingsLive do
                   Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page - 1})
                 )
               }
-              class="ck-link"
+              class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
             >
               Previous page
             </.link>
@@ -290,7 +330,7 @@ defmodule ControlKeelWeb.FindingsLive do
                   Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page + 1})
                 )
               }
-              class="ck-link"
+              class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
             >
               Next page
             </.link>
@@ -319,6 +359,16 @@ defmodule ControlKeelWeb.FindingsLive do
 
     if workspace_ids == [], do: params, else: Map.put(params, "workspace_ids", workspace_ids)
   end
+
+  defp pill_base do
+    "inline-flex items-center px-3 py-1.5 text-sm rounded-full border border-[var(--ck-stroke)]"
+  end
+
+  defp severity_colors("critical"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+  defp severity_colors("high"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+  defp severity_colors("medium"), do: "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+  defp severity_colors("low"), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+  defp severity_colors(_), do: "bg-white/5 text-white/70"
 
   defp refresh_browser(socket) do
     params =
