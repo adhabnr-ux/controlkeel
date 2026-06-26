@@ -484,6 +484,7 @@ defmodule ControlKeelWeb.FindingsLive do
               placeholder="Reason for rejection..."
               value={@reject_reason}
               phx-keyup="set_reject_reason"
+              phx-debounce="blur"
               rows="3"
             ></textarea>
             <div class="flex justify-end gap-3 mt-4">
