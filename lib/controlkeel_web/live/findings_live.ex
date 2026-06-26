@@ -5,7 +5,7 @@ defmodule ControlKeelWeb.FindingsLive do
   alias ControlKeelWeb.FindingComponents
 
   @severities ~w(critical high medium low)
-  @statuses ~w(open blocked escalated approved rejected)
+  @statuses ~w(open blocked escalated rejected)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -350,60 +350,47 @@ defmodule ControlKeelWeb.FindingsLive do
                       <span class={[pill_base(), "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"]}>
                         {finding.status}
                       </span>
+                      <p :if={finding.status == "rejected" && finding.metadata["rejection_reason"]} class="mt-2 text-xs text-zinc-500 italic">
+                        {finding.metadata["rejection_reason"]}
+                      </p>
                     </td>
                     <td class="px-8 py-6 align-top">
                       <p>{finding.category}</p>
                     </td>
                     <td class="px-2 py-6 text-right align-top">
-                      <%= if @reject_id == to_string(finding.id) do %>
-                        <div class="flex items-center justify-end gap-1">
-                          <input
-                            type="text"
-                            class="w-36 rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
-                            placeholder="Reason"
-                            value={@reject_reason}
-                            phx-keyup="set_reject_reason"
-                            phx-key="Enter"
-                            phx-click-away="cancel_reject"
-                          />
-                          <button
-                            type="button"
-                            class="rounded-md border border-white/10 bg-black px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
-                            phx-click="confirm_reject"
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            type="button"
-                            class="rounded-md border border-white/10 bg-black px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-400 transition hover:border-red-500/40 hover:text-red-400"
-                            phx-click="cancel_reject"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      <% else %>
-                        <div class="relative inline-flex">
-                          <button
-                            type="button"
-                            class="flex items-center justify-center w-8 h-8 rounded-md border border-white/10 bg-black/40 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
-                            phx-click="toggle_dropdown"
-                            phx-value-id={finding.id}
-                          >
-                            ⋮
-                          </button>
-                          <div
-                            :if={@open_dropdown_id == to_string(finding.id)}
-                            class="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg border border-white/10 bg-neutral-900 shadow-2xl py-1"
-                            phx-click-away="close_dropdown"
-                          >
+                      <div class="relative inline-flex">
+                        <button
+                          type="button"
+                          class="flex items-center justify-center w-8 h-8 rounded-md border border-white/10 bg-black/40 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                          phx-click="toggle_dropdown"
+                          phx-value-id={finding.id}
+                        >
+                          ⋮
+                        </button>
+                        <div
+                          :if={@open_dropdown_id == to_string(finding.id)}
+                          class="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg border border-white/10 bg-neutral-900 shadow-2xl py-1"
+                          phx-click-away="close_dropdown"
+                        >
+                          <%= if finding.status == "approved" do %>
+                            <span class="block w-full text-left px-4 py-2 text-sm text-zinc-600 cursor-not-allowed">
+                              Approved
+                            </span>
+                          <% else %>
                             <button
                               type="button"
-                              class="w-full text-left px-4 py-2 text-sm text-lime-400 hover:bg-white/5 transition-colors"
+                              class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors"
                               phx-click="approve"
                               phx-value-id={finding.id}
                             >
                               Approve
                             </button>
+                          <% end %>
+                          <%= if finding.status == "rejected" do %>
+                            <span class="block w-full text-left px-4 py-2 text-sm text-zinc-600 cursor-not-allowed">
+                              Rejected
+                            </span>
+                          <% else %>
                             <button
                               type="button"
                               class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors"
@@ -412,17 +399,17 @@ defmodule ControlKeelWeb.FindingsLive do
                             >
                               Reject
                             </button>
-                            <button
-                              type="button"
-                              class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors"
-                              phx-click="view_fix"
-                              phx-value-id={finding.id}
-                            >
-                              View fix
-                            </button>
-                          </div>
+                          <% end %>
+                          <button
+                            type="button"
+                            class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors"
+                            phx-click="view_fix"
+                            phx-value-id={finding.id}
+                          >
+                            View fix
+                          </button>
                         </div>
-                      <% end %>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
@@ -477,6 +464,45 @@ defmodule ControlKeelWeb.FindingsLive do
           </div>
         </div>
 
+        <div
+          :if={@reject_id}
+          class="fixed inset-0 z-50 flex items-center justify-center"
+          phx-click-away="cancel_reject"
+          phx-key="Escape"
+          phx-key-target="window"
+        >
+          <div class="fixed inset-0 bg-black/60"></div>
+          <div class="relative rounded-lg border border-white/10 bg-neutral-900 shadow-2xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-semibold text-white">Reject finding</h3>
+            <p class="mt-1 text-sm text-zinc-400">
+              Rule: {rejected_finding_title(@browser.entries, @reject_id)}
+            </p>
+            <textarea
+              class="mt-4 w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+              placeholder="Reason for rejection..."
+              value={@reject_reason}
+              phx-keyup="set_reject_reason"
+              rows="3"
+            ></textarea>
+            <div class="flex justify-end gap-3 mt-4">
+              <button
+                type="button"
+                class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-400 transition hover:border-red-500/40 hover:text-red-400"
+                phx-click="cancel_reject"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
+                phx-click="confirm_reject"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+
         <FindingComponents.autofix_panel
           :if={@selected_finding && @selected_fix}
           finding={@selected_finding}
@@ -509,6 +535,13 @@ defmodule ControlKeelWeb.FindingsLive do
   defp severity_colors("medium"), do: "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
   defp severity_colors("low"), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
   defp severity_colors(_), do: "bg-white/5 text-white/70"
+
+  defp rejected_finding_title(entries, reject_id) do
+    case Enum.find(entries, &(to_string(&1.id) == reject_id)) do
+      nil -> ""
+      finding -> finding.title
+    end
+  end
 
   defp refresh_browser(socket) do
     params =
