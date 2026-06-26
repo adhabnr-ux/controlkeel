@@ -21,6 +21,7 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:reject_reason, "")
      |> assign(:severities, @severities)
      |> assign(:statuses, @statuses)
+     |> assign(:open_dropdown_id, nil)
      |> assign(:form, to_form(%{}, as: :filters))}
   end
 
@@ -43,12 +44,24 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:browser, browser)
      |> assign(:selected_finding, selected_finding)
      |> assign(:selected_fix, maybe_regenerate_fix(selected_finding))
+     |> assign(:open_dropdown_id, nil)
      |> assign(:form, to_form(browser_form_params(browser.filters), as: :filters))}
   end
 
   @impl true
   def handle_event("filter", %{"filters" => filters}, socket) do
     {:noreply, push_patch(socket, to: findings_path(filter_params(filters)))}
+  end
+
+  @impl true
+  def handle_event("toggle_dropdown", %{"id" => id}, socket) do
+    current = socket.assigns.open_dropdown_id
+    {:noreply, assign(socket, :open_dropdown_id, if(current == id, do: nil, else: id))}
+  end
+
+  @impl true
+  def handle_event("close_dropdown", _params, socket) do
+    {:noreply, assign(socket, :open_dropdown_id, nil)}
   end
 
   @impl true
@@ -62,13 +75,20 @@ defmodule ControlKeelWeb.FindingsLive do
        |> refresh_browser()}
     else
       _error ->
-        {:noreply, put_flash(socket, :error, "ControlKeel could not approve that finding.")}
+        {:noreply,
+         socket
+         |> assign(:open_dropdown_id, nil)
+         |> put_flash(:error, "ControlKeel could not approve that finding.")}
     end
   end
 
   @impl true
   def handle_event("reject", %{"id" => id}, socket) do
-    {:noreply, socket |> assign(:reject_id, id) |> assign(:reject_reason, "")}
+    {:noreply,
+     socket
+     |> assign(:reject_id, id)
+     |> assign(:reject_reason, "")
+     |> assign(:open_dropdown_id, nil)}
   end
 
   @impl true
@@ -100,7 +120,11 @@ defmodule ControlKeelWeb.FindingsLive do
 
   @impl true
   def handle_event("cancel_reject", _params, socket) do
-    {:noreply, socket |> assign(:reject_id, nil) |> assign(:reject_reason, "")}
+    {:noreply,
+     socket
+     |> assign(:reject_id, nil)
+     |> assign(:reject_reason, "")
+     |> assign(:open_dropdown_id, nil)}
   end
 
   @impl true
@@ -112,10 +136,15 @@ defmodule ControlKeelWeb.FindingsLive do
 
       {:noreply,
        socket
+       |> assign(:open_dropdown_id, nil)
        |> assign(:selected_finding, finding)
        |> assign(:selected_fix, fix)}
     else
-      _error -> {:noreply, put_flash(socket, :error, "ControlKeel could not load that fix.")}
+      _error ->
+        {:noreply,
+         socket
+         |> assign(:open_dropdown_id, nil)
+         |> put_flash(:error, "ControlKeel could not load that fix.")}
     end
   end
 
@@ -138,7 +167,11 @@ defmodule ControlKeelWeb.FindingsLive do
 
   @impl true
   def handle_event("close_fix", _params, socket) do
-    {:noreply, socket |> assign(:selected_finding, nil) |> assign(:selected_fix, nil)}
+    {:noreply,
+     socket
+     |> assign(:selected_finding, nil)
+     |> assign(:selected_fix, nil)
+     |> assign(:open_dropdown_id, nil)}
   end
 
   @impl true
@@ -213,7 +246,7 @@ defmodule ControlKeelWeb.FindingsLive do
           </div>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6 mt-6">
+        <div class="border border-[var(--ck-stroke)]  rounded-2xl backdrop-blur-lg shadow-2xl p-6 mt-6">
           <div class="overflow-x-auto">
             <.table id="findings-browser" rows={@browser.entries}>
               <:col :let={finding} label="Finding">
@@ -250,16 +283,6 @@ defmodule ControlKeelWeb.FindingsLive do
                 </div>
               </:col>
               <:action :let={finding}>
-                <button
-                  type="button"
-                  class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
-                  phx-click="approve"
-                  phx-value-id={finding.id}
-                >
-                  Approve
-                </button>
-              </:action>
-              <:action :let={finding}>
                 <%= if @reject_id == to_string(finding.id) do %>
                   <div class="flex items-center gap-1">
                     <input
@@ -287,25 +310,47 @@ defmodule ControlKeelWeb.FindingsLive do
                     </button>
                   </div>
                 <% else %>
-                  <button
-                    type="button"
-                    class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
-                    phx-click="reject"
-                    phx-value-id={finding.id}
-                  >
-                    Reject
-                  </button>
+                  <div class="relative">
+                    <button
+                      type="button"
+                      class="flex items-center justify-center w-8 h-8 rounded-xl border border-[var(--ck-stroke)] bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                      phx-click="toggle_dropdown"
+                      phx-value-id={finding.id}
+                    >
+                      ⋮
+                    </button>
+                    <div
+                      :if={@open_dropdown_id == to_string(finding.id)}
+                      class="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-xl border border-[var(--ck-stroke)] bg-neutral-800 shadow-2xl py-1"
+                      phx-click-away="close_dropdown"
+                    >
+                      <button
+                        type="button"
+                        class="w-full text-left px-4 py-2 text-sm text-[var(--ck-lime)] hover:bg-white/5 transition-colors"
+                        phx-click="approve"
+                        phx-value-id={finding.id}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        class="w-full text-left px-4 py-2 text-sm text-white/80 hover:bg-white/5 transition-colors"
+                        phx-click="reject"
+                        phx-value-id={finding.id}
+                      >
+                        Reject
+                      </button>
+                      <button
+                        type="button"
+                        class="w-full text-left px-4 py-2 text-sm text-white/80 hover:bg-white/5 transition-colors"
+                        phx-click="view_fix"
+                        phx-value-id={finding.id}
+                      >
+                        View fix
+                      </button>
+                    </div>
+                  </div>
                 <% end %>
-              </:action>
-              <:action :let={finding}>
-                <button
-                  type="button"
-                  class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] uppercase hover:underline"
-                  phx-click="view_fix"
-                  phx-value-id={finding.id}
-                >
-                  View fix
-                </button>
               </:action>
             </.table>
           </div>
@@ -391,6 +436,7 @@ defmodule ControlKeelWeb.FindingsLive do
     |> assign(:browser, browser)
     |> assign(:selected_finding, selected_finding)
     |> assign(:selected_fix, maybe_regenerate_fix(selected_finding))
+    |> assign(:open_dropdown_id, nil)
     |> assign(:form, to_form(browser_form_params(browser.filters), as: :filters))
   end
 
