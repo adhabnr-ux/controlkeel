@@ -2,7 +2,6 @@ defmodule ControlKeelWeb.FindingsLive do
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Mission
-  alias ControlKeelWeb.FindingComponents
 
   @severities ~w(critical high medium low)
   @statuses ~w(open blocked escalated rejected)
@@ -350,7 +349,10 @@ defmodule ControlKeelWeb.FindingsLive do
                       <span class={[pill_base(), "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"]}>
                         {finding.status}
                       </span>
-                      <p :if={finding.status == "rejected" && finding.metadata["rejection_reason"]} class="mt-2 text-xs text-zinc-500 italic">
+                      <p
+                        :if={finding.status == "rejected" && finding.metadata["rejection_reason"]}
+                        class="mt-2 text-xs text-zinc-500 italic"
+                      >
                         {finding.metadata["rejection_reason"]}
                       </p>
                     </td>
@@ -503,13 +505,95 @@ defmodule ControlKeelWeb.FindingsLive do
           </div>
         </div>
 
-        <FindingComponents.autofix_panel
+        <div
           :if={@selected_finding && @selected_fix}
-          finding={@selected_finding}
-          fix={@selected_fix}
-          copy_event="copy_fix_prompt"
-          close_event="close_fix"
-        />
+          class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto"
+          phx-click-away="close_fix"
+          phx-key="Escape"
+          phx-key-target="window"
+        >
+          <div class="fixed inset-0 bg-black/60" phx-click="close_fix"></div>
+          <div class="relative rounded-lg border border-white/10 bg-neutral-900 shadow-2xl p-8 w-full max-w-2xl mx-4 space-y-4">
+            <button
+              type="button"
+              class="absolute top-2 right-2 text-zinc-500 hover:text-white transition"
+              phx-click="close_fix"
+            >
+              <.icon name="hero-x-mark" class="w-5 h-5" />
+            </button>
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                  Guided fix
+                </p>
+                <h3 class="text-lg font-semibold text-white mt-1">{@selected_finding.title}</h3>
+              </div>
+              <span class={[
+                "inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border uppercase tracking-wider",
+                @selected_fix["supported"] && "border-lime-500/40 bg-lime-500/10 text-lime-400",
+                !@selected_fix["supported"] && "border-amber-500/40 bg-amber-500/10 text-amber-400"
+              ]}>
+                {if @selected_fix["supported"], do: "supported", else: "manual review"}
+              </span>
+            </div>
+
+            <p class="text-sm text-zinc-400">{@selected_fix["summary"]}</p>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                  Why
+                </h4>
+                <p class="mt-1 text-sm text-zinc-400">{@selected_fix["why"]}</p>
+              </div>
+              <div>
+                <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                  Requires human
+                </h4>
+                <p class="mt-1 text-sm text-zinc-400">
+                  {if @selected_fix["requires_human"], do: "Yes", else: "No"}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                Steps
+              </h4>
+              <ul class="mt-1 space-y-1 list-none p-0">
+                <%= for step <- @selected_fix["steps"] || [] do %>
+                  <li class="text-sm text-zinc-300">• {step}</li>
+                <% end %>
+              </ul>
+            </div>
+
+            <div :if={@selected_fix["example"]}>
+              <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                Example
+              </h4>
+              <pre class="mt-1 rounded-lg border border-[var(--ck-stroke)] bg-black/40 p-4 font-mono text-sm leading-relaxed text-[var(--ck-sand)] whitespace-pre-wrap break-words"><code>{@selected_fix["example"]}</code></pre>
+            </div>
+
+            <div :if={@selected_fix["agent_prompt"]}>
+              <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                Agent prompt
+              </h4>
+              <pre class="mt-1 rounded-lg border border-[var(--ck-stroke)] bg-black/40 p-4 font-mono text-sm leading-relaxed text-[var(--ck-sand)] whitespace-pre-wrap break-words max-h-60 overflow-y-auto"><code>{@selected_fix["agent_prompt"]}</code></pre>
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+              <button
+                :if={@selected_fix["agent_prompt"]}
+                type="button"
+                class="rounded-md border border-[var(--ck-lime)] bg-[var(--ck-lime)] px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-black transition hover:brightness-110"
+                phx-click="copy_fix_prompt"
+                phx-value-id={@selected_finding.id}
+              >
+                Copy fix prompt
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
     </Layouts.app>
     """
