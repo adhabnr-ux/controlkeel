@@ -21,13 +21,12 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
         id="observability-overview-page"
         class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16"
       >
-        <div class="mt-6 mb-4">
-          <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)]">
+        <div class="space-y-1">
+          <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
             Observability
-          </p>
-          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Workspace overview</h1>
-          <p class="text-[var(--ck-muted)] max-w-3xl text-[1.05rem] leading-[1.7]">
-            Session health, grouped problems, and workspace observability signals.
+          </h2>
+          <p class="text-[var(--ck-muted)]">
+            Session health and workspace observability signals.
           </p>
         </div>
 

@@ -19,7 +19,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLiveTest do
 
     {:ok, view, html} = live(conn, ~p"/observability")
 
-    assert html =~ "Workspace overview"
+    assert html =~ "Observability"
     assert has_element?(view, "#observability-overview-page")
     assert has_element?(view, "#observability-overview-run-list")
     assert html =~ "/observability/problems"
