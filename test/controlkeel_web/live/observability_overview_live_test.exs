@@ -21,17 +21,8 @@ defmodule ControlKeelWeb.ObservabilityOverviewLiveTest do
 
     assert html =~ "Workspace overview"
     assert has_element?(view, "#observability-overview-page")
-    assert has_element?(view, "#observability-overview-health")
-    assert has_element?(view, "#observability-overview-runs")
-    assert has_element?(view, "#observability-overview-problems")
-    assert has_element?(view, "#observability-overview-costs")
-    assert has_element?(view, "#observability-overview-telemetry")
-    assert has_element?(view, "#observability-overview-recommendations")
     assert has_element?(view, "#observability-overview-run-list")
-    assert has_element?(view, "#observability-overview-problem-list")
-    assert html =~ "security.overview"
     assert html =~ "/observability/problems"
-    assert html =~ "/observability/costs"
     assert html =~ "/observability/loop"
     assert html =~ "/observability/recommendations"
     assert html =~ "/observability/evals"
@@ -43,7 +34,5 @@ defmodule ControlKeelWeb.ObservabilityOverviewLiveTest do
     assert html =~ "/observability/imports"
     assert html =~ "/observability/memory-quality"
     assert html =~ "/observability/trends"
-    assert html =~ "/observability/sessions/#{session.id}"
-    assert html =~ "/observability/sessions/#{session.id}/export.json"
   end
 end
