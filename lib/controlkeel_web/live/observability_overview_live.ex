@@ -37,25 +37,6 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
               {@overview.health.status}
             </span>
             <span class="ck-pill ck-pill-neutral">{@overview.runs.count} recent runs</span>
-            <.link navigate={~p"/observability/loop"} class="ck-link">Learning loop</.link>
-            <.link navigate={~p"/observability/recommendations"} class="ck-link">
-              Recommendations
-            </.link>
-            <.link navigate={~p"/observability/evals"} class="ck-link">Eval candidates</.link>
-            <.link navigate={~p"/observability/evals/persisted"} class="ck-link">Saved evals</.link>
-            <.link navigate={~p"/observability/benchmarks/drafts"} class="ck-link">
-              Benchmark drafts
-            </.link>
-            <.link navigate={~p"/observability/benchmarks/history"} class="ck-link">
-              Benchmark history
-            </.link>
-            <.link navigate={~p"/observability/promotions"} class="ck-link">Promotions</.link>
-            <.link navigate={~p"/observability/regressions"} class="ck-link">Regressions</.link>
-            <.link navigate={~p"/observability/compare"} class="ck-link">Compare</.link>
-            <.link navigate={~p"/observability/imports"} class="ck-link">Imports</.link>
-            <.link navigate={~p"/observability/memory-quality"} class="ck-link">Memory quality</.link>
-            <.link navigate={~p"/observability/trends"} class="ck-link">Trends</.link>
-            <.link navigate={~p"/observability/problems"} class="ck-link">Open problems</.link>
           </div>
         </div>
 
@@ -98,6 +79,32 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
             </p>
             <p class="ck-note">{@overview.telemetry.persisted_imports} persisted import(s)</p>
             <.link navigate={~p"/observability/imports"} class="ck-link">Review imports</.link>
+          </div>
+        </div>
+
+        <div class="ck-card my-6">
+          <p class="">Quick links</p>
+
+          <div class="flex gap-4 flex-wrap mt-4">
+            <.link navigate={~p"/observability/loop"} class="ck-link">Learning loop</.link>
+            <.link navigate={~p"/observability/recommendations"} class="ck-link">
+              Recommendations
+            </.link>
+            <.link navigate={~p"/observability/evals"} class="ck-link">Eval candidates</.link>
+            <.link navigate={~p"/observability/evals/persisted"} class="ck-link">Saved evals</.link>
+            <.link navigate={~p"/observability/benchmarks/drafts"} class="ck-link">
+              Benchmark drafts
+            </.link>
+            <.link navigate={~p"/observability/benchmarks/history"} class="ck-link">
+              Benchmark history
+            </.link>
+            <.link navigate={~p"/observability/promotions"} class="ck-link">Promotions</.link>
+            <.link navigate={~p"/observability/regressions"} class="ck-link">Regressions</.link>
+            <.link navigate={~p"/observability/compare"} class="ck-link">Compare</.link>
+            <.link navigate={~p"/observability/imports"} class="ck-link">Imports</.link>
+            <.link navigate={~p"/observability/memory-quality"} class="ck-link">Memory quality</.link>
+            <.link navigate={~p"/observability/trends"} class="ck-link">Trends</.link>
+            <.link navigate={~p"/observability/problems"} class="ck-link">Open problems</.link>
           </div>
         </div>
 
