@@ -357,7 +357,7 @@ defmodule ControlKeelWeb.FindingsLive do
                       </p>
                     </td>
                     <td class="px-8 py-6 align-top">
-                      <p>{finding.category}</p>
+                      <p>{rule_label(finding.rule_id)}</p>
                     </td>
                     <td class="px-2 py-6 text-right align-top">
                       <div class="relative inline-flex">
@@ -714,6 +714,14 @@ defmodule ControlKeelWeb.FindingsLive do
 
   defp normalize_param_value(nil), do: ""
   defp normalize_param_value(value), do: value
+
+  defp rule_label(rule_id) do
+    rule_id
+    |> String.split(".")
+    |> List.last()
+    |> String.replace("_", " ")
+    |> String.capitalize()
+  end
 
   defp empty_browser do
     %{
