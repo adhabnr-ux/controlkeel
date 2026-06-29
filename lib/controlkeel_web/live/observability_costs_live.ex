@@ -28,7 +28,7 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <ObservabilityLayout.observability flash={@flash}>
       <section id="observability-costs-page" class="ck-shell ck-shell-tight">
         <div class="ck-section-header">
           <div>
@@ -107,7 +107,7 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
           <% end %>
         </div>
       </section>
-    </Layouts.app>
+    </ObservabilityLayout.observability>
     """
   end
 

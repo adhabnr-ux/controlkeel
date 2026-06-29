@@ -19,7 +19,7 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <ObservabilityLayout.observability flash={@flash}>
       <section
         id="observability-loop"
         class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
@@ -165,7 +165,7 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
           </div>
         <% end %>
       </section>
-    </Layouts.app>
+    </ObservabilityLayout.observability>
     """
   end
 

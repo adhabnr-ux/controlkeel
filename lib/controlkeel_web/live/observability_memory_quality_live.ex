@@ -25,7 +25,7 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <ObservabilityLayout.observability flash={@flash}>
       <section
         id="observability-memory-quality"
         class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
@@ -219,7 +219,7 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
           <% end %>
         </div>
       </section>
-    </Layouts.app>
+    </ObservabilityLayout.observability>
     """
   end
 
