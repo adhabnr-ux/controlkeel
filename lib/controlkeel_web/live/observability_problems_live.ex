@@ -19,120 +19,194 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section id="observability-problems-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+      <section
+        id="observability-problem-list"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
+          Problems
+        </p>
+
+        <div class="space-y-8">
           <div>
-            <p class="ck-kicker">Observability</p>
-            <h1 class="ck-section-title">Problems</h1>
-            <p class="ck-lead ck-lead-tight">
-              Sentry-style grouping for active ControlKeel findings, linked back to affected session runs.
-            </p>
-          </div>
-          <div class="ck-badge-stack">
+            <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+              {@problems.count} {if @problems.count == 1, do: "group", else: "groups"}
+            </span>
+
             <span class={health_pill_class(@problems.health)}>{@problems.health}</span>
-            <span class="ck-pill ck-pill-neutral">{@problems.count} groups</span>
           </div>
-        </div>
 
-        <div id="observability-problem-recommendations" class="ck-card">
-          <p class="ck-mini-label">Recommendations</p>
-          <ul class="ck-mini-list">
-            <%= for recommendation <- @problems.recommendations do %>
-              <li>{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
-
-        <div id="observability-problem-list" class="ck-grid ck-grid-dashboard">
-          <%= if @problems.problems == [] do %>
-            <div class="ck-card">
-              <p class="ck-note">No active problems detected.</p>
+          <%= if @problems.recommendations != [] do %>
+            <div class="space-y-2">
+              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                Recommendations
+              </p>
+              <%= for recommendation <- @problems.recommendations do %>
+                <p class="text-[var(--ck-text)] text-sm leading-relaxed">
+                  {recommendation}
+                </p>
+              <% end %>
             </div>
+          <% end %>
+
+          <%= if @problems.problems == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No active problems detected.</p>
           <% else %>
-            <%= for problem <- @problems.problems do %>
-              <div id={"observability-problem-#{problem_key_id(problem.key)}"} class="ck-card">
-                <div class="ck-section-header" style="margin-bottom: 1rem;">
-                  <div>
-                    <p class="ck-mini-label">{problem.category}</p>
-                    <h2 style="margin: 0; font-size: 1.15rem;">{problem.rule_id}</h2>
-                    <p class="ck-note" style="margin: 0.35rem 0 0;">{problem.title}</p>
+            <%= for {problem, idx} <- Enum.with_index(@problems.problems) do %>
+              <div
+                id={"observability-problem-#{problem_key_id(problem.key)}"}
+                class={["space-y-8", if(idx > 0, do: "pt-8 border-t border-[var(--ck-stroke)]")]}
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="space-y-1 min-w-0">
+                    <p class="text-xl font-semibold text-[var(--ck-text)]">
+                      {problem.title}
+                    </p>
                   </div>
                   <span class={health_pill_class(problem.health)}>{problem.health}</span>
                 </div>
 
-                <div class="ck-brief-grid">
-                  <div>
-                    <h3>Severity</h3>
-                    <p class="ck-note">{problem.severity}</p>
-                  </div>
-                  <div>
-                    <h3>Count</h3>
-                    <p class="ck-note">{problem.count}</p>
-                  </div>
-                  <div>
-                    <h3>Affected sessions</h3>
-                    <p class="ck-note">{problem.affected_session_count}</p>
-                  </div>
-                  <div>
-                    <h3>Last seen</h3>
-                    <p class="ck-note">{problem.last_seen || "unknown"}</p>
-                  </div>
-                </div>
-
-                <p class="ck-mini-label" style="margin-top: 1rem;">Next action</p>
-                <p class="ck-note">{problem.recommendation}</p>
-
-                <div
-                  id={"observability-problem-feedback-#{problem_key_id(problem.key)}"}
-                  class="ck-card"
-                  style="margin-top: 1rem;"
-                >
-                  <p class="ck-mini-label">Feedback loop</p>
-                  <div class="ck-brief-grid">
+                <div>
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
-                      <h3>Eval candidate</h3>
-                      <p class="ck-note">{problem.feedback_loop.eval_candidate_title}</p>
+                      <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                        Category
+                      </p>
+                      <p class="text-[var(--ck-text)] mt-1 font-medium">{problem.category}</p>
                     </div>
                     <div>
-                      <h3>Evidence</h3>
-                      <p class="ck-note">{problem.feedback_loop.evidence_summary}</p>
+                      <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                        Rule ID
+                      </p>
+                      <p class="text-[var(--ck-text)] mt-1 font-medium">{problem.rule_id}</p>
                     </div>
                     <div>
-                      <h3>Benchmark hint</h3>
-                      <p class="ck-note">{problem.feedback_loop.benchmark_hint}</p>
+                      <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                        Severity
+                      </p>
+                      <p class="text-[var(--ck-text)] mt-1 font-medium">{problem.severity}</p>
                     </div>
                     <div>
-                      <h3>Human gate</h3>
-                      <p class="ck-note">
-                        {if problem.feedback_loop.human_gate_required,
-                          do: "required",
-                          else: "not required"}
+                      <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                        Count
+                      </p>
+                      <p class="text-[var(--ck-text)] mt-1 font-medium">{problem.count}</p>
+                    </div>
+                    <div>
+                      <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                        Sessions
+                      </p>
+                      <p class="text-[var(--ck-text)] mt-1 font-medium">
+                        {problem.affected_session_count}
+                      </p>
+                    </div>
+                    <div class="col-span-2 md:col-span-3">
+                      <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                        Last seen
+                      </p>
+                      <p class="text-[var(--ck-text)] mt-1 font-medium">
+                        {format_datetime(problem.last_seen)}
+                      </p>
+                    </div>
+                    <div class="col-span-2 md:col-span-4 mt-2">
+                      <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                        Recommendation
+                      </p>
+                      <p class="text-[var(--ck-text)] mt-1.5 leading-relaxed">
+                        {problem.recommendation}
                       </p>
                     </div>
                   </div>
-                  <p class="ck-note" style="margin-top: 0.75rem;">
-                    {problem.feedback_loop.suggested_action}
+                </div>
+
+                <div class="space-y-3">
+                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-muted)] font-semibold">
+                    Feedback loop
                   </p>
-                  <.link navigate={~p"/benchmarks"} class="ck-link">Open benchmarks</.link>
+                  <div class="space-y-4">
+                    <div class="flex flex-wrap gap-x-8 gap-y-4 text-sm">
+                      <div>
+                        <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                          Eval
+                        </p>
+                        <p class="text-[var(--ck-text)] mt-1 font-medium">
+                          {problem.feedback_loop.eval_candidate_title}
+                        </p>
+                      </div>
+                      <div>
+                        <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                          Action
+                        </p>
+                        <p class="text-[var(--ck-text)] mt-1 font-medium">
+                          {problem.feedback_loop.evidence_summary}
+                        </p>
+                      </div>
+                      <div>
+                        <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                          Benchmark
+                        </p>
+                        <p class="text-[var(--ck-text)] mt-1 font-medium">
+                          {problem.feedback_loop.benchmark_hint}
+                        </p>
+                      </div>
+                      <div>
+                        <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                          Human Gate
+                        </p>
+                        <p class={[
+                          "mt-1 font-medium",
+                          if(problem.feedback_loop.human_gate_required,
+                            do: "text-[#ffcf6b]",
+                            else: "text-[var(--ck-text)]"
+                          )
+                        ]}>
+                          {if problem.feedback_loop.human_gate_required do
+                            "required"
+                          else
+                            "not required"
+                          end}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                        Suggested Action
+                      </p>
+                      <p class="text-[var(--ck-text)] text-sm mt-1.5">
+                        {problem.feedback_loop.suggested_action}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                <p class="ck-mini-label" style="margin-top: 1rem;">Examples</p>
-                <ul class="ck-mini-list">
-                  <%= for example <- problem.examples do %>
-                    <li>
-                      <strong>{example.title}</strong>
-                      <p class="ck-note">
-                        {example.severity} / {example.status} · session #{example.session_id}
-                        <.link
-                          navigate={~p"/observability/sessions/#{example.session_id}"}
-                          class="ck-link"
-                        >
-                          Open run
-                        </.link>
-                      </p>
-                    </li>
-                  <% end %>
-                </ul>
+                <%= if problem.examples && problem.examples != [] do %>
+                  <div class="space-y-3">
+                    <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-muted)] font-semibold">
+                      Examples
+                    </p>
+                    <div class="grid gap-2">
+                      <%= for example <- problem.examples do %>
+                        <div class="flex items-center justify-between gap-4 rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] hover:bg-[rgba(255,255,255,0.03)] transition-colors">
+                          <div class="min-w-0">
+                            <p class="text-sm font-medium text-[var(--ck-text)] truncate">
+                              {example.title}
+                            </p>
+                            <p class="text-xs text-[var(--ck-muted)] mt-1">
+                              {example.severity} / {example.status}
+                              <span class="mx-1.5 opacity-50">•</span> session {example.session_id}
+                            </p>
+                          </div>
+                          <.link
+                            navigate={~p"/observability/sessions/#{example.session_id}"}
+                            class="shrink-0 text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+                          >
+                            Open run →
+                          </.link>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
               </div>
             <% end %>
           <% end %>
@@ -152,4 +226,20 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
     |> String.replace(~r/[^a-zA-Z0-9_-]+/, "-")
     |> String.trim("-")
   end
+
+  defp format_datetime(nil), do: "unknown"
+  defp format_datetime(""), do: "unknown"
+
+  defp format_datetime(%DateTime{} = dt) do
+    Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S UTC")
+  end
+
+  defp format_datetime(value) when is_binary(value) do
+    case DateTime.from_iso8601(value) do
+      {:ok, dt, _offset} -> Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S UTC")
+      _ -> value
+    end
+  end
+
+  defp format_datetime(value), do: to_string(value)
 end
