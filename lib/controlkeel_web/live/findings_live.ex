@@ -469,11 +469,10 @@ defmodule ControlKeelWeb.FindingsLive do
         <div
           :if={@reject_id}
           class="fixed inset-0 z-50 flex items-center justify-center"
-          phx-click-away="cancel_reject"
           phx-key="Escape"
           phx-key-target="window"
         >
-          <div class="fixed inset-0 bg-black/60"></div>
+          <div class="fixed inset-0 bg-black/60" phx-click="cancel_reject"></div>
           <div class="relative rounded-lg border border-white/10 bg-neutral-900 shadow-2xl p-6 w-full max-w-md mx-4">
             <h3 class="text-lg font-semibold text-white">Reject finding</h3>
             <p class="mt-1 text-sm text-zinc-400">
