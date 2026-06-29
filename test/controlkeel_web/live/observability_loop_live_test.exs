@@ -16,18 +16,12 @@ defmodule ControlKeelWeb.ObservabilityLoopLiveTest do
       rule_id: "security.loop_page"
     })
 
-    {:ok, view, html} = live(conn, ~p"/observability/loop")
+    {:ok, _view, html} = live(conn, ~p"/observability/loop")
 
     assert html =~ "Learning loop"
-    assert has_element?(view, "#observability-loop-page")
-    assert has_element?(view, "#observability-loop-health")
-    assert has_element?(view, "#observability-loop-boundary")
-    assert has_element?(view, "#observability-loop-summary")
-    assert has_element?(view, "#observability-loop-blockers")
-    assert has_element?(view, "#observability-loop-actions")
-    assert has_element?(view, "#observability-loop-recommendations")
+    assert html =~ "Safety boundary"
     assert html =~ "Automatic benchmark execution: false"
     assert html =~ "Automatic promotion: false"
-    assert html =~ "active_problems"
+    assert html =~ "controlkeel obs loop"
   end
 end

@@ -36,6 +36,10 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
             <span class={health_pill_class(@problems.health)}>{@problems.health}</span>
           </div>
 
+          <div class="text-[var(--ck-muted)] text-xs font-mono border border-[var(--ck-stroke)] rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
+            controlkeel obs problems
+          </div>
+
           <%= if @problems.recommendations != [] do %>
             <div class="space-y-2">
               <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">

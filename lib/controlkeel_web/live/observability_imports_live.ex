@@ -20,70 +20,162 @@ defmodule ControlKeelWeb.ObservabilityImportsLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section id="observability-imports-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+      <section
+        id="observability-imports"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="ck-kicker">Observability</p>
-            <h1 class="ck-section-title">Imported snapshots</h1>
-            <p class="ck-lead ck-lead-tight">
+            <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
+              Imports
+            </p>
+            <h1 class="text-xl font-semibold text-[var(--ck-text)]">Imported snapshots</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
               Local persisted observability envelopes, listed as summary-only evidence snapshots.
             </p>
           </div>
-          <div class="ck-badge-stack">
-            <span id="observability-imports-count" class="ck-pill ck-pill-neutral">
+          <div class="flex items-center gap-3 shrink-0">
+            <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
               {@imports.count} persisted
             </span>
-            <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
+            <.link
+              navigate={~p"/observability"}
+              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+            >
+              Overview →
+            </.link>
           </div>
         </div>
 
-        <div class="ck-stat-grid">
-          <div id="observability-imports-integrity" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Integrity</p>
-            <strong>{format_frequency(@imports.by_integrity)}</strong>
+        <div class="text-[var(--ck-muted)] text-xs font-mono border border-[var(--ck-stroke)] rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
+          controlkeel obs imports
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div
+            id="observability-imports-integrity"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Integrity</p>
+            <p class="text-base font-semibold text-[var(--ck-text)]">
+              {format_frequency(@imports.by_integrity)}
+            </p>
           </div>
-          <div id="observability-imports-health" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Health</p>
-            <strong>{format_frequency(@imports.by_health)}</strong>
+          <div
+            id="observability-imports-health"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Health</p>
+            <p class="text-base font-semibold text-[var(--ck-text)]">
+              {format_frequency(@imports.by_health)}
+            </p>
           </div>
         </div>
 
-        <div id="observability-imports-recommendations" class="ck-card">
-          <p class="ck-mini-label">Recommendations</p>
-          <ul class="ck-mini-list">
+        <%= if @imports.recommendations != [] do %>
+          <div class="space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recommendations
+            </p>
             <%= for recommendation <- @imports.recommendations do %>
-              <li>{recommendation}</li>
+              <p class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</p>
             <% end %>
-          </ul>
-        </div>
+          </div>
+        <% end %>
 
-        <div id="observability-imports-list" class="ck-card">
-          <p class="ck-mini-label">Recent imports</p>
+        <div class="space-y-3">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Recent imports
+          </p>
           <%= if @imports.recent == [] do %>
-            <p class="ck-note">No persisted observability imports yet.</p>
+            <p class="text-[var(--ck-muted)] text-sm">No persisted observability imports yet.</p>
           <% else %>
-            <ul class="ck-mini-list">
-              <%= for imported <- @imports.recent do %>
-                <li id={"observability-import-#{imported.id}"}>
-                  <strong>{imported.original_session_title || "Unknown session"}</strong>
-                  <p class="ck-note">
-                    Imported {imported.imported_at || "unknown time"} · exported {imported.exported_at ||
-                      "unknown time"}
-                  </p>
-                  <p class="ck-note">
-                    Session #{imported.original_session_id || "unknown"} · {imported.health} · {imported.problem_groups} problem group(s) · {imported.total_problem_findings} finding(s)
-                  </p>
-                  <p class="ck-note">
-                    Integrity {imported.integrity_status} · hash {imported.payload_fingerprint ||
-                      "unknown"} · mutation {imported.mutation}
-                  </p>
-                  <p class="ck-note">
-                    Schema {imported.schema_version} · source {source_label(imported.source)} · redaction {imported.redaction_policy ||
-                      "unknown"}
-                  </p>
-                </li>
-              <% end %>
-            </ul>
+            <%= for imported <- @imports.recent do %>
+              <div
+                id={"observability-import-#{imported.id}"}
+                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
+              >
+                <p class="text-sm font-semibold text-[var(--ck-text)]">
+                  {imported.original_session_title || "Unknown session"}
+                </p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Imported
+                    </p>
+                    <p class="text-[var(--ck-text)]">{imported.imported_at || "unknown time"}</p>
+                  </div>
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Exported
+                    </p>
+                    <p class="text-[var(--ck-text)]">{imported.exported_at || "unknown time"}</p>
+                  </div>
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Session
+                    </p>
+                    <p class="text-[var(--ck-text)]">#{imported.original_session_id || "unknown"}</p>
+                  </div>
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Health
+                    </p>
+                    <p class="text-[var(--ck-text)]">{imported.health}</p>
+                  </div>
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Problem groups
+                    </p>
+                    <p class="text-[var(--ck-text)]">{imported.problem_groups}</p>
+                  </div>
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Findings
+                    </p>
+                    <p class="text-[var(--ck-text)]">{imported.total_problem_findings}</p>
+                  </div>
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Integrity
+                    </p>
+                    <p class="text-[var(--ck-text)]">{imported.integrity_status}</p>
+                  </div>
+                  <div class="col-span-2">
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Fingerprint
+                    </p>
+                    <p class="text-[var(--ck-text)] font-mono text-[10px] truncate">
+                      {imported.payload_fingerprint || "unknown"}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Mutation
+                    </p>
+                    <p class="text-[var(--ck-text)]">{imported.mutation}</p>
+                  </div>
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Schema
+                    </p>
+                    <p class="text-[var(--ck-text)]">{imported.schema_version}</p>
+                  </div>
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Source
+                    </p>
+                    <p class="text-[var(--ck-text)]">{source_label(imported.source)}</p>
+                  </div>
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      Redaction
+                    </p>
+                    <p class="text-[var(--ck-text)]">{imported.redaction_policy || "unknown"}</p>
+                  </div>
+                </div>
+              </div>
+            <% end %>
           <% end %>
         </div>
       </section>
