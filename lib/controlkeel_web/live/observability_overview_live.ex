@@ -17,7 +17,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <ObservabilityLayout.observability flash={@flash}>
+    <ObservabilityLayout.observability flash={@flash} current_path="/observability">
       <section id="observability-overview-page">
         <SessionComponents.session_observability_section runs={@overview.runs.recent} />
       </section>

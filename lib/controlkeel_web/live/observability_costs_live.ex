@@ -28,83 +28,92 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <ObservabilityLayout.observability flash={@flash}>
-      <section id="observability-costs-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">Observability</p>
-            <h1 class="ck-section-title">Costs and efficiency</h1>
-            <p class="ck-lead ck-lead-tight">
-              Local invocation spend, token shape, and grouped efficiency signals.
+    <ObservabilityLayout.observability flash={@flash} current_path="/observability/costs">
+      <section
+        id="observability-costs"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
+            Costs
+          </p>
+          <.link
+            navigate={~p"/observability"}
+            class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+          >
+            Overview →
+          </.link>
+        </div>
+
+        <div class="text-[var(--ck-muted)] text-xs font-mono border border-[var(--ck-stroke)] rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
+          controlkeel obs costs
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Invocations</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">{@costs.totals.invocations}</p>
+            <p class="text-[var(--ck-muted)] text-xs">{@costs.totals.sessions} session(s)</p>
+          </div>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Estimated spend</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">{format_currency(@costs.totals.estimated_cost_cents)}</p>
+            <p class="text-[var(--ck-muted)] text-xs">Local invocation estimate</p>
+          </div>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Input tokens</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">{@costs.totals.input_tokens}</p>
+            <p class="text-[var(--ck-muted)] text-xs">{@costs.totals.cached_input_tokens} cached</p>
+          </div>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Output tokens</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">{@costs.totals.output_tokens}</p>
+            <p class="text-[var(--ck-muted)] text-xs">Across recorded calls</p>
+          </div>
+        </div>
+
+        <%= if @costs.recommendations != [] do %>
+          <div class="space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recommendations
             </p>
-          </div>
-          <div class="ck-badge-stack">
-            <span id="observability-costs-total" class="ck-pill ck-pill-neutral">
-              {format_currency(@costs.totals.estimated_cost_cents)} estimated
-            </span>
-            <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
-          </div>
-        </div>
-
-        <div id="observability-costs-summary" class="ck-stat-grid">
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Invocations</p>
-            <strong>{@costs.totals.invocations}</strong>
-            <p class="ck-note">{@costs.totals.sessions} session(s)</p>
-          </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Estimated spend</p>
-            <strong>{format_currency(@costs.totals.estimated_cost_cents)}</strong>
-            <p class="ck-note">Local invocation estimate</p>
-          </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Input tokens</p>
-            <strong>{@costs.totals.input_tokens}</strong>
-            <p class="ck-note">{@costs.totals.cached_input_tokens} cached</p>
-          </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Output tokens</p>
-            <strong>{@costs.totals.output_tokens}</strong>
-            <p class="ck-note">Across recorded calls</p>
-          </div>
-        </div>
-
-        <div id="observability-costs-recommendations" class="ck-card">
-          <p class="ck-mini-label">Recommended next actions</p>
-          <ul class="ck-mini-list">
             <%= for recommendation <- @costs.recommendations do %>
-              <li>{recommendation}</li>
+              <p class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</p>
             <% end %>
-          </ul>
-        </div>
+          </div>
+        <% end %>
 
-        <div id="observability-costs-groups" class="ck-grid ck-grid-dashboard">
-          <%= for {grouping, costs} <- @grouped_costs do %>
-            <div id={"observability-costs-by-#{grouping}"} class="ck-card">
-              <div class="ck-card-header">
-                <div>
-                  <p class="ck-mini-label">Grouped by</p>
-                  <h2 class="ck-card-title">{grouping}</h2>
-                </div>
-                <span class="ck-pill ck-pill-neutral">{length(costs.groups)} group(s)</span>
+        <div class="space-y-4">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Group breakdown
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <%= for {grouping, costs} <- @grouped_costs do %>
+              <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3">
+                <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                  Grouped by {grouping}
+                  <span class="ml-2 text-[var(--ck-lime)]">{length(costs.groups)} group(s)</span>
+                </p>
+
+                <%= if costs.groups == [] do %>
+                  <p class="text-[var(--ck-muted)] text-sm">No invocation cost data has been recorded yet.</p>
+                <% else %>
+                  <div class="space-y-2">
+                    <%= for group <- costs.groups do %>
+                      <div class="flex items-center justify-between gap-2 p-2 rounded-lg border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)]">
+                        <div>
+                          <p class="text-sm font-medium text-[var(--ck-text)]">{group.name}</p>
+                          <p class="text-[var(--ck-muted)] text-xs">
+                            {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.input_tokens} input · {group.output_tokens} output
+                          </p>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
               </div>
-
-              <%= if costs.groups == [] do %>
-                <p class="ck-note">No invocation cost data has been recorded yet.</p>
-              <% else %>
-                <ul class="ck-mini-list">
-                  <%= for group <- costs.groups do %>
-                    <li>
-                      <strong>{group.name}</strong>
-                      <p class="ck-note">
-                        {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.input_tokens} input · {group.output_tokens} output
-                      </p>
-                    </li>
-                  <% end %>
-                </ul>
-              <% end %>
-            </div>
-          <% end %>
+            <% end %>
+          </div>
         </div>
       </section>
     </ObservabilityLayout.observability>
