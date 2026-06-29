@@ -363,6 +363,7 @@ defmodule ControlKeelWeb.FindingsLive do
                       <div class="relative inline-flex">
                         <button
                           type="button"
+                          aria-label="Finding actions"
                           class="flex items-center justify-center w-8 h-8 rounded-md border border-white/10 bg-black/40 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
                           phx-click="toggle_dropdown"
                           phx-value-id={finding.id}
