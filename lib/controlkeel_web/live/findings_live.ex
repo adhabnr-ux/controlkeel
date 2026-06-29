@@ -2,7 +2,6 @@ defmodule ControlKeelWeb.FindingsLive do
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Mission
-  alias ControlKeelWeb.FindingComponents
 
   @severities ~w(critical high medium low)
   @statuses ~w(open blocked escalated approved rejected)
@@ -21,6 +20,7 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:reject_reason, "")
      |> assign(:severities, @severities)
      |> assign(:statuses, @statuses)
+     |> assign(:open_dropdown_id, nil)
      |> assign(:form, to_form(%{}, as: :filters))}
   end
 
@@ -43,12 +43,24 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:browser, browser)
      |> assign(:selected_finding, selected_finding)
      |> assign(:selected_fix, maybe_regenerate_fix(selected_finding))
+     |> assign(:open_dropdown_id, nil)
      |> assign(:form, to_form(browser_form_params(browser.filters), as: :filters))}
   end
 
   @impl true
   def handle_event("filter", %{"filters" => filters}, socket) do
     {:noreply, push_patch(socket, to: findings_path(filter_params(filters)))}
+  end
+
+  @impl true
+  def handle_event("toggle_dropdown", %{"id" => id}, socket) do
+    current = socket.assigns.open_dropdown_id
+    {:noreply, assign(socket, :open_dropdown_id, if(current == id, do: nil, else: id))}
+  end
+
+  @impl true
+  def handle_event("close_dropdown", _params, socket) do
+    {:noreply, assign(socket, :open_dropdown_id, nil)}
   end
 
   @impl true
@@ -62,13 +74,20 @@ defmodule ControlKeelWeb.FindingsLive do
        |> refresh_browser()}
     else
       _error ->
-        {:noreply, put_flash(socket, :error, "ControlKeel could not approve that finding.")}
+        {:noreply,
+         socket
+         |> assign(:open_dropdown_id, nil)
+         |> put_flash(:error, "ControlKeel could not approve that finding.")}
     end
   end
 
   @impl true
   def handle_event("reject", %{"id" => id}, socket) do
-    {:noreply, socket |> assign(:reject_id, id) |> assign(:reject_reason, "")}
+    {:noreply,
+     socket
+     |> assign(:reject_id, id)
+     |> assign(:reject_reason, "")
+     |> assign(:open_dropdown_id, nil)}
   end
 
   @impl true
@@ -100,7 +119,11 @@ defmodule ControlKeelWeb.FindingsLive do
 
   @impl true
   def handle_event("cancel_reject", _params, socket) do
-    {:noreply, socket |> assign(:reject_id, nil) |> assign(:reject_reason, "")}
+    {:noreply,
+     socket
+     |> assign(:reject_id, nil)
+     |> assign(:reject_reason, "")
+     |> assign(:open_dropdown_id, nil)}
   end
 
   @impl true
@@ -112,10 +135,15 @@ defmodule ControlKeelWeb.FindingsLive do
 
       {:noreply,
        socket
+       |> assign(:open_dropdown_id, nil)
        |> assign(:selected_finding, finding)
        |> assign(:selected_fix, fix)}
     else
-      _error -> {:noreply, put_flash(socket, :error, "ControlKeel could not load that fix.")}
+      _error ->
+        {:noreply,
+         socket
+         |> assign(:open_dropdown_id, nil)
+         |> put_flash(:error, "ControlKeel could not load that fix.")}
     end
   end
 
@@ -138,172 +166,435 @@ defmodule ControlKeelWeb.FindingsLive do
 
   @impl true
   def handle_event("close_fix", _params, socket) do
-    {:noreply, socket |> assign(:selected_finding, nil) |> assign(:selected_fix, nil)}
+    {:noreply,
+     socket
+     |> assign(:selected_finding, nil)
+     |> assign(:selected_fix, nil)
+     |> assign(:open_dropdown_id, nil)}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">Findings browser</p>
-            <h1 class="ck-section-title">Review findings across all missions</h1>
-            <p class="ck-lead ck-lead-tight">
-              Filter, approve, reject, and inspect guided fixes without leaving the governed ControlKeel workflow.
-            </p>
-          </div>
-          <a href={~p"/"} class="ck-link">Back home</a>
+      <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
+        <div class="space-y-1 mb-12">
+          <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+            Findings browser
+          </h2>
+          <p class="text-[var(--ck-muted)]">
+            Filter, approve, reject, and inspect guided fixes without leaving the governed ControlKeel workflow.
+          </p>
         </div>
 
-        <div class="ck-card ck-browser-filters">
-          <.form for={@form} phx-change="filter">
-            <div class="ck-filter-grid">
-              <.input
-                field={@form[:q]}
-                type="text"
-                label="Search"
-                placeholder="Rule, title, session..."
-                phx-debounce="300"
-              />
-              <.input
-                field={@form[:severity]}
-                type="select"
-                label="Severity"
-                prompt="All severities"
-                options={Enum.map(@severities, &{String.capitalize(&1), &1})}
-              />
-              <.input
-                field={@form[:status]}
-                type="select"
-                label="Status"
-                prompt="All statuses"
-                options={Enum.map(@statuses, &{String.capitalize(&1), &1})}
-              />
-              <.input
-                field={@form[:category]}
-                type="select"
-                label="Category"
-                prompt="All categories"
-                options={Enum.map(@categories, &{String.capitalize(&1), &1})}
-              />
-              <.input
-                field={@form[:session_id]}
-                type="select"
-                label="Mission"
-                prompt="All missions"
-                options={session_filter_options(@session_options)}
-              />
+        <div class="rounded-lg border border-[var(--ck-stroke)] bg-neutral-900">
+          <div class="space-y-4 p-4">
+            <.form for={@form} phx-change="filter">
+              <div class="grid gap-4 xl:grid-cols-5">
+                <div class="space-y-2">
+                  <label for="filters-q" class="text-xs uppercase tracking-[0.28em]">Search</label>
+                  <input
+                    id="filters-q"
+                    name="filters[q]"
+                    type="text"
+                    value={@form[:q].value}
+                    placeholder="Rule, title, session..."
+                    phx-debounce="300"
+                    class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label for="filters-severity" class="text-xs uppercase tracking-[0.28em]">
+                    Severity
+                  </label>
+                  <select
+                    id="filters-severity"
+                    name="filters[severity]"
+                    class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  >
+                    <option value="">All severities</option>
+                    <%= for s <- @severities do %>
+                      <option value={s} selected={@form[:severity].value == s}>
+                        {String.capitalize(s)}
+                      </option>
+                    <% end %>
+                  </select>
+                </div>
+                <div class="space-y-2">
+                  <label for="filters-status" class="text-xs uppercase tracking-[0.28em]">
+                    Status
+                  </label>
+                  <select
+                    id="filters-status"
+                    name="filters[status]"
+                    class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  >
+                    <option value="">All statuses</option>
+                    <%= for s <- @statuses do %>
+                      <option value={s} selected={@form[:status].value == s}>
+                        {String.capitalize(s)}
+                      </option>
+                    <% end %>
+                  </select>
+                </div>
+                <div class="space-y-2">
+                  <label for="filters-category" class="text-xs uppercase tracking-[0.28em]">
+                    Category
+                  </label>
+                  <select
+                    id="filters-category"
+                    name="filters[category]"
+                    class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  >
+                    <option value="">All categories</option>
+                    <%= for c <- @categories do %>
+                      <option value={c} selected={@form[:category].value == c}>
+                        {String.capitalize(c)}
+                      </option>
+                    <% end %>
+                  </select>
+                </div>
+                <div class="space-y-2">
+                  <label for="filters-session_id" class="text-xs uppercase tracking-[0.28em]">
+                    Mission
+                  </label>
+                  <select
+                    id="filters-session_id"
+                    name="filters[session_id]"
+                    class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  >
+                    <option value="">All missions</option>
+                    <%= for {label, id} <- session_filter_options(@session_options) do %>
+                      <option
+                        value={id}
+                        selected={to_string(@form[:session_id].value) == to_string(id)}
+                      >
+                        {label}
+                      </option>
+                    <% end %>
+                  </select>
+                </div>
+              </div>
+            </.form>
+
+            <div class="flex items-center justify-between">
+              <p class="text-neutral-400 tracking-tight">
+                <span class="text-[var(--ck-lime)] mr-1">{@browser.total_count}</span> total findings
+              </p>
+
+              <.link
+                patch={findings_path(%{})}
+                class="self-end rounded-md border border-white/10 bg-black/40 px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-400 transition hover:border-red-500/40 hover:text-red-400 text-center"
+              >
+                Reset all
+              </.link>
             </div>
-          </.form>
-
-          <div class="ck-metric-row">
-            <span>{@browser.total_count} total findings</span>
-            <span>Page {@browser.page} of {@browser.total_pages}</span>
           </div>
-        </div>
 
-        <div class="ck-card">
-          <div class="ck-table-wrap">
-            <.table id="findings-browser" rows={@browser.entries}>
-              <:col :let={finding} label="Finding">
-                <div>
-                  <strong>{finding.title}</strong>
-                  <p class="ck-note">{finding.plain_message}</p>
-                </div>
-              </:col>
-              <:col :let={finding} label="Mission">
-                <div>
-                  <.link navigate={~p"/missions/#{finding.session_id}"} class="ck-link">
-                    {finding.session.title}
+          <div class="overflow-x-auto w-full">
+            <div class="overflow-hidden border-t border-white/10 bg-black/30">
+              <table class="min-w-full divide-y divide-white/10">
+                <thead class="bg-white/5">
+                  <tr>
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Finding
+                    </th>
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Mission
+                    </th>
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Severity
+                    </th>
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Status
+                    </th>
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Rule
+                    </th>
+                    <th class="w-0 px-2 py-6 text-right text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                  <tr :if={@browser.entries == []}>
+                    <td colspan="6" class="px-8 py-12 text-center text-sm text-zinc-500">
+                      No findings match the current filters.
+                    </td>
+                  </tr>
+                  <tr
+                    :for={finding <- @browser.entries}
+                    class="transition hover:bg-white/[0.02]"
+                  >
+                    <td class="px-8 py-6 align-top">
+                      <div>
+                        <p class="font-bold text-white">{finding.title}</p>
+                        <p class="mt-2 max-w-md text-sm text-zinc-400">{finding.plain_message}</p>
+                      </div>
+                    </td>
+                    <td class="px-8 py-6 align-top">
+                      <.link
+                        navigate={~p"/missions/#{finding.session_id}"}
+                        class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] hover:underline"
+                      >
+                        {finding.session.title}
+                      </.link>
+                    </td>
+                    <td class="px-8 py-6 align-top">
+                      <span class={[pill_base(), severity_colors(finding.severity)]}>
+                        {finding.severity}
+                      </span>
+                    </td>
+                    <td class="px-8 py-6 align-top">
+                      <span class={[pill_base(), "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"]}>
+                        {finding.status}
+                      </span>
+                      <p
+                        :if={finding.status == "rejected" && finding.metadata["rejection_reason"]}
+                        class="mt-2 text-xs text-zinc-500 italic"
+                      >
+                        {finding.metadata["rejection_reason"]}
+                      </p>
+                    </td>
+                    <td class="px-8 py-6 align-top">
+                      <p>{rule_label(finding.rule_id)}</p>
+                    </td>
+                    <td class="px-2 py-6 text-right align-top">
+                      <div class="relative inline-flex">
+                        <button
+                          type="button"
+                          aria-label="Finding actions"
+                          class="flex items-center justify-center w-8 h-8 rounded-md border border-white/10 bg-black/40 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                          phx-click="toggle_dropdown"
+                          phx-value-id={finding.id}
+                        >
+                          ⋮
+                        </button>
+                        <div
+                          :if={@open_dropdown_id == to_string(finding.id)}
+                          class="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg border border-white/10 bg-neutral-900 shadow-2xl py-1"
+                          phx-click-away="close_dropdown"
+                        >
+                          <%= if finding.status == "approved" do %>
+                            <span class="block w-full text-left px-4 py-2 text-sm text-zinc-600 cursor-not-allowed">
+                              Approved
+                            </span>
+                          <% else %>
+                            <button
+                              type="button"
+                              class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors"
+                              phx-click="approve"
+                              phx-value-id={finding.id}
+                            >
+                              Approve
+                            </button>
+                          <% end %>
+                          <%= if finding.status == "rejected" do %>
+                            <span class="block w-full text-left px-4 py-2 text-sm text-zinc-600 cursor-not-allowed">
+                              Rejected
+                            </span>
+                          <% else %>
+                            <button
+                              type="button"
+                              class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors"
+                              phx-click="reject"
+                              phx-value-id={finding.id}
+                            >
+                              Reject
+                            </button>
+                          <% end %>
+                          <button
+                            type="button"
+                            class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 transition-colors"
+                            phx-click="view_fix"
+                            phx-value-id={finding.id}
+                          >
+                            View fix
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="border-t border-white/10 bg-black/40 px-6 py-4">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div class="text-xs uppercase tracking-[0.15em] text-zinc-400">
+                Page {@browser.page} of {@browser.total_pages}
+              </div>
+              <div class="flex gap-3">
+                <%= if @browser.page > 1 do %>
+                  <.link
+                    patch={
+                      findings_path(
+                        Map.merge(browser_form_params(@browser.filters), %{
+                          "page" => @browser.page - 1
+                        })
+                      )
+                    }
+                    class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
+                  >
+                    Previous
                   </.link>
-                  <p class="ck-note">{finding.session.workspace.name}</p>
-                </div>
-              </:col>
-              <:col :let={finding} label="Status">
-                <div class="ck-badge-stack">
-                  <span class={["ck-pill", "ck-pill-#{finding.severity}"]}>{finding.severity}</span>
-                  <span class="ck-pill ck-pill-neutral">{finding.status}</span>
-                </div>
-              </:col>
-              <:col :let={finding} label="Rule">
-                <div>
-                  <strong>{finding.rule_id}</strong>
-                  <p class="ck-note">{finding.category}</p>
-                </div>
-              </:col>
-              <:action :let={finding}>
-                <button type="button" class="ck-link" phx-click="approve" phx-value-id={finding.id}>
-                  Approve
-                </button>
-              </:action>
-              <:action :let={finding}>
-                <%= if @reject_id == to_string(finding.id) do %>
-                  <div class="ck-inline-form" style="display:flex;gap:0.25rem;align-items:center;">
-                    <input
-                      type="text"
-                      class="ck-input ck-input-sm"
-                      placeholder="Reason (optional)"
-                      value={@reject_reason}
-                      phx-keyup="set_reject_reason"
-                      phx-key="Enter"
-                      phx-click-away="cancel_reject"
-                      style="width:12rem;"
-                    />
-                    <button type="button" class="ck-link" phx-click="confirm_reject">Confirm</button>
-                    <button type="button" class="ck-link ck-link-muted" phx-click="cancel_reject">
-                      Cancel
-                    </button>
-                  </div>
                 <% else %>
-                  <button type="button" class="ck-link" phx-click="reject" phx-value-id={finding.id}>
-                    Reject
-                  </button>
+                  <span class="cursor-not-allowed rounded-md border border-white/10 bg-white/5 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-600">
+                    Previous
+                  </span>
                 <% end %>
-              </:action>
-              <:action :let={finding}>
-                <button type="button" class="ck-link" phx-click="view_fix" phx-value-id={finding.id}>
-                  View fix
-                </button>
-              </:action>
-            </.table>
-          </div>
-
-          <div class="ck-action-row" style="margin-top: 1rem;">
-            <.link
-              :if={@browser.page > 1}
-              patch={
-                findings_path(
-                  Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page - 1})
-                )
-              }
-              class="ck-link"
-            >
-              Previous page
-            </.link>
-            <div />
-            <.link
-              :if={@browser.page < @browser.total_pages}
-              patch={
-                findings_path(
-                  Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page + 1})
-                )
-              }
-              class="ck-link"
-            >
-              Next page
-            </.link>
+                <%= if @browser.page < @browser.total_pages do %>
+                  <.link
+                    patch={
+                      findings_path(
+                        Map.merge(browser_form_params(@browser.filters), %{
+                          "page" => @browser.page + 1
+                        })
+                      )
+                    }
+                    class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
+                  >
+                    Next
+                  </.link>
+                <% else %>
+                  <span class="cursor-not-allowed rounded-md border border-white/10 bg-white/5 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-600">
+                    Next
+                  </span>
+                <% end %>
+              </div>
+            </div>
           </div>
         </div>
 
-        <FindingComponents.autofix_panel
+        <div
+          :if={@reject_id}
+          class="fixed inset-0 z-50 flex items-center justify-center"
+          phx-key="Escape"
+          phx-key-target="window"
+        >
+          <div class="fixed inset-0 bg-black/60" phx-click="cancel_reject"></div>
+          <div class="relative rounded-lg border border-white/10 bg-neutral-900 shadow-2xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-semibold text-white">Reject finding</h3>
+            <p class="mt-1 text-sm text-zinc-400">
+              Rule: {rejected_finding_title(@browser.entries, @reject_id)}
+            </p>
+            <textarea
+              class="mt-4 w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+              placeholder="Reason for rejection..."
+              value={@reject_reason}
+              phx-keyup="set_reject_reason"
+              phx-debounce="blur"
+              rows="3"
+            ></textarea>
+            <div class="flex justify-end gap-3 mt-4">
+              <button
+                type="button"
+                class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-400 transition hover:border-red-500/40 hover:text-red-400"
+                phx-click="cancel_reject"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
+                phx-click="confirm_reject"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
           :if={@selected_finding && @selected_fix}
-          finding={@selected_finding}
-          fix={@selected_fix}
-          copy_event="copy_fix_prompt"
-          close_event="close_fix"
-        />
+          class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto"
+          phx-click-away="close_fix"
+          phx-key="Escape"
+          phx-key-target="window"
+        >
+          <div class="fixed inset-0 bg-black/60" phx-click="close_fix"></div>
+          <div class="relative rounded-lg border border-white/10 bg-neutral-900 shadow-2xl p-8 w-full max-w-2xl mx-4 space-y-4">
+            <button
+              type="button"
+              class="absolute top-2 right-2 text-zinc-500 hover:text-white transition"
+              phx-click="close_fix"
+            >
+              <.icon name="hero-x-mark" class="w-5 h-5" />
+            </button>
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                  Guided fix
+                </p>
+                <h3 class="text-lg font-semibold text-white mt-1">{@selected_finding.title}</h3>
+              </div>
+              <span class={[
+                "inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border uppercase tracking-wider",
+                @selected_fix["supported"] && "border-lime-500/40 bg-lime-500/10 text-lime-400",
+                !@selected_fix["supported"] && "border-amber-500/40 bg-amber-500/10 text-amber-400"
+              ]}>
+                {if @selected_fix["supported"], do: "supported", else: "manual review"}
+              </span>
+            </div>
+
+            <p class="text-sm text-zinc-400">{@selected_fix["summary"]}</p>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                  Why
+                </h4>
+                <p class="mt-1 text-sm text-zinc-400">{@selected_fix["why"]}</p>
+              </div>
+              <div>
+                <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                  Requires human
+                </h4>
+                <p class="mt-1 text-sm text-zinc-400">
+                  {if @selected_fix["requires_human"], do: "Yes", else: "No"}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                Steps
+              </h4>
+              <ul class="mt-1 space-y-1 list-none p-0">
+                <%= for step <- @selected_fix["steps"] || [] do %>
+                  <li class="text-sm text-zinc-300">• {step}</li>
+                <% end %>
+              </ul>
+            </div>
+
+            <div :if={@selected_fix["example"]}>
+              <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                Example
+              </h4>
+              <pre class="mt-1 rounded-lg border border-[var(--ck-stroke)] bg-black/40 p-4 font-mono text-sm leading-relaxed text-[var(--ck-sand)] whitespace-pre-wrap break-words"><code>{@selected_fix["example"]}</code></pre>
+            </div>
+
+            <div :if={@selected_fix["agent_prompt"]}>
+              <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                Agent prompt
+              </h4>
+              <pre class="mt-1 rounded-lg border border-[var(--ck-stroke)] bg-black/40 p-4 font-mono text-sm leading-relaxed text-[var(--ck-sand)] whitespace-pre-wrap break-words max-h-60 overflow-y-auto"><code>{@selected_fix["agent_prompt"]}</code></pre>
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+              <button
+                :if={@selected_fix["agent_prompt"]}
+                type="button"
+                class="rounded-md border border-[var(--ck-lime)] bg-[var(--ck-lime)] px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-black transition hover:brightness-110"
+                phx-click="copy_fix_prompt"
+                phx-value-id={@selected_finding.id}
+              >
+                Copy fix prompt
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
     </Layouts.app>
     """
@@ -318,6 +609,23 @@ defmodule ControlKeelWeb.FindingsLive do
       |> Enum.map(& &1.id)
 
     if workspace_ids == [], do: params, else: Map.put(params, "workspace_ids", workspace_ids)
+  end
+
+  defp pill_base do
+    "inline-flex items-center px-3 py-1.5 text-sm rounded-full border border-[var(--ck-stroke)]"
+  end
+
+  defp severity_colors("critical"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+  defp severity_colors("high"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+  defp severity_colors("medium"), do: "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+  defp severity_colors("low"), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+  defp severity_colors(_), do: "bg-white/5 text-white/70"
+
+  defp rejected_finding_title(entries, reject_id) do
+    case Enum.find(entries, &(to_string(&1.id) == reject_id)) do
+      nil -> ""
+      finding -> finding.title
+    end
   end
 
   defp refresh_browser(socket) do
@@ -341,6 +649,7 @@ defmodule ControlKeelWeb.FindingsLive do
     |> assign(:browser, browser)
     |> assign(:selected_finding, selected_finding)
     |> assign(:selected_fix, maybe_regenerate_fix(selected_finding))
+    |> assign(:open_dropdown_id, nil)
     |> assign(:form, to_form(browser_form_params(browser.filters), as: :filters))
   end
 
@@ -378,8 +687,7 @@ defmodule ControlKeelWeb.FindingsLive do
 
   defp session_filter_options(sessions) do
     Enum.map(sessions, fn session ->
-      workspace = (session.workspace && session.workspace.name) || "Workspace"
-      {"#{session.title} (#{workspace})", session.id}
+      {session.title, session.id}
     end)
   end
 
@@ -406,6 +714,14 @@ defmodule ControlKeelWeb.FindingsLive do
 
   defp normalize_param_value(nil), do: ""
   defp normalize_param_value(value), do: value
+
+  defp rule_label(rule_id) do
+    rule_id
+    |> String.split(".")
+    |> List.last()
+    |> String.replace("_", " ")
+    |> String.capitalize()
+  end
 
   defp empty_browser do
     %{

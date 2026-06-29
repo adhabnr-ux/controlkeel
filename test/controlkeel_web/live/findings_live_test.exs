@@ -100,17 +100,24 @@ defmodule ControlKeelWeb.FindingsLiveTest do
 
     {:ok, view, html} = live(conn, ~p"/findings")
     assert html =~ "Page 1 of 2"
-    assert has_element?(view, "a[href*=\"page=2\"]", "Next page")
+    assert has_element?(view, "a[href*=\"page=2\"]", "Next")
 
+    # Open 3-dot menu then click approve
     render_click(
-      element(view, "button[phx-click=\"approve\"][phx-value-id=\"#{actionable.id}\"]")
+      element(view, "button[phx-click=\"toggle_dropdown\"][phx-value-id=\"#{actionable.id}\"]")
     )
+
+    render_click(element(view, "button[phx-click=\"approve\"]"))
 
     assert render(view) =~ "Finding approved."
     assert Mission.get_finding!(actionable.id).status == "approved"
 
-    # Clicking reject now shows the reason input panel first
-    render_click(element(view, "button[phx-click=\"reject\"][phx-value-id=\"#{rejectable.id}\"]"))
+    # Open 3-dot menu then click reject
+    render_click(
+      element(view, "button[phx-click=\"toggle_dropdown\"][phx-value-id=\"#{rejectable.id}\"]")
+    )
+
+    render_click(element(view, "button[phx-click=\"reject\"]"))
     # Confirm the rejection (without a reason)
     render_click(element(view, "button[phx-click=\"confirm_reject\"]"))
     assert Mission.get_finding!(rejectable.id).status == "rejected"
@@ -131,10 +138,12 @@ defmodule ControlKeelWeb.FindingsLiveTest do
 
     {:ok, view, _html} = live(conn, ~p"/findings")
 
+    render_click(
+      element(view, "button[phx-click=\"toggle_dropdown\"][phx-value-id=\"#{finding.id}\"]")
+    )
+
     detail_html =
-      render_click(
-        element(view, "button[phx-click=\"view_fix\"][phx-value-id=\"#{finding.id}\"]")
-      )
+      render_click(element(view, "button[phx-click=\"view_fix\"]"))
 
     assert detail_html =~ "Guided fix"
     assert detail_html =~ "parameterized queries"
