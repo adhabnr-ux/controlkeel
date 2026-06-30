@@ -3,6 +3,9 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
 
   alias ControlKeel.Mission
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
+
+  use ControlKeelWeb.CommandPill
 
   @groupings ~w(source model provider tool)
 
@@ -47,9 +50,7 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
           </div>
         </div>
 
-        <div class="text-[var(--ck-muted)] text-xs font-mono border border-[var(--ck-stroke)] rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
-          controlkeel obs compare
-        </div>
+        <CommandPill.command_pill command="controlkeel obs compare" />
 
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">

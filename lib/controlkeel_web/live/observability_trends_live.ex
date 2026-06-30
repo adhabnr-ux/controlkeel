@@ -3,6 +3,9 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
 
   alias ControlKeel.Mission
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
+
+  use ControlKeelWeb.CommandPill
 
   @impl true
   def mount(_params, _session, socket) do
@@ -52,9 +55,7 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
           </div>
         </div>
 
-        <div class="text-[var(--ck-muted)] text-xs font-mono border border-[var(--ck-stroke)] rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
-          controlkeel obs trends --days [N]
-        </div>
+        <CommandPill.command_pill command="controlkeel obs trends --days [N]" />
         <div class="text-[var(--ck-muted)] text-xs">
           example: <span class="text-[var(--ck-lime)]">controlkeel obs trends --days 30</span>
           <span class="opacity-60">• controlkeel obs trends (no flag) defaults to 7 days</span>

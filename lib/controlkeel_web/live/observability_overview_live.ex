@@ -2,7 +2,10 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
   alias ControlKeelWeb.RecentSessions
+
+  use ControlKeelWeb.CommandPill
 
   @impl true
   def mount(_params, _session, socket) do
@@ -31,9 +34,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
           </div>
         </div>
 
-        <div class="text-[var(--ck-muted)] text-xs font-mono border border-[var(--ck-stroke)] rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
-          controlkeel obs
-        </div>
+        <CommandPill.command_pill command="controlkeel obs" />
 
         <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
           <div
