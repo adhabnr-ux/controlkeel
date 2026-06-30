@@ -19,8 +19,7 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
 
   @impl true
   def handle_event("select_days", %{"days" => days}, socket) do
-    days = String.to_integer(days)
-    {:noreply, push_patch(socket, to: ~p"/observability/trends?#{[days: days]}")}
+    {:noreply, push_patch(socket, to: ~p"/observability/trends?#{[days: parse_days(days)]}")}
   end
 
   @impl true

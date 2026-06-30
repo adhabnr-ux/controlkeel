@@ -123,6 +123,42 @@ defmodule ControlKeelWeb.FindingsLiveTest do
     assert Mission.get_finding!(rejectable.id).status == "rejected"
   end
 
+  test "findings browser stores and displays rejection reason", %{conn: conn} do
+    session = session_fixture()
+
+    rejectable =
+      finding_fixture(%{
+        session: session,
+        title: "Rejectable with reason",
+        rule_id: "security.xss_unsafe_html",
+        severity: "medium",
+        category: "security",
+        status: "open"
+      })
+
+    {:ok, view, _html} = live(conn, ~p"/findings")
+
+    # Open dropdown and click reject
+    render_click(
+      element(view, "button[phx-click=\"toggle_dropdown\"][phx-value-id=\"#{rejectable.id}\"]")
+    )
+
+    render_click(element(view, "button[phx-click=\"reject\"]"))
+
+    # Type a rejection reason via the set_reject_reason event
+    render_click(view, "set_reject_reason", %{"value" => "False positive on legacy code"})
+
+    # Confirm the rejection
+    render_click(element(view, "button[phx-click=\"confirm_reject\"]"))
+
+    finding = Mission.get_finding!(rejectable.id)
+    assert finding.status == "rejected"
+    assert finding.metadata["rejection_reason"] == "False positive on legacy code"
+
+    # The reason should be visible in the findings table
+    assert render(view) =~ "False positive on legacy code"
+  end
+
   test "findings browser renders the guided fix panel", %{conn: conn} do
     session = session_fixture()
 
