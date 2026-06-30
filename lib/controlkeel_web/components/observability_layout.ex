@@ -6,7 +6,9 @@ defmodule ControlKeelWeb.ObservabilityLayout do
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
 
-  attr :current_path, :string, default: "", doc: "current request path for active link highlighting"
+  attr :current_path, :string,
+    default: "",
+    doc: "current request path for active link highlighting"
 
   slot :inner_block, required: true
 
@@ -27,34 +29,64 @@ defmodule ControlKeelWeb.ObservabilityLayout do
           <.link navigate={~p"/observability"} class={nav_link_class("/observability", @current_path)}>
             Overview
           </.link>
-          <.link navigate={~p"/observability/loop"} class={nav_link_class("/observability/loop", @current_path)}>
+          <.link
+            navigate={~p"/observability/loop"}
+            class={nav_link_class("/observability/loop", @current_path)}
+          >
             Learning loop
           </.link>
-          <.link navigate={~p"/observability/promotions"} class={nav_link_class("/observability/promotions", @current_path)}>
+          <.link
+            navigate={~p"/observability/promotions"}
+            class={nav_link_class("/observability/promotions", @current_path)}
+          >
             Promotions
           </.link>
-          <.link navigate={~p"/observability/memory-quality"} class={nav_link_class("/observability/memory-quality", @current_path)}>
+          <.link
+            navigate={~p"/observability/memory-quality"}
+            class={nav_link_class("/observability/memory-quality", @current_path)}
+          >
             Memory quality
           </.link>
-          <.link navigate={~p"/observability/trends"} class={nav_link_class("/observability/trends", @current_path)}>
+          <.link
+            navigate={~p"/observability/trends"}
+            class={nav_link_class("/observability/trends", @current_path)}
+          >
             Trends
           </.link>
-          <.link navigate={~p"/observability/problems"} class={nav_link_class("/observability/problems", @current_path)}>
+          <.link
+            navigate={~p"/observability/problems"}
+            class={nav_link_class("/observability/problems", @current_path)}
+          >
             Problems
           </.link>
-          <.link navigate={~p"/observability/compare"} class={nav_link_class("/observability/compare", @current_path)}>
+          <.link
+            navigate={~p"/observability/compare"}
+            class={nav_link_class("/observability/compare", @current_path)}
+          >
             Compare
           </.link>
-          <.link navigate={~p"/observability/imports"} class={nav_link_class("/observability/imports", @current_path)}>
+          <.link
+            navigate={~p"/observability/imports"}
+            class={nav_link_class("/observability/imports", @current_path)}
+          >
             Imports
           </.link>
-          <.link navigate={~p"/observability/costs"} class={nav_link_class("/observability/costs", @current_path)}>
+          <.link
+            navigate={~p"/observability/costs"}
+            class={nav_link_class("/observability/costs", @current_path)}
+          >
             Costs
           </.link>
-          <.link navigate={~p"/observability/regressions"} class={nav_link_class("/observability/regressions", @current_path)}>
+          <.link
+            navigate={~p"/observability/regressions"}
+            class={nav_link_class("/observability/regressions", @current_path)}
+          >
             Regressions
           </.link>
-          <.link navigate={~p"/observability/recommendations"} class={nav_link_class("/observability/recommendations", @current_path)}>
+          <.link
+            navigate={~p"/observability/recommendations"}
+            class={nav_link_class("/observability/recommendations", @current_path)}
+          >
             Recommendations
           </.link>
         </div>
