@@ -26,12 +26,9 @@ defmodule ControlKeelWeb.ObservabilityRecommendationsLive do
       >
         <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
-              Recommendations
-            </p>
-            <h1 class="text-xl font-semibold text-[var(--ck-text)]">Recommendations</h1>
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Recommendations</h1>
             <p class="text-[var(--ck-muted)] text-sm mt-1">
-              Prioritized local next actions from runs, problems, costs, and proof signals.
+              Read-only benchmark run posture connected to saved eval candidates and benchmark drafts.
             </p>
           </div>
           <div class="flex items-center gap-3 shrink-0">
@@ -41,18 +38,6 @@ defmodule ControlKeelWeb.ObservabilityRecommendationsLive do
             <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
               {@recommendations.count} action(s)
             </span>
-            <.link
-              navigate={~p"/observability/evals"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Eval candidates →
-            </.link>
-            <.link
-              navigate={~p"/observability"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Overview →
-            </.link>
           </div>
         </div>
 

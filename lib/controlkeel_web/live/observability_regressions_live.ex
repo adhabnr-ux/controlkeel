@@ -26,10 +26,7 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
       >
         <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
-              Regressions
-            </p>
-            <h1 class="text-xl font-semibold text-[var(--ck-text)]">Regression tracking</h1>
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Regression tracking</h1>
             <p class="text-[var(--ck-muted)] text-sm mt-1">
               Read-only benchmark run posture connected to saved eval candidates and benchmark drafts.
             </p>
@@ -38,18 +35,6 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
             <span class={health_pill_class(@regressions.health.status)}>
               {@regressions.health.status}
             </span>
-            <.link
-              navigate={~p"/observability/benchmarks/drafts"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Benchmark drafts →
-            </.link>
-            <.link
-              navigate={~p"/observability"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Overview →
-            </.link>
           </div>
         </div>
 
@@ -105,9 +90,11 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
             <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
               Recommendations
             </p>
-            <%= for recommendation <- @regressions.recommendations do %>
-              <p class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</p>
-            <% end %>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @regressions.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+              <% end %>
+            </ul>
           </div>
         <% end %>
 

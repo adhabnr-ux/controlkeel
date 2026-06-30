@@ -5,21 +5,19 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
   alias ControlKeel.Observability
 
   @impl true
-  def mount(params, _session, socket) do
-    recent_session = Mission.list_recent_sessions(1) |> List.first()
-    days = parse_days(params["days"])
+  def mount(_params, _session, socket) do
+    {:ok, assign(socket, :page_title, "Observability trends")}
+  end
 
-    opts =
-      if recent_session,
-        do: [workspace_id: recent_session.workspace_id, days: days],
-        else: [days: days]
+  @impl true
+  def handle_params(params, _url, socket) do
+    {:noreply, load_trends(socket, parse_days(params["days"]))}
+  end
 
-    trends = Observability.trends(opts)
-
-    {:ok,
-     socket
-     |> assign(:page_title, "Observability trends")
-     |> assign(:trends, trends)}
+  @impl true
+  def handle_event("select_days", %{"days" => days}, socket) do
+    days = String.to_integer(days)
+    {:noreply, push_patch(socket, to: ~p"/observability/trends?#{[days: days]}")}
   end
 
   @impl true
@@ -31,24 +29,35 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
         class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
       >
         <div class="flex items-start justify-between gap-4">
-          <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
-            Trends
-          </p>
-          <div class="flex items-center gap-3">
-            <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
-              {@trends.days} day window
-            </span>
-            <.link
-              navigate={~p"/observability"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Overview →
-            </.link>
+          <div>
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Trends</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
+              Local run, finding, cost, and import trends across a rolling N-day window.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3 shrink-0">
+            <form id="trends-days" phx-change="select_days">
+              <select
+                name="days"
+                class="border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7] outline-none cursor-pointer appearance-none"
+                style="padding-right: 1.75rem; background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23d2ffe7%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 14px;"
+              >
+                <option value="1" selected={@selected_days == 1}>Today</option>
+                <option value="3" selected={@selected_days == 3}>3 days</option>
+                <option value="7" selected={@selected_days == 7}>1 week</option>
+                <option value="30" selected={@selected_days == 30}>1 month</option>
+              </select>
+            </form>
           </div>
         </div>
 
         <div class="text-[var(--ck-muted)] text-xs font-mono border border-[var(--ck-stroke)] rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
-          controlkeel obs trends
+          controlkeel obs trends --days [N]
+        </div>
+        <div class="text-[var(--ck-muted)] text-xs">
+          example: <span class="text-[var(--ck-lime)]">controlkeel obs trends --days 30</span>
+          <span class="opacity-60">• controlkeel obs trends (no flag) defaults to 7 days</span>
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -100,9 +109,11 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
             <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
               Recommendations
             </p>
-            <%= for recommendation <- @trends.recommendations do %>
-              <p class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</p>
-            <% end %>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @trends.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+              <% end %>
+            </ul>
           </div>
         <% end %>
 
@@ -110,7 +121,7 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
           <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
             Daily series
           </p>
-          <div class="space-y-3">
+          <div class="space-y-3 max-h-[650px] overflow-y-auto">
             <%= for day <- @trends.series do %>
               <div
                 id={"observability-trend-#{day.date}"}
@@ -139,6 +150,19 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
       </section>
     </ObservabilityLayout.observability>
     """
+  end
+
+  defp load_trends(socket, days) do
+    recent_session = Mission.list_recent_sessions(1) |> List.first()
+
+    opts =
+      if recent_session,
+        do: [workspace_id: recent_session.workspace_id, days: days],
+        else: [days: days]
+
+    socket
+    |> assign(:trends, Observability.trends(opts))
+    |> assign(:selected_days, days)
   end
 
   defp parse_days(nil), do: 7

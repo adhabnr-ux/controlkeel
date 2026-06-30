@@ -26,37 +26,17 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
       >
         <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
-              Learning loop
-            </p>
-            <h1 class="text-xl font-semibold text-[var(--ck-text)]">Learning loop</h1>
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Learning loop</h1>
             <p class="text-[var(--ck-muted)] text-sm mt-1">
               Read-only, local-first status for turning repeated CK and agent use into reviewed evals, benchmark evidence, and human-gated improvement candidates.
             </p>
           </div>
+
           <div class="flex items-center gap-3 shrink-0">
             <span class={health_pill_class(@loop.health)}>{@loop.health}</span>
             <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
               {@loop.learning_loop.mode}
             </span>
-            <.link
-              navigate={~p"/observability/benchmarks/history"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              History →
-            </.link>
-            <.link
-              navigate={~p"/observability/promotions"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Promotions →
-            </.link>
-            <.link
-              navigate={~p"/observability"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Overview →
-            </.link>
           </div>
         </div>
 
@@ -159,9 +139,11 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
             <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
               Recommendations
             </p>
-            <%= for recommendation <- @loop.recommendations do %>
-              <p class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</p>
-            <% end %>
+            <ul class="space-y-2 list-disc pl-5">
+              <%= for recommendation <- @loop.recommendations do %>
+                <li class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</li>
+              <% end %>
+            </ul>
           </div>
         <% end %>
       </section>

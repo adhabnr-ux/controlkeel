@@ -34,15 +34,12 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
         class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
       >
         <div class="flex items-start justify-between gap-4">
-          <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
-            Costs
-          </p>
-          <.link
-            navigate={~p"/observability"}
-            class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-          >
-            Overview →
-          </.link>
+          <div>
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Costs</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
+              Estimated spend, token usage, and invocation counts grouped by model, tool, source, or provider.
+            </p>
+          </div>
         </div>
 
         <div class="text-[var(--ck-muted)] text-xs font-mono border border-[var(--ck-stroke)] rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
@@ -56,8 +53,12 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
             <p class="text-[var(--ck-muted)] text-xs">{@costs.totals.sessions} session(s)</p>
           </div>
           <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
-            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Estimated spend</p>
-            <p class="text-2xl font-semibold text-[var(--ck-text)]">{format_currency(@costs.totals.estimated_cost_cents)}</p>
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+              Estimated spend
+            </p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {format_currency(@costs.totals.estimated_cost_cents)}
+            </p>
             <p class="text-[var(--ck-muted)] text-xs">Local invocation estimate</p>
           </div>
           <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
@@ -77,9 +78,11 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
             <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
               Recommendations
             </p>
-            <%= for recommendation <- @costs.recommendations do %>
-              <p class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</p>
-            <% end %>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @costs.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+              <% end %>
+            </ul>
           </div>
         <% end %>
 
@@ -96,7 +99,9 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
                 </p>
 
                 <%= if costs.groups == [] do %>
-                  <p class="text-[var(--ck-muted)] text-sm">No invocation cost data has been recorded yet.</p>
+                  <p class="text-[var(--ck-muted)] text-sm">
+                    No invocation cost data has been recorded yet.
+                  </p>
                 <% else %>
                   <div class="space-y-2">
                     <%= for group <- costs.groups do %>

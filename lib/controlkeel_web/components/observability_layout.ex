@@ -40,7 +40,7 @@ defmodule ControlKeelWeb.ObservabilityLayout do
             Trends
           </.link>
           <.link navigate={~p"/observability/problems"} class={nav_link_class("/observability/problems", @current_path)}>
-            Open problems
+            Problems
           </.link>
           <.link navigate={~p"/observability/compare"} class={nav_link_class("/observability/compare", @current_path)}>
             Compare

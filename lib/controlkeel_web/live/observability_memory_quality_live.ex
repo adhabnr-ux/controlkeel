@@ -32,10 +32,7 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
       >
         <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
-              Memory quality
-            </p>
-            <h1 class="text-xl font-semibold text-[var(--ck-text)]">Memory quality</h1>
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Memory quality</h1>
             <p class="text-[var(--ck-muted)] text-sm mt-1">
               Summary-only signals for stale, duplicate, superseded, and missed workspace memory.
             </p>
@@ -44,12 +41,6 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
             <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
               stale ≥ {@quality.stale_days} days
             </span>
-            <.link
-              navigate={~p"/observability"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Overview →
-            </.link>
           </div>
         </div>
 
@@ -126,48 +117,46 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
           </div>
         <% end %>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="space-y-3">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Stale memory
-            </p>
-            <%= if @quality.stale_candidates == [] do %>
-              <p class="text-[var(--ck-muted)] text-sm">No stale memory candidates detected.</p>
-            <% else %>
-              <div class="space-y-2">
-                <%= for record <- @quality.stale_candidates do %>
-                  <div
-                    id={"observability-memory-quality-stale-#{record.id}"}
-                    class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
-                  >
-                    <p class="text-sm font-semibold text-[var(--ck-text)]">{record.title}</p>
-                    <p class="text-[var(--ck-muted)] text-xs">
-                      {record.record_type} · {record.age_days} day(s) old · {record.source_type}
-                    </p>
-                    <p class="text-[var(--ck-text)] text-xs">{record.summary}</p>
-                  </div>
-                <% end %>
-              </div>
-            <% end %>
-          </div>
+        <div class="space-y-3">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Stale memory
+          </p>
+          <%= if @quality.stale_candidates == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No stale memory candidates detected.</p>
+          <% else %>
+            <div class="space-y-2">
+              <%= for record <- @quality.stale_candidates do %>
+                <div
+                  id={"observability-memory-quality-stale-#{record.id}"}
+                  class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+                >
+                  <p class="text-sm font-semibold text-[var(--ck-text)]">{record.title}</p>
+                  <p class="text-[var(--ck-muted)] text-xs">
+                    {record.record_type} · {record.age_days} day(s) old · {record.source_type}
+                  </p>
+                  <p class="text-[var(--ck-text)] text-xs">{record.summary}</p>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
 
-          <div class="space-y-3">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Duplicate clusters
-            </p>
-            <%= if @quality.duplicate_clusters == [] do %>
-              <p class="text-[var(--ck-muted)] text-sm">No duplicate clusters detected.</p>
-            <% else %>
-              <div class="space-y-2">
-                <%= for cluster <- @quality.duplicate_clusters do %>
-                  <div class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)]">
-                    <p class="text-sm font-semibold text-[var(--ck-text)]">{cluster.key}</p>
-                    <p class="text-[var(--ck-muted)] text-xs">{cluster.count} matching record(s)</p>
-                  </div>
-                <% end %>
-              </div>
-            <% end %>
-          </div>
+        <div class="space-y-3">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Duplicate clusters
+          </p>
+          <%= if @quality.duplicate_clusters == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No duplicate clusters detected.</p>
+          <% else %>
+            <div class="space-y-2">
+              <%= for cluster <- @quality.duplicate_clusters do %>
+                <div class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)]">
+                  <p class="text-sm font-semibold text-[var(--ck-text)]">{cluster.key}</p>
+                  <p class="text-[var(--ck-muted)] text-xs">{cluster.count} matching record(s)</p>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
         </div>
 
         <div class="space-y-3">

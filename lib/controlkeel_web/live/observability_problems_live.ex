@@ -23,23 +23,27 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
         id="observability-problem-list"
         class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
       >
-        <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
-          Problems
-        </p>
-
-        <div class="space-y-8">
+        <div class="flex items-start justify-between gap-4">
           <div>
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Problems</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
+              Recurring problem patterns across sessions, grouped by category and rule ID with health indicators and remediation guidance.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3 shrink-0">
+            <span class={health_pill_class(@problems.health)}>{@problems.health}</span>
             <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
               {@problems.count} {if @problems.count == 1, do: "group", else: "groups"}
             </span>
-
-            <span class={health_pill_class(@problems.health)}>{@problems.health}</span>
           </div>
+        </div>
 
-          <div class="text-[var(--ck-muted)] text-xs font-mono border border-[var(--ck-stroke)] rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
-            controlkeel obs problems
-          </div>
+        <div class="text-[var(--ck-muted)] text-xs font-mono border border-[var(--ck-stroke)] rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
+          controlkeel obs problems
+        </div>
 
+        <div class="space-y-8">
           <%= if @problems.recommendations != [] do %>
             <div class="space-y-2">
               <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">

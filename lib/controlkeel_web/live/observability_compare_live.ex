@@ -35,10 +35,7 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
       >
         <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
-              Compare
-            </p>
-            <h1 class="text-xl font-semibold text-[var(--ck-text)]">Compare invocations</h1>
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Compare invocations</h1>
             <p class="text-[var(--ck-muted)] text-sm mt-1">
               Local host, model, provider, and tool comparison from recorded invocation metrics.
             </p>
@@ -47,18 +44,6 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
             <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
               {@comparison.totals.invocations} invocation(s)
             </span>
-            <.link
-              navigate={~p"/observability/costs"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Costs →
-            </.link>
-            <.link
-              navigate={~p"/observability"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Overview →
-            </.link>
           </div>
         </div>
 
@@ -98,9 +83,11 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
             <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
               Recommendations
             </p>
-            <%= for recommendation <- @comparison.recommendations do %>
-              <p class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</p>
-            <% end %>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @comparison.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+              <% end %>
+            </ul>
           </div>
         <% end %>
 

@@ -26,30 +26,16 @@ defmodule ControlKeelWeb.ObservabilityPromotionsLive do
       >
         <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
-              Promotions
-            </p>
-            <h1 class="text-xl font-semibold text-[var(--ck-text)]">Promotion candidates</h1>
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Promotion candidates</h1>
             <p class="text-[var(--ck-muted)] text-sm mt-1">
               Advisory, human-gated promotion candidates backed by local observability evidence.
             </p>
           </div>
+
           <div class="flex items-center gap-3 shrink-0">
             <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
               {@promotions.count} candidate(s)
             </span>
-            <.link
-              navigate={~p"/observability/benchmarks/history"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              History →
-            </.link>
-            <.link
-              navigate={~p"/observability"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Overview →
-            </.link>
           </div>
         </div>
 
@@ -69,18 +55,27 @@ defmodule ControlKeelWeb.ObservabilityPromotionsLive do
           </p>
         </div>
 
-        <%= if @promotions.recommendations != [] do %>
-          <div class="space-y-2">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Recommendations
-            </p>
-            <%= for recommendation <- @promotions.recommendations do %>
-              <p class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</p>
-            <% end %>
-          </div>
-        <% end %>
+        <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+            Recommendations
+          </p>
+
+          <%= if @promotions.recommendations == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No promotion recommendations yet.</p>
+          <% else %>
+            <ul class="space-y-2 list-disc pl-4">
+              <%= for recommendation <- @promotions.recommendations do %>
+                <li class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</li>
+              <% end %>
+            </ul>
+          <% end %>
+        </div>
 
         <div class="space-y-3">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Candidates
+          </p>
+
           <%= if @promotions.candidates == [] do %>
             <p class="text-[var(--ck-muted)] text-sm">No promotion candidates yet.</p>
           <% else %>

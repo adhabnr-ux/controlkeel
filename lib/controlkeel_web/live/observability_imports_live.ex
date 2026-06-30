@@ -26,10 +26,7 @@ defmodule ControlKeelWeb.ObservabilityImportsLive do
       >
         <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-6">
-              Imports
-            </p>
-            <h1 class="text-xl font-semibold text-[var(--ck-text)]">Imported snapshots</h1>
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Imported snapshots</h1>
             <p class="text-[var(--ck-muted)] text-sm mt-1">
               Local persisted observability envelopes, listed as summary-only evidence snapshots.
             </p>
@@ -38,12 +35,6 @@ defmodule ControlKeelWeb.ObservabilityImportsLive do
             <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
               {@imports.count} persisted
             </span>
-            <.link
-              navigate={~p"/observability"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Overview →
-            </.link>
           </div>
         </div>
 
@@ -77,9 +68,11 @@ defmodule ControlKeelWeb.ObservabilityImportsLive do
             <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
               Recommendations
             </p>
-            <%= for recommendation <- @imports.recommendations do %>
-              <p class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</p>
-            <% end %>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @imports.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+              <% end %>
+            </ul>
           </div>
         <% end %>
 
