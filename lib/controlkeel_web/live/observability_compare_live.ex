@@ -5,7 +5,7 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
   alias ControlKeel.Observability
   alias ControlKeelWeb.CommandPill
 
-  use ControlKeelWeb.CommandPill
+  on_mount ControlKeelWeb.CommandPill
 
   @groupings ~w(source model provider tool)
 

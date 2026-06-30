@@ -21,15 +21,25 @@ defmodule ControlKeelWeb.CommandPill do
     """
   end
 
-  defmacro __using__(_opts) do
-    quote do
-      @impl true
-      def handle_event("copy_command", %{"command" => command}, socket) do
-        {:noreply,
-         socket
-         |> push_event("copy-to-clipboard", %{text: command})
-         |> put_flash(:info, "Copied command to clipboard.")}
-      end
-    end
+  @doc """
+  LiveView lifecycle hook that handles the `copy_command` event without
+  injecting `handle_event/3` clauses into the host module.
+
+  Mount with:
+
+      on_mount ControlKeelWeb.CommandPill
+  """
+  def on_mount(:default, _params, _session, socket) do
+    {:cont,
+     Phoenix.LiveView.attach_hook(socket, :copy_command, :handle_event, fn
+       "copy_command", %{"command" => command}, socket ->
+         {:halt,
+          socket
+          |> Phoenix.LiveView.push_event("copy-to-clipboard", %{text: command})
+          |> Phoenix.LiveView.put_flash(:info, "Copied command to clipboard.")}
+
+       _event, _params, socket ->
+         {:cont, socket}
+     end)}
   end
 end

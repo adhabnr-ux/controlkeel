@@ -5,7 +5,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
   alias ControlKeelWeb.CommandPill
   alias ControlKeelWeb.RecentSessions
 
-  use ControlKeelWeb.CommandPill
+  on_mount ControlKeelWeb.CommandPill
 
   @impl true
   def mount(_params, _session, socket) do

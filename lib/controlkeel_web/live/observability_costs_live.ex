@@ -5,7 +5,7 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
   alias ControlKeel.Observability
   alias ControlKeelWeb.CommandPill
 
-  use ControlKeelWeb.CommandPill
+  on_mount ControlKeelWeb.CommandPill
 
   @groupings ~w(model tool source provider)
 
