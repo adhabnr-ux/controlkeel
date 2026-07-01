@@ -3,6 +3,9 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
 
   alias ControlKeel.Mission
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
+
+  on_mount ControlKeelWeb.CommandPill
 
   @groupings ~w(model tool source provider)
 
@@ -28,86 +31,98 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <section id="observability-costs-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+    <ObservabilityLayout.observability flash={@flash} current_path="/observability/costs">
+      <section
+        id="observability-costs"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="ck-kicker">Observability</p>
-            <h1 class="ck-section-title">Costs and efficiency</h1>
-            <p class="ck-lead ck-lead-tight">
-              Local invocation spend, token shape, and grouped efficiency signals.
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Costs</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
+              Estimated spend, token usage, and invocation counts grouped by model, tool, source, or provider.
             </p>
           </div>
-          <div class="ck-badge-stack">
-            <span id="observability-costs-total" class="ck-pill ck-pill-neutral">
-              {format_currency(@costs.totals.estimated_cost_cents)} estimated
-            </span>
-            <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
+        </div>
+
+        <CommandPill.command_pill command="controlkeel obs costs" />
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Invocations</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">{@costs.totals.invocations}</p>
+            <p class="text-[var(--ck-muted)] text-xs">{@costs.totals.sessions} session(s)</p>
+          </div>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+              Estimated spend
+            </p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {format_currency(@costs.totals.estimated_cost_cents)}
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">Local invocation estimate</p>
+          </div>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Input tokens</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">{@costs.totals.input_tokens}</p>
+            <p class="text-[var(--ck-muted)] text-xs">{@costs.totals.cached_input_tokens} cached</p>
+          </div>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Output tokens</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">{@costs.totals.output_tokens}</p>
+            <p class="text-[var(--ck-muted)] text-xs">Across recorded calls</p>
           </div>
         </div>
 
-        <div id="observability-costs-summary" class="ck-stat-grid">
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Invocations</p>
-            <strong>{@costs.totals.invocations}</strong>
-            <p class="ck-note">{@costs.totals.sessions} session(s)</p>
-          </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Estimated spend</p>
-            <strong>{format_currency(@costs.totals.estimated_cost_cents)}</strong>
-            <p class="ck-note">Local invocation estimate</p>
-          </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Input tokens</p>
-            <strong>{@costs.totals.input_tokens}</strong>
-            <p class="ck-note">{@costs.totals.cached_input_tokens} cached</p>
-          </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Output tokens</p>
-            <strong>{@costs.totals.output_tokens}</strong>
-            <p class="ck-note">Across recorded calls</p>
-          </div>
-        </div>
-
-        <div id="observability-costs-recommendations" class="ck-card">
-          <p class="ck-mini-label">Recommended next actions</p>
-          <ul class="ck-mini-list">
-            <%= for recommendation <- @costs.recommendations do %>
-              <li>{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
-
-        <div id="observability-costs-groups" class="ck-grid ck-grid-dashboard">
-          <%= for {grouping, costs} <- @grouped_costs do %>
-            <div id={"observability-costs-by-#{grouping}"} class="ck-card">
-              <div class="ck-card-header">
-                <div>
-                  <p class="ck-mini-label">Grouped by</p>
-                  <h2 class="ck-card-title">{grouping}</h2>
-                </div>
-                <span class="ck-pill ck-pill-neutral">{length(costs.groups)} group(s)</span>
-              </div>
-
-              <%= if costs.groups == [] do %>
-                <p class="ck-note">No invocation cost data has been recorded yet.</p>
-              <% else %>
-                <ul class="ck-mini-list">
-                  <%= for group <- costs.groups do %>
-                    <li>
-                      <strong>{group.name}</strong>
-                      <p class="ck-note">
-                        {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.input_tokens} input · {group.output_tokens} output
-                      </p>
-                    </li>
-                  <% end %>
-                </ul>
+        <%= if @costs.recommendations != [] do %>
+          <div class="space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recommendations
+            </p>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @costs.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
               <% end %>
-            </div>
-          <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <div class="space-y-4">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Group breakdown
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <%= for {grouping, costs} <- @grouped_costs do %>
+              <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3">
+                <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                  Grouped by {grouping}
+                  <span class="ml-2 text-[var(--ck-lime)]">{length(costs.groups)} group(s)</span>
+                </p>
+
+                <%= if costs.groups == [] do %>
+                  <p class="text-[var(--ck-muted)] text-sm">
+                    No invocation cost data has been recorded yet.
+                  </p>
+                <% else %>
+                  <div class="space-y-2">
+                    <%= for group <- costs.groups do %>
+                      <div class="flex items-center justify-between gap-2 p-2 rounded-lg border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)]">
+                        <div>
+                          <p class="text-sm font-medium text-[var(--ck-text)]">{group.name}</p>
+                          <p class="text-[var(--ck-muted)] text-xs">
+                            {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.input_tokens} input · {group.output_tokens} output
+                          </p>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
         </div>
       </section>
-    </Layouts.app>
+    </ObservabilityLayout.observability>
     """
   end
 

@@ -82,6 +82,7 @@ defmodule ControlKeelWeb do
       # Common modules used in templates
       alias Phoenix.LiveView.JS
       alias ControlKeelWeb.Layouts
+      alias ControlKeelWeb.ObservabilityLayout
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

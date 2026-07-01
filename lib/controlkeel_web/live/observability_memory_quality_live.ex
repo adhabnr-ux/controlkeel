@@ -3,6 +3,9 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
 
   alias ControlKeel.Mission
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
+
+  on_mount ControlKeelWeb.CommandPill
 
   @impl true
   def mount(params, _session, socket) do
@@ -25,134 +28,188 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <section id="observability-memory-quality-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+    <ObservabilityLayout.observability flash={@flash} current_path="/observability/memory-quality">
+      <section
+        id="observability-memory-quality"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="ck-kicker">Observability</p>
-            <h1 class="ck-section-title">Memory quality</h1>
-            <p class="ck-lead ck-lead-tight">
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Memory quality</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
               Summary-only signals for stale, duplicate, superseded, and missed workspace memory.
             </p>
           </div>
-          <div class="ck-badge-stack">
-            <span id="observability-memory-quality-threshold" class="ck-pill ck-pill-neutral">
+          <div class="flex items-center gap-3 shrink-0">
+            <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
               stale ≥ {@quality.stale_days} days
             </span>
-            <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
           </div>
         </div>
 
-        <div class="ck-stat-grid">
-          <div id="observability-memory-quality-total" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Memory records</p>
-            <strong>{@quality.totals.records}</strong>
-            <p class="ck-note">
+        <CommandPill.command_pill command="controlkeel obs memory-quality" />
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div
+            id="observability-memory-quality-total"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+              Memory records
+            </p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">{@quality.totals.records}</p>
+            <p class="text-[var(--ck-muted)] text-xs">
               {@quality.totals.active} active · {@quality.totals.archived} archived
             </p>
           </div>
-          <div id="observability-memory-quality-stale" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Stale candidates</p>
-            <strong>{@quality.totals.stale_candidates}</strong>
+          <div
+            id="observability-memory-quality-stale"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+              Stale candidates
+            </p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {@quality.totals.stale_candidates}
+            </p>
           </div>
-          <div id="observability-memory-quality-duplicates" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Duplicate clusters</p>
-            <strong>{@quality.totals.duplicate_clusters}</strong>
+          <div
+            id="observability-memory-quality-duplicates"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+              Duplicate clusters
+            </p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {@quality.totals.duplicate_clusters}
+            </p>
           </div>
-          <div id="observability-memory-quality-missed" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Missed-memory sessions</p>
-            <strong>{@quality.totals.missed_memory_sessions}</strong>
+          <div
+            id="observability-memory-quality-missed"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+              Missed-memory sessions
+            </p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {@quality.totals.missed_memory_sessions}
+            </p>
           </div>
         </div>
 
-        <div id="observability-memory-quality-distributions" class="ck-card">
-          <p class="ck-mini-label">Distribution</p>
-          <p class="ck-note">Types: {format_frequency(@quality.distributions.by_type)}</p>
-          <p class="ck-note">Sources: {format_frequency(@quality.distributions.by_source)}</p>
+        <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Distribution</p>
+          <p class="text-[var(--ck-muted)] text-xs">
+            Types: {format_frequency(@quality.distributions.by_type)}
+          </p>
+          <p class="text-[var(--ck-muted)] text-xs">
+            Sources: {format_frequency(@quality.distributions.by_source)}
+          </p>
         </div>
 
-        <div id="observability-memory-quality-recommendations" class="ck-card">
-          <p class="ck-mini-label">Recommendations</p>
-          <ul class="ck-mini-list">
+        <%= if @quality.recommendations != [] do %>
+          <div class="space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recommendations
+            </p>
             <%= for recommendation <- @quality.recommendations do %>
-              <li>{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
-
-        <div class="ck-grid ck-grid-dashboard">
-          <div id="observability-memory-quality-stale-list" class="ck-card">
-            <p class="ck-mini-label">Stale memory</p>
-            <%= if @quality.stale_candidates == [] do %>
-              <p class="ck-note">No stale memory candidates detected.</p>
-            <% else %>
-              <ul class="ck-mini-list">
-                <%= for record <- @quality.stale_candidates do %>
-                  <li id={"observability-memory-quality-stale-#{record.id}"}>
-                    <strong>{record.title}</strong>
-                    <p class="ck-note">
-                      {record.record_type} · {record.age_days} day(s) old · {record.source_type}
-                    </p>
-                    <p>{record.summary}</p>
-                  </li>
-                <% end %>
-              </ul>
+              <p class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</p>
             <% end %>
           </div>
+        <% end %>
 
-          <div id="observability-memory-quality-duplicate-list" class="ck-card">
-            <p class="ck-mini-label">Duplicate clusters</p>
-            <%= if @quality.duplicate_clusters == [] do %>
-              <p class="ck-note">No duplicate clusters detected.</p>
-            <% else %>
-              <ul class="ck-mini-list">
-                <%= for cluster <- @quality.duplicate_clusters do %>
-                  <li>
-                    <strong>{cluster.key}</strong>
-                    <p class="ck-note">{cluster.count} matching record(s)</p>
-                  </li>
-                <% end %>
-              </ul>
-            <% end %>
-          </div>
-        </div>
-
-        <div id="observability-memory-quality-contradictions" class="ck-card">
-          <p class="ck-mini-label">Contradiction or superseded candidates</p>
-          <%= if @quality.contradiction_candidates == [] do %>
-            <p class="ck-note">No contradiction or superseded markers detected.</p>
+        <div class="space-y-3">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Stale memory
+          </p>
+          <%= if @quality.stale_candidates == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No stale memory candidates detected.</p>
           <% else %>
-            <ul class="ck-mini-list">
-              <%= for record <- @quality.contradiction_candidates do %>
-                <li id={"observability-memory-quality-contradiction-#{record.id}"}>
-                  <strong>{record.title}</strong>
-                  <p>{record.summary}</p>
-                </li>
+            <div class="space-y-2">
+              <%= for record <- @quality.stale_candidates do %>
+                <div
+                  id={"observability-memory-quality-stale-#{record.id}"}
+                  class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+                >
+                  <p class="text-sm font-semibold text-[var(--ck-text)]">{record.title}</p>
+                  <p class="text-[var(--ck-muted)] text-xs">
+                    {record.record_type} · {record.age_days} day(s) old · {record.source_type}
+                  </p>
+                  <p class="text-[var(--ck-text)] text-xs">{record.summary}</p>
+                </div>
               <% end %>
-            </ul>
+            </div>
           <% end %>
         </div>
 
-        <div id="observability-memory-quality-missed-list" class="ck-card">
-          <p class="ck-mini-label">Missed-memory sessions</p>
-          <%= if @quality.missed_memory_sessions == [] do %>
-            <p class="ck-note">No sessions with evidence but missing memory detected.</p>
+        <div class="space-y-3">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Duplicate clusters
+          </p>
+          <%= if @quality.duplicate_clusters == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No duplicate clusters detected.</p>
           <% else %>
-            <ul class="ck-mini-list">
+            <div class="space-y-2">
+              <%= for cluster <- @quality.duplicate_clusters do %>
+                <div class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)]">
+                  <p class="text-sm font-semibold text-[var(--ck-text)]">{cluster.key}</p>
+                  <p class="text-[var(--ck-muted)] text-xs">{cluster.count} matching record(s)</p>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="space-y-3">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Contradiction or superseded candidates
+          </p>
+          <%= if @quality.contradiction_candidates == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">
+              No contradiction or superseded markers detected.
+            </p>
+          <% else %>
+            <div class="space-y-2">
+              <%= for record <- @quality.contradiction_candidates do %>
+                <div
+                  id={"observability-memory-quality-contradiction-#{record.id}"}
+                  class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+                >
+                  <p class="text-sm font-semibold text-[var(--ck-text)]">{record.title}</p>
+                  <p class="text-[var(--ck-text)] text-xs">{record.summary}</p>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="space-y-3">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Missed-memory sessions
+          </p>
+          <%= if @quality.missed_memory_sessions == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">
+              No sessions with evidence but missing memory detected.
+            </p>
+          <% else %>
+            <div class="space-y-2">
               <%= for session <- @quality.missed_memory_sessions do %>
-                <li id={"observability-memory-quality-missed-#{session.id}"}>
-                  <strong>{session.title}</strong>
-                  <p class="ck-note">
+                <div
+                  id={"observability-memory-quality-missed-#{session.id}"}
+                  class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+                >
+                  <p class="text-sm font-semibold text-[var(--ck-text)]">{session.title}</p>
+                  <p class="text-[var(--ck-muted)] text-xs">
                     {session.findings} finding(s) · {session.reviews} review(s) · {session.invocations} invocation(s)
                   </p>
-                  <p>{session.recommendation}</p>
-                </li>
+                  <p class="text-[var(--ck-text)] text-xs">{session.recommendation}</p>
+                </div>
               <% end %>
-            </ul>
+            </div>
           <% end %>
         </div>
       </section>
-    </Layouts.app>
+    </ObservabilityLayout.observability>
     """
   end
 

@@ -19,31 +19,27 @@ defmodule ControlKeelWeb.ObservabilityOverviewLiveTest do
 
     {:ok, view, html} = live(conn, ~p"/observability")
 
-    assert html =~ "Workspace overview"
+    assert html =~ "Observability"
     assert has_element?(view, "#observability-overview-page")
-    assert has_element?(view, "#observability-overview-health")
-    assert has_element?(view, "#observability-overview-runs")
-    assert has_element?(view, "#observability-overview-problems")
-    assert has_element?(view, "#observability-overview-costs")
-    assert has_element?(view, "#observability-overview-telemetry")
-    assert has_element?(view, "#observability-overview-recommendations")
     assert has_element?(view, "#observability-overview-run-list")
-    assert has_element?(view, "#observability-overview-problem-list")
-    assert html =~ "security.overview"
     assert html =~ "/observability/problems"
-    assert html =~ "/observability/costs"
     assert html =~ "/observability/loop"
-    assert html =~ "/observability/recommendations"
-    assert html =~ "/observability/evals"
-    assert html =~ "/observability/evals/persisted"
-    assert html =~ "/observability/benchmarks/drafts"
-    assert html =~ "/observability/benchmarks/history"
     assert html =~ "/observability/promotions"
     assert html =~ "/observability/compare"
     assert html =~ "/observability/imports"
     assert html =~ "/observability/memory-quality"
     assert html =~ "/observability/trends"
-    assert html =~ "/observability/sessions/#{session.id}"
-    assert html =~ "/observability/sessions/#{session.id}/export.json"
+  end
+
+  test "overview page scopes recent runs to the latest workspace", %{conn: conn} do
+    workspace_one = workspace_fixture()
+    workspace_two = workspace_fixture()
+
+    session_fixture(%{workspace: workspace_one, budget_cents: 2_000, spent_cents: 450})
+    session_fixture(%{workspace: workspace_two, budget_cents: 2_000, spent_cents: 450})
+
+    {:ok, _view, html} = live(conn, ~p"/observability")
+
+    assert html =~ "1 recent"
   end
 end

@@ -3,6 +3,9 @@ defmodule ControlKeelWeb.ObservabilityRecommendationsLive do
 
   alias ControlKeel.Mission
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
+
+  on_mount ControlKeelWeb.CommandPill
 
   @impl true
   def mount(_params, _session, socket) do
@@ -19,82 +22,114 @@ defmodule ControlKeelWeb.ObservabilityRecommendationsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <section id="observability-recommendations-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+    <ObservabilityLayout.observability flash={@flash} current_path="/observability/recommendations">
+      <section
+        id="observability-recommendations"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="ck-kicker">Observability</p>
-            <h1 class="ck-section-title">Recommendations</h1>
-            <p class="ck-lead ck-lead-tight">
-              Prioritized local next actions from runs, problems, costs, and proof signals.
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Recommendations</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
+              Actionable next steps derived from the current workspace’s runs, problems, and evidence.
             </p>
           </div>
-          <div class="ck-badge-stack">
-            <span
-              id="observability-recommendations-health"
-              class={health_pill_class(@recommendations.health)}
-            >
+          <div class="flex items-center gap-3 shrink-0">
+            <span class={health_pill_class(@recommendations.health)}>
               {@recommendations.health}
             </span>
-            <span class="ck-pill ck-pill-neutral">{@recommendations.count} action(s)</span>
-            <.link navigate={~p"/observability/evals"} class="ck-link">Eval candidates</.link>
-            <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
+            <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+              {@recommendations.count} action(s)
+            </span>
           </div>
         </div>
 
-        <div id="observability-recommendations-summary" class="ck-stat-grid">
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Actions</p>
-            <strong>{@recommendations.count}</strong>
-            <p class="ck-note">Prioritized by current local evidence</p>
+        <CommandPill.command_pill command="controlkeel obs recommend" />
+
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Actions</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">{@recommendations.count}</p>
+            <p class="text-[var(--ck-muted)] text-xs">Prioritized by current local evidence</p>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Categories</p>
-            <strong>{length(@recommendations.categories)}</strong>
-            <p class="ck-note">{Enum.join(@recommendations.categories, ", ")}</p>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Categories</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {length(@recommendations.categories)}
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">
+              {Enum.join(@recommendations.categories, ", ")}
+            </p>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Workspace</p>
-            <strong>{@recommendations.workspace.name}</strong>
-            <p class="ck-note">Local-first summary</p>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Workspace</p>
+            <p class="text-lg font-semibold text-[var(--ck-text)] truncate">
+              {@recommendations.workspace.name}
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">Local-first summary</p>
           </div>
         </div>
 
-        <div id="observability-recommendations-list" class="ck-card">
+        <div class="space-y-3">
           <%= if @recommendations.actions == [] do %>
-            <p class="ck-note">No recommendations are currently active.</p>
+            <p class="text-[var(--ck-muted)] text-sm">No recommendations are currently active.</p>
           <% else %>
-            <ul class="ck-mini-list">
-              <%= for action <- @recommendations.actions do %>
-                <li id={"observability-recommendation-#{action.id}"}>
-                  <div class="ck-card-header">
-                    <div>
-                      <p class="ck-mini-label">{action.category}</p>
-                      <strong>{action.title}</strong>
-                    </div>
-                    <span class={priority_pill_class(action.priority)}>{action.priority}</span>
+            <%= for action <- @recommendations.actions do %>
+              <div
+                id={"observability-recommendation-#{action.id}"}
+                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="space-y-1 min-w-0">
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      {action.category}
+                    </p>
+                    <p class="text-sm font-semibold text-[var(--ck-text)]">{action.title}</p>
                   </div>
-                  <p class="ck-note">{action.evidence}</p>
-                  <p>{action.suggested_action}</p>
-                  <p class="ck-note">
-                    Source: {action.source} · Human gate required: {action.human_gate_required}
-                  </p>
-                  <.link navigate={action.link} class="ck-link">Open related view</.link>
-                </li>
-              <% end %>
-            </ul>
+                  <span class={priority_pill_class(action.priority)}>{action.priority}</span>
+                </div>
+                <p class="text-[var(--ck-muted)] text-xs">{action.evidence}</p>
+                <p class="text-[var(--ck-text)] text-sm">{action.suggested_action}</p>
+                <div class="flex items-center gap-4 text-xs text-[var(--ck-muted)]">
+                  <span>Source: {action.source}</span>
+                  <span>Human gate: {action.human_gate_required}</span>
+                  <.link
+                    navigate={action.link}
+                    class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+                  >
+                    Open related view →
+                  </.link>
+                </div>
+              </div>
+            <% end %>
           <% end %>
         </div>
       </section>
-    </Layouts.app>
+    </ObservabilityLayout.observability>
     """
   end
 
-  defp health_pill_class("red"), do: "ck-pill ck-pill-critical"
-  defp health_pill_class("yellow"), do: "ck-pill ck-pill-warning"
-  defp health_pill_class(_), do: "ck-pill ck-pill-low"
+  defp health_pill_class("red"),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
 
-  defp priority_pill_class("critical"), do: "ck-pill ck-pill-critical"
-  defp priority_pill_class("high"), do: "ck-pill ck-pill-warning"
-  defp priority_pill_class(_), do: "ck-pill ck-pill-neutral"
+  defp health_pill_class("yellow"),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+
+  defp health_pill_class(_),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+
+  defp priority_pill_class("critical"),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-2.5 py-1 text-xs bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+
+  defp priority_pill_class("high"),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-2.5 py-1 text-xs bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+
+  defp priority_pill_class(_),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-2.5 py-1 text-xs bg-[rgba(255,255,255,0.06)] text-[var(--ck-muted)]"
 end

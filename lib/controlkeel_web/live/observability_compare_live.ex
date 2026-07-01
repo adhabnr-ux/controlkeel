@@ -3,6 +3,9 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
 
   alias ControlKeel.Mission
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
+
+  on_mount ControlKeelWeb.CommandPill
 
   @groupings ~w(source model provider tool)
 
@@ -28,86 +31,121 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <section id="observability-compare-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+    <ObservabilityLayout.observability flash={@flash} current_path="/observability/compare">
+      <section
+        id="observability-compare"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="ck-kicker">Observability</p>
-            <h1 class="ck-section-title">Compare invocations</h1>
-            <p class="ck-lead ck-lead-tight">
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Compare invocations</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
               Local host, model, provider, and tool comparison from recorded invocation metrics.
             </p>
           </div>
-          <div class="ck-badge-stack">
-            <span id="observability-compare-total" class="ck-pill ck-pill-neutral">
+          <div class="flex items-center gap-3 shrink-0">
+            <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
               {@comparison.totals.invocations} invocation(s)
             </span>
-            <.link navigate={~p"/observability/costs"} class="ck-link">Costs</.link>
-            <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
           </div>
         </div>
 
-        <div id="observability-compare-summary" class="ck-stat-grid">
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Invocations</p>
-            <strong>{@comparison.totals.invocations}</strong>
-            <p class="ck-note">{@comparison.totals.sessions} session(s)</p>
+        <CommandPill.command_pill command="controlkeel obs compare" />
+
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Invocations</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {@comparison.totals.invocations}
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">{@comparison.totals.sessions} session(s)</p>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Estimated spend</p>
-            <strong>{format_currency(@comparison.totals.estimated_cost_cents)}</strong>
-            <p class="ck-note">Across compared calls</p>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+              Estimated spend
+            </p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {format_currency(@comparison.totals.estimated_cost_cents)}
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">Across compared calls</p>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Tokens</p>
-            <strong>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Tokens</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
               {@comparison.totals.input_tokens + @comparison.totals.cached_input_tokens +
                 @comparison.totals.output_tokens}
-            </strong>
-            <p class="ck-note">Input, cached, and output</p>
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">Input, cached, and output</p>
           </div>
         </div>
 
-        <div id="observability-compare-recommendations" class="ck-card">
-          <p class="ck-mini-label">Recommended next actions</p>
-          <ul class="ck-mini-list">
-            <%= for recommendation <- @comparison.recommendations do %>
-              <li>{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
+        <%= if @comparison.recommendations != [] do %>
+          <div class="space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recommendations
+            </p>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @comparison.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
 
-        <div id="observability-compare-groups" class="ck-grid ck-grid-dashboard">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <%= for {grouping, comparison} <- @comparisons do %>
-            <div id={"observability-compare-by-#{grouping}"} class="ck-card">
-              <div class="ck-card-header">
+            <div
+              id={"observability-compare-by-#{grouping}"}
+              class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3"
+            >
+              <div class="flex items-center justify-between gap-2">
                 <div>
-                  <p class="ck-mini-label">Compared by</p>
-                  <h2 class="ck-card-title">{grouping}</h2>
+                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                    Compared by
+                  </p>
+                  <p class="text-base font-semibold text-[var(--ck-text)] capitalize">{grouping}</p>
                 </div>
-                <span class="ck-pill ck-pill-neutral">{length(comparison.groups)} group(s)</span>
+                <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-2.5 py-1 text-xs bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                  {length(comparison.groups)} group(s)
+                </span>
               </div>
 
               <%= if comparison.groups == [] do %>
-                <p class="ck-note">No invocation data is available for comparison yet.</p>
+                <p class="text-[var(--ck-muted)] text-sm">
+                  No invocation data is available for comparison yet.
+                </p>
               <% else %>
-                <ul class="ck-mini-list">
+                <div class="space-y-2">
                   <%= for group <- comparison.groups do %>
-                    <li>
-                      <strong>{group.name}</strong>
-                      <p class="ck-note">
+                    <div class="border-t border-[var(--ck-stroke)] pt-2 space-y-1">
+                      <p class="text-sm font-semibold text-[var(--ck-text)]">{group.name}</p>
+                      <p class="text-[var(--ck-muted)] text-xs">
                         {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.cost_per_call_cents} cent(s)/call · {group.tokens_per_call} token(s)/call
                       </p>
-                    </li>
+                      <%= if group.decisions && group.decisions != %{} do %>
+                        <p class="text-[var(--ck-muted)] text-xs">
+                          Decisions: {format_frequency(group.decisions)}
+                        </p>
+                      <% end %>
+                    </div>
                   <% end %>
-                </ul>
+                </div>
               <% end %>
             </div>
           <% end %>
         </div>
       </section>
-    </Layouts.app>
+    </ObservabilityLayout.observability>
     """
+  end
+
+  defp format_frequency(map) when map == %{}, do: "none"
+
+  defp format_frequency(map) when is_map(map) do
+    map
+    |> Enum.sort_by(fn {_key, count} -> count end, :desc)
+    |> Enum.map(fn {key, count} -> "#{key}: #{count}" end)
+    |> Enum.join(", ")
   end
 
   defp format_currency(cents) when is_integer(cents), do: cents |> Kernel./(100) |> Float.round(2)
