@@ -1,6 +1,7 @@
 defmodule ControlKeelWeb.ObservabilityOverviewLive do
   use ControlKeelWeb, :live_view
 
+  alias ControlKeel.Mission
   alias ControlKeel.Observability
   alias ControlKeelWeb.CommandPill
   alias ControlKeelWeb.RecentSessions
@@ -9,7 +10,9 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    overview = Observability.workspace_overview(limit: 9999)
+    recent_session = Mission.list_recent_sessions(1) |> List.first()
+    opts = if recent_session, do: [workspace_id: recent_session.workspace_id], else: []
+    overview = Observability.workspace_overview([limit: 6] ++ opts)
 
     {:ok,
      socket

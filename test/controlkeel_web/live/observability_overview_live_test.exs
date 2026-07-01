@@ -30,4 +30,16 @@ defmodule ControlKeelWeb.ObservabilityOverviewLiveTest do
     assert html =~ "/observability/memory-quality"
     assert html =~ "/observability/trends"
   end
+
+  test "overview page scopes recent runs to the latest workspace", %{conn: conn} do
+    workspace_one = workspace_fixture()
+    workspace_two = workspace_fixture()
+
+    session_fixture(%{workspace: workspace_one, budget_cents: 2_000, spent_cents: 450})
+    session_fixture(%{workspace: workspace_two, budget_cents: 2_000, spent_cents: 450})
+
+    {:ok, _view, html} = live(conn, ~p"/observability")
+
+    assert html =~ "1 recent"
+  end
 end
