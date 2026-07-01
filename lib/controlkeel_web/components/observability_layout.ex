@@ -84,6 +84,36 @@ defmodule ControlKeelWeb.ObservabilityLayout do
             Regressions
           </.link>
           <.link
+            navigate={~p"/observability/evals"}
+            class={nav_link_class("/observability/evals", @current_path)}
+          >
+            Evals
+          </.link>
+          <.link
+            navigate={~p"/observability/evals/persisted"}
+            class={nav_link_class("/observability/evals/persisted", @current_path)}
+          >
+            Saved evals
+          </.link>
+          <.link
+            navigate={~p"/observability/benchmarks/drafts"}
+            class={nav_link_class("/observability/benchmarks/drafts", @current_path)}
+          >
+            Drafts
+          </.link>
+          <.link
+            navigate={~p"/observability/benchmarks/scenarios"}
+            class={nav_link_class("/observability/benchmarks/scenarios", @current_path)}
+          >
+            Scenarios
+          </.link>
+          <.link
+            navigate={~p"/observability/benchmarks/history"}
+            class={nav_link_class("/observability/benchmarks/history", @current_path)}
+          >
+            History
+          </.link>
+          <.link
             navigate={~p"/observability/recommendations"}
             class={nav_link_class("/observability/recommendations", @current_path)}
           >
