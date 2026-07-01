@@ -49,7 +49,9 @@ defmodule ControlKeelWeb.ObservabilityPersistedEvalsLive do
             class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
           >
             <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Status</p>
-            <p class="text-lg font-semibold text-[var(--ck-text)]">{format_frequency(@saved.by_status)}</p>
+            <p class="text-lg font-semibold text-[var(--ck-text)]">
+              {format_frequency(@saved.by_status)}
+            </p>
           </div>
           <div
             id="observability-persisted-evals-priority"
@@ -99,7 +101,9 @@ defmodule ControlKeelWeb.ObservabilityPersistedEvalsLive do
                 <p class="text-[var(--ck-muted)] text-xs">
                   {candidate.rule_id} · {candidate.priority} · human gate {candidate.human_gate_required}
                 </p>
-                <p class="text-sm text-[var(--ck-text)] leading-relaxed">{candidate.evidence_summary}</p>
+                <p class="text-sm text-[var(--ck-text)] leading-relaxed">
+                  {candidate.evidence_summary}
+                </p>
                 <p class="text-[var(--ck-muted)] text-xs">Next: {candidate.suggested_action}</p>
                 <p class="text-[var(--ck-muted)] text-xs">
                   Benchmark hint: {candidate.benchmark_hint || "none"}

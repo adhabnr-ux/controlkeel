@@ -178,7 +178,9 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               </div>
               <div>
                 <h3>Generated</h3>
-                <p class="text-[var(--ck-muted)]">{format_datetime(@proof.generated_at, "Not recorded")}</p>
+                <p class="text-[var(--ck-muted)]">
+                  {format_datetime(@proof.generated_at, "Not recorded")}
+                </p>
               </div>
               <div>
                 <h3>Open findings</h3>

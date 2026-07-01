@@ -68,7 +68,9 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkHistoryLive do
               </p>
             </div>
             <div class="rounded-lg p-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)] space-y-1">
-              <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Materialized</p>
+              <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                Materialized
+              </p>
               <p class="text-xl font-semibold text-[var(--ck-text)]">
                 {@history.coverage.materialized_scenarios}
               </p>
@@ -112,7 +114,9 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkHistoryLive do
                     <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
                       {run.suite}
                     </p>
-                    <p class="text-sm font-semibold text-[var(--ck-text)]">Run #{run.id}: {run.status}</p>
+                    <p class="text-sm font-semibold text-[var(--ck-text)]">
+                      Run #{run.id}: {run.status}
+                    </p>
                   </div>
                 </div>
                 <p class="text-[var(--ck-muted)] text-xs">
