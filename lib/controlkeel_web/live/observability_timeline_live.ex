@@ -91,7 +91,7 @@ defmodule ControlKeelWeb.ObservabilityTimelineLive do
                     </p>
                     <p class="text-sm font-semibold text-[var(--ck-text)]">{event.event_type}</p>
                   </div>
-                  <span class={neutral_pill_class()}>{event.inserted_at || "unknown time"}</span>
+                  <span class={neutral_pill_class()}>{format_datetime(event.inserted_at, "unknown time")}</span>
                 </div>
                 <p class="text-sm text-[var(--ck-text)] leading-relaxed">{event.summary}</p>
                 <%= if event.body not in [nil, ""] do %>

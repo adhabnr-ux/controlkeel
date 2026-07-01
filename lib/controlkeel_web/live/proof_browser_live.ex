@@ -178,7 +178,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               </div>
               <div>
                 <h3>Generated</h3>
-                <p class="text-[var(--ck-muted)]">{format_datetime(@proof.generated_at)}</p>
+                <p class="text-[var(--ck-muted)]">{format_datetime(@proof.generated_at, "Not recorded")}</p>
               </div>
               <div>
                 <h3>Open findings</h3>
@@ -907,8 +907,6 @@ defmodule ControlKeelWeb.ProofBrowserLive do
   defp format_domain_pack(nil), do: "Unknown"
   defp format_domain_pack(pack) when pack in ["baseline", "cost"], do: String.capitalize(pack)
   defp format_domain_pack(pack), do: Intent.pack_label(pack)
-  defp format_datetime(nil), do: "Not recorded"
-  defp format_datetime(value), do: Calendar.strftime(value, "%Y-%m-%d %H:%M:%S UTC")
 
   defp bundle_get(proof, keys, default \\ nil) do
     if proof, do: get_in(proof.bundle || %{}, keys) || default, else: default
