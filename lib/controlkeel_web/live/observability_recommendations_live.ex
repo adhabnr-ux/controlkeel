@@ -31,7 +31,7 @@ defmodule ControlKeelWeb.ObservabilityRecommendationsLive do
           <div>
             <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Recommendations</h1>
             <p class="text-[var(--ck-muted)] text-sm mt-1">
-              Read-only benchmark run posture connected to saved eval candidates and benchmark drafts.
+              Actionable next steps derived from the current workspace’s runs, problems, and evidence.
             </p>
           </div>
           <div class="flex items-center gap-3 shrink-0">
