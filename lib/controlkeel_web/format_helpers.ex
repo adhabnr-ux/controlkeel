@@ -26,7 +26,7 @@ defmodule ControlKeelWeb.FormatHelpers do
     do: Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S UTC")
 
   def format_datetime(%NaiveDateTime{} = dt, _fallback),
-    do: Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S UTC")
+    do: Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S")
 
   def format_datetime(value, _fallback) when is_binary(value) do
     case DateTime.from_iso8601(value) do
