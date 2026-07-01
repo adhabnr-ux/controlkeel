@@ -116,32 +116,36 @@ defmodule ControlKeelWeb.ObservabilityMemoryLive do
               Memory quality →
             </.link>
           </div>
-          <%= if @memory_context.memory.recent == [] do %>
-            <p class="text-[var(--ck-muted)] text-sm">No memory records are available for this session.</p>
-          <% else %>
-            <%= for record <- @memory_context.memory.recent do %>
-              <div
-                id={"observability-memory-record-#{record.id}"}
-                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
-              >
-                <div class="flex items-center justify-between gap-4">
-                  <div>
-                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
-                      {record.record_type}
-                    </p>
-                    <p class="text-sm font-semibold text-[var(--ck-text)]">{record.title}</p>
+          <div class="space-y-3 max-h-[550px] overflow-y-auto pr-1">
+            <%= if @memory_context.memory.recent == [] do %>
+              <p class="text-[var(--ck-muted)] text-sm">
+                No memory records are available for this session.
+              </p>
+            <% else %>
+              <%= for record <- @memory_context.memory.recent do %>
+                <div
+                  id={"observability-memory-record-#{record.id}"}
+                  class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+                >
+                  <div class="flex items-center justify-between gap-4">
+                    <div>
+                      <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                        {record.record_type}
+                      </p>
+                      <p class="text-sm font-semibold text-[var(--ck-text)]">{record.title}</p>
+                    </div>
+                    <span class={neutral_pill_class()}>
+                      {if record.archived, do: "archived", else: "active"}
+                    </span>
                   </div>
-                  <span class={neutral_pill_class()}>
-                    {if record.archived, do: "archived", else: "active"}
-                  </span>
+                  <p class="text-sm text-[var(--ck-text)] leading-relaxed">{record.summary}</p>
+                  <p class="text-[var(--ck-muted)] text-xs">
+                    Source: {record.source_type || "unknown"} · Tags: {Enum.join(record.tags, ", ")}
+                  </p>
                 </div>
-                <p class="text-sm text-[var(--ck-text)] leading-relaxed">{record.summary}</p>
-                <p class="text-[var(--ck-muted)] text-xs">
-                  Source: {record.source_type || "unknown"} · Tags: {Enum.join(record.tags, ", ")}
-                </p>
-              </div>
+              <% end %>
             <% end %>
-          <% end %>
+          </div>
         </div>
       </section>
     </ObservabilitySessionLayout.session>

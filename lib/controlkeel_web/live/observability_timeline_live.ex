@@ -76,30 +76,34 @@ defmodule ControlKeelWeb.ObservabilityTimelineLive do
           <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
             Event stream
           </p>
-          <%= if @timeline.events == [] do %>
-            <p class="text-[var(--ck-muted)] text-sm">No timeline events recorded yet.</p>
-          <% else %>
-            <%= for event <- @timeline.events do %>
-              <div
-                id={"observability-timeline-event-#{event.id || event.event_type}"}
-                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
-              >
-                <div class="flex items-center justify-between gap-4">
-                  <div>
-                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
-                      {event.actor}
-                    </p>
-                    <p class="text-sm font-semibold text-[var(--ck-text)]">{event.event_type}</p>
+          <div class="space-y-3 max-h-[550px] overflow-y-auto pr-1">
+            <%= if @timeline.events == [] do %>
+              <p class="text-[var(--ck-muted)] text-sm">No timeline events recorded yet.</p>
+            <% else %>
+              <%= for event <- @timeline.events do %>
+                <div
+                  id={"observability-timeline-event-#{event.id || event.event_type}"}
+                  class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+                >
+                  <div class="flex items-center justify-between gap-4">
+                    <div>
+                      <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                        {event.actor}
+                      </p>
+                      <p class="text-sm font-semibold text-[var(--ck-text)]">{event.event_type}</p>
+                    </div>
+                    <span class={neutral_pill_class()}>
+                      {format_datetime(event.inserted_at, "unknown time")}
+                    </span>
                   </div>
-                  <span class={neutral_pill_class()}>{format_datetime(event.inserted_at, "unknown time")}</span>
+                  <p class="text-sm text-[var(--ck-text)] leading-relaxed">{event.summary}</p>
+                  <%= if event.body not in [nil, ""] do %>
+                    <p class="text-[var(--ck-muted)] text-xs">{event.body}</p>
+                  <% end %>
                 </div>
-                <p class="text-sm text-[var(--ck-text)] leading-relaxed">{event.summary}</p>
-                <%= if event.body not in [nil, ""] do %>
-                  <p class="text-[var(--ck-muted)] text-xs">{event.body}</p>
-                <% end %>
-              </div>
+              <% end %>
             <% end %>
-          <% end %>
+          </div>
         </div>
       </section>
     </ObservabilitySessionLayout.session>
