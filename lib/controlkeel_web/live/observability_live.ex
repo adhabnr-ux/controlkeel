@@ -353,11 +353,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
     do:
       "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
-  defp neutral_pill_class,
-    do:
-      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,255,255,0.04)] text-[var(--ck-text)]"
-
-  defp format_currency(cents) when is_integer(cents), do: cents |> Kernel./(100) |> Float.round(2)
+  defp format_currency(cents) when is_integer(cents), do: (cents / 100) |> Float.round(2)
   defp format_currency(_cents), do: 0.0
   defp format_frequency(map) when map == %{}, do: "none"
 
