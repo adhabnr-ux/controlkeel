@@ -2,6 +2,9 @@ defmodule ControlKeelWeb.ObservabilityLive do
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
+
+  on_mount ControlKeelWeb.CommandPill
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -42,241 +45,320 @@ defmodule ControlKeelWeb.ObservabilityLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <section id="observability-run-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+    <ObservabilitySessionLayout.session
+      flash={@flash}
+      current_path={"/observability/sessions/#{@run.session.id}"}
+      session_id={@run.session.id}
+      session_title={@run.session.title}
+    >
+      <section
+        id="observability-run-page"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <div class="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <p class="ck-kicker">Session run observability</p>
-            <h1 class="ck-section-title">{@run.session.title}</h1>
-            <p class="ck-lead ck-lead-tight">{@run.session.objective}</p>
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">{@run.session.objective}</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
+              Run health and governed activity for this session.
+            </p>
           </div>
-          <div class="ck-badge-stack">
+          <div class="flex items-center gap-3 shrink-0">
             <span class={obs_health_pill_class(@run.health.status)}>{@run.health.status}</span>
-            <span class="ck-pill ck-pill-neutral">session ##{@run.session.id}</span>
-            <.link navigate={~p"/missions/#{@run.session.id}"} class="ck-link">Open mission</.link>
-            <.link
-              id="observability-export-json"
-              href={~p"/observability/sessions/#{@run.session.id}/export.json"}
-              class="ck-link"
-            >
-              Export JSON
-            </.link>
-            <.link
-              id="observability-open-problems"
-              navigate={~p"/observability/problems"}
-              class="ck-link"
-            >
-              Open problems
-            </.link>
-            <.link
-              id="observability-open-timeline"
-              navigate={~p"/observability/sessions/#{@run.session.id}/timeline"}
-              class="ck-link"
-            >
-              Timeline
-            </.link>
-            <.link
-              id="observability-open-memory"
-              navigate={~p"/observability/sessions/#{@run.session.id}/memory"}
-              class="ck-link"
-            >
-              Memory
-            </.link>
+            <span class={neutral_pill_class()}>session ##{@run.session.id}</span>
           </div>
         </div>
 
-        <div class="ck-stat-grid">
-          <div id="observability-health-card" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Health</p>
-            <strong>{@run.health.label}</strong>
-            <ul class="ck-mini-list" style="margin-top: 0.75rem;">
+        <CommandPill.command_pill command={"controlkeel obs run #{@run.session.id}"} />
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div
+            id="observability-health-card"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Health</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">{@run.health.label}</p>
+            <ul class="list-disc pl-5">
               <%= for reason <- @run.health.reasons do %>
-                <li>{reason}</li>
+                <li class="text-[var(--ck-muted)] text-xs leading-relaxed">{reason}</li>
               <% end %>
             </ul>
           </div>
 
-          <div id="observability-costs" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Budget</p>
-            <strong>{@run.budget["decision"] || "unknown"}</strong>
-            <p class="ck-note">
+          <div
+            id="observability-costs"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Budget</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {@run.budget["decision"] || "unknown"}
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">
               {format_currency(@run.budget["spent_cents"] || 0)} / {format_currency(
                 @run.budget["session_budget_cents"] || 0
               )} used
             </p>
-            <p class="ck-note">
+            <p class="text-[var(--ck-muted)] text-xs">
               Rolling 24h: {format_currency(@run.budget["rolling_24h_spend_cents"] || 0)} / {format_currency(
                 @run.budget["daily_budget_cents"] || 0
               )}
             </p>
           </div>
 
-          <div id="observability-findings" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Findings</p>
-            <strong>{@run.findings.active} active / {@run.findings.total} total</strong>
-            <p class="ck-note">
+          <div
+            id="observability-findings"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Findings</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {@run.findings.active} active / {@run.findings.total} total
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">
               {@run.findings.critical} critical · {@run.findings.high} high · {@run.findings.blocked} blocked
             </p>
-            <.link navigate={~p"/findings"} class="ck-link">Open findings</.link>
-          </div>
-
-          <div id="observability-gates" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Gates</p>
-            <strong>{@run.gates.pending_reviews} pending</strong>
-            <p class="ck-note">{@run.gates.total_reviews} total review gates</p>
-          </div>
-        </div>
-
-        <div class="ck-grid ck-grid-dashboard">
-          <div id="observability-timeline" class="ck-card">
-            <p class="ck-mini-label">Timeline</p>
-            <%= if @run.timeline.recent == [] do %>
-              <p class="ck-note">No timeline events recorded yet.</p>
-            <% else %>
-              <ul class="ck-mini-list">
-                <%= for event <- @run.timeline.recent do %>
-                  <li>
-                    <strong>{event.event_type || "event"}</strong>
-                    <p class="ck-note">
-                      {event.summary || "No summary"} · {event.actor || "unknown"} · {event.inserted_at ||
-                        "unknown time"}
-                    </p>
-                  </li>
-                <% end %>
-              </ul>
-            <% end %>
-            <.link navigate={~p"/observability/sessions/#{@run.session.id}/timeline"} class="ck-link">
-              Open full timeline
+            <.link
+              navigate={~p"/findings"}
+              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+            >
+              Open findings →
             </.link>
           </div>
 
-          <div class="ck-side-stack">
-            <div id="observability-tools" class="ck-card">
-              <p class="ck-mini-label">Hosts, models, and tools</p>
-              <div class="ck-brief-grid">
-                <div>
-                  <h3>Invocations</h3>
-                  <p class="ck-note">{@run.hosts_models_tools.invocations}</p>
+          <div
+            id="observability-gates"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Gates</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {@run.gates.pending_reviews} pending
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">
+              {@run.gates.total_reviews} total review gates
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div
+            id="observability-timeline"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Timeline</p>
+            <%= if @run.timeline.recent == [] do %>
+              <p class="text-[var(--ck-muted)] text-sm">No timeline events recorded yet.</p>
+            <% else %>
+              <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                <%= for event <- @run.timeline.recent do %>
+                  <div class="rounded-lg px-3 py-2 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)]">
+                    <div class="flex items-start justify-between gap-3">
+                      <p class="text-sm font-medium text-[var(--ck-text)]">
+                        {event.event_type || "event"}
+                      </p>
+                      <time class="text-[10px] font-mono text-[var(--ck-muted)] whitespace-nowrap shrink-0">
+                        {format_datetime(event.inserted_at)}
+                      </time>
+                    </div>
+                    <p class="text-[var(--ck-muted)] text-xs mt-1">
+                      {event.summary || "No summary"} · {event.actor || "unknown"}
+                    </p>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+            <.link
+              navigate={~p"/observability/sessions/#{@run.session.id}/timeline"}
+              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+            >
+              Open full timeline →
+            </.link>
+          </div>
+
+          <div class="space-y-4">
+            <div
+              id="observability-tools"
+              class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3"
+            >
+              <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                Hosts, models, and tools
+              </p>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1">
+                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                    Invocations
+                  </p>
+                  <p class="text-base font-semibold text-[var(--ck-text)]">
+                    {@run.hosts_models_tools.invocations}
+                  </p>
                 </div>
-                <div>
-                  <h3>Estimated cost</h3>
-                  <p class="ck-note">
+                <div class="space-y-1">
+                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                    Estimated cost
+                  </p>
+                  <p class="text-base font-semibold text-[var(--ck-text)]">
                     {format_currency(@run.hosts_models_tools.estimated_cost_cents)}
                   </p>
                 </div>
-                <div>
-                  <h3>Sources</h3>
-                  <p class="ck-note">{format_frequency(@run.hosts_models_tools.by_source)}</p>
+                <div class="space-y-1">
+                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Sources</p>
+                  <p class="text-[var(--ck-text)] text-xs">
+                    {format_frequency(@run.hosts_models_tools.by_source)}
+                  </p>
                 </div>
-                <div>
-                  <h3>Models</h3>
-                  <p class="ck-note">{format_frequency(@run.hosts_models_tools.by_model)}</p>
+                <div class="space-y-1">
+                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Models</p>
+                  <p class="text-[var(--ck-text)] text-xs">
+                    {format_frequency(@run.hosts_models_tools.by_model)}
+                  </p>
                 </div>
-                <div>
-                  <h3>Tools</h3>
-                  <p class="ck-note">{format_frequency(@run.hosts_models_tools.by_tool)}</p>
+                <div class="space-y-1">
+                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Tools</p>
+                  <p class="text-[var(--ck-text)] text-xs">
+                    {format_frequency(@run.hosts_models_tools.by_tool)}
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div id="observability-memory-proof" class="ck-card">
-              <p class="ck-mini-label">Context, memory, and proof</p>
-              <div class="ck-brief-grid">
-                <div>
-                  <h3>Memory records</h3>
-                  <p class="ck-note">{@run.memory.records}</p>
+            <div
+              id="observability-memory-proof"
+              class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3"
+            >
+              <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                Context, memory, and proof
+              </p>
+              <div class="grid grid-cols-3 gap-3">
+                <div class="space-y-1">
+                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Memory</p>
+                  <p class="text-base font-semibold text-[var(--ck-text)]">{@run.memory.records}</p>
                   <.link
                     navigate={~p"/observability/sessions/#{@run.session.id}/memory"}
-                    class="ck-link"
+                    class="text-xs text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
                   >
-                    Open memory
+                    Open →
                   </.link>
                 </div>
-                <div>
-                  <h3>Proof bundles</h3>
-                  <p class="ck-note">{@run.proofs.count}</p>
-                  <.link navigate={~p"/proofs"} class="ck-link">Open proofs</.link>
+                <div class="space-y-1">
+                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Proofs</p>
+                  <p class="text-base font-semibold text-[var(--ck-text)]">{@run.proofs.count}</p>
+                  <.link
+                    navigate={~p"/proofs"}
+                    class="text-xs text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+                  >
+                    Open →
+                  </.link>
                 </div>
-                <div>
-                  <h3>Active tasks</h3>
-                  <p class="ck-note">{@run.tasks.active} / {@run.tasks.total}</p>
+                <div class="space-y-1">
+                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Tasks</p>
+                  <p class="text-base font-semibold text-[var(--ck-text)]">
+                    {@run.tasks.active}/{@run.tasks.total}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div id="observability-recommendations" class="ck-card">
-          <p class="ck-mini-label">Recommendations</p>
-          <ul class="ck-mini-list">
-            <%= for recommendation <- @run.recommendations do %>
-              <li>{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
+        <%= if @run.recommendations != [] do %>
+          <div id="observability-recommendations" class="space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recommendations
+            </p>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @run.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
 
-        <div id="observability-telemetry-export" class="ck-card">
-          <p class="ck-mini-label">Trace/proof export</p>
-          <p class="ck-note">
-            Download the local observability envelope for this run, then preview it locally with <code>controlkeel obs import &lt;file&gt; --dry-run</code>.
+        <div
+          id="observability-telemetry-export"
+          class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
+        >
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Trace/proof export
+          </p>
+          <p class="text-[var(--ck-muted)] text-sm leading-relaxed">
+            Download the local observability envelope for this run, then preview it locally with <code class="text-[var(--ck-lime)] font-semibold ml-2 text-xs">
+              controlkeel obs import &lt;file&gt; --dry-run
+            </code>.
           </p>
           <.link
             href={~p"/observability/sessions/#{@run.session.id}/export.json"}
-            class="ck-link"
+            class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
           >
-            Download JSON envelope
+            Download JSON envelope →
           </.link>
         </div>
 
-        <div class="ck-grid ck-grid-dashboard">
-          <div class="ck-card">
-            <p class="ck-mini-label">Recent findings</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recent findings
+            </p>
             <%= if @run.findings.recent == [] do %>
-              <p class="ck-note">No findings recorded yet.</p>
+              <p class="text-[var(--ck-muted)] text-sm">No findings recorded yet.</p>
             <% else %>
-              <ul class="ck-mini-list">
+              <div class="space-y-2">
                 <%= for finding <- @run.findings.recent do %>
-                  <li>
-                    <strong>{finding.title}</strong>
-                    <p class="ck-note">
+                  <div class="rounded-lg px-3 py-2 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)]">
+                    <p class="text-sm font-medium text-[var(--ck-text)]">{finding.title}</p>
+                    <p class="text-[var(--ck-muted)] text-xs">
                       {finding.severity} / {finding.status} · {finding.rule_id}
                     </p>
-                  </li>
+                  </div>
                 <% end %>
-              </ul>
+              </div>
             <% end %>
           </div>
 
-          <div class="ck-card">
-            <p class="ck-mini-label">Recent review gates</p>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recent review gates
+            </p>
             <%= if @run.gates.latest == [] do %>
-              <p class="ck-note">No review gates recorded yet.</p>
+              <p class="text-[var(--ck-muted)] text-sm">No review gates recorded yet.</p>
             <% else %>
-              <ul class="ck-mini-list">
+              <div class="space-y-2">
                 <%= for review <- @run.gates.latest do %>
-                  <li>
-                    <.link navigate={~p"/reviews/#{review.id}"} class="ck-link">
+                  <div class="rounded-lg px-3 py-2 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)]">
+                    <.link
+                      navigate={~p"/reviews/#{review.id}"}
+                      class="text-sm font-medium text-[var(--ck-lime)] hover:opacity-80 transition-opacity"
+                    >
                       {review.title}
                     </.link>
-                    <p class="ck-note">{review.review_type} / {review.status}</p>
-                  </li>
+                    <p class="text-[var(--ck-muted)] text-xs">
+                      {review.review_type} / {review.status}
+                    </p>
+                  </div>
                 <% end %>
-              </ul>
+              </div>
             <% end %>
           </div>
         </div>
       </section>
-    </Layouts.app>
+    </ObservabilitySessionLayout.session>
     """
   end
 
-  defp obs_health_pill_class("red"), do: "ck-pill ck-pill-critical"
-  defp obs_health_pill_class("yellow"), do: "ck-pill ck-pill-warning"
-  defp obs_health_pill_class(_status), do: "ck-pill ck-pill-low"
+  defp obs_health_pill_class("red"),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+
+  defp obs_health_pill_class("yellow"),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+
+  defp obs_health_pill_class(_status),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+
+  defp neutral_pill_class,
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,255,255,0.04)] text-[var(--ck-text)]"
 
   defp format_currency(cents) when is_integer(cents), do: cents |> Kernel./(100) |> Float.round(2)
   defp format_currency(_cents), do: 0.0
-
   defp format_frequency(map) when map == %{}, do: "none"
 
   defp format_frequency(map) when is_map(map) do
