@@ -30,8 +30,14 @@ defmodule ControlKeelWeb.FormatHelpers do
 
   def format_datetime(value, _fallback) when is_binary(value) do
     case DateTime.from_iso8601(value) do
-      {:ok, dt, _offset} -> Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S UTC")
-      _ -> value
+      {:ok, dt, _offset} ->
+        Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S UTC")
+
+      _ ->
+        case NaiveDateTime.from_iso8601(value) do
+          {:ok, ndt} -> Calendar.strftime(ndt, "%Y-%m-%d %H:%M:%S UTC")
+          _ -> value
+        end
     end
   end
 
