@@ -22,17 +22,31 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
 
   @impl true
   def handle_event("approve-draft", %{"id" => id}, socket) do
-    {:ok, _result} =
-      Observability.update_benchmark_draft_status(id, "approved", reviewed_by: "web")
+    opts = Keyword.merge(socket.assigns.opts, reviewed_by: "web")
 
-    {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
+    case Observability.update_benchmark_draft_status(id, "approved", opts) do
+      {:ok, _result} ->
+        {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, flash_for_status_error(reason))}
+    end
   end
 
   def handle_event("reject-draft", %{"id" => id}, socket) do
-    {:ok, _result} =
-      Observability.update_benchmark_draft_status(id, "rejected", reviewed_by: "web")
+    opts = Keyword.merge(socket.assigns.opts, reviewed_by: "web")
 
-    {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
+    case Observability.update_benchmark_draft_status(id, "rejected", opts) do
+      {:ok, _result} ->
+        {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, flash_for_status_error(reason))}
+    end
   end
 
   @impl true
@@ -157,6 +171,11 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
       _ -> "not materialized"
     end
   end
+
+  defp flash_for_status_error(:forbidden), do: "You can only review drafts from the current workspace."
+  defp flash_for_status_error(:not_found), do: "Benchmark draft was not found."
+  defp flash_for_status_error(:invalid_id), do: "The provided draft id was invalid."
+  defp flash_for_status_error(_reason), do: "Unable to update benchmark draft status."
 
   defp format_frequency(map) when map == %{}, do: "none"
 
