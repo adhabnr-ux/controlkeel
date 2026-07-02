@@ -3,6 +3,9 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
 
   alias ControlKeel.Mission
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
+
+  on_mount ControlKeelWeb.CommandPill
 
   @impl true
   def mount(_params, _session, socket) do
@@ -19,112 +22,146 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
 
   @impl true
   def handle_event("approve-draft", %{"id" => id}, socket) do
-    {:ok, _result} =
-      Observability.update_benchmark_draft_status(id, "approved", reviewed_by: "web")
+    opts = Keyword.merge(socket.assigns.opts, reviewed_by: "web")
 
-    {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
+    case Observability.update_benchmark_draft_status(id, "approved", opts) do
+      {:ok, _result} ->
+        {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, flash_for_status_error(reason))}
+    end
   end
 
   def handle_event("reject-draft", %{"id" => id}, socket) do
-    {:ok, _result} =
-      Observability.update_benchmark_draft_status(id, "rejected", reviewed_by: "web")
+    opts = Keyword.merge(socket.assigns.opts, reviewed_by: "web")
 
-    {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
+    case Observability.update_benchmark_draft_status(id, "rejected", opts) do
+      {:ok, _result} ->
+        {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, flash_for_status_error(reason))}
+    end
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <section id="observability-benchmark-drafts-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+    <ObservabilityLayout.observability flash={@flash} current_path="/observability/benchmarks/drafts">
+      <section
+        id="observability-benchmark-drafts-page"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="ck-kicker">Observability</p>
-            <h1 class="ck-section-title">Benchmark drafts</h1>
-            <p class="ck-lead ck-lead-tight">
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Benchmark drafts</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
               Human-gated local benchmark draft scenarios generated from saved eval candidates.
             </p>
           </div>
-          <div class="ck-badge-stack">
-            <span id="observability-benchmark-drafts-count" class="ck-pill ck-pill-neutral">
+          <div class="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+            <span id="observability-benchmark-drafts-count" class={neutral_pill_class()}>
               {@drafts.count} draft(s)
             </span>
-            <.link navigate={~p"/observability/evals/persisted"} class="ck-link">Saved evals</.link>
-            <.link navigate={~p"/observability/regressions"} class="ck-link">Regressions</.link>
-            <.link navigate={~p"/observability/benchmarks/scenarios"} class="ck-link">
-              Scenarios
-            </.link>
-            <.link navigate={~p"/observability/benchmarks/history"} class="ck-link">History</.link>
-            <.link navigate={~p"/benchmarks"} class="ck-link">Benchmarks</.link>
-            <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
           </div>
         </div>
 
-        <div class="ck-stat-grid">
-          <div id="observability-benchmark-drafts-status" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Status</p>
-            <strong>{format_frequency(@drafts.by_status)}</strong>
+        <CommandPill.command_pill command="controlkeel obs benchmarks drafts" />
+
+        <div class="grid grid-cols-2 gap-4">
+          <div
+            id="observability-benchmark-drafts-status"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Status</p>
+            <p class="text-lg font-semibold text-[var(--ck-text)]">
+              {format_frequency(@drafts.by_status)}
+            </p>
           </div>
-          <div id="observability-benchmark-drafts-suites" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Suites</p>
-            <strong>{format_frequency(@drafts.by_suite)}</strong>
+          <div
+            id="observability-benchmark-drafts-suites"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Suites</p>
+            <p class="text-lg font-semibold text-[var(--ck-text)]">
+              {format_frequency(@drafts.by_suite)}
+            </p>
           </div>
         </div>
 
-        <div id="observability-benchmark-drafts-recommendations" class="ck-card">
-          <p class="ck-mini-label">Recommendations</p>
-          <ul class="ck-mini-list">
-            <%= for recommendation <- @drafts.recommendations do %>
-              <li>{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
-
-        <div id="observability-benchmark-drafts-list" class="ck-card">
-          <%= if @drafts.drafts == [] do %>
-            <p class="ck-note">No benchmark drafts yet.</p>
-          <% else %>
-            <ul class="ck-mini-list">
-              <%= for draft <- @drafts.drafts do %>
-                <li id={"observability-benchmark-draft-#{draft.id}"}>
-                  <div class="ck-card-header">
-                    <div>
-                      <p class="ck-mini-label">{draft.suite_slug}</p>
-                      <strong>{draft.title}</strong>
-                    </div>
-                    <span class="ck-pill ck-pill-neutral">{draft.status}</span>
-                  </div>
-                  <p>{draft.scenario_prompt}</p>
-                  <p class="ck-note">Expected: {draft.expected_behavior}</p>
-                  <p class="ck-note">Human gate required: {draft.human_gate_required}</p>
-                  <p class="ck-note">Scenario: {materialized_scenario(draft)}</p>
-                  <div class="ck-button-row">
-                    <button
-                      id={"observability-benchmark-draft-approve-#{draft.id}"}
-                      type="button"
-                      class="ck-button ck-button-primary"
-                      phx-click="approve-draft"
-                      phx-value-id={draft.id}
-                    >
-                      Approve
-                    </button>
-                    <button
-                      id={"observability-benchmark-draft-reject-#{draft.id}"}
-                      type="button"
-                      class="ck-button"
-                      phx-click="reject-draft"
-                      phx-value-id={draft.id}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </li>
+        <%= if @drafts.recommendations != [] do %>
+          <div id="observability-benchmark-drafts-recommendations" class="space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recommendations
+            </p>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @drafts.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
               <% end %>
             </ul>
+          </div>
+        <% end %>
+
+        <div id="observability-benchmark-drafts-list" class="space-y-3">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Draft scenarios
+          </p>
+          <%= if @drafts.drafts == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No benchmark drafts yet.</p>
+          <% else %>
+            <%= for draft <- @drafts.drafts do %>
+              <div
+                id={"observability-benchmark-draft-#{draft.id}"}
+                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
+              >
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      {draft.suite_slug}
+                    </p>
+                    <p class="text-sm font-semibold text-[var(--ck-text)]">{draft.title}</p>
+                  </div>
+                  <span class={neutral_pill_class()}>{draft.status}</span>
+                </div>
+                <p class="text-sm text-[var(--ck-text)] leading-relaxed">{draft.scenario_prompt}</p>
+                <p class="text-[var(--ck-muted)] text-xs">Expected: {draft.expected_behavior}</p>
+                <p class="text-[var(--ck-muted)] text-xs">
+                  Human gate required: {draft.human_gate_required}
+                </p>
+                <p class="text-[var(--ck-muted)] text-xs">
+                  Scenario: {materialized_scenario(draft)}
+                </p>
+                <div class="flex items-center gap-3 pt-1">
+                  <button
+                    id={"observability-benchmark-draft-approve-#{draft.id}"}
+                    type="button"
+                    class="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-semibold bg-[rgba(190,242,100,0.14)] text-[var(--ck-lime)] border border-[var(--ck-lime)] hover:opacity-80 transition-opacity"
+                    phx-click="approve-draft"
+                    phx-value-id={draft.id}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    id={"observability-benchmark-draft-reject-#{draft.id}"}
+                    type="button"
+                    class="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-semibold border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.03)] text-[var(--ck-text)] hover:opacity-80 transition-opacity"
+                    phx-click="reject-draft"
+                    phx-value-id={draft.id}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            <% end %>
           <% end %>
         </div>
       </section>
-    </Layouts.app>
+    </ObservabilityLayout.observability>
     """
   end
 
@@ -135,6 +172,11 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
     end
   end
 
+  defp flash_for_status_error(:forbidden), do: "You can only review drafts from the current workspace."
+  defp flash_for_status_error(:not_found), do: "Benchmark draft was not found."
+  defp flash_for_status_error(:invalid_id), do: "The provided draft id was invalid."
+  defp flash_for_status_error(_reason), do: "Unable to update benchmark draft status."
+
   defp format_frequency(map) when map == %{}, do: "none"
 
   defp format_frequency(map) when is_map(map) do
@@ -144,4 +186,5 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
     |> Enum.map(fn {key, count} -> "#{key}: #{count}" end)
     |> Enum.join(", ")
   end
+
 end

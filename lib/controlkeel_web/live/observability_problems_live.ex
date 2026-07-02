@@ -235,20 +235,4 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
     |> String.replace(~r/[^a-zA-Z0-9_-]+/, "-")
     |> String.trim("-")
   end
-
-  defp format_datetime(nil), do: "unknown"
-  defp format_datetime(""), do: "unknown"
-
-  defp format_datetime(%DateTime{} = dt) do
-    Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S UTC")
-  end
-
-  defp format_datetime(value) when is_binary(value) do
-    case DateTime.from_iso8601(value) do
-      {:ok, dt, _offset} -> Calendar.strftime(dt, "%Y-%m-%d %H:%M:%S UTC")
-      _ -> value
-    end
-  end
-
-  defp format_datetime(value), do: to_string(value)
 end

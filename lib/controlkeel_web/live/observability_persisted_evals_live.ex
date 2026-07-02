@@ -3,6 +3,9 @@ defmodule ControlKeelWeb.ObservabilityPersistedEvalsLive do
 
   alias ControlKeel.Mission
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
+
+  on_mount ControlKeelWeb.CommandPill
 
   @impl true
   def mount(_params, _session, socket) do
@@ -19,75 +22,98 @@ defmodule ControlKeelWeb.ObservabilityPersistedEvalsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <section id="observability-persisted-evals-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+    <ObservabilityLayout.observability flash={@flash} current_path="/observability/evals/persisted">
+      <section
+        id="observability-persisted-evals-page"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="ck-kicker">Observability</p>
-            <h1 class="ck-section-title">Saved eval candidates</h1>
-            <p class="ck-lead ck-lead-tight">
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Saved eval candidates</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
               Local, human-gated candidate records saved from grouped problem feedback loops.
             </p>
           </div>
-          <div class="ck-badge-stack">
-            <span id="observability-persisted-evals-count" class="ck-pill ck-pill-neutral">
+          <div class="flex items-center gap-3 shrink-0">
+            <span id="observability-persisted-evals-count" class={neutral_pill_class()}>
               {@saved.count} saved
             </span>
-            <.link navigate={~p"/observability/evals"} class="ck-link">Advisory evals</.link>
-            <.link navigate={~p"/observability/benchmarks/drafts"} class="ck-link">
-              Benchmark drafts
-            </.link>
-            <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
           </div>
         </div>
 
-        <div class="ck-stat-grid">
-          <div id="observability-persisted-evals-status" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Status</p>
-            <strong>{format_frequency(@saved.by_status)}</strong>
+        <CommandPill.command_pill command="controlkeel obs evals persisted" />
+
+        <div class="grid grid-cols-2 gap-4">
+          <div
+            id="observability-persisted-evals-status"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Status</p>
+            <p class="text-lg font-semibold text-[var(--ck-text)]">
+              {format_frequency(@saved.by_status)}
+            </p>
           </div>
-          <div id="observability-persisted-evals-priority" class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Priority</p>
-            <strong>{format_frequency(@saved.by_priority)}</strong>
+          <div
+            id="observability-persisted-evals-priority"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Priority</p>
+            <p class="text-lg font-semibold text-[var(--ck-text)]">
+              {format_frequency(@saved.by_priority)}
+            </p>
           </div>
         </div>
 
-        <div id="observability-persisted-evals-recommendations" class="ck-card">
-          <p class="ck-mini-label">Recommendations</p>
-          <ul class="ck-mini-list">
-            <%= for recommendation <- @saved.recommendations do %>
-              <li>{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
-
-        <div id="observability-persisted-evals-list" class="ck-card">
-          <%= if @saved.candidates == [] do %>
-            <p class="ck-note">No saved eval candidates yet.</p>
-          <% else %>
-            <ul class="ck-mini-list">
-              <%= for candidate <- @saved.candidates do %>
-                <li id={"observability-persisted-eval-#{candidate.id}"}>
-                  <div class="ck-card-header">
-                    <div>
-                      <p class="ck-mini-label">{candidate.category || "uncategorized"}</p>
-                      <strong>{candidate.title}</strong>
-                    </div>
-                    <span class="ck-pill ck-pill-neutral">{candidate.status}</span>
-                  </div>
-                  <p class="ck-note">
-                    {candidate.rule_id} · {candidate.priority} · human gate {candidate.human_gate_required}
-                  </p>
-                  <p>{candidate.evidence_summary}</p>
-                  <p class="ck-note">Next: {candidate.suggested_action}</p>
-                  <p class="ck-note">Benchmark hint: {candidate.benchmark_hint || "none"}</p>
-                </li>
+        <%= if @saved.recommendations != [] do %>
+          <div class="space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recommendations
+            </p>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @saved.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
               <% end %>
             </ul>
+          </div>
+        <% end %>
+
+        <div id="observability-persisted-evals-list" class="space-y-3">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Saved candidates
+          </p>
+          <%= if @saved.candidates == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No saved eval candidates yet.</p>
+          <% else %>
+            <%= for candidate <- @saved.candidates do %>
+              <div
+                id={"observability-persisted-eval-#{candidate.id}"}
+                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
+              >
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      {candidate.category || "uncategorized"}
+                    </p>
+                    <p class="text-sm font-semibold text-[var(--ck-text)]">{candidate.title}</p>
+                  </div>
+                  <span class={neutral_pill_class()}>{candidate.status}</span>
+                </div>
+                <p class="text-[var(--ck-muted)] text-xs">
+                  {candidate.rule_id} · {candidate.priority} · human gate {candidate.human_gate_required}
+                </p>
+                <p class="text-sm text-[var(--ck-text)] leading-relaxed">
+                  {candidate.evidence_summary}
+                </p>
+                <p class="text-[var(--ck-muted)] text-xs">Next: {candidate.suggested_action}</p>
+                <p class="text-[var(--ck-muted)] text-xs">
+                  Benchmark hint: {candidate.benchmark_hint || "none"}
+                </p>
+              </div>
+            <% end %>
           <% end %>
         </div>
       </section>
-    </Layouts.app>
+    </ObservabilityLayout.observability>
     """
   end
 
@@ -100,4 +126,5 @@ defmodule ControlKeelWeb.ObservabilityPersistedEvalsLive do
     |> Enum.map(fn {key, count} -> "#{key}: #{count}" end)
     |> Enum.join(", ")
   end
+
 end

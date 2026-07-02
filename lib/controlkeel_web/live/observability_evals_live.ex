@@ -3,6 +3,9 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
 
   alias ControlKeel.Mission
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
+
+  on_mount ControlKeelWeb.CommandPill
 
   @impl true
   def mount(_params, _session, socket) do
@@ -19,82 +22,105 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <section id="observability-evals-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+    <ObservabilityLayout.observability flash={@flash} current_path="/observability/evals">
+      <section
+        id="observability-evals-page"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="ck-kicker">Observability</p>
-            <h1 class="ck-section-title">Eval candidates</h1>
-            <p class="ck-lead ck-lead-tight">
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Eval candidates</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
               Advisory regression candidates derived from grouped problems and feedback evidence.
             </p>
           </div>
-          <div class="ck-badge-stack">
+          <div class="flex items-center gap-3 shrink-0 flex-wrap justify-end">
             <span id="observability-evals-health" class={health_pill_class(@eval_candidates.health)}>
               {@eval_candidates.health}
             </span>
-            <span class="ck-pill ck-pill-neutral">{@eval_candidates.count} candidate(s)</span>
-            <.link navigate={~p"/observability/recommendations"} class="ck-link">
-              Recommendations
-            </.link>
-            <.link navigate={~p"/observability/evals/persisted"} class="ck-link">
-              Saved candidates
-            </.link>
+            <span class={neutral_pill_class()}>{@eval_candidates.count} candidate(s)</span>
           </div>
         </div>
 
-        <div id="observability-evals-summary" class="ck-card">
-          <p class="ck-mini-label">Recommended next actions</p>
-          <ul class="ck-mini-list">
-            <%= for recommendation <- @eval_candidates.recommendations do %>
-              <li>{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
+        <CommandPill.command_pill command="controlkeel obs evals" />
 
-        <div id="observability-evals-list" class="ck-card">
-          <%= if @eval_candidates.candidates == [] do %>
-            <p class="ck-note">No eval candidates are currently active.</p>
-          <% else %>
-            <ul class="ck-mini-list">
-              <%= for candidate <- @eval_candidates.candidates do %>
-                <li id={"observability-eval-#{candidate.id}"}>
-                  <div class="ck-card-header">
-                    <div>
-                      <p class="ck-mini-label">{candidate.category}</p>
-                      <strong>{candidate.title}</strong>
-                    </div>
-                    <span class={priority_pill_class(candidate.priority)}>
-                      {candidate.priority}
-                    </span>
-                  </div>
-                  <p class="ck-note">
-                    {candidate.rule_id} · {candidate.finding_count} finding(s) · {candidate.affected_session_count} session(s)
-                  </p>
-                  <p>{candidate.evidence_summary}</p>
-                  <p class="ck-note">Benchmark hint: {candidate.benchmark_hint}</p>
-                  <p class="ck-note">
-                    Human gate required: {candidate.human_gate_required}
-                  </p>
-                  <.link navigate={candidate.links.problems} class="ck-link">
-                    Open problem groups
-                  </.link>
-                  <.link navigate={candidate.links.benchmarks} class="ck-link">Open benchmarks</.link>
-                </li>
+        <%= if @eval_candidates.recommendations != [] do %>
+          <div class="space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recommended next actions
+            </p>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @eval_candidates.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
               <% end %>
             </ul>
+          </div>
+        <% end %>
+
+        <div id="observability-evals-list" class="space-y-3">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Active candidates
+          </p>
+          <%= if @eval_candidates.candidates == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No eval candidates are currently active.</p>
+          <% else %>
+            <%= for candidate <- @eval_candidates.candidates do %>
+              <div
+                id={"observability-eval-#{candidate.id}"}
+                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
+              >
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                      {candidate.category}
+                    </p>
+                    <p class="text-sm font-semibold text-[var(--ck-text)]">{candidate.title}</p>
+                  </div>
+                  <span class={priority_pill_class(candidate.priority)}>{candidate.priority}</span>
+                </div>
+                <p class="text-[var(--ck-muted)] text-xs">
+                  {candidate.rule_id} · {candidate.finding_count} finding(s) · {candidate.affected_session_count} session(s)
+                </p>
+                <p class="text-sm text-[var(--ck-text)] leading-relaxed">
+                  {candidate.evidence_summary}
+                </p>
+                <p class="text-[var(--ck-muted)] text-xs">
+                  Benchmark hint: {candidate.benchmark_hint}
+                </p>
+                <p class="text-[var(--ck-muted)] text-xs">
+                  Human gate required: {candidate.human_gate_required}
+                </p>
+              </div>
+            <% end %>
           <% end %>
         </div>
       </section>
-    </Layouts.app>
+    </ObservabilityLayout.observability>
     """
   end
 
-  defp health_pill_class("red"), do: "ck-pill ck-pill-critical"
-  defp health_pill_class("yellow"), do: "ck-pill ck-pill-warning"
-  defp health_pill_class(_), do: "ck-pill ck-pill-low"
+  defp health_pill_class("red"),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
 
-  defp priority_pill_class("critical"), do: "ck-pill ck-pill-critical"
-  defp priority_pill_class("high"), do: "ck-pill ck-pill-warning"
-  defp priority_pill_class(_), do: "ck-pill ck-pill-neutral"
+  defp health_pill_class("yellow"),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+
+  defp health_pill_class(_),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+
+  defp priority_pill_class("critical"),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+
+  defp priority_pill_class("high"),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+
+  defp priority_pill_class(_),
+    do:
+      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,255,255,0.04)] text-[var(--ck-text)]"
+
 end

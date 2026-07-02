@@ -2,6 +2,9 @@ defmodule ControlKeelWeb.ObservabilityMemoryLive do
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Observability
+  alias ControlKeelWeb.CommandPill
+
+  on_mount ControlKeelWeb.CommandPill
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -23,94 +26,129 @@ defmodule ControlKeelWeb.ObservabilityMemoryLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <section id="observability-memory-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
+    <ObservabilitySessionLayout.session
+      flash={@flash}
+      current_path={"/observability/sessions/#{@memory_context.session.id}/memory"}
+      session_id={@memory_context.session.id}
+      session_title={@memory_context.session.title}
+    >
+      <section
+        id="observability-memory-page"
+        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      >
+        <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="ck-kicker">Observability</p>
-            <h1 class="ck-section-title">Context and memory</h1>
-            <p class="ck-lead ck-lead-tight">
+            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Context and memory</h1>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
               Summary-only memory and context posture for {@memory_context.session.title}.
             </p>
           </div>
-          <div class="ck-badge-stack">
-            <span id="observability-memory-total" class="ck-pill ck-pill-neutral">
+          <div class="flex items-center gap-3 shrink-0">
+            <span id="observability-memory-total" class={neutral_pill_class()}>
               {@memory_context.memory.active} active memory
             </span>
-            <.link
-              navigate={~p"/observability/sessions/#{@memory_context.session.id}"}
-              class="ck-link"
-            >
-              Run
-            </.link>
-            <.link navigate={~p"/observability/memory-quality"} class="ck-link">Memory quality</.link>
-            <.link navigate={~p"/observability"} class="ck-link">Overview</.link>
           </div>
         </div>
 
-        <div id="observability-memory-summary" class="ck-stat-grid">
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Memory</p>
-            <strong>{@memory_context.memory.active} active</strong>
-            <p class="ck-note">
+        <CommandPill.command_pill command={"controlkeel obs memory #{@memory_context.session.id}"} />
+
+        <div id="observability-memory-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Memory</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {@memory_context.memory.active} active
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">
               {@memory_context.memory.archived} archived / {@memory_context.memory.count} recent
             </p>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Context</p>
-            <strong>{@memory_context.context.tasks} task(s)</strong>
-            <p class="ck-note">
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Context</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {@memory_context.context.tasks} task(s)
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">
               {@memory_context.context.findings} finding(s), {@memory_context.context.reviews} review(s)
             </p>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Types</p>
-            <strong>{map_size(@memory_context.memory.by_type)}</strong>
-            <p class="ck-note">{format_frequency(@memory_context.memory.by_type)}</p>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Types</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {map_size(@memory_context.memory.by_type)}
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">
+              {format_frequency(@memory_context.memory.by_type)}
+            </p>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Sources</p>
-            <strong>{map_size(@memory_context.memory.by_source)}</strong>
-            <p class="ck-note">{format_frequency(@memory_context.memory.by_source)}</p>
+          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Sources</p>
+            <p class="text-2xl font-semibold text-[var(--ck-text)]">
+              {map_size(@memory_context.memory.by_source)}
+            </p>
+            <p class="text-[var(--ck-muted)] text-xs">
+              {format_frequency(@memory_context.memory.by_source)}
+            </p>
           </div>
         </div>
 
-        <div id="observability-memory-recommendations" class="ck-card">
-          <p class="ck-mini-label">Recommended next actions</p>
-          <ul class="ck-mini-list">
-            <%= for recommendation <- @memory_context.recommendations do %>
-              <li>{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
+        <%= if @memory_context.recommendations != [] do %>
+          <div id="observability-memory-recommendations" class="space-y-2">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recommended next actions
+            </p>
+            <ul class="list-disc pl-5">
+              <%= for recommendation <- @memory_context.recommendations do %>
+                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
 
-        <div id="observability-memory-records" class="ck-card">
-          <%= if @memory_context.memory.recent == [] do %>
-            <p class="ck-note">No memory records are available for this session.</p>
-          <% else %>
-            <ul class="ck-mini-list">
+        <div id="observability-memory-records" class="space-y-3">
+          <div class="flex items-center justify-between gap-4">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Recent memory records
+            </p>
+            <.link
+              navigate={~p"/observability/memory-quality"}
+              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+            >
+              Memory quality →
+            </.link>
+          </div>
+          <div class="space-y-3 max-h-[550px] overflow-y-auto pr-1">
+            <%= if @memory_context.memory.recent == [] do %>
+              <p class="text-[var(--ck-muted)] text-sm">
+                No memory records are available for this session.
+              </p>
+            <% else %>
               <%= for record <- @memory_context.memory.recent do %>
-                <li id={"observability-memory-record-#{record.id}"}>
-                  <div class="ck-card-header">
+                <div
+                  id={"observability-memory-record-#{record.id}"}
+                  class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+                >
+                  <div class="flex items-center justify-between gap-4">
                     <div>
-                      <p class="ck-mini-label">{record.record_type}</p>
-                      <strong>{record.title}</strong>
+                      <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                        {record.record_type}
+                      </p>
+                      <p class="text-sm font-semibold text-[var(--ck-text)]">{record.title}</p>
                     </div>
-                    <span class="ck-pill ck-pill-neutral">
+                    <span class={neutral_pill_class()}>
                       {if record.archived, do: "archived", else: "active"}
                     </span>
                   </div>
-                  <p>{record.summary}</p>
-                  <p class="ck-note">
+                  <p class="text-sm text-[var(--ck-text)] leading-relaxed">{record.summary}</p>
+                  <p class="text-[var(--ck-muted)] text-xs">
                     Source: {record.source_type || "unknown"} · Tags: {Enum.join(record.tags, ", ")}
                   </p>
-                </li>
+                </div>
               <% end %>
-            </ul>
-          <% end %>
+            <% end %>
+          </div>
         </div>
       </section>
-    </Layouts.app>
+    </ObservabilitySessionLayout.session>
     """
   end
 

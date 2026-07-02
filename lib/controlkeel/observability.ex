@@ -502,6 +502,7 @@ defmodule ControlKeel.Observability do
       when status in ["approved", "rejected", "archived"] do
     with {:ok, draft_id} <- parse_id(id),
          %BenchmarkDraft{} = draft <- Repo.get(BenchmarkDraft, draft_id) || {:error, :not_found},
+         :ok <- authorize_benchmark_draft_scope(draft, opts),
          {:ok, updated} <- update_benchmark_draft_record(draft, status, opts) do
       {:ok, benchmark_draft_status_result(updated)}
     end
@@ -2439,6 +2440,27 @@ defmodule ControlKeel.Observability do
       blocked > 0,
       "#{blocked} candidate(s) still need approval, materialization, successful runs, or investigation."
     )
+  end
+
+  defp authorize_benchmark_draft_scope(%BenchmarkDraft{} = draft, opts) do
+    workspace_id = Keyword.get(opts, :workspace_id)
+    org_id = Keyword.get(opts, :org_id)
+
+    cond do
+      is_integer(workspace_id) and draft.workspace_id != workspace_id -> {:error, :forbidden}
+      is_integer(org_id) ->
+        case draft.workspace_id do
+          nil -> {:error, :forbidden}
+          draft_workspace_id ->
+            case Repo.get(ControlKeel.Mission.Workspace, draft_workspace_id) do
+              %{org_id: ^org_id} -> :ok
+              _ -> {:error, :forbidden}
+            end
+        end
+
+      true ->
+        :ok
+    end
   end
 
   defp update_benchmark_draft_record(%BenchmarkDraft{} = draft, status, opts) do

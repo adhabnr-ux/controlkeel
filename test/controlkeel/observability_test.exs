@@ -1024,6 +1024,32 @@ defmodule ControlKeel.ObservabilityTest do
     assert drafts.by_status == %{"approved" => 1}
   end
 
+  test "update_benchmark_draft_status/3 refuses drafts outside the scoped workspace" do
+    session = session_fixture()
+    other_workspace = workspace_fixture()
+    other_session = session_fixture(%{workspace: other_workspace})
+
+    finding_fixture(%{
+      session: other_session,
+      title: "Cross-workspace draft status finding",
+      severity: "high",
+      status: "open",
+      category: "security",
+      rule_id: "security.cross_workspace_draft"
+    })
+
+    assert %{stored: 1} = Observability.save_eval_candidates(workspace_id: other_session.workspace_id)
+
+    assert %{stored: 1, drafts: [draft]} =
+             Observability.generate_benchmark_drafts(workspace_id: other_session.workspace_id)
+
+    assert {:error, :forbidden} =
+             Observability.update_benchmark_draft_status(draft.id, "approved",
+               workspace_id: session.workspace_id,
+               reviewed_by: "test"
+             )
+  end
+
   test "regressions/1 warns when drafts exist but no benchmark runs close the loop" do
     session = session_fixture()
 

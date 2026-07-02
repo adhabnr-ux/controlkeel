@@ -78,11 +78,13 @@ defmodule ControlKeelWeb do
       import Phoenix.HTML
       # Core UI components
       import ControlKeelWeb.CoreComponents
+      import ControlKeelWeb.FormatHelpers
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS
       alias ControlKeelWeb.Layouts
       alias ControlKeelWeb.ObservabilityLayout
+      alias ControlKeelWeb.ObservabilitySessionLayout
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

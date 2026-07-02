@@ -124,7 +124,7 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
                   Catch rate {format_rate(run.catch_rate)} · {run.caught_count}/{run.total_scenarios} scenario(s) · {run.result_count} result(s)
                 </p>
                 <div class="flex items-center gap-4 text-xs">
-                  <p class="text-[var(--ck-muted)]">{run.inserted_at || "unknown"}</p>
+                  <p class="text-[var(--ck-muted)]">{format_datetime(run.inserted_at, "unknown")}</p>
                   <.link
                     navigate={~p"/benchmarks/runs/#{run.id}"}
                     class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
