@@ -35,7 +35,7 @@ defmodule ControlKeelWeb.FormatHelpers do
 
       _ ->
         case NaiveDateTime.from_iso8601(value) do
-          {:ok, ndt} -> Calendar.strftime(ndt, "%Y-%m-%d %H:%M:%S UTC")
+          {:ok, ndt} -> Calendar.strftime(ndt, "%Y-%m-%d %H:%M:%S")
           _ -> value
         end
     end
