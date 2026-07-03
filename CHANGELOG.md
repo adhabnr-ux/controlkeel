@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.57 — 2026-07-03
+
+### What's changed
+
+- fix(ci): pin macOS release build to macos-14
+
 ## v0.3.56 — 2026-07-03
 
 ### What's changed
