@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.3.56 — 2026-07-03
+
+### What's changed
+
+- fix: idempotent SQLite migrations + ck_skill_load output schema (#28)
+- Merge pull request #26 from aryaminus/refactor/obs-subroutes
+- refactor/obs-subroutes: enforce workspace scoping for benchmark draft status updates and add error handling to UI
+- refactor/obs-subroutes: fix the date and time helper
+- refactor/obs-subroutes: update NaiveDateTime formatting to exclude UTC suffix
+- refactor/obs-subroutes: consolidate neutral pill class into FormatHelpers module to reduce duplication across LiveViews
+- refactor/obs-subroutes: enhance datetime formatting to handle NaiveDateTime in format_datetime function
+- refactor/obs-subroutes: fix linting
+- refactor/obs-subroutes: add scrollable containers to observability memory and timeline views
+- refactor/obs-subroutes: consolidate datetime formatting into new FormatHelpers module
+- refactor/obs-subroutes: implement ObservabilitySessionLayout and add command pills across observability pages
+- refactor/obs-subroutes: replace global layouts with ObservabilityLayout and integrate CommandPill across observability live views
+- Merge pull request #25 from aryaminus/refactor/observability-web
+- refactor/observability-web: update recommendations description for clarity and actionability
+- refactor/observability-web: update observability overview to limit workspace overview and scope recent runs to the latest workspace
+- refactor/observability-web: migrate CommandPill from `__using__` macro to `on_mount` lifecycle hook
+- refactor/observability-web: add observability trends date range selection and support rejection reasons in findings browser
+- refactor/observability-web: improve observability layout formatting and add component tests for CommandPill and RecentSessions
+- refactor/observability-web: add CommandPill component with clipboard copy functionality to observability views
+- refactor/observability-web: overhaul observability overview dashboard and replace SessionComponents with RecentSessions component
+- refactor/observability-web: standardize observability page headers, remove redundant navigation links, and format recommendations as bulleted lists.
+- refactor/observability-web: add active state highlighting to observability navigation links
+- refactor/observability-web: introduce ObservabilityLayout component and migrate observability LiveViews to use it
+- refactor/observability-web: replace custom CSS classes with Tailwind utility classes across observability LiveView components
+- refactor/observability-web: restyle observabilty problem page
+
 ## v0.3.55 — 2026-06-15
 
 ### What's changed
