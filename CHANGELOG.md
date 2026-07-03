@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.58 — 2026-07-03
+
+### What's changed
+
+- chore: apply mix format to observability LiveViews and templates
+
 ## v0.3.57 — 2026-07-03
 
 ### What's changed
