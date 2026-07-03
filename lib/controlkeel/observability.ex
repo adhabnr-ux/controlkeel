@@ -2447,10 +2447,14 @@ defmodule ControlKeel.Observability do
     org_id = Keyword.get(opts, :org_id)
 
     cond do
-      is_integer(workspace_id) and draft.workspace_id != workspace_id -> {:error, :forbidden}
+      is_integer(workspace_id) and draft.workspace_id != workspace_id ->
+        {:error, :forbidden}
+
       is_integer(org_id) ->
         case draft.workspace_id do
-          nil -> {:error, :forbidden}
+          nil ->
+            {:error, :forbidden}
+
           draft_workspace_id ->
             case Repo.get(ControlKeel.Mission.Workspace, draft_workspace_id) do
               %{org_id: ^org_id} -> :ok

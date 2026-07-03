@@ -1038,7 +1038,8 @@ defmodule ControlKeel.ObservabilityTest do
       rule_id: "security.cross_workspace_draft"
     })
 
-    assert %{stored: 1} = Observability.save_eval_candidates(workspace_id: other_session.workspace_id)
+    assert %{stored: 1} =
+             Observability.save_eval_candidates(workspace_id: other_session.workspace_id)
 
     assert %{stored: 1, drafts: [draft]} =
              Observability.generate_benchmark_drafts(workspace_id: other_session.workspace_id)

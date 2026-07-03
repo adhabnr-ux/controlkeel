@@ -126,5 +126,4 @@ defmodule ControlKeelWeb.ObservabilityPersistedEvalsLive do
     |> Enum.map(fn {key, count} -> "#{key}: #{count}" end)
     |> Enum.join(", ")
   end
-
 end

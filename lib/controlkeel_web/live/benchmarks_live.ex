@@ -94,6 +94,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
       else
         current ++ [id]
       end
+
     new_params = Map.put(socket.assigns.form.params, "subjects", updated)
 
     {:noreply,
@@ -672,12 +673,10 @@ defmodule ControlKeelWeb.BenchmarksLive do
             ]}>
               {decision_label(@result.decision)}
             </span>
-            <span
-              class={[
-                "rounded-full px-2 py-0.5 text-[0.7rem] border",
-                status_badge_class(@result.status)
-              ]}
-            >
+            <span class={[
+              "rounded-full px-2 py-0.5 text-[0.7rem] border",
+              status_badge_class(@result.status)
+            ]}>
               {status_label(@result.status)}
             </span>
           </div>

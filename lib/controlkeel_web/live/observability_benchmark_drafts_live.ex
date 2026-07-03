@@ -172,7 +172,9 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
     end
   end
 
-  defp flash_for_status_error(:forbidden), do: "You can only review drafts from the current workspace."
+  defp flash_for_status_error(:forbidden),
+    do: "You can only review drafts from the current workspace."
+
   defp flash_for_status_error(:not_found), do: "Benchmark draft was not found."
   defp flash_for_status_error(:invalid_id), do: "The provided draft id was invalid."
   defp flash_for_status_error(_reason), do: "Unable to update benchmark draft status."
@@ -186,5 +188,4 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
     |> Enum.map(fn {key, count} -> "#{key}: #{count}" end)
     |> Enum.join(", ")
   end
-
 end

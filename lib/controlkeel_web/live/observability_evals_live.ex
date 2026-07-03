@@ -122,5 +122,4 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
   defp priority_pill_class(_),
     do:
       "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,255,255,0.04)] text-[var(--ck-text)]"
-
 end

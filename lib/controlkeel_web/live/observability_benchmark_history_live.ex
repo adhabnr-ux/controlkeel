@@ -130,5 +130,4 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkHistoryLive do
     </ObservabilityLayout.observability>
     """
   end
-
 end

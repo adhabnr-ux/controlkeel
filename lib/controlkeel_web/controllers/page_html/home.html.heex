@@ -1,11 +1,11 @@
 <Layouts.app flash={@flash}>
-<% catch_rate = @benchmark_summary.average_catch_rate
-   overhead = @benchmark_summary.average_overhead_percent
+  <% catch_rate = @benchmark_summary.average_catch_rate
+  overhead = @benchmark_summary.average_overhead_percent
   proof_coverage = @ship_summary.outcome_metrics.proof_backed_task_coverage_percent
   deploy_ready = @ship_summary.outcome_metrics.deploy_ready_task_rate_percent
   avg_findings = @ship_summary.average_findings_per_session
-   cloud_mode? = @runtime_mode in [:cloud, :self_hosted]
-   anonymous? = is_nil(@current_user) %>
+  cloud_mode? = @runtime_mode in [:cloud, :self_hosted]
+  anonymous? = is_nil(@current_user) %>
 
   <%= if cloud_mode? and anonymous? do %>
     <section
@@ -245,27 +245,27 @@
           </div>
         </section>
 
-      <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
-              Telemetry
-            </p>
-            <h2 class="mt-1 text-xl font-semibold text-white">Signal Preview</h2>
+        <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+                Telemetry
+              </p>
+              <h2 class="mt-1 text-xl font-semibold text-white">Signal Preview</h2>
+            </div>
+            <a
+              href={~p"/benchmarks"}
+              class="text-sm font-medium text-zinc-400 hover:text-lime-300"
+            >
+              Benchmarks
+            </a>
           </div>
-          <a
-            href={~p"/benchmarks"}
-            class="text-sm font-medium text-zinc-400 hover:text-lime-300"
-          >
-            Benchmarks
-          </a>
-        </div>
 
-        <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <div class="rounded-2xl bg-white/[0.04] p-3">
-            <dt class="text-zinc-500">Avg overhead</dt>
-            <dd class="mt-1 font-semibold text-white">{format_percent(overhead)}</dd>
-          </div>
+          <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div class="rounded-2xl bg-white/[0.04] p-3">
+              <dt class="text-zinc-500">Avg overhead</dt>
+              <dd class="mt-1 font-semibold text-white">{format_percent(overhead)}</dd>
+            </div>
             <div class="rounded-2xl bg-white/[0.04] p-3">
               <dt class="text-zinc-500">First finding</dt>
               <dd class="mt-1 font-semibold text-white">
@@ -274,8 +274,8 @@
                   else: "Not recorded"}
               </dd>
             </div>
-        </dl>
-      </section>
+          </dl>
+        </section>
       </aside>
 
       <.current_status provider_status={@provider_status} />

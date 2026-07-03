@@ -112,5 +112,4 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkScenariosLive do
     </ObservabilityLayout.observability>
     """
   end
-
 end
