@@ -12,7 +12,7 @@ defmodule ControlKeelWeb.DashboardLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    project_root = endpoint_config(socket, :project_root) || File.cwd!()
+    project_root = ControlKeelWeb.Endpoint.config(:project_root) || File.cwd!()
 
     {:ok,
      socket
@@ -264,8 +264,4 @@ defmodule ControlKeelWeb.DashboardLive do
   defp format_number(nil), do: "Not recorded"
   defp format_number(value) when is_float(value), do: Float.round(value, 1)
   defp format_number(value), do: value
-
-  defp endpoint_config(socket, key) do
-    socket.endpoint.config(key)
-  end
 end
