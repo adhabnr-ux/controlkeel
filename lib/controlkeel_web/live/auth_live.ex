@@ -58,7 +58,7 @@ defmodule ControlKeelWeb.AuthLive do
       <.flash kind={:error} flash={@flash} />
 
       <div class="mb-8">
-        <.link navigate={~p"/"} class="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-lime-300 transition">
+        <.link href={~p"/"} class="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-lime-300 transition">
           <.icon name="hero-arrow-left" class="size-4" /> Home
         </.link>
       </div>
