@@ -58,14 +58,6 @@ defmodule ControlKeelWeb.DashboardLayout do
             Missions
           </a>
           <a
-            href={~p"/install"}
-            data-sidebar-link
-            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
-          >
-            <.icon name="hero-arrow-down-tray" class="size-4 text-zinc-500 group-hover:text-lime-300" />
-            Install
-          </a>
-          <a
             href={~p"/skills"}
             data-sidebar-link
             class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
