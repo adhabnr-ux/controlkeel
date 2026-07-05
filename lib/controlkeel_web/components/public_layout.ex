@@ -40,6 +40,8 @@ defmodule ControlKeelWeb.PublicLayout do
             </a>
             <a
               href="https://github.com/aryaminus/controlkeel"
+              target="_blank"
+              rel="noopener"
               class="text-zinc-400 transition hover:text-white"
             >
               GitHub
