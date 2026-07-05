@@ -1,4 +1,4 @@
-<Layouts.app flash={@flash}>
+<DashboardLayout.dashboard flash={@flash}>
   <% catch_rate = @benchmark_summary.average_catch_rate
   overhead = @benchmark_summary.average_overhead_percent
   proof_coverage = @ship_summary.outcome_metrics.proof_backed_task_coverage_percent
@@ -343,4 +343,4 @@
       </div>
     </section>
   <% end %>
-</Layouts.app>
+</DashboardLayout.dashboard>

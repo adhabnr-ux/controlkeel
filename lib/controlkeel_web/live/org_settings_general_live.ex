@@ -108,7 +108,7 @@ defmodule ControlKeelWeb.OrgSettingsGeneralLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="ck-shell" style="max-width: 640px; margin: 4rem auto;">
         <div class="ck-section-header">
           <div>
@@ -195,7 +195,7 @@ defmodule ControlKeelWeb.OrgSettingsGeneralLive do
           </div>
         <% end %>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 

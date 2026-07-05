@@ -61,7 +61,7 @@ defmodule ControlKeelWeb.SignupLive do
   @impl true
   def render(%{mode: :local} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="ck-shell" style="max-width: 480px; margin: 6rem auto;">
         <div class="ck-section-header">
           <div>
@@ -81,13 +81,13 @@ defmodule ControlKeelWeb.SignupLive do
           <.link navigate={~p"/"} class="ck-btn ck-btn-secondary mt-4">Back to dashboard</.link>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 
   def render(%{mode: :cloud} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="ck-shell" style="max-width: 560px; margin: 4rem auto;">
         <div class="ck-section-header">
           <div>
@@ -173,7 +173,7 @@ defmodule ControlKeelWeb.SignupLive do
           <.link navigate={~p"/auth/login"} class="text-lime-300 hover:underline">Sign in</.link>
         </p>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 

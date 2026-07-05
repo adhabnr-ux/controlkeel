@@ -53,7 +53,7 @@ defmodule ControlKeelWeb.AuthLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="ck-shell" style="max-width: 480px; margin: 6rem auto;">
         <div class="ck-section-header">
           <div>
@@ -92,7 +92,7 @@ defmodule ControlKeelWeb.AuthLive do
           <span class="text-zinc-400">Use the invite link from your email instead.</span>
         </p>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 end
