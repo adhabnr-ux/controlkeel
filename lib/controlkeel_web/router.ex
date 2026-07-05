@@ -6,7 +6,7 @@ defmodule ControlKeelWeb.Router do
     plug :fetch_session
     plug :fetch_live_flash
     plug ControlKeelWeb.Plugs.LoadCurrentUser
-    plug :put_root_layout, html: {ControlKeelWeb.Layouts, :root}
+    plug :put_root_layout, html: {ControlKeelWeb.RootLayout, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
   end
@@ -53,7 +53,7 @@ defmodule ControlKeelWeb.Router do
     plug :fetch_session
     plug :fetch_live_flash
     plug ControlKeelWeb.Plugs.LoadCurrentUser
-    plug :put_root_layout, html: {ControlKeelWeb.Layouts, :root}
+    plug :put_root_layout, html: {ControlKeelWeb.RootLayout, :root}
     plug :put_secure_browser_headers
   end
 

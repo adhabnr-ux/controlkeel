@@ -45,7 +45,7 @@ Keep this root file lean: only project-specific governance, commands, and critic
 
 - LiveView templates must start with `<DashboardLayout.dashboard flash={@flash} ...>` and pass `current_scope` when required.
 - `DashboardLayout` is aliased in `controlkeel_web.ex`; do not add redundant aliases.
-- The root layout is owned by `ControlKeelWeb.Layouts` (`components/layouts/root.html.heex`); `put_root_layout` uses `{ControlKeelWeb.Layouts, :root}`. `DashboardLayout` holds the in-page dashboard layout only.
+- The root layout is owned by `ControlKeelWeb.RootLayout` (`components/root_layout.ex` + `layouts/root.html.heex`); `put_root_layout` uses `{ControlKeelWeb.RootLayout, :root}`. `DashboardLayout` holds the in-page dashboard layout only.
 - Fix missing `current_scope` by moving routes into the right `live_session` and passing the assign through layout boundaries.
 - `<.flash_group>` belongs only in `dashboard_layout.ex`.
 - Use `<.icon name="hero-x-mark" class="w-5 h-5"/>`; do not call Heroicons modules directly.

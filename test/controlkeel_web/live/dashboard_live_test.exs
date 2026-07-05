@@ -22,7 +22,7 @@ defmodule ControlKeelWeb.DashboardLiveTest do
     assert html =~ "skills-registry-status"
     assert html =~ "Signal Preview"
     assert html =~ "New Mission"
-    assert html =~ "Missions"
-    assert html =~ "Skills"
+    assert html =~ "Docs"
+    assert html =~ "GitHub"
   end
 end

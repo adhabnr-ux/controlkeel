@@ -35,7 +35,7 @@ defmodule ControlKeelWeb.AuthController do
     |> delete_session(:oidc_org_id)
     |> delete_session(:session_last_active)
     |> put_flash(:info, "Signed out")
-    |> redirect(to: ~p"/")
+    |> redirect(to: ~p"/auth/login")
   end
 
   @doc """

@@ -16,6 +16,7 @@ defmodule ControlKeelWeb.PublicLayout do
       </PublicLayout.public>
 
   """
+
   slot :inner_block, required: true
 
   def public(assigns) do
@@ -33,10 +34,12 @@ defmodule ControlKeelWeb.PublicLayout do
             <a href={~p"/getting-started"} class="text-zinc-400 transition hover:text-white">
               Docs
             </a>
+            <%!-- TODO: temporary until auth gating is added in a future PR --%>
+            <a href={~p"/dashboard"} class="text-zinc-400 transition hover:text-white">
+              Dashboard
+            </a>
             <a
               href="https://github.com/aryaminus/controlkeel"
-              target="_blank"
-              rel="noopener noreferrer"
               class="text-zinc-400 transition hover:text-white"
             >
               GitHub

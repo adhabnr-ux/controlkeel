@@ -12,7 +12,7 @@ defmodule ControlKeelWeb.AuthControllerTest do
       })
       |> get("/auth/logout")
 
-    assert redirected_to(conn, 302) == "/"
+    assert redirected_to(conn, 302) == "/auth/login"
     refute get_session(conn, :current_user_id)
     refute get_session(conn, :current_org_id)
     refute get_session(conn, :oidc_state)

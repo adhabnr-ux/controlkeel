@@ -53,46 +53,53 @@ defmodule ControlKeelWeb.AuthLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="ck-shell" style="max-width: 480px; margin: 6rem auto;">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">ControlKeel Cloud</p>
-            <h1 class="ck-section-title">Sign in</h1>
-            <p class="ck-lead ck-lead-tight">Enter your organization slug to continue with SSO.</p>
-          </div>
+    <section class="ck-shell" style="max-width: 480px; margin: 4rem auto;">
+      <.flash kind={:info} flash={@flash} />
+      <.flash kind={:error} flash={@flash} />
+
+      <div class="mb-8">
+        <.link navigate={~p"/"} class="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-lime-300 transition">
+          <.icon name="hero-arrow-left" class="size-4" /> Home
+        </.link>
+      </div>
+
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">ControlKeel Cloud</p>
+          <h1 class="ck-section-title">Sign in</h1>
+          <p class="ck-lead ck-lead-tight">Enter your organization slug to continue with SSO.</p>
+        </div>
+      </div>
+
+      <.form for={%{}} phx-submit="submit" phx-change="change" class="mt-6 flex flex-col gap-4">
+        <div>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Organization slug</label>
+          <input
+            type="text"
+            name="slug"
+            value={@slug}
+            placeholder="acme"
+            autocomplete="organization"
+            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-300"
+          />
+          <%= if @error do %>
+            <p class="mt-1 text-sm text-red-400">{@error}</p>
+          <% end %>
         </div>
 
-        <.form for={%{}} phx-submit="submit" phx-change="change" class="mt-6 flex flex-col gap-4">
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Organization slug</label>
-            <input
-              type="text"
-              name="slug"
-              value={@slug}
-              placeholder="acme"
-              autocomplete="organization"
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-300"
-            />
-            <%= if @error do %>
-              <p class="mt-1 text-sm text-red-400">{@error}</p>
-            <% end %>
-          </div>
+        <button
+          type="submit"
+          class="rounded-lg bg-lime-300 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-lime-200 transition"
+        >
+          Continue with SSO
+        </button>
+      </.form>
 
-          <button
-            type="submit"
-            class="rounded-lg bg-lime-300 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-lime-200 transition"
-          >
-            Continue with SSO
-          </button>
-        </.form>
-
-        <p class="mt-8 text-sm text-zinc-500">
-          Joining via an invitation?
-          <span class="text-zinc-400">Use the invite link from your email instead.</span>
-        </p>
-      </section>
-    </DashboardLayout.dashboard>
+      <p class="mt-8 text-sm text-zinc-500">
+        Joining via an invitation?
+        <span class="text-zinc-400">Use the invite link from your email instead.</span>
+      </p>
+    </section>
     """
   end
 end
