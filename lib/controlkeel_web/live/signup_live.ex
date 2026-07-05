@@ -86,7 +86,6 @@ defmodule ControlKeelWeb.SignupLive do
           and configure <code>:cloud_sync_endpoint</code>
           in your release.
         </p>
-        <.link navigate={~p"/"} class="ck-btn ck-btn-secondary mt-4">Back to dashboard</.link>
       </div>
     </section>
     """
