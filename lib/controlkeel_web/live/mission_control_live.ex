@@ -189,7 +189,7 @@ defmodule ControlKeelWeb.MissionControlLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="mx-auto max-w-[1180px] w-full px-4 pt-8 pb-16">
         <%= if @launched do %>
           <div class="p-6 rounded-3xl border border-white/10 bg-emerald-50 text-zinc-900 border-l-4 border-l-emerald-500 mb-6">
@@ -1006,7 +1006,7 @@ defmodule ControlKeelWeb.MissionControlLive do
           close_event="close_fix"
         />
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 

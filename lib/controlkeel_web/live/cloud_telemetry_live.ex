@@ -145,7 +145,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section id="cloud-telemetry-page" class="ck-shell ck-shell-tight">
         <div class="ck-section-header">
           <div>
@@ -599,7 +599,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
           <% end %>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 

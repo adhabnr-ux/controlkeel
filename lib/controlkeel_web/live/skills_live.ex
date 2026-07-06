@@ -150,7 +150,7 @@ defmodule ControlKeelWeb.SkillsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="w-[min(1180px,calc(100%-2rem))] mx-auto">
         <div class="space-y-1">
           <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
@@ -526,7 +526,7 @@ defmodule ControlKeelWeb.SkillsLive do
           </div>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 

@@ -244,7 +244,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   @impl true
   def render(%{live_action: :show, state: :show} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section id="cloud-project-page" class="ck-shell ck-shell-tight">
         <div class="ck-section-header">
           <div>
@@ -346,13 +346,13 @@ defmodule ControlKeelWeb.CloudProjectsLive do
           <% end %>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 
   def render(%{live_action: :show, state: :forbidden} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="ck-shell ck-shell-tight">
         <h1 class="ck-section-title">Not visible</h1>
         <p class="ck-lead">
@@ -360,13 +360,13 @@ defmodule ControlKeelWeb.CloudProjectsLive do
           control plane to view its telemetry.
         </p>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 
   def render(%{live_action: :show, state: :not_found} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="ck-shell ck-shell-tight">
         <h1 class="ck-section-title">Workspace not found</h1>
         <p class="ck-lead">
@@ -374,13 +374,13 @@ defmodule ControlKeelWeb.CloudProjectsLive do
           revoked, or it never enrolled with this control plane.
         </p>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section id="cloud-projects-page" class="ck-shell ck-shell-tight">
         <div class="ck-section-header">
           <div>
@@ -396,7 +396,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
         {render_body(assigns)}
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 
