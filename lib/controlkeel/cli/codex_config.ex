@@ -1,4 +1,4 @@
-defmodule ControlKeel.CodexConfig do
+defmodule ControlKeel.CLI.CodexConfig do
   @moduledoc false
 
   @managed_start "# controlkeel:start"

@@ -11,13 +11,13 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Agent.Integration
   alias ControlKeel.Agent.AttachedSync
   alias ControlKeel.Budget
-  alias ControlKeel.ClaudeCLI
+  alias ControlKeel.CLI.Claude
   alias ControlKeel.Distribution
   alias ControlKeel.Deployment.HostingCost
   alias ControlKeel.Governance
   alias ControlKeel.CLI.Catalog
   alias ControlKeel.CLI.Parser
-  alias ControlKeel.Help
+  alias ControlKeel.CLI.Help
   alias ControlKeel.Intent
   alias ControlKeel.Project.Local
   alias ControlKeel.Mission
@@ -28,7 +28,7 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Project.Binding
   alias ControlKeel.Project.Root
   alias ControlKeel.Mission.ReviewBridge
-  alias ControlKeel.SetupAdvisor
+  alias ControlKeel.CLI.SetupAdvisor
   alias ControlKeel.Skills
   alias ControlKeel.Project.WorkspaceContext
   alias ControlKeelWeb.Endpoint
@@ -3184,7 +3184,7 @@ defmodule ControlKeel.CLI do
         {:skip, "claude-code not found on this system"}
 
       true ->
-        case ClaudeCLI.attach_local(project_root, command_spec.command, command_spec.args) do
+        case Claude.attach_local(project_root, command_spec.command, command_spec.args) do
           {:ok, result} ->
             _ = Skills.install("claude-standalone", project_root, scope: "user")
 

@@ -8,7 +8,7 @@ defmodule ControlKeel.CLI.Doctor do
   alias ControlKeel.Project.Binding
   alias ControlKeel.Project.Root
   alias ControlKeel.ProviderBroker
-  alias ControlKeel.SetupAdvisor
+  alias ControlKeel.CLI.SetupAdvisor
 
   @ck_gitignore_required ["/controlkeel/", "/.controlkeel/"]
 

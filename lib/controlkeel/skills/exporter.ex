@@ -4289,7 +4289,7 @@ defmodule ControlKeel.Skills.Exporter do
 
     Project root: #{project_root_hint}
     Target: `#{target}`
-    Primary CK loop: `#{ControlKeel.SetupAdvisor.core_loop()}`
+    Primary CK loop: `#{ControlKeel.CLI.SetupAdvisor.core_loop()}`
 
     Required workflow:
     1. Call `ck_context` at the start of a task for mission, workspace, transcript, and resume context.

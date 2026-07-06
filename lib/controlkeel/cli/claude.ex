@@ -1,4 +1,4 @@
-defmodule ControlKeel.ClaudeCLI do
+defmodule ControlKeel.CLI.Claude do
   @moduledoc false
 
   def attach_local(project_root, command, args \\ [], server_name \\ "controlkeel") do

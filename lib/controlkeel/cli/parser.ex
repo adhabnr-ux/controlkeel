@@ -2,7 +2,7 @@ defmodule ControlKeel.CLI.Parser do
   @moduledoc false
 
   alias ControlKeel.Agent.Integration
-  alias ControlKeel.Help
+  alias ControlKeel.CLI.Help
 
   @init_switches [
     project_root: :string,

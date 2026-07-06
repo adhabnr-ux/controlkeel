@@ -1,7 +1,7 @@
 defmodule ControlKeel.Skills.Exporter.Codex do
   @moduledoc false
 
-  alias ControlKeel.CodexConfig
+  alias ControlKeel.CLI.CodexConfig
   alias ControlKeel.Skills.Exporter, as: E
 
   def write(root, project_root, skills, opts) do

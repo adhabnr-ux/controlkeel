@@ -3,7 +3,7 @@ defmodule ControlKeel.CLI.Dispatch.DeploymentPortability do
 
   alias ControlKeel.Deployment.Advisor
   alias ControlKeel.Deployment.HostingCost
-  alias ControlKeel.SetupAdvisor
+  alias ControlKeel.CLI.SetupAdvisor
   alias ControlKeel.Skills
   import ControlKeel.CLI, except: [run_command: 2]
 

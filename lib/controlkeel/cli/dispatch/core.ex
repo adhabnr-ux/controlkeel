@@ -4,15 +4,15 @@ defmodule ControlKeel.CLI.Dispatch.Core do
   alias ControlKeel.Analytics
   alias ControlKeel.Agent.AutonomyLoop
   alias ControlKeel.Budget
-  alias ControlKeel.Help
+  alias ControlKeel.CLI.Help
   alias ControlKeel.Project.Local
   alias ControlKeel.Mission
   alias ControlKeel.ProviderBroker
   alias ControlKeel.Project.Binding
-  alias ControlKeel.Updater
+  alias ControlKeel.CLI.Updater
   alias ControlKeel.ExecutionSandbox
   alias ControlKeel.Proxy
-  alias ControlKeel.SetupAdvisor
+  alias ControlKeel.CLI.SetupAdvisor
   alias ControlKeel.Mission.TaskAugmentation
   import ControlKeel.CLI, except: [run_command: 2]
 

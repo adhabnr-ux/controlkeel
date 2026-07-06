@@ -146,7 +146,7 @@ defmodule ControlKeel.CLI.CatalogTest do
 
     for {argv, command_line, expected_detail} <- scoped do
       assert {:ok, %{command: :help, args: args}} = CLI.parse(argv)
-      output = ControlKeel.Help.render(args)
+      output = ControlKeel.CLI.Help.render(args)
 
       assert output =~ "ControlKeel command help"
       assert output =~ command_line

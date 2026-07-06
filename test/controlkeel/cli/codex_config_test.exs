@@ -1,7 +1,7 @@
-defmodule ControlKeel.CodexConfigTest do
+defmodule ControlKeel.CLI.CodexConfigTest do
   use ExUnit.Case, async: true
 
-  alias ControlKeel.CodexConfig
+  alias ControlKeel.CLI.CodexConfig
 
   setup do
     tmp_dir =

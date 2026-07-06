@@ -4,7 +4,7 @@ defmodule ControlKeel.CLI.DetachTest do
   import ExUnit.CaptureIO
 
   alias ControlKeel.CLI
-  alias ControlKeel.CodexConfig
+  alias ControlKeel.CLI.CodexConfig
   alias ControlKeel.Project.Local
   alias ControlKeel.Project.Binding
 

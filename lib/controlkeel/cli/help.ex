@@ -1,4 +1,4 @@
-defmodule ControlKeel.Help do
+defmodule ControlKeel.CLI.Help do
   @moduledoc false
 
   alias ControlKeel.Agent.Integration

@@ -1,4 +1,4 @@
-defmodule ControlKeel.Updater do
+defmodule ControlKeel.CLI.Updater do
   @moduledoc false
 
   alias ControlKeel.Agent.AttachedSync

@@ -1,4 +1,4 @@
-defmodule ControlKeel.SetupAdvisor do
+defmodule ControlKeel.CLI.SetupAdvisor do
   @moduledoc false
 
   alias ControlKeel.Agent.Execution

@@ -3,11 +3,11 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
 
   alias ControlKeel.Agent.Execution
   alias ControlKeel.Agent.Integration
-  alias ControlKeel.ClaudeCLI
-  alias ControlKeel.CodexConfig
+  alias ControlKeel.CLI.Claude
+  alias ControlKeel.CLI.CodexConfig
   alias ControlKeel.ProviderBroker
   alias ControlKeel.Project.Binding
-  alias ControlKeel.SetupAdvisor
+  alias ControlKeel.CLI.SetupAdvisor
   alias ControlKeel.Skills
   import ControlKeel.CLI, except: [run_command: 2]
 
@@ -19,7 +19,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
          {:ok, _scope} <- validate_attach_scope("claude-code", options),
          command_spec <- Binding.mcp_command_spec(root),
          {:ok, attached_agent} <-
-           ClaudeCLI.attach_local(
+           Claude.attach_local(
              root,
              command_spec.command,
              command_spec.args
@@ -686,15 +686,15 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
 
     cond do
       claude_agent?(agent_key) ->
-        ControlKeel.ClaudeCLI.detach_local(root, server)
+        ControlKeel.CLI.Claude.detach_local(root, server)
         true
 
       codex_agent?(agent_key) and is_binary(config_path) ->
-        ControlKeel.CodexConfig.remove(config_path)
+        ControlKeel.CLI.CodexConfig.remove(config_path)
         true
 
       is_binary(config_path) and String.ends_with?(config_path, ".toml") ->
-        ControlKeel.CodexConfig.remove(config_path)
+        ControlKeel.CLI.CodexConfig.remove(config_path)
         true
 
       is_binary(config_path) and String.ends_with?(config_path, ".json") ->
