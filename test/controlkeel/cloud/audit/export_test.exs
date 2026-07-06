@@ -1,26 +1,26 @@
-defmodule ControlKeel.Cloud.AuditExportTest do
+defmodule ControlKeel.Cloud.Audit.ExportTest do
   use ControlKeel.DataCase, async: false
 
   alias ControlKeel.Accounts
-  alias ControlKeel.Cloud.AuditExport
+  alias ControlKeel.Cloud.Audit.Export
   alias ControlKeel.Cloud.RuntimeContext
   alias ControlKeel.MissionFixtures
 
   describe "build/1 scope validation" do
     test "returns :scope_required when neither workspace_id nor org_id is given" do
-      assert {:error, :scope_required} = AuditExport.build([])
+      assert {:error, :scope_required} = Export.build([])
     end
 
     test "returns :scope_conflict when both are given" do
-      assert {:error, :scope_conflict} = AuditExport.build(workspace_id: 1, org_id: 1)
+      assert {:error, :scope_conflict} = Export.build(workspace_id: 1, org_id: 1)
     end
 
     test "returns :unknown_workspace for missing workspace" do
-      assert {:error, :unknown_workspace} = AuditExport.build(workspace_id: 999_999)
+      assert {:error, :unknown_workspace} = Export.build(workspace_id: 999_999)
     end
 
     test "returns :unknown_org for missing org" do
-      assert {:error, :unknown_org} = AuditExport.build(org_id: 999_999)
+      assert {:error, :unknown_org} = Export.build(org_id: 999_999)
     end
   end
 
@@ -38,7 +38,7 @@ defmodule ControlKeel.Cloud.AuditExportTest do
       finding: finding,
       review: review
     } do
-      {:ok, bundle} = AuditExport.build(workspace_id: workspace.id)
+      {:ok, bundle} = Export.build(workspace_id: workspace.id)
 
       assert bundle["schema_version"] == "1"
       assert bundle["scope"]["type"] == "workspace"
@@ -52,7 +52,7 @@ defmodule ControlKeel.Cloud.AuditExportTest do
 
     test "respects --since by filtering out older rows", %{workspace: workspace} do
       future = DateTime.utc_now() |> DateTime.add(86_400, :second)
-      {:ok, bundle} = AuditExport.build(workspace_id: workspace.id, since: future)
+      {:ok, bundle} = Export.build(workspace_id: workspace.id, since: future)
       assert bundle["findings"] == []
       assert bundle["reviews"] == []
     end
@@ -67,14 +67,14 @@ defmodule ControlKeel.Cloud.AuditExportTest do
 
       {:ok, _} = RuntimeContext.transition_status(pkg, "completed")
 
-      {:ok, bundle} = AuditExport.build(workspace_id: workspace.id)
+      {:ok, bundle} = Export.build(workspace_id: workspace.id)
 
       assert [%{"runtime_target" => "devin", "status" => "completed"}] =
                bundle["cloud_run_packages"]
     end
 
     test "produces JSON-encodable output", %{workspace: workspace} do
-      {:ok, bundle} = AuditExport.build(workspace_id: workspace.id)
+      {:ok, bundle} = Export.build(workspace_id: workspace.id)
       assert is_binary(Jason.encode!(bundle))
     end
   end
@@ -101,13 +101,13 @@ defmodule ControlKeel.Cloud.AuditExportTest do
     end
 
     test "aggregates findings across every workspace in the org", %{org: org} do
-      {:ok, bundle} = AuditExport.build(org_id: org.id)
+      {:ok, bundle} = Export.build(org_id: org.id)
       assert length(bundle["findings"]) == 2
       assert bundle["scope"] == %{"type" => "org", "id" => org.id}
     end
 
     test "received_telemetry_events section is populated only for org scope", %{org: org} do
-      {:ok, bundle} = AuditExport.build(org_id: org.id)
+      {:ok, bundle} = Export.build(org_id: org.id)
       # No received events were inserted, but the section exists and is a list
       assert is_list(bundle["received_telemetry_events"])
     end

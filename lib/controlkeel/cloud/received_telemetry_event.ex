@@ -1,7 +1,7 @@
 defmodule ControlKeel.Cloud.ReceivedTelemetryEvent do
   @moduledoc """
   Persisted record of a telemetry envelope received from an upstream-pushing
-  workspace. Distinct from `ControlKeel.Cloud.TelemetryEvent`, which is the
+  workspace. Distinct from `ControlKeel.Cloud.Telemetry.Event`, which is the
   outbound queue for this workspace's own events.
 
   In self-host mode the same Phoenix app is often both sender and receiver.

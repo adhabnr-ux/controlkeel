@@ -74,7 +74,7 @@ defmodule ControlKeel.Cloud.RuntimeContext do
 
   @doc "Generate a user-facing pkg_<ulid> identifier."
   @spec generate_external_id() :: String.t()
-  def generate_external_id, do: "pkg_" <> ControlKeel.Cloud.TelemetryEnvelope.ulid()
+  def generate_external_id, do: "pkg_" <> ControlKeel.Cloud.Telemetry.Envelope.ulid()
 
   @doc "Fetch a package by its user-facing pkg_<ulid> external id."
   @spec get_by_external_id(String.t()) :: RunPackage.t() | nil

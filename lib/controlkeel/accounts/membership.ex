@@ -16,7 +16,7 @@ defmodule ControlKeel.Accounts.Membership do
 
   An invitation may pre-bind a `mission_workspace_id`. When the same token
   is later presented at cloud workspace enrolment (the laptop redeeming a
-  scoped invite), `WorkspaceKeyRegistry.enroll/1` links the new
+  scoped invite), `KeyRegistry.enroll/1` links the new
   `workspace_keys` row to that project workspace, completing the local↔cloud
   identity model from the operator side. The field is harmless after
   user-side acceptance — it just records which workspace the invite was

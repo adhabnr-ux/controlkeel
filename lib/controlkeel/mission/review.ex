@@ -2,7 +2,7 @@ defmodule ControlKeel.Mission.Review do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias ControlKeel.Cloud.TelemetryEnvelope
+  alias ControlKeel.Cloud.Telemetry.Envelope
   alias ControlKeel.Mission.{Review, Session, Task}
 
   @review_types ~w(plan diff completion)
@@ -109,7 +109,7 @@ defmodule ControlKeel.Mission.Review do
   defp maybe_generate_external_id(changeset) do
     case get_field(changeset, :external_id) do
       nil ->
-        put_change(changeset, :external_id, @external_id_prefix <> TelemetryEnvelope.ulid())
+        put_change(changeset, :external_id, @external_id_prefix <> Envelope.ulid())
 
       _ ->
         changeset

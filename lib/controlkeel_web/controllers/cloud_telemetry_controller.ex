@@ -12,8 +12,8 @@ defmodule ControlKeelWeb.CloudTelemetryController do
 
   Authorization uses `ControlKeel.Cloud.AuthToken` - a short-lived (5 min TTL)
   ed25519-signed Bearer token verified against the enrolled workspace public key
-  in `ControlKeel.Cloud.WorkspaceKeyRegistry` (multi-tenant) with fallback to
-  local `ControlKeel.Cloud.WorkspaceIdentity` for single-node self-host.
+  in `ControlKeel.Cloud.Workspace.KeyRegistry` (multi-tenant) with fallback to
+  local `ControlKeel.Cloud.Workspace.Identity` for single-node self-host.
 
   Response:
 

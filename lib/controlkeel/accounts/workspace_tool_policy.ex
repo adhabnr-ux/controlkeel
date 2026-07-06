@@ -4,7 +4,7 @@ defmodule ControlKeel.Accounts.WorkspaceToolPolicy do
 
   Controls which hosted MCP tools a workspace is allowed to call. Three modes:
 
-    - `"inherit"` (default) — workspace defers to the global `McpPolicy` deny-list
+    - `"inherit"` (default) — workspace defers to the global `Policy` deny-list
       and rate-limit config. No additional restriction.
     - `"allowlist"` — only the tools listed in `tools` are permitted. All others
       are rejected with `{:error, {:policy, :tool_not_in_workspace_allowlist}}`.

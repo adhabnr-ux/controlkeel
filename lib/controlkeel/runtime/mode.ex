@@ -172,7 +172,7 @@ defmodule ControlKeel.Runtime.Mode do
   defp requirement_present?(:phx_host), do: present?(System.get_env("PHX_HOST"))
 
   defp requirement_present?(:workspace_identity) do
-    match?({:ok, _}, ControlKeel.Cloud.WorkspaceIdentity.load())
+    match?({:ok, _}, ControlKeel.Cloud.Workspace.Identity.load())
   rescue
     _ -> false
   end

@@ -2,7 +2,7 @@ defmodule ControlKeel.Cloud.AuthTokenMultiTenantTest do
   use ControlKeel.DataCase, async: false
 
   alias ControlKeel.Cloud.AuthToken
-  alias ControlKeel.Cloud.WorkspaceKeyRegistry
+  alias ControlKeel.Cloud.Workspace.KeyRegistry
 
   setup do
     tmp_home =
@@ -46,7 +46,7 @@ defmodule ControlKeel.Cloud.AuthTokenMultiTenantTest do
       remote = fresh_identity()
 
       {:ok, _} =
-        WorkspaceKeyRegistry.enroll(%{
+        KeyRegistry.enroll(%{
           workspace_id: remote.workspace_id,
           public_key: remote.public_key,
           algorithm: remote.algorithm,
@@ -64,7 +64,7 @@ defmodule ControlKeel.Cloud.AuthTokenMultiTenantTest do
       remote = fresh_identity()
 
       {:ok, %{last_seen_at: before}} =
-        WorkspaceKeyRegistry.enroll(%{
+        KeyRegistry.enroll(%{
           workspace_id: remote.workspace_id,
           public_key: remote.public_key,
           algorithm: remote.algorithm,
@@ -78,7 +78,7 @@ defmodule ControlKeel.Cloud.AuthTokenMultiTenantTest do
       {:ok, token} = AuthToken.sign(remote)
       assert {:ok, _claims} = AuthToken.verify(token)
 
-      {:ok, key} = WorkspaceKeyRegistry.fetch(remote.workspace_id)
+      {:ok, key} = KeyRegistry.fetch(remote.workspace_id)
       assert DateTime.compare(key.last_seen_at, before) == :gt
     end
 
@@ -93,7 +93,7 @@ defmodule ControlKeel.Cloud.AuthTokenMultiTenantTest do
       remote = fresh_identity()
 
       {:ok, _} =
-        WorkspaceKeyRegistry.enroll(%{
+        KeyRegistry.enroll(%{
           workspace_id: remote.workspace_id,
           public_key: remote.public_key,
           algorithm: remote.algorithm,
@@ -102,7 +102,7 @@ defmodule ControlKeel.Cloud.AuthTokenMultiTenantTest do
           org_id: nil
         })
 
-      {:ok, _} = WorkspaceKeyRegistry.revoke(remote.workspace_id)
+      {:ok, _} = KeyRegistry.revoke(remote.workspace_id)
 
       {:ok, token} = AuthToken.sign(remote)
       assert {:error, :unknown_workspace} = AuthToken.verify(token)

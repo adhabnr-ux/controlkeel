@@ -1,9 +1,9 @@
-defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
+defmodule ControlKeel.Cloud.Workspace.KeyRegistry do
   @moduledoc """
   Multi-tenant registry of enrolled workspace public keys.
 
   This is the receiver-side counterpart to
-  `ControlKeel.Cloud.WorkspaceIdentity`. Phase 7 introduces this so that
+  `ControlKeel.Cloud.Workspace.Identity`. Phase 7 introduces this so that
   controlkeel.com can verify Bearer tokens from many different laptops, each
   owning its own ed25519 keypair.
 
@@ -19,13 +19,13 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
     - `touch_last_seen/1` — update last_seen_at on successful token verify.
 
   Self-host single-node deployments are not required to use this table at
-  all — `AuthToken.verify/1` falls back to the local `WorkspaceIdentity`
+  all — `AuthToken.verify/1` falls back to the local `Identity`
   when no registry row exists.
   """
 
   import Ecto.Query, warn: false
 
-  alias ControlKeel.Cloud.WorkspaceKey
+  alias ControlKeel.Cloud.Workspace.Key
   alias ControlKeel.Repo
 
   @type enrollment :: %{
@@ -49,20 +49,20 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
   public key bytes) before calling. This keeps the registry agnostic to
   encoding choices.
   """
-  @spec enroll(enrollment()) :: {:ok, %WorkspaceKey{}} | {:error, Ecto.Changeset.t()}
+  @spec enroll(enrollment()) :: {:ok, %Key{}} | {:error, Ecto.Changeset.t()}
   def enroll(%{workspace_id: ws} = attrs) when is_binary(ws) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     base = Map.put(attrs, :last_seen_at, now)
 
-    case Repo.get_by(WorkspaceKey, workspace_id: ws) do
+    case Repo.get_by(Key, workspace_id: ws) do
       nil ->
-        %WorkspaceKey{}
-        |> WorkspaceKey.changeset(base)
+        %Key{}
+        |> Key.changeset(base)
         |> Repo.insert()
 
-      %WorkspaceKey{} = existing ->
+      %Key{} = existing ->
         existing
-        |> WorkspaceKey.changeset(Map.put(base, :revoked_at, nil))
+        |> Key.changeset(Map.put(base, :revoked_at, nil))
         |> Repo.update()
     end
   end
@@ -73,25 +73,25 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
   Returns `{:ok, key}` when an active (non-revoked) row exists,
   `{:error, :not_found}` otherwise.
   """
-  @spec fetch(String.t()) :: {:ok, %WorkspaceKey{}} | {:error, :not_found}
+  @spec fetch(String.t()) :: {:ok, %Key{}} | {:error, :not_found}
   def fetch(workspace_id) when is_binary(workspace_id) do
-    case Repo.get_by(WorkspaceKey, workspace_id: workspace_id) do
+    case Repo.get_by(Key, workspace_id: workspace_id) do
       nil -> {:error, :not_found}
-      %WorkspaceKey{revoked_at: nil} = key -> {:ok, key}
-      %WorkspaceKey{} -> {:error, :not_found}
+      %Key{revoked_at: nil} = key -> {:ok, key}
+      %Key{} -> {:error, :not_found}
     end
   end
 
   @doc "Soft-delete a registration."
-  @spec revoke(String.t()) :: {:ok, %WorkspaceKey{}} | {:error, :not_found | Ecto.Changeset.t()}
+  @spec revoke(String.t()) :: {:ok, %Key{}} | {:error, :not_found | Ecto.Changeset.t()}
   def revoke(workspace_id) when is_binary(workspace_id) do
-    case Repo.get_by(WorkspaceKey, workspace_id: workspace_id) do
+    case Repo.get_by(Key, workspace_id: workspace_id) do
       nil ->
         {:error, :not_found}
 
-      %WorkspaceKey{} = key ->
+      %Key{} = key ->
         key
-        |> WorkspaceKey.changeset(%{
+        |> Key.changeset(%{
           revoked_at: DateTime.utc_now() |> DateTime.truncate(:second)
         })
         |> Repo.update()
@@ -99,11 +99,11 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
   end
 
   @doc "All active registrations bound to the given org."
-  @spec list_for_org(integer() | nil) :: [%WorkspaceKey{}]
+  @spec list_for_org(integer() | nil) :: [%Key{}]
   def list_for_org(nil), do: []
 
   def list_for_org(org_id) when is_integer(org_id) do
-    from(k in WorkspaceKey,
+    from(k in Key,
       where: k.org_id == ^org_id and is_nil(k.revoked_at),
       order_by: [desc: k.last_seen_at, desc: k.inserted_at]
     )
@@ -115,7 +115,7 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
   def touch_last_seen(workspace_id) when is_binary(workspace_id) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-    from(k in WorkspaceKey, where: k.workspace_id == ^workspace_id)
+    from(k in Key, where: k.workspace_id == ^workspace_id)
     |> Repo.update_all(set: [last_seen_at: now])
 
     :ok
@@ -124,22 +124,22 @@ defmodule ControlKeel.Cloud.WorkspaceKeyRegistry do
   end
 
   @doc """
-  Find the active `WorkspaceKey` linked to a mission workspace.
+  Find the active `Key` linked to a mission workspace.
 
   Returns `{:ok, key}` when an active enrollment exists for the given
   mission workspace ID, `{:error, :not_found}` otherwise. Useful for
   resolving the cloud identity of a local project workspace.
   """
-  @spec fetch_by_mission_workspace(integer()) :: {:ok, %WorkspaceKey{}} | {:error, :not_found}
+  @spec fetch_by_mission_workspace(integer()) :: {:ok, %Key{}} | {:error, :not_found}
   def fetch_by_mission_workspace(mission_workspace_id) when is_integer(mission_workspace_id) do
-    from(k in WorkspaceKey,
+    from(k in Key,
       where: k.mission_workspace_id == ^mission_workspace_id and is_nil(k.revoked_at),
       limit: 1
     )
     |> Repo.one()
     |> case do
       nil -> {:error, :not_found}
-      %WorkspaceKey{} = key -> {:ok, key}
+      %Key{} = key -> {:ok, key}
     end
   end
 

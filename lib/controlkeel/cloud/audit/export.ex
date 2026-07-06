@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.AuditExport do
+defmodule ControlKeel.Cloud.Audit.Export do
   @moduledoc """
   Structured audit-bundle exporter for SOC 2 / GDPR procurement.
 
@@ -24,11 +24,11 @@ defmodule ControlKeel.Cloud.AuditExport do
 
   alias ControlKeel.Accounts.Org
   alias ControlKeel.Accounts.ReviewAuditEvent
-  alias ControlKeel.Cloud.McpToolCall
+  alias ControlKeel.Cloud.Mcp.ToolCall
   alias ControlKeel.Cloud.ReceivedTelemetryEvent
   alias ControlKeel.Cloud.RunPackage
-  alias ControlKeel.Cloud.WorkspaceIdentity
-  alias ControlKeel.Cloud.WorkspaceKey
+  alias ControlKeel.Cloud.Workspace.Identity
+  alias ControlKeel.Cloud.Workspace.Key
   alias ControlKeel.Mission.{Finding, Review, Session, Workspace}
   alias ControlKeel.Repo
 
@@ -116,7 +116,7 @@ defmodule ControlKeel.Cloud.AuditExport do
   defp scope_repr({:org, id}), do: %{"type" => "org", "id" => id}
 
   defp workspace_identity_section({:workspace, _}) do
-    case WorkspaceIdentity.load() do
+    case Identity.load() do
       {:ok, identity} ->
         %{
           "workspace_id_label" => identity.workspace_id,
@@ -236,7 +236,7 @@ defmodule ControlKeel.Cloud.AuditExport do
 
   defp fetch_mcp_tool_calls(workspace_ids, since_ts, until_ts) do
     query =
-      from c in McpToolCall,
+      from c in ToolCall,
         where: c.workspace_id in ^workspace_ids,
         where: c.requested_at >= ^since_ts,
         where: c.requested_at <= ^until_ts,
@@ -296,9 +296,9 @@ defmodule ControlKeel.Cloud.AuditExport do
 
   defp fetch_received_events(workspace_ids, since_ts, until_ts) do
     # ReceivedTelemetryEvent.workspace_id is a string (cloud ws_id like "ws_abc"),
-    # but workspace_ids are local integer IDs. Resolve via WorkspaceKey registry.
+    # but workspace_ids are local integer IDs. Resolve via Key registry.
     cloud_ws_ids =
-      from(k in WorkspaceKey,
+      from(k in Key,
         where: k.mission_workspace_id in ^workspace_ids,
         where: is_nil(k.revoked_at),
         select: k.workspace_id

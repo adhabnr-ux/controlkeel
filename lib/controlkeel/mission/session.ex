@@ -2,7 +2,7 @@ defmodule ControlKeel.Mission.Session do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias ControlKeel.Cloud.TelemetryEnvelope
+  alias ControlKeel.Cloud.Telemetry.Envelope
   alias ControlKeel.Memory.Record
 
   alias ControlKeel.Mission.{
@@ -16,7 +16,7 @@ defmodule ControlKeel.Mission.Session do
     Workspace
   }
 
-  alias ControlKeel.Platform.{AuditExport, TaskEdge, TaskRun}
+  alias ControlKeel.Platform.{Export, TaskEdge, TaskRun}
 
   @external_id_prefix "ses_"
 
@@ -46,7 +46,7 @@ defmodule ControlKeel.Mission.Session do
     has_many :memory_records, Record
     has_many :task_edges, TaskEdge
     has_many :task_runs, TaskRun
-    has_many :audit_exports, AuditExport
+    has_many :audit_exports, Export
 
     timestamps(type: :utc_datetime)
   end
@@ -123,7 +123,7 @@ defmodule ControlKeel.Mission.Session do
   defp maybe_generate_external_id(changeset) do
     case get_field(changeset, :external_id) do
       nil ->
-        put_change(changeset, :external_id, @external_id_prefix <> TelemetryEnvelope.ulid())
+        put_change(changeset, :external_id, @external_id_prefix <> Envelope.ulid())
 
       _ ->
         changeset

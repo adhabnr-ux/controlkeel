@@ -31,18 +31,18 @@ defmodule ControlKeel.Cloud.AuthToken do
   Verification resolves the workspace public key in two steps (architectural
   decision D8 in [cloud-enterprise-roadmap.md](../../docs/cloud-enterprise-roadmap.md)):
 
-    1. `WorkspaceKeyRegistry.fetch/1` — the multi-tenant registry table.
+    1. `KeyRegistry.fetch/1` — the multi-tenant registry table.
        This is what controlkeel.com uses to verify Bearer tokens posted by
        enrolled laptops.
-    2. Falls back to `WorkspaceIdentity.load/0` for single-node self-host
+    2. Falls back to `Identity.load/0` for single-node self-host
        deployments where the sender and receiver are the same process.
 
   On a successful verify the registry's `last_seen_at` is touched so the
   org-scoped projects UI can show fresh-vs-stale workspaces.
   """
 
-  alias ControlKeel.Cloud.WorkspaceIdentity
-  alias ControlKeel.Cloud.WorkspaceKeyRegistry
+  alias ControlKeel.Cloud.Workspace.Identity
+  alias ControlKeel.Cloud.Workspace.KeyRegistry
 
   @default_ttl_seconds 300
   @signature_size_bytes 64
@@ -68,7 +68,7 @@ defmodule ControlKeel.Cloud.AuthToken do
 
   Returns `{:ok, token}` on success.
   """
-  @spec sign(WorkspaceIdentity.t(), keyword()) :: {:ok, String.t()} | {:error, term()}
+  @spec sign(Identity.t(), keyword()) :: {:ok, String.t()} | {:error, term()}
   def sign(%{workspace_id: ws, private_key: priv_b64} = _identity, opts \\ []) do
     ttl = Keyword.get(opts, :ttl_seconds, @default_ttl_seconds)
     now = DateTime.utc_now() |> DateTime.truncate(:second)
@@ -112,7 +112,7 @@ defmodule ControlKeel.Cloud.AuthToken do
          {:ok, pub_key, source} <- resolve_public_key(ws_id),
          :ok <- verify_signature(payload_json, signature, pub_key),
          :ok <- verify_not_expired(exp) do
-      if source == :registry, do: WorkspaceKeyRegistry.touch_last_seen(ws_id)
+      if source == :registry, do: KeyRegistry.touch_last_seen(ws_id)
 
       {:ok,
        %{
@@ -167,7 +167,7 @@ defmodule ControlKeel.Cloud.AuthToken do
   defp extract_claims(_), do: {:error, :malformed}
 
   defp resolve_public_key(workspace_id) do
-    case WorkspaceKeyRegistry.fetch(workspace_id) do
+    case KeyRegistry.fetch(workspace_id) do
       {:ok, %{public_key: pub_b64}} ->
         case Base.decode64(pub_b64) do
           {:ok, pub} -> {:ok, pub, :registry}
@@ -184,7 +184,7 @@ defmodule ControlKeel.Cloud.AuthToken do
   end
 
   defp resolve_from_local_identity(workspace_id) do
-    case WorkspaceIdentity.load() do
+    case Identity.load() do
       {:ok, %{workspace_id: ^workspace_id, public_key: pub_b64}} ->
         case Base.decode64(pub_b64) do
           {:ok, pub} -> {:ok, pub, :local}

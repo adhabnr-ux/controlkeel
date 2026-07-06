@@ -9,9 +9,9 @@ defmodule ControlKeel.Cloud.Doctor do
   """
 
   alias ControlKeel.Cloud.Sender
-  alias ControlKeel.Cloud.TelemetryConfig
-  alias ControlKeel.Cloud.TelemetryQueue
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Telemetry.Config
+  alias ControlKeel.Cloud.Telemetry.Queue
+  alias ControlKeel.Cloud.Workspace.Identity
   alias ControlKeel.CloudRepo
   alias ControlKeel.Platform
   alias ControlKeel.Runtime
@@ -242,14 +242,14 @@ defmodule ControlKeel.Cloud.Doctor do
   end
 
   defp workspace_identity_check do
-    case WorkspaceIdentity.load() do
+    case Identity.load() do
       {:ok, identity} ->
         %{
           id: :workspace_identity,
           label: "Workspace identity",
           status: :ok,
           detail:
-            "#{identity.workspace_id} (fingerprint #{WorkspaceIdentity.short_fingerprint(identity)}...)"
+            "#{identity.workspace_id} (fingerprint #{Identity.short_fingerprint(identity)}...)"
         }
 
       {:error, :not_connected} ->
@@ -271,7 +271,7 @@ defmodule ControlKeel.Cloud.Doctor do
   end
 
   defp telemetry_check do
-    state = TelemetryConfig.load()
+    state = Config.load()
     queue_summary = telemetry_queue_summary()
 
     {status, detail} =
@@ -279,8 +279,8 @@ defmodule ControlKeel.Cloud.Doctor do
         state.load_error ->
           {:warn, "telemetry config error: #{state.load_error}"}
 
-        TelemetryConfig.enabled?(state) ->
-          {:info, "#{TelemetryConfig.summary(state)}#{queue_summary}"}
+        Config.enabled?(state) ->
+          {:info, "#{Config.summary(state)}#{queue_summary}"}
 
         true ->
           {:info, "disabled (opt-in only; cloud sync not configured)#{queue_summary}"}
@@ -412,7 +412,7 @@ defmodule ControlKeel.Cloud.Doctor do
 
   defp telemetry_queue_summary do
     try do
-      case TelemetryQueue.pending_count() do
+      case Queue.pending_count() do
         0 -> ""
         n -> " (queue: #{n} pending)"
       end

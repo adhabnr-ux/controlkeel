@@ -64,7 +64,7 @@ defmodule ControlKeel.Cloud.Enrollment do
   @doc """
   Build a proof-of-possession envelope ready to POST to `/cloud/v1/workspaces/register`.
 
-  `identity` is the local `WorkspaceIdentity` struct. Optional `name` and
+  `identity` is the local `Identity` struct. Optional `name` and
   `invite_token` are passed through unchanged.
   """
   @spec build(map(), keyword()) :: {:ok, map()} | {:error, term()}

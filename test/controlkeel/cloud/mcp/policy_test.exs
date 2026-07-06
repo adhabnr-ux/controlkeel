@@ -1,12 +1,12 @@
-defmodule ControlKeel.Cloud.McpPolicyTest do
+defmodule ControlKeel.Cloud.Mcp.PolicyTest do
   use ControlKeel.DataCase, async: false
 
   import ControlKeel.MissionFixtures
   import ControlKeel.PlatformFixtures
 
-  alias ControlKeel.Cloud.McpAuditLog
-  alias ControlKeel.Cloud.McpPolicy
-  alias ControlKeel.Cloud.McpToolCall
+  alias ControlKeel.Cloud.Mcp.AuditLog
+  alias ControlKeel.Cloud.Mcp.Policy
+  alias ControlKeel.Cloud.Mcp.ToolCall
   alias ControlKeel.Mcp.ProtocolInterop
   alias ControlKeel.Repo
 
@@ -27,8 +27,8 @@ defmodule ControlKeel.Cloud.McpPolicyTest do
 
   describe "check/3 with no policy configured" do
     test "returns :ok regardless of tool" do
-      assert :ok = McpPolicy.check(%{}, "ck_context", "mcp")
-      assert :ok = McpPolicy.check(%{}, "ck_delegate", "mcp")
+      assert :ok = Policy.check(%{}, "ck_context", "mcp")
+      assert :ok = Policy.check(%{}, "ck_delegate", "mcp")
     end
   end
 
@@ -43,11 +43,11 @@ defmodule ControlKeel.Cloud.McpPolicyTest do
 
     test "rejects a denied tool" do
       assert {:error, {:policy, :tool_denied}} =
-               McpPolicy.check(%{}, "ck_delegate", "mcp")
+               Policy.check(%{}, "ck_delegate", "mcp")
     end
 
     test "allows non-denied tools" do
-      assert :ok = McpPolicy.check(%{}, "ck_context", "mcp")
+      assert :ok = Policy.check(%{}, "ck_context", "mcp")
     end
   end
 
@@ -65,23 +65,23 @@ defmodule ControlKeel.Cloud.McpPolicyTest do
     end
 
     test "allows until limit reached", %{auth: auth, workspace: workspace} do
-      assert :ok = McpPolicy.check(auth, "ck_context", "mcp")
+      assert :ok = Policy.check(auth, "ck_context", "mcp")
 
       # Pre-seed two allowed calls to push the workspace to the limit.
       seed_allowed(workspace.id, "ck_context", 2)
 
       assert {:error, {:policy, :rate_limit_exceeded}} =
-               McpPolicy.check(auth, "ck_context", "mcp")
+               Policy.check(auth, "ck_context", "mcp")
     end
 
     test "denied calls do not count toward the limit", %{auth: auth, workspace: workspace} do
       seed_denied(workspace.id, "ck_context", 5)
-      assert :ok = McpPolicy.check(auth, "ck_context", "mcp")
+      assert :ok = Policy.check(auth, "ck_context", "mcp")
     end
 
     test "calls older than the window do not count", %{auth: auth, workspace: workspace} do
       seed_allowed(workspace.id, "ck_context", 2, age_seconds: 120)
-      assert :ok = McpPolicy.check(auth, "ck_context", "mcp")
+      assert :ok = Policy.check(auth, "ck_context", "mcp")
     end
 
     test "wildcard rule applies when no exact rule matches" do
@@ -97,7 +97,7 @@ defmodule ControlKeel.Cloud.McpPolicyTest do
       seed_allowed(workspace.id, "ck_route", 1)
 
       assert {:error, {:policy, :rate_limit_exceeded}} =
-               McpPolicy.check(auth, "ck_route", "mcp")
+               Policy.check(auth, "ck_route", "mcp")
     end
   end
 
@@ -118,11 +118,11 @@ defmodule ControlKeel.Cloud.McpPolicyTest do
       assert {:error, {:policy, :tool_denied}} =
                ProtocolInterop.authorize_hosted_tool_call(auth, "ck_delegate", %{}, "mcp")
 
-      [row] = Repo.all(McpToolCall)
+      [row] = Repo.all(ToolCall)
       assert row.outcome == "denied"
       assert row.denial_reason == "policy:tool_denied"
 
-      assert McpAuditLog.global_summary().denied == 1
+      assert AuditLog.global_summary().denied == 1
     end
   end
 
@@ -131,7 +131,7 @@ defmodule ControlKeel.Cloud.McpPolicyTest do
     ts = DateTime.utc_now() |> DateTime.add(-age, :second) |> DateTime.truncate(:second)
 
     for _ <- 1..count do
-      Repo.insert!(%McpToolCall{
+      Repo.insert!(%ToolCall{
         workspace_id: workspace_id,
         resource: "mcp",
         tool_name: tool_name,
@@ -145,7 +145,7 @@ defmodule ControlKeel.Cloud.McpPolicyTest do
     ts = DateTime.utc_now() |> DateTime.truncate(:second)
 
     for _ <- 1..count do
-      Repo.insert!(%McpToolCall{
+      Repo.insert!(%ToolCall{
         workspace_id: workspace_id,
         resource: "mcp",
         tool_name: tool_name,

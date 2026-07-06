@@ -170,7 +170,7 @@ defmodule ControlKeel.Cloud.ScopeTest do
 
   defp insert_run_package(ws) do
     # Generate a valid pkg_<ULID> external_id (26 uppercase alphanumeric chars)
-    ulid = ControlKeel.Cloud.TelemetryEnvelope.ulid()
+    ulid = ControlKeel.Cloud.Telemetry.Envelope.ulid()
 
     %RunPackage{}
     |> RunPackage.changeset(%{

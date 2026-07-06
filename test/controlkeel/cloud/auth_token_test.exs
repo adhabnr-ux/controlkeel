@@ -2,7 +2,7 @@ defmodule ControlKeel.Cloud.AuthTokenTest do
   use ExUnit.Case, async: false
 
   alias ControlKeel.Cloud.AuthToken
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Workspace.Identity
 
   setup do
     tmp_home =
@@ -25,7 +25,7 @@ defmodule ControlKeel.Cloud.AuthTokenTest do
       File.rm_rf!(tmp_home)
     end)
 
-    {:ok, identity, :created} = WorkspaceIdentity.ensure()
+    {:ok, identity, :created} = Identity.ensure()
     {:ok, identity: identity}
   end
 
@@ -102,7 +102,7 @@ defmodule ControlKeel.Cloud.AuthTokenTest do
       {:ok, token} = AuthToken.sign(identity)
 
       # Replace the local identity with a different one (simulates a foreign workspace's token)
-      {:ok, _new_identity, :rotated} = WorkspaceIdentity.ensure(force: true)
+      {:ok, _new_identity, :rotated} = Identity.ensure(force: true)
 
       assert {:error, :unknown_workspace} = AuthToken.verify(token)
     end

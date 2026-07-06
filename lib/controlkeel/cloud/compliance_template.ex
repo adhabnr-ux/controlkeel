@@ -2,7 +2,7 @@ defmodule ControlKeel.Cloud.ComplianceTemplate do
   @moduledoc """
   Maps audit-export bundles into procurement-friendly compliance templates.
 
-  The raw `ControlKeel.Cloud.AuditExport` bundle remains the evidence source of
+  The raw `ControlKeel.Cloud.Audit.Export` bundle remains the evidence source of
   truth. This module only groups that existing evidence into SOC 2 and GDPR
   sections with stable section identifiers, human-readable labels, counts, and
   compact evidence references.

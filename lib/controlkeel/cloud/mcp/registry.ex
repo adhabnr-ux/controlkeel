@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.McpRegistry do
+defmodule ControlKeel.Cloud.Mcp.Registry do
   alias ControlKeel.Cloud.SkillAttestation
 
   @moduledoc """

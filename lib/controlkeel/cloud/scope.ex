@@ -58,7 +58,7 @@ defmodule ControlKeel.Cloud.Scope do
   @doc """
   Add a `WHERE org_id = ?` clause to any Ecto queryable.
 
-  For schemas that use `org_id` directly (WorkspaceKey, etc.).
+  For schemas that use `org_id` directly (Key, etc.).
   """
   @spec scope_org(Ecto.Queryable.t(), integer() | nil) :: Ecto.Queryable.t()
   def scope_org(query, nil), do: query

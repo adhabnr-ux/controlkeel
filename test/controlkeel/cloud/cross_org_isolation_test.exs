@@ -5,7 +5,7 @@ defmodule ControlKeel.Cloud.CrossOrgIsolationTest do
   Locks in the boundary that a user in org A cannot observe enrolled
   workspaces, run packages, mission workspaces, or telemetry events
   belonging to org B through any of the user-facing surfaces (Accounts,
-  WorkspaceKeyRegistry, RuntimeContext, CloudProjectsLive).
+  KeyRegistry, RuntimeContext, CloudProjectsLive).
   """
 
   use ControlKeelWeb.ConnCase, async: false
@@ -14,7 +14,7 @@ defmodule ControlKeel.Cloud.CrossOrgIsolationTest do
 
   alias ControlKeel.Accounts
   alias ControlKeel.Cloud.RuntimeContext
-  alias ControlKeel.Cloud.WorkspaceKeyRegistry
+  alias ControlKeel.Cloud.Workspace.KeyRegistry
   alias ControlKeel.MissionFixtures
   alias ControlKeel.Repo
 
@@ -53,15 +53,15 @@ defmodule ControlKeel.Cloud.CrossOrgIsolationTest do
     end
   end
 
-  describe "WorkspaceKeyRegistry.list_for_org/1" do
+  describe "KeyRegistry.list_for_org/1" do
     test "scopes to caller's org only", %{
       org_a: org_a,
       org_b: org_b,
       key_a: key_a,
       key_b: key_b
     } do
-      ids_a = WorkspaceKeyRegistry.list_for_org(org_a.id) |> Enum.map(& &1.id)
-      ids_b = WorkspaceKeyRegistry.list_for_org(org_b.id) |> Enum.map(& &1.id)
+      ids_a = KeyRegistry.list_for_org(org_a.id) |> Enum.map(& &1.id)
+      ids_b = KeyRegistry.list_for_org(org_b.id) |> Enum.map(& &1.id)
 
       assert key_a.id in ids_a
       refute key_b.id in ids_a
@@ -211,7 +211,7 @@ defmodule ControlKeel.Cloud.CrossOrgIsolationTest do
     fp = :crypto.hash(:sha256, pub) |> Base.encode16(case: :lower)
 
     {:ok, key} =
-      WorkspaceKeyRegistry.enroll(%{
+      KeyRegistry.enroll(%{
         workspace_id:
           "ws_" <> Base.encode32(:crypto.strong_rand_bytes(8), padding: false, case: :lower),
         public_key: pub_b64,

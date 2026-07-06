@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.WorkspaceBaseline do
+defmodule ControlKeel.Cloud.Workspace.Baseline do
   @moduledoc false
 
   use Ecto.Schema

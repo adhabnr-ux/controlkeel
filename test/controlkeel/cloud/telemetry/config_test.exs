@@ -1,7 +1,7 @@
-defmodule ControlKeel.Cloud.TelemetryConfigTest do
+defmodule ControlKeel.Cloud.Telemetry.ConfigTest do
   use ExUnit.Case, async: false
 
-  alias ControlKeel.Cloud.TelemetryConfig
+  alias ControlKeel.Cloud.Telemetry.Config
 
   setup do
     tmp_home =
@@ -29,7 +29,7 @@ defmodule ControlKeel.Cloud.TelemetryConfigTest do
 
   describe "load/0 default state" do
     test "returns :disabled when the config file does not exist", %{tmp_home: tmp_home} do
-      state = TelemetryConfig.load()
+      state = Config.load()
 
       assert state.level == :disabled
       assert state.source == :default
@@ -41,11 +41,11 @@ defmodule ControlKeel.Cloud.TelemetryConfigTest do
     end
 
     test "default state is reported as not enabled" do
-      refute TelemetryConfig.enabled?(TelemetryConfig.load())
+      refute Config.enabled?(Config.load())
     end
 
     test "default summary is human-readable" do
-      assert TelemetryConfig.summary(TelemetryConfig.load()) =~ "disabled"
+      assert Config.summary(Config.load()) =~ "disabled"
     end
   end
 
@@ -59,7 +59,7 @@ defmodule ControlKeel.Cloud.TelemetryConfigTest do
         "schema_version" => "1"
       })
 
-      state = TelemetryConfig.load()
+      state = Config.load()
 
       assert state.level == :governance
       assert state.source == :file
@@ -68,7 +68,7 @@ defmodule ControlKeel.Cloud.TelemetryConfigTest do
       assert state.redaction_policy_version == "2026.05"
       assert state.schema_version == "1"
       assert state.load_error == nil
-      assert TelemetryConfig.enabled?(state)
+      assert Config.enabled?(state)
     end
 
     test "summary includes workspace and timestamp when enabled" do
@@ -78,7 +78,7 @@ defmodule ControlKeel.Cloud.TelemetryConfigTest do
         "workspace_id" => "ws_xyz"
       })
 
-      summary = TelemetryConfig.summary(TelemetryConfig.load())
+      summary = Config.summary(Config.load())
 
       assert summary =~ "level=health"
       assert summary =~ "workspace=ws_xyz"
@@ -90,18 +90,18 @@ defmodule ControlKeel.Cloud.TelemetryConfigTest do
     test "falls back to :disabled and records a parse error on invalid JSON" do
       write_config_raw("not json")
 
-      state = TelemetryConfig.load()
+      state = Config.load()
 
       assert state.level == :disabled
       assert is_binary(state.load_error)
       assert state.load_error =~ "JSON parse error"
-      refute TelemetryConfig.enabled?(state)
+      refute Config.enabled?(state)
     end
 
     test "falls back to :disabled when the file is a JSON array" do
       write_config_raw("[1, 2, 3]")
 
-      state = TelemetryConfig.load()
+      state = Config.load()
 
       assert state.level == :disabled
       assert state.load_error =~ "not a JSON object"
@@ -110,7 +110,7 @@ defmodule ControlKeel.Cloud.TelemetryConfigTest do
     test "falls back to :disabled when the level is unknown" do
       write_config(%{"level" => "evil_mode"})
 
-      state = TelemetryConfig.load()
+      state = Config.load()
 
       assert state.level == :disabled
       assert state.load_error =~ "unknown level"
@@ -119,7 +119,7 @@ defmodule ControlKeel.Cloud.TelemetryConfigTest do
 
   describe "levels/0" do
     test "exposes the canonical cumulative ordering" do
-      assert TelemetryConfig.levels() == [:disabled, :health, :governance, :evidence, :full_audit]
+      assert Config.levels() == [:disabled, :health, :governance, :evidence, :full_audit]
     end
   end
 
@@ -128,77 +128,77 @@ defmodule ControlKeel.Cloud.TelemetryConfigTest do
   end
 
   defp write_config_raw(body) do
-    path = TelemetryConfig.path()
+    path = Config.path()
     File.mkdir_p!(Path.dirname(path))
     File.write!(path, body)
   end
 
   describe "enable/1 and disable/0" do
-    alias ControlKeel.Cloud.WorkspaceIdentity
+    alias ControlKeel.Cloud.Workspace.Identity
 
     test "returns :not_connected when no workspace identity exists" do
-      assert {:error, :not_connected} = TelemetryConfig.enable(:health)
+      assert {:error, :not_connected} = Config.enable(:health)
     end
 
     test "enables at :health level after cloud connect" do
-      {:ok, identity, :created} = WorkspaceIdentity.ensure()
+      {:ok, identity, :created} = Identity.ensure()
 
-      {:ok, state} = TelemetryConfig.enable(:health)
+      {:ok, state} = Config.enable(:health)
 
       assert state.level == :health
       assert state.workspace_id == identity.workspace_id
       assert %DateTime{} = state.enabled_at
       assert state.source == :file
       assert state.load_error == nil
-      assert TelemetryConfig.enabled?(state)
+      assert Config.enabled?(state)
     end
 
     test "enables at every opt-in level" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
+      {:ok, _identity, :created} = Identity.ensure()
 
-      for level <- TelemetryConfig.opt_in_levels() do
-        {:ok, state} = TelemetryConfig.enable(level)
+      for level <- Config.opt_in_levels() do
+        {:ok, state} = Config.enable(level)
         assert state.level == level
       end
     end
 
     test "rejects :disabled as a level (use disable/0 instead)" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      assert {:error, :invalid_level} = TelemetryConfig.enable(:disabled)
+      {:ok, _identity, :created} = Identity.ensure()
+      assert {:error, :invalid_level} = Config.enable(:disabled)
     end
 
     test "rejects unknown levels" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      assert {:error, :invalid_level} = TelemetryConfig.enable(:full_paranoid)
+      {:ok, _identity, :created} = Identity.ensure()
+      assert {:error, :invalid_level} = Config.enable(:full_paranoid)
     end
 
     test "disable/0 writes durable disabled state" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _enabled} = TelemetryConfig.enable(:governance)
+      {:ok, _identity, :created} = Identity.ensure()
+      {:ok, _enabled} = Config.enable(:governance)
 
-      {:ok, state} = TelemetryConfig.disable()
+      {:ok, state} = Config.disable()
 
       assert state.level == :disabled
       assert state.source == :file
       assert state.workspace_id == nil
       assert state.enabled_at == nil
-      refute TelemetryConfig.enabled?(state)
+      refute Config.enabled?(state)
     end
 
     test "disabled state persists across reloads" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _disabled} = TelemetryConfig.disable()
+      {:ok, _identity, :created} = Identity.ensure()
+      {:ok, _disabled} = Config.disable()
 
-      reloaded = TelemetryConfig.load()
+      reloaded = Config.load()
       assert reloaded.level == :disabled
       assert reloaded.source == :file
     end
 
     test "config file is written with 0600 permissions" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _enabled} = TelemetryConfig.enable(:health)
+      {:ok, _identity, :created} = Identity.ensure()
+      {:ok, _enabled} = Config.enable(:health)
 
-      {:ok, stat} = File.stat(TelemetryConfig.path())
+      {:ok, stat} = File.stat(Config.path())
       perm = Bitwise.band(stat.mode, 0o777)
       assert perm == 0o600
     end
@@ -206,16 +206,16 @@ defmodule ControlKeel.Cloud.TelemetryConfigTest do
 
   describe "parse_level/1" do
     test "accepts known atoms and strings" do
-      assert {:ok, :health} = TelemetryConfig.parse_level(:health)
-      assert {:ok, :health} = TelemetryConfig.parse_level("health")
-      assert {:ok, :full_audit} = TelemetryConfig.parse_level("full_audit")
+      assert {:ok, :health} = Config.parse_level(:health)
+      assert {:ok, :health} = Config.parse_level("health")
+      assert {:ok, :full_audit} = Config.parse_level("full_audit")
     end
 
     test "rejects unknown values" do
-      assert :error = TelemetryConfig.parse_level("evil")
-      assert :error = TelemetryConfig.parse_level(:evil)
-      assert :error = TelemetryConfig.parse_level(nil)
-      assert :error = TelemetryConfig.parse_level(123)
+      assert :error = Config.parse_level("evil")
+      assert :error = Config.parse_level(:evil)
+      assert :error = Config.parse_level(nil)
+      assert :error = Config.parse_level(123)
     end
   end
 end

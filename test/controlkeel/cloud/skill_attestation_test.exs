@@ -126,8 +126,8 @@ defmodule ControlKeel.Cloud.SkillAttestationTest do
     end
   end
 
-  describe "McpRegistry integration" do
-    alias ControlKeel.Cloud.McpRegistry
+  describe "Registry integration" do
+    alias ControlKeel.Cloud.Mcp.Registry
 
     setup do
       Application.put_env(:controlkeel, :cloud_mcp_registry, %{
@@ -142,16 +142,16 @@ defmodule ControlKeel.Cloud.SkillAttestationTest do
     end
 
     test "denied when no cert and attestation required" do
-      assert {:denied, :attestation_required} = McpRegistry.lookup("secure-tool")
+      assert {:denied, :attestation_required} = Registry.lookup("secure-tool")
     end
 
     test "allowed when attested?: true passed directly" do
-      assert :allowed = McpRegistry.lookup("secure-tool", attested?: true)
+      assert :allowed = Registry.lookup("secure-tool", attested?: true)
     end
 
     test "denied when cert present but no trusted keys (unverified)" do
       cert = Jason.encode!(%{"skill" => "secure-tool", "issuer" => "ca", "signature" => "abc"})
-      assert {:denied, :attestation_required} = McpRegistry.lookup("secure-tool", cert: cert)
+      assert {:denied, :attestation_required} = Registry.lookup("secure-tool", cert: cert)
     end
   end
 end

@@ -10,9 +10,9 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
     - `:index` requires an active org membership; the org_id pins the list.
     - `:show` resolves the requested workspace_id through
-      `WorkspaceKeyRegistry.fetch/1`, then enforces that `key.org_id` matches
+      `KeyRegistry.fetch/1`, then enforces that `key.org_id` matches
       the SSO'd org. Without a session this falls back to the local
-      `WorkspaceIdentity` for single-node self-host (the unauthenticated
+      `Identity` for single-node self-host (the unauthenticated
       page still surfaces the receiver's own workspace).
 
   This LiveView is intentionally read-only — enrolment happens through the
@@ -24,8 +24,8 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   alias ControlKeel.Accounts
   alias ControlKeel.Cloud.Ingestion
   alias ControlKeel.Cloud.RuntimeContext
-  alias ControlKeel.Cloud.WorkspaceKey
-  alias ControlKeel.Cloud.WorkspaceKeyRegistry
+  alias ControlKeel.Cloud.Workspace.Key
+  alias ControlKeel.Cloud.Workspace.KeyRegistry
   alias ControlKeel.Mission
   alias ControlKeel.Repo
 
@@ -60,7 +60,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
       cond do
         socket.assigns.current_membership ->
           socket.assigns.current_org_id
-          |> WorkspaceKeyRegistry.list_for_org()
+          |> KeyRegistry.list_for_org()
           |> Repo.preload(:mission_workspace)
 
         true ->
@@ -88,7 +88,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   end
 
   defp mount_show(%{"ws_id" => ws_id}, socket) do
-    case WorkspaceKeyRegistry.fetch(ws_id) do
+    case KeyRegistry.fetch(ws_id) do
       {:ok, key} ->
         key = Repo.preload(key, :mission_workspace)
 
@@ -112,7 +112,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     end
   end
 
-  defp assign_show_state(socket, %WorkspaceKey{} = key) do
+  defp assign_show_state(socket, %Key{} = key) do
     events = Ingestion.recent_for_workspace(key.workspace_id, limit: 50)
     counts = Ingestion.counts_for_workspace(key.workspace_id)
     packages = list_packages(key)
@@ -125,9 +125,9 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     |> assign(:packages, packages)
   end
 
-  defp list_packages(%WorkspaceKey{mission_workspace_id: nil}), do: []
+  defp list_packages(%Key{mission_workspace_id: nil}), do: []
 
-  defp list_packages(%WorkspaceKey{mission_workspace_id: mws_id}) when is_integer(mws_id) do
+  defp list_packages(%Key{mission_workspace_id: mws_id}) when is_integer(mws_id) do
     RuntimeContext.list_for_workspace(mws_id, limit: 25)
   end
 
@@ -148,7 +148,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
       case socket.assigns.live_action || :index do
         :show ->
           case socket.assigns[:key] do
-            %WorkspaceKey{} = key -> assign_show_state(socket, key)
+            %Key{} = key -> assign_show_state(socket, key)
             _ -> socket
           end
 
@@ -156,7 +156,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
           keys =
             if socket.assigns.current_membership do
               socket.assigns.current_org_id
-              |> WorkspaceKeyRegistry.list_for_org()
+              |> KeyRegistry.list_for_org()
               |> Repo.preload(:mission_workspace)
             else
               []
@@ -193,7 +193,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
             keys =
               socket.assigns.current_org_id
-              |> WorkspaceKeyRegistry.list_for_org()
+              |> KeyRegistry.list_for_org()
               |> Repo.preload(:mission_workspace)
 
             {:noreply,
@@ -575,7 +575,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   defp format_dt(nil), do: "never"
   defp format_dt(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M UTC")
 
-  defp project_label(%WorkspaceKey{mission_workspace: %{slug: slug}}) when is_binary(slug),
+  defp project_label(%Key{mission_workspace: %{slug: slug}}) when is_binary(slug),
     do: slug
 
   defp project_label(_), do: "—"

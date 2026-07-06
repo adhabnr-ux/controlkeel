@@ -1,4 +1,4 @@
-defmodule ControlKeel.Platform.AuditExport do
+defmodule ControlKeel.Platform.Export do
   use Ecto.Schema
   import Ecto.Changeset
 

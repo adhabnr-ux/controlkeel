@@ -1,9 +1,9 @@
-defmodule ControlKeel.Cloud.TelemetryQueue do
+defmodule ControlKeel.Cloud.Telemetry.Queue do
   @moduledoc """
   Durable local queue for cloud telemetry events awaiting upstream sync.
 
   Events enter the queue via `enqueue/1` with a fully-built D3 envelope (see
-  `ControlKeel.Cloud.TelemetryEnvelope`). The sender (a later slice) drains the
+  `ControlKeel.Cloud.Telemetry.Envelope`). The sender (a later slice) drains the
   queue by reading `pending/1`, posting upstream, then calling `mark_sent/1` or
   `mark_failed/2`.
 
@@ -23,7 +23,7 @@ defmodule ControlKeel.Cloud.TelemetryQueue do
 
   import Ecto.Query, warn: false
 
-  alias ControlKeel.Cloud.TelemetryEvent
+  alias ControlKeel.Cloud.Telemetry.Event
   alias ControlKeel.Repo
 
   @default_retention_days 7
@@ -36,15 +36,15 @@ defmodule ControlKeel.Cloud.TelemetryQueue do
   exists (idempotent — caller can ignore safely).
   """
   @spec enqueue(map()) ::
-          {:ok, :enqueued | :duplicate, TelemetryEvent.t()}
+          {:ok, :enqueued | :duplicate, Event.t()}
           | {:error, Ecto.Changeset.t()}
   def enqueue(envelope) when is_map(envelope) do
     attrs = envelope_to_attrs(envelope)
 
-    case Repo.get_by(TelemetryEvent, event_id: attrs.event_id) do
+    case Repo.get_by(Event, event_id: attrs.event_id) do
       nil ->
-        case %TelemetryEvent{}
-             |> TelemetryEvent.changeset(attrs)
+        case %Event{}
+             |> Event.changeset(attrs)
              |> Repo.insert() do
           {:ok, event} ->
             {:ok, :enqueued, event}
@@ -53,7 +53,7 @@ defmodule ControlKeel.Cloud.TelemetryQueue do
             if Keyword.has_key?(errors, :event_id) or
                  Keyword.has_key?(errors, :idempotency_key) do
               # Lost a race; treat as duplicate.
-              existing = Repo.get_by!(TelemetryEvent, event_id: attrs.event_id)
+              existing = Repo.get_by!(Event, event_id: attrs.event_id)
               {:ok, :duplicate, existing}
             else
               err
@@ -70,11 +70,11 @@ defmodule ControlKeel.Cloud.TelemetryQueue do
 
   Pass `limit:` to cap the batch size for senders.
   """
-  @spec pending(keyword()) :: [TelemetryEvent.t()]
+  @spec pending(keyword()) :: [Event.t()]
   def pending(opts \\ []) do
     limit = Keyword.get(opts, :limit, 100)
 
-    TelemetryEvent
+    Event
     |> where([e], is_nil(e.sent_at))
     |> order_by([e], asc: e.queued_at, asc: e.id)
     |> limit(^limit)
@@ -84,7 +84,7 @@ defmodule ControlKeel.Cloud.TelemetryQueue do
   @doc "Number of pending events. Cheap; uses an indexed count."
   @spec pending_count() :: non_neg_integer()
   def pending_count do
-    TelemetryEvent
+    Event
     |> where([e], is_nil(e.sent_at))
     |> select([e], count(e.id))
     |> Repo.one()
@@ -97,21 +97,21 @@ defmodule ControlKeel.Cloud.TelemetryQueue do
   when it was already acknowledged (defends against double-ack from concurrent
   senders).
   """
-  @spec mark_sent(TelemetryEvent.t() | integer()) ::
-          {:ok, TelemetryEvent.t()} | {:error, :already_sent | :not_found}
-  def mark_sent(%TelemetryEvent{id: id}), do: mark_sent(id)
+  @spec mark_sent(Event.t() | integer()) ::
+          {:ok, Event.t()} | {:error, :already_sent | :not_found}
+  def mark_sent(%Event{id: id}), do: mark_sent(id)
 
   def mark_sent(id) when is_integer(id) do
-    case Repo.get(TelemetryEvent, id) do
+    case Repo.get(Event, id) do
       nil ->
         {:error, :not_found}
 
-      %TelemetryEvent{sent_at: %DateTime{}} ->
+      %Event{sent_at: %DateTime{}} ->
         {:error, :already_sent}
 
       event ->
         event
-        |> TelemetryEvent.changeset(%{
+        |> Event.changeset(%{
           sent_at: DateTime.utc_now() |> DateTime.truncate(:second),
           send_attempts: event.send_attempts + 1,
           last_error: nil
@@ -121,18 +121,18 @@ defmodule ControlKeel.Cloud.TelemetryQueue do
   end
 
   @doc "Record a failed send attempt without marking the event as sent."
-  @spec mark_failed(TelemetryEvent.t() | integer(), String.t()) ::
-          {:ok, TelemetryEvent.t()} | {:error, term()}
-  def mark_failed(%TelemetryEvent{id: id}, reason), do: mark_failed(id, reason)
+  @spec mark_failed(Event.t() | integer(), String.t()) ::
+          {:ok, Event.t()} | {:error, term()}
+  def mark_failed(%Event{id: id}, reason), do: mark_failed(id, reason)
 
   def mark_failed(id, reason) when is_integer(id) and is_binary(reason) do
-    case Repo.get(TelemetryEvent, id) do
+    case Repo.get(Event, id) do
       nil ->
         {:error, :not_found}
 
       event ->
         event
-        |> TelemetryEvent.changeset(%{
+        |> Event.changeset(%{
           send_attempts: event.send_attempts + 1,
           last_error: reason
         })
@@ -150,7 +150,7 @@ defmodule ControlKeel.Cloud.TelemetryQueue do
     days = Keyword.get(opts, :retention_days, @default_retention_days)
     cutoff = DateTime.utc_now() |> DateTime.add(-days * 86_400, :second)
 
-    TelemetryEvent
+    Event
     |> where([e], not is_nil(e.sent_at) and e.sent_at < ^cutoff)
     |> Repo.delete_all()
   end
@@ -158,11 +158,11 @@ defmodule ControlKeel.Cloud.TelemetryQueue do
   @doc """
   Discard an unsent event without sending it. Use for operator overrides.
   """
-  @spec discard(TelemetryEvent.t() | integer()) :: {non_neg_integer(), nil}
-  def discard(%TelemetryEvent{id: id}), do: discard(id)
+  @spec discard(Event.t() | integer()) :: {non_neg_integer(), nil}
+  def discard(%Event{id: id}), do: discard(id)
 
   def discard(id) when is_integer(id),
-    do: Repo.delete_all(from e in TelemetryEvent, where: e.id == ^id)
+    do: Repo.delete_all(from e in Event, where: e.id == ^id)
 
   defp envelope_to_attrs(envelope) do
     %{

@@ -1,7 +1,7 @@
-defmodule ControlKeel.Cloud.McpRegistryTest do
+defmodule ControlKeel.Cloud.Mcp.RegistryTest do
   use ExUnit.Case, async: false
 
-  alias ControlKeel.Cloud.McpRegistry
+  alias ControlKeel.Cloud.Mcp.Registry
 
   setup do
     previous = Application.get_env(:controlkeel, :cloud_mcp_registry)
@@ -20,7 +20,7 @@ defmodule ControlKeel.Cloud.McpRegistryTest do
 
   describe "lookup/2 with no registry configured" do
     test "unknown server is denied by default" do
-      assert {:denied, :default_deny} = McpRegistry.lookup("anything")
+      assert {:denied, :default_deny} = Registry.lookup("anything")
     end
   end
 
@@ -36,15 +36,15 @@ defmodule ControlKeel.Cloud.McpRegistryTest do
     end
 
     test "denylist beats allowlist" do
-      assert {:denied, :explicit_deny} = McpRegistry.lookup("vendor-a")
+      assert {:denied, :explicit_deny} = Registry.lookup("vendor-a")
     end
 
     test "denied server stays denied even with default allow_unrestricted" do
-      assert {:denied, :explicit_deny} = McpRegistry.lookup("smithery-public")
+      assert {:denied, :explicit_deny} = Registry.lookup("smithery-public")
     end
 
     test "default policy applies to unlisted servers" do
-      assert :allowed = McpRegistry.lookup("anything-else")
+      assert :allowed = Registry.lookup("anything-else")
     end
   end
 
@@ -62,15 +62,15 @@ defmodule ControlKeel.Cloud.McpRegistryTest do
     end
 
     test "required attestation: denied without proof" do
-      assert {:denied, :attestation_required} = McpRegistry.lookup("must-attest")
+      assert {:denied, :attestation_required} = Registry.lookup("must-attest")
     end
 
     test "required attestation: allowed with proof" do
-      assert :allowed = McpRegistry.lookup("must-attest", attested?: true)
+      assert :allowed = Registry.lookup("must-attest", attested?: true)
     end
 
     test "optional attestation: allowed without proof" do
-      assert :allowed = McpRegistry.lookup("optional-attest")
+      assert :allowed = Registry.lookup("optional-attest")
     end
   end
 
@@ -84,11 +84,11 @@ defmodule ControlKeel.Cloud.McpRegistryTest do
     end
 
     test "unknown server denied without attestation" do
-      assert {:denied, :attestation_required} = McpRegistry.lookup("anything")
+      assert {:denied, :attestation_required} = Registry.lookup("anything")
     end
 
     test "unknown server allowed with attestation" do
-      assert :allowed = McpRegistry.lookup("anything", attested?: true)
+      assert :allowed = Registry.lookup("anything", attested?: true)
     end
   end
 
@@ -102,10 +102,10 @@ defmodule ControlKeel.Cloud.McpRegistryTest do
         denylist: [:bad, "evil"]
       })
 
-      entries = McpRegistry.entries()
+      entries = Registry.entries()
       assert Enum.find(entries, &(&1.name == "a")).attestation == :required
       assert Enum.find(entries, &(&1.name == "b-shorthand")).attestation == :not_required
-      assert McpRegistry.denylist() == ["bad", "evil"]
+      assert Registry.denylist() == ["bad", "evil"]
     end
   end
 
@@ -121,7 +121,7 @@ defmodule ControlKeel.Cloud.McpRegistryTest do
         denylist: ["d", "e"]
       })
 
-      assert McpRegistry.summary() == %{
+      assert Registry.summary() == %{
                allowlist_count: 3,
                denylist_count: 2,
                requires_attestation: 2,

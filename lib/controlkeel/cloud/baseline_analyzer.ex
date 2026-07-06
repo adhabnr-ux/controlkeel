@@ -30,7 +30,7 @@ defmodule ControlKeel.Cloud.BaselineAnalyzer do
 
   import Ecto.Query, warn: false
 
-  alias ControlKeel.Cloud.WorkspaceBaseline
+  alias ControlKeel.Cloud.Workspace.Baseline
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Invocation, Session}
   alias ControlKeel.Repo
@@ -50,7 +50,7 @@ defmodule ControlKeel.Cloud.BaselineAnalyzer do
     - `:window_days` — look-back window (default 7)
   """
   @spec compute_and_store(integer(), keyword()) ::
-          {:ok, WorkspaceBaseline.t()} | {:error, term()}
+          {:ok, Baseline.t()} | {:error, term()}
   def compute_and_store(workspace_id, opts \\ []) when is_integer(workspace_id) do
     window_days = Keyword.get(opts, :window_days, @default_window_days)
     {baseline_map, sample_sessions} = build_baseline(workspace_id, window_days)
@@ -63,12 +63,12 @@ defmodule ControlKeel.Cloud.BaselineAnalyzer do
       computed_at: DateTime.utc_now() |> DateTime.truncate(:second)
     }
 
-    existing = Repo.get_by(WorkspaceBaseline, workspace_id: workspace_id)
+    existing = Repo.get_by(Baseline, workspace_id: workspace_id)
 
     changeset =
       case existing do
-        nil -> WorkspaceBaseline.changeset(%WorkspaceBaseline{}, attrs)
-        record -> WorkspaceBaseline.changeset(record, attrs)
+        nil -> Baseline.changeset(%Baseline{}, attrs)
+        record -> Baseline.changeset(record, attrs)
       end
 
     Repo.insert_or_update(changeset)
@@ -95,15 +95,15 @@ defmodule ControlKeel.Cloud.BaselineAnalyzer do
     window_hours = Keyword.get(opts, :window_hours, 1)
     threshold = Keyword.get(opts, :threshold, @deviation_threshold)
 
-    case Repo.get_by(WorkspaceBaseline, workspace_id: workspace_id) do
+    case Repo.get_by(Baseline, workspace_id: workspace_id) do
       nil ->
         []
 
-      %WorkspaceBaseline{sample_sessions: n} when n < @min_samples ->
+      %Baseline{sample_sessions: n} when n < @min_samples ->
         []
 
       baseline_record ->
-        baseline = WorkspaceBaseline.decode(baseline_record)
+        baseline = Baseline.decode(baseline_record)
         session_metrics = session_tool_metrics(session.id, window_hours)
         deviations_for(session_metrics, baseline, threshold)
     end
@@ -133,8 +133,8 @@ defmodule ControlKeel.Cloud.BaselineAnalyzer do
   @doc """
   Returns the stored baseline for `workspace_id`, or `nil`.
   """
-  @spec get_baseline(integer()) :: WorkspaceBaseline.t() | nil
-  def get_baseline(workspace_id), do: Repo.get_by(WorkspaceBaseline, workspace_id: workspace_id)
+  @spec get_baseline(integer()) :: Baseline.t() | nil
+  def get_baseline(workspace_id), do: Repo.get_by(Baseline, workspace_id: workspace_id)
 
   # ---------------------------------------------------------------------------
   # Private helpers

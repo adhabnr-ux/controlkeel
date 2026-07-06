@@ -14,18 +14,18 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
   alias ControlKeel.Accounts
   alias ControlKeel.Budget
   alias ControlKeel.Platform
-  alias ControlKeel.ProviderBroker.Config
+  alias ControlKeel.ProviderBroker.Config, as: ProviderConfig
   alias ControlKeel.Cloud.BaselineAnalyzer
   alias ControlKeel.Cloud.Guardrails
-  alias ControlKeel.Cloud.WorkspaceBaseline
+  alias ControlKeel.Cloud.Workspace.Baseline
   alias ControlKeel.Cloud.Ingestion
-  alias ControlKeel.Cloud.McpAuditLog
-  alias ControlKeel.Cloud.McpRegistry
+  alias ControlKeel.Cloud.Mcp.AuditLog
+  alias ControlKeel.Cloud.Mcp.Registry
   alias ControlKeel.Cloud.RuntimeContext
   alias ControlKeel.Cloud.Sender
-  alias ControlKeel.Cloud.TelemetryConfig
-  alias ControlKeel.Cloud.TelemetryQueue
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Telemetry.Config
+  alias ControlKeel.Cloud.Telemetry.Queue
+  alias ControlKeel.Cloud.Workspace.Identity
 
   @refresh_ms 5_000
 
@@ -81,8 +81,8 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
   defp assign_view_state(socket) do
     metrics = Ingestion.global_funnel_metrics()
-    queue_depth = TelemetryQueue.pending_count()
-    telemetry_state = TelemetryConfig.load()
+    queue_depth = Queue.pending_count()
+    telemetry_state = Config.load()
     endpoint = Sender.endpoint()
     identity_summary = identity_summary()
 
@@ -93,12 +93,12 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
     |> assign(:endpoint, endpoint)
     |> assign(:identity_summary, identity_summary)
     |> assign(:recent_events, Ingestion.global_recent(limit: 25))
-    |> assign(:mcp_audit_summary, McpAuditLog.global_summary())
-    |> assign(:mcp_audit_by_tool, McpAuditLog.global_counts_by_tool())
-    |> assign(:mcp_audit_recent, McpAuditLog.global_recent(limit: 25))
-    |> assign(:mcp_registry_summary, McpRegistry.summary())
-    |> assign(:mcp_registry_entries, McpRegistry.entries())
-    |> assign(:mcp_registry_denylist, McpRegistry.denylist())
+    |> assign(:mcp_audit_summary, AuditLog.global_summary())
+    |> assign(:mcp_audit_by_tool, AuditLog.global_counts_by_tool())
+    |> assign(:mcp_audit_recent, AuditLog.global_recent(limit: 25))
+    |> assign(:mcp_registry_summary, Registry.summary())
+    |> assign(:mcp_registry_entries, Registry.entries())
+    |> assign(:mcp_registry_denylist, Registry.denylist())
     |> assign(:guardrails_summary, Guardrails.summary())
     |> assign(:org_budgets, org_budget_overviews())
     |> assign(:cloud_runs_summary, RuntimeContext.global_status_counts())
@@ -126,12 +126,12 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
   end
 
   defp identity_summary do
-    case WorkspaceIdentity.load() do
+    case Identity.load() do
       {:ok, identity} ->
         %{
           status: :connected,
           workspace_id: identity.workspace_id,
-          fingerprint: WorkspaceIdentity.short_fingerprint(identity)
+          fingerprint: Identity.short_fingerprint(identity)
         }
 
       {:error, :not_connected} ->
@@ -667,12 +667,12 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
   defp baseline_tool_count(baseline) do
     baseline
-    |> WorkspaceBaseline.decode()
+    |> Baseline.decode()
     |> map_size()
   end
 
   defp load_fallback_chain do
-    case Config.read() do
+    case ProviderConfig.read() do
       {:ok, config} -> Map.get(config, "fallback_chain", [])
       _ -> []
     end

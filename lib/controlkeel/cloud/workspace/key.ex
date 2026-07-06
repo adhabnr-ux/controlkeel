@@ -1,9 +1,9 @@
-defmodule ControlKeel.Cloud.WorkspaceKey do
+defmodule ControlKeel.Cloud.Workspace.Key do
   @moduledoc """
   Registered public key for a remote workspace enrolled with this control plane.
 
   This is the multi-tenant counterpart to the local
-  `ControlKeel.Cloud.WorkspaceIdentity`. Each enrolled laptop / project owns
+  `ControlKeel.Cloud.Workspace.Identity`. Each enrolled laptop / project owns
   a row keyed by `workspace_id`, and `AuthToken.verify/1` resolves the
   public key for inbound telemetry tokens through this table.
 

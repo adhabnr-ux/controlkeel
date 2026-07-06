@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.WorkspaceIdentity do
+defmodule ControlKeel.Cloud.Workspace.Identity do
   @moduledoc """
   Local-only workspace identity primitive backing `controlkeel cloud connect`.
 

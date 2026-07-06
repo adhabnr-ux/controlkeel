@@ -6,11 +6,11 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
   import ControlKeel.CLI, except: [run_command: 2]
 
   def run_command(%{command: :telemetry_enable, options: options}, _project_root) do
-    alias ControlKeel.Cloud.TelemetryConfig
+    alias ControlKeel.Cloud.Telemetry.Config
 
     with {:ok, raw_level} <- require_string_option(options[:level], "level"),
          {:ok, level} <- parse_telemetry_level(raw_level),
-         {:ok, state} <- TelemetryConfig.enable(level) do
+         {:ok, state} <- Config.enable(level) do
       {:ok,
        [
          "Cloud telemetry enabled",
@@ -37,7 +37,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
   end
 
   def run_command(%{command: :telemetry_disable, options: _options}, _project_root) do
-    case ControlKeel.Cloud.TelemetryConfig.disable() do
+    case ControlKeel.Cloud.Telemetry.Config.disable() do
       {:ok, state} ->
         {:ok,
          [

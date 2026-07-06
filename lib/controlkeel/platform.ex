@@ -9,7 +9,7 @@ defmodule ControlKeel.Platform do
   alias ControlKeel.Mission.{ProofBundle, Session, Task}
 
   alias ControlKeel.Platform.{
-    AuditExport,
+    Export,
     IntegrationDelivery,
     IntegrationWebhook,
     NhiAuditEvent,
@@ -813,8 +813,8 @@ defmodule ControlKeel.Platform do
   end
 
   defp persist_audit_export(session_id, format, metadata) do
-    %AuditExport{}
-    |> AuditExport.changeset(%{
+    %Export{}
+    |> Export.changeset(%{
       session_id: session_id,
       format: format,
       status: "generated",

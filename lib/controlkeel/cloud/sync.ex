@@ -33,7 +33,7 @@ defmodule ControlKeel.Cloud.Sync do
   import Ecto.Query, warn: false
   require Logger
 
-  alias ControlKeel.Cloud.{Redactor, TelemetryEnvelope}
+  alias ControlKeel.Cloud.{Redactor, Telemetry.Envelope}
   alias ControlKeel.Repo
 
   @sync_protocol_version 1
@@ -95,7 +95,7 @@ defmodule ControlKeel.Cloud.Sync do
       "payload" => payload,
       "refs" => portable_refs(record),
       "emitted_at" => DateTime.utc_now() |> DateTime.to_iso8601(),
-      "idempotency_key" => TelemetryEnvelope.ulid(),
+      "idempotency_key" => Envelope.ulid(),
       "sync_protocol_version" => @sync_protocol_version,
       "redaction_policy_version" => Redactor.policy_version()
     }

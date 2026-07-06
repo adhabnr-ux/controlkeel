@@ -5,7 +5,7 @@ defmodule ControlKeel.Cloud.SyncEngine do
   On a configurable interval (default 30s) it:
 
     1. Resolves the local Mission.Workspace id from the enrolled identity via
-       `WorkspaceKeyRegistry.fetch/1`. If no mapping exists, the engine logs
+       `KeyRegistry.fetch/1`. If no mapping exists, the engine logs
        and skips the tick.
     2. Collects unsynced local records via `Cloud.Sync.collect_unsynced/2`.
     3. Pushes them to the configured cloud sync endpoint.
@@ -30,7 +30,7 @@ defmodule ControlKeel.Cloud.SyncEngine do
 
   require Logger
 
-  alias ControlKeel.Cloud.{AuthToken, Sync, WorkspaceIdentity, WorkspaceKeyRegistry}
+  alias ControlKeel.Cloud.{AuthToken, Sync, Workspace.Identity, Workspace.KeyRegistry}
   alias ControlKeel.Runtime.Mode
 
   @default_interval_ms 30_000
@@ -127,7 +127,7 @@ defmodule ControlKeel.Cloud.SyncEngine do
   defp do_sync(%{endpoint: nil}), do: {:error, :not_configured}
 
   defp do_sync(state) do
-    case WorkspaceIdentity.load() do
+    case Identity.load() do
       {:ok, identity} ->
         case resolve_db_workspace_id(identity) do
           nil ->
@@ -231,9 +231,9 @@ defmodule ControlKeel.Cloud.SyncEngine do
 
   # Cloud identity holds the cloud-side workspace id (string UUID). The local
   # DB uses Mission.Workspace.id (integer). The bridge is the
-  # WorkspaceKeyRegistry record's mission_workspace_id, written at enrollment.
+  # KeyRegistry record's mission_workspace_id, written at enrollment.
   defp resolve_db_workspace_id(%{workspace_id: ws_id}) when is_binary(ws_id) do
-    case WorkspaceKeyRegistry.fetch(ws_id) do
+    case KeyRegistry.fetch(ws_id) do
       {:ok, %{mission_workspace_id: id}} when is_integer(id) -> id
       _ -> nil
     end

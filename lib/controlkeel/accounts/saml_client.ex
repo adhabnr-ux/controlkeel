@@ -47,15 +47,4 @@ defmodule ControlKeel.Accounts.SamlClient do
   defp adapter do
     Application.get_env(:controlkeel, :saml_client_adapter, __MODULE__.DefaultAdapter)
   end
-
-  defmodule DefaultAdapter do
-    @moduledoc false
-    @behaviour ControlKeel.Accounts.SamlClient
-
-    @impl true
-    def sso_url(_idp), do: {:error, :saml_adapter_not_configured}
-
-    @impl true
-    def verify_response(_idp, _response), do: {:error, :saml_adapter_not_configured}
-  end
 end

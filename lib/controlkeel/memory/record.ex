@@ -2,7 +2,7 @@ defmodule ControlKeel.Memory.Record do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias ControlKeel.Cloud.TelemetryEnvelope
+  alias ControlKeel.Cloud.Telemetry.Envelope
   alias ControlKeel.Memory.Embedding
   alias ControlKeel.Mission.{Session, Task, Workspace}
   alias ControlKeel.Types.JsonList
@@ -113,7 +113,7 @@ defmodule ControlKeel.Memory.Record do
   defp maybe_generate_external_id(changeset) do
     case get_field(changeset, :external_id) do
       nil ->
-        put_change(changeset, :external_id, @external_id_prefix <> TelemetryEnvelope.ulid())
+        put_change(changeset, :external_id, @external_id_prefix <> Envelope.ulid())
 
       _ ->
         changeset

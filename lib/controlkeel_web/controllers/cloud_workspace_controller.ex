@@ -38,8 +38,8 @@ defmodule ControlKeelWeb.CloudWorkspaceController do
 
   alias ControlKeel.Accounts
   alias ControlKeel.Cloud.Enrollment
-  alias ControlKeel.Cloud.WorkspaceKey
-  alias ControlKeel.Cloud.WorkspaceKeyRegistry
+  alias ControlKeel.Cloud.Workspace.Key
+  alias ControlKeel.Cloud.Workspace.KeyRegistry
   alias ControlKeel.Repo
 
   def register(conn, params) do
@@ -96,18 +96,18 @@ defmodule ControlKeelWeb.CloudWorkspaceController do
   defp ensure_fingerprint_unused(%{workspace_id: ws, fingerprint: fp}) do
     # DB-level check: if a key with this fingerprint exists and belongs to a
     # DIFFERENT workspace, reject. Same-workspace match is OK (re-enrollment).
-    case Repo.get_by(WorkspaceKey, fingerprint: fp) do
+    case Repo.get_by(Key, fingerprint: fp) do
       nil -> :ok
-      %WorkspaceKey{workspace_id: ^ws} -> :ok
-      %WorkspaceKey{} -> {:error, :fingerprint_conflict}
+      %Key{workspace_id: ^ws} -> :ok
+      %Key{} -> {:error, :fingerprint_conflict}
     end
   end
 
   defp enroll(verified, %{org_id: org_id, mission_workspace_id: mws_id}) do
-    existing = Repo.get_by(WorkspaceKey, workspace_id: verified.workspace_id)
+    existing = Repo.get_by(Key, workspace_id: verified.workspace_id)
     status = if existing, do: :ok, else: :created
 
-    case WorkspaceKeyRegistry.enroll(%{
+    case KeyRegistry.enroll(%{
            workspace_id: verified.workspace_id,
            public_key: verified.public_key,
            algorithm: verified.algorithm,
@@ -121,7 +121,7 @@ defmodule ControlKeelWeb.CloudWorkspaceController do
     end
   end
 
-  defp summary(%WorkspaceKey{} = key) do
+  defp summary(%Key{} = key) do
     %{
       workspace_id: key.workspace_id,
       fingerprint: key.fingerprint,

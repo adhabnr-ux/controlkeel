@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.TelemetryConfig do
+defmodule ControlKeel.Cloud.Telemetry.Config do
   @moduledoc """
   Local state for opt-in cloud telemetry sync.
 
@@ -26,7 +26,7 @@ defmodule ControlKeel.Cloud.TelemetryConfig do
   "Opt-in telemetry levels" for the full contract.
   """
 
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Workspace.Identity
   alias ControlKeel.Runtime.Paths
 
   @filename "cloud-telemetry.json"
@@ -85,7 +85,7 @@ defmodule ControlKeel.Cloud.TelemetryConfig do
           {:ok, state()}
           | {:error, :invalid_level | :not_connected | {:write_failed, term()}}
   def enable(level) when level in @opt_in_levels do
-    case WorkspaceIdentity.load() do
+    case Identity.load() do
       {:ok, identity} ->
         write(%{
           level: level,

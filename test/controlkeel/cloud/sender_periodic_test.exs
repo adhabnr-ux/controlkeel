@@ -2,10 +2,10 @@ defmodule ControlKeel.Cloud.Sender.PeriodicTest do
   use ControlKeel.DataCase, async: false
 
   alias ControlKeel.Cloud.Sender.Periodic
-  alias ControlKeel.Cloud.TelemetryConfig
-  alias ControlKeel.Cloud.TelemetryEnvelope
-  alias ControlKeel.Cloud.TelemetryQueue
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Telemetry.Config
+  alias ControlKeel.Cloud.Telemetry.Envelope
+  alias ControlKeel.Cloud.Telemetry.Queue
+  alias ControlKeel.Cloud.Workspace.Identity
 
   setup do
     tmp_home =
@@ -57,8 +57,8 @@ defmodule ControlKeel.Cloud.Sender.PeriodicTest do
 
   describe "flush_now/0" do
     test "drives a single flush when manually invoked" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _state} = TelemetryConfig.enable(:governance)
+      {:ok, _identity, :created} = Identity.ensure()
+      {:ok, _state} = Config.enable(:governance)
       enqueue("heartbeat", %{})
 
       Application.put_env(:controlkeel, :cloud_telemetry_endpoint, "https://cloud.example/v1")
@@ -70,7 +70,7 @@ defmodule ControlKeel.Cloud.Sender.PeriodicTest do
       on_exit(fn -> if Process.alive?(pid), do: GenServer.stop(pid) end)
 
       assert {:ok, :sent, 1} = Periodic.flush_now()
-      assert TelemetryQueue.pending_count() == 0
+      assert Queue.pending_count() == 0
 
       status = Periodic.status()
       assert match?({:ok, :sent, 1}, status.last_outcome)
@@ -92,8 +92,8 @@ defmodule ControlKeel.Cloud.Sender.PeriodicTest do
 
   describe "backoff behaviour" do
     test "consecutive_failures grows and interval doubles up to the cap" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _state} = TelemetryConfig.enable(:governance)
+      {:ok, _identity, :created} = Identity.ensure()
+      {:ok, _state} = Config.enable(:governance)
       enqueue("heartbeat", %{})
 
       Application.put_env(:controlkeel, :cloud_telemetry_endpoint, "https://cloud.example/v1")
@@ -133,8 +133,8 @@ defmodule ControlKeel.Cloud.Sender.PeriodicTest do
     end
 
     test "a successful flush resets the backoff" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _state} = TelemetryConfig.enable(:governance)
+      {:ok, _identity, :created} = Identity.ensure()
+      {:ok, _state} = Config.enable(:governance)
       enqueue("heartbeat", %{})
 
       Application.put_env(:controlkeel, :cloud_telemetry_endpoint, "https://cloud.example/v1")
@@ -164,8 +164,8 @@ defmodule ControlKeel.Cloud.Sender.PeriodicTest do
 
   describe "automatic ticking" do
     test "fires :tick on the configured interval" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _state} = TelemetryConfig.enable(:governance)
+      {:ok, _identity, :created} = Identity.ensure()
+      {:ok, _state} = Config.enable(:governance)
       enqueue("heartbeat", %{})
 
       Application.put_env(:controlkeel, :cloud_telemetry_endpoint, "https://cloud.example/v1")
@@ -176,7 +176,7 @@ defmodule ControlKeel.Cloud.Sender.PeriodicTest do
       on_exit(fn -> if Process.alive?(pid), do: GenServer.stop(pid) end)
 
       # Allow at least one tick to fire automatically.
-      :ok = wait_until(fn -> TelemetryQueue.pending_count() == 0 end, 1_000)
+      :ok = wait_until(fn -> Queue.pending_count() == 0 end, 1_000)
 
       status = Periodic.status()
       assert match?({:ok, :sent, _}, status.last_outcome)
@@ -184,8 +184,8 @@ defmodule ControlKeel.Cloud.Sender.PeriodicTest do
   end
 
   defp enqueue(kind, payload) do
-    {:ok, envelope} = TelemetryEnvelope.build(kind, payload)
-    {:ok, :enqueued, _} = TelemetryQueue.enqueue(envelope)
+    {:ok, envelope} = Envelope.build(kind, payload)
+    {:ok, :enqueued, _} = Queue.enqueue(envelope)
   end
 
   defp install_http(handler) do

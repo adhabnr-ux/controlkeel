@@ -169,7 +169,7 @@ defmodule ControlKeel.Mission do
 
   @doc "Generate a user-facing task_<ulid> identifier."
   @spec generate_task_external_id() :: String.t()
-  def generate_task_external_id, do: "task_" <> ControlKeel.Cloud.TelemetryEnvelope.ulid()
+  def generate_task_external_id, do: "task_" <> ControlKeel.Cloud.Telemetry.Envelope.ulid()
 
   def task_assurance_summary(nil), do: nil
 

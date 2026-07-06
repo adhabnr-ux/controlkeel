@@ -5,7 +5,7 @@ defmodule ControlKeelWeb.Plugs.CloudWorkspaceKeyAuth do
 
   On success assigns:
     - `:cloud_workspace_id`    — the string UUID from the token claims
-    - `:db_workspace_id`       — the integer Mission.Workspace.id from WorkspaceKeyRegistry
+    - `:db_workspace_id`       — the integer Mission.Workspace.id from KeyRegistry
     - `:db_workspace_org_id`   — the owning org id when available
 
   Returns 401 on missing/invalid Bearer, 404 when the workspace_id has no
@@ -18,7 +18,7 @@ defmodule ControlKeelWeb.Plugs.CloudWorkspaceKeyAuth do
   import Plug.Conn
 
   alias ControlKeel.Cloud.AuthToken
-  alias ControlKeel.Cloud.WorkspaceKeyRegistry
+  alias ControlKeel.Cloud.Workspace.KeyRegistry
   alias ControlKeel.Mission.Workspace
   alias ControlKeel.Repo
 
@@ -28,7 +28,7 @@ defmodule ControlKeelWeb.Plugs.CloudWorkspaceKeyAuth do
     with [bearer] <- get_req_header(conn, "authorization"),
          "Bearer " <> token <- bearer,
          {:ok, %{workspace_id: ws_id}} <- AuthToken.verify(token),
-         {:ok, key} <- WorkspaceKeyRegistry.fetch(ws_id),
+         {:ok, key} <- KeyRegistry.fetch(ws_id),
          %{mission_workspace_id: db_id} <- key,
          true <- is_integer(db_id) do
       org_id = key.org_id || workspace_org_id(db_id)

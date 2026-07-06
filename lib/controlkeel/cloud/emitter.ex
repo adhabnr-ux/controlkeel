@@ -25,11 +25,11 @@ defmodule ControlKeel.Cloud.Emitter do
   @moduledoc """
   Bridge from local governance events to the cloud telemetry queue.
 
-  When cloud telemetry is opted in (`TelemetryConfig.enabled?/1`), governance
+  When cloud telemetry is opted in (`Config.enabled?/1`), governance
   events flow through here:
 
       governance event → translate to envelope kind → Envelope.build →
-      Redactor.redact → TelemetryQueue.enqueue
+      Redactor.redact → Queue.enqueue
 
   When telemetry is disabled the emitter is a no-op. This module is
   fail-soft: any unexpected error during emit is swallowed and the original
@@ -48,9 +48,9 @@ defmodule ControlKeel.Cloud.Emitter do
 
   require Logger
 
-  alias ControlKeel.Cloud.TelemetryConfig
-  alias ControlKeel.Cloud.TelemetryEnvelope
-  alias ControlKeel.Cloud.TelemetryQueue
+  alias ControlKeel.Cloud.Telemetry.Config
+  alias ControlKeel.Cloud.Telemetry.Envelope
+  alias ControlKeel.Cloud.Telemetry.Queue
 
   @handler_id "controlkeel-cloud-emitter"
 
@@ -99,9 +99,9 @@ defmodule ControlKeel.Cloud.Emitter do
           | {:skipped, atom() | tuple()}
           | {:error, term()}
   def emit(kind, payload) when is_binary(kind) and is_map(payload) do
-    state = TelemetryConfig.load()
+    state = Config.load()
 
-    if TelemetryConfig.enabled?(state) do
+    if Config.enabled?(state) do
       do_emit(kind, payload, state)
     else
       {:skipped, :telemetry_disabled}
@@ -162,8 +162,8 @@ defmodule ControlKeel.Cloud.Emitter do
   defp normalize_value(other), do: inspect(other)
 
   defp do_emit(kind, payload, state) do
-    with {:ok, envelope} <- TelemetryEnvelope.build(kind, payload, state: state),
-         {:ok, outcome, _event} <- TelemetryQueue.enqueue(envelope) do
+    with {:ok, envelope} <- Envelope.build(kind, payload, state: state),
+         {:ok, outcome, _event} <- Queue.enqueue(envelope) do
       case outcome do
         :enqueued -> :ok
         :duplicate -> {:ok, :duplicate}

@@ -2,7 +2,7 @@ defmodule ControlKeel.Cloud.SyncEngineTest do
   use ControlKeel.DataCase, async: false
 
   alias ControlKeel.Cloud.SyncEngine
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Workspace.Identity
 
   setup do
     tmp_home =
@@ -25,7 +25,7 @@ defmodule ControlKeel.Cloud.SyncEngineTest do
       File.rm_rf!(tmp_home)
     end)
 
-    {:ok, _identity, :created} = WorkspaceIdentity.ensure()
+    {:ok, _identity, :created} = Identity.ensure()
 
     # Ensure SyncEngine is started under test supervision
     sync_pid = Process.whereis(SyncEngine)

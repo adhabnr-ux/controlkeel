@@ -36,11 +36,11 @@ defmodule ControlKeel.CLI.Dispatch.McpTools do
   end
 
   def run_command(%{command: :mcp_registry_list, options: _options}, _project_root) do
-    alias ControlKeel.Cloud.McpRegistry
+    alias ControlKeel.Cloud.Mcp.Registry
 
-    summary = McpRegistry.summary()
-    entries = McpRegistry.entries()
-    denylist = McpRegistry.denylist()
+    summary = Registry.summary()
+    entries = Registry.entries()
+    denylist = Registry.denylist()
 
     header = [
       "Cloud MCP server registry",
@@ -74,10 +74,10 @@ defmodule ControlKeel.CLI.Dispatch.McpTools do
         %{command: :mcp_registry_check, options: options, args: [server_name]},
         _project_root
       ) do
-    alias ControlKeel.Cloud.McpRegistry
+    alias ControlKeel.Cloud.Mcp.Registry
 
     attested? = Map.get(options, :attested, false)
-    disposition = McpRegistry.lookup(server_name, attested?: attested?)
+    disposition = Registry.lookup(server_name, attested?: attested?)
 
     line =
       case disposition do

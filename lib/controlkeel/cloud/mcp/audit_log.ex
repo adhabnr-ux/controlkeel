@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.McpAuditLog do
+defmodule ControlKeel.Cloud.Mcp.AuditLog do
   @moduledoc """
   Persistent audit trail for hosted MCP and A2A tool dispatches.
 
@@ -19,7 +19,7 @@ defmodule ControlKeel.Cloud.McpAuditLog do
 
   import Ecto.Query, warn: false
 
-  alias ControlKeel.Cloud.McpToolCall
+  alias ControlKeel.Cloud.Mcp.ToolCall
   alias ControlKeel.Platform.ServiceAccount
   alias ControlKeel.Repo
 
@@ -37,17 +37,17 @@ defmodule ControlKeel.Cloud.McpAuditLog do
     :ok
   rescue
     error ->
-      Logger.warning("Cloud.McpAuditLog: record failed: #{inspect(error)}")
+      Logger.warning("Cloud.AuditLog: record failed: #{inspect(error)}")
       :ok
   catch
     kind, value ->
-      Logger.warning("Cloud.McpAuditLog: caught #{inspect(kind)} #{inspect(value)}")
+      Logger.warning("Cloud.AuditLog: caught #{inspect(kind)} #{inspect(value)}")
       :ok
   end
 
   defp do_record(outcome, attrs) do
-    %McpToolCall{}
-    |> McpToolCall.changeset(%{
+    %ToolCall{}
+    |> ToolCall.changeset(%{
       workspace_id: workspace_id(attrs),
       service_account_id: service_account_id(attrs),
       resource: to_string(Map.get(attrs, :resource, "mcp")),
@@ -92,7 +92,7 @@ defmodule ControlKeel.Cloud.McpAuditLog do
 
   @doc "Total persisted calls."
   @spec count() :: non_neg_integer()
-  def count, do: Repo.aggregate(McpToolCall, :count, :id)
+  def count, do: Repo.aggregate(ToolCall, :count, :id)
 
   # --- Workspace-scoped variants (tenant-facing) ---
 
@@ -102,7 +102,7 @@ defmodule ControlKeel.Cloud.McpAuditLog do
   @spec counts_by_tool(integer()) ::
           [%{tool_name: String.t(), allowed: non_neg_integer(), denied: non_neg_integer()}]
   def counts_by_tool(workspace_id) when is_integer(workspace_id) do
-    McpToolCall
+    ToolCall
     |> where([c], c.workspace_id == ^workspace_id)
     |> group_by([c], [c.tool_name, c.outcome])
     |> select([c], {c.tool_name, c.outcome, count(c.id)})
@@ -120,7 +120,7 @@ defmodule ControlKeel.Cloud.McpAuditLog do
         }
   def summary(workspace_id) when is_integer(workspace_id) do
     rows =
-      McpToolCall
+      ToolCall
       |> where([c], c.workspace_id == ^workspace_id)
       |> group_by([c], c.outcome)
       |> select([c], {c.outcome, count(c.id)})
@@ -133,11 +133,11 @@ defmodule ControlKeel.Cloud.McpAuditLog do
   @doc """
   Recent calls for a single workspace, newest first, capped to `:limit` (default 50).
   """
-  @spec recent(integer(), keyword()) :: [McpToolCall.t()]
+  @spec recent(integer(), keyword()) :: [ToolCall.t()]
   def recent(workspace_id, opts \\ []) when is_integer(workspace_id) do
     limit = Keyword.get(opts, :limit, 50)
 
-    McpToolCall
+    ToolCall
     |> where([c], c.workspace_id == ^workspace_id)
     |> order_by([c], desc: c.requested_at, desc: c.id)
     |> limit(^limit)
@@ -154,7 +154,7 @@ defmodule ControlKeel.Cloud.McpAuditLog do
   @spec global_counts_by_tool() ::
           [%{tool_name: String.t(), allowed: non_neg_integer(), denied: non_neg_integer()}]
   def global_counts_by_tool do
-    McpToolCall
+    ToolCall
     |> group_by([c], [c.tool_name, c.outcome])
     |> select([c], {c.tool_name, c.outcome, count(c.id)})
     |> Repo.all()
@@ -173,7 +173,7 @@ defmodule ControlKeel.Cloud.McpAuditLog do
         }
   def global_summary do
     rows =
-      McpToolCall
+      ToolCall
       |> group_by([c], c.outcome)
       |> select([c], {c.outcome, count(c.id)})
       |> Repo.all()
@@ -187,11 +187,11 @@ defmodule ControlKeel.Cloud.McpAuditLog do
 
   **Admin only.** Use `recent(workspace_id, opts)` for tenant-facing surfaces.
   """
-  @spec global_recent(keyword()) :: [McpToolCall.t()]
+  @spec global_recent(keyword()) :: [ToolCall.t()]
   def global_recent(opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)
 
-    McpToolCall
+    ToolCall
     |> order_by([c], desc: c.requested_at, desc: c.id)
     |> limit(^limit)
     |> Repo.all()

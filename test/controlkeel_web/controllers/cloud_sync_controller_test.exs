@@ -1,7 +1,7 @@
 defmodule ControlKeelWeb.CloudSyncControllerTest do
   use ControlKeelWeb.ConnCase
 
-  alias ControlKeel.Cloud.{AuthToken, Sync, WorkspaceKeyRegistry}
+  alias ControlKeel.Cloud.{AuthToken, Sync, Workspace.KeyRegistry}
   alias ControlKeel.Memory
   alias ControlKeel.Mission
   alias ControlKeel.Mission.SessionDigest
@@ -14,10 +14,10 @@ defmodule ControlKeelWeb.CloudSyncControllerTest do
     public_key_b64 = Base.encode64(public_key)
     private_key_b64 = Base.encode64(private_key)
     workspace_id = "ws_" <> Base.encode16(:crypto.strong_rand_bytes(8), case: :lower)
-    {:ok, fingerprint} = WorkspaceKeyRegistry.fingerprint_for(public_key_b64)
+    {:ok, fingerprint} = KeyRegistry.fingerprint_for(public_key_b64)
 
     {:ok, _key} =
-      WorkspaceKeyRegistry.enroll(%{
+      KeyRegistry.enroll(%{
         workspace_id: workspace_id,
         public_key: public_key_b64,
         algorithm: "ed25519",

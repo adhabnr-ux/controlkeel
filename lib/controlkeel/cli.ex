@@ -2153,7 +2153,7 @@ defmodule ControlKeel.CLI do
   def require_string_option(value, _option), do: {:ok, to_string(value)}
 
   def parse_telemetry_level(value) do
-    case ControlKeel.Cloud.TelemetryConfig.parse_level(value) do
+    case ControlKeel.Cloud.Telemetry.Config.parse_level(value) do
       {:ok, :disabled} -> {:error, :invalid_level}
       {:ok, level} -> {:ok, level}
       :error -> {:error, :invalid_level}
@@ -2179,7 +2179,7 @@ defmodule ControlKeel.CLI do
         case System.get_env(env) do
           nil -> {:error, {:missing_signing_key, env}}
           "" -> {:error, {:missing_signing_key, env}}
-          key -> {:ok, ControlKeel.Cloud.AuditExportSigner.sign(payload, key, key_id: env)}
+          key -> {:ok, ControlKeel.Cloud.Audit.ExportSigner.sign(payload, key, key_id: env)}
         end
     end
   end
@@ -2188,7 +2188,7 @@ defmodule ControlKeel.CLI do
 
   def baseline_tool_count(baseline) do
     baseline
-    |> ControlKeel.Cloud.WorkspaceBaseline.decode()
+    |> ControlKeel.Cloud.Workspace.Baseline.decode()
     |> map_size()
   end
 
@@ -2386,7 +2386,7 @@ defmodule ControlKeel.CLI do
   def format_note(note), do: "  note=#{note}"
 
   def telemetry_level_list_text do
-    ControlKeel.Cloud.TelemetryConfig.opt_in_levels()
+    ControlKeel.Cloud.Telemetry.Config.opt_in_levels()
     |> Enum.map(&Atom.to_string/1)
     |> Enum.join(" | ")
   end
@@ -2541,7 +2541,7 @@ defmodule ControlKeel.CLI do
   end
 
   def cloud_guidance_lines do
-    case ControlKeel.Cloud.WorkspaceIdentity.load() do
+    case ControlKeel.Cloud.Workspace.Identity.load() do
       {:ok, identity} ->
         [
           "",

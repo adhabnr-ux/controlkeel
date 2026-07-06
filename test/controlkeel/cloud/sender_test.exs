@@ -2,10 +2,10 @@ defmodule ControlKeel.Cloud.SenderTest do
   use ControlKeel.DataCase, async: false
 
   alias ControlKeel.Cloud.Sender
-  alias ControlKeel.Cloud.TelemetryConfig
-  alias ControlKeel.Cloud.TelemetryEnvelope
-  alias ControlKeel.Cloud.TelemetryQueue
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Telemetry.Config
+  alias ControlKeel.Cloud.Telemetry.Envelope
+  alias ControlKeel.Cloud.Telemetry.Queue
+  alias ControlKeel.Cloud.Workspace.Identity
 
   setup do
     tmp_home =
@@ -76,8 +76,8 @@ defmodule ControlKeel.Cloud.SenderTest do
 
   describe "flush/0 with endpoint + identity" do
     setup do
-      {:ok, identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _state} = TelemetryConfig.enable(:governance)
+      {:ok, identity, :created} = Identity.ensure()
+      {:ok, _state} = Config.enable(:governance)
       Application.put_env(:controlkeel, :cloud_telemetry_endpoint, "https://cloud.example/v1")
       {:ok, identity: identity}
     end
@@ -99,7 +99,7 @@ defmodule ControlKeel.Cloud.SenderTest do
       end)
 
       assert {:ok, :sent, 2} = Sender.flush()
-      assert TelemetryQueue.pending_count() == 0
+      assert Queue.pending_count() == 0
 
       [{url, opts}] = Process.get(:captured_requests)
       assert url == "https://cloud.example/v1"
@@ -123,9 +123,9 @@ defmodule ControlKeel.Cloud.SenderTest do
       install_recording_http(fn _url, _opts -> {:ok, %{status: 503}} end)
 
       assert {:error, {:server, 503}, 1} = Sender.flush()
-      assert TelemetryQueue.pending_count() == 1
+      assert Queue.pending_count() == 1
 
-      [event] = TelemetryQueue.pending()
+      [event] = Queue.pending()
       assert event.send_attempts == 1
       assert event.last_error =~ "503"
     end
@@ -136,9 +136,9 @@ defmodule ControlKeel.Cloud.SenderTest do
       install_recording_http(fn _url, _opts -> {:error, :timeout} end)
 
       assert {:error, :network, 1} = Sender.flush()
-      assert TelemetryQueue.pending_count() == 1
+      assert Queue.pending_count() == 1
 
-      [event] = TelemetryQueue.pending()
+      [event] = Queue.pending()
       assert event.last_error =~ "network error"
     end
 
@@ -149,7 +149,7 @@ defmodule ControlKeel.Cloud.SenderTest do
       install_recording_http(fn _url, _opts -> {:ok, %{status: 200}} end)
 
       assert {:ok, :sent, 2} = Sender.flush(limit: 2)
-      assert TelemetryQueue.pending_count() == 3
+      assert Queue.pending_count() == 3
     end
 
     test "does not double-send: a re-flush after success is :no_pending" do
@@ -163,8 +163,8 @@ defmodule ControlKeel.Cloud.SenderTest do
   end
 
   defp enqueue_envelope(kind, payload) do
-    {:ok, envelope} = TelemetryEnvelope.build(kind, payload)
-    {:ok, :enqueued, _event} = TelemetryQueue.enqueue(envelope)
+    {:ok, envelope} = Envelope.build(kind, payload)
+    {:ok, :enqueued, _event} = Queue.enqueue(envelope)
   end
 
   defp install_recording_http(handler) do

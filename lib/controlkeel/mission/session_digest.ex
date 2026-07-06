@@ -2,7 +2,7 @@ defmodule ControlKeel.Mission.SessionDigest do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias ControlKeel.Cloud.TelemetryEnvelope
+  alias ControlKeel.Cloud.Telemetry.Envelope
   alias ControlKeel.Mission.Session
 
   @valid_digest_types ~w(session daily shift_change)
@@ -111,7 +111,7 @@ defmodule ControlKeel.Mission.SessionDigest do
   defp maybe_generate_external_id(changeset) do
     case get_field(changeset, :external_id) do
       nil ->
-        put_change(changeset, :external_id, @external_id_prefix <> TelemetryEnvelope.ulid())
+        put_change(changeset, :external_id, @external_id_prefix <> Envelope.ulid())
 
       _ ->
         changeset

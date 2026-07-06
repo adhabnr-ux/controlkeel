@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.AuditExportSigner do
+defmodule ControlKeel.Cloud.Audit.ExportSigner do
   @moduledoc """
   Deterministic digest and optional HMAC envelope for audit exports.
 

@@ -24,7 +24,7 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
     name = Map.get(options, :name)
     invite = Map.get(options, :invite)
 
-    case ControlKeel.Cloud.WorkspaceIdentity.ensure(force: force?) do
+    case ControlKeel.Cloud.Workspace.Identity.ensure(force: force?) do
       {:ok, identity, outcome} ->
         action =
           case outcome do
@@ -37,7 +37,7 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
           action,
           "Workspace ID: #{identity.workspace_id}",
           "Algorithm: #{identity.algorithm}",
-          "Fingerprint: #{ControlKeel.Cloud.WorkspaceIdentity.short_fingerprint(identity)}...",
+          "Fingerprint: #{ControlKeel.Cloud.Workspace.Identity.short_fingerprint(identity)}...",
           "Created at: #{DateTime.to_iso8601(identity.created_at)}",
           "Identity path: #{identity.path}"
         ]
@@ -63,7 +63,7 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
   end
 
   def run_command(%{command: :audit_export, options: options}, _project_root) do
-    alias ControlKeel.Cloud.AuditExport
+    alias ControlKeel.Cloud.Audit.Export
     alias ControlKeel.Cloud.ComplianceTemplate
 
     with {:ok, scope_opts} <- resolve_audit_scope(options),
@@ -73,7 +73,7 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
            scope_opts
            |> maybe_append(:since, since_opt)
            |> maybe_append(:until, until_opt),
-         {:ok, bundle} <- AuditExport.build(build_opts),
+         {:ok, bundle} <- Export.build(build_opts),
          {:ok, export_payload} <- maybe_render_compliance_template(bundle, options[:template]),
          {:ok, final_payload} <- maybe_sign_audit_export(export_payload, options) do
       json = Jason.encode!(final_payload, pretty: true)

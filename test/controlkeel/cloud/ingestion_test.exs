@@ -3,9 +3,9 @@ defmodule ControlKeel.Cloud.IngestionTest do
 
   alias ControlKeel.Cloud.Ingestion
   alias ControlKeel.Cloud.ReceivedTelemetryEvent
-  alias ControlKeel.Cloud.TelemetryConfig
-  alias ControlKeel.Cloud.TelemetryEnvelope
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Telemetry.Config
+  alias ControlKeel.Cloud.Telemetry.Envelope
+  alias ControlKeel.Cloud.Workspace.Identity
   alias ControlKeel.Repo
 
   setup do
@@ -29,10 +29,10 @@ defmodule ControlKeel.Cloud.IngestionTest do
       File.rm_rf!(tmp_home)
     end)
 
-    {:ok, identity, :created} = WorkspaceIdentity.ensure()
-    {:ok, _state} = TelemetryConfig.enable(:governance)
+    {:ok, identity, :created} = Identity.ensure()
+    {:ok, _state} = Config.enable(:governance)
 
-    {:ok, envelope} = TelemetryEnvelope.build("finding.created", %{"severity" => "high"})
+    {:ok, envelope} = Envelope.build("finding.created", %{"severity" => "high"})
 
     {:ok, identity: identity, envelope: envelope}
   end
@@ -118,8 +118,8 @@ defmodule ControlKeel.Cloud.IngestionTest do
       forged =
         envelope
         |> Map.put("workspace_id", "ws_attacker")
-        |> Map.put("event_id", TelemetryEnvelope.ulid())
-        |> Map.put("idempotency_key", TelemetryEnvelope.ulid())
+        |> Map.put("event_id", Envelope.ulid())
+        |> Map.put("idempotency_key", Envelope.ulid())
 
       batch = batch_for(identity, [forged])
 
@@ -145,10 +145,10 @@ defmodule ControlKeel.Cloud.IngestionTest do
       identity: identity,
       envelope: envelope
     } do
-      {:ok, second} = TelemetryEnvelope.build("review.approved", %{"id" => 2})
+      {:ok, second} = Envelope.build("review.approved", %{"id" => 2})
       bad = Map.put(envelope, "kind", "nope.nope")
-      bad = Map.put(bad, "event_id", TelemetryEnvelope.ulid())
-      bad = Map.put(bad, "idempotency_key", TelemetryEnvelope.ulid())
+      bad = Map.put(bad, "event_id", Envelope.ulid())
+      bad = Map.put(bad, "idempotency_key", Envelope.ulid())
 
       batch = batch_for(identity, [envelope, second, bad])
 

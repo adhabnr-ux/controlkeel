@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.McpPolicy do
+defmodule ControlKeel.Cloud.Mcp.Policy do
   @moduledoc """
   Policy gate for hosted MCP / A2A tool dispatches.
 
@@ -32,7 +32,7 @@ defmodule ControlKeel.Cloud.McpPolicy do
 
   import Ecto.Query, warn: false
 
-  alias ControlKeel.Cloud.McpToolCall
+  alias ControlKeel.Cloud.Mcp.ToolCall
   alias ControlKeel.Platform.ServiceAccount
   alias ControlKeel.Repo
 
@@ -45,7 +45,7 @@ defmodule ControlKeel.Cloud.McpPolicy do
   Evaluate the policy for one prospective dispatch.
 
   Returns `:ok` to allow, `{:error, {:policy, reason}}` to deny. Callers should
-  call `ControlKeel.Cloud.McpAuditLog.record(:denied, ...)` themselves — this
+  call `ControlKeel.Cloud.Mcp.AuditLog.record(:denied, ...)` themselves — this
   module only computes the verdict; it does not write the audit log.
   """
   @spec check(map(), String.t(), String.t()) :: verdict()
@@ -119,7 +119,7 @@ defmodule ControlKeel.Cloud.McpPolicy do
   defp count_recent_allowed(nil, _tool_name, _cutoff), do: 0
 
   defp count_recent_allowed(workspace_id, tool_name, cutoff) do
-    McpToolCall
+    ToolCall
     |> where([c], c.workspace_id == ^workspace_id)
     |> where([c], c.tool_name == ^tool_name)
     |> where([c], c.outcome == "allowed")

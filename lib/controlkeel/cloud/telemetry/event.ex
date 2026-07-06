@@ -1,8 +1,8 @@
-defmodule ControlKeel.Cloud.TelemetryEvent do
+defmodule ControlKeel.Cloud.Telemetry.Event do
   @moduledoc """
   Ecto schema for a queued cloud telemetry event awaiting sync.
 
-  Rows are inserted by `ControlKeel.Cloud.TelemetryQueue.enqueue/1`. The sender
+  Rows are inserted by `ControlKeel.Cloud.Telemetry.Queue.enqueue/1`. The sender
   (a later slice) reads pending rows, posts them upstream, then marks them as
   sent. `event_id` and `idempotency_key` are both unique so the queue never
   duplicates work even under crash-recovery enqueue replays.

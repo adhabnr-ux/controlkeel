@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.TelemetryEnvelope do
+defmodule ControlKeel.Cloud.Telemetry.Envelope do
   @moduledoc """
   Build a D3 telemetry envelope for one governance event.
 
@@ -27,7 +27,7 @@ defmodule ControlKeel.Cloud.TelemetryEnvelope do
   """
 
   alias ControlKeel.Cloud.Redactor
-  alias ControlKeel.Cloud.TelemetryConfig
+  alias ControlKeel.Cloud.Telemetry.Config
 
   @schema_version "1"
   @recognised_kinds ~w(
@@ -60,7 +60,7 @@ defmodule ControlKeel.Cloud.TelemetryEnvelope do
   @doc """
   Build a telemetry envelope.
 
-  Reads telemetry state via `TelemetryConfig.load/0`. Fails closed when sync is
+  Reads telemetry state via `Config.load/0`. Fails closed when sync is
   not opted in or when redaction rejects the payload.
 
   Options:
@@ -72,7 +72,7 @@ defmodule ControlKeel.Cloud.TelemetryEnvelope do
   """
   @spec build(String.t(), map(), keyword()) :: {:ok, map()} | {:error, build_error()}
   def build(kind, payload, opts \\ []) when is_binary(kind) and is_map(payload) do
-    state = Keyword.get(opts, :state) || TelemetryConfig.load()
+    state = Keyword.get(opts, :state) || Config.load()
 
     with :ok <- ensure_enabled(state),
          :ok <- ensure_workspace(state),
@@ -101,7 +101,7 @@ defmodule ControlKeel.Cloud.TelemetryEnvelope do
   end
 
   defp ensure_enabled(state) do
-    if TelemetryConfig.enabled?(state), do: :ok, else: {:error, :telemetry_disabled}
+    if Config.enabled?(state), do: :ok, else: {:error, :telemetry_disabled}
   end
 
   defp ensure_workspace(%{workspace_id: nil}), do: {:error, :workspace_not_set}

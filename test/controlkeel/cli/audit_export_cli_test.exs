@@ -80,7 +80,7 @@ defmodule ControlKeel.CLI.AuditExportTest do
     assert decoded["kind"] == "controlkeel.audit_export.signed"
     assert decoded["payload"]["template"] == "soc2"
     assert decoded["integrity"]["key_id"] == env
-    assert :ok = ControlKeel.Cloud.AuditExportSigner.verify(decoded, "signing-key")
+    assert :ok = ControlKeel.Cloud.Audit.ExportSigner.verify(decoded, "signing-key")
   end
 
   test "audit export --sign requires configured env var" do

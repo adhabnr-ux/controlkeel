@@ -5,7 +5,7 @@ defmodule ControlKeel.Cloud.GuardrailsTest do
   import ControlKeel.PlatformFixtures
 
   alias ControlKeel.Cloud.Guardrails
-  alias ControlKeel.Cloud.McpToolCall
+  alias ControlKeel.Cloud.Mcp.ToolCall
   alias ControlKeel.Mcp.ProtocolInterop
   alias ControlKeel.Repo
 
@@ -150,7 +150,7 @@ defmodule ControlKeel.Cloud.GuardrailsTest do
       assert {:error, {:guardrail, :openai_api_key}} =
                ProtocolInterop.authorize_hosted_tool_call(auth, "ck_finding", args, "mcp")
 
-      [row] = Repo.all(McpToolCall)
+      [row] = Repo.all(ToolCall)
       assert row.outcome == "denied"
       assert row.denial_reason == "guardrail:openai_api_key"
     end

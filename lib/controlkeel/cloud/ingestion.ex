@@ -16,7 +16,7 @@ defmodule ControlKeel.Cloud.Ingestion do
   import Ecto.Query, warn: false
 
   alias ControlKeel.Cloud.ReceivedTelemetryEvent
-  alias ControlKeel.Cloud.TelemetryEnvelope
+  alias ControlKeel.Cloud.Telemetry.Envelope
   alias ControlKeel.Repo
 
   @schema_version "1"
@@ -124,7 +124,7 @@ defmodule ControlKeel.Cloud.Ingestion do
       Map.get(envelope, "workspace_id") != source_workspace_id ->
         {:error, "envelope workspace_id mismatch"}
 
-      Map.get(envelope, "kind") not in TelemetryEnvelope.recognised_kinds() ->
+      Map.get(envelope, "kind") not in Envelope.recognised_kinds() ->
         {:error, "unknown kind: #{inspect(Map.get(envelope, "kind"))}"}
 
       true ->

@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.McpToolCall do
+defmodule ControlKeel.Cloud.Mcp.ToolCall do
   @moduledoc """
   Persisted record of one hosted MCP or A2A tool dispatch authorization decision.
 

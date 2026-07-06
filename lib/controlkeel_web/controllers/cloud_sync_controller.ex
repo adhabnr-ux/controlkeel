@@ -14,7 +14,7 @@ defmodule ControlKeelWeb.CloudSyncController do
 
   Auth is bearer-token, verified by `Cloud.AuthToken.verify/1`. The token's
   `workspace_id` (cloud string UUID) is resolved to a local
-  `Mission.Workspace.id` via `WorkspaceKeyRegistry.fetch/1`. Unmapped tokens
+  `Mission.Workspace.id` via `KeyRegistry.fetch/1`. Unmapped tokens
   return 404 — the caller should re-enroll.
   """
 
@@ -22,7 +22,7 @@ defmodule ControlKeelWeb.CloudSyncController do
 
   require Logger
 
-  alias ControlKeel.Cloud.{AuthToken, Sync, WorkspaceKeyRegistry}
+  alias ControlKeel.Cloud.{AuthToken, Sync, Workspace.KeyRegistry}
   alias ControlKeel.Mission.{Finding, Review, SessionDigest}
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Repo
@@ -118,7 +118,7 @@ defmodule ControlKeelWeb.CloudSyncController do
   defp resolve_db_workspace_id(conn, _opts) do
     case conn.assigns[:sync_workspace_id] do
       ws_id when is_binary(ws_id) ->
-        case WorkspaceKeyRegistry.fetch(ws_id) do
+        case KeyRegistry.fetch(ws_id) do
           {:ok, %{mission_workspace_id: id}} when is_integer(id) ->
             assign(conn, :db_workspace_id, id)
 

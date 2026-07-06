@@ -1,7 +1,7 @@
-defmodule ControlKeel.Cloud.WorkspaceIdentityTest do
+defmodule ControlKeel.Cloud.Workspace.IdentityTest do
   use ExUnit.Case, async: false
 
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Workspace.Identity
 
   setup do
     tmp_home =
@@ -29,9 +29,9 @@ defmodule ControlKeel.Cloud.WorkspaceIdentityTest do
 
   describe "ensure/1 first run" do
     test "creates a new identity when none exists" do
-      refute WorkspaceIdentity.connected?()
+      refute Identity.connected?()
 
-      assert {:ok, identity, :created} = WorkspaceIdentity.ensure()
+      assert {:ok, identity, :created} = Identity.ensure()
 
       assert String.starts_with?(identity.workspace_id, "ws_")
       assert identity.algorithm == "ed25519"
@@ -39,11 +39,11 @@ defmodule ControlKeel.Cloud.WorkspaceIdentityTest do
       assert is_binary(identity.public_key)
       assert is_binary(identity.private_key)
       assert %DateTime{} = identity.created_at
-      assert WorkspaceIdentity.connected?()
+      assert Identity.connected?()
     end
 
     test "persists the identity to disk with 0600 permissions" do
-      {:ok, identity, :created} = WorkspaceIdentity.ensure()
+      {:ok, identity, :created} = Identity.ensure()
 
       assert File.exists?(identity.path)
 
@@ -56,8 +56,8 @@ defmodule ControlKeel.Cloud.WorkspaceIdentityTest do
 
   describe "ensure/1 idempotence" do
     test "returns the existing identity on subsequent calls" do
-      {:ok, first, :created} = WorkspaceIdentity.ensure()
-      {:ok, second, :existing} = WorkspaceIdentity.ensure()
+      {:ok, first, :created} = Identity.ensure()
+      {:ok, second, :existing} = Identity.ensure()
 
       assert first.workspace_id == second.workspace_id
       assert first.fingerprint == second.fingerprint
@@ -65,8 +65,8 @@ defmodule ControlKeel.Cloud.WorkspaceIdentityTest do
     end
 
     test "force: true rotates the keypair and assigns a new workspace ID" do
-      {:ok, first, :created} = WorkspaceIdentity.ensure()
-      {:ok, second, :rotated} = WorkspaceIdentity.ensure(force: true)
+      {:ok, first, :created} = Identity.ensure()
+      {:ok, second, :rotated} = Identity.ensure(force: true)
 
       refute first.workspace_id == second.workspace_id
       refute first.fingerprint == second.fingerprint
@@ -76,12 +76,12 @@ defmodule ControlKeel.Cloud.WorkspaceIdentityTest do
 
   describe "load/0" do
     test "returns :not_connected when no identity has been generated" do
-      assert {:error, :not_connected} = WorkspaceIdentity.load()
+      assert {:error, :not_connected} = Identity.load()
     end
 
     test "returns the persisted identity after ensure" do
-      {:ok, created, :created} = WorkspaceIdentity.ensure()
-      {:ok, loaded} = WorkspaceIdentity.load()
+      {:ok, created, :created} = Identity.ensure()
+      {:ok, loaded} = Identity.load()
 
       assert loaded.workspace_id == created.workspace_id
       assert loaded.fingerprint == created.fingerprint
@@ -89,24 +89,24 @@ defmodule ControlKeel.Cloud.WorkspaceIdentityTest do
     end
 
     test "returns :malformed when the file is invalid JSON" do
-      File.mkdir_p!(Path.dirname(WorkspaceIdentity.path()))
-      File.write!(WorkspaceIdentity.path(), "not json")
+      File.mkdir_p!(Path.dirname(Identity.path()))
+      File.write!(Identity.path(), "not json")
 
-      assert {:error, {:malformed, _}} = WorkspaceIdentity.load()
+      assert {:error, {:malformed, _}} = Identity.load()
     end
 
     test "returns :malformed when required fields are missing" do
-      File.mkdir_p!(Path.dirname(WorkspaceIdentity.path()))
-      File.write!(WorkspaceIdentity.path(), Jason.encode!(%{"workspace_id" => "ws_xyz"}))
+      File.mkdir_p!(Path.dirname(Identity.path()))
+      File.write!(Identity.path(), Jason.encode!(%{"workspace_id" => "ws_xyz"}))
 
-      assert {:error, {:malformed, _}} = WorkspaceIdentity.load()
+      assert {:error, {:malformed, _}} = Identity.load()
     end
 
     test "returns :malformed when algorithm is unsupported" do
-      File.mkdir_p!(Path.dirname(WorkspaceIdentity.path()))
+      File.mkdir_p!(Path.dirname(Identity.path()))
 
       File.write!(
-        WorkspaceIdentity.path(),
+        Identity.path(),
         Jason.encode!(%{
           "workspace_id" => "ws_x",
           "algorithm" => "rsa-4096",
@@ -117,20 +117,20 @@ defmodule ControlKeel.Cloud.WorkspaceIdentityTest do
         })
       )
 
-      assert {:error, {:malformed, msg}} = WorkspaceIdentity.load()
+      assert {:error, {:malformed, msg}} = Identity.load()
       assert msg =~ "unsupported algorithm"
     end
   end
 
   describe "short_fingerprint/1" do
     test "returns the first 16 hex chars" do
-      assert WorkspaceIdentity.short_fingerprint("0123456789abcdef" <> String.duplicate("0", 48)) ==
+      assert Identity.short_fingerprint("0123456789abcdef" <> String.duplicate("0", 48)) ==
                "0123456789abcdef"
     end
 
     test "accepts an identity struct" do
-      {:ok, identity, :created} = WorkspaceIdentity.ensure()
-      assert String.length(WorkspaceIdentity.short_fingerprint(identity)) == 16
+      {:ok, identity, :created} = Identity.ensure()
+      assert String.length(Identity.short_fingerprint(identity)) == 16
     end
   end
 end

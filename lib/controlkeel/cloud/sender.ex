@@ -2,7 +2,7 @@ defmodule ControlKeel.Cloud.Sender do
   @moduledoc """
   HTTP sender for the cloud telemetry queue.
 
-  Drains `ControlKeel.Cloud.TelemetryQueue` by posting batches to a configured
+  Drains `ControlKeel.Cloud.Telemetry.Queue` by posting batches to a configured
   upstream endpoint. The endpoint defaults to `nil`, in which case the sender
   is a no-op so this module can ship before any cloud control plane exists.
 
@@ -49,10 +49,10 @@ defmodule ControlKeel.Cloud.Sender do
   require Logger
 
   alias ControlKeel.Cloud.AuthToken
-  alias ControlKeel.Cloud.TelemetryEnvelope
-  alias ControlKeel.Cloud.TelemetryEvent
-  alias ControlKeel.Cloud.TelemetryQueue
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Telemetry.Envelope
+  alias ControlKeel.Cloud.Telemetry.Event
+  alias ControlKeel.Cloud.Telemetry.Queue
+  alias ControlKeel.Cloud.Workspace.Identity
 
   @default_batch_size 100
   @default_timeout_ms 5_000
@@ -96,7 +96,7 @@ defmodule ControlKeel.Cloud.Sender do
         {:ok, :no_endpoint, 0}
 
       url ->
-        case WorkspaceIdentity.load() do
+        case Identity.load() do
           {:error, :not_connected} ->
             {:error, :not_connected, 0}
 
@@ -112,7 +112,7 @@ defmodule ControlKeel.Cloud.Sender do
   defp do_flush(url, identity, opts) do
     limit = Keyword.get(opts, :limit, @default_batch_size)
     timeout = Keyword.get(opts, :timeout_ms, configured_timeout())
-    pending = TelemetryQueue.pending(limit: limit)
+    pending = Queue.pending(limit: limit)
 
     case pending do
       [] ->
@@ -124,7 +124,7 @@ defmodule ControlKeel.Cloud.Sender do
   end
 
   defp send_batch(url, identity, events, timeout) do
-    batch_id = TelemetryEnvelope.ulid()
+    batch_id = Envelope.ulid()
     body = build_batch_body(identity, events)
 
     case AuthToken.sign(identity) do
@@ -172,7 +172,7 @@ defmodule ControlKeel.Cloud.Sender do
     }
   end
 
-  defp decode_envelope(%TelemetryEvent{body: body}), do: Jason.decode!(body)
+  defp decode_envelope(%Event{body: body}), do: Jason.decode!(body)
 
   defp post(url, json_body, headers, timeout) do
     req_module = Application.get_env(:controlkeel, :cloud_sender_http_module, Req)
@@ -188,7 +188,7 @@ defmodule ControlKeel.Cloud.Sender do
 
   defp ack_sent(events) do
     Enum.each(events, fn event ->
-      case TelemetryQueue.mark_sent(event) do
+      case Queue.mark_sent(event) do
         {:ok, _} ->
           :ok
 
@@ -202,7 +202,7 @@ defmodule ControlKeel.Cloud.Sender do
 
   defp record_failures(events, reason) do
     Enum.each(events, fn event ->
-      _ = TelemetryQueue.mark_failed(event, reason)
+      _ = Queue.mark_failed(event, reason)
     end)
   end
 

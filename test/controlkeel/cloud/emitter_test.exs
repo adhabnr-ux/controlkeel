@@ -2,9 +2,9 @@ defmodule ControlKeel.Cloud.EmitterTest do
   use ControlKeel.DataCase, async: false
 
   alias ControlKeel.Cloud.Emitter
-  alias ControlKeel.Cloud.TelemetryConfig
-  alias ControlKeel.Cloud.TelemetryQueue
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Telemetry.Config
+  alias ControlKeel.Cloud.Telemetry.Queue
+  alias ControlKeel.Cloud.Workspace.Identity
 
   setup do
     tmp_home =
@@ -39,38 +39,38 @@ defmodule ControlKeel.Cloud.EmitterTest do
       assert {:skipped, :telemetry_disabled} =
                Emitter.emit("finding.created", %{"severity" => "high"})
 
-      assert TelemetryQueue.pending_count() == 0
+      assert Queue.pending_count() == 0
     end
   end
 
   describe "emit/2 when telemetry is enabled" do
     setup do
-      {:ok, identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _state} = TelemetryConfig.enable(:governance)
+      {:ok, identity, :created} = Identity.ensure()
+      {:ok, _state} = Config.enable(:governance)
       {:ok, identity: identity}
     end
 
     test "enqueues a new envelope and returns :ok" do
       assert :ok = Emitter.emit("finding.created", %{"severity" => "high"})
-      assert TelemetryQueue.pending_count() == 1
+      assert Queue.pending_count() == 1
     end
 
     test "skips unknown event kinds without raising" do
       assert {:skipped, {:unknown_kind, "made.up"}} = Emitter.emit("made.up", %{})
-      assert TelemetryQueue.pending_count() == 0
+      assert Queue.pending_count() == 0
     end
 
     test "rejects malformed payloads via redactor without crashing" do
       result = Emitter.emit("finding.created", %{"pid" => self()})
       assert match?({:error, _}, result) or match?({:skipped, _}, result)
-      assert TelemetryQueue.pending_count() == 0
+      assert Queue.pending_count() == 0
     end
   end
 
   describe "telemetry handler attach/detach" do
     setup do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _state} = TelemetryConfig.enable(:governance)
+      {:ok, _identity, :created} = Identity.ensure()
+      {:ok, _state} = Config.enable(:governance)
       # The app supervisor may have already attached the handler at boot.
       # Re-attach idempotently so this test exercises a known-good registration.
       Emitter.detach()
@@ -85,9 +85,9 @@ defmodule ControlKeel.Cloud.EmitterTest do
         %{"severity" => "high", "category" => "security"}
       )
 
-      assert TelemetryQueue.pending_count() == 1
+      assert Queue.pending_count() == 1
 
-      [event] = TelemetryQueue.pending()
+      [event] = Queue.pending()
       assert event.kind == "finding.created"
 
       body = Jason.decode!(event.body)
@@ -98,19 +98,19 @@ defmodule ControlKeel.Cloud.EmitterTest do
 
     test "ignores telemetry events outside the recognised map" do
       :telemetry.execute([:controlkeel, :some, :other, :event], %{}, %{})
-      assert TelemetryQueue.pending_count() == 0
+      assert Queue.pending_count() == 0
     end
 
     test "does not double-emit when telemetry executes the same event twice" do
       :telemetry.execute([:controlkeel, :finding, :approved], %{}, %{"id" => 1})
       :telemetry.execute([:controlkeel, :finding, :approved], %{}, %{"id" => 2})
-      assert TelemetryQueue.pending_count() == 2
+      assert Queue.pending_count() == 2
     end
   end
 
   describe "events/0 and event_map coverage" do
     test "every mapped event has an envelope-recognised kind" do
-      recognised = MapSet.new(ControlKeel.Cloud.TelemetryEnvelope.recognised_kinds())
+      recognised = MapSet.new(ControlKeel.Cloud.Telemetry.Envelope.recognised_kinds())
 
       for event <- Emitter.events() do
         # Use handle_event to peek at the mapping indirectly.

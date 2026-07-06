@@ -1,10 +1,10 @@
-defmodule ControlKeel.Cloud.TelemetryEnvelopeTest do
+defmodule ControlKeel.Cloud.Telemetry.EnvelopeTest do
   use ExUnit.Case, async: false
 
   alias ControlKeel.Cloud.Redactor
-  alias ControlKeel.Cloud.TelemetryConfig
-  alias ControlKeel.Cloud.TelemetryEnvelope
-  alias ControlKeel.Cloud.WorkspaceIdentity
+  alias ControlKeel.Cloud.Telemetry.Config
+  alias ControlKeel.Cloud.Telemetry.Envelope
+  alias ControlKeel.Cloud.Workspace.Identity
 
   setup do
     tmp_home =
@@ -33,36 +33,36 @@ defmodule ControlKeel.Cloud.TelemetryEnvelopeTest do
   describe "build/2 gating" do
     test "fails when telemetry is disabled" do
       assert {:error, :telemetry_disabled} =
-               TelemetryEnvelope.build("finding.created", %{"severity" => "high"})
+               Envelope.build("finding.created", %{"severity" => "high"})
     end
 
     test "fails with unknown_kind for unrecognised event kinds" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _state} = TelemetryConfig.enable(:governance)
+      {:ok, _identity, :created} = Identity.ensure()
+      {:ok, _state} = Config.enable(:governance)
 
       assert {:error, {:unknown_kind, "made.up.event"}} =
-               TelemetryEnvelope.build("made.up.event", %{})
+               Envelope.build("made.up.event", %{})
     end
 
     test "fails with redaction_failed when payload contains unsupported types" do
-      {:ok, _identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _state} = TelemetryConfig.enable(:governance)
+      {:ok, _identity, :created} = Identity.ensure()
+      {:ok, _state} = Config.enable(:governance)
 
       assert {:error, {:redaction_failed, _}} =
-               TelemetryEnvelope.build("finding.created", %{"data" => self()})
+               Envelope.build("finding.created", %{"data" => self()})
     end
   end
 
   describe "build/2 success" do
     setup do
-      {:ok, identity, :created} = WorkspaceIdentity.ensure()
-      {:ok, _state} = TelemetryConfig.enable(:governance)
+      {:ok, identity, :created} = Identity.ensure()
+      {:ok, _state} = Config.enable(:governance)
       {:ok, identity: identity}
     end
 
     test "produces an envelope with the documented D3 shape", %{identity: identity} do
       assert {:ok, env} =
-               TelemetryEnvelope.build("finding.created", %{
+               Envelope.build("finding.created", %{
                  "severity" => "high",
                  "category" => "security"
                })
@@ -78,13 +78,13 @@ defmodule ControlKeel.Cloud.TelemetryEnvelopeTest do
     end
 
     test "idempotency_key defaults to event_id" do
-      {:ok, env} = TelemetryEnvelope.build("heartbeat", %{})
+      {:ok, env} = Envelope.build("heartbeat", %{})
       assert env["idempotency_key"] == env["event_id"]
     end
 
     test "idempotency_key can be overridden" do
       {:ok, env} =
-        TelemetryEnvelope.build("heartbeat", %{}, idempotency_key: "explicit-key-123")
+        Envelope.build("heartbeat", %{}, idempotency_key: "explicit-key-123")
 
       assert env["idempotency_key"] == "explicit-key-123"
       refute env["idempotency_key"] == env["event_id"]
@@ -92,13 +92,13 @@ defmodule ControlKeel.Cloud.TelemetryEnvelopeTest do
 
     test "emitted_at can be overridden" do
       fixed = ~U[2026-05-23 20:00:00Z]
-      {:ok, env} = TelemetryEnvelope.build("heartbeat", %{}, emitted_at: fixed)
+      {:ok, env} = Envelope.build("heartbeat", %{}, emitted_at: fixed)
       assert env["emitted_at"] == DateTime.to_iso8601(fixed)
     end
 
     test "atom payload keys are coerced to strings" do
       {:ok, env} =
-        TelemetryEnvelope.build("finding.created", %{severity: "high", count: 3})
+        Envelope.build("finding.created", %{severity: "high", count: 3})
 
       assert env["payload"]["severity"] == "high"
       assert env["payload"]["count"] == 3
@@ -110,7 +110,7 @@ defmodule ControlKeel.Cloud.TelemetryEnvelopeTest do
         "metadata" => %{"source" => "ck_validate"}
       }
 
-      {:ok, env} = TelemetryEnvelope.build("finding.created", payload)
+      {:ok, env} = Envelope.build("finding.created", payload)
       assert env["payload"]["tags"] == ["security", "high"]
       assert env["payload"]["metadata"]["source"] == "ck_validate"
     end
@@ -118,19 +118,19 @@ defmodule ControlKeel.Cloud.TelemetryEnvelopeTest do
 
   describe "ulid/0" do
     test "produces a 26-character string" do
-      assert String.length(TelemetryEnvelope.ulid()) == 26
+      assert String.length(Envelope.ulid()) == 26
     end
 
     test "is lexicographically monotonic over time" do
-      first = TelemetryEnvelope.ulid()
+      first = Envelope.ulid()
       Process.sleep(5)
-      second = TelemetryEnvelope.ulid()
+      second = Envelope.ulid()
 
       assert second > first
     end
 
     test "is unique across many calls" do
-      ulids = for _ <- 1..1000, do: TelemetryEnvelope.ulid()
+      ulids = for _ <- 1..1000, do: Envelope.ulid()
       assert length(Enum.uniq(ulids)) == 1000
     end
 
@@ -138,7 +138,7 @@ defmodule ControlKeel.Cloud.TelemetryEnvelopeTest do
       alphabet = MapSet.new(~c"0123456789ABCDEFGHJKMNPQRSTVWXYZ")
 
       Enum.each(1..50, fn _ ->
-        ulid = TelemetryEnvelope.ulid()
+        ulid = Envelope.ulid()
 
         Enum.each(String.to_charlist(ulid), fn char ->
           assert char in alphabet, "ULID contains non-Crockford char: #{<<char>>}"
@@ -149,7 +149,7 @@ defmodule ControlKeel.Cloud.TelemetryEnvelopeTest do
 
   describe "recognised_kinds/0" do
     test "includes the core governance events" do
-      kinds = TelemetryEnvelope.recognised_kinds()
+      kinds = Envelope.recognised_kinds()
 
       for kind <- ~w(finding.created review.submitted budget.exceeded heartbeat) do
         assert kind in kinds, "missing kind: #{kind}"

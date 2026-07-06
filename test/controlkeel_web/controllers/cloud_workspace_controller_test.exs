@@ -3,7 +3,7 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
 
   alias ControlKeel.Accounts
   alias ControlKeel.Cloud.Enrollment
-  alias ControlKeel.Cloud.WorkspaceKeyRegistry
+  alias ControlKeel.Cloud.Workspace.KeyRegistry
   alias ControlKeel.Repo
 
   defp fresh_identity do
@@ -46,7 +46,7 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
       conn = post(conn, ~p"/cloud/v1/workspaces/register", envelope)
       assert json_response(conn, 201)["workspace_id"] == identity.workspace_id
 
-      assert {:ok, key} = WorkspaceKeyRegistry.fetch(identity.workspace_id)
+      assert {:ok, key} = KeyRegistry.fetch(identity.workspace_id)
       assert key.fingerprint == identity.fingerprint
       assert key.name == "alpha"
       assert key.org_id == nil
@@ -64,7 +64,7 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
       conn2 = post(conn, ~p"/cloud/v1/workspaces/register", envelope2)
       assert json_response(conn2, 200)["workspace_id"] == identity.workspace_id
 
-      {:ok, key} = WorkspaceKeyRegistry.fetch(identity.workspace_id)
+      {:ok, key} = KeyRegistry.fetch(identity.workspace_id)
       assert key.name == "second"
     end
 
@@ -95,7 +95,7 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
       assert body["workspace_id"] == identity.workspace_id
       assert body["org_id"] == org.id
 
-      {:ok, key} = WorkspaceKeyRegistry.fetch(identity.workspace_id)
+      {:ok, key} = KeyRegistry.fetch(identity.workspace_id)
       assert key.org_id == org.id
     end
 
@@ -159,12 +159,12 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
       body = json_response(conn, 201)
       assert body["mission_workspace_id"] == mws.id
 
-      {:ok, key} = WorkspaceKeyRegistry.fetch(identity.workspace_id)
+      {:ok, key} = KeyRegistry.fetch(identity.workspace_id)
       assert key.org_id == org.id
       assert key.mission_workspace_id == mws.id
 
       # fetch_by_mission_workspace now resolves to the enrolled key
-      assert {:ok, ^key} = WorkspaceKeyRegistry.fetch_by_mission_workspace(mws.id)
+      assert {:ok, ^key} = KeyRegistry.fetch_by_mission_workspace(mws.id)
     end
 
     test "unscoped invite leaves mission_workspace_id nil", %{conn: conn} do
@@ -196,7 +196,7 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
       body = json_response(conn, 201)
       assert body["mission_workspace_id"] == nil
 
-      {:ok, key} = WorkspaceKeyRegistry.fetch(identity.workspace_id)
+      {:ok, key} = KeyRegistry.fetch(identity.workspace_id)
       assert key.mission_workspace_id == nil
     end
   end
