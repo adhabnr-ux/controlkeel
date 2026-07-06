@@ -3,7 +3,7 @@ defmodule ControlKeel.Mission.Planner do
 
   alias ControlKeel.Intent.{Domains, ExecutionBrief}
   alias ControlKeel.Mission.Decomposition
-  alias ControlKeel.SecurityWorkflow
+  alias ControlKeel.Governance.SecurityWorkflow
 
   @industry_profiles %{
     "web" => %{

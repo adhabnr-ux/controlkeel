@@ -11,8 +11,8 @@ defmodule ControlKeel.Scanner.FastPath do
   alias ControlKeel.Policy.Rule
   alias ControlKeel.Scanner
   alias ControlKeel.Scanner.{Advisory, Aislop, Entropy, Patterns, SemanticDrift, Semgrep}
-  alias ControlKeel.SecurityWorkflow
-  alias ControlKeel.TrustBoundary
+  alias ControlKeel.Governance.SecurityWorkflow
+  alias ControlKeel.Governance.TrustBoundary
   alias ControlKeel.Validation.Matchers.Scanner, as: MatcherScanner
 
   @type input :: map()

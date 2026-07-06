@@ -1,7 +1,7 @@
 defmodule ControlKeelWeb.OAuthController do
   use ControlKeelWeb, :controller
 
-  alias ControlKeel.ProtocolAccess
+  alias ControlKeel.Mcp.ProtocolAccess
 
   def token(conn, params) do
     with :ok <- require_grant_type(params),

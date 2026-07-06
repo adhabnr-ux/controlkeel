@@ -1,4 +1,4 @@
-defmodule ControlKeel.ProtocolAccess do
+defmodule ControlKeel.Mcp.ProtocolAccess do
   @moduledoc false
 
   alias ControlKeel.Platform

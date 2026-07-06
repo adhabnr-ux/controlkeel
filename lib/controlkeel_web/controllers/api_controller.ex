@@ -17,7 +17,7 @@ defmodule ControlKeelWeb.ApiController do
   alias ControlKeel.Mission
   alias ControlKeel.Platform
   alias ControlKeel.ProviderBroker
-  alias ControlKeel.ProtocolAccess
+  alias ControlKeel.Mcp.ProtocolAccess
   alias ControlKeel.Repo
   alias ControlKeel.Scanner.FastPath
   alias ControlKeel.Skills
@@ -1801,11 +1801,11 @@ defmodule ControlKeelWeb.ApiController do
       auto_fix_available: Map.get(finding, :auto_fix_available, false)
     }
 
-    if ControlKeel.SecurityWorkflow.vulnerability_case?(finding) do
+    if ControlKeel.Governance.SecurityWorkflow.vulnerability_case?(finding) do
       Map.put(
         summary,
         :security_lifecycle,
-        ControlKeel.SecurityWorkflow.vulnerability_case_summary(finding)
+        ControlKeel.Governance.SecurityWorkflow.vulnerability_case_summary(finding)
       )
     else
       summary

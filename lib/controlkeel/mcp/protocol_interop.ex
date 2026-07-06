@@ -1,4 +1,4 @@
-defmodule ControlKeel.ProtocolInterop do
+defmodule ControlKeel.Mcp.ProtocolInterop do
   @moduledoc false
 
   alias ControlKeel.Accounts
@@ -8,8 +8,8 @@ defmodule ControlKeel.ProtocolInterop do
   alias ControlKeel.MCP.Protocol
   alias ControlKeel.Mission
   alias ControlKeel.Platform.ServiceAccount
-  alias ControlKeel.ProtocolAccess
-  alias ControlKeel.SecurityWorkflow
+  alias ControlKeel.Mcp.ProtocolAccess
+  alias ControlKeel.Governance.SecurityWorkflow
   alias ControlKeelWeb.Endpoint
 
   @hosted_tool_scope_map %{

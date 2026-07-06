@@ -6,7 +6,7 @@ defmodule ControlKeel.Cloud.GuardrailsTest do
 
   alias ControlKeel.Cloud.Guardrails
   alias ControlKeel.Cloud.McpToolCall
-  alias ControlKeel.ProtocolInterop
+  alias ControlKeel.Mcp.ProtocolInterop
   alias ControlKeel.Repo
 
   setup do

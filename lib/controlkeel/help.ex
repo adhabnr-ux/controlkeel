@@ -720,7 +720,7 @@ defmodule ControlKeel.Help do
 
   defp hosted_service_account_command do
     scopes =
-      ["a2a:access" | ControlKeel.ProtocolInterop.hosted_mcp_scopes()]
+      ["a2a:access" | ControlKeel.Mcp.ProtocolInterop.hosted_mcp_scopes()]
       |> Enum.join(" ")
 
     "controlkeel service-account create --workspace-id 1 --name ci-mcp --scopes \"#{scopes}\""

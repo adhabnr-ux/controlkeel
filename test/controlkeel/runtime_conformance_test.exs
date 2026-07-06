@@ -8,7 +8,7 @@ defmodule ControlKeel.RuntimeConformanceTest do
 
   alias ControlKeel.AgentIntegration
   alias ControlKeel.MCP.Protocol
-  alias ControlKeel.ProtocolInterop
+  alias ControlKeel.Mcp.ProtocolInterop
 
   @attach_clients ["claude-code", "codex-cli", "codex-app-server", "opencode", "t3code"]
 

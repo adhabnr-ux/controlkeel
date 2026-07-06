@@ -8,8 +8,8 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
   alias ControlKeel.Precedent
   alias ControlKeel.Scanner
   alias ControlKeel.Scanner.FastPath
-  alias ControlKeel.SecurityWorkflow
-  alias ControlKeel.TrustBoundary
+  alias ControlKeel.Governance.SecurityWorkflow
+  alias ControlKeel.Governance.TrustBoundary
 
   @allowed_kinds ~w(code config shell text)
   @kind_aliases %{

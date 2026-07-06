@@ -1,4 +1,4 @@
-defmodule ControlKeel.SecurityWorkflow do
+defmodule ControlKeel.Governance.SecurityWorkflow do
   @moduledoc false
 
   alias ControlKeel.Intent.Domains

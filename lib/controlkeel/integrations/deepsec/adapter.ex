@@ -8,7 +8,7 @@ defmodule ControlKeel.Integrations.Deepsec.Adapter do
   """
 
   alias ControlKeel.Scanner.Finding
-  alias ControlKeel.SecurityWorkflow
+  alias ControlKeel.Governance.SecurityWorkflow
 
   @doc """
   Converts a deepsec finding to a ControlKeel Scanner.Finding.

@@ -1,4 +1,4 @@
-defmodule ControlKeel.GitWorkflow do
+defmodule ControlKeel.Git.Workflow do
   @moduledoc """
   Governed git workflow integration with CK validation and review system.
   Provides diff review, commit validation, and status correlation with findings.

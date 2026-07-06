@@ -4,7 +4,7 @@ defmodule ControlKeelWeb.ProtocolControllerTest do
   import ControlKeel.MissionFixtures
   import ControlKeel.PlatformFixtures
 
-  alias ControlKeel.ProtocolAccess
+  alias ControlKeel.Mcp.ProtocolAccess
 
   describe "OAuth token endpoint" do
     test "issues a client-credentials access token for hosted MCP", %{conn: conn} do

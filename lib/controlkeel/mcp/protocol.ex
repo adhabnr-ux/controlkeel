@@ -3,9 +3,9 @@ defmodule ControlKeel.MCP.Protocol do
   require Logger
 
   alias ControlKeel.Intent.Domains
-  alias ControlKeel.SecurityWorkflow
+  alias ControlKeel.Governance.SecurityWorkflow
   alias ControlKeel.Skills.Registry
-  alias ControlKeel.TrustBoundary
+  alias ControlKeel.Governance.TrustBoundary
 
   alias ControlKeel.MCP.OutputSchemas
   alias ControlKeel.MCP.ToolGroups

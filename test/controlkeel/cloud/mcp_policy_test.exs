@@ -7,7 +7,7 @@ defmodule ControlKeel.Cloud.McpPolicyTest do
   alias ControlKeel.Cloud.McpAuditLog
   alias ControlKeel.Cloud.McpPolicy
   alias ControlKeel.Cloud.McpToolCall
-  alias ControlKeel.ProtocolInterop
+  alias ControlKeel.Mcp.ProtocolInterop
   alias ControlKeel.Repo
 
   setup do

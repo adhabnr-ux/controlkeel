@@ -4,7 +4,7 @@ defmodule ControlKeel.AutonomyLoop do
   alias ControlKeel.Benchmark
   alias ControlKeel.Mission
   alias ControlKeel.Mission.Session
-  alias ControlKeel.SecurityWorkflow
+  alias ControlKeel.Governance.SecurityWorkflow
 
   @feedback_loop ["run", "observe", "evaluate", "improve", "rerun"]
   @autonomy_modes ["advise", "supervised_execute", "guarded_autonomy", "long_running_autonomy"]

@@ -3,7 +3,7 @@ defmodule ControlKeelWeb.Plugs.ProtocolAccessAuth do
 
   import Plug.Conn
 
-  alias ControlKeel.ProtocolAccess
+  alias ControlKeel.Mcp.ProtocolAccess
 
   def init(opts), do: opts
 

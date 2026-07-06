@@ -1,7 +1,7 @@
 defmodule ControlKeel.MCP.Tools.CkGitCommit do
   @moduledoc false
 
-  alias ControlKeel.GitWorkflow
+  alias ControlKeel.Git.Workflow
   alias ControlKeel.MCP.Arguments
 
   def call(arguments) when is_map(arguments) do
@@ -18,7 +18,7 @@ defmodule ControlKeel.MCP.Tools.CkGitCommit do
           do: [{:session_id, Map.get(arguments, "session_id")} | opts],
           else: opts
 
-      GitWorkflow.commit(project_root, message, opts)
+      Workflow.commit(project_root, message, opts)
     end
   end
 

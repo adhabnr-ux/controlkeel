@@ -1,7 +1,7 @@
 defmodule ControlKeel.MCP.Tools.CkGitStatus do
   @moduledoc false
 
-  alias ControlKeel.GitWorkflow
+  alias ControlKeel.Git.Workflow
   alias ControlKeel.MCP.Arguments
 
   def call(arguments) when is_map(arguments) do
@@ -14,7 +14,7 @@ defmodule ControlKeel.MCP.Tools.CkGitStatus do
         do: [{:session_id, Map.get(arguments, "session_id")} | opts],
         else: opts
 
-    GitWorkflow.status(project_root, opts)
+    Workflow.status(project_root, opts)
   end
 
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}

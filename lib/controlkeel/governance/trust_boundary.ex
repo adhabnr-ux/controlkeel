@@ -1,4 +1,4 @@
-defmodule ControlKeel.TrustBoundary do
+defmodule ControlKeel.Governance.TrustBoundary do
   @moduledoc false
 
   alias ControlKeel.Scanner

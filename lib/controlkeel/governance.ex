@@ -7,7 +7,7 @@ defmodule ControlKeel.Governance do
   alias ControlKeel.Mission.ProofBundle
   alias ControlKeel.Scanner
   alias ControlKeel.Scanner.FastPath
-  alias ControlKeel.SecurityWorkflow
+  alias ControlKeel.Governance.SecurityWorkflow
 
   @config_extensions ~w(.conf .config .env .ini .json .lock .toml .xml .yaml .yml)
   @shell_extensions ~w(.bash .ps1 .sh .zsh)

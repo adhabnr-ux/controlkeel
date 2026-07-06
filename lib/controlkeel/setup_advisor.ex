@@ -5,7 +5,7 @@ defmodule ControlKeel.SetupAdvisor do
   alias ControlKeel.AgentIntegration
   alias ControlKeel.ProjectBinding
   alias ControlKeel.ProjectRoot
-  alias ControlKeel.ProtocolInterop
+  alias ControlKeel.Mcp.ProtocolInterop
   alias ControlKeel.ProviderBroker
 
   @preferred_attach_order [

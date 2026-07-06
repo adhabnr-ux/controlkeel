@@ -12,8 +12,8 @@ defmodule ControlKeel.AgentExecution do
   alias ControlKeel.Platform
   alias ControlKeel.ProjectRoot
   alias ControlKeel.ProjectBinding
-  alias ControlKeel.ProtocolAccess
-  alias ControlKeel.SecurityWorkflow
+  alias ControlKeel.Mcp.ProtocolAccess
+  alias ControlKeel.Governance.SecurityWorkflow
   alias ControlKeel.Mission.SessionTranscript
   alias ControlKeel.Skills
 
@@ -1071,7 +1071,7 @@ defmodule ControlKeel.AgentExecution do
   end
 
   defp hosted_scopes do
-    ["a2a:access" | ControlKeel.ProtocolInterop.hosted_mcp_scopes()]
+    ["a2a:access" | ControlKeel.Mcp.ProtocolInterop.hosted_mcp_scopes()]
   end
 
   # Writes the full stdout to package_root/stdout.txt and returns a

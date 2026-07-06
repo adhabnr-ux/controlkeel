@@ -1,8 +1,8 @@
 defmodule ControlKeelWeb.ProtocolController do
   use ControlKeelWeb, :controller
 
-  alias ControlKeel.ProtocolAccess
-  alias ControlKeel.ProtocolInterop
+  alias ControlKeel.Mcp.ProtocolAccess
+  alias ControlKeel.Mcp.ProtocolInterop
 
   def mcp(conn, _params) do
     request = conn.body_params

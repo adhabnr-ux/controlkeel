@@ -4,7 +4,7 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
   alias ControlKeel.Mission
   alias ControlKeel.Accounts
   alias ControlKeel.Platform
-  alias ControlKeel.ProtocolAccess
+  alias ControlKeel.Mcp.ProtocolAccess
   import ControlKeel.CLI, except: [run_command: 2]
 
   def run_command(%{command: :cloud_doctor, options: _options}, _project_root) do
