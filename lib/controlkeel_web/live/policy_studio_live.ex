@@ -43,7 +43,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="mx-auto max-w-[1180px] px-4 py-12 pb-16 pt-8">
         <div class="space-y-1 mb-12">
           <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
@@ -177,7 +177,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
           </div>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 

@@ -103,7 +103,7 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
         <div class="ck-section-header">
           <div>
@@ -213,7 +213,7 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
           <% end %>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 

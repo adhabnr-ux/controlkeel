@@ -14,7 +14,7 @@ defmodule ControlKeelWeb.ObservabilitySessionLayout do
 
   def session(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
         <div class="space-y-1 mb-4">
           <.link
@@ -61,7 +61,7 @@ defmodule ControlKeelWeb.ObservabilitySessionLayout do
 
         {render_slot(@inner_block)}
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 

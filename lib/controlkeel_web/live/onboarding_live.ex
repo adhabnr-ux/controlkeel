@@ -162,7 +162,7 @@ defmodule ControlKeelWeb.OnboardingLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="max-w-7xl mx-auto px-4 py-6">
         <div class="mb-8">
           <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
@@ -578,7 +578,7 @@ defmodule ControlKeelWeb.OnboardingLive do
           </div>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 

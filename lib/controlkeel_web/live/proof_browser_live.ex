@@ -89,7 +89,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
   @impl true
   def render(%{live_action: :show} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="mx-auto w-[min(1180px,calc(100%-2rem))]">
         <div :if={@proof} class="space-y-8 mb-12">
           <.link
@@ -519,13 +519,13 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           </div>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="mx-auto w-[min(1180px,calc(100%-2rem))]">
         <div class="space-y-1 mb-12">
           <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
@@ -857,7 +857,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           </div>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 

@@ -85,7 +85,7 @@ defmodule ControlKeelWeb.DeploymentLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="ck-shell ck-shell-tight">
         <div class="ck-section-header">
           <div>
@@ -249,7 +249,7 @@ defmodule ControlKeelWeb.DeploymentLive do
           </div>
         <% end %>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 end

@@ -82,7 +82,9 @@ defmodule ControlKeelWeb do
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS
-      alias ControlKeelWeb.Layouts
+      alias ControlKeelWeb.RootLayout
+      alias ControlKeelWeb.PublicLayout
+      alias ControlKeelWeb.DashboardLayout
       alias ControlKeelWeb.ObservabilityLayout
       alias ControlKeelWeb.ObservabilitySessionLayout
 

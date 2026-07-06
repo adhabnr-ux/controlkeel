@@ -77,7 +77,7 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="ck-shell" style="max-width: 720px; margin: 4rem auto;">
         <div class="ck-section-header">
           <div>
@@ -133,7 +133,7 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
           <button type="submit" class="ck-btn ck-btn-primary self-start">Save policy</button>
         </.form>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 

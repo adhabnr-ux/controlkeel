@@ -91,7 +91,7 @@ defmodule ControlKeelWeb.InvitationLive do
   @impl true
   def render(%{state: :ready} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section id="invitation-page" class="ck-shell ck-shell-tight">
         <div class="ck-section-header">
           <div>
@@ -128,26 +128,26 @@ defmodule ControlKeelWeb.InvitationLive do
           </form>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 
   def render(%{state: :accepted} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section id="invitation-page" class="ck-shell ck-shell-tight">
         <div class="ck-card">
           <h1 class="ck-section-title">You're in.</h1>
           <p>Your membership is now active.</p>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 
   def render(%{state: :already_accepted} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section id="invitation-page" class="ck-shell ck-shell-tight">
         <div class="ck-card">
           <h1 class="ck-section-title">Already accepted</h1>
@@ -156,13 +156,13 @@ defmodule ControlKeelWeb.InvitationLive do
           </p>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 
   def render(%{state: :invalid} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section id="invitation-page" class="ck-shell ck-shell-tight">
         <div class="ck-card">
           <h1 class="ck-section-title">Invitation not found</h1>
@@ -171,7 +171,7 @@ defmodule ControlKeelWeb.InvitationLive do
           </p>
         </div>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 end

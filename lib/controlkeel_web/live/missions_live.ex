@@ -14,7 +14,7 @@ defmodule ControlKeelWeb.MissionsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="mx-auto max-w-7xl px-4 py-8 md:py-12">
         <div class="mb-6 flex items-center justify-between gap-4">
           <div>
@@ -110,7 +110,7 @@ defmodule ControlKeelWeb.MissionsLive do
           </div>
         </section>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 end

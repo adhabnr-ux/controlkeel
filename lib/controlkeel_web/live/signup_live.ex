@@ -61,119 +61,138 @@ defmodule ControlKeelWeb.SignupLive do
   @impl true
   def render(%{mode: :local} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <section class="ck-shell" style="max-width: 480px; margin: 6rem auto;">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">Local mode</p>
-            <h1 class="ck-section-title">Signup is for cloud deployments</h1>
-            <p class="ck-lead ck-lead-tight">
-              You're running ControlKeel locally. There's no signup needed — your single workspace is already governed.
-            </p>
-          </div>
-        </div>
-        <div class="ck-card mt-6">
-          <p>
-            To use cloud mode, set <code>CONTROLKEEL_RUNTIME_MODE=cloud</code>
-            and configure <code>:cloud_sync_endpoint</code>
-            in your release.
+    <section class="ck-shell" style="max-width: 480px; margin: 4rem auto;">
+      <.flash kind={:info} flash={@flash} />
+      <.flash kind={:error} flash={@flash} />
+
+      <div class="mb-8">
+        <.link
+          href={~p"/"}
+          class="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-lime-300 transition"
+        >
+          <.icon name="hero-arrow-left" class="size-4" /> Home
+        </.link>
+      </div>
+
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">Local mode</p>
+          <h1 class="ck-section-title">Signup is for cloud deployments</h1>
+          <p class="ck-lead ck-lead-tight">
+            You're running ControlKeel locally. There's no signup needed — your single workspace is already governed.
           </p>
-          <.link navigate={~p"/"} class="ck-btn ck-btn-secondary mt-4">Back to dashboard</.link>
         </div>
-      </section>
-    </Layouts.app>
+      </div>
+      <div class="ck-card mt-6">
+        <p>
+          To use cloud mode, set <code>CONTROLKEEL_RUNTIME_MODE=cloud</code>
+          and configure <code>:cloud_sync_endpoint</code>
+          in your release.
+        </p>
+      </div>
+    </section>
     """
   end
 
   def render(%{mode: :cloud} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
-      <section class="ck-shell" style="max-width: 560px; margin: 4rem auto;">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">ControlKeel Cloud</p>
-            <h1 class="ck-section-title">Create your organization</h1>
-            <p class="ck-lead ck-lead-tight">
-              You'll be the first owner. After signup, configure your SSO provider so teammates can join.
-            </p>
-          </div>
+    <section class="ck-shell" style="max-width: 560px; margin: 4rem auto;">
+      <.flash kind={:info} flash={@flash} />
+      <.flash kind={:error} flash={@flash} />
+
+      <div class="mb-8">
+        <.link
+          href={~p"/"}
+          class="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-lime-300 transition"
+        >
+          <.icon name="hero-arrow-left" class="size-4" /> Home
+        </.link>
+      </div>
+
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">ControlKeel Cloud</p>
+          <h1 class="ck-section-title">Create your organization</h1>
+          <p class="ck-lead ck-lead-tight">
+            You'll be the first owner. After signup, configure your SSO provider so teammates can join.
+          </p>
+        </div>
+      </div>
+
+      <.form for={@form} phx-submit="submit" class="mt-6 flex flex-col gap-4">
+        <div>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Your email</label>
+          <input
+            type="email"
+            name="signup[email]"
+            value={@form[:email].value || ""}
+            required
+            autocomplete="email"
+            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-300"
+          />
         </div>
 
-        <.form for={@form} phx-submit="submit" class="mt-6 flex flex-col gap-4">
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Your email</label>
-            <input
-              type="email"
-              name="signup[email]"
-              value={@form[:email].value || ""}
-              required
-              autocomplete="email"
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-300"
-            />
+        <div>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Your name</label>
+          <input
+            type="text"
+            name="signup[name]"
+            value={@form[:name].value || ""}
+            autocomplete="name"
+            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-300"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Organization name</label>
+          <input
+            type="text"
+            name="signup[org_name]"
+            value={@form[:org_name].value || ""}
+            required
+            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-300"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Organization slug</label>
+          <input
+            type="text"
+            name="signup[org_slug]"
+            value={@form[:org_slug].value || ""}
+            required
+            pattern="[a-z0-9][a-z0-9\-]*"
+            placeholder="acme"
+            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-300"
+          />
+          <p class="mt-1 text-xs text-zinc-500">
+            Lowercase letters, numbers, and dashes only. This becomes your sign-in identifier.
+          </p>
+        </div>
+
+        <%= if @errors != [] do %>
+          <div class="rounded-lg border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <ul class="list-disc pl-5">
+              <%= for {field, msg} <- @errors do %>
+                <li><strong>{field}:</strong> {msg}</li>
+              <% end %>
+            </ul>
           </div>
+        <% end %>
 
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Your name</label>
-            <input
-              type="text"
-              name="signup[name]"
-              value={@form[:name].value || ""}
-              autocomplete="name"
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-300"
-            />
-          </div>
+        <button
+          type="submit"
+          class="rounded-lg bg-lime-300 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-lime-200 transition"
+        >
+          Create organization
+        </button>
+      </.form>
 
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Organization name</label>
-            <input
-              type="text"
-              name="signup[org_name]"
-              value={@form[:org_name].value || ""}
-              required
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-300"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Organization slug</label>
-            <input
-              type="text"
-              name="signup[org_slug]"
-              value={@form[:org_slug].value || ""}
-              required
-              pattern="[a-z0-9][a-z0-9\-]*"
-              placeholder="acme"
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-300"
-            />
-            <p class="mt-1 text-xs text-zinc-500">
-              Lowercase letters, numbers, and dashes only. This becomes your sign-in identifier.
-            </p>
-          </div>
-
-          <%= if @errors != [] do %>
-            <div class="rounded-lg border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              <ul class="list-disc pl-5">
-                <%= for {field, msg} <- @errors do %>
-                  <li><strong>{field}:</strong> {msg}</li>
-                <% end %>
-              </ul>
-            </div>
-          <% end %>
-
-          <button
-            type="submit"
-            class="rounded-lg bg-lime-300 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-lime-200 transition"
-          >
-            Create organization
-          </button>
-        </.form>
-
-        <p class="mt-8 text-sm text-zinc-500">
-          Already have an account?
-          <.link navigate={~p"/auth/login"} class="text-lime-300 hover:underline">Sign in</.link>
-        </p>
-      </section>
-    </Layouts.app>
+      <p class="mt-8 text-sm text-zinc-500">
+        Already have an account?
+        <.link navigate={~p"/auth/login"} class="text-lime-300 hover:underline">Sign in</.link>
+      </p>
+    </section>
     """
   end
 

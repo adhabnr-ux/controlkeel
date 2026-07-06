@@ -72,7 +72,7 @@ defmodule ControlKeelWeb.ReviewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <DashboardLayout.dashboard flash={@flash}>
       <section class="ck-shell ck-shell-tight">
         <%= if @review do %>
           <div class="ck-section-header">
@@ -271,7 +271,7 @@ defmodule ControlKeelWeb.ReviewLive do
           </div>
         <% end %>
       </section>
-    </Layouts.app>
+    </DashboardLayout.dashboard>
     """
   end
 
