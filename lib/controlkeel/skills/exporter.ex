@@ -2,7 +2,7 @@ defmodule ControlKeel.Skills.Exporter do
   @moduledoc false
 
   alias ControlKeel.Distribution
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Skills
   alias ControlKeel.Skills.SkillExportPlan
   alias ControlKeel.Skills.SkillTarget
@@ -3024,7 +3024,7 @@ defmodule ControlKeel.Skills.Exporter do
           "${workspaceFolder}/bin/controlkeel-mcp"
 
         :error ->
-          wrapper = ProjectBinding.mcp_wrapper_path(root)
+          wrapper = Binding.mcp_wrapper_path(root)
 
           if File.exists?(wrapper) do
             rel =

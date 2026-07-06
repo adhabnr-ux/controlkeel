@@ -3,8 +3,8 @@ defmodule ControlKeel.SetupAdvisor do
 
   alias ControlKeel.AgentExecution
   alias ControlKeel.AgentIntegration
-  alias ControlKeel.ProjectBinding
-  alias ControlKeel.ProjectRoot
+  alias ControlKeel.Project.Binding
+  alias ControlKeel.Project.Root
   alias ControlKeel.Mcp.ProtocolInterop
   alias ControlKeel.ProviderBroker
 
@@ -31,13 +31,13 @@ defmodule ControlKeel.SetupAdvisor do
   @core_loop "ck_context -> ck_validate -> ck_review_submit/ck_finding -> ck_budget/ck_route/ck_delegate"
 
   def snapshot(project_root \\ File.cwd!()) do
-    root = ProjectRoot.resolve(project_root)
+    root = Root.resolve(project_root)
     agents = AgentExecution.list_agents(root)
     detected_hosts = detect_hosts(agents)
 
     %{
       "project_root" => root,
-      "bootstrap" => ProjectBinding.bootstrap_summary(root),
+      "bootstrap" => Binding.bootstrap_summary(root),
       "provider_status" => ProviderBroker.status(root),
       "agents" => agents,
       "detected_hosts" => detected_hosts,
@@ -82,7 +82,7 @@ defmodule ControlKeel.SetupAdvisor do
   end
 
   def service_account_hint(snapshot) do
-    case ProjectBinding.read_effective(snapshot["project_root"]) do
+    case Binding.read_effective(snapshot["project_root"]) do
       {:ok, binding, _mode} ->
         workspace_id = binding["workspace_id"]
 

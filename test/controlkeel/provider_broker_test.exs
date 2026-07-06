@@ -1,7 +1,7 @@
 defmodule ControlKeel.ProviderBrokerTest do
   use ExUnit.Case, async: false
 
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.ProviderBroker
 
   @provider_envs ~w(ANTHROPIC_API_KEY OPENAI_API_KEY OPENROUTER_API_KEY CONTROLKEEL_OLLAMA_BASE_URL OLLAMA_HOST)
@@ -110,7 +110,7 @@ defmodule ControlKeel.ProviderBrokerTest do
     System.put_env("ANTHROPIC_API_KEY", "sk-ant-bridge")
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => 1,
                  "session_id" => 1,
@@ -145,7 +145,7 @@ defmodule ControlKeel.ProviderBrokerTest do
     System.put_env("OPENAI_API_KEY", "sk-hermes-openai")
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => 1,
                  "session_id" => 1,
@@ -174,7 +174,7 @@ defmodule ControlKeel.ProviderBrokerTest do
     project_root: project_root
   } do
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => 1,
                  "session_id" => 1,
@@ -204,7 +204,7 @@ defmodule ControlKeel.ProviderBrokerTest do
 
   test "codex app-server surfaces its dedicated runtime transport", %{project_root: project_root} do
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => 1,
                  "session_id" => 1,
@@ -234,7 +234,7 @@ defmodule ControlKeel.ProviderBrokerTest do
     project_root: project_root
   } do
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => 1,
                  "session_id" => 1,

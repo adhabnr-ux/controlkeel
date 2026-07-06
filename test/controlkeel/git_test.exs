@@ -4,7 +4,7 @@ defmodule ControlKeel.GitTest do
   use ExUnit.Case, async: false
 
   alias ControlKeel.Git
-  alias ControlKeel.WorkspaceContext
+  alias ControlKeel.Project.WorkspaceContext
 
   setup do
     original = Application.get_env(:controlkeel, :git_executable)

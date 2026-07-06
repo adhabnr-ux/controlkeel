@@ -18,7 +18,7 @@ defmodule ControlKeel.Mission do
   alias ControlKeel.Policy.Snapshot
   alias ControlKeel.Governance.SecurityWorkflow
   alias ControlKeel.Repo
-  alias ControlKeel.WorkspaceContext
+  alias ControlKeel.Project.WorkspaceContext
   alias ControlKeel.Platform.TaskCheckResult
 
   alias ControlKeel.Mission.{

@@ -19,18 +19,18 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.CLI.Parser
   alias ControlKeel.Help
   alias ControlKeel.Intent
-  alias ControlKeel.LocalProject
+  alias ControlKeel.Project.Local
   alias ControlKeel.Mission
   alias ControlKeel.Observability
   alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
   alias ControlKeel.Observability.Workshop, as: ObservabilityWorkshop
   alias ControlKeel.ProviderBroker
-  alias ControlKeel.ProjectBinding
-  alias ControlKeel.ProjectRoot
+  alias ControlKeel.Project.Binding
+  alias ControlKeel.Project.Root
   alias ControlKeel.Mission.ReviewBridge
   alias ControlKeel.SetupAdvisor
   alias ControlKeel.Skills
-  alias ControlKeel.WorkspaceContext
+  alias ControlKeel.Project.WorkspaceContext
   alias ControlKeelWeb.Endpoint
 
   def standalone_argv do
@@ -68,7 +68,7 @@ defmodule ControlKeel.CLI do
     project_root =
       opts
       |> Keyword.get(:project_root, File.cwd!())
-      |> ProjectRoot.resolve()
+      |> Root.resolve()
 
     case run_command(parsed, project_root) do
       {:ok, lines} ->
@@ -719,9 +719,9 @@ defmodule ControlKeel.CLI do
   end
 
   def infer_review_scope_from_binding(project_root) do
-    resolved_root = ProjectRoot.resolve(project_root)
+    resolved_root = Root.resolve(project_root)
 
-    case LocalProject.load(resolved_root) do
+    case Local.load(resolved_root) do
       {:ok, _binding, session} ->
         task = current_session_task(session)
 
@@ -746,7 +746,7 @@ defmodule ControlKeel.CLI do
         true -> File.cwd!()
       end
 
-    ProjectRoot.resolve(candidate)
+    Root.resolve(candidate)
   end
 
   def parse_optional_integer(value) when is_integer(value), do: value
@@ -1839,7 +1839,7 @@ defmodule ControlKeel.CLI do
     session
     |> WorkspaceContext.resolve_project_root(project_root)
     |> case do
-      nil -> ProjectRoot.resolve(project_root)
+      nil -> Root.resolve(project_root)
       resolved -> resolved
     end
     |> WorkspaceContext.build()
@@ -2098,7 +2098,7 @@ defmodule ControlKeel.CLI do
   end
 
   def binding_session_id(project_root) do
-    case ProjectBinding.read_effective(project_root) do
+    case Binding.read_effective(project_root) do
       {:ok, binding, _mode} -> binding["session_id"]
       _ -> nil
     end
@@ -2402,11 +2402,11 @@ defmodule ControlKeel.CLI do
   end
 
   def ensure_local_project(project_root, overrides \\ %{}, opts \\ []) do
-    project_root = ProjectRoot.resolve(project_root)
+    project_root = Root.resolve(project_root)
     sync_attached_agents? = Keyword.get(opts, :sync_attached_agents, true)
 
     with {:ok, binding, session, mode} <-
-           LocalProject.load_or_bootstrap(project_root, overrides, ephemeral_ok: true) do
+           Local.load_or_bootstrap(project_root, overrides, ephemeral_ok: true) do
       if sync_attached_agents? do
         case AttachedAgentSync.sync(binding, project_root, mode: mode) do
           {:ok, synced_binding, _changes} -> {:ok, synced_binding, session, mode}
@@ -2564,7 +2564,7 @@ defmodule ControlKeel.CLI do
   def resolve_project_root(options, project_root) do
     options[:project_root] ||
       project_root
-      |> ProjectRoot.resolve()
+      |> Root.resolve()
   end
 
   def maybe_line(nil, _prefix), do: []
@@ -3177,7 +3177,7 @@ defmodule ControlKeel.CLI do
 
   def auto_attach_claude_code(project_root) do
     claude_dir = Path.join(user_home(), ".claude")
-    command_spec = ProjectBinding.mcp_command_spec(project_root)
+    command_spec = Binding.mcp_command_spec(project_root)
 
     cond do
       not File.dir?(claude_dir) ->

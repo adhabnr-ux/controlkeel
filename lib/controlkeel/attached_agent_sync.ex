@@ -2,7 +2,7 @@ defmodule ControlKeel.AttachedAgentSync do
   @moduledoc false
 
   alias ControlKeel.AgentIntegration
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Skills
   alias ControlKeel.Skills.Installer
 
@@ -43,7 +43,7 @@ defmodule ControlKeel.AttachedAgentSync do
     end
 
     if updated_binding != binding do
-      case ProjectBinding.write_effective(updated_binding, project_root, mode: mode) do
+      case Binding.write_effective(updated_binding, project_root, mode: mode) do
         {:ok, written} -> {:ok, written, Enum.reverse(changes)}
         {:error, reason} -> {:error, reason}
       end

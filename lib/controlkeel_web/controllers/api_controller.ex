@@ -10,7 +10,7 @@ defmodule ControlKeelWeb.ApiController do
   alias ControlKeel.Distribution
   alias ControlKeel.Governance
   alias ControlKeel.Intent
-  alias ControlKeel.LocalProject
+  alias ControlKeel.Project.Local
   alias ControlKeel.Memory
   alias ControlKeel.Mission.Decomposition
   alias ControlKeel.MCP.Tools.CkContext
@@ -1308,7 +1308,7 @@ defmodule ControlKeelWeb.ApiController do
     overrides = Map.take(params, ~w(agent))
     ephemeral_ok? = Map.get(params, "ephemeral_ok", true)
 
-    case LocalProject.load_or_bootstrap(project_root, overrides, ephemeral_ok: ephemeral_ok?) do
+    case Local.load_or_bootstrap(project_root, overrides, ephemeral_ok: ephemeral_ok?) do
       {:ok, binding, session, mode} ->
         json(conn, %{
           binding: binding,

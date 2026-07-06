@@ -2,7 +2,7 @@ defmodule ControlKeel.Skills.TargetResolver do
   @moduledoc false
 
   alias ControlKeel.AgentIntegration
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Skills.TargetFamily
 
   def resolve(project_root, requested_target \\ nil) do
@@ -26,7 +26,7 @@ defmodule ControlKeel.Skills.TargetResolver do
   end
 
   defp binding_target(project_root) do
-    with {:ok, binding, _mode} <- ProjectBinding.read_effective(project_root),
+    with {:ok, binding, _mode} <- Binding.read_effective(project_root),
          %{} = attached_agents <- Map.get(binding, "attached_agents"),
          {agent_id, _attrs} <- Enum.at(attached_agents, 0) do
       normalize_target(agent_id)

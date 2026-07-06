@@ -2,9 +2,9 @@ defmodule Mix.Tasks.Ck.Watch do
   use Mix.Task
 
   alias ControlKeel.Budget
-  alias ControlKeel.LocalProject
+  alias ControlKeel.Project.Local
   alias ControlKeel.Mission
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
 
   @shortdoc "Stream real-time findings and budget for the current governed session"
 
@@ -33,10 +33,10 @@ defmodule Mix.Tasks.Ck.Watch do
 
     project_root = File.cwd!()
 
-    case LocalProject.load_or_bootstrap(project_root, %{}, ephemeral_ok: true) do
+    case Local.load_or_bootstrap(project_root, %{}, ephemeral_ok: true) do
       {:ok, _binding, session, _mode} ->
         shell = Mix.shell()
-        bootstrap = ProjectBinding.bootstrap_summary(project_root)
+        bootstrap = Binding.bootstrap_summary(project_root)
 
         shell.info("")
         shell.info("ControlKeel Watch — session ##{session.id}: #{session.title}")

@@ -3,12 +3,12 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
 
   alias ControlKeel.Governance
   alias ControlKeel.Findings.PlainEnglish
-  alias ControlKeel.LocalProject
+  alias ControlKeel.Project.Local
   alias ControlKeel.MCP.Tools.CkContext
   alias ControlKeel.MCP.Tools.CkValidate
   alias ControlKeel.Mission
   alias ControlKeel.Platform
-  alias ControlKeel.ProjectRoot
+  alias ControlKeel.Project.Root
   import ControlKeel.CLI, except: [run_command: 2]
 
   def run_command(%{command: :release_ready, options: options}, project_root) do
@@ -34,7 +34,7 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
       args =
         %{
           "session_id" => session_id,
-          "project_root" => ProjectRoot.resolve(project_root_resolved)
+          "project_root" => Root.resolve(project_root_resolved)
         }
         |> maybe_put_tool_int("task_id", options[:task_id])
 
@@ -373,7 +373,7 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
       if session_id do
         session_id
       else
-        case LocalProject.load(project_root) do
+        case Local.load(project_root) do
           {:ok, _binding, session} -> session.id
           _ -> nil
         end
@@ -455,7 +455,7 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
       if session_id do
         ControlKeel.Mission.list_session_findings(session_id)
       else
-        case LocalProject.load(project_root) do
+        case Local.load(project_root) do
           {:ok, _binding, session} ->
             ControlKeel.Mission.list_session_findings(session.id)
 

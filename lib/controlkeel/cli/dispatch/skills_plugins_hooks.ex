@@ -301,7 +301,7 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
         output_lines = format_tool_groups_suggest(groups, reason, stats, format)
 
         if apply_preference do
-          case ControlKeel.ProjectBinding.put_tool_groups(root, groups) do
+          case ControlKeel.Project.Binding.put_tool_groups(root, groups) do
             {:ok, _binding} ->
               {:ok, output_lines ++ ["", "✓ Tool groups preference saved to project binding"]}
 

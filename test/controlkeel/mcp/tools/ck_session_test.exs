@@ -3,7 +3,7 @@ defmodule ControlKeel.MCP.Tools.CkSessionTest do
 
   alias ControlKeel.MCP.Tools.CkSession
   alias ControlKeel.Mission
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
 
   import ControlKeel.MissionFixtures
 
@@ -62,7 +62,7 @@ defmodule ControlKeel.MCP.Tools.CkSessionTest do
                Mission.attach_session_runtime_context(session.id, %{"project_root" => tmp_dir})
 
       assert {:ok, _binding} =
-               ProjectBinding.write(
+               Binding.write(
                  %{
                    "workspace_id" => session.workspace_id,
                    "session_id" => session.id,
@@ -132,7 +132,7 @@ defmodule ControlKeel.MCP.Tools.CkSessionTest do
                Mission.attach_session_runtime_context(session_a.id, %{"project_root" => tmp_dir})
 
       assert {:ok, _binding} =
-               ProjectBinding.write(
+               Binding.write(
                  %{
                    "workspace_id" => session_a.workspace_id,
                    "session_id" => session_a.id,
@@ -167,7 +167,7 @@ defmodule ControlKeel.MCP.Tools.CkSessionTest do
       session = session_fixture()
 
       assert {:ok, _binding} =
-               ProjectBinding.write(
+               Binding.write(
                  %{
                    "workspace_id" => session.workspace_id,
                    "session_id" => session.id,

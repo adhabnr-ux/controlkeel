@@ -1,8 +1,8 @@
-defmodule ControlKeel.VirtualWorkspace do
+defmodule ControlKeel.Project.VirtualWorkspace do
   @moduledoc false
 
   alias ControlKeel.Mission
-  alias ControlKeel.WorkspaceContext
+  alias ControlKeel.Project.WorkspaceContext
 
   @max_read_lines 400
   @max_find_results 200

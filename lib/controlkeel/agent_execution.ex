@@ -10,8 +10,8 @@ defmodule ControlKeel.AgentExecution do
   alias ControlKeel.MCP.Tools.CkValidate
   alias ControlKeel.Mission
   alias ControlKeel.Platform
-  alias ControlKeel.ProjectRoot
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Root
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Mcp.ProtocolAccess
   alias ControlKeel.Governance.SecurityWorkflow
   alias ControlKeel.Mission.SessionTranscript
@@ -33,7 +33,7 @@ defmodule ControlKeel.AgentExecution do
   }
 
   def list_agents(project_root \\ File.cwd!()) do
-    project_root = ProjectRoot.resolve(project_root)
+    project_root = Root.resolve(project_root)
     attached = attached_agent_ids(project_root)
 
     Skills.agent_integrations()
@@ -67,7 +67,7 @@ defmodule ControlKeel.AgentExecution do
   end
 
   def doctor(project_root \\ File.cwd!()) do
-    project_root = ProjectRoot.resolve(project_root)
+    project_root = Root.resolve(project_root)
     attached = attached_agent_ids(project_root)
     agents = list_agents(project_root)
 
@@ -267,7 +267,7 @@ defmodule ControlKeel.AgentExecution do
   end
 
   defp resolve_auto_integration(task, project_root) do
-    with {:ok, binding, _mode} <- ProjectBinding.read_effective(project_root),
+    with {:ok, binding, _mode} <- Binding.read_effective(project_root),
          attached when is_map(attached) <- Map.get(binding, "attached_agents", %{}),
          {agent_id, _attrs} <- Enum.at(attached, 0),
          %AgentIntegration{} = integration <- AgentIntegration.canonical(agent_id) do
@@ -971,7 +971,7 @@ defmodule ControlKeel.AgentExecution do
   end
 
   defp attached_agent_ids(project_root) do
-    with {:ok, binding, _mode} <- ProjectBinding.read_effective(project_root),
+    with {:ok, binding, _mode} <- Binding.read_effective(project_root),
          attached when is_map(attached) <- Map.get(binding, "attached_agents", %{}) do
       Enum.map(Map.keys(attached), &String.replace(to_string(&1), "_", "-"))
     else

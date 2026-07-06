@@ -1,8 +1,8 @@
-defmodule ControlKeel.LocalProjectTest do
+defmodule ControlKeel.Project.LocalTest do
   use ControlKeel.DataCase
 
-  alias ControlKeel.LocalProject
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Local
+  alias ControlKeel.Project.Binding
 
   setup do
     tmp_dir =
@@ -37,18 +37,18 @@ defmodule ControlKeel.LocalProjectTest do
     File.mkdir_p!(project_root)
 
     assert {:ok, binding, session, :bootstrapped_project} =
-             LocalProject.load_or_bootstrap(project_root, %{"agent" => "codex"},
+             Local.load_or_bootstrap(project_root, %{"agent" => "codex"},
                ephemeral_ok: true
              )
 
     assert binding["project_root"] ==
-             ProjectBinding.bootstrap_summary(project_root)["project_root"]
+             Binding.bootstrap_summary(project_root)["project_root"]
 
     assert session.id == binding["session_id"]
     assert binding["bootstrap"]["mode"] == "project"
     assert File.exists?(Path.join(project_root, "controlkeel/project.json"))
     assert File.exists?(Path.join(project_root, "controlkeel/bin/controlkeel-mcp"))
-    assert {:ok, _effective, :project} = ProjectBinding.read_effective(project_root)
+    assert {:ok, _effective, :project} = Binding.read_effective(project_root)
   end
 
   test "load_or_bootstrap falls back to an ephemeral binding when the repo is not writable", %{
@@ -63,18 +63,18 @@ defmodule ControlKeel.LocalProjectTest do
     end)
 
     assert {:ok, binding, session, :bootstrapped_ephemeral} =
-             LocalProject.load_or_bootstrap(project_root, %{"agent" => "claude"},
+             Local.load_or_bootstrap(project_root, %{"agent" => "claude"},
                ephemeral_ok: true
              )
 
     assert binding["project_root"] ==
-             ProjectBinding.bootstrap_summary(project_root)["project_root"]
+             Binding.bootstrap_summary(project_root)["project_root"]
 
     assert session.id == binding["session_id"]
     assert binding["bootstrap"]["mode"] == "ephemeral"
     refute File.exists?(Path.join(project_root, "controlkeel/project.json"))
-    assert {:ok, _effective, :ephemeral} = ProjectBinding.read_effective(project_root)
-    assert File.exists?(ProjectBinding.ephemeral_path(project_root))
+    assert {:ok, _effective, :ephemeral} = Binding.read_effective(project_root)
+    assert File.exists?(Binding.ephemeral_path(project_root))
   end
 
   defp restore_env(key, nil), do: System.delete_env(key)

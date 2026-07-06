@@ -5,8 +5,8 @@ defmodule ControlKeel.CLI.DetachTest do
 
   alias ControlKeel.CLI
   alias ControlKeel.CodexConfig
-  alias ControlKeel.LocalProject
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Local
+  alias ControlKeel.Project.Binding
 
   setup do
     tmp = Path.join(System.tmp_dir!(), "ck-detach-#{System.unique_integer([:positive])}")
@@ -14,7 +14,7 @@ defmodule ControlKeel.CLI.DetachTest do
     File.mkdir_p!(tmp)
     on_exit(fn -> File.rm_rf!(tmp) end)
 
-    {:ok, binding, _session, _state} = LocalProject.load_or_bootstrap(tmp)
+    {:ok, binding, _session, _state} = Local.load_or_bootstrap(tmp)
     {:ok, tmp: tmp, binding: binding}
   end
 
@@ -36,10 +36,10 @@ defmodule ControlKeel.CLI.DetachTest do
   defp attach_two(binding, tmp, agents) do
     updated =
       Enum.reduce(agents, binding, fn {key, attrs}, acc ->
-        ProjectBinding.update_attached_agent(acc, key, attrs)
+        Binding.update_attached_agent(acc, key, attrs)
       end)
 
-    {:ok, _} = ProjectBinding.write_effective(updated, tmp, mode: :project)
+    {:ok, _} = Binding.write_effective(updated, tmp, mode: :project)
     :ok
   end
 
@@ -77,7 +77,7 @@ defmodule ControlKeel.CLI.DetachTest do
     refute Map.has_key?(config["mcpServers"], "controlkeel")
     assert Map.has_key?(config["mcpServers"], "other")
 
-    {:ok, reloaded, _mode} = ProjectBinding.read_effective(tmp)
+    {:ok, reloaded, _mode} = Binding.read_effective(tmp)
     refute Map.has_key?(reloaded["attached_agents"] || %{}, "cursor")
     assert Map.has_key?(reloaded["attached_agents"] || %{}, "opencode")
   end
@@ -98,7 +98,7 @@ defmodule ControlKeel.CLI.DetachTest do
 
     run_detach(tmp, "claude-code")
 
-    {:ok, reloaded, _mode} = ProjectBinding.read_effective(tmp)
+    {:ok, reloaded, _mode} = Binding.read_effective(tmp)
     refute Map.has_key?(reloaded["attached_agents"] || %{}, "claude_code")
     assert Map.has_key?(reloaded["attached_agents"] || %{}, "opencode")
   end

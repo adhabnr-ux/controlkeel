@@ -1,7 +1,7 @@
 defmodule ControlKeel.Skills.Installer do
   @moduledoc false
 
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Skills.Exporter
   alias ControlKeel.Skills.Registry
   alias ControlKeel.Skills.SkillTarget
@@ -53,7 +53,7 @@ defmodule ControlKeel.Skills.Installer do
       |> Enum.map(&gitignore_entry_for(root, &1))
       |> Enum.uniq()
 
-    if entries != [], do: ProjectBinding.ensure_gitignore(root, entries)
+    if entries != [], do: Binding.ensure_gitignore(root, entries)
     :ok
   rescue
     _ -> :ok

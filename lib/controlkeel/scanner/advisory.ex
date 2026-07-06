@@ -8,9 +8,9 @@ defmodule ControlKeel.Scanner.Advisory do
   """
 
   alias ControlKeel.ProviderBroker
-  alias ControlKeel.ProjectRoot
+  alias ControlKeel.Project.Root
   alias ControlKeel.Mission
-  alias ControlKeel.WorkspaceContext
+  alias ControlKeel.Project.WorkspaceContext
   alias ControlKeel.Scanner.Finding
 
   @timeout_ms 8_000
@@ -97,7 +97,7 @@ defmodule ControlKeel.Scanner.Advisory do
   end
 
   defp resolve_project_root(_input, explicit_root) when is_binary(explicit_root) do
-    ProjectRoot.resolve(explicit_root)
+    Root.resolve(explicit_root)
   end
 
   defp resolve_project_root(input, _explicit_root) when is_map(input) do
@@ -105,18 +105,18 @@ defmodule ControlKeel.Scanner.Advisory do
 
     cond do
       is_binary(env_root) and env_root != "" ->
-        ProjectRoot.resolve(env_root)
+        Root.resolve(env_root)
 
       session = advisory_session(input) ->
         WorkspaceContext.resolve_project_root(session, File.cwd!()) ||
-          ProjectRoot.resolve(File.cwd!())
+          Root.resolve(File.cwd!())
 
       true ->
-        ProjectRoot.resolve(File.cwd!())
+        Root.resolve(File.cwd!())
     end
   end
 
-  defp resolve_project_root(_input, _explicit_root), do: ProjectRoot.resolve(File.cwd!())
+  defp resolve_project_root(_input, _explicit_root), do: Root.resolve(File.cwd!())
 
   defp advisory_session(%{"session_id" => session_id}), do: fetch_session(session_id)
   defp advisory_session(%{session_id: session_id}), do: fetch_session(session_id)

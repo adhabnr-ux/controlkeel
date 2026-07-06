@@ -186,9 +186,9 @@ defmodule ControlKeel.Runtime.Defaults do
   end
 
   defp project_database_path(cwd) do
-    root = ControlKeel.ProjectRoot.resolve(cwd)
+    root = ControlKeel.Project.Root.resolve(cwd)
 
-    if ControlKeel.ProjectRoot.project_root?(root) do
+    if ControlKeel.Project.Root.project_root?(root) do
       Path.join([root, "controlkeel", "controlkeel.db"])
     end
   end

@@ -1,7 +1,7 @@
-defmodule ControlKeel.ProjectBindingTest do
+defmodule ControlKeel.Project.BindingTest do
   use ExUnit.Case, async: false
 
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
 
   setup do
     tmp =
@@ -29,9 +29,9 @@ defmodule ControlKeel.ProjectBindingTest do
       "defmodule CK.Application, do: :ok"
     )
 
-    assert :ok = ProjectBinding.ensure_mcp_wrapper(tmp)
+    assert :ok = Binding.ensure_mcp_wrapper(tmp)
 
-    body = File.read!(ProjectBinding.mcp_wrapper_path(tmp))
+    body = File.read!(Binding.mcp_wrapper_path(tmp))
 
     case :os.type() do
       {:win32, _} ->
@@ -49,9 +49,9 @@ defmodule ControlKeel.ProjectBindingTest do
   test "ensure_mcp_wrapper installs minimal controlkeel launcher for other repos", %{tmp: tmp} do
     File.write!(Path.join(tmp, "README.md"), "not a controlkeel app")
 
-    assert :ok = ProjectBinding.ensure_mcp_wrapper(tmp)
+    assert :ok = Binding.ensure_mcp_wrapper(tmp)
 
-    body = File.read!(ProjectBinding.mcp_wrapper_path(tmp))
+    body = File.read!(Binding.mcp_wrapper_path(tmp))
 
     case :os.type() do
       {:win32, _} ->
@@ -71,9 +71,9 @@ defmodule ControlKeel.ProjectBindingTest do
   } do
     File.write!(Path.join(tmp, "README.md"), "not a controlkeel app")
 
-    assert :ok = ProjectBinding.ensure_mcp_wrapper(tmp)
+    assert :ok = Binding.ensure_mcp_wrapper(tmp)
 
-    body = File.read!(ProjectBinding.mcp_wrapper_path(tmp))
+    body = File.read!(Binding.mcp_wrapper_path(tmp))
 
     case :os.type() do
       {:win32, _} ->
@@ -81,7 +81,7 @@ defmodule ControlKeel.ProjectBindingTest do
         assert body =~ "mcp"
 
       _ ->
-        compile_root = Path.expand("../..", __DIR__)
+        compile_root = Path.expand("../../..", __DIR__)
         launcher_path = Path.join(compile_root, "bin/controlkeel-mcp")
 
         assert body =~ "SOURCE_LAUNCHER"
@@ -95,9 +95,9 @@ defmodule ControlKeel.ProjectBindingTest do
   } do
     File.write!(Path.join(tmp, "README.md"), "not a controlkeel app")
 
-    assert :ok = ProjectBinding.ensure_mcp_wrapper(tmp)
+    assert :ok = Binding.ensure_mcp_wrapper(tmp)
 
-    body = File.read!(ProjectBinding.mcp_wrapper_path(tmp))
+    body = File.read!(Binding.mcp_wrapper_path(tmp))
 
     case :os.type() do
       {:win32, _} ->
@@ -106,18 +106,18 @@ defmodule ControlKeel.ProjectBindingTest do
         assert body =~ "mcp"
 
       _ ->
-        executable = ProjectBinding.cli_executable_command()
+        executable = Binding.cli_executable_command()
         assert body =~ "export CK_PROJECT_ROOT="
         assert body =~ executable
         assert body =~ "mcp --project-root"
-        refute ProjectBinding.burrito_erts_shim?(executable)
+        refute Binding.burrito_erts_shim?(executable)
     end
   end
 
   test "cli_executable_command avoids Burrito ERTS shim when PATH has native wrapper" do
-    executable = ProjectBinding.cli_executable_command()
+    executable = Binding.cli_executable_command()
     assert is_binary(executable)
-    refute ProjectBinding.burrito_erts_shim?(executable)
+    refute Binding.burrito_erts_shim?(executable)
   end
 
   test "resolve_cli_executable scans PATH when given Burrito ERTS shim", %{tmp: tmp} do
@@ -138,48 +138,48 @@ defmodule ControlKeel.ProjectBindingTest do
     File.write!(shim, "#!/usr/bin/env sh\nexit 0\n")
     File.chmod!(shim, 0o755)
 
-    resolved = ProjectBinding.resolve_cli_executable(shim)
+    resolved = Binding.resolve_cli_executable(shim)
 
     assert resolved == native
-    refute ProjectBinding.burrito_erts_shim?(resolved)
+    refute Binding.burrito_erts_shim?(resolved)
   end
 
   test "mcp_wrapper_cli_runnable? flags Burrito ERTS shim default target", %{tmp: tmp} do
     File.write!(Path.join(tmp, "README.md"), "not a controlkeel app")
-    assert :ok = ProjectBinding.ensure_mcp_wrapper(tmp)
+    assert :ok = Binding.ensure_mcp_wrapper(tmp)
 
     shim =
       "/tmp/.burrito/controlkeel_erts-15.2.7.2_0.3.47/bin/controlkeel"
 
     broken =
-      File.read!(ProjectBinding.mcp_wrapper_path(tmp))
-      |> String.replace(ProjectBinding.cli_executable_command(), shim)
+      File.read!(Binding.mcp_wrapper_path(tmp))
+      |> String.replace(Binding.cli_executable_command(), shim)
 
-    File.write!(ProjectBinding.mcp_wrapper_path(tmp), broken)
+    File.write!(Binding.mcp_wrapper_path(tmp), broken)
 
-    refute ProjectBinding.mcp_wrapper_cli_runnable?(tmp)
+    refute Binding.mcp_wrapper_cli_runnable?(tmp)
   end
 
   test "dev_or_build_path? flags dev/build artifacts but not installed binaries" do
     # Empty/nil resolve to a dev fallback (bare command name on PATH).
-    assert ProjectBinding.dev_or_build_path?("")
-    assert ProjectBinding.dev_or_build_path?(nil)
+    assert Binding.dev_or_build_path?("")
+    assert Binding.dev_or_build_path?(nil)
 
     # Dev/build artifact paths that must not be baked into a shipped wrapper.
-    assert ProjectBinding.dev_or_build_path?("/repo/_build/prod/rel/controlkeel/bin/controlkeel")
+    assert Binding.dev_or_build_path?("/repo/_build/prod/rel/controlkeel/bin/controlkeel")
 
-    assert ProjectBinding.dev_or_build_path?(
+    assert Binding.dev_or_build_path?(
              "/home/u/.burrito/controlkeel_erts-15/bin/controlkeel"
            )
 
-    assert ProjectBinding.dev_or_build_path?("/opt/app/erts-15.2/bin/controlkeel")
-    assert ProjectBinding.dev_or_build_path?("/repo/deps/controlkeel/controlkeel")
-    assert ProjectBinding.dev_or_build_path?("/usr/local/bin/mix")
+    assert Binding.dev_or_build_path?("/opt/app/erts-15.2/bin/controlkeel")
+    assert Binding.dev_or_build_path?("/repo/deps/controlkeel/controlkeel")
+    assert Binding.dev_or_build_path?("/usr/local/bin/mix")
 
     # Installed/native locations and bare names stay as-is.
-    refute ProjectBinding.dev_or_build_path?("controlkeel")
-    refute ProjectBinding.dev_or_build_path?("/usr/local/bin/controlkeel")
-    refute ProjectBinding.dev_or_build_path?("/opt/homebrew/bin/controlkeel")
+    refute Binding.dev_or_build_path?("controlkeel")
+    refute Binding.dev_or_build_path?("/usr/local/bin/controlkeel")
+    refute Binding.dev_or_build_path?("/opt/homebrew/bin/controlkeel")
   end
 
   describe "mcp_command_spec/2 portable mode" do
@@ -188,32 +188,32 @@ defmodule ControlKeel.ProjectBindingTest do
     # folder and break MCP for every project sharing the global config.
     test "portable: true never returns the project wrapper path", %{tmp: tmp} do
       # Install a wrapper so the non-portable branch would pick it up.
-      assert :ok = ProjectBinding.ensure_mcp_wrapper(tmp)
+      assert :ok = Binding.ensure_mcp_wrapper(tmp)
 
-      spec = ProjectBinding.mcp_command_spec(tmp, portable: true)
+      spec = Binding.mcp_command_spec(tmp, portable: true)
 
-      wrapper = ProjectBinding.mcp_wrapper_path(tmp)
+      wrapper = Binding.mcp_wrapper_path(tmp)
 
       refute spec[:command] == wrapper
       assert spec[:args] == ["mcp"]
       assert String.ends_with?(spec[:command], "controlkeel")
-      refute ProjectBinding.burrito_erts_shim?(spec[:command])
+      refute Binding.burrito_erts_shim?(spec[:command])
     end
 
     test "portable: false (default) still uses the wrapper when present", %{tmp: tmp} do
-      assert :ok = ProjectBinding.ensure_mcp_wrapper(tmp)
+      assert :ok = Binding.ensure_mcp_wrapper(tmp)
 
-      spec = ProjectBinding.mcp_command_spec(tmp)
-      wrapper = ProjectBinding.mcp_wrapper_path(tmp)
+      spec = Binding.mcp_command_spec(tmp)
+      wrapper = Binding.mcp_wrapper_path(tmp)
 
       assert spec[:command] == wrapper
       assert spec[:args] == []
     end
 
     test "default falls back to installed CLI when no wrapper exists", %{tmp: tmp} do
-      spec = ProjectBinding.mcp_command_spec(tmp)
+      spec = Binding.mcp_command_spec(tmp)
 
-      refute spec[:command] == ProjectBinding.mcp_wrapper_path(tmp)
+      refute spec[:command] == Binding.mcp_wrapper_path(tmp)
       # macOS may canonicalize /var -> /private/var, so compare by basename.
       [mcp_flag, root_flag, resolved_root] = spec[:args]
       assert mcp_flag == "mcp"
@@ -225,7 +225,7 @@ defmodule ControlKeel.ProjectBindingTest do
 
   describe "ensure_gitignore/3" do
     test "creates a managed block covering controlkeel/ and .controlkeel/", %{tmp: tmp} do
-      assert :ok = ProjectBinding.ensure_gitignore(tmp)
+      assert :ok = Binding.ensure_gitignore(tmp)
 
       contents = File.read!(Path.join(tmp, ".gitignore"))
       assert contents =~ "# ControlKeel managed"
@@ -238,21 +238,21 @@ defmodule ControlKeel.ProjectBindingTest do
       path = Path.join(tmp, ".gitignore")
       File.write!(path, "node_modules/\n/_build/\n")
 
-      assert :ok = ProjectBinding.ensure_gitignore(tmp)
+      assert :ok = Binding.ensure_gitignore(tmp)
       first = File.read!(path)
       assert first =~ "node_modules/"
       assert first =~ "/_build/"
       assert first =~ "/.controlkeel/"
 
       # Running again must not change the file or duplicate the block.
-      assert :ok = ProjectBinding.ensure_gitignore(tmp)
+      assert :ok = Binding.ensure_gitignore(tmp)
       assert File.read!(path) == first
 
       [_, _] = String.split(first, "# ControlKeel managed", parts: 2)
     end
 
     test "merges extra entries (e.g. project-scope agent dirs) into the block", %{tmp: tmp} do
-      assert :ok = ProjectBinding.ensure_gitignore(tmp, ["/.windsurf/", "/.cline/"])
+      assert :ok = Binding.ensure_gitignore(tmp, ["/.windsurf/", "/.cline/"])
 
       contents = File.read!(Path.join(tmp, ".gitignore"))
       assert contents =~ "/.windsurf/"
@@ -262,7 +262,7 @@ defmodule ControlKeel.ProjectBindingTest do
       # A later call without the extras accumulates: previously-managed dirs
       # persist (so attaching agent B doesn't drop agent A's entry) and no
       # duplicate managed block is left behind.
-      assert :ok = ProjectBinding.ensure_gitignore(tmp)
+      assert :ok = Binding.ensure_gitignore(tmp)
       refreshed = File.read!(Path.join(tmp, ".gitignore"))
       assert refreshed =~ "/.windsurf/"
       assert refreshed =~ "/.cline/"

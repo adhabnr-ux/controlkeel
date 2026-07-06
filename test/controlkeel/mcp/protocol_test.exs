@@ -6,7 +6,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
   alias ControlKeel.Memory
   alias ControlKeel.Mission
   alias ControlKeel.Mission.Invocation
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Repo
   alias ControlKeel.Skills.Activation
 
@@ -761,7 +761,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     )
 
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         %{
           "workspace_id" => 1,
           "session_id" => 1,
@@ -848,7 +848,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     File.write!(Path.join(tmp_dir, "docs/guide.md"), "Guide\n\nOAuth config lives here too.\n")
 
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         %{
           "workspace_id" => session.workspace_id,
           "session_id" => session.id,
@@ -951,7 +951,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     File.write!(Path.join(tmp_dir, "README.md"), "# Trial\n")
 
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         %{
           "workspace_id" => session.workspace_id,
           "session_id" => session.id,
@@ -1315,7 +1315,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     task = task_fixture(%{session: session, status: "in_progress", title: "Portable task"})
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => session.workspace_id,
                  "session_id" => session.id,
@@ -1374,7 +1374,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert is_integer(memory_id)
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => session.workspace_id,
                  "session_id" => session.id,
@@ -1606,7 +1606,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     on_exit(fn -> File.rm_rf!(tmp_dir) end)
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => session.workspace_id,
                  "session_id" => session.id,
@@ -1694,7 +1694,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     on_exit(fn -> File.rm_rf!(tmp_dir) end)
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => workspace.id,
                  "session_id" => session.id,
@@ -1794,7 +1794,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     on_exit(fn -> File.rm_rf!(tmp_dir) end)
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => workspace.id,
                  "session_id" => session.id,
@@ -1910,7 +1910,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     on_exit(fn -> File.rm_rf!(tmp_dir) end)
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => workspace.id,
                  "session_id" => session.id,
@@ -2029,7 +2029,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     on_exit(fn -> File.rm_rf!(tmp_dir) end)
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => workspace.id,
                  "session_id" => session.id,

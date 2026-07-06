@@ -1,4 +1,4 @@
-defmodule ControlKeel.ProjectRoot do
+defmodule ControlKeel.Project.Root do
   @moduledoc false
 
   @markers [

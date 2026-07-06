@@ -6,7 +6,7 @@ defmodule ControlKeel.MCP.Tools.CkContextTest do
   alias ControlKeel.Memory
   alias ControlKeel.Mission
   alias ControlKeel.Platform
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Intent
 
   import ControlKeel.IntentFixtures
@@ -98,7 +98,7 @@ defmodule ControlKeel.MCP.Tools.CkContextTest do
              Mission.attach_session_runtime_context(session.id, %{"project_root" => tmp_dir})
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => session.workspace_id,
                  "session_id" => session.id,
@@ -123,7 +123,7 @@ defmodule ControlKeel.MCP.Tools.CkContextTest do
     session = session_fixture()
 
     assert {:ok, _binding} =
-             ControlKeel.ProjectBinding.write(
+             ControlKeel.Project.Binding.write(
                %{
                  "workspace_id" => session.workspace_id,
                  "session_id" => session.id,
@@ -161,7 +161,7 @@ defmodule ControlKeel.MCP.Tools.CkContextTest do
              Mission.attach_session_runtime_context(session.id, %{"project_root" => tmp_dir})
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => session.workspace_id,
                  "session_id" => session.id,
@@ -194,7 +194,7 @@ defmodule ControlKeel.MCP.Tools.CkContextTest do
              Mission.attach_session_runtime_context(session.id, %{"project_root" => tmp_dir})
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => session.workspace_id,
                  "session_id" => session.id,
@@ -265,7 +265,7 @@ defmodule ControlKeel.MCP.Tools.CkContextTest do
     task = task_fixture(%{session: session, status: "in_progress"})
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => session.workspace_id,
                  "session_id" => session.id,
@@ -307,7 +307,7 @@ defmodule ControlKeel.MCP.Tools.CkContextTest do
       session = session_fixture()
 
       assert {:ok, _binding} =
-               ProjectBinding.write(
+               Binding.write(
                  %{
                    "workspace_id" => session.workspace_id,
                    "session_id" => session.id,
@@ -343,7 +343,7 @@ defmodule ControlKeel.MCP.Tools.CkContextTest do
       # An auto-bootstrapped binding with no attached_agents simulates the
       # one-line MCP-add path: tools work but hooks/skills are missing.
       assert {:ok, _binding} =
-               ProjectBinding.write(
+               Binding.write(
                  %{
                    "workspace_id" => session.workspace_id,
                    "session_id" => session.id,

@@ -2,7 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkMemoryToolsTest do
   use ControlKeel.DataCase
 
   alias ControlKeel.MCP.Tools.{CkMemoryArchive, CkMemoryRecord, CkMemorySearch}
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
 
   import ControlKeel.MissionFixtures
 
@@ -23,7 +23,7 @@ defmodule ControlKeel.MCP.Tools.CkMemoryToolsTest do
     task = task_fixture(%{session: session})
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => session.workspace_id,
                  "session_id" => session.id,

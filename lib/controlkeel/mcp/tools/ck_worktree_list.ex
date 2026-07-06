@@ -2,7 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkWorktreeList do
   @moduledoc false
 
   alias ControlKeel.MCP.Arguments
-  alias ControlKeel.WorkspaceContext
+  alias ControlKeel.Project.WorkspaceContext
 
   def call(arguments) when is_map(arguments) do
     project_root = Arguments.project_root(arguments)

@@ -1,7 +1,7 @@
-defmodule ControlKeel.ProjectRootTest do
+defmodule ControlKeel.Project.RootTest do
   use ExUnit.Case, async: true
 
-  alias ControlKeel.ProjectRoot
+  alias ControlKeel.Project.Root
 
   test "resolve walks up to the nearest project marker" do
     tmp_dir =
@@ -16,7 +16,7 @@ defmodule ControlKeel.ProjectRootTest do
 
     on_exit(fn -> File.rm_rf!(tmp_dir) end)
 
-    assert ProjectRoot.resolve(Path.join(tmp_dir, "lib/trial")) == ProjectRoot.resolve(tmp_dir)
+    assert Root.resolve(Path.join(tmp_dir, "lib/trial")) == Root.resolve(tmp_dir)
   end
 
   test "resolve falls back to the provided directory when no marker exists" do
@@ -31,7 +31,7 @@ defmodule ControlKeel.ProjectRootTest do
 
     on_exit(fn -> File.rm_rf!(tmp_dir) end)
 
-    assert ProjectRoot.resolve(tmp_dir) == ProjectRoot.resolve(Path.expand(tmp_dir))
+    assert Root.resolve(tmp_dir) == Root.resolve(Path.expand(tmp_dir))
   end
 
   test "project_root? reflects whether the resolved directory has a project marker" do
@@ -47,7 +47,7 @@ defmodule ControlKeel.ProjectRootTest do
 
     on_exit(fn -> File.rm_rf!(tmp_dir) end)
 
-    assert ProjectRoot.project_root?(Path.join(tmp_dir, "lib/trial"))
+    assert Root.project_root?(Path.join(tmp_dir, "lib/trial"))
 
     other_dir =
       Path.join(
@@ -59,6 +59,6 @@ defmodule ControlKeel.ProjectRootTest do
     File.mkdir_p!(other_dir)
     on_exit(fn -> File.rm_rf!(other_dir) end)
 
-    refute ProjectRoot.project_root?(other_dir)
+    refute Root.project_root?(other_dir)
   end
 end

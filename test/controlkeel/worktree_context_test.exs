@@ -1,7 +1,7 @@
 defmodule ControlKeel.WorktreeContextTest do
   use ExUnit.Case, async: true
 
-  alias ControlKeel.WorkspaceContext
+  alias ControlKeel.Project.WorkspaceContext
 
   setup do
     tmp_dir =

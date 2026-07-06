@@ -10,8 +10,8 @@ defmodule ControlKeel.CLIRuntimeTest do
   alias ControlKeel.Benchmark
   alias ControlKeel.CLI
   alias ControlKeel.Platform
-  alias ControlKeel.ProjectBinding
-  alias ControlKeel.ProjectRoot
+  alias ControlKeel.Project.Binding
+  alias ControlKeel.Project.Root
 
   setup do
     tmp_dir =
@@ -108,7 +108,7 @@ defmodule ControlKeel.CLIRuntimeTest do
     second = session_fixture(%{title: "Second local mission", risk_tier: "high"})
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => first.workspace_id,
                  "session_id" => first.id,
@@ -152,7 +152,7 @@ defmodule ControlKeel.CLIRuntimeTest do
 
     assert switch_output =~ "Switched ControlKeel project binding to mission ##{second.id}"
 
-    assert {:ok, updated_binding} = ProjectBinding.read(tmp_dir)
+    assert {:ok, updated_binding} = Binding.read(tmp_dir)
     assert updated_binding["session_id"] == second.id
     assert updated_binding["workspace_id"] == second.workspace_id
 
@@ -170,7 +170,7 @@ defmodule ControlKeel.CLIRuntimeTest do
     first = session_fixture(%{title: "Only local mission"})
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => first.workspace_id,
                  "session_id" => first.id,
@@ -190,7 +190,7 @@ defmodule ControlKeel.CLIRuntimeTest do
       end)
 
     assert switch_output =~ "Mission not found: 99999999"
-    assert {:ok, binding} = ProjectBinding.read(tmp_dir)
+    assert {:ok, binding} = Binding.read(tmp_dir)
     assert binding["session_id"] == first.id
   end
 
@@ -220,7 +220,7 @@ defmodule ControlKeel.CLIRuntimeTest do
     File.write!(Path.join(tmp_dir, "mix.exs"), "defmodule Nested.MixProject do\nend\n")
 
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => first.workspace_id,
                  "session_id" => first.id,
@@ -244,9 +244,9 @@ defmodule ControlKeel.CLIRuntimeTest do
       end)
 
     assert output =~ "Nested second mission"
-    assert {:ok, binding} = ProjectBinding.read(tmp_dir)
+    assert {:ok, binding} = Binding.read(tmp_dir)
     assert binding["session_id"] == second.id
-    assert binding["project_root"] == ProjectRoot.resolve(tmp_dir)
+    assert binding["project_root"] == Root.resolve(tmp_dir)
   end
 
   test "session switch keeps unrelated folder bindings isolated", %{tmp_dir: tmp_dir} do
@@ -262,7 +262,7 @@ defmodule ControlKeel.CLIRuntimeTest do
     target = session_fixture(%{title: "Project A switched mission"})
 
     assert {:ok, _} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => first.workspace_id,
                  "session_id" => first.id,
@@ -273,7 +273,7 @@ defmodule ControlKeel.CLIRuntimeTest do
              )
 
     assert {:ok, _} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => second.workspace_id,
                  "session_id" => second.id,
@@ -291,8 +291,8 @@ defmodule ControlKeel.CLIRuntimeTest do
                )
     end)
 
-    assert {:ok, first_binding} = ProjectBinding.read(first_root)
-    assert {:ok, second_binding} = ProjectBinding.read(second_root)
+    assert {:ok, first_binding} = Binding.read(first_root)
+    assert {:ok, second_binding} = Binding.read(second_root)
     assert first_binding["session_id"] == target.id
     assert second_binding["session_id"] == second.id
   end
@@ -328,7 +328,7 @@ defmodule ControlKeel.CLIRuntimeTest do
 
     payload = decode_cli_json(output)
 
-    assert payload["project_root"] == ProjectRoot.resolve(tmp_dir)
+    assert payload["project_root"] == Root.resolve(tmp_dir)
     assert is_list(payload["skills"])
 
     assert Enum.any?(payload["skills"], fn skill ->
@@ -344,13 +344,13 @@ defmodule ControlKeel.CLIRuntimeTest do
 
     assert init_output =~ "Initialized ControlKeel"
     assert File.exists?(Path.join(tmp_dir, "controlkeel/bin/controlkeel-mcp"))
-    assert {:ok, _binding} = ProjectBinding.read(tmp_dir)
+    assert {:ok, _binding} = Binding.read(tmp_dir)
 
     session = session_fixture(%{title: "Runtime CLI session"})
     task = task_fixture(%{session: session, title: "Patch auth flow", status: "queued"})
 
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         %{
           "workspace_id" => session.workspace_id,
           "session_id" => session.id,
@@ -446,7 +446,7 @@ defmodule ControlKeel.CLIRuntimeTest do
     session = session_fixture(%{title: "Findings CLI session"})
 
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         %{
           "workspace_id" => session.workspace_id,
           "session_id" => session.id,
@@ -587,7 +587,7 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(parsed, project_root: nested)
       end)
 
-    resolved_root = ProjectRoot.resolve(tmp_dir)
+    resolved_root = Root.resolve(tmp_dir)
 
     assert output =~ "ControlKeel setup"
     assert output =~ "Project root: #{resolved_root}"
@@ -634,10 +634,10 @@ defmodule ControlKeel.CLIRuntimeTest do
       assert 0 == CLI.execute(init, project_root: tmp_dir)
     end)
 
-    {:ok, binding} = ProjectBinding.read(tmp_dir)
+    {:ok, binding} = Binding.read(tmp_dir)
 
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         put_in(binding, ["attached_agents", "opencode"], %{
           "ide" => "opencode",
           "target" => "opencode-native",
@@ -666,7 +666,7 @@ defmodule ControlKeel.CLIRuntimeTest do
     refute File.exists?(Path.join(tmp_dir, ".mcp.json"))
     assert File.read!(Path.join(tmp_dir, "AGENTS.md")) == "# Repo instructions\n"
 
-    {:ok, updated_binding} = ProjectBinding.read(tmp_dir)
+    {:ok, updated_binding} = Binding.read(tmp_dir)
     refute get_in(updated_binding, ["attached_agents", "opencode", "synced_at"])
     assert get_in(updated_binding, ["attached_agents", "codex-cli", "scope"]) == "user"
   end
@@ -752,7 +752,7 @@ defmodule ControlKeel.CLIRuntimeTest do
     _proof = proof_bundle_fixture(%{task: task})
 
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         %{
           "workspace_id" => session.workspace_id,
           "session_id" => session.id,
@@ -842,7 +842,7 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(export, project_root: tmp_dir)
       end)
 
-    resolved_root = ProjectRoot.resolve(tmp_dir)
+    resolved_root = Root.resolve(tmp_dir)
 
     assert output =~ "Prepared Open SWE runtime export."
     assert output =~ "Project root: #{resolved_root}"
@@ -861,7 +861,7 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(export, project_root: tmp_dir)
       end)
 
-    resolved_root = ProjectRoot.resolve(tmp_dir)
+    resolved_root = Root.resolve(tmp_dir)
 
     assert output =~ "Prepared Devin runtime export."
     assert output =~ "Project root: #{resolved_root}"
@@ -881,7 +881,7 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(export, project_root: tmp_dir)
       end)
 
-    resolved_root = ProjectRoot.resolve(tmp_dir)
+    resolved_root = Root.resolve(tmp_dir)
 
     assert output =~ "Prepared Executor runtime export."
     assert output =~ "Project root: #{resolved_root}"
@@ -907,7 +907,7 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(export, project_root: tmp_dir)
       end)
 
-    resolved_root = ProjectRoot.resolve(tmp_dir)
+    resolved_root = Root.resolve(tmp_dir)
 
     assert output =~ "Prepared Warp Oz runtime export."
     assert output =~ "Project root: #{resolved_root}"
@@ -931,7 +931,7 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(export, project_root: tmp_dir)
       end)
 
-    resolved_root = ProjectRoot.resolve(tmp_dir)
+    resolved_root = Root.resolve(tmp_dir)
 
     assert output =~ "Prepared Cloudflare Workers runtime export."
     assert output =~ "Project root: #{resolved_root}"
@@ -964,7 +964,7 @@ defmodule ControlKeel.CLIRuntimeTest do
         assert 0 == CLI.execute(export, project_root: tmp_dir)
       end)
 
-    resolved_root = ProjectRoot.resolve(tmp_dir)
+    resolved_root = Root.resolve(tmp_dir)
 
     assert output =~ "Prepared virtual bash runtime export."
     assert output =~ "Project root: #{resolved_root}"
@@ -991,7 +991,7 @@ defmodule ControlKeel.CLIRuntimeTest do
     _memory = memory_record_fixture(%{session: session, task_id: task.id, title: "CLI memory"})
 
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         %{
           "workspace_id" => session.workspace_id,
           "session_id" => session.id,
@@ -1068,7 +1068,7 @@ defmodule ControlKeel.CLIRuntimeTest do
     session = session_fixture(%{title: "CLI attached sync session"})
 
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         %{
           "workspace_id" => session.workspace_id,
           "session_id" => session.id,

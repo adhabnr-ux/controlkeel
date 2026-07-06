@@ -3,7 +3,7 @@ defmodule ControlKeel.ProviderBroker do
 
   alias ControlKeel.AgentIntegration
   alias ControlKeel.AgentRuntimes.Registry, as: RuntimeRegistry
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.ProviderConfig
 
   @hosted_provider_envs %{
@@ -36,7 +36,7 @@ defmodule ControlKeel.ProviderBroker do
       "fallback_chain" => Enum.map(broker_chain, & &1.source),
       "provider_chain" => Enum.map(broker_chain, &resolution_summary/1),
       "profiles" => Enum.map(provider_ids(), &profile_summary(config, &1)),
-      "bootstrap" => ProjectBinding.bootstrap_summary(root),
+      "bootstrap" => Binding.bootstrap_summary(root),
       "binding_mode" => bootstrap_mode(root),
       "attached_agents" => attached_agent_summaries(binding, root, opts),
       "runtime_hints" => runtime_hint_summaries(binding, root, opts)
@@ -92,7 +92,7 @@ defmodule ControlKeel.ProviderBroker do
     case scope do
       "project" ->
         project_root = Keyword.get(opts, :project_root, File.cwd!())
-        ProjectBinding.put_provider_override(project_root, %{"default_source" => source})
+        Binding.put_provider_override(project_root, %{"default_source" => source})
 
       _ ->
         ProviderConfig.set_default_source(source)
@@ -561,14 +561,14 @@ defmodule ControlKeel.ProviderBroker do
   end
 
   defp effective_binding(project_root) do
-    case ProjectBinding.read_effective(project_root) do
+    case Binding.read_effective(project_root) do
       {:ok, binding, _mode} -> binding
       _ -> %{}
     end
   end
 
   defp bootstrap_mode(project_root) do
-    case ProjectBinding.read_effective(project_root) do
+    case Binding.read_effective(project_root) do
       {:ok, _binding, mode} -> Atom.to_string(mode)
       _ -> "none"
     end
@@ -635,7 +635,7 @@ defmodule ControlKeel.ProviderBroker do
   end
 
   defp project_override_source(project_root) do
-    with {:ok, binding, _mode} <- ProjectBinding.read_effective(project_root),
+    with {:ok, binding, _mode} <- Binding.read_effective(project_root),
          %{} = override <- binding["provider_override"] do
       override["default_source"] || override[:default_source]
     else

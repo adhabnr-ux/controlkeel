@@ -1,23 +1,23 @@
-defmodule ControlKeel.LocalProject do
+defmodule ControlKeel.Project.Local do
   @moduledoc false
 
   alias ControlKeel.Mission
-  alias ControlKeel.ProjectRoot
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Root
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Mission.SessionTranscript
 
   def init(attrs, project_root \\ File.cwd!()) when is_map(attrs) do
-    root = ProjectRoot.resolve(project_root)
+    root = Root.resolve(project_root)
 
-    case ProjectBinding.read(root) do
+    case Binding.read(root) do
       {:ok, binding} ->
         case Mission.get_session(binding["session_id"]) do
           nil ->
             create_and_bind(attrs, root)
 
           _session ->
-            with :ok <- ProjectBinding.ensure_gitignore(root),
-                 :ok <- ProjectBinding.ensure_mcp_wrapper(root) do
+            with :ok <- Binding.ensure_gitignore(root),
+                 :ok <- Binding.ensure_mcp_wrapper(root) do
               {:ok, binding, :existing}
             end
         end
@@ -31,9 +31,9 @@ defmodule ControlKeel.LocalProject do
   end
 
   def load(project_root \\ File.cwd!()) do
-    root = ProjectRoot.resolve(project_root)
+    root = Root.resolve(project_root)
 
-    with {:ok, binding, _mode} <- ProjectBinding.read_effective(root),
+    with {:ok, binding, _mode} <- Binding.read_effective(root),
          session when not is_nil(session) <- Mission.get_session_context(binding["session_id"]) do
       {:ok, binding, session}
     else
@@ -43,7 +43,7 @@ defmodule ControlKeel.LocalProject do
   end
 
   def load_or_bootstrap(project_root \\ File.cwd!(), overrides \\ %{}, opts \\ []) do
-    root = ProjectRoot.resolve(project_root)
+    root = Root.resolve(project_root)
 
     case load(root) do
       {:ok, binding, session} ->
@@ -61,7 +61,7 @@ defmodule ControlKeel.LocalProject do
   end
 
   def bootstrap(project_root \\ File.cwd!(), overrides \\ %{}, opts \\ []) do
-    root = ProjectRoot.resolve(project_root)
+    root = Root.resolve(project_root)
     ephemeral_ok? = Keyword.get(opts, :ephemeral_ok, true)
     bootstrap_metadata = %{"auto_bootstrapped" => true}
     launch_attrs = default_init_attrs(root, overrides)
@@ -86,7 +86,7 @@ defmodule ControlKeel.LocalProject do
   end
 
   def default_init_attrs(project_root, overrides \\ %{}) do
-    root = ProjectRoot.resolve(project_root)
+    root = Root.resolve(project_root)
     project_name = Map.get(overrides, "project_name", Path.basename(root))
 
     %{
@@ -107,10 +107,10 @@ defmodule ControlKeel.LocalProject do
     launch_attrs = default_init_attrs(root, attrs)
 
     with {:ok, session} <- Mission.create_launch(launch_attrs),
-         :ok <- ProjectBinding.ensure_gitignore(root),
-         :ok <- ProjectBinding.ensure_mcp_wrapper(root),
+         :ok <- Binding.ensure_gitignore(root),
+         :ok <- Binding.ensure_mcp_wrapper(root),
          {:ok, binding} <-
-           ProjectBinding.write(
+           Binding.write(
              %{
                "workspace_id" => session.workspace_id,
                "session_id" => session.id,
@@ -130,7 +130,7 @@ defmodule ControlKeel.LocalProject do
   defp create_binding(root, session, launch_attrs, bootstrap_metadata) do
     with :ok <- ensure_project_files(root),
          {:ok, binding} <-
-           ProjectBinding.write(
+           Binding.write(
              %{
                "workspace_id" => session.workspace_id,
                "session_id" => session.id,
@@ -152,7 +152,7 @@ defmodule ControlKeel.LocalProject do
 
   defp create_ephemeral_binding(root, session, launch_attrs, bootstrap_metadata) do
     with {:ok, binding} <-
-           ProjectBinding.write_ephemeral(
+           Binding.write_ephemeral(
              %{
                "workspace_id" => session.workspace_id,
                "session_id" => session.id,
@@ -171,8 +171,8 @@ defmodule ControlKeel.LocalProject do
   end
 
   defp ensure_project_files(root) do
-    with :ok <- ProjectBinding.ensure_gitignore(root),
-         :ok <- ProjectBinding.ensure_mcp_wrapper(root) do
+    with :ok <- Binding.ensure_gitignore(root),
+         :ok <- Binding.ensure_mcp_wrapper(root) do
       :ok
     else
       {:error, _reason} = error -> error

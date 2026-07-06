@@ -1,7 +1,7 @@
 defmodule ControlKeel.MCP.Arguments do
   @moduledoc false
 
-  alias ControlKeel.LocalProject
+  alias ControlKeel.Project.Local
   alias ControlKeel.Mission
 
   @current_aliases ["current", "active"]
@@ -123,7 +123,7 @@ defmodule ControlKeel.MCP.Arguments do
   end
 
   defp resolve_active_session_id(arguments) do
-    case LocalProject.load(project_root(arguments)) do
+    case Local.load(project_root(arguments)) do
       {:ok, _binding, session} ->
         {:ok, session.id}
 

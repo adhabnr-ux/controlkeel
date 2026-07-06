@@ -1,7 +1,7 @@
-defmodule ControlKeel.WorkspaceContext do
+defmodule ControlKeel.Project.WorkspaceContext do
   @moduledoc false
 
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
 
   @preview_bytes 220
   @recent_commit_limit 5
@@ -48,7 +48,7 @@ defmodule ControlKeel.WorkspaceContext do
         Path.expand(runtime_root)
 
       true ->
-        case ProjectBinding.read_effective(fallback_root) do
+        case Binding.read_effective(fallback_root) do
           {:ok, binding, _mode} ->
             if binding["session_id"] == session_id do
               binding["project_root"]

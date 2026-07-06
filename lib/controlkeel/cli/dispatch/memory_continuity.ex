@@ -3,8 +3,8 @@ defmodule ControlKeel.CLI.Dispatch.MemoryContinuity do
 
   alias ControlKeel.Memory
   alias ControlKeel.Mission
-  alias ControlKeel.ProjectBinding
-  alias ControlKeel.ProjectRoot
+  alias ControlKeel.Project.Binding
+  alias ControlKeel.Project.Root
   import ControlKeel.CLI, except: [run_command: 2]
 
   def run_command(%{command: :session_list}, _project_root) do
@@ -32,12 +32,12 @@ defmodule ControlKeel.CLI.Dispatch.MemoryContinuity do
            |> Map.put("session_id", target.id)
            |> Map.put("workspace_id", target.workspace_id),
          {:ok, written} <-
-           ProjectBinding.write_effective(updated, project_root,
+           Binding.write_effective(updated, project_root,
              mode: binding_write_mode(binding)
            ),
          {:ok, _updated_session} <-
            Mission.attach_session_runtime_context(target.id, %{
-             "project_root" => ProjectRoot.resolve(project_root)
+             "project_root" => Root.resolve(project_root)
            }) do
       {:ok,
        [

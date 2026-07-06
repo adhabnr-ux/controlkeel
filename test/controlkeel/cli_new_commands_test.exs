@@ -12,7 +12,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
   alias ControlKeel.Observability.ImportedEnvelope
   alias ControlKeel.Repo
   alias ControlKeel.Mission.ReviewBridge
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Governance.CircuitBreaker
   alias ControlKeel.Governance.AgentMonitor
   alias ControlKeel.Learning.OutcomeTracker
@@ -2634,7 +2634,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
 
   defp write_binding(tmp_dir, session) do
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         %{
           "workspace_id" => session.workspace_id,
           "session_id" => session.id,

@@ -9,11 +9,11 @@ defmodule ControlKeel.MCP.Tools.CkContext do
   alias ControlKeel.Mission.{Finding, Session}
   alias ControlKeel.ProviderBroker
   alias ControlKeel.Precedent
-  alias ControlKeel.LocalProject
+  alias ControlKeel.Project.Local
   alias ControlKeel.Repo
   alias ControlKeel.Mission.TaskAugmentation
   alias ControlKeel.Governance.TrustBoundary
-  alias ControlKeel.WorkspaceContext
+  alias ControlKeel.Project.WorkspaceContext
   import Ecto.Query, warn: false
 
   def call(arguments) when is_map(arguments) do
@@ -282,7 +282,7 @@ defmodule ControlKeel.MCP.Tools.CkContext do
   # action — the LLM can read it and decide.
   defp attach_advisory(project_root, bootstrap_status) do
     binding =
-      case ControlKeel.ProjectBinding.read(project_root) do
+      case ControlKeel.Project.Binding.read(project_root) do
         {:ok, b} -> b
         _ -> %{}
       end
@@ -434,7 +434,7 @@ defmodule ControlKeel.MCP.Tools.CkContext do
         _ -> File.cwd!()
       end
 
-    case LocalProject.load(project_root) do
+    case Local.load(project_root) do
       {:ok, _binding, session} ->
         {:ok, session.id}
 

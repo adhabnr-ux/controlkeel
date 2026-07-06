@@ -4,16 +4,16 @@ defmodule ControlKeel.CLI.Doctor do
   alias ControlKeel.AgentExecution
   alias ControlKeel.CLI.Catalog
   alias ControlKeel.ExecutionSandbox
-  alias ControlKeel.LocalProject
-  alias ControlKeel.ProjectBinding
-  alias ControlKeel.ProjectRoot
+  alias ControlKeel.Project.Local
+  alias ControlKeel.Project.Binding
+  alias ControlKeel.Project.Root
   alias ControlKeel.ProviderBroker
   alias ControlKeel.SetupAdvisor
 
   @ck_gitignore_required ["/controlkeel/", "/.controlkeel/"]
 
   def payload(project_root, version) do
-    root = ProjectRoot.resolve(project_root)
+    root = Root.resolve(project_root)
     snapshot = SetupAdvisor.snapshot(root)
     provider_status = ProviderBroker.status(root)
     agents = AgentExecution.doctor(root)
@@ -135,7 +135,7 @@ defmodule ControlKeel.CLI.Doctor do
   end
 
   defp load_binding(root) do
-    case LocalProject.load(root) do
+    case Local.load(root) do
       {:ok, binding, session} ->
         {%{
            "status" => "bound",
@@ -217,9 +217,9 @@ defmodule ControlKeel.CLI.Doctor do
   defp install_health(root, version, binding) do
     git_available = ControlKeel.Git.available?()
     gitignore = gitignore_health(root)
-    wrapper_path = ProjectBinding.mcp_wrapper_path(root)
+    wrapper_path = Binding.mcp_wrapper_path(root)
     wrapper_present = File.exists?(wrapper_path)
-    wrapper_cli_runnable = ProjectBinding.mcp_wrapper_cli_runnable?(root)
+    wrapper_cli_runnable = Binding.mcp_wrapper_cli_runnable?(root)
     attached = attached_health(version, binding)
 
     drifted = Enum.filter(attached, & &1["version_drift"])

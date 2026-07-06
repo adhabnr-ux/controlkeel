@@ -2786,7 +2786,7 @@ defmodule ControlKeel.MCP.Protocol do
 
   defp safe_get_project_tool_groups(project_root) do
     try do
-      ControlKeel.ProjectBinding.get_tool_groups(project_root)
+      ControlKeel.Project.Binding.get_tool_groups(project_root)
     rescue
       _ -> nil
     catch

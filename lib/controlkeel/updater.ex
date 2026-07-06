@@ -3,7 +3,7 @@ defmodule ControlKeel.Updater do
 
   alias ControlKeel.AttachedAgentSync
   alias ControlKeel.CLI
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
 
   @repository "aryaminus/controlkeel"
   @npm_package "@aryaminus/controlkeel"
@@ -227,7 +227,7 @@ defmodule ControlKeel.Updater do
   end
 
   defp sync_current_attached(project_root) do
-    case ProjectBinding.read_effective(project_root) do
+    case Binding.read_effective(project_root) do
       {:ok, binding, mode} ->
         case AttachedAgentSync.sync(binding, project_root, mode: mode) do
           {:ok, _binding, changes} ->
@@ -328,7 +328,7 @@ defmodule ControlKeel.Updater do
   end
 
   defp attached_status(project_root, current_version) do
-    case ProjectBinding.read_effective(project_root) do
+    case Binding.read_effective(project_root) do
       {:ok, binding, mode} ->
         agents =
           binding

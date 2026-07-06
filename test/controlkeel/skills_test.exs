@@ -1105,8 +1105,8 @@ defmodule ControlKeel.SkillsTest do
   } do
     # A bootstrap wrapper exists on disk — the legacy behavior baked its
     # absolute path into committed configs, breaking teammates/moves.
-    :ok = ControlKeel.ProjectBinding.ensure_mcp_wrapper(tmp_dir)
-    wrapper = ControlKeel.ProjectBinding.mcp_wrapper_path(tmp_dir)
+    :ok = ControlKeel.Project.Binding.ensure_mcp_wrapper(tmp_dir)
+    wrapper = ControlKeel.Project.Binding.mcp_wrapper_path(tmp_dir)
     assert File.exists?(wrapper)
 
     assert {:ok, _} = Skills.install("opencode-native", tmp_dir, scope: "project")

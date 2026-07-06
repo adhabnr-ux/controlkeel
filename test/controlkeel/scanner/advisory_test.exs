@@ -1,7 +1,7 @@
 defmodule ControlKeel.Scanner.AdvisoryTest do
   use ExUnit.Case, async: false
 
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Scanner.Advisory
 
   setup do
@@ -64,7 +64,7 @@ defmodule ControlKeel.Scanner.AdvisoryTest do
     project_root: project_root
   } do
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => 1,
                  "session_id" => 1,
@@ -90,7 +90,7 @@ defmodule ControlKeel.Scanner.AdvisoryTest do
     project_root: project_root
   } do
     assert {:ok, _binding} =
-             ProjectBinding.write(
+             Binding.write(
                %{
                  "workspace_id" => 1,
                  "session_id" => 1,

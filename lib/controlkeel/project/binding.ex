@@ -1,11 +1,11 @@
-defmodule ControlKeel.ProjectBinding do
+defmodule ControlKeel.Project.Binding do
   @moduledoc false
 
-  alias ControlKeel.ProjectRoot
+  alias ControlKeel.Project.Root
   alias ControlKeel.Runtime.Paths
 
   @version 1
-  @compile_source_root Path.expand("../..", __DIR__)
+  @compile_source_root Path.expand("../../..", __DIR__)
 
   def read(project_root \\ File.cwd!()) do
     path = path(project_root)
@@ -330,7 +330,7 @@ defmodule ControlKeel.ProjectBinding do
   end
 
   defp canonical_root(project_root) do
-    ProjectRoot.resolve(project_root)
+    Root.resolve(project_root)
   end
 
   defp mcp_wrapper_script_contents(root) do

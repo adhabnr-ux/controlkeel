@@ -6,7 +6,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   alias ControlKeel.ClaudeCLI
   alias ControlKeel.CodexConfig
   alias ControlKeel.ProviderBroker
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.SetupAdvisor
   alias ControlKeel.Skills
   import ControlKeel.CLI, except: [run_command: 2]
@@ -17,7 +17,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => "claude-code"}),
          {:ok, _scope} <- validate_attach_scope("claude-code", options),
-         command_spec <- ProjectBinding.mcp_command_spec(root),
+         command_spec <- Binding.mcp_command_spec(root),
          {:ok, attached_agent} <-
            ClaudeCLI.attach_local(
              root,
@@ -25,9 +25,9 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
              command_spec.args
            ),
          updated_binding <-
-           ProjectBinding.update_attached_agent(binding, "claude_code", attached_agent),
+           Binding.update_attached_agent(binding, "claude_code", attached_agent),
          {:ok, _binding} <-
-           ProjectBinding.write_effective(
+           Binding.write_effective(
              updated_binding,
              root,
              mode: binding_write_mode(binding)
@@ -57,11 +57,11 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => "cursor"}),
          {:ok, _scope} <- validate_attach_scope("cursor", options),
-         command_spec <- ProjectBinding.mcp_command_spec(root, portable: true),
+         command_spec <- Binding.mcp_command_spec(root, portable: true),
          {:ok, attached} <- attach_to_cursor(command_spec),
-         updated <- ProjectBinding.update_attached_agent(binding, "cursor", attached),
+         updated <- Binding.update_attached_agent(binding, "cursor", attached),
          {:ok, _} <-
-           ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
+           Binding.write_effective(updated, root, mode: binding_write_mode(binding)) do
       {:ok,
        [
          "Attached ControlKeel to Cursor.",
@@ -85,11 +85,11 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => "windsurf"}),
          {:ok, _scope} <- validate_attach_scope("windsurf", options),
-         command_spec <- ProjectBinding.mcp_command_spec(root, portable: true),
+         command_spec <- Binding.mcp_command_spec(root, portable: true),
          {:ok, attached} <- attach_to_windsurf(command_spec),
-         updated <- ProjectBinding.update_attached_agent(binding, "windsurf", attached),
+         updated <- Binding.update_attached_agent(binding, "windsurf", attached),
          {:ok, _} <-
-           ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
+           Binding.write_effective(updated, root, mode: binding_write_mode(binding)) do
       {:ok,
        [
          "Attached ControlKeel to Windsurf.",
@@ -115,7 +115,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => agent}),
          {:ok, scope} <- validate_attach_scope(agent, options),
-         command_spec <- ProjectBinding.mcp_command_spec(root, portable: scope == "user"),
+         command_spec <- Binding.mcp_command_spec(root, portable: scope == "user"),
          config_path <- CodexConfig.path_for_scope(root, scope),
          {:ok, _} <- CodexConfig.write(config_path, command_spec),
          {:ok, install_result} <- maybe_install_codex_native(root, scope, options),
@@ -135,9 +135,9 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
              "attached_at" =>
                DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
            },
-         updated <- ProjectBinding.update_attached_agent(binding, agent, attached),
+         updated <- Binding.update_attached_agent(binding, agent, attached),
          {:ok, _} <-
-           ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
+           Binding.write_effective(updated, root, mode: binding_write_mode(binding)) do
       {:ok,
        [
          "Attached ControlKeel to #{display_attach_agent(agent)}.",
@@ -183,14 +183,14 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => agent}),
          {:ok, _scope} <- validate_attach_scope(agent, options),
-         command_spec <- ProjectBinding.mcp_command_spec(root, portable: true),
+         command_spec <- Binding.mcp_command_spec(root, portable: true),
          config_path <- config_path_fn[agent].(),
          {:ok, attached} <- write_ide_mcp_config(config_path, "controlkeel", command_spec, agent),
          {:ok, native_attrs, native_lines} <- install_native_attach(agent, root, options),
          attached <- Map.merge(attached, native_attrs),
-         updated <- ProjectBinding.update_attached_agent(binding, agent, attached),
+         updated <- Binding.update_attached_agent(binding, agent, attached),
          {:ok, _} <-
-           ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
+           Binding.write_effective(updated, root, mode: binding_write_mode(binding)) do
       {:ok,
        [
          "Attached ControlKeel to #{display_name[agent]}.",
@@ -219,11 +219,11 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => "goose"}),
          {:ok, _scope} <- validate_attach_scope("goose", options),
-         command_spec <- ProjectBinding.mcp_command_spec(root, portable: true),
+         command_spec <- Binding.mcp_command_spec(root, portable: true),
          {:ok, attached} <- attach_to_goose(command_spec, root),
-         updated <- ProjectBinding.update_attached_agent(binding, "goose", attached),
+         updated <- Binding.update_attached_agent(binding, "goose", attached),
          {:ok, _} <-
-           ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
+           Binding.write_effective(updated, root, mode: binding_write_mode(binding)) do
       {:ok,
        [
          "Attached ControlKeel to Goose.",
@@ -248,12 +248,12 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => "continue"}),
          {:ok, _scope} <- validate_attach_scope("continue", options),
-         command_spec <- ProjectBinding.mcp_command_spec(root, portable: true),
+         command_spec <- Binding.mcp_command_spec(root, portable: true),
          {:ok, attached} <-
            write_continue_mcp_config(continue_config_path(), "controlkeel", command_spec),
-         updated <- ProjectBinding.update_attached_agent(binding, "continue", attached),
+         updated <- Binding.update_attached_agent(binding, "continue", attached),
          {:ok, _} <-
-           ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
+           Binding.write_effective(updated, root, mode: binding_write_mode(binding)) do
       {:ok,
        [
          "Attached ControlKeel to Continue.",
@@ -278,11 +278,11 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
     with {:ok, binding, _session, _mode} <-
            ensure_attach_project(root, %{"agent" => "aider"}),
          {:ok, _scope} <- validate_attach_scope("aider", options),
-         command_spec <- ProjectBinding.mcp_command_spec(root),
+         command_spec <- Binding.mcp_command_spec(root),
          {:ok, attached} <- attach_to_aider(command_spec, root),
-         updated <- ProjectBinding.update_attached_agent(binding, "aider", attached),
+         updated <- Binding.update_attached_agent(binding, "aider", attached),
          {:ok, _} <-
-           ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
+           Binding.write_effective(updated, root, mode: binding_write_mode(binding)) do
       {:ok,
        [
          "Attached ControlKeel to Aider.",
@@ -338,9 +338,9 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
          {:ok, scope} <- validate_attach_scope(agent, options),
          {:ok, result} <- attach_bundle_target(target, root, scope, options),
          attached_agent <- bundled_attached_agent(agent, target, scope, result),
-         updated <- ProjectBinding.update_attached_agent(binding, agent, attached_agent),
+         updated <- Binding.update_attached_agent(binding, agent, attached_agent),
          {:ok, _binding} <-
-           ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
+           Binding.write_effective(updated, root, mode: binding_write_mode(binding)) do
       {:ok,
        bundle_attach_lines(agent, result) ++
          bootstrap_lines(root) ++
@@ -361,9 +361,9 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
          {:ok, scope} <- validate_attach_scope(agent, options),
          {:ok, install_result} <- Skills.install("github-repo", root, scope: scope),
          attached_agent <- github_repo_attached_agent(agent, scope, install_result),
-         updated <- ProjectBinding.update_attached_agent(binding, agent, attached_agent),
+         updated <- Binding.update_attached_agent(binding, agent, attached_agent),
          {:ok, _binding} <-
-           ProjectBinding.write_effective(updated, root, mode: binding_write_mode(binding)) do
+           Binding.write_effective(updated, root, mode: binding_write_mode(binding)) do
       lines =
         case install_result do
           %{destination: destination} ->
@@ -409,7 +409,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
 
       {:ok, _binding} =
         if remaining > 0 do
-          ProjectBinding.write_effective(
+          Binding.write_effective(
             updated_binding,
             root,
             mode: binding_write_mode(updated_binding)
@@ -647,7 +647,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   end
 
   defp load_binding_for_detach(root) do
-    case ControlKeel.LocalProject.load(root) do
+    case ControlKeel.Project.Local.load(root) do
       {:ok, binding, session} -> {:ok, binding, session, "project"}
       {:error, _reason} -> {:error, :no_binding}
     end

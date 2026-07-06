@@ -1,8 +1,8 @@
-defmodule ControlKeel.VirtualWorkspaceTest do
+defmodule ControlKeel.Project.VirtualWorkspaceTest do
   use ControlKeel.DataCase, async: false
 
   alias ControlKeel.Mission
-  alias ControlKeel.VirtualWorkspace
+  alias ControlKeel.Project.VirtualWorkspace
 
   setup do
     tmp_dir =

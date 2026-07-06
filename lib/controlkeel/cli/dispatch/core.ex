@@ -5,10 +5,10 @@ defmodule ControlKeel.CLI.Dispatch.Core do
   alias ControlKeel.AutonomyLoop
   alias ControlKeel.Budget
   alias ControlKeel.Help
-  alias ControlKeel.LocalProject
+  alias ControlKeel.Project.Local
   alias ControlKeel.Mission
   alias ControlKeel.ProviderBroker
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Updater
   alias ControlKeel.ExecutionSandbox
   alias ControlKeel.Proxy
@@ -59,12 +59,12 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     attrs = Enum.into(options, %{}, fn {key, value} -> {Atom.to_string(key), value} end)
     no_attach = Keyword.get(options, :no_attach, false)
 
-    case LocalProject.init(attrs, project_root) do
+    case Local.init(attrs, project_root) do
       {:ok, binding, :created} ->
         base_lines = [
           "Initialized ControlKeel for #{binding["project_root"]}",
-          "Project binding: #{ProjectBinding.path(project_root)}",
-          "MCP wrapper: #{ProjectBinding.mcp_wrapper_path(project_root)}"
+          "Project binding: #{Binding.path(project_root)}",
+          "MCP wrapper: #{Binding.mcp_wrapper_path(project_root)}"
         ]
 
         attach_lines =
@@ -92,8 +92,8 @@ defmodule ControlKeel.CLI.Dispatch.Core do
         {:ok,
          [
            "ControlKeel is already initialized for session ##{binding["session_id"]}.",
-           "Project binding: #{ProjectBinding.path(project_root)}",
-           "MCP wrapper: #{ProjectBinding.mcp_wrapper_path(project_root)}"
+           "Project binding: #{Binding.path(project_root)}",
+           "MCP wrapper: #{Binding.mcp_wrapper_path(project_root)}"
          ]}
 
       {:error, reason} ->
@@ -267,7 +267,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     root = resolve_project_root(options, project_root)
     overrides = %{"agent" => options[:agent] || "claude"}
 
-    case LocalProject.load_or_bootstrap(root, overrides,
+    case Local.load_or_bootstrap(root, overrides,
            ephemeral_ok: options[:ephemeral_ok] != false
          ) do
       {:ok, binding, session, mode} ->
@@ -276,7 +276,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
            "Bootstrapped ControlKeel for #{binding["project_root"]}",
            "Session: #{session.title} (##{session.id})",
            "Binding mode: #{mode}",
-           "Binding path: #{ProjectBinding.bootstrap_summary(root)["binding_path"]}"
+           "Binding path: #{Binding.bootstrap_summary(root)["binding_path"]}"
          ] ++ bootstrap_lines(root)}
 
       {:error, reason} ->

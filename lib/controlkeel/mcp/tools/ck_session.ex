@@ -1,10 +1,10 @@
 defmodule ControlKeel.MCP.Tools.CkSession do
   @moduledoc false
 
-  alias ControlKeel.LocalProject
+  alias ControlKeel.Project.Local
   alias ControlKeel.MCP.Arguments
   alias ControlKeel.Mission
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
 
   @allowed_modes ~w(list status switch)
 
@@ -67,14 +67,14 @@ defmodule ControlKeel.MCP.Tools.CkSession do
           %{} = target ->
             project_root = normalized["project_root"]
 
-            case LocalProject.load(project_root) do
+            case Local.load(project_root) do
               {:ok, binding, _current_session} ->
                 updated =
                   binding
                   |> Map.put("session_id", target.id)
                   |> Map.put("workspace_id", target.workspace_id)
 
-                case ProjectBinding.write_effective(updated, project_root,
+                case Binding.write_effective(updated, project_root,
                        mode: binding_write_mode(binding)
                      ) do
                   {:ok, written} ->
@@ -137,7 +137,7 @@ defmodule ControlKeel.MCP.Tools.CkSession do
   end
 
   defp resolve_from_binding(%{"project_root" => project_root}) do
-    case LocalProject.load(project_root) do
+    case Local.load(project_root) do
       {:ok, _binding, session} ->
         {:ok, session}
 

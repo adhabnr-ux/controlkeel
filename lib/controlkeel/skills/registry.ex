@@ -6,7 +6,7 @@ defmodule ControlKeel.Skills.Registry do
   or explicitly overridden.
   """
 
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Skills.Parser
   alias ControlKeel.Skills.SkillDiagnostic
   alias ControlKeel.Skills.SkillTarget
@@ -95,7 +95,7 @@ defmodule ControlKeel.Skills.Registry do
       System.get_env("CONTROLKEEL_TRUST_PROJECT_SKILLS") in ~w(1 true TRUE yes YES) ->
         true
 
-      match?({:ok, _binding, _mode}, ProjectBinding.read_effective(project_root)) ->
+      match?({:ok, _binding, _mode}, Binding.read_effective(project_root)) ->
         true
 
       true ->

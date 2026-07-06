@@ -10,7 +10,7 @@ defmodule ControlKeel.CLITasksTest do
   alias ControlKeel.Analytics
   alias ControlKeel.Benchmark
   alias ControlKeel.Mission.Session
-  alias ControlKeel.ProjectBinding
+  alias ControlKeel.Project.Binding
   alias ControlKeel.Repo
 
   setup do
@@ -47,7 +47,7 @@ defmodule ControlKeel.CLITasksTest do
 
     assert first_output =~ "Initialized ControlKeel"
 
-    assert {:ok, binding} = ProjectBinding.read(tmp_dir)
+    assert {:ok, binding} = Binding.read(tmp_dir)
 
     assert Map.keys(binding) == [
              "agent",
@@ -140,7 +140,7 @@ defmodule ControlKeel.CLITasksTest do
     assert log =~ "--scope local"
     assert log =~ "mcp get controlkeel"
 
-    assert {:ok, binding} = ProjectBinding.read(tmp_dir)
+    assert {:ok, binding} = Binding.read(tmp_dir)
     assert binding["attached_agents"]["claude_code"]["server_name"] == "controlkeel"
   end
 
@@ -161,7 +161,7 @@ defmodule ControlKeel.CLITasksTest do
       end)
     end
 
-    assert {:ok, binding} = ProjectBinding.read(tmp_dir)
+    assert {:ok, binding} = Binding.read(tmp_dir)
     assert binding["attached_agents"] == %{}
   end
 
@@ -184,7 +184,7 @@ defmodule ControlKeel.CLITasksTest do
       end)
     end
 
-    assert {:ok, binding} = ProjectBinding.read(tmp_dir)
+    assert {:ok, binding} = Binding.read(tmp_dir)
     assert binding["attached_agents"] == %{}
   end
 
@@ -261,7 +261,7 @@ defmodule ControlKeel.CLITasksTest do
     session = session_fixture()
 
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         %{
           "workspace_id" => session.workspace_id,
           "session_id" => session.id,
@@ -287,7 +287,7 @@ defmodule ControlKeel.CLITasksTest do
     assert status_output =~ "Attached agents:"
     assert status_output =~ "cursor (CK v"
 
-    assert {:ok, binding} = ProjectBinding.read(tmp_dir)
+    assert {:ok, binding} = Binding.read(tmp_dir)
     assert binding["attached_agents"]["cursor"]["synced_at"]
     assert File.exists?(Path.join(tmp_dir, ".cursor/mcp.json"))
   end
@@ -470,7 +470,7 @@ defmodule ControlKeel.CLITasksTest do
 
   defp write_binding(tmp_dir, session) do
     {:ok, _binding} =
-      ProjectBinding.write(
+      Binding.write(
         %{
           "workspace_id" => session.workspace_id,
           "session_id" => session.id,

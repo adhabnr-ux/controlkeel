@@ -5,7 +5,7 @@ defmodule ControlKeel.Mission.WorkspaceCheckpoint do
   """
 
   alias ControlKeel.Mission
-  alias ControlKeel.WorkspaceContext
+  alias ControlKeel.Project.WorkspaceContext
 
   def create(session_id, task_id, opts \\ []) do
     with session when not is_nil(session) <-

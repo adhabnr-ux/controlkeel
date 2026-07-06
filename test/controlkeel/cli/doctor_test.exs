@@ -32,7 +32,7 @@ defmodule ControlKeel.CLI.DoctorTest do
     end
 
     test "reports gitignore complete once the CK managed block is present", %{tmp: tmp} do
-      :ok = ControlKeel.ProjectBinding.ensure_gitignore(tmp)
+      :ok = ControlKeel.Project.Binding.ensure_gitignore(tmp)
 
       health = Doctor.payload(tmp, "9.9.9")["install_health"]
       assert health["gitignore"]["complete"] == true
@@ -52,20 +52,20 @@ defmodule ControlKeel.CLI.DoctorTest do
 
       File.write!(Path.join(b, ".controlkeel-skills.json"), Jason.encode!(%{"skills" => ["one"]}))
 
-      {:ok, binding, _session, _state} = ControlKeel.LocalProject.load_or_bootstrap(tmp)
+      {:ok, binding, _session, _state} = ControlKeel.Project.Local.load_or_bootstrap(tmp)
 
       binding =
         binding
-        |> ControlKeel.ProjectBinding.update_attached_agent("a", %{
+        |> ControlKeel.Project.Binding.update_attached_agent("a", %{
           "controlkeel_version" => "9.9.9",
           "skills_destination" => a
         })
-        |> ControlKeel.ProjectBinding.update_attached_agent("b", %{
+        |> ControlKeel.Project.Binding.update_attached_agent("b", %{
           "controlkeel_version" => "9.9.9",
           "skills_destination" => b
         })
 
-      {:ok, _} = ControlKeel.ProjectBinding.write_effective(binding, tmp, mode: :project)
+      {:ok, _} = ControlKeel.Project.Binding.write_effective(binding, tmp, mode: :project)
 
       health = Doctor.payload(tmp, "9.9.9")["install_health"]
       assert health["skill_consistency"]["ok"] == false

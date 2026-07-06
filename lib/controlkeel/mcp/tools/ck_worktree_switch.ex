@@ -3,7 +3,7 @@ defmodule ControlKeel.MCP.Tools.CkWorktreeSwitch do
 
   alias ControlKeel.MCP.Arguments
   alias ControlKeel.Mission
-  alias ControlKeel.WorkspaceContext
+  alias ControlKeel.Project.WorkspaceContext
 
   def call(arguments) when is_map(arguments) do
     with {:ok, session} <- Arguments.fetch_session(arguments),
