@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.ReceivedTelemetryEvent do
+defmodule ControlKeel.Cloud.Telemetry.ReceivedEvent do
   @moduledoc """
   Persisted record of a telemetry envelope received from an upstream-pushing
   workspace. Distinct from `ControlKeel.Cloud.Telemetry.Event`, which is the

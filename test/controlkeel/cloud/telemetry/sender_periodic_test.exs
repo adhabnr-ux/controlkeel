@@ -1,7 +1,7 @@
-defmodule ControlKeel.Cloud.Sender.PeriodicTest do
+defmodule ControlKeel.Cloud.Telemetry.Sender.PeriodicTest do
   use ControlKeel.DataCase, async: false
 
-  alias ControlKeel.Cloud.Sender.Periodic
+  alias ControlKeel.Cloud.Telemetry.Sender.Periodic
   alias ControlKeel.Cloud.Telemetry.Config
   alias ControlKeel.Cloud.Telemetry.Envelope
   alias ControlKeel.Cloud.Telemetry.Queue

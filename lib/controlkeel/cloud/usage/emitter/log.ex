@@ -1,12 +1,12 @@
-defmodule ControlKeel.Cloud.UsageEmitter.Log do
+defmodule ControlKeel.Cloud.Usage.Emitter.Log do
   @moduledoc """
   Default usage emitter that logs spend events.
 
   Enable via:
-      config :controlkeel, :usage_emitter, ControlKeel.Cloud.UsageEmitter.Log
+      config :controlkeel, :usage_emitter, ControlKeel.Cloud.Usage.Emitter.Log
   """
 
-  @behaviour ControlKeel.Cloud.UsageEmitter
+  @behaviour ControlKeel.Cloud.Usage.Emitter
 
   require Logger
 

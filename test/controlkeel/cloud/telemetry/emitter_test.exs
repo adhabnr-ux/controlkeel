@@ -1,7 +1,7 @@
-defmodule ControlKeel.Cloud.EmitterTest do
+defmodule ControlKeel.Cloud.Telemetry.EmitterTest do
   use ControlKeel.DataCase, async: false
 
-  alias ControlKeel.Cloud.Emitter
+  alias ControlKeel.Cloud.Telemetry.Emitter
   alias ControlKeel.Cloud.Telemetry.Config
   alias ControlKeel.Cloud.Telemetry.Queue
   alias ControlKeel.Cloud.Workspace.Identity

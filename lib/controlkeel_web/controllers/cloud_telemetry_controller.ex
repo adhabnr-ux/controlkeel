@@ -2,7 +2,7 @@ defmodule ControlKeelWeb.CloudTelemetryController do
   @moduledoc """
   HTTP entry point for cloud telemetry batches.
 
-  Wire protocol matches `ControlKeel.Cloud.Sender`:
+  Wire protocol matches `ControlKeel.Cloud.Telemetry.Sender`:
 
       POST /cloud/v1/telemetry
       Authorization: Bearer <signed-ed25519-token>
@@ -26,7 +26,7 @@ defmodule ControlKeelWeb.CloudTelemetryController do
   use ControlKeelWeb, :controller
 
   alias ControlKeel.Cloud.AuthToken
-  alias ControlKeel.Cloud.Ingestion
+  alias ControlKeel.Cloud.Telemetry.Ingestion
 
   def ingest(conn, params) do
     with {:ok, token} <- extract_bearer(conn),

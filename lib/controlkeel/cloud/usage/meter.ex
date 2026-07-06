@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.UsageMeter do
+defmodule ControlKeel.Cloud.Usage.Meter do
   @moduledoc """
   Per-org daily usage aggregation backed by ETS.
 

@@ -25,7 +25,7 @@ defmodule ControlKeel.Cloud.Audit.Export do
   alias ControlKeel.Accounts.Org
   alias ControlKeel.Accounts.ReviewAuditEvent
   alias ControlKeel.Cloud.Mcp.ToolCall
-  alias ControlKeel.Cloud.ReceivedTelemetryEvent
+  alias ControlKeel.Cloud.Telemetry.ReceivedEvent
   alias ControlKeel.Cloud.RunPackage
   alias ControlKeel.Cloud.Workspace.Identity
   alias ControlKeel.Cloud.Workspace.Key
@@ -295,7 +295,7 @@ defmodule ControlKeel.Cloud.Audit.Export do
   defp fetch_received_events([], _since, _until), do: []
 
   defp fetch_received_events(workspace_ids, since_ts, until_ts) do
-    # ReceivedTelemetryEvent.workspace_id is a string (cloud ws_id like "ws_abc"),
+    # ReceivedEvent.workspace_id is a string (cloud ws_id like "ws_abc"),
     # but workspace_ids are local integer IDs. Resolve via Key registry.
     cloud_ws_ids =
       from(k in Key,
@@ -313,7 +313,7 @@ defmodule ControlKeel.Cloud.Audit.Export do
 
   defp query_received_events(cloud_workspace_ids, since_ts, until_ts) do
     query =
-      from e in ReceivedTelemetryEvent,
+      from e in ReceivedEvent,
         where: e.workspace_id in ^cloud_workspace_ids,
         where: e.received_at >= ^since_ts,
         where: e.received_at <= ^until_ts,

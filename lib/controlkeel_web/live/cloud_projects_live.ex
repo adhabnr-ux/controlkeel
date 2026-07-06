@@ -22,7 +22,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Accounts
-  alias ControlKeel.Cloud.Ingestion
+  alias ControlKeel.Cloud.Telemetry.Ingestion
   alias ControlKeel.Cloud.RuntimeContext
   alias ControlKeel.Cloud.Workspace.Key
   alias ControlKeel.Cloud.Workspace.KeyRegistry

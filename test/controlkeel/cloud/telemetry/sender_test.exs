@@ -1,7 +1,7 @@
-defmodule ControlKeel.Cloud.SenderTest do
+defmodule ControlKeel.Cloud.Telemetry.SenderTest do
   use ControlKeel.DataCase, async: false
 
-  alias ControlKeel.Cloud.Sender
+  alias ControlKeel.Cloud.Telemetry.Sender
   alias ControlKeel.Cloud.Telemetry.Config
   alias ControlKeel.Cloud.Telemetry.Envelope
   alias ControlKeel.Cloud.Telemetry.Queue
@@ -171,7 +171,7 @@ defmodule ControlKeel.Cloud.SenderTest do
     Application.put_env(
       :controlkeel,
       :cloud_sender_http_module,
-      ControlKeel.Cloud.SenderTest.FakeHTTP
+      ControlKeel.Cloud.Telemetry.SenderTest.FakeHTTP
     )
 
     Process.put(:fake_http_handler, handler)
@@ -181,7 +181,7 @@ defmodule ControlKeel.Cloud.SenderTest do
     Application.put_env(
       :controlkeel,
       :cloud_sender_http_module,
-      ControlKeel.Cloud.SenderTest.ForbiddenHTTP
+      ControlKeel.Cloud.Telemetry.SenderTest.ForbiddenHTTP
     )
   end
 

@@ -10,7 +10,7 @@ defmodule ControlKeelWeb.CloudUsageApiController do
   use ControlKeelWeb, :controller
 
   alias ControlKeel.Accounts
-  alias ControlKeel.Cloud.UsageMeter
+  alias ControlKeel.Cloud.Usage.Meter
 
   plug ControlKeelWeb.Plugs.CloudWorkspaceKeyAuth
 
@@ -27,7 +27,7 @@ defmodule ControlKeelWeb.CloudUsageApiController do
         ws_org_id = conn.assigns[:db_workspace_org_id] || conn.assigns[:db_org_id]
 
         if ws_org_id && ws_org_id == org.id do
-          spend_cents = UsageMeter.usage_today(org.id)
+          spend_cents = Meter.usage_today(org.id)
           budget_cents = Accounts.org_budget_cents(org) || 0
           ratio = if budget_cents > 0, do: Float.round(spend_cents / budget_cents, 4), else: 0.0
 

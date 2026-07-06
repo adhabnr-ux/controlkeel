@@ -1,10 +1,10 @@
-defmodule ControlKeel.Cloud.Ingestion do
+defmodule ControlKeel.Cloud.Telemetry.Ingestion do
   @moduledoc """
   Server-side ingestion for cloud telemetry batches.
 
   Accepts a parsed JSON batch posted to `POST /cloud/v1/telemetry`, validates
   it against the D3 schema, and persists each envelope to
-  `ControlKeel.Cloud.ReceivedTelemetryEvent`. Idempotent at the storage layer
+  `ControlKeel.Cloud.Telemetry.ReceivedEvent`. Idempotent at the storage layer
   via unique indexes on `event_id` and `idempotency_key`.
 
   This module does not include the HTTP/controller plumbing — that lives in
@@ -15,7 +15,7 @@ defmodule ControlKeel.Cloud.Ingestion do
 
   import Ecto.Query, warn: false
 
-  alias ControlKeel.Cloud.ReceivedTelemetryEvent
+  alias ControlKeel.Cloud.Telemetry.ReceivedEvent
   alias ControlKeel.Cloud.Telemetry.Envelope
   alias ControlKeel.Repo
 
@@ -135,12 +135,12 @@ defmodule ControlKeel.Cloud.Ingestion do
   defp do_persist(envelope, source_workspace_id) do
     event_id = envelope["event_id"]
 
-    case Repo.get_by(ReceivedTelemetryEvent, event_id: event_id) do
+    case Repo.get_by(ReceivedEvent, event_id: event_id) do
       nil ->
         attrs = envelope_to_attrs(envelope, source_workspace_id)
 
-        case %ReceivedTelemetryEvent{}
-             |> ReceivedTelemetryEvent.changeset(attrs)
+        case %ReceivedEvent{}
+             |> ReceivedEvent.changeset(attrs)
              |> Repo.insert() do
           {:ok, _event} ->
             %{event_id: event_id, status: :accepted, reason: nil}
@@ -204,17 +204,17 @@ defmodule ControlKeel.Cloud.Ingestion do
   @doc "Total received events across all workspaces (cheap; indexed count)."
   @spec count() :: non_neg_integer()
   def count do
-    Repo.aggregate(ReceivedTelemetryEvent, :count, :id)
+    Repo.aggregate(ReceivedEvent, :count, :id)
   end
 
   # --- Workspace-scoped variants (tenant-facing) ---
 
   @doc "Recent received events for a workspace, newest first."
-  @spec recent(String.t(), keyword()) :: [ReceivedTelemetryEvent.t()]
+  @spec recent(String.t(), keyword()) :: [ReceivedEvent.t()]
   def recent(workspace_id, opts \\ []) when is_binary(workspace_id) do
     limit = Keyword.get(opts, :limit, 50)
 
-    ReceivedTelemetryEvent
+    ReceivedEvent
     |> where([e], e.workspace_id == ^workspace_id)
     |> order_by([e], desc: e.received_at, desc: e.id)
     |> limit(^limit)
@@ -228,18 +228,18 @@ defmodule ControlKeel.Cloud.Ingestion do
 
   **Admin only.** Use `recent(workspace_id, opts)` for tenant-facing surfaces.
   """
-  @spec global_recent(keyword()) :: [ReceivedTelemetryEvent.t()]
+  @spec global_recent(keyword()) :: [ReceivedEvent.t()]
   def global_recent(opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)
 
-    ReceivedTelemetryEvent
+    ReceivedEvent
     |> order_by([e], desc: e.received_at, desc: e.id)
     |> limit(^limit)
     |> Repo.all()
   end
 
   @doc "Recent received events scoped to a single enrolled workspace_id."
-  @spec recent_for_workspace(String.t(), keyword()) :: [ReceivedTelemetryEvent.t()]
+  @spec recent_for_workspace(String.t(), keyword()) :: [ReceivedEvent.t()]
   def recent_for_workspace(workspace_id, opts \\ []) when is_binary(workspace_id) do
     recent(workspace_id, opts)
   end
@@ -247,7 +247,7 @@ defmodule ControlKeel.Cloud.Ingestion do
   @doc "Per-kind event counts for a single workspace_id."
   @spec counts_for_workspace(String.t()) :: %{String.t() => non_neg_integer()}
   def counts_for_workspace(workspace_id) when is_binary(workspace_id) do
-    ReceivedTelemetryEvent
+    ReceivedEvent
     |> where([e], e.workspace_id == ^workspace_id)
     |> group_by([e], e.kind)
     |> select([e], {e.kind, count(e.id)})
@@ -271,7 +271,7 @@ defmodule ControlKeel.Cloud.Ingestion do
           last_received_at: DateTime.t() | nil
         }
   def funnel_metrics(workspace_id) when is_binary(workspace_id) do
-    build_funnel_metrics(where(ReceivedTelemetryEvent, [e], e.workspace_id == ^workspace_id))
+    build_funnel_metrics(where(ReceivedEvent, [e], e.workspace_id == ^workspace_id))
   end
 
   @doc """
@@ -289,7 +289,7 @@ defmodule ControlKeel.Cloud.Ingestion do
           last_received_at: DateTime.t() | nil
         }
   def global_funnel_metrics do
-    build_funnel_metrics(ReceivedTelemetryEvent)
+    build_funnel_metrics(ReceivedEvent)
   end
 
   defp build_funnel_metrics(base_query) do

@@ -1,27 +1,4 @@
-defmodule ControlKeel.Cloud.Emitter.Supervisor do
-  @moduledoc false
-  use GenServer
-
-  alias ControlKeel.Cloud.Emitter
-
-  def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
-  end
-
-  @impl true
-  def init(_opts) do
-    _ = Emitter.attach()
-    {:ok, %{}}
-  end
-
-  @impl true
-  def terminate(_reason, _state) do
-    Emitter.detach()
-    :ok
-  end
-end
-
-defmodule ControlKeel.Cloud.Emitter do
+defmodule ControlKeel.Cloud.Telemetry.Emitter do
   @moduledoc """
   Bridge from local governance events to the cloud telemetry queue.
 
@@ -40,7 +17,7 @@ defmodule ControlKeel.Cloud.Emitter do
 
   Attach the `:telemetry` handler at app start:
 
-      ControlKeel.Cloud.Emitter.attach()
+      ControlKeel.Cloud.Telemetry.Emitter.attach()
 
   Detach for tests that want to assert on the queue contents directly without
   the live handler running.
@@ -108,11 +85,11 @@ defmodule ControlKeel.Cloud.Emitter do
     end
   rescue
     error ->
-      Logger.warning("Cloud.Emitter unexpected failure: #{inspect(error)}")
+      Logger.warning("Cloud.Telemetry.Emitter unexpected failure: #{inspect(error)}")
       {:error, error}
   catch
     kind_caught, value ->
-      Logger.warning("Cloud.Emitter caught #{inspect(kind_caught)} #{inspect(value)}")
+      Logger.warning("Cloud.Telemetry.Emitter caught #{inspect(kind_caught)} #{inspect(value)}")
       {:error, {kind_caught, value}}
   end
 

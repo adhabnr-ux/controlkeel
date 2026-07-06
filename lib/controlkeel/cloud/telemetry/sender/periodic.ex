@@ -1,6 +1,6 @@
-defmodule ControlKeel.Cloud.Sender.Periodic do
+defmodule ControlKeel.Cloud.Telemetry.Sender.Periodic do
   @moduledoc """
-  Background drainer that periodically calls `ControlKeel.Cloud.Sender.flush/0`.
+  Background drainer that periodically calls `ControlKeel.Cloud.Telemetry.Sender.flush/0`.
 
   Idle by default — only does meaningful work when both
   `:cloud_telemetry_endpoint` is configured and the queue has pending events.
@@ -30,7 +30,7 @@ defmodule ControlKeel.Cloud.Sender.Periodic do
 
   require Logger
 
-  alias ControlKeel.Cloud.Sender
+  alias ControlKeel.Cloud.Telemetry.Sender
 
   @default_interval_ms 60_000
   @default_backoff_initial_ms 5_000
@@ -135,7 +135,7 @@ defmodule ControlKeel.Cloud.Sender.Periodic do
         next_ms = backoff_ms(state, failures)
 
         Logger.debug(
-          "Cloud.Sender.Periodic: flush failed (#{inspect(outcome)}), backoff=#{next_ms}ms (consecutive=#{failures})"
+          "Cloud.Telemetry.Sender.Periodic: flush failed (#{inspect(outcome)}), backoff=#{next_ms}ms (consecutive=#{failures})"
         )
 
         %{

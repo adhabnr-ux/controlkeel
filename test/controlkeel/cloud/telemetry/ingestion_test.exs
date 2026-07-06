@@ -1,8 +1,8 @@
-defmodule ControlKeel.Cloud.IngestionTest do
+defmodule ControlKeel.Cloud.Telemetry.IngestionTest do
   use ControlKeel.DataCase, async: false
 
-  alias ControlKeel.Cloud.Ingestion
-  alias ControlKeel.Cloud.ReceivedTelemetryEvent
+  alias ControlKeel.Cloud.Telemetry.Ingestion
+  alias ControlKeel.Cloud.Telemetry.ReceivedEvent
   alias ControlKeel.Cloud.Telemetry.Config
   alias ControlKeel.Cloud.Telemetry.Envelope
   alias ControlKeel.Cloud.Workspace.Identity
@@ -97,7 +97,7 @@ defmodule ControlKeel.Cloud.IngestionTest do
       assert [%{event_id: id, status: :accepted}] = summary.outcomes
       assert id == envelope["event_id"]
 
-      stored = Repo.get_by!(ReceivedTelemetryEvent, event_id: id)
+      stored = Repo.get_by!(ReceivedEvent, event_id: id)
       assert stored.source_workspace_id == identity.workspace_id
       assert Jason.decode!(stored.body)["payload"]["severity"] == "high"
     end
@@ -166,7 +166,7 @@ defmodule ControlKeel.Cloud.IngestionTest do
       {:ok, _} = Ingestion.ingest(batch, identity.workspace_id)
 
       assert Ingestion.count() == 1
-      assert [%ReceivedTelemetryEvent{}] = Ingestion.global_recent(limit: 10)
+      assert [%ReceivedEvent{}] = Ingestion.global_recent(limit: 10)
     end
   end
 

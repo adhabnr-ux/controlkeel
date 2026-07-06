@@ -83,7 +83,7 @@ defmodule ControlKeel.Application do
       mailer_test_inbox_children() ++
       retention_scheduler_children() ++
       db_maintenance_children() ++
-      [ControlKeel.Cloud.RateLimiter, ControlKeel.Cloud.UsageMeter] ++
+      [ControlKeel.Cloud.RateLimiter, ControlKeel.Cloud.Usage.Meter] ++
       [
         {DNSCluster, query: Application.get_env(:controlkeel, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: ControlKeel.PubSub},
@@ -261,7 +261,7 @@ defmodule ControlKeel.Application do
 
   defp cloud_emitter_children do
     if Application.get_env(:controlkeel, :cloud_emitter_enabled, true) do
-      [ControlKeel.Cloud.Emitter.Supervisor] ++ cloud_sender_periodic_children()
+      [ControlKeel.Cloud.Telemetry.Emitter.Supervisor] ++ cloud_sender_periodic_children()
     else
       []
     end
@@ -269,7 +269,7 @@ defmodule ControlKeel.Application do
 
   defp cloud_sender_periodic_children do
     if Application.get_env(:controlkeel, :cloud_sender_periodic_enabled, true) do
-      [ControlKeel.Cloud.Sender.Periodic]
+      [ControlKeel.Cloud.Telemetry.Sender.Periodic]
     else
       []
     end

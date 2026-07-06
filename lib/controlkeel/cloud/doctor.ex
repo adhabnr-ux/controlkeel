@@ -8,7 +8,7 @@ defmodule ControlKeel.Cloud.Doctor do
   No mutation, no network egress, no telemetry emission. Safe to run in any mode.
   """
 
-  alias ControlKeel.Cloud.Sender
+  alias ControlKeel.Cloud.Telemetry.Sender
   alias ControlKeel.Cloud.Telemetry.Config
   alias ControlKeel.Cloud.Telemetry.Queue
   alias ControlKeel.Cloud.Workspace.Identity
@@ -399,7 +399,7 @@ defmodule ControlKeel.Cloud.Doctor do
   end
 
   defp safe_periodic_status do
-    ControlKeel.Cloud.Sender.Periodic.status()
+    ControlKeel.Cloud.Telemetry.Sender.Periodic.status()
   rescue
     _ -> :not_running
   catch

@@ -1,4 +1,4 @@
-defmodule ControlKeel.Cloud.Sender do
+defmodule ControlKeel.Cloud.Telemetry.Sender do
   @moduledoc """
   HTTP sender for the cloud telemetry queue.
 
@@ -138,7 +138,7 @@ defmodule ControlKeel.Cloud.Sender do
         do_post_batch(url, body, headers, events, timeout)
 
       {:error, reason} ->
-        Logger.warning("Cloud.Sender: failed to sign auth token: #{inspect(reason)}")
+        Logger.warning("Cloud.Telemetry.Sender: failed to sign auth token: #{inspect(reason)}")
         record_failures(events, "failed to sign auth token: #{inspect(reason)}")
         {:error, :network, length(events)}
     end
@@ -194,7 +194,7 @@ defmodule ControlKeel.Cloud.Sender do
 
         {:error, reason} ->
           Logger.warning(
-            "Cloud.Sender: failed to mark event #{event.event_id} sent: #{inspect(reason)}"
+            "Cloud.Telemetry.Sender: failed to mark event #{event.event_id} sent: #{inspect(reason)}"
           )
       end
     end)

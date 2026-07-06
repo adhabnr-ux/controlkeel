@@ -18,11 +18,11 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
   alias ControlKeel.Cloud.BaselineAnalyzer
   alias ControlKeel.Cloud.Guardrails
   alias ControlKeel.Cloud.Workspace.Baseline
-  alias ControlKeel.Cloud.Ingestion
+  alias ControlKeel.Cloud.Telemetry.Ingestion
   alias ControlKeel.Cloud.Mcp.AuditLog
   alias ControlKeel.Cloud.Mcp.Registry
   alias ControlKeel.Cloud.RuntimeContext
-  alias ControlKeel.Cloud.Sender
+  alias ControlKeel.Cloud.Telemetry.Sender
   alias ControlKeel.Cloud.Telemetry.Config
   alias ControlKeel.Cloud.Telemetry.Queue
   alias ControlKeel.Cloud.Workspace.Identity
