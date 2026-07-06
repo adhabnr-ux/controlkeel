@@ -6,6 +6,8 @@ defmodule ControlKeel.Mission do
   alias Ecto.Multi
   alias ControlKeel.Accounts
   alias ControlKeel.AutoFix
+  alias ControlKeel.DecisionGates
+  alias ControlKeel.GovernedManifest
   alias ControlKeel.Intent.ExecutionBrief
   alias ControlKeel.Learning.OutcomeTracker
   alias ControlKeel.Memory
@@ -320,6 +322,8 @@ defmodule ControlKeel.Mission do
     %{
       "phase" => gate["phase"] || "execution",
       "execution_ready" => Map.get(gate, "execution_ready", true),
+      "decision_gate" => gate["decision_gate"],
+      "governed_manifest" => gate["governed_manifest"],
       "latest_review_id" => gate["latest_review_id"],
       "latest_review_status" => gate["latest_review_status"],
       "latest_review_type" => gate["latest_review_type"],
@@ -4657,6 +4661,8 @@ defmodule ControlKeel.Mission do
            required_string(Map.get(attrs, "submission_body"), "submission_body"),
          {:ok, plan_refinement} <-
            normalize_plan_refinement(attrs, review_type, task, previous_review) do
+      governed_manifest = normalize_review_manifest(attrs, task, session_id, plan_refinement)
+
       title =
         attrs["title"] ||
           review_title(review_type, task, session_id)
@@ -4670,6 +4676,7 @@ defmodule ControlKeel.Mission do
         |> maybe_put_map("annotations")
         |> maybe_put_map("metadata")
         |> maybe_put_plan_refinement(plan_refinement)
+        |> maybe_put_governed_manifest(governed_manifest)
         |> put_runtime_context_metadata(runtime_context)
         |> maybe_put_string("submitted_by", "agent")
         |> maybe_put_value("task_id", task && task.id)
@@ -4685,7 +4692,8 @@ defmodule ControlKeel.Mission do
          runtime_context: runtime_context,
          previous_review: previous_review,
          review_type: review_type,
-         plan_refinement: plan_refinement
+         plan_refinement: plan_refinement,
+         governed_manifest: governed_manifest
        }}
     end
   end
@@ -4727,13 +4735,18 @@ defmodule ControlKeel.Mission do
 
   defp maybe_track_task_review_gate(
          multi,
-         %{task: %Task{} = task, review_type: "plan", plan_refinement: plan_refinement} =
+         %{
+           task: %Task{} = task,
+           review_type: "plan",
+           plan_refinement: plan_refinement,
+           governed_manifest: governed_manifest
+         } =
            _normalized
        ) do
     Multi.update(multi, :task, fn %{review: review} ->
       metadata =
         (task.metadata || %{})
-        |> put_review_gate(review, "review", false, plan_refinement)
+        |> put_review_gate(review, "review", false, plan_refinement, governed_manifest)
         |> put_latest_submitted_plan(review, plan_refinement)
 
       Task.changeset(task, %{metadata: metadata})
@@ -4771,6 +4784,10 @@ defmodule ControlKeel.Mission do
               get_in(review.metadata || %{}, ["plan_refinement"]) ||
               %{}
 
+          governed_manifest =
+            get_in(updated_review.metadata || %{}, ["governed_manifest"]) ||
+              get_in(review.metadata || %{}, ["governed_manifest"])
+
           plan_quality = get_in(plan_refinement, ["quality"]) || %{}
 
           execution_ready =
@@ -4786,7 +4803,13 @@ defmodule ControlKeel.Mission do
 
           metadata =
             (task.metadata || %{})
-            |> put_review_gate(updated_review, phase, execution_ready, plan_refinement)
+            |> put_review_gate(
+              updated_review,
+              phase,
+              execution_ready,
+              plan_refinement,
+              governed_manifest
+            )
             |> put_plan_decision(updated_review, plan_refinement, decision)
 
           task
@@ -5102,6 +5125,7 @@ defmodule ControlKeel.Mission do
           "previous_phase" => previous_plan_phase(previous_review)
         }
         |> maybe_put_value("body_length", body_length(attrs["submission_body"]))
+        |> DecisionGates.annotate_refinement()
         |> Map.put(
           "quality",
           assess_plan_refinement(phase, scope_estimate, %{
@@ -5630,12 +5654,22 @@ defmodule ControlKeel.Mission do
     end)
   end
 
-  defp put_review_gate(metadata, review, phase, execution_ready, plan_refinement) do
+  defp put_review_gate(
+         metadata,
+         review,
+         phase,
+         execution_ready,
+         plan_refinement,
+         governed_manifest
+       ) do
     plan_quality = get_in(plan_refinement || %{}, ["quality"]) || %{}
+    decision_gate = get_in(plan_refinement || %{}, ["decision_gate"])
 
     Map.put(metadata || %{}, "review_gate", %{
       "phase" => phase,
       "execution_ready" => execution_ready,
+      "decision_gate" => decision_gate,
+      "governed_manifest" => governed_manifest,
       "latest_review_id" => review.id,
       "latest_review_status" => review.status,
       "latest_review_type" => review.review_type,
@@ -5670,6 +5704,40 @@ defmodule ControlKeel.Mission do
     update_in(attrs, ["metadata"], fn metadata ->
       Map.put(metadata || %{}, "plan_refinement", refinement)
     end)
+  end
+
+  defp maybe_put_governed_manifest(attrs, nil), do: attrs
+
+  defp maybe_put_governed_manifest(attrs, manifest) do
+    update_in(attrs, ["metadata"], fn metadata ->
+      Map.put(metadata || %{}, "governed_manifest", manifest)
+    end)
+  end
+
+  defp normalize_review_manifest(attrs, task, session_id, plan_refinement) do
+    raw_manifest =
+      get_in(attrs, ["metadata", "governed_manifest"]) || attrs["governed_manifest"] || %{}
+
+    if is_map(raw_manifest) or is_map(plan_refinement) do
+      raw_manifest
+      |> case do
+        map when is_map(map) -> map
+        _ -> %{}
+      end
+      |> Map.merge(%{
+        "session_id" => session_id,
+        "task_id" => task && task.id,
+        "title" => task && task.title,
+        "phase" =>
+          get_in(plan_refinement || %{}, ["decision_gate", "phase"]) ||
+            (plan_refinement && plan_refinement["phase"]),
+        "validation_commands" => plan_refinement && plan_refinement["validation_plan"],
+        "approved_decisions" => plan_refinement && plan_refinement["selected_option"],
+        "proof_obligations" => plan_refinement && plan_refinement["harness_quality_checks"],
+        "next_valid_action" => "wait_for_review_approval"
+      })
+      |> GovernedManifest.build()
+    end
   end
 
   defp put_runtime_context_metadata(attrs, runtime_context) when map_size(runtime_context) == 0,

@@ -92,6 +92,61 @@ defmodule ControlKeel.SkillsTest do
     assert skill.user_invocable == true
   end
 
+  test "parser normalizes modern skill frontmatter and surfaces portability diagnostics", %{
+    tmp_dir: tmp_dir
+  } do
+    skill_dir = Path.join(tmp_dir, "modern-skill")
+    File.mkdir_p!(skill_dir)
+
+    File.write!(Path.join(skill_dir, "SKILL.md"), """
+    ---
+    name: modern-skill
+    description: Use this for isolated security review. Do not use for general coding.
+    context: fork
+    agent: Explore
+    allowed-tools: Read Grep
+    disallowed-tools:
+      - Bash
+    paths:
+      - lib/**/*.ex
+    hooks:
+      PreToolUse:
+        - matcher: Bash
+          hooks:
+            - type: command
+              command: ./validate.sh
+    model: sonnet
+    effort: high
+    shell: bash
+    ---
+    # Modern Skill
+
+    ## Workflow
+    1. Review the target.
+
+    ## Output Format
+    Return findings.
+
+    ## Example
+    One issue.
+
+    Edge case: if input is missing, ask for a path.
+    """)
+
+    assert {:ok, skill} = Parser.parse(Path.join(skill_dir, "SKILL.md"), "project")
+    assert skill.context == "fork"
+    assert skill.agent == "Explore"
+    assert skill.allowed_tools == ["Read", "Grep"]
+    assert skill.disallowed_tools == ["Bash"]
+    assert skill.paths == ["lib/**/*.ex"]
+    assert skill.hooks["PreToolUse"]
+    assert skill.model == "sonnet"
+    assert skill.effort == "high"
+    assert skill.shell == "bash"
+    assert Enum.any?(skill.diagnostics, &(&1.code == "context_fork_target_variance"))
+    assert Enum.any?(skill.diagnostics, &(&1.code == "skill_hooks_target_variance"))
+  end
+
   test "parser populates owner from top-level frontmatter and metadata.owner fallback", %{
     tmp_dir: tmp_dir
   } do

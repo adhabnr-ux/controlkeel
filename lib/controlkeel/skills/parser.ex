@@ -17,6 +17,7 @@ defmodule ControlKeel.Skills.Parser do
     dependencies
     description
     disable-model-invocation
+    disallowed-tools
     effort
     hooks
     license
@@ -69,6 +70,7 @@ defmodule ControlKeel.Skills.Parser do
           |> Kernel.++(quality_diagnostics(meta, body, skill_path, name))
 
         allowed_tools = normalize_list(Map.get(meta, "allowed-tools", []))
+        disallowed_tools = normalize_list(Map.get(meta, "disallowed-tools", []))
         required_mcp_tools = normalize_required_tools(meta, allowed_tools)
 
         compatibility_targets =
@@ -100,11 +102,19 @@ defmodule ControlKeel.Skills.Parser do
            compatibility: normalize_compatibility(Map.get(meta, "compatibility")),
            compatibility_targets: compatibility_targets,
            allowed_tools: allowed_tools,
+           disallowed_tools: disallowed_tools,
            required_mcp_tools: required_mcp_tools,
            disable_model_invocation:
              truthy?(Map.get(meta, "disable-model-invocation")) ||
                openai_metadata |> get_in(["policy", "allow_implicit_invocation"]) |> falsey?(),
            user_invocable: not falsey?(Map.get(meta, "user-invocable")),
+           context: normalize_nil(Map.get(meta, "context")),
+           agent: normalize_nil(Map.get(meta, "agent")),
+           paths: normalize_list(Map.get(meta, "paths")),
+           hooks: normalize_hooks(Map.get(meta, "hooks")),
+           model: normalize_nil(Map.get(meta, "model")),
+           effort: normalize_nil(Map.get(meta, "effort")),
+           shell: normalize_nil(Map.get(meta, "shell")),
            resources: resources,
            diagnostics: diagnostics,
            openai: openai_metadata,
@@ -385,9 +395,68 @@ defmodule ControlKeel.Skills.Parser do
             []
         end
 
-      unsupported_diagnostics ++ daemon_diagnostics ++ activation_diagnostics
+      unsupported_diagnostics ++
+        daemon_diagnostics ++
+        activation_diagnostics ++
+        modern_frontmatter_diagnostics(meta, skill_path, skill_name)
     end
   end
+
+  defp modern_frontmatter_diagnostics(meta, skill_path, skill_name) do
+    []
+    |> maybe_add_modern_frontmatter_warning(
+      Map.get(meta, "context") == "fork",
+      "context_fork_target_variance",
+      "Skill uses `context: fork`; some hosts cannot run skills in isolated subagents and will treat it as inline guidance.",
+      skill_path,
+      skill_name
+    )
+    |> maybe_add_modern_frontmatter_warning(
+      is_map(Map.get(meta, "hooks")),
+      "skill_hooks_target_variance",
+      "Skill defines lifecycle hooks; hosts without skill-scoped hooks may ignore them, so critical enforcement should remain in CK validation or host-level hooks.",
+      skill_path,
+      skill_name
+    )
+    |> maybe_add_modern_frontmatter_warning(
+      normalize_list(Map.get(meta, "allowed-tools")) != [] or
+        normalize_list(Map.get(meta, "disallowed-tools")) != [],
+      "skill_tool_restrictions_target_variance",
+      "Skill declares tool allow/deny metadata; treat it as a capability contract unless the host can enforce skill-scoped permissions.",
+      skill_path,
+      skill_name
+    )
+    |> maybe_add_modern_frontmatter_warning(
+      Regex.match?(~r/(^|\s)!`|```!/m, Map.get(meta, "description", "") <> "\n"),
+      "dynamic_context_in_description",
+      "Dynamic shell context belongs in the skill body, not activation metadata.",
+      skill_path,
+      skill_name
+    )
+  end
+
+  defp maybe_add_modern_frontmatter_warning(
+         diagnostics,
+         true,
+         code,
+         message,
+         skill_path,
+         skill_name
+       ) do
+    [
+      %SkillDiagnostic{
+        level: "info",
+        code: code,
+        message: message,
+        path: skill_path,
+        skill_name: skill_name
+      }
+      | diagnostics
+    ]
+  end
+
+  defp maybe_add_modern_frontmatter_warning(diagnostics, false, _code, _message, _path, _name),
+    do: diagnostics
 
   defp activation_text_length(meta) do
     meta
@@ -624,6 +693,9 @@ defmodule ControlKeel.Skills.Parser do
 
   defp normalize_list(value) when is_list(value), do: Enum.flat_map(value, &normalize_list/1)
   defp normalize_list(value), do: [to_string(value)]
+
+  defp normalize_hooks(value) when is_map(value), do: value
+  defp normalize_hooks(_), do: %{}
 
   defp discover_resources(skill_dir) do
     Enum.flat_map(@resource_dirs, fn subdir ->

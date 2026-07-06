@@ -19,6 +19,8 @@ defmodule ControlKeel.MCP.Discovery do
 
   require Logger
 
+  alias ControlKeel.MCP.ToolSecurity
+
   @default_timeout 10_000
   @max_response_bytes 1_048_576
 
@@ -218,12 +220,17 @@ defmodule ControlKeel.MCP.Discovery do
   defp parse_tools_response(body, server_url, transport) when is_binary(body) do
     case Jason.decode(body) do
       {:ok, %{"result" => %{"tools" => tools}}} when is_list(tools) ->
+        normalized_tools = normalize_tools(tools)
+        security = ToolSecurity.scan_tools(normalized_tools)
+
         {:ok,
          %{
            server_url: server_url,
            transport: transport,
-           tools: normalize_tools(tools),
-           total: length(tools)
+           tools: normalized_tools,
+           total: length(tools),
+           trust_level: security["trust_level"],
+           security: security
          }}
 
       {:ok, %{"error" => error}} ->
@@ -239,12 +246,14 @@ defmodule ControlKeel.MCP.Discovery do
 
   defp normalize_tools(tools) when is_list(tools) do
     Enum.map(tools, fn tool ->
-      %{
+      normalized = %{
         "name" => Map.get(tool, "name"),
         "description" => Map.get(tool, "description"),
         "input_schema" => Map.get(tool, "inputSchema", %{}),
         "original" => tool
       }
+
+      Map.put(normalized, "security", ToolSecurity.scan_tool(normalized))
     end)
   end
 end
