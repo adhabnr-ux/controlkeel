@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.61 — 2026-07-06
+
+### What's changed
+
+- refactor: move 4 modules into existing domain subdirectories
+- refactor: move 6 ops/infrastructure modules into Ops namespace
+- refactor: move 5 CLI-related modules into CLI namespace
+- refactor: move 6 agent modules into Agent namespace
+- refactor: move 5 project/workspace modules into Project namespace
+
 ## v0.3.60 — 2026-07-06
 
 ### What's changed
