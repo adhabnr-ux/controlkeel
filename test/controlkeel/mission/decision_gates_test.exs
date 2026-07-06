@@ -1,7 +1,7 @@
-defmodule ControlKeel.DecisionGatesTest do
+defmodule ControlKeel.Mission.DecisionGatesTest do
   use ExUnit.Case, async: true
 
-  alias ControlKeel.DecisionGates
+  alias ControlKeel.Mission.DecisionGates
 
   test "exposes D1-D5 gate presets in lifecycle order" do
     assert DecisionGates.gate_order() == [

@@ -1,7 +1,7 @@
-defmodule ControlKeel.GovernedManifestTest do
+defmodule ControlKeel.Mission.GovernedManifestTest do
   use ExUnit.Case, async: true
 
-  alias ControlKeel.GovernedManifest
+  alias ControlKeel.Mission.GovernedManifest
 
   test "builds manifest with active gate and context rehydration packet" do
     manifest =

@@ -1,4 +1,4 @@
-defmodule ControlKeel.GovernedManifest do
+defmodule ControlKeel.Mission.GovernedManifest do
   @moduledoc """
   Builds an AIDLC-style governed manifest packet from existing CK runtime state.
 
@@ -7,7 +7,7 @@ defmodule ControlKeel.GovernedManifest do
   database migration.
   """
 
-  alias ControlKeel.DecisionGates
+  alias ControlKeel.Mission.DecisionGates
 
   @version "1.0.0"
   @scopes ~w(new feature bugfix refactor)

@@ -1,4 +1,4 @@
-defmodule ControlKeel.DecisionGates do
+defmodule ControlKeel.Mission.DecisionGates do
   @moduledoc """
   AIDLC-inspired decision-gate presets for governed review plans.
 
