@@ -1,8 +1,8 @@
 defmodule ControlKeel.CLI.Dispatch.DeploymentPortability do
   @moduledoc false
 
-  alias ControlKeel.Deployment.Advisor
-  alias ControlKeel.Deployment.HostingCost
+  alias ControlKeel.Ops.DeploymentAdvisor, as: Advisor
+  alias ControlKeel.Ops.HostingCost
   alias ControlKeel.CLI.SetupAdvisor
   alias ControlKeel.Skills
   import ControlKeel.CLI, except: [run_command: 2]

@@ -1,7 +1,7 @@
 defmodule ControlKeel.Skills.SkillTarget do
   @moduledoc false
 
-  alias ControlKeel.AgentAdapters.Registry, as: AdapterRegistry
+  alias ControlKeel.Agent.Adapters.Registry, as: AdapterRegistry
 
   defstruct [
     :id,

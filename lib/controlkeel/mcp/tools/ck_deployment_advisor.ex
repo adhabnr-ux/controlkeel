@@ -1,7 +1,7 @@
 defmodule ControlKeel.MCP.Tools.CkDeploymentAdvisor do
   @moduledoc false
 
-  alias ControlKeel.Deployment.Advisor
+  alias ControlKeel.Ops.DeploymentAdvisor, as: Advisor
 
   @allowed_modes ~w(analyze generate_files dns_guide)
 

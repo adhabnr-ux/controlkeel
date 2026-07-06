@@ -2,7 +2,7 @@ defmodule ControlKeel.ProviderBroker do
   @moduledoc false
 
   alias ControlKeel.Agent.Integration
-  alias ControlKeel.AgentRuntimes.Registry, as: RuntimeRegistry
+  alias ControlKeel.Agent.Runtimes.Registry, as: RuntimeRegistry
   alias ControlKeel.Project.Binding
   alias ControlKeel.ProviderBroker.Config
 

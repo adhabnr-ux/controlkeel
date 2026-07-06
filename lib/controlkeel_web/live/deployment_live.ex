@@ -1,8 +1,8 @@
 defmodule ControlKeelWeb.DeploymentLive do
   use ControlKeelWeb, :live_view
 
-  alias ControlKeel.Deployment.Advisor
-  alias ControlKeel.Deployment.HostingCost
+  alias ControlKeel.Ops.DeploymentAdvisor, as: Advisor
+  alias ControlKeel.Ops.HostingCost
 
   @impl true
   def mount(_params, _session, socket) do

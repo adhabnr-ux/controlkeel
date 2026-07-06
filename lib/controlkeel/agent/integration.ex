@@ -1,8 +1,8 @@
 defmodule ControlKeel.Agent.Integration do
   @moduledoc false
 
-  alias ControlKeel.AgentAdapters.Registry, as: AdapterRegistry
-  alias ControlKeel.AgentRuntimes.Registry, as: RuntimeRegistry
+  alias ControlKeel.Agent.Adapters.Registry, as: AdapterRegistry
+  alias ControlKeel.Agent.Runtimes.Registry, as: RuntimeRegistry
   alias ControlKeel.Ops.Distribution
 
   defstruct [

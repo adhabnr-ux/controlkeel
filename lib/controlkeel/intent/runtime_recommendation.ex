@@ -2,7 +2,7 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
   @moduledoc false
 
   alias ControlKeel.Agent.Integration
-  alias ControlKeel.AgentRuntimes.Registry, as: RuntimeRegistry
+  alias ControlKeel.Agent.Runtimes.Registry, as: RuntimeRegistry
   alias ControlKeel.Intent.{ExecutionBrief, ExecutionPosture, RuntimePolicyProfile}
   alias ControlKeel.ProviderBroker
 

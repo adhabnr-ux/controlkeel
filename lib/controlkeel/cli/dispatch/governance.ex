@@ -2,7 +2,7 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
   @moduledoc false
 
   alias ControlKeel.Governance
-  alias ControlKeel.Findings.PlainEnglish
+  alias ControlKeel.Mission.FindingPlainEnglish, as: PlainEnglish
   alias ControlKeel.Project.Local
   alias ControlKeel.MCP.Tools.CkContext
   alias ControlKeel.MCP.Tools.CkValidate

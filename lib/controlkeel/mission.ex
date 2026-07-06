@@ -12,7 +12,7 @@ defmodule ControlKeel.Mission do
   alias ControlKeel.Learning.OutcomeTracker
   alias ControlKeel.Memory
   alias ControlKeel.Mission.Decomposition
-  alias ControlKeel.Notifications.Webhook
+  alias ControlKeel.Mission.NotificationWebhook, as: Webhook
   alias ControlKeel.Platform
   alias ControlKeel.Mission.SessionTranscript
   alias ControlKeel.Policy.Snapshot
