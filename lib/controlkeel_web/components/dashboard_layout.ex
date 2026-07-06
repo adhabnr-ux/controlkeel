@@ -1,7 +1,6 @@
 defmodule ControlKeelWeb.DashboardLayout do
   @moduledoc """
-  This module holds the dashboard layout and related
-  functionality used by your application.
+  Dashboard content layout with sidebar navigation and flash rendering.
   """
   use ControlKeelWeb, :html
 
@@ -31,7 +30,7 @@ defmodule ControlKeelWeb.DashboardLayout do
     ~H"""
     <div class="min-h-screen bg-zinc-950 text-zinc-100">
       <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-white/10 bg-zinc-950/95 px-4 py-5 shadow-2xl shadow-black/30 lg:flex">
-        <a href={~p"/"} class="flex items-center gap-3 rounded-2xl px-2 py-1.5">
+        <a href={~p"/dashboard"} class="flex items-center gap-3 rounded-2xl px-2 py-1.5">
           <span class="flex size-10 items-center justify-center rounded-xl bg-lime-300 text-zinc-950 shadow-lg shadow-lime-300/20">
             <.icon name="hero-bolt-solid" class="size-5" />
           </span>
@@ -43,7 +42,7 @@ defmodule ControlKeelWeb.DashboardLayout do
 
         <nav data-sidebar class="mt-8 flex flex-1 flex-col gap-1 text-sm">
           <a
-            href={~p"/"}
+            href={~p"/dashboard"}
             data-sidebar-link
             class="group flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5 font-medium text-white shadow-sm ring-1 ring-white/10 transition hover:bg-white/15"
           >
@@ -56,14 +55,6 @@ defmodule ControlKeelWeb.DashboardLayout do
           >
             <.icon name="hero-rocket-launch" class="size-4 text-zinc-500 group-hover:text-lime-300" />
             Missions
-          </a>
-          <a
-            href={~p"/install"}
-            data-sidebar-link
-            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
-          >
-            <.icon name="hero-arrow-down-tray" class="size-4 text-zinc-500 group-hover:text-lime-300" />
-            Install
           </a>
           <a
             href={~p"/skills"}
@@ -128,6 +119,25 @@ defmodule ControlKeelWeb.DashboardLayout do
             Observability
           </a>
         </nav>
+
+        <div class="mt-auto border-t border-white/10 pt-3">
+          <a
+            href={~p"/getting-started"}
+            target="_blank"
+            rel="noopener"
+            class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-book-open" class="size-4 text-zinc-500" /> Docs
+          </a>
+          <a
+            href="https://github.com/aryaminus/controlkeel"
+            target="_blank"
+            rel="noopener"
+            class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          >
+            <.icon name="hero-code-bracket" class="size-4 text-zinc-500" /> GitHub
+          </a>
+        </div>
       </aside>
 
       <div class="lg:pl-64">

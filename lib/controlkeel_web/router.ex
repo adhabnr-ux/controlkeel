@@ -6,7 +6,7 @@ defmodule ControlKeelWeb.Router do
     plug :fetch_session
     plug :fetch_live_flash
     plug ControlKeelWeb.Plugs.LoadCurrentUser
-    plug :put_root_layout, html: {ControlKeelWeb.Layouts, :root}
+    plug :put_root_layout, html: {ControlKeelWeb.RootLayout, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
   end
@@ -53,7 +53,7 @@ defmodule ControlKeelWeb.Router do
     plug :fetch_session
     plug :fetch_live_flash
     plug ControlKeelWeb.Plugs.LoadCurrentUser
-    plug :put_root_layout, html: {ControlKeelWeb.Layouts, :root}
+    plug :put_root_layout, html: {ControlKeelWeb.RootLayout, :root}
     plug :put_secure_browser_headers
   end
 
@@ -78,6 +78,7 @@ defmodule ControlKeelWeb.Router do
     # In local mode the on_mount hook is a passthrough.
     live_session :cloud_auth,
       on_mount: [{ControlKeelWeb.LiveAuth, :require_cloud_auth}] do
+      live "/dashboard", DashboardLive, :index
       live "/missions", MissionsLive, :index
       live "/missions/start", OnboardingLive, :new
       live "/findings", FindingsLive, :index
@@ -117,7 +118,6 @@ defmodule ControlKeelWeb.Router do
       live "/observability/sessions/:id", ObservabilityLive, :show
       live "/missions/:id", MissionControlLive, :show
       live "/policies", PolicyStudioLive, :index
-      live "/install", InstallLive, :index
       live "/skills", SkillsLive, :index
       live "/deploy", DeploymentLive, :index
     end

@@ -1,0 +1,88 @@
+defmodule ControlKeelWeb.PublicLayout do
+  @moduledoc """
+  Renders your public marketing layout with header and footer.
+
+  Used by the home page and getting-started page.
+  """
+  use ControlKeelWeb, :html
+
+  @doc """
+  Renders a simple header + footer layout for public-facing pages.
+
+  ## Examples
+
+      <PublicLayout.public>
+        <h1>Content</h1>
+      </PublicLayout.public>
+
+  """
+
+  slot :inner_block, required: true
+
+  def public(assigns) do
+    ~H"""
+    <div class="flex min-h-screen flex-col bg-zinc-950 text-zinc-100">
+      <header class="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/90 backdrop-blur">
+        <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <a href={~p"/"} class="flex items-center gap-3">
+            <span class="flex size-9 items-center justify-center rounded-xl bg-lime-300 text-zinc-950 shadow-lg shadow-lime-300/20">
+              <.icon name="hero-bolt-solid" class="size-4" />
+            </span>
+            <span class="text-sm font-semibold tracking-wide text-white">ControlKeel</span>
+          </a>
+          <nav class="flex items-center gap-4 text-sm">
+            <a href={~p"/getting-started"} class="text-zinc-400 transition hover:text-white">
+              Docs
+            </a>
+            <%!-- TODO: temporary until auth gating is added in a future PR --%>
+            <a href={~p"/dashboard"} class="text-zinc-400 transition hover:text-white">
+              Dashboard
+            </a>
+            <a
+              href="https://github.com/aryaminus/controlkeel"
+              target="_blank"
+              rel="noopener"
+              class="text-zinc-400 transition hover:text-white"
+            >
+              GitHub
+            </a>
+            <a
+              href={~p"/auth/login"}
+              class="rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium text-white transition hover:border-lime-300/40 hover:bg-white/5"
+            >
+              Sign in
+            </a>
+            <a
+              href={~p"/signup"}
+              class="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-semibold text-zinc-950 transition hover:bg-lime-200"
+            >
+              Sign up
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="flex-1">
+        {render_slot(@inner_block)}
+      </main>
+
+      <footer class="border-t border-white/10">
+        <div class="mx-auto flex max-w-7xl flex-col items-center gap-2 px-4 py-8 text-center sm:px-6 lg:px-8">
+          <span class="flex items-center gap-2">
+            <span class="flex size-7 items-center justify-center rounded-lg bg-lime-300/20">
+              <.icon name="hero-bolt-solid" class="size-3 text-lime-300" />
+            </span>
+            <span class="text-sm font-semibold text-white">ControlKeel</span>
+          </span>
+          <p class="text-xs text-zinc-500">
+            Agent control plane for governed AI engineering.
+          </p>
+          <p class="text-xs text-zinc-600">
+            &copy; {Date.utc_today().year} ControlKeel
+          </p>
+        </div>
+      </footer>
+    </div>
+    """
+  end
+end
