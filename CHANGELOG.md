@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.60 — 2026-07-06
+
+### What's changed
+
+- Merge origin/main: release v0.3.59
+- Merge origin/main: integrate public/dashboard layout refactors
+- refactor: move 6 standalone modules into domain subdirectories
+- refactor: move 7 top-level modules into Runtime and Mission namespaces
+- refactor: move DecisionGates and GovernedManifest into Mission namespace
+- feat: add decision-driven governance, MCP tool-poisoning scanner, and modern skill frontmatter
+
 ## v0.3.59 — 2026-07-06
 
 ### What's changed
