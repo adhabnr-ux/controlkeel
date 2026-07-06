@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.3.59 — 2026-07-06
+
+### What's changed
+
+- Merge pull request #31 from aryaminus/refactor/public-layout
+- Merge pull request #29 from aryaminus/refactor/dashboard-layout
+- refactor/public-layout: replace navigate with href for home links in auth and signup live views
+- refactor/public-layout: replace local endpoint_config helper with direct call to ControlKeelWeb.Endpoint.config
+- refactor/public-layout: remove back to dashboard link from signup live view
+- refactor/public-layout: open GitHub repository link in a new tab with secure rel attributes
+- refactor/public-layout: open GitHub link in new tab with security attributes
+- refactor/public-layout: migrate root layout to dedicated RootLayout module and update auth flow navigation
+- refactor/public-layout: migrate home page dashboard metrics to dedicated DashboardLive view
+- refactor/public-layout: implement public layout and overhaul getting started page with installation channels
+- refactor/dashboard-layout: migrate all dashboard pages to use DashboardLayout.dashboard component
+- refactor/dashboard-layout: introduce DashboardLayout and migrate existing LiveViews to use it instead of Layouts.app
+
 ## v0.3.58 — 2026-07-03
 
 ### What's changed
