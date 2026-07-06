@@ -1,4 +1,4 @@
-defmodule ControlKeel.RuntimePaths do
+defmodule ControlKeel.Runtime.Paths do
   @moduledoc false
 
   def user_home do

@@ -1,4 +1,4 @@
-defmodule ControlKeel.RuntimeMode do
+defmodule ControlKeel.Runtime.Mode do
   @moduledoc """
   First-class runtime mode and surface-placement contract.
 

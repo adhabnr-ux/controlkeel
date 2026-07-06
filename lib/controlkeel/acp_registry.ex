@@ -2,7 +2,7 @@ defmodule ControlKeel.ACPRegistry do
   @moduledoc false
 
   alias ControlKeel.AgentIntegration
-  alias ControlKeel.RuntimePaths
+  alias ControlKeel.Runtime.Paths
 
   @default_registry_url "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json"
   @default_ttl_seconds 86_400
@@ -200,7 +200,7 @@ defmodule ControlKeel.ACPRegistry do
     Application.get_env(
       :controlkeel,
       :acp_registry_cache_path,
-      RuntimePaths.acp_registry_cache_path()
+      Paths.acp_registry_cache_path()
     )
   end
 

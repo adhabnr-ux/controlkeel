@@ -1,9 +1,9 @@
-defmodule ControlKeel.SessionTranscriptTest do
+defmodule ControlKeel.Mission.SessionTranscriptTest do
   use ControlKeel.DataCase
 
   import ControlKeel.MissionFixtures
 
-  alias ControlKeel.SessionTranscript
+  alias ControlKeel.Mission.SessionTranscript
 
   test "record/1 clips structured payloads and groups transcript summaries" do
     session = session_fixture()

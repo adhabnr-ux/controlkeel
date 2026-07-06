@@ -1,4 +1,4 @@
-defmodule ControlKeel.ReviewBridge do
+defmodule ControlKeel.Mission.ReviewBridge do
   @moduledoc false
 
   alias ControlKeel.Mission

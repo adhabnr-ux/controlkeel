@@ -1,7 +1,7 @@
 defmodule ControlKeel.ProviderConfig do
   @moduledoc false
 
-  alias ControlKeel.RuntimePaths
+  alias ControlKeel.Runtime.Paths
 
   @version 1
   @providers ~w(anthropic openai openrouter ollama)
@@ -10,7 +10,7 @@ defmodule ControlKeel.ProviderConfig do
   def allowed_providers, do: @providers
 
   def read do
-    path = RuntimePaths.config_path()
+    path = Paths.config_path()
 
     case File.read(path) do
       {:ok, payload} ->
@@ -31,7 +31,7 @@ defmodule ControlKeel.ProviderConfig do
 
   def write(attrs) when is_map(attrs) do
     config = attrs |> normalized() |> merge_defaults()
-    path = RuntimePaths.config_path()
+    path = Paths.config_path()
 
     with :ok <- File.mkdir_p(Path.dirname(path)),
          :ok <- File.write(path, Jason.encode!(config, pretty: true) <> "\n") do

@@ -1,4 +1,4 @@
-defmodule ControlKeel.SessionTranscript do
+defmodule ControlKeel.Mission.SessionTranscript do
   @moduledoc false
 
   import Ecto.Query, warn: false

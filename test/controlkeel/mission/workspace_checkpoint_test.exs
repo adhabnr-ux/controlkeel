@@ -1,8 +1,8 @@
-defmodule ControlKeel.WorkspaceCheckpointTest do
+defmodule ControlKeel.Mission.WorkspaceCheckpointTest do
   use ControlKeel.DataCase, async: false
 
   alias ControlKeel.Mission
-  alias ControlKeel.WorkspaceCheckpoint
+  alias ControlKeel.Mission.WorkspaceCheckpoint
 
   setup do
     tmp_dir =

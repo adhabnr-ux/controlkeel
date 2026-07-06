@@ -12,7 +12,7 @@ defmodule ControlKeel.DeploymentScenariosTest do
 
   use ExUnit.Case, async: false
 
-  alias ControlKeel.{Runtime, RuntimeMode}
+  alias ControlKeel.{Runtime, Runtime.Mode}
 
   setup do
     # Save original environment
@@ -47,14 +47,14 @@ defmodule ControlKeel.DeploymentScenariosTest do
 
   describe "Scenario 1: Local Agent + Local CK (Default Mode)" do
     test "local mode is default when no configuration is provided" do
-      assert RuntimeMode.current() == :local
+      assert Mode.current() == :local
       assert Runtime.local?()
       refute Runtime.cloud?()
       refute Runtime.self_hosted?()
     end
 
     test "local mode keeps all surfaces local" do
-      placements = RuntimeMode.placement_map(:local)
+      placements = Mode.placement_map(:local)
 
       assert placements.db == :local
       assert placements.mcp == :local
@@ -70,16 +70,16 @@ defmodule ControlKeel.DeploymentScenariosTest do
     end
 
     test "local mode has no missing requirements" do
-      assert RuntimeMode.ready?(:local)
-      assert RuntimeMode.missing_requirements(:local) == []
+      assert Mode.ready?(:local)
+      assert Mode.missing_requirements(:local) == []
     end
 
     test "local mode allows any endpoint for development" do
       assert {:ok, "http://localhost:4000"} =
-               RuntimeMode.normalize_sync_endpoint("http://localhost:4000/", :local)
+               Mode.normalize_sync_endpoint("http://localhost:4000/", :local)
 
       assert {:ok, "https://staging.example.com"} =
-               RuntimeMode.normalize_sync_endpoint("https://staging.example.com/", :local)
+               Mode.normalize_sync_endpoint("https://staging.example.com/", :local)
     end
   end
 
@@ -87,21 +87,21 @@ defmodule ControlKeel.DeploymentScenariosTest do
     test "cloud mode requires controlkeel.com endpoint" do
       Application.put_env(:controlkeel, :runtime_mode, :cloud)
 
-      assert RuntimeMode.current() == :cloud
+      assert Mode.current() == :cloud
       assert Runtime.cloud?()
       assert Runtime.remote?()
 
       # Valid endpoint
       assert {:ok, "https://controlkeel.com"} =
-               RuntimeMode.normalize_sync_endpoint("https://controlkeel.com/", :cloud)
+               Mode.normalize_sync_endpoint("https://controlkeel.com/", :cloud)
 
       # Invalid endpoint (not controlkeel.com)
       assert {:error, :cloud_endpoint_must_be_controlkeel_com} =
-               RuntimeMode.normalize_sync_endpoint("https://self.example.com", :cloud)
+               Mode.normalize_sync_endpoint("https://self.example.com", :cloud)
     end
 
     test "cloud mode makes CLI a thin client" do
-      placements = RuntimeMode.placement_map(:cloud)
+      placements = Mode.placement_map(:cloud)
 
       assert placements.cli == :thin_client
       assert placements.mcp == :cloud
@@ -110,7 +110,7 @@ defmodule ControlKeel.DeploymentScenariosTest do
     end
 
     test "cloud mode reports missing requirements" do
-      diagnostic = RuntimeMode.diagnostic(:cloud)
+      diagnostic = Mode.diagnostic(:cloud)
 
       refute diagnostic.ready?
       assert :cloud_sync_endpoint in diagnostic.missing_requirements
@@ -122,7 +122,7 @@ defmodule ControlKeel.DeploymentScenariosTest do
       Application.put_env(:controlkeel, :cloud_sync_endpoint, "https://controlkeel.com")
 
       # Note: workspace_identity requires actual workspace setup, so we check other requirements
-      missing = RuntimeMode.missing_requirements(:cloud)
+      missing = Mode.missing_requirements(:cloud)
 
       # cloud_sync_endpoint should now be satisfied
       refute :cloud_sync_endpoint in missing
@@ -135,21 +135,21 @@ defmodule ControlKeel.DeploymentScenariosTest do
     test "self_hosted mode requires custom endpoint" do
       Application.put_env(:controlkeel, :runtime_mode, :self_hosted)
 
-      assert RuntimeMode.current() == :self_hosted
+      assert Mode.current() == :self_hosted
       assert Runtime.self_hosted?()
       assert Runtime.remote?()
 
       # Valid custom endpoint
       assert {:ok, "https://ck.example.com"} =
-               RuntimeMode.normalize_sync_endpoint("https://ck.example.com/", :self_hosted)
+               Mode.normalize_sync_endpoint("https://ck.example.com/", :self_hosted)
 
       # Invalid endpoint (controlkeel.com is reserved for cloud mode)
       assert {:error, :self_hosted_endpoint_must_not_be_controlkeel_com} =
-               RuntimeMode.normalize_sync_endpoint("https://controlkeel.com", :self_hosted)
+               Mode.normalize_sync_endpoint("https://controlkeel.com", :self_hosted)
     end
 
     test "self_hosted mode makes CLI a thin client" do
-      placements = RuntimeMode.placement_map(:self_hosted)
+      placements = Mode.placement_map(:self_hosted)
 
       assert placements.cli == :thin_client
       assert placements.mcp == :self_hosted
@@ -158,7 +158,7 @@ defmodule ControlKeel.DeploymentScenariosTest do
     end
 
     test "self_hosted mode requires PHX_HOST and endpoint" do
-      diagnostic = RuntimeMode.diagnostic(:self_hosted)
+      diagnostic = Mode.diagnostic(:self_hosted)
 
       refute diagnostic.ready?
       assert :cloud_sync_endpoint in diagnostic.missing_requirements
@@ -171,7 +171,7 @@ defmodule ControlKeel.DeploymentScenariosTest do
       Application.put_env(:controlkeel, :cloud_sync_endpoint, "https://ck.example.com")
       System.put_env("PHX_HOST", "ck.example.com")
 
-      missing = RuntimeMode.missing_requirements(:self_hosted)
+      missing = Mode.missing_requirements(:self_hosted)
 
       # cloud_sync_endpoint and phx_host should now be satisfied
       refute :cloud_sync_endpoint in missing
@@ -185,41 +185,41 @@ defmodule ControlKeel.DeploymentScenariosTest do
     test "can switch from local to cloud mode" do
       # Start in local mode
       Application.put_env(:controlkeel, :runtime_mode, :local)
-      assert RuntimeMode.current() == :local
-      assert RuntimeMode.placement_map(:local).cli == :local
+      assert Mode.current() == :local
+      assert Mode.placement_map(:local).cli == :local
 
       # Switch to cloud mode
       Application.put_env(:controlkeel, :runtime_mode, :cloud)
-      assert RuntimeMode.current() == :cloud
-      assert RuntimeMode.placement_map(:cloud).cli == :thin_client
+      assert Mode.current() == :cloud
+      assert Mode.placement_map(:cloud).cli == :thin_client
     end
 
     test "can switch from local to self_hosted mode" do
       # Start in local mode
       Application.put_env(:controlkeel, :runtime_mode, :local)
-      assert RuntimeMode.current() == :local
+      assert Mode.current() == :local
 
       # Switch to self_hosted mode
       Application.put_env(:controlkeel, :runtime_mode, :self_hosted)
-      assert RuntimeMode.current() == :self_hosted
-      assert RuntimeMode.placement_map(:self_hosted).cli == :thin_client
+      assert Mode.current() == :self_hosted
+      assert Mode.placement_map(:self_hosted).cli == :thin_client
     end
 
     test "environment variable overrides config" do
       Application.put_env(:controlkeel, :runtime_mode, :local)
       System.put_env("CONTROLKEEL_RUNTIME_MODE", "cloud")
 
-      assert RuntimeMode.current() == :cloud
+      assert Mode.current() == :cloud
     end
   end
 
   describe "Surface Placement Validation" do
     test "all 11 surfaces have defined placements in each mode" do
-      surfaces = RuntimeMode.surfaces()
+      surfaces = Mode.surfaces()
 
-      local_placements = RuntimeMode.placement_map(:local)
-      cloud_placements = RuntimeMode.placement_map(:cloud)
-      self_hosted_placements = RuntimeMode.placement_map(:self_hosted)
+      local_placements = Mode.placement_map(:local)
+      cloud_placements = Mode.placement_map(:cloud)
+      self_hosted_placements = Mode.placement_map(:self_hosted)
 
       # All surfaces have placements in each mode
       assert Map.keys(local_placements) |> Enum.sort() == surfaces |> Enum.sort()
@@ -229,9 +229,9 @@ defmodule ControlKeel.DeploymentScenariosTest do
 
     test "placement contracts are consistent across modes" do
       # CLI is thin client in cloud/self_hosted, local in local mode
-      assert RuntimeMode.placement(:local, :cli) == :local
-      assert RuntimeMode.placement(:cloud, :cli) == :thin_client
-      assert RuntimeMode.placement(:self_hosted, :cli) == :thin_client
+      assert Mode.placement(:local, :cli) == :local
+      assert Mode.placement(:cloud, :cli) == :thin_client
+      assert Mode.placement(:self_hosted, :cli) == :thin_client
 
       # All other surfaces follow the mode pattern
       for surface <- [
@@ -246,9 +246,9 @@ defmodule ControlKeel.DeploymentScenariosTest do
             :observability,
             :sdk
           ] do
-        assert RuntimeMode.placement(:local, surface) == :local
-        assert RuntimeMode.placement(:cloud, surface) == :cloud
-        assert RuntimeMode.placement(:self_hosted, surface) == :self_hosted
+        assert Mode.placement(:local, surface) == :local
+        assert Mode.placement(:cloud, surface) == :cloud
+        assert Mode.placement(:self_hosted, surface) == :self_hosted
       end
     end
   end

@@ -1,4 +1,4 @@
-defmodule ControlKeel.TaskAugmentation do
+defmodule ControlKeel.Mission.TaskAugmentation do
   @moduledoc false
 
   alias ControlKeel.Intent

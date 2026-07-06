@@ -17,14 +17,14 @@ defmodule ControlKeelWeb.SignupLive do
   alias ControlKeel.Accounts
   alias ControlKeel.Accounts.{Membership, Org, User}
   alias ControlKeel.Repo
-  alias ControlKeel.RuntimeMode
+  alias ControlKeel.Runtime.Mode
   alias ControlKeelWeb.AuthController
 
   alias Ecto.Multi
 
   @impl true
   def mount(_params, _session, socket) do
-    case RuntimeMode.current() do
+    case Mode.current() do
       :local ->
         {:ok,
          socket

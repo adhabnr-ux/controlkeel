@@ -1,4 +1,4 @@
-defmodule ControlKeel.RuntimeDefaults do
+defmodule ControlKeel.Runtime.Defaults do
   @moduledoc false
 
   @app_dir_name "controlkeel"
@@ -144,7 +144,7 @@ defmodule ControlKeel.RuntimeDefaults do
   end
 
   defp runtime_mode do
-    ControlKeel.RuntimeMode.current()
+    ControlKeel.Runtime.Mode.current()
   end
 
   defp endpoint_defaults(:cloud), do: {"controlkeel.com", "https", 443}

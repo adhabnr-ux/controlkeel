@@ -2,7 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
   @moduledoc false
 
   alias ControlKeel.Mission
-  alias ControlKeel.ReviewBridge
+  alias ControlKeel.Mission.ReviewBridge
 
   @wait_timeout_seconds 1
 

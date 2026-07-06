@@ -1,4 +1,4 @@
-defmodule ControlKeel.WorkspaceCheckpoint do
+defmodule ControlKeel.Mission.WorkspaceCheckpoint do
   @moduledoc """
   Enhanced checkpoint system for workspace state management.
   Supports workspace state capture, hash verification, and export/import for migration.

@@ -11,7 +11,7 @@ defmodule ControlKeel.MCP.Tools.CkContext do
   alias ControlKeel.Precedent
   alias ControlKeel.LocalProject
   alias ControlKeel.Repo
-  alias ControlKeel.TaskAugmentation
+  alias ControlKeel.Mission.TaskAugmentation
   alias ControlKeel.TrustBoundary
   alias ControlKeel.WorkspaceContext
   import Ecto.Query, warn: false

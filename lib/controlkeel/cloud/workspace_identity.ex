@@ -14,7 +14,7 @@ defmodule ControlKeel.Cloud.WorkspaceIdentity do
 
   ## Storage
 
-  Keypair lives at `ControlKeel.RuntimePaths.config_dir/0 <> /workspace-identity.json`.
+  Keypair lives at `ControlKeel.Runtime.Paths.config_dir/0 <> /workspace-identity.json`.
   Permissions are tightened to `0600` after write so the private key is not
   world-readable.
 
@@ -27,7 +27,7 @@ defmodule ControlKeel.Cloud.WorkspaceIdentity do
     - `created_at` — ISO8601 timestamp
   """
 
-  alias ControlKeel.RuntimePaths
+  alias ControlKeel.Runtime.Paths
 
   @filename "workspace-identity.json"
   @algorithm "ed25519"
@@ -46,7 +46,7 @@ defmodule ControlKeel.Cloud.WorkspaceIdentity do
 
   @doc "Absolute path to the identity file (does not create it)."
   @spec path() :: String.t()
-  def path, do: Path.join(RuntimePaths.config_dir(), @filename)
+  def path, do: Path.join(Paths.config_dir(), @filename)
 
   @doc "True when an identity has been generated and persisted."
   @spec connected?() :: boolean()

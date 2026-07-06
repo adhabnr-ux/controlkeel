@@ -26,11 +26,11 @@ defmodule ControlKeelWeb.LiveAuth do
 
   import Phoenix.Component, only: [assign: 3]
 
-  alias ControlKeel.{Accounts, RuntimeMode}
+  alias ControlKeel.{Accounts, Runtime.Mode}
 
   @doc false
   def on_mount(:require_cloud_auth, _params, session, socket) do
-    mode = RuntimeMode.current()
+    mode = Mode.current()
 
     if mode == :local do
       {:cont, load_auth(socket, session)}

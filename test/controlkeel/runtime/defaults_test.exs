@@ -1,7 +1,7 @@
-defmodule ControlKeel.RuntimeDefaultsTest do
+defmodule ControlKeel.Runtime.DefaultsTest do
   use ExUnit.Case, async: false
 
-  alias ControlKeel.RuntimeDefaults
+  alias ControlKeel.Runtime.Defaults
 
   setup do
     tmp_home =
@@ -30,7 +30,7 @@ defmodule ControlKeel.RuntimeDefaultsTest do
 
     with_envs(%{"DATABASE_PATH" => nil, "CONTROLKEEL_HOME" => tmp_home}, fn ->
       File.cd!(tmp_dir, fn ->
-        path = RuntimeDefaults.database_path()
+        path = Defaults.database_path()
 
         refute String.starts_with?(path, tmp_dir)
         assert String.ends_with?(path, "controlkeel.db")
@@ -53,7 +53,7 @@ defmodule ControlKeel.RuntimeDefaultsTest do
 
     with_envs(%{"DATABASE_PATH" => nil, "CONTROLKEEL_HOME" => tmp_home}, fn ->
       File.cd!(tmp_dir, fn ->
-        path = RuntimeDefaults.database_path()
+        path = Defaults.database_path()
 
         assert path == Path.join([File.cwd!(), "controlkeel", "controlkeel.db"])
       end)
@@ -75,15 +75,15 @@ defmodule ControlKeel.RuntimeDefaultsTest do
 
     with_envs(%{"DATABASE_PATH" => nil, "CONTROLKEEL_HOME" => tmp_home}, fn ->
       # Seed a legacy global db with a WAL sidecar and content.
-      global = RuntimeDefaults.global_database_path()
+      global = Defaults.global_database_path()
       File.write!(global, "GLOBAL-DB-BYTES")
       File.write!(global <> "-wal", "WAL-BYTES")
 
       File.cd!(tmp_dir, fn ->
-        project_path = RuntimeDefaults.database_path()
+        project_path = Defaults.database_path()
         refute File.exists?(project_path)
 
-        assert RuntimeDefaults.maybe_seed_project_database() == :seeded
+        assert Defaults.maybe_seed_project_database() == :seeded
 
         assert File.read!(project_path) == "GLOBAL-DB-BYTES"
         assert File.read!(project_path <> "-wal") == "WAL-BYTES"
@@ -105,15 +105,15 @@ defmodule ControlKeel.RuntimeDefaultsTest do
     on_exit(fn -> File.rm_rf!(tmp_dir) end)
 
     with_envs(%{"DATABASE_PATH" => nil, "CONTROLKEEL_HOME" => tmp_home}, fn ->
-      global = RuntimeDefaults.global_database_path()
+      global = Defaults.global_database_path()
       File.write!(global, "GLOBAL-DB-BYTES")
 
       File.cd!(tmp_dir, fn ->
-        project_path = RuntimeDefaults.database_path()
+        project_path = Defaults.database_path()
         File.mkdir_p!(Path.dirname(project_path))
         File.write!(project_path, "PROJECT-LOCAL-BYTES")
 
-        assert RuntimeDefaults.maybe_seed_project_database() == :noop
+        assert Defaults.maybe_seed_project_database() == :noop
         # Existing project db is left untouched.
         assert File.read!(project_path) == "PROJECT-LOCAL-BYTES"
       end)
@@ -134,9 +134,9 @@ defmodule ControlKeel.RuntimeDefaultsTest do
 
     with_envs(%{"DATABASE_PATH" => nil, "CONTROLKEEL_HOME" => tmp_home}, fn ->
       File.cd!(tmp_dir, fn ->
-        project_path = RuntimeDefaults.database_path()
+        project_path = Defaults.database_path()
 
-        assert RuntimeDefaults.maybe_seed_project_database() == :noop
+        assert Defaults.maybe_seed_project_database() == :noop
         refute File.exists?(project_path)
       end)
     end)
@@ -158,11 +158,11 @@ defmodule ControlKeel.RuntimeDefaultsTest do
     with_envs(
       %{"DATABASE_PATH" => Path.join(tmp_dir, "explicit.db"), "CONTROLKEEL_HOME" => tmp_home},
       fn ->
-        global = RuntimeDefaults.global_database_path()
+        global = Defaults.global_database_path()
         File.write!(global, "GLOBAL-DB-BYTES")
 
         File.cd!(tmp_dir, fn ->
-          assert RuntimeDefaults.maybe_seed_project_database() == :noop
+          assert Defaults.maybe_seed_project_database() == :noop
           refute File.exists?(Path.join([tmp_dir, "controlkeel", "controlkeel.db"]))
         end)
       end
@@ -171,8 +171,8 @@ defmodule ControlKeel.RuntimeDefaultsTest do
 
   test "secret_key_base is generated once and then reused", %{tmp_home: tmp_home} do
     with_envs(%{"SECRET_KEY_BASE" => nil, "HOME" => tmp_home}, fn ->
-      first = RuntimeDefaults.secret_key_base()
-      second = RuntimeDefaults.secret_key_base()
+      first = Defaults.secret_key_base()
+      second = Defaults.secret_key_base()
 
       assert first == second
       assert byte_size(first) > 40
@@ -188,7 +188,7 @@ defmodule ControlKeel.RuntimeDefaultsTest do
         "PHX_URL_PORT" => nil
       },
       fn ->
-        assert RuntimeDefaults.endpoint_url_config() ==
+        assert Defaults.endpoint_url_config() ==
                  [host: "localhost", scheme: "http", port: 4000]
       end
     )
@@ -203,7 +203,7 @@ defmodule ControlKeel.RuntimeDefaultsTest do
         "PHX_URL_PORT" => nil
       },
       fn ->
-        assert RuntimeDefaults.endpoint_url_config() ==
+        assert Defaults.endpoint_url_config() ==
                  [host: "controlkeel.com", scheme: "https", port: 443]
       end
     )
@@ -218,7 +218,7 @@ defmodule ControlKeel.RuntimeDefaultsTest do
         "PHX_URL_PORT" => "8443"
       },
       fn ->
-        assert RuntimeDefaults.endpoint_url_config() ==
+        assert Defaults.endpoint_url_config() ==
                  [host: "example.test", scheme: "https", port: 8443]
       end
     )
@@ -233,7 +233,7 @@ defmodule ControlKeel.RuntimeDefaultsTest do
         "PHX_URL_PORT" => "not-a-number"
       },
       fn ->
-        assert RuntimeDefaults.endpoint_url_config() ==
+        assert Defaults.endpoint_url_config() ==
                  [host: "controlkeel.com", scheme: "https", port: 443]
       end
     )
@@ -246,7 +246,7 @@ defmodule ControlKeel.RuntimeDefaultsTest do
         "PHX_URL_PORT" => "0"
       },
       fn ->
-        assert RuntimeDefaults.endpoint_url_config() ==
+        assert Defaults.endpoint_url_config() ==
                  [host: "localhost", scheme: "http", port: 4000]
       end
     )

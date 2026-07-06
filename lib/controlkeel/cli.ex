@@ -27,7 +27,7 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.ProviderBroker
   alias ControlKeel.ProjectBinding
   alias ControlKeel.ProjectRoot
-  alias ControlKeel.ReviewBridge
+  alias ControlKeel.Mission.ReviewBridge
   alias ControlKeel.SetupAdvisor
   alias ControlKeel.Skills
   alias ControlKeel.WorkspaceContext
@@ -2486,7 +2486,7 @@ defmodule ControlKeel.CLI do
       _ = Mission.attach_session_runtime_context(binding["session_id"], %{"project_root" => root})
 
       _ =
-        ControlKeel.SessionTranscript.record(%{
+        ControlKeel.Mission.SessionTranscript.record(%{
           session_id: binding["session_id"],
           event_type: "session.attach",
           actor: "cli",

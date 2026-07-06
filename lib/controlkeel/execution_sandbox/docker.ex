@@ -133,7 +133,7 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
   end
 
   defp read_docker_config do
-    path = ControlKeel.RuntimePaths.config_path()
+    path = ControlKeel.Runtime.Paths.config_path()
 
     case File.read(path) do
       {:ok, content} ->

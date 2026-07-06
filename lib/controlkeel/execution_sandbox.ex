@@ -145,7 +145,7 @@ defmodule ControlKeel.ExecutionSandbox do
   end
 
   defp read_config do
-    path = ControlKeel.RuntimePaths.config_path()
+    path = ControlKeel.Runtime.Paths.config_path()
 
     case File.read(path) do
       {:ok, content} ->

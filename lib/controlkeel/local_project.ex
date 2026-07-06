@@ -4,7 +4,7 @@ defmodule ControlKeel.LocalProject do
   alias ControlKeel.Mission
   alias ControlKeel.ProjectRoot
   alias ControlKeel.ProjectBinding
-  alias ControlKeel.SessionTranscript
+  alias ControlKeel.Mission.SessionTranscript
 
   def init(attrs, project_root \\ File.cwd!()) when is_map(attrs) do
     root = ProjectRoot.resolve(project_root)

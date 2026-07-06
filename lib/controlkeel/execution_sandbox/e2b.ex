@@ -173,7 +173,7 @@ defmodule ControlKeel.ExecutionSandbox.E2B do
   end
 
   defp read_e2b_config do
-    path = ControlKeel.RuntimePaths.config_path()
+    path = ControlKeel.Runtime.Paths.config_path()
 
     case File.read(path) do
       {:ok, content} ->

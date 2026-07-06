@@ -1,17 +1,17 @@
 defmodule ControlKeel.Runtime do
   @moduledoc false
 
-  alias ControlKeel.RuntimeMode
+  alias ControlKeel.Runtime.Mode
 
-  def mode, do: RuntimeMode.current()
+  def mode, do: Mode.current()
 
   def local?, do: mode() == :local
   def cloud?, do: mode() == :cloud
   def self_hosted?, do: mode() == :self_hosted
   def remote?, do: cloud?() or self_hosted?()
 
-  def placement(surface), do: RuntimeMode.placement(mode(), surface)
-  def placement_map, do: RuntimeMode.placement_map(mode())
+  def placement(surface), do: Mode.placement(mode(), surface)
+  def placement_map, do: Mode.placement_map(mode())
 
   def bus do
     Application.get_env(:controlkeel, :bus, default_bus())

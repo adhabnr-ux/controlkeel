@@ -4,7 +4,7 @@ defmodule ControlKeel.CLI.Dispatch.Review do
   alias ControlKeel.Governance
   alias ControlKeel.Governance.Socket, as: GovernanceSocket
   alias ControlKeel.Mission
-  alias ControlKeel.ReviewBridge
+  alias ControlKeel.Mission.ReviewBridge
   import ControlKeel.CLI, except: [run_command: 2]
 
   def run_command(%{command: :review_diff, options: options}, project_root) do

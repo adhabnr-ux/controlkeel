@@ -11,7 +11,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
   alias ControlKeel.Mission.{Invocation, SessionEvent}
   alias ControlKeel.Observability.ImportedEnvelope
   alias ControlKeel.Repo
-  alias ControlKeel.ReviewBridge
+  alias ControlKeel.Mission.ReviewBridge
   alias ControlKeel.ProjectBinding
   alias ControlKeel.Governance.CircuitBreaker
   alias ControlKeel.Governance.AgentMonitor

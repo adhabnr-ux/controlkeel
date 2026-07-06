@@ -329,7 +329,7 @@ defmodule ControlKeel.Cloud.Doctor do
           detail: "self-hosted mode requires PHX_HOST to be set to the hosted domain"
         }
 
-      host == ControlKeel.RuntimeMode.canonical_cloud_host() ->
+      host == ControlKeel.Runtime.Mode.canonical_cloud_host() ->
         %{
           id: :public_host,
           label: "Public host",
@@ -364,7 +364,7 @@ defmodule ControlKeel.Cloud.Doctor do
               "Self-hosters must set PHX_HOST to their own domain."
         }
 
-      host == ControlKeel.RuntimeMode.canonical_cloud_host() ->
+      host == ControlKeel.Runtime.Mode.canonical_cloud_host() ->
         %{
           id: :public_host,
           label: "Public host",

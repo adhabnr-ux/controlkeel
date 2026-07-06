@@ -13,7 +13,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
   alias ControlKeel.ExecutionSandbox
   alias ControlKeel.Proxy
   alias ControlKeel.SetupAdvisor
-  alias ControlKeel.TaskAugmentation
+  alias ControlKeel.Mission.TaskAugmentation
   import ControlKeel.CLI, except: [run_command: 2]
 
   def run_command(%{command: :serve}, _project_root), do: :ok

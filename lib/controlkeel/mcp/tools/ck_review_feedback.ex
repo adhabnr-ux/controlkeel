@@ -2,7 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkReviewFeedback do
   @moduledoc false
 
   alias ControlKeel.Mission
-  alias ControlKeel.ReviewBridge
+  alias ControlKeel.Mission.ReviewBridge
 
   def call(arguments) when is_map(arguments) do
     with {:ok, review_id} <- required_integer(arguments, "review_id"),

@@ -5,7 +5,7 @@ defmodule ControlKeel.CLI.Dispatch.SandboxSecurityCodeMode do
   alias ControlKeel.Governance.CircuitBreaker
   alias ControlKeel.Governance.PreCommitHook
   alias ControlKeel.ExecutionSandbox
-  alias ControlKeel.RuntimePaths
+  alias ControlKeel.Runtime.Paths
   import ControlKeel.CLI, except: [run_command: 2]
 
   def run_command(%{command: :sandbox_status}, _project_root) do
@@ -38,7 +38,7 @@ defmodule ControlKeel.CLI.Dispatch.SandboxSecurityCodeMode do
     valid_adapters = Enum.map(ExecutionSandbox.supported_adapters(), & &1[:id])
 
     if adapter in valid_adapters do
-      config_path = RuntimePaths.config_path()
+      config_path = Paths.config_path()
       config = read_json_config(config_path)
       updated = Map.put(config, "execution_sandbox", adapter)
 

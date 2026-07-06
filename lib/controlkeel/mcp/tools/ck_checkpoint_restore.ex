@@ -2,7 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkCheckpointRestore do
   @moduledoc false
 
   alias ControlKeel.MCP.Arguments
-  alias ControlKeel.WorkspaceCheckpoint
+  alias ControlKeel.Mission.WorkspaceCheckpoint
 
   def call(arguments) when is_map(arguments) do
     with {:ok, session_id} <- Arguments.resolve_session_id(arguments),

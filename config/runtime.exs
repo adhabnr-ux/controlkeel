@@ -168,12 +168,12 @@ config :controlkeel, ControlKeel.Intent,
   }
 
 if config_env() == :prod do
-  database_path = ControlKeel.RuntimeDefaults.database_path()
+  database_path = ControlKeel.Runtime.Defaults.database_path()
 
   # One-time global -> project-local migration: if we resolved to a project DB
   # that doesn't exist yet, seed it from the legacy global DB before the Repo
   # opens. No-op for already-migrated projects or explicit DATABASE_PATH.
-  ControlKeel.RuntimeDefaults.maybe_seed_project_database()
+  ControlKeel.Runtime.Defaults.maybe_seed_project_database()
 
   config :controlkeel, ControlKeel.Repo,
     database: database_path,
@@ -214,8 +214,8 @@ if config_env() == :prod do
   # want to use a different value for prod and you most likely don't want
   # to check this value into version control, so we use an environment
   # variable instead.
-  secret_key_base = ControlKeel.RuntimeDefaults.secret_key_base()
-  url = ControlKeel.RuntimeDefaults.endpoint_url_config()
+  secret_key_base = ControlKeel.Runtime.Defaults.secret_key_base()
+  url = ControlKeel.Runtime.Defaults.endpoint_url_config()
 
   config :controlkeel, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 

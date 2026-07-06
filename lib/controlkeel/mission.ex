@@ -14,7 +14,7 @@ defmodule ControlKeel.Mission do
   alias ControlKeel.Mission.Decomposition
   alias ControlKeel.Notifications.Webhook
   alias ControlKeel.Platform
-  alias ControlKeel.SessionTranscript
+  alias ControlKeel.Mission.SessionTranscript
   alias ControlKeel.Policy.Snapshot
   alias ControlKeel.SecurityWorkflow
   alias ControlKeel.Repo

@@ -2,7 +2,7 @@ defmodule ControlKeel.ProjectBinding do
   @moduledoc false
 
   alias ControlKeel.ProjectRoot
-  alias ControlKeel.RuntimePaths
+  alias ControlKeel.Runtime.Paths
 
   @version 1
   @compile_source_root Path.expand("../..", __DIR__)
@@ -46,7 +46,7 @@ defmodule ControlKeel.ProjectBinding do
   def ephemeral_path(project_root \\ File.cwd!()) do
     project_root
     |> canonical_root()
-    |> RuntimePaths.ephemeral_binding_path()
+    |> Paths.ephemeral_binding_path()
   end
 
   def wrapper_dir(project_root \\ File.cwd!()) do

@@ -1,7 +1,7 @@
-defmodule ControlKeel.RuntimeModeTest do
+defmodule ControlKeel.Runtime.ModeTest do
   use ExUnit.Case, async: false
 
-  alias ControlKeel.{Runtime, RuntimeDefaults, RuntimeMode, SelfHost}
+  alias ControlKeel.{Runtime, Runtime.Defaults, Runtime.Mode, SelfHost}
 
   setup do
     previous_runtime_mode = Application.get_env(:controlkeel, :runtime_mode)
@@ -49,20 +49,20 @@ defmodule ControlKeel.RuntimeModeTest do
 
   describe "parse/1 and current/0" do
     test "supports local, cloud, and self-hosted aliases" do
-      assert RuntimeMode.parse(nil) == :local
-      assert RuntimeMode.parse("local") == :local
-      assert RuntimeMode.parse("cloud") == :cloud
-      assert RuntimeMode.parse("self_hosted") == :self_hosted
-      assert RuntimeMode.parse("self-hosted") == :self_hosted
-      assert RuntimeMode.parse("selfhost") == :self_hosted
-      assert RuntimeMode.parse("unexpected") == :local
+      assert Mode.parse(nil) == :local
+      assert Mode.parse("local") == :local
+      assert Mode.parse("cloud") == :cloud
+      assert Mode.parse("self_hosted") == :self_hosted
+      assert Mode.parse("self-hosted") == :self_hosted
+      assert Mode.parse("selfhost") == :self_hosted
+      assert Mode.parse("unexpected") == :local
     end
 
     test "env overrides application config for runtime process defaults" do
       System.put_env("CONTROLKEEL_RUNTIME_MODE", "cloud")
       Application.put_env(:controlkeel, :runtime_mode, :self_hosted)
 
-      assert RuntimeMode.current() == :cloud
+      assert Mode.current() == :cloud
       assert Runtime.mode() == :cloud
       assert Runtime.cloud?()
       assert Runtime.remote?()
@@ -71,7 +71,7 @@ defmodule ControlKeel.RuntimeModeTest do
     test "application config is used when env is absent" do
       Application.put_env(:controlkeel, :runtime_mode, :self_hosted)
 
-      assert RuntimeMode.current() == :self_hosted
+      assert Mode.current() == :self_hosted
       assert Runtime.self_hosted?()
       assert Runtime.remote?()
     end
@@ -79,15 +79,15 @@ defmodule ControlKeel.RuntimeModeTest do
 
   describe "placement contract" do
     test "local mode keeps every governed surface local" do
-      placements = RuntimeMode.placement_map(:local)
+      placements = Mode.placement_map(:local)
 
-      assert Map.keys(placements) |> Enum.sort() == RuntimeMode.surfaces() |> Enum.sort()
+      assert Map.keys(placements) |> Enum.sort() == Mode.surfaces() |> Enum.sort()
       assert Enum.all?(placements, fn {_surface, placement} -> placement == :local end)
     end
 
     test "cloud and self-hosted modes make CLI a thin client and move workloads remote" do
-      cloud = RuntimeMode.placement_map(:cloud)
-      self_hosted = RuntimeMode.placement_map(:self_hosted)
+      cloud = Mode.placement_map(:cloud)
+      self_hosted = Mode.placement_map(:self_hosted)
 
       assert cloud.cli == :thin_client
       assert cloud.mcp == :cloud
@@ -113,7 +113,7 @@ defmodule ControlKeel.RuntimeModeTest do
 
   describe "fail-closed diagnostics" do
     test "cloud mode reports missing endpoint and identity" do
-      diagnostic = RuntimeMode.diagnostic(:cloud)
+      diagnostic = Mode.diagnostic(:cloud)
 
       refute diagnostic.ready?
       assert :cloud_sync_endpoint in diagnostic.missing_requirements
@@ -121,7 +121,7 @@ defmodule ControlKeel.RuntimeModeTest do
     end
 
     test "self-hosted mode also requires an explicit host and never defaults to SaaS" do
-      diagnostic = RuntimeMode.diagnostic(:self_hosted)
+      diagnostic = Mode.diagnostic(:self_hosted)
 
       refute diagnostic.ready?
       assert :cloud_sync_endpoint in diagnostic.missing_requirements
@@ -129,7 +129,7 @@ defmodule ControlKeel.RuntimeModeTest do
       assert :workspace_identity in diagnostic.missing_requirements
 
       Application.put_env(:controlkeel, :runtime_mode, :self_hosted)
-      endpoint = RuntimeDefaults.endpoint_url_config()
+      endpoint = Defaults.endpoint_url_config()
 
       assert endpoint[:host] == "localhost"
       refute endpoint[:host] == "controlkeel.com"
@@ -139,7 +139,7 @@ defmodule ControlKeel.RuntimeModeTest do
     test "cloud mode keeps canonical SaaS endpoint default" do
       Application.put_env(:controlkeel, :runtime_mode, :cloud)
 
-      endpoint = RuntimeDefaults.endpoint_url_config()
+      endpoint = Defaults.endpoint_url_config()
 
       assert endpoint[:host] == "controlkeel.com"
       assert endpoint[:scheme] == "https"
@@ -150,23 +150,23 @@ defmodule ControlKeel.RuntimeModeTest do
   describe "sync endpoint contract" do
     test "cloud mode only accepts the canonical SaaS host" do
       assert {:ok, "https://controlkeel.com"} =
-               RuntimeMode.normalize_sync_endpoint("https://controlkeel.com/", :cloud)
+               Mode.normalize_sync_endpoint("https://controlkeel.com/", :cloud)
 
       assert {:error, :cloud_endpoint_must_be_controlkeel_com} =
-               RuntimeMode.normalize_sync_endpoint("https://self.example.com", :cloud)
+               Mode.normalize_sync_endpoint("https://self.example.com", :cloud)
     end
 
     test "self-hosted mode rejects the canonical SaaS host" do
       assert {:ok, "https://ck.example.com"} =
-               RuntimeMode.normalize_sync_endpoint("https://ck.example.com/", :self_hosted)
+               Mode.normalize_sync_endpoint("https://ck.example.com/", :self_hosted)
 
       assert {:error, :self_hosted_endpoint_must_not_be_controlkeel_com} =
-               RuntimeMode.normalize_sync_endpoint("https://controlkeel.com", :self_hosted)
+               Mode.normalize_sync_endpoint("https://controlkeel.com", :self_hosted)
     end
 
     test "local mode can use an explicitly configured endpoint for development" do
       assert {:ok, "http://localhost:4000"} =
-               RuntimeMode.normalize_sync_endpoint("http://localhost:4000/", :local)
+               Mode.normalize_sync_endpoint("http://localhost:4000/", :local)
     end
   end
 

@@ -14,7 +14,7 @@ defmodule ControlKeel.AgentExecution do
   alias ControlKeel.ProjectBinding
   alias ControlKeel.ProtocolAccess
   alias ControlKeel.SecurityWorkflow
-  alias ControlKeel.SessionTranscript
+  alias ControlKeel.Mission.SessionTranscript
   alias ControlKeel.Skills
 
   @direct_executable_candidates %{

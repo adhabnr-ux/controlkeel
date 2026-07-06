@@ -3,7 +3,7 @@ defmodule ControlKeel.Cloud.TelemetryConfig do
   Local state for opt-in cloud telemetry sync.
 
   Telemetry is disabled by default. State lives in a plain JSON file under
-  `ControlKeel.RuntimePaths.config_dir/0` so it survives package reinstalls and
+  `ControlKeel.Runtime.Paths.config_dir/0` so it survives package reinstalls and
   is human-inspectable. No code path mutates this file as a side effect — the
   user must explicitly opt in via `controlkeel telemetry enable` (Phase 2,
   upcoming slice).
@@ -27,7 +27,7 @@ defmodule ControlKeel.Cloud.TelemetryConfig do
   """
 
   alias ControlKeel.Cloud.WorkspaceIdentity
-  alias ControlKeel.RuntimePaths
+  alias ControlKeel.Runtime.Paths
 
   @filename "cloud-telemetry.json"
   @schema_version "1"
@@ -145,7 +145,7 @@ defmodule ControlKeel.Cloud.TelemetryConfig do
 
   @doc "Absolute path to the telemetry config file (does not create it)."
   @spec path() :: String.t()
-  def path, do: Path.join(RuntimePaths.config_dir(), @filename)
+  def path, do: Path.join(Paths.config_dir(), @filename)
 
   @doc """
   Load current telemetry state.
