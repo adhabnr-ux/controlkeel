@@ -1,9 +1,9 @@
-defmodule ControlKeel.HostAuditTest do
+defmodule ControlKeel.Ops.HostAuditTest do
   use ExUnit.Case, async: true
 
   import Plug.Conn
 
-  alias ControlKeel.HostAudit
+  alias ControlKeel.Ops.HostAudit
 
   test "reports ok, warn, and error counts from the injected fetcher" do
     fetcher = fn

@@ -12,7 +12,7 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Agent.AttachedSync
   alias ControlKeel.Budget
   alias ControlKeel.CLI.Claude
-  alias ControlKeel.Distribution
+  alias ControlKeel.Ops.Distribution
   alias ControlKeel.Deployment.HostingCost
   alias ControlKeel.Governance
   alias ControlKeel.CLI.Catalog

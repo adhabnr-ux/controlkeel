@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Ck.HostAudit do
   use Mix.Task
 
-  alias ControlKeel.HostAudit
+  alias ControlKeel.Ops.HostAudit
 
   @shortdoc "Checks public host/package/install surfaces for ecosystem drift"
 

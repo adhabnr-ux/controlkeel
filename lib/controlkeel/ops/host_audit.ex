@@ -1,4 +1,4 @@
-defmodule ControlKeel.HostAudit do
+defmodule ControlKeel.Ops.HostAudit do
   @moduledoc false
 
   alias ControlKeel.Agent.Integration

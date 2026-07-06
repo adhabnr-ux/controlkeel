@@ -1,4 +1,4 @@
-defmodule ControlKeel.DatabaseMaintenance do
+defmodule ControlKeel.Ops.Database do
   @moduledoc false
 
   use GenServer

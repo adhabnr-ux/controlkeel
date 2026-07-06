@@ -1,4 +1,4 @@
-defmodule ControlKeel.Release do
+defmodule ControlKeel.Ops.Release do
   @moduledoc """
   Release-time tasks for migrating the database without Mix being available.
 
@@ -8,8 +8,8 @@ defmodule ControlKeel.Release do
 
   ## Usage
 
-      bin/controlkeel eval "ControlKeel.Release.migrate()"
-      bin/controlkeel eval "ControlKeel.Release.rollback(ControlKeel.Repo, 20260524004330)"
+      bin/controlkeel eval "ControlKeel.Ops.Release.migrate()"
+      bin/controlkeel eval "ControlKeel.Ops.Release.rollback(ControlKeel.Repo, 20260524004330)"
   """
 
   @app :controlkeel

@@ -1,4 +1,4 @@
-defmodule ControlKeel.SelfHost do
+defmodule ControlKeel.Ops.SelfHost do
   @moduledoc """
   Air-gapped / self-host packaging helpers.
 

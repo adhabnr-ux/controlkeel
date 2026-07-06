@@ -3,7 +3,7 @@ defmodule ControlKeel.Skills do
 
   alias ControlKeel.Agent.ACPRegistry
   alias ControlKeel.Agent.Integration
-  alias ControlKeel.Distribution
+  alias ControlKeel.Ops.Distribution
   alias ControlKeel.Skills.Exporter
   alias ControlKeel.Skills.Installer
   alias ControlKeel.Skills.Manifest

@@ -1,7 +1,7 @@
-defmodule ControlKeel.DistributionTest do
+defmodule ControlKeel.Ops.DistributionTest do
   use ExUnit.Case, async: true
 
-  alias ControlKeel.Distribution
+  alias ControlKeel.Ops.Distribution
 
   test "exposes public install channels" do
     ids = Enum.map(Distribution.install_channels(), & &1.id)

@@ -1,7 +1,7 @@
 defmodule ControlKeel.SelfHostPackTest do
   use ExUnit.Case, async: false
 
-  alias ControlKeel.SelfHost
+  alias ControlKeel.Ops.SelfHost
 
   setup do
     tmp = Path.join(System.tmp_dir!(), "ck-pack-#{System.unique_integer([:positive])}")

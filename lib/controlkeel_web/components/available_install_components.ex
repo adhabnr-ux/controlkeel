@@ -186,7 +186,7 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
 
   defp format_install_channels(ids) do
     ids
-    |> ControlKeel.Distribution.install_channels()
+    |> ControlKeel.Ops.Distribution.install_channels()
     |> Enum.map(& &1.label)
     |> Enum.join(", ")
   end

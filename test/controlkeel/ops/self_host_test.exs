@@ -1,7 +1,7 @@
-defmodule ControlKeel.SelfHostTest do
+defmodule ControlKeel.Ops.SelfHostTest do
   use ControlKeel.DataCase, async: false
 
-  alias ControlKeel.SelfHost
+  alias ControlKeel.Ops.SelfHost
 
   @env_vars ~w(DATABASE_URL SECRET_KEY_BASE PHX_HOST
               CONTROLKEEL_NATS_URL CK_AUDIT_SIGNING_KEY

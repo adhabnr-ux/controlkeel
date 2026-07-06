@@ -1,7 +1,7 @@
-defmodule ControlKeel.DatabaseMaintenanceTest do
+defmodule ControlKeel.Ops.DatabaseTest do
   use ControlKeel.DataCase
 
-  alias ControlKeel.DatabaseMaintenance
+  alias ControlKeel.Ops.Database
   alias ControlKeel.Mission.SessionEvent
   alias ControlKeel.Repo
 
@@ -28,7 +28,7 @@ defmodule ControlKeel.DatabaseMaintenanceTest do
       ])
 
       # Run maintenance with 90-day max age
-      assert {:ok, %{events_pruned: 1}} = DatabaseMaintenance.run_once(event_max_age_days: 90)
+      assert {:ok, %{events_pruned: 1}} = Database.run_once(event_max_age_days: 90)
     end
 
     test "keeps events within max age" do
@@ -45,23 +45,23 @@ defmodule ControlKeel.DatabaseMaintenanceTest do
 
       {:ok, _event} = %SessionEvent{} |> SessionEvent.changeset(attrs) |> Repo.insert()
 
-      assert {:ok, %{events_pruned: 0}} = DatabaseMaintenance.run_once(event_max_age_days: 90)
+      assert {:ok, %{events_pruned: 0}} = Database.run_once(event_max_age_days: 90)
     end
 
     test "returns vacuumed status" do
-      {:ok, result} = DatabaseMaintenance.run_once(event_max_age_days: 90, vacuum_enabled: false)
+      {:ok, result} = Database.run_once(event_max_age_days: 90, vacuum_enabled: false)
       assert result.vacuumed == false
     end
 
     test "does not run vacuum when nothing was pruned" do
       assert {:ok, %{events_pruned: 0, vacuumed: false}} =
-               DatabaseMaintenance.run_once(event_max_age_days: 90, vacuum_enabled: true)
+               Database.run_once(event_max_age_days: 90, vacuum_enabled: true)
     end
   end
 
   describe "policy/0" do
     test "returns policy map with expected keys" do
-      policy = DatabaseMaintenance.policy()
+      policy = Database.policy()
       assert Map.has_key?(policy, :enabled)
       assert Map.has_key?(policy, :session_events)
       assert Map.has_key?(policy, :sqlite)

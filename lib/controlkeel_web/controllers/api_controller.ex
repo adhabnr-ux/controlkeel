@@ -7,7 +7,7 @@ defmodule ControlKeelWeb.ApiController do
   alias ControlKeel.Agent.AutonomyLoop
   alias ControlKeel.Benchmark
   alias ControlKeel.Budget
-  alias ControlKeel.Distribution
+  alias ControlKeel.Ops.Distribution
   alias ControlKeel.Governance
   alias ControlKeel.Intent
   alias ControlKeel.Project.Local

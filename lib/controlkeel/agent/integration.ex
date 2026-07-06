@@ -3,7 +3,7 @@ defmodule ControlKeel.Agent.Integration do
 
   alias ControlKeel.AgentAdapters.Registry, as: AdapterRegistry
   alias ControlKeel.AgentRuntimes.Registry, as: RuntimeRegistry
-  alias ControlKeel.Distribution
+  alias ControlKeel.Ops.Distribution
 
   defstruct [
     :id,

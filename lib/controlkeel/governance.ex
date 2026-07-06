@@ -2,7 +2,7 @@ defmodule ControlKeel.Governance do
   @moduledoc false
 
   alias ControlKeel.Analytics
-  alias ControlKeel.Distribution
+  alias ControlKeel.Ops.Distribution
   alias ControlKeel.Mission
   alias ControlKeel.Mission.ProofBundle
   alias ControlKeel.Scanner

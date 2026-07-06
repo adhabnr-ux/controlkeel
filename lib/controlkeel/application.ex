@@ -284,8 +284,8 @@ defmodule ControlKeel.Application do
   end
 
   defp db_maintenance_children do
-    if ControlKeel.DatabaseMaintenance.enabled?() do
-      [ControlKeel.DatabaseMaintenance]
+    if ControlKeel.Ops.Database.enabled?() do
+      [ControlKeel.Ops.Database]
     else
       []
     end

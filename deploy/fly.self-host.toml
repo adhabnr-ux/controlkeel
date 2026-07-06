@@ -40,7 +40,7 @@ kill_timeout = "10s"
   dockerfile = "Dockerfile"
 
 [deploy]
-  release_command = "/app/bin/controlkeel eval \"ControlKeel.Release.migrate()\""
+  release_command = "/app/bin/controlkeel eval \"ControlKeel.Ops.Release.migrate()\""
   strategy = "rolling"
 
 [env]

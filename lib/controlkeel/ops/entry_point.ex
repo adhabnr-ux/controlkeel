@@ -1,4 +1,4 @@
-defmodule ControlKeel.EntryPoint do
+defmodule ControlKeel.Ops.EntryPoint do
   @moduledoc false
 
   use Application

@@ -1,7 +1,7 @@
 defmodule ControlKeel.Skills.Exporter do
   @moduledoc false
 
-  alias ControlKeel.Distribution
+  alias ControlKeel.Ops.Distribution
   alias ControlKeel.Project.Binding
   alias ControlKeel.Skills
   alias ControlKeel.Skills.SkillExportPlan

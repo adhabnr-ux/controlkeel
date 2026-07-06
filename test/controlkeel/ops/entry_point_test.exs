@@ -1,4 +1,4 @@
-defmodule ControlKeel.EntryPointTest do
+defmodule ControlKeel.Ops.EntryPointTest do
   use ExUnit.Case, async: false
 
   alias ControlKeel.CLI
@@ -80,10 +80,10 @@ defmodule ControlKeel.EntryPointTest do
 
   test "standalone_runtime? follows the Burrito runtime marker" do
     System.put_env("__BURRITO", "1")
-    assert ControlKeel.EntryPoint.standalone_runtime?()
+    assert ControlKeel.Ops.EntryPoint.standalone_runtime?()
 
     System.delete_env("__BURRITO")
-    refute ControlKeel.EntryPoint.standalone_runtime?()
+    refute ControlKeel.Ops.EntryPoint.standalone_runtime?()
   end
 
   test "standalone_argv uses plain arguments in a Burrito runtime" do
@@ -107,7 +107,7 @@ defmodule ControlKeel.EntryPointTest do
     end)
 
     capture_io(fn ->
-      assert {:ok, _pid} = ControlKeel.EntryPoint.start(:normal, [])
+      assert {:ok, _pid} = ControlKeel.Ops.EntryPoint.start(:normal, [])
     end)
 
     assert_receive {:halted, 0}
@@ -128,7 +128,7 @@ defmodule ControlKeel.EntryPointTest do
     end)
 
     capture_io(fn ->
-      assert {:ok, _pid} = ControlKeel.EntryPoint.start(:normal, [])
+      assert {:ok, _pid} = ControlKeel.Ops.EntryPoint.start(:normal, [])
     end)
 
     assert_receive {:halted, 0}
@@ -165,7 +165,7 @@ defmodule ControlKeel.EntryPointTest do
       :ok
     end)
 
-    assert {:ok, _pid} = ControlKeel.EntryPoint.start(:normal, [])
+    assert {:ok, _pid} = ControlKeel.Ops.EntryPoint.start(:normal, [])
 
     assert_receive {:endpoint_config, endpoint_config}
     assert endpoint_config[:watchers] == []
@@ -201,7 +201,7 @@ defmodule ControlKeel.EntryPointTest do
       :ok
     end)
 
-    assert {:ok, _pid} = ControlKeel.EntryPoint.start(:normal, [])
+    assert {:ok, _pid} = ControlKeel.Ops.EntryPoint.start(:normal, [])
     assert_receive :application_started
     assert_receive {:executed, %{command: :init}}
     assert_receive {:halted, 0}

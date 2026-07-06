@@ -1,4 +1,4 @@
-defmodule ControlKeel.Distribution do
+defmodule ControlKeel.Ops.Distribution do
   @moduledoc false
 
   @github_owner "aryaminus"

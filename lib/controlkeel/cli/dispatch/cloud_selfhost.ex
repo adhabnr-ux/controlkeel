@@ -759,7 +759,7 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
     root = resolve_project_root(options, project_root)
     pack_opts = Enum.reject([output: options[:output]], fn {_, v} -> is_nil(v) end)
 
-    case ControlKeel.SelfHost.pack(root, pack_opts) do
+    case ControlKeel.Ops.SelfHost.pack(root, pack_opts) do
       {:ok, %{path: path, sha256: sha256}} ->
         {:ok,
          [
@@ -775,7 +775,7 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
   end
 
   def run_command(%{command: :selfhost_verify, options: _options}, _project_root) do
-    result = ControlKeel.SelfHost.verify_environment()
+    result = ControlKeel.Ops.SelfHost.verify_environment()
 
     header = [
       "ControlKeel self-host verify",
@@ -810,11 +810,11 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
   end
 
   def run_command(%{command: :selfhost_manifest, options: _options}, _project_root) do
-    paths = ControlKeel.SelfHost.bundle_manifest()
+    paths = ControlKeel.Ops.SelfHost.bundle_manifest()
     {:ok, ["Air-gapped bundle manifest:"] ++ Enum.map(paths, &"  #{&1}")}
   end
 
   def run_command(%{command: :selfhost_install_guide, options: _options}, _project_root) do
-    {:ok, [ControlKeel.SelfHost.install_guide()]}
+    {:ok, [ControlKeel.Ops.SelfHost.install_guide()]}
   end
 end
