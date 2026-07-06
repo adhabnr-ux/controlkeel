@@ -1,7 +1,7 @@
 defmodule ControlKeel.Updater do
   @moduledoc false
 
-  alias ControlKeel.AttachedAgentSync
+  alias ControlKeel.Agent.AttachedSync
   alias ControlKeel.CLI
   alias ControlKeel.Project.Binding
 
@@ -229,7 +229,7 @@ defmodule ControlKeel.Updater do
   defp sync_current_attached(project_root) do
     case Binding.read_effective(project_root) do
       {:ok, binding, mode} ->
-        case AttachedAgentSync.sync(binding, project_root, mode: mode) do
+        case AttachedSync.sync(binding, project_root, mode: mode) do
           {:ok, _binding, changes} ->
             %{
               "status" => "applied",

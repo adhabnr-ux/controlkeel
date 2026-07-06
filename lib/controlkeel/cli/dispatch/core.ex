@@ -2,7 +2,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
   @moduledoc false
 
   alias ControlKeel.Analytics
-  alias ControlKeel.AutonomyLoop
+  alias ControlKeel.Agent.AutonomyLoop
   alias ControlKeel.Budget
   alias ControlKeel.Help
   alias ControlKeel.Project.Local

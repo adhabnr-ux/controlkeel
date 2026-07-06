@@ -2,7 +2,7 @@ defmodule ControlKeelWeb.MissionControlLive do
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Analytics
-  alias ControlKeel.AutonomyLoop
+  alias ControlKeel.Agent.AutonomyLoop
   alias ControlKeel.Intent
   alias ControlKeel.Mission
   alias ControlKeel.Observability

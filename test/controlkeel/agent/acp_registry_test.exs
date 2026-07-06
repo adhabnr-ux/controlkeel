@@ -1,8 +1,8 @@
-defmodule ControlKeel.ACPRegistryTest do
+defmodule ControlKeel.Agent.ACPRegistryTest do
   use ExUnit.Case, async: false
 
-  alias ControlKeel.ACPRegistry
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.ACPRegistry
+  alias ControlKeel.Agent.Integration
 
   setup do
     cache_path =
@@ -51,7 +51,7 @@ defmodule ControlKeel.ACPRegistryTest do
     assert File.exists?(cache_path)
 
     cline =
-      AgentIntegration.get("cline")
+      Integration.get("cline")
       |> ACPRegistry.enrich_integration()
 
     assert cline.registry_match
@@ -107,7 +107,7 @@ defmodule ControlKeel.ACPRegistryTest do
     assert status["entry_count"] == 2
 
     cursor =
-      AgentIntegration.get("cursor")
+      Integration.get("cursor")
       |> ACPRegistry.enrich_integration()
 
     assert cursor.registry_match

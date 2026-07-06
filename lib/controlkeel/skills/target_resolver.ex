@@ -1,7 +1,7 @@
 defmodule ControlKeel.Skills.TargetResolver do
   @moduledoc false
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.Project.Binding
   alias ControlKeel.Skills.TargetFamily
 
@@ -43,7 +43,7 @@ defmodule ControlKeel.Skills.TargetResolver do
       |> String.downcase()
       |> String.replace("_", "-")
 
-    case AgentIntegration.get(normalized) do
+    case Integration.get(normalized) do
       %{} -> normalized
       _ -> normalized
     end

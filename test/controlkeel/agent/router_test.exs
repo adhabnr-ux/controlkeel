@@ -1,7 +1,7 @@
-defmodule ControlKeel.AgentRouterTest do
+defmodule ControlKeel.Agent.RouterTest do
   use ControlKeel.DataCase, async: false
 
-  alias ControlKeel.AgentRouter
+  alias ControlKeel.Agent.Router
 
   # All agents that pass critical security tier (local: true + security_tier :critical or :high)
   @critical_ok [
@@ -20,8 +20,8 @@ defmodule ControlKeel.AgentRouterTest do
 
   describe "route/2 — basic routing" do
     test "returns a recommendation for a backend task" do
-      assert {:ok, rec} = AgentRouter.route("Build a REST API endpoint")
-      assert rec.agent in Map.keys(AgentRouter.list_agents())
+      assert {:ok, rec} = Router.route("Build a REST API endpoint")
+      assert rec.agent in Map.keys(Router.list_agents())
       assert is_binary(rec.agent_name)
       assert is_list(rec.rationale)
       assert is_list(rec.warnings)
@@ -29,41 +29,41 @@ defmodule ControlKeel.AgentRouterTest do
     end
 
     test "returns a recommendation for a UI task" do
-      assert {:ok, rec} = AgentRouter.route("Build a React login form")
+      assert {:ok, rec} = Router.route("Build a React login form")
       assert rec.task_type == :ui
-      assert rec.agent in Map.keys(AgentRouter.list_agents())
+      assert rec.agent in Map.keys(Router.list_agents())
     end
 
     test "returns a recommendation for a test task" do
-      assert {:ok, rec} = AgentRouter.route("Write spec coverage for the auth module")
+      assert {:ok, rec} = Router.route("Write spec coverage for the auth module")
       assert rec.task_type == :test
     end
 
     test "returns a recommendation for a refactor task" do
-      assert {:ok, rec} = AgentRouter.route("Refactor and rename legacy functions")
+      assert {:ok, rec} = Router.route("Refactor and rename legacy functions")
       assert rec.task_type == :refactor
     end
 
     test "returns a recommendation for a deploy task" do
-      assert {:ok, rec} = AgentRouter.route("Deploy to Kubernetes and configure CI pipeline")
+      assert {:ok, rec} = Router.route("Deploy to Kubernetes and configure CI pipeline")
       assert rec.task_type == :deploy
     end
   end
 
   describe "route/2 — new task types :review and :spec" do
     test "infers :review task type" do
-      assert {:ok, rec} = AgentRouter.route("Review this pull request for security issues")
+      assert {:ok, rec} = Router.route("Review this pull request for security issues")
       assert rec.task_type == :review
     end
 
     test "infers :spec task type" do
-      assert {:ok, rec} = AgentRouter.route("Write a prd for the notification system")
+      assert {:ok, rec} = Router.route("Write a prd for the notification system")
       assert rec.task_type == :spec
     end
 
     test "coderabbit scores highest for :review at low risk (allowed)" do
       assert {:ok, rec} =
-               AgentRouter.route("Review this PR for security issues",
+               Router.route("Review this PR for security issues",
                  risk_tier: "low",
                  allowed_agents: ["coderabbit", "generic-cli"]
                )
@@ -73,7 +73,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "specpilot beats generic-cli for :spec task at low risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Write a prd for the auth module",
+               Router.route("Write a prd for the auth module",
                  risk_tier: "low",
                  allowed_agents: ["specpilot", "generic-cli"]
                )
@@ -83,7 +83,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "qodo beats generic-cli for :review task at medium risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Review the auth module for bugs",
+               Router.route("Review the auth module for bugs",
                  risk_tier: "medium",
                  allowed_agents: ["qodo", "generic-cli"]
                )
@@ -94,17 +94,17 @@ defmodule ControlKeel.AgentRouterTest do
 
   describe "route/2 — security tier filtering" do
     test "allows cloud agents for low risk" do
-      assert {:ok, rec} = AgentRouter.route("Build a marketing page", risk_tier: "low")
+      assert {:ok, rec} = Router.route("Build a marketing page", risk_tier: "low")
       assert is_binary(rec.agent)
     end
 
     test "prefers local agents for critical risk" do
-      assert {:ok, rec} = AgentRouter.route("Update patient records", risk_tier: "critical")
+      assert {:ok, rec} = Router.route("Update patient records", risk_tier: "critical")
       assert rec.agent in @critical_ok
     end
 
     test "excludes low-security agents for high-risk tasks" do
-      assert {:ok, rec} = AgentRouter.route("Edit HIPAA-covered data", risk_tier: "high")
+      assert {:ok, rec} = Router.route("Edit HIPAA-covered data", risk_tier: "high")
       refute rec.agent in ["bolt", "replit", "lovable", "v0", "ai-studio", "chatprd", "specced"]
     end
 
@@ -122,7 +122,7 @@ defmodule ControlKeel.AgentRouterTest do
       ]
 
       assert {:error, :no_suitable_agent, _} =
-               AgentRouter.route("PHI data update",
+               Router.route("PHI data update",
                  risk_tier: "critical",
                  allowed_agents: cloud_llm
                )
@@ -131,13 +131,13 @@ defmodule ControlKeel.AgentRouterTest do
 
   describe "route/2 — allowed_agents filtering" do
     test "restricts to allowed agent list" do
-      assert {:ok, rec} = AgentRouter.route("Build feature", allowed_agents: ["ollama"])
+      assert {:ok, rec} = Router.route("Build feature", allowed_agents: ["ollama"])
       assert rec.agent == "ollama"
     end
 
     test "returns error when no allowed agents satisfy constraints" do
       assert {:error, :no_suitable_agent, msg} =
-               AgentRouter.route("PHI data update",
+               Router.route("PHI data update",
                  risk_tier: "critical",
                  allowed_agents: ["bolt"]
                )
@@ -149,7 +149,7 @@ defmodule ControlKeel.AgentRouterTest do
   describe "route/2 — budget filtering" do
     test "excludes medium-cost agents when budget is very low" do
       assert {:ok, rec} =
-               AgentRouter.route("Build feature", budget_remaining_cents: 10, risk_tier: "low")
+               Router.route("Build feature", budget_remaining_cents: 10, risk_tier: "low")
 
       assert rec.agent in [
                "ollama",
@@ -164,13 +164,13 @@ defmodule ControlKeel.AgentRouterTest do
     end
 
     test "allows all agents when budget is sufficient" do
-      assert {:ok, rec} = AgentRouter.route("Build feature", budget_remaining_cents: 10_000)
+      assert {:ok, rec} = Router.route("Build feature", budget_remaining_cents: 10_000)
       assert is_binary(rec.agent)
     end
 
     test "excludes devin (high cost tier) when budget < 1000 cents" do
       assert {:error, :no_suitable_agent, _} =
-               AgentRouter.route("Build feature",
+               Router.route("Build feature",
                  budget_remaining_cents: 500,
                  allowed_agents: ["devin"]
                )
@@ -180,7 +180,7 @@ defmodule ControlKeel.AgentRouterTest do
   describe "route/2 — UI task scoring" do
     test "bolt receives UI capability bonus for UI tasks over generic-cli" do
       assert {:ok, rec} =
-               AgentRouter.route("Build a dashboard UI",
+               Router.route("Build a dashboard UI",
                  risk_tier: "low",
                  allowed_agents: ["bolt", "generic-cli"]
                )
@@ -190,7 +190,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "lovable beats generic-cli for UI task at low risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Build a landing page",
+               Router.route("Build a landing page",
                  risk_tier: "low",
                  allowed_agents: ["lovable", "generic-cli"]
                )
@@ -200,7 +200,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "replit preferred over codex when budget excludes codex" do
       assert {:ok, rec} =
-               AgentRouter.route("Build a landing page",
+               Router.route("Build a landing page",
                  risk_tier: "low",
                  allowed_agents: ["replit", "codex"],
                  budget_remaining_cents: 150
@@ -211,7 +211,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "v0 is a valid UI candidate at low risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Build a dashboard component",
+               Router.route("Build a dashboard component",
                  risk_tier: "low",
                  allowed_agents: ["v0"]
                )
@@ -223,7 +223,7 @@ defmodule ControlKeel.AgentRouterTest do
   describe "route/2 — LLM providers" do
     test "anthropic routes when allowed and budget sufficient at low risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Build a REST endpoint",
+               Router.route("Build a REST endpoint",
                  risk_tier: "low",
                  allowed_agents: ["anthropic"],
                  budget_remaining_cents: 500
@@ -234,7 +234,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "openai routes when allowed at medium risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Implement auth middleware",
+               Router.route("Implement auth middleware",
                  risk_tier: "medium",
                  allowed_agents: ["openai"],
                  budget_remaining_cents: 500
@@ -247,7 +247,7 @@ defmodule ControlKeel.AgentRouterTest do
   describe "route/2 — local CLI category" do
     test "aider passes critical risk tier" do
       assert {:ok, rec} =
-               AgentRouter.route("Update patient records",
+               Router.route("Update patient records",
                  risk_tier: "critical",
                  allowed_agents: ["aider"]
                )
@@ -257,7 +257,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "opencode passes critical risk tier" do
       assert {:ok, rec} =
-               AgentRouter.route("Update PHI data",
+               Router.route("Update PHI data",
                  risk_tier: "critical",
                  allowed_agents: ["opencode"]
                )
@@ -269,7 +269,7 @@ defmodule ControlKeel.AgentRouterTest do
   describe "route/2 — orchestration frameworks" do
     test "nemo-guardrails passes critical risk tier (local + critical security)" do
       assert {:ok, rec} =
-               AgentRouter.route("Build governed LLM orchestration layer",
+               Router.route("Build governed LLM orchestration layer",
                  risk_tier: "critical",
                  allowed_agents: ["nemo-guardrails"]
                )
@@ -279,7 +279,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "crewai is excluded at critical risk (medium security tier)" do
       assert {:error, :no_suitable_agent, _} =
-               AgentRouter.route("Build multi-agent system",
+               Router.route("Build multi-agent system",
                  risk_tier: "critical",
                  allowed_agents: ["crewai"]
                )
@@ -287,7 +287,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "langchain routes at low risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Build LLM orchestration with multiple agents",
+               Router.route("Build LLM orchestration with multiple agents",
                  risk_tier: "low",
                  allowed_agents: ["langchain"]
                )
@@ -299,7 +299,7 @@ defmodule ControlKeel.AgentRouterTest do
   describe "route/2 — cloud scaffolders expanded" do
     test "lovable is included as a UI candidate at low risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Build a React dashboard",
+               Router.route("Build a React dashboard",
                  risk_tier: "low",
                  allowed_agents: ["lovable", "v0", "bolt"]
                )
@@ -309,7 +309,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "v0 excluded for deploy task (only :ui_prototype — no :bash or :deploy capability)" do
       assert {:error, :no_suitable_agent, _} =
-               AgentRouter.route("Deploy to Kubernetes and configure CI",
+               Router.route("Deploy to Kubernetes and configure CI",
                  risk_tier: "low",
                  allowed_agents: ["v0"]
                )
@@ -318,12 +318,12 @@ defmodule ControlKeel.AgentRouterTest do
 
   describe "list_agents/0" do
     test "returns all supported agents" do
-      agents = AgentRouter.list_agents()
+      agents = Router.list_agents()
       assert map_size(agents) == 67
     end
 
     test "contains all expected categories" do
-      agents = AgentRouter.list_agents()
+      agents = Router.list_agents()
 
       # Local IDEs
       assert Map.has_key?(agents, "claude-code")
@@ -382,38 +382,38 @@ defmodule ControlKeel.AgentRouterTest do
 
   describe "get_agent/1" do
     test "returns agent profile" do
-      agent = AgentRouter.get_agent("claude-code")
+      agent = Router.get_agent("claude-code")
       assert agent.name == "Claude Code"
       assert agent.local == true
       assert is_list(agent.capabilities)
     end
 
     test "returns nil for unknown agent" do
-      assert AgentRouter.get_agent("unknown-agent") == nil
+      assert Router.get_agent("unknown-agent") == nil
     end
 
     test "returns correct profile for kiro" do
-      agent = AgentRouter.get_agent("kiro")
+      agent = Router.get_agent("kiro")
       assert agent.name == "Kiro (Amazon)"
       assert agent.local == true
       assert :mcp in agent.capabilities
     end
 
     test "returns correct profile for coderabbit" do
-      agent = AgentRouter.get_agent("coderabbit")
+      agent = Router.get_agent("coderabbit")
       assert :code_review in agent.capabilities
       assert :pr_review in agent.capabilities
     end
 
     test "returns correct profile for nemo-guardrails" do
-      agent = AgentRouter.get_agent("nemo-guardrails")
+      agent = Router.get_agent("nemo-guardrails")
       assert agent.security_tier == :critical
       assert agent.local == true
       assert :multi_agent in agent.capabilities
     end
 
     test "anthropic has highest swe_bench_score among original LLM providers" do
-      agents = AgentRouter.list_agents()
+      agents = Router.list_agents()
 
       llm_providers = [
         "openai",
@@ -436,7 +436,7 @@ defmodule ControlKeel.AgentRouterTest do
     end
 
     test "azure-openai has highest swe_bench_score among enterprise cloud LLMs" do
-      agents = AgentRouter.list_agents()
+      agents = Router.list_agents()
       enterprise = ["bedrock", "vertex-ai", "azure-openai"]
 
       best =
@@ -448,7 +448,7 @@ defmodule ControlKeel.AgentRouterTest do
     end
 
     test "enterprise cloud LLMs all have :high security tier" do
-      agents = AgentRouter.list_agents()
+      agents = Router.list_agents()
 
       for id <- ["bedrock", "vertex-ai", "azure-openai"] do
         assert agents[id].security_tier == :high, "expected #{id} to have :high security tier"
@@ -456,7 +456,7 @@ defmodule ControlKeel.AgentRouterTest do
     end
 
     test "contains all new framework agents" do
-      agents = AgentRouter.list_agents()
+      agents = Router.list_agents()
 
       for id <- [
             "langgraph",
@@ -475,7 +475,7 @@ defmodule ControlKeel.AgentRouterTest do
     end
 
     test "contains all managed platform agents" do
-      agents = AgentRouter.list_agents()
+      agents = Router.list_agents()
 
       for id <- ["bedrock-agents", "azure-ai-agent", "vertex-ai-agent"] do
         assert Map.has_key?(agents, id), "missing agent: #{id}"
@@ -483,7 +483,7 @@ defmodule ControlKeel.AgentRouterTest do
     end
 
     test "contains workflow automation and observability agents" do
-      agents = AgentRouter.list_agents()
+      agents = Router.list_agents()
 
       for id <- ["zapier", "make", "agentops", "vellum", "promptflow"] do
         assert Map.has_key?(agents, id), "missing agent: #{id}"
@@ -493,13 +493,13 @@ defmodule ControlKeel.AgentRouterTest do
 
   describe "route/2 — workflow task type" do
     test "infers :workflow task type" do
-      assert {:ok, rec} = AgentRouter.route("Set up automation triggers and webhook connectors")
+      assert {:ok, rec} = Router.route("Set up automation triggers and webhook connectors")
       assert rec.task_type == :workflow
     end
 
     test "n8n scores highest for :workflow vs generic-cli at low risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Set up a webhook automation trigger",
+               Router.route("Set up a webhook automation trigger",
                  risk_tier: "low",
                  allowed_agents: ["n8n", "generic-cli"]
                )
@@ -509,7 +509,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "zapier routes for :workflow task at low risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Automate Zapier integrations",
+               Router.route("Automate Zapier integrations",
                  risk_tier: "low",
                  allowed_agents: ["zapier"]
                )
@@ -519,7 +519,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "make routes for :workflow task at low risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Build workflow automation with connectors",
+               Router.route("Build workflow automation with connectors",
                  risk_tier: "low",
                  allowed_agents: ["make"]
                )
@@ -529,7 +529,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "agentops excluded for :workflow (observability-only, no workflow/multi_agent/bash)" do
       assert {:error, :no_suitable_agent, _} =
-               AgentRouter.route("Automate webhook triggers",
+               Router.route("Automate webhook triggers",
                  risk_tier: "low",
                  allowed_agents: ["agentops"]
                )
@@ -539,7 +539,7 @@ defmodule ControlKeel.AgentRouterTest do
   describe "route/2 — enterprise cloud LLM providers" do
     test "bedrock routes at high risk (security_tier: :high)" do
       assert {:ok, rec} =
-               AgentRouter.route("Build a REST endpoint",
+               Router.route("Build a REST endpoint",
                  risk_tier: "high",
                  allowed_agents: ["bedrock"],
                  budget_remaining_cents: 500
@@ -550,7 +550,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "azure-openai routes at high risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Build auth middleware",
+               Router.route("Build auth middleware",
                  risk_tier: "high",
                  allowed_agents: ["azure-openai"],
                  budget_remaining_cents: 500
@@ -561,7 +561,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "bedrock excluded at critical risk (cloud, non-local)" do
       assert {:error, :no_suitable_agent, _} =
-               AgentRouter.route("Update PHI data",
+               Router.route("Update PHI data",
                  risk_tier: "critical",
                  allowed_agents: ["bedrock"]
                )
@@ -569,7 +569,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "groq routes at low risk (cheap inference)" do
       assert {:ok, rec} =
-               AgentRouter.route("Generate code for auth module",
+               Router.route("Generate code for auth module",
                  risk_tier: "low",
                  allowed_agents: ["groq"],
                  budget_remaining_cents: 100
@@ -580,7 +580,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "groq excluded at high risk (security_tier: :medium)" do
       assert {:error, :no_suitable_agent, _} =
-               AgentRouter.route("Edit HIPAA records",
+               Router.route("Edit HIPAA records",
                  risk_tier: "high",
                  allowed_agents: ["groq"]
                )
@@ -590,7 +590,7 @@ defmodule ControlKeel.AgentRouterTest do
   describe "route/2 — managed agent platforms" do
     test "bedrock-agents routes for :deploy task at high risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Deploy multi-agent system to production",
+               Router.route("Deploy multi-agent system to production",
                  risk_tier: "high",
                  allowed_agents: ["bedrock-agents"],
                  budget_remaining_cents: 2000
@@ -601,7 +601,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "azure-ai-agent routes for :deploy task at high risk" do
       assert {:ok, rec} =
-               AgentRouter.route("Deploy agent pipeline to Kubernetes",
+               Router.route("Deploy agent pipeline to Kubernetes",
                  risk_tier: "high",
                  allowed_agents: ["azure-ai-agent"],
                  budget_remaining_cents: 2000
@@ -613,7 +613,7 @@ defmodule ControlKeel.AgentRouterTest do
     test "managed platforms excluded at critical risk (cloud)" do
       for id <- ["bedrock-agents", "azure-ai-agent", "vertex-ai-agent"] do
         assert {:error, :no_suitable_agent, _} =
-                 AgentRouter.route("Update PHI data",
+                 Router.route("Update PHI data",
                    risk_tier: "critical",
                    allowed_agents: [id]
                  )
@@ -622,7 +622,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "managed platforms excluded when budget < 1000 cents" do
       assert {:error, :no_suitable_agent, _} =
-               AgentRouter.route("Deploy agent",
+               Router.route("Deploy agent",
                  budget_remaining_cents: 500,
                  allowed_agents: ["azure-ai-agent"]
                )
@@ -632,7 +632,7 @@ defmodule ControlKeel.AgentRouterTest do
   describe "route/2 — new frameworks" do
     test "semantic-kernel passes high risk (security_tier: :high, local: true)" do
       assert {:ok, rec} =
-               AgentRouter.route("Orchestrate multi-agent system",
+               Router.route("Orchestrate multi-agent system",
                  risk_tier: "high",
                  allowed_agents: ["semantic-kernel"]
                )
@@ -642,7 +642,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "prefect passes high risk (security_tier: :high, local: true)" do
       assert {:ok, rec} =
-               AgentRouter.route("Automate data processing with event triggers",
+               Router.route("Automate data processing with event triggers",
                  risk_tier: "high",
                  allowed_agents: ["prefect"]
                )
@@ -652,7 +652,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "langgraph excluded at critical risk (security_tier: :medium)" do
       assert {:error, :no_suitable_agent, _} =
-               AgentRouter.route("Build stateful agent",
+               Router.route("Build stateful agent",
                  risk_tier: "critical",
                  allowed_agents: ["langgraph"]
                )
@@ -660,7 +660,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "n8n beats make for :workflow with free budget (both free-tier, n8n has multi_agent)" do
       assert {:ok, rec} =
-               AgentRouter.route("Automate webhook connector flows",
+               Router.route("Automate webhook connector flows",
                  risk_tier: "low",
                  allowed_agents: ["n8n", "make"]
                )
@@ -670,7 +670,7 @@ defmodule ControlKeel.AgentRouterTest do
 
     test "vellum excluded for :workflow task (prompt_management only)" do
       assert {:error, :no_suitable_agent, _} =
-               AgentRouter.route("Automate webhook triggers",
+               Router.route("Automate webhook triggers",
                  risk_tier: "low",
                  allowed_agents: ["vellum"]
                )

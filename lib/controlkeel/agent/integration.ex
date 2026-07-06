@@ -1,4 +1,4 @@
-defmodule ControlKeel.AgentIntegration do
+defmodule ControlKeel.Agent.Integration do
   @moduledoc false
 
   alias ControlKeel.AgentAdapters.Registry, as: AdapterRegistry

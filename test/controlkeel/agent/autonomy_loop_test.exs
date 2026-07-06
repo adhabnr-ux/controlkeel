@@ -1,10 +1,10 @@
-defmodule ControlKeel.AutonomyLoopTest do
+defmodule ControlKeel.Agent.AutonomyLoopTest do
   use ControlKeel.DataCase, async: false
 
   import ControlKeel.MissionFixtures
 
   alias ControlKeel.Mission
-  alias ControlKeel.AutonomyLoop
+  alias ControlKeel.Agent.AutonomyLoop
 
   test "derives explicit KPI-oriented long-running autonomy profiles" do
     session =

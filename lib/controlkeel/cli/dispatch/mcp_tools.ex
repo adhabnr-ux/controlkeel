@@ -2,7 +2,7 @@ defmodule ControlKeel.CLI.Dispatch.McpTools do
   @moduledoc false
 
   require Logger
-  alias ControlKeel.ACPRegistry
+  alias ControlKeel.Agent.ACPRegistry
   import ControlKeel.CLI, except: [run_command: 2]
 
   def run_command(%{command: :mcp_guardrails_list, options: _options}, _project_root) do
@@ -129,7 +129,7 @@ defmodule ControlKeel.CLI.Dispatch.McpTools do
 
     # MCP.Server is supervised first when CK_MCP_MODE (see Application); stdin reads
     # run while Repo boots. ensure_local_project stays async so binding/skills work
-    # does not block the Mix process here. Skip AttachedAgentSync during bootstrap.
+    # does not block the Mix process here. Skip AttachedSync during bootstrap.
     File.cd!(root, fn ->
       case ensure_stdio_server_running(2_000) do
         pid when is_pid(pid) ->

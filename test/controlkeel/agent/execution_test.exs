@@ -1,9 +1,9 @@
-defmodule ControlKeel.AgentExecutionTest do
+defmodule ControlKeel.Agent.ExecutionTest do
   use ControlKeel.DataCase
 
   import ControlKeel.MissionFixtures
 
-  alias ControlKeel.AgentExecution
+  alias ControlKeel.Agent.Execution
   alias ControlKeel.Mission
   alias ControlKeel.Platform
 
@@ -47,7 +47,7 @@ defmodule ControlKeel.AgentExecutionTest do
     System.put_env("CONTROLKEEL_EXECUTOR_CODEX_CLI_CMD", script_path)
 
     assert {:ok, result} =
-             AgentExecution.run_task(task.id,
+             Execution.run_task(task.id,
                project_root: tmp_dir,
                agent: "codex-cli",
                mode: "embedded"
@@ -66,7 +66,7 @@ defmodule ControlKeel.AgentExecutionTest do
     task = task_fixture(%{session: session})
 
     assert {:ok, result} =
-             AgentExecution.run_task(task.id,
+             Execution.run_task(task.id,
                project_root: tmp_dir,
                agent: "cursor",
                mode: "handoff"
@@ -89,7 +89,7 @@ defmodule ControlKeel.AgentExecutionTest do
     task = task_fixture(%{session: session})
 
     assert {:error, {:policy_blocked, reason}} =
-             AgentExecution.run_task(task.id,
+             Execution.run_task(task.id,
                project_root: tmp_dir,
                agent: "cursor",
                mode: "handoff"
@@ -121,7 +121,7 @@ defmodule ControlKeel.AgentExecutionTest do
     System.put_env("CONTROLKEEL_EXECUTOR_CODEX_CLI_CMD", script_path)
 
     {:ok, result} =
-      AgentExecution.run_task(task.id,
+      Execution.run_task(task.id,
         project_root: tmp_dir,
         agent: "codex-cli",
         mode: "embedded",
@@ -143,7 +143,7 @@ defmodule ControlKeel.AgentExecutionTest do
              })
 
     assert {:error, {:review_pending, details}} =
-             AgentExecution.run_task(task.id,
+             Execution.run_task(task.id,
                project_root: tmp_dir,
                agent: "cursor",
                mode: "handoff"

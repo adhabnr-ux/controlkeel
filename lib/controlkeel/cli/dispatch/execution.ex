@@ -1,8 +1,8 @@
 defmodule ControlKeel.CLI.Dispatch.Execution do
   @moduledoc false
 
-  alias ControlKeel.AgentExecution
-  alias ControlKeel.AgentRouter
+  alias ControlKeel.Agent.Execution
+  alias ControlKeel.Agent.Router
   alias ControlKeel.Mission
   alias ControlKeel.Platform
   import ControlKeel.CLI, except: [run_command: 2]
@@ -113,7 +113,7 @@ defmodule ControlKeel.CLI.Dispatch.Execution do
         |> maybe_put_cli_opt(:allowed_agents, parse_allowed_agents(options[:allowed_agents]))
         |> maybe_put_cli_opt(:domain_pack, options[:domain_pack])
 
-      case AgentRouter.route(task_title, router_opts) do
+      case Router.route(task_title, router_opts) do
         {:ok, recommendation} ->
           render_format(format, %{"recommendation" => recommendation}, fn _p ->
             [
@@ -255,7 +255,7 @@ defmodule ControlKeel.CLI.Dispatch.Execution do
     root = options[:project_root] || project_root
 
     with {:ok, parsed_id} <- parse_id(task_id),
-         {:ok, result} <- AgentExecution.run_task(parsed_id, agent_run_opts(options, root)) do
+         {:ok, result} <- Execution.run_task(parsed_id, agent_run_opts(options, root)) do
       {:ok, agent_execution_lines(result)}
     else
       {:error, :invalid_id} ->
@@ -273,7 +273,7 @@ defmodule ControlKeel.CLI.Dispatch.Execution do
     root = options[:project_root] || project_root
 
     with {:ok, parsed_id} <- parse_id(session_id),
-         {:ok, result} <- AgentExecution.run_session(parsed_id, agent_run_opts(options, root)) do
+         {:ok, result} <- Execution.run_session(parsed_id, agent_run_opts(options, root)) do
       session_lines =
         Enum.flat_map(result["results"], fn item ->
           [

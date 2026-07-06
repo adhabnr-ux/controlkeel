@@ -1,7 +1,7 @@
-defmodule ControlKeel.AttachedAgentSyncTest do
+defmodule ControlKeel.Agent.AttachedSyncTest do
   use ControlKeel.DataCase
 
-  alias ControlKeel.AttachedAgentSync
+  alias ControlKeel.Agent.AttachedSync
   alias ControlKeel.Project.Binding
 
   setup do
@@ -39,7 +39,7 @@ defmodule ControlKeel.AttachedAgentSyncTest do
     }
 
     assert {:ok, written} = Binding.write(binding, tmp_dir)
-    assert {:ok, synced, changes} = AttachedAgentSync.sync(written, tmp_dir, mode: :project)
+    assert {:ok, synced, changes} = AttachedSync.sync(written, tmp_dir, mode: :project)
 
     assert [%{"agent" => "cursor", "status" => "synced"}] = changes
     assert synced["attached_agents"]["cursor"]["controlkeel_version"] == current_version
@@ -66,7 +66,7 @@ defmodule ControlKeel.AttachedAgentSyncTest do
     }
 
     assert {:ok, written} = Binding.write(binding, tmp_dir)
-    assert {:ok, synced, []} = AttachedAgentSync.sync(written, tmp_dir, mode: :project)
+    assert {:ok, synced, []} = AttachedSync.sync(written, tmp_dir, mode: :project)
     assert synced["attached_agents"]["cursor"]["controlkeel_version"] == current_version
     refute synced["attached_agents"]["cursor"]["synced_at"]
   end

@@ -16,7 +16,7 @@ defmodule ControlKeel.Cloud.AgentInventory do
   ## Patterns
 
   Each pattern declares:
-    - `host` — canonical agent host id (matches `AgentIntegration.catalog/0` ids
+    - `host` — canonical agent host id (matches `Integration.catalog/0` ids
       where possible)
     - `relative_path` — directory or file relative to the repo root
     - `kind` — `:directory` | `:file`

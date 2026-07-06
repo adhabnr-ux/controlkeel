@@ -1,7 +1,7 @@
 defmodule ControlKeel.CLI.Doctor do
   @moduledoc false
 
-  alias ControlKeel.AgentExecution
+  alias ControlKeel.Agent.Execution
   alias ControlKeel.CLI.Catalog
   alias ControlKeel.ExecutionSandbox
   alias ControlKeel.Project.Local
@@ -16,7 +16,7 @@ defmodule ControlKeel.CLI.Doctor do
     root = Root.resolve(project_root)
     snapshot = SetupAdvisor.snapshot(root)
     provider_status = ProviderBroker.status(root)
-    agents = AgentExecution.doctor(root)
+    agents = Execution.doctor(root)
     catalog_families = Catalog.families()
     sandbox = ExecutionSandbox.adapter_name([])
 

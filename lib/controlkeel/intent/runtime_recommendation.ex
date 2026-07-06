@@ -1,7 +1,7 @@
 defmodule ControlKeel.Intent.RuntimeRecommendation do
   @moduledoc false
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.AgentRuntimes.Registry, as: RuntimeRegistry
   alias ControlKeel.Intent.{ExecutionBrief, ExecutionPosture, RuntimePolicyProfile}
   alias ControlKeel.ProviderBroker
@@ -75,13 +75,13 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
   end
 
   defp ranked_candidates("attach_client", brief, availability) do
-    AgentIntegration.attach_catalog()
+    Integration.attach_catalog()
     |> Enum.map(&{attach_score(&1, brief, availability), &1})
     |> Enum.sort_by(fn {score, integration} -> {score, integration.id} end, :desc)
   end
 
   defp ranked_candidates("headless_runtime", brief, availability) do
-    AgentIntegration.runtime_export_catalog()
+    Integration.runtime_export_catalog()
     |> Enum.map(&{runtime_score(&1, brief, availability), &1})
     |> Enum.sort_by(fn {score, integration} -> {score, integration.id} end, :desc)
   end
@@ -443,7 +443,7 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
   defp detect_exported_runtimes(project_root) do
     root = Path.expand(project_root)
 
-    AgentIntegration.runtime_export_catalog()
+    Integration.runtime_export_catalog()
     |> Enum.filter(fn integration ->
       is_binary(integration.preferred_target) and
         File.dir?(Path.join([root, "controlkeel", "dist", integration.preferred_target]))

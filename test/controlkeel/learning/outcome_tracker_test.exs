@@ -297,7 +297,7 @@ defmodule ControlKeel.Learning.OutcomeTrackerTest do
   test "recorded outcomes close the learning loop into router ranking" do
     # Baseline: no outcomes recorded -> router uses the pure static heuristic.
     assert {:ok, baseline} =
-             ControlKeel.AgentRouter.route("Automate webhook connector flows",
+             ControlKeel.Agent.Router.route("Automate webhook connector flows",
                risk_tier: "low",
                allowed_agents: ["n8n", "make"]
              )
@@ -316,7 +316,7 @@ defmodule ControlKeel.Learning.OutcomeTrackerTest do
     end
 
     assert {:ok, learned} =
-             ControlKeel.AgentRouter.route("Automate webhook connector flows",
+             ControlKeel.Agent.Router.route("Automate webhook connector flows",
                risk_tier: "low",
                allowed_agents: ["n8n", "make"]
              )

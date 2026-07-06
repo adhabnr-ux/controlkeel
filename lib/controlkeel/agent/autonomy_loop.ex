@@ -1,4 +1,4 @@
-defmodule ControlKeel.AutonomyLoop do
+defmodule ControlKeel.Agent.AutonomyLoop do
   @moduledoc false
 
   alias ControlKeel.Benchmark

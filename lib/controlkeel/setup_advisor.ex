@@ -1,8 +1,8 @@
 defmodule ControlKeel.SetupAdvisor do
   @moduledoc false
 
-  alias ControlKeel.AgentExecution
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Execution
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.Project.Binding
   alias ControlKeel.Project.Root
   alias ControlKeel.Mcp.ProtocolInterop
@@ -32,7 +32,7 @@ defmodule ControlKeel.SetupAdvisor do
 
   def snapshot(project_root \\ File.cwd!()) do
     root = Root.resolve(project_root)
-    agents = AgentExecution.list_agents(root)
+    agents = Execution.list_agents(root)
     detected_hosts = detect_hosts(agents)
 
     %{
@@ -42,7 +42,7 @@ defmodule ControlKeel.SetupAdvisor do
       "agents" => agents,
       "detected_hosts" => detected_hosts,
       "recommended_attach" => recommended_attach(detected_hosts, agents),
-      "runtime_exports" => AgentIntegration.runtime_export_catalog(),
+      "runtime_exports" => Integration.runtime_export_catalog(),
       "core_loop" => @core_loop
     }
   end
@@ -75,7 +75,7 @@ defmodule ControlKeel.SetupAdvisor do
       end
 
     runtime_lines =
-      AgentIntegration.runtime_export_catalog()
+      Integration.runtime_export_catalog()
       |> Enum.map(&"Runtime export: #{&1.runtime_export_command}")
 
     attach_lines ++ runtime_lines
@@ -126,7 +126,7 @@ defmodule ControlKeel.SetupAdvisor do
   defp detect_hosts(agents) do
     agents_by_id = Map.new(agents, &{&1.id, &1})
 
-    AgentIntegration.attach_catalog()
+    Integration.attach_catalog()
     |> Enum.reduce([], fn integration, acc ->
       presence = host_presence(integration.id, Map.get(agents_by_id, integration.id))
 

@@ -1,7 +1,7 @@
 defmodule ControlKeel.CLI.Parser do
   @moduledoc false
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.Help
 
   @init_switches [
@@ -434,14 +434,14 @@ defmodule ControlKeel.CLI.Parser do
         parse_with_switches(:attach_doctor, rest, @agents_doctor_switches)
 
       ["attach", agent | rest] ->
-        if agent in AgentIntegration.attachable_ids() do
+        if agent in Integration.attachable_ids() do
           parse_attach(agent, rest)
         else
           {:error, ControlKeel.CLI.usage_text()}
         end
 
       ["detach", agent | rest] ->
-        if agent in AgentIntegration.attachable_ids() do
+        if agent in Integration.attachable_ids() do
           parse_detach(agent, rest)
         else
           {:error, ControlKeel.CLI.usage_text()}

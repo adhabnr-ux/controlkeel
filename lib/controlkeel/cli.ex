@@ -8,8 +8,8 @@ defmodule ControlKeel.CLI do
 
   require Logger
 
-  alias ControlKeel.AgentIntegration
-  alias ControlKeel.AttachedAgentSync
+  alias ControlKeel.Agent.Integration
+  alias ControlKeel.Agent.AttachedSync
   alias ControlKeel.Budget
   alias ControlKeel.ClaudeCLI
   alias ControlKeel.Distribution
@@ -2408,7 +2408,7 @@ defmodule ControlKeel.CLI do
     with {:ok, binding, session, mode} <-
            Local.load_or_bootstrap(project_root, overrides, ephemeral_ok: true) do
       if sync_attached_agents? do
-        case AttachedAgentSync.sync(binding, project_root, mode: mode) do
+        case AttachedSync.sync(binding, project_root, mode: mode) do
           {:ok, synced_binding, _changes} -> {:ok, synced_binding, session, mode}
           {:error, reason} -> {:error, reason}
         end
@@ -2514,7 +2514,7 @@ defmodule ControlKeel.CLI do
   end
 
   def attach_guidance_lines(agent) do
-    case AgentIntegration.get(agent) do
+    case Integration.get(agent) do
       nil ->
         Distribution.current_install_lines()
 
@@ -2526,7 +2526,7 @@ defmodule ControlKeel.CLI do
           "Required CK tools: #{Enum.join(integration.required_mcp_tools, ", ")}.",
           "Auto-bootstrap: #{if(integration.auto_bootstrap, do: "enabled", else: "disabled")}.",
           "Auth mode: #{integration.auth_mode}.",
-          "Auth owner: #{AgentIntegration.auth_owner(integration)}.",
+          "Auth owner: #{Integration.auth_owner(integration)}.",
           "MCP mode: #{integration.mcp_mode}.",
           "Skills mode: #{integration.skills_mode}.",
           "Provider bridge: #{format_provider_bridge(integration.provider_bridge)}.",
@@ -2749,8 +2749,8 @@ defmodule ControlKeel.CLI do
 
   def attach_scope(agent, options) do
     options[:scope] ||
-      case AgentIntegration.get(agent) do
-        %AgentIntegration{default_scope: scope} when is_binary(scope) -> scope
+      case Integration.get(agent) do
+        %Integration{default_scope: scope} when is_binary(scope) -> scope
         _ -> "project"
       end
   end
@@ -2758,8 +2758,8 @@ defmodule ControlKeel.CLI do
   def validate_attach_scope(agent, options) do
     scope = attach_scope(agent, options)
 
-    case AgentIntegration.get(agent) do
-      %AgentIntegration{supported_scopes: scopes, label: label}
+    case Integration.get(agent) do
+      %Integration{supported_scopes: scopes, label: label}
       when is_list(scopes) and scopes != [] ->
         if scope in scopes do
           {:ok, scope}
@@ -2773,7 +2773,7 @@ defmodule ControlKeel.CLI do
     end
   end
 
-  def display_attach_agent(agent), do: AgentIntegration.label(agent)
+  def display_attach_agent(agent), do: Integration.label(agent)
 
   # ─── IDE MCP attachment helpers ──────────────────────────────────────────────
 

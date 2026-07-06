@@ -1,7 +1,7 @@
 defmodule ControlKeel.HostAudit do
   @moduledoc false
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
 
   @npm_packages [
     "@aryaminus/controlkeel",
@@ -19,13 +19,13 @@ defmodule ControlKeel.HostAudit do
     include_unverified? = Keyword.get(opts, :include_unverified, false)
 
     integration_urls =
-      AgentIntegration.catalog()
+      Integration.catalog()
       |> Enum.reject(&(not include_unverified? and &1.support_class == "unverified"))
       |> Enum.map(fn integration -> {integration.id, integration.upstream_docs_url} end)
       |> Enum.reject(fn {_id, url} -> is_nil(url) or String.trim(url) == "" end)
 
     repo_slug_checks =
-      AgentIntegration.catalog()
+      Integration.catalog()
       |> Enum.reject(&(not include_unverified? and &1.support_class == "unverified"))
       |> Enum.filter(&repo_slug_checkable?/1)
       |> Enum.uniq_by(& &1.upstream_slug)

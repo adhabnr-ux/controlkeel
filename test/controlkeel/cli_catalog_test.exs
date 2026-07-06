@@ -1,7 +1,7 @@
 defmodule ControlKeel.CLI.CatalogTest do
   use ExUnit.Case, async: true
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.CLI
   alias ControlKeel.CLI.Catalog
 
@@ -65,7 +65,7 @@ defmodule ControlKeel.CLI.CatalogTest do
   end
 
   test "supported attach hosts share the attach catalog entry" do
-    for agent <- AgentIntegration.attachable_ids() do
+    for agent <- Integration.attachable_ids() do
       assert {:ok, %{command: :attach}} = CLI.parse(["attach", agent])
     end
 
@@ -328,7 +328,7 @@ defmodule ControlKeel.CLI.CatalogTest do
 
       host_ids = decode_cli_json(output) |> Map.fetch!("hosts") |> Enum.map(& &1["id"])
 
-      for agent <- AgentIntegration.attachable_ids() do
+      for agent <- Integration.attachable_ids() do
         assert agent in host_ids
       end
     end

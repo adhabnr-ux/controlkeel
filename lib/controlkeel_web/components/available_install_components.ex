@@ -277,7 +277,7 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
   defp alias_action(%{alias_of: alias_of}) when is_binary(alias_of), do: "Use #{alias_of}"
   defp alias_action(_integration), do: "reference only"
 
-  defp auth_owner(integration), do: ControlKeel.AgentIntegration.auth_owner(integration)
+  defp auth_owner(integration), do: ControlKeel.Agent.Integration.auth_owner(integration)
 
   defp format_provider_bridge(%{supported: true, provider: provider, mode: mode}),
     do: "#{mode}: #{provider}"

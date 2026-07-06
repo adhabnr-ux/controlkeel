@@ -1,7 +1,7 @@
 defmodule ControlKeel.ProviderBroker do
   @moduledoc false
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.AgentRuntimes.Registry, as: RuntimeRegistry
   alias ControlKeel.Project.Binding
   alias ControlKeel.ProviderConfig
@@ -157,7 +157,7 @@ defmodule ControlKeel.ProviderBroker do
   end
 
   def bridge_supported?(agent_id) when is_binary(agent_id) do
-    case AgentIntegration.get(agent_id) do
+    case Integration.get(agent_id) do
       %{provider_bridge: %{supported: true}} -> true
       _ -> false
     end
@@ -180,7 +180,7 @@ defmodule ControlKeel.ProviderBroker do
     binding
     |> attached_agents(binding)
     |> Enum.find_value(fn {agent_id, _attrs} ->
-      integration = AgentIntegration.get(agent_id)
+      integration = Integration.get(agent_id)
       resolution = bridge_resolution_for_integration(integration, opts)
 
       case resolution do
@@ -199,7 +199,7 @@ defmodule ControlKeel.ProviderBroker do
       binding
       |> attached_agents(binding)
       |> Enum.find_value(fn {agent_id, _attrs} ->
-        AgentIntegration.get(agent_id)
+        Integration.get(agent_id)
         |> bridge_resolution_for_integration(opts)
       end)
     end
@@ -350,7 +350,7 @@ defmodule ControlKeel.ProviderBroker do
   end
 
   defp bridge_resolution_for_integration(
-         %AgentIntegration{
+         %Integration{
            provider_bridge: %{supported: true, mode: "env_bridge", provider: provider}
          } = integration,
          opts
@@ -359,7 +359,7 @@ defmodule ControlKeel.ProviderBroker do
   end
 
   defp bridge_resolution_for_integration(
-         %AgentIntegration{id: "hermes-agent", provider_bridge: %{supported: true}} = integration,
+         %Integration{id: "hermes-agent", provider_bridge: %{supported: true}} = integration,
          opts
        ) do
     opts
@@ -371,7 +371,7 @@ defmodule ControlKeel.ProviderBroker do
   end
 
   defp bridge_resolution_for_integration(
-         %AgentIntegration{id: "openclaw", provider_bridge: %{supported: true}} = integration,
+         %Integration{id: "openclaw", provider_bridge: %{supported: true}} = integration,
          opts
        ) do
     opts
@@ -383,7 +383,7 @@ defmodule ControlKeel.ProviderBroker do
   end
 
   defp bridge_resolution_for_integration(
-         %AgentIntegration{id: "droid", provider_bridge: %{supported: true}} = integration,
+         %Integration{id: "droid", provider_bridge: %{supported: true}} = integration,
          opts
        ) do
     opts
@@ -395,7 +395,7 @@ defmodule ControlKeel.ProviderBroker do
   end
 
   defp bridge_resolution_for_integration(
-         %AgentIntegration{id: "forge", provider_bridge: %{supported: true, mode: "acp_session"}},
+         %Integration{id: "forge", provider_bridge: %{supported: true, mode: "acp_session"}},
          opts
        ) do
     case Keyword.get(opts, :acp_session) do
@@ -445,7 +445,7 @@ defmodule ControlKeel.ProviderBroker do
           provider_config(provider, api_key, opts, :agent_bridge),
           "Attached #{integration.label} exposed a compatible provider environment.",
           integration.auth_mode,
-          AgentIntegration.auth_owner(integration)
+          Integration.auth_owner(integration)
         )
     end
   end
@@ -473,7 +473,7 @@ defmodule ControlKeel.ProviderBroker do
           config,
           reason,
           integration.auth_mode,
-          AgentIntegration.auth_owner(integration)
+          Integration.auth_owner(integration)
         )
 
       true ->
@@ -585,7 +585,7 @@ defmodule ControlKeel.ProviderBroker do
     |> attached_agents(binding)
     |> Enum.map(fn {id, attrs} ->
       normalized_id = normalize_agent_id(id)
-      integration = AgentIntegration.get(normalized_id)
+      integration = Integration.get(normalized_id)
       runtime_hint = RuntimeRegistry.provider_hint(normalized_id, project_root, opts)
 
       %{
@@ -594,7 +594,7 @@ defmodule ControlKeel.ProviderBroker do
         "provider_bridge_supported" => bridge_supported?(normalized_id),
         "support_class" => integration && integration.support_class,
         "auth_mode" => integration && integration.auth_mode,
-        "auth_owner" => integration && AgentIntegration.auth_owner(integration),
+        "auth_owner" => integration && Integration.auth_owner(integration),
         "mcp_mode" => integration && integration.mcp_mode,
         "skills_mode" => integration && integration.skills_mode,
         "runtime_transport" => integration && integration.runtime_transport,
@@ -623,7 +623,7 @@ defmodule ControlKeel.ProviderBroker do
             %{
               "agent_id" => normalized_id,
               "transport" =>
-                case AgentIntegration.get(normalized_id) do
+                case Integration.get(normalized_id) do
                   nil -> nil
                   integration -> integration.runtime_transport
                 end,

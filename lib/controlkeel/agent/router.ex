@@ -1,4 +1,4 @@
-defmodule ControlKeel.AgentRouter do
+defmodule ControlKeel.Agent.Router do
   @moduledoc """
   Layer 3: Agent Router.
 

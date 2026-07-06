@@ -3,7 +3,7 @@ defmodule ControlKeelWeb.DashboardLive do
 
   import ControlKeelWeb.ProviderStatusComponents
 
-  alias ControlKeel.ACPRegistry
+  alias ControlKeel.Agent.ACPRegistry
   alias ControlKeel.Analytics
   alias ControlKeel.Benchmark
   alias ControlKeel.Mission

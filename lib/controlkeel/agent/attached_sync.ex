@@ -1,7 +1,7 @@
-defmodule ControlKeel.AttachedAgentSync do
+defmodule ControlKeel.Agent.AttachedSync do
   @moduledoc false
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.Project.Binding
   alias ControlKeel.Skills
   alias ControlKeel.Skills.Installer
@@ -67,7 +67,7 @@ defmodule ControlKeel.AttachedAgentSync do
           {:ok, attrs, false}
 
         true ->
-          with %AgentIntegration{} = integration <- inferred_integration(agent_key),
+          with %Integration{} = integration <- inferred_integration(agent_key),
                {:ok, target} <- inferred_target(attrs, integration),
                {:ok, scope} <- inferred_scope(attrs, integration),
                {:ok, result} <-
@@ -126,14 +126,14 @@ defmodule ControlKeel.AttachedAgentSync do
 
   defp inferred_integration(agent_key) do
     agent_key
-    |> AgentIntegration.canonical()
+    |> Integration.canonical()
   end
 
   defp inferred_target(%{"target" => target}, _integration)
        when is_binary(target) and target != "",
        do: {:ok, target}
 
-  defp inferred_target(_attrs, %AgentIntegration{preferred_target: target})
+  defp inferred_target(_attrs, %Integration{preferred_target: target})
        when is_binary(target) and target != "" do
     {:ok, target}
   end
@@ -145,7 +145,7 @@ defmodule ControlKeel.AttachedAgentSync do
     {:ok, scope}
   end
 
-  defp inferred_scope(_attrs, %AgentIntegration{default_scope: scope})
+  defp inferred_scope(_attrs, %Integration{default_scope: scope})
        when scope in ["project", "user"] do
     {:ok, scope}
   end

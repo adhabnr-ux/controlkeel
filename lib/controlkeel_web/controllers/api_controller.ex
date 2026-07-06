@@ -1,10 +1,10 @@
 defmodule ControlKeelWeb.ApiController do
   use ControlKeelWeb, :controller
 
-  alias ControlKeel.ACPRegistry
-  alias ControlKeel.AgentExecution
-  alias ControlKeel.AgentRouter
-  alias ControlKeel.AutonomyLoop
+  alias ControlKeel.Agent.ACPRegistry
+  alias ControlKeel.Agent.Execution
+  alias ControlKeel.Agent.Router
+  alias ControlKeel.Agent.AutonomyLoop
   alias ControlKeel.Benchmark
   alias ControlKeel.Budget
   alias ControlKeel.Distribution
@@ -290,7 +290,7 @@ defmodule ControlKeelWeb.ApiController do
     with {:ok, task_id} <- parse_integer_param(id),
          :ok <- authorize_task_access(conn, task_id, "tasks:execute"),
          {:ok, result} <-
-           AgentExecution.run_task(task_id,
+           Execution.run_task(task_id,
              project_root: project_root,
              agent: Map.get(params, "agent"),
              mode: Map.get(params, "mode")
@@ -320,7 +320,7 @@ defmodule ControlKeelWeb.ApiController do
     with {:ok, session_id} <- parse_integer_param(id),
          :ok <- authorize_session_access(conn, session_id, "tasks:execute"),
          {:ok, result} <-
-           AgentExecution.run_session(session_id,
+           Execution.run_session(session_id,
              project_root: project_root,
              agent: Map.get(params, "agent"),
              mode: Map.get(params, "mode")
@@ -1529,7 +1529,7 @@ defmodule ControlKeelWeb.ApiController do
 
   def list_agents(conn, params) do
     project_root = Map.get(params, "project_root", File.cwd!())
-    doctor = AgentExecution.doctor(project_root)
+    doctor = Execution.doctor(project_root)
     json(conn, %{agents: doctor["agents"], doctor: doctor})
   end
 
@@ -1576,7 +1576,7 @@ defmodule ControlKeelWeb.ApiController do
     task_title = Map.get(params, "task", "")
     opts = build_router_opts(params)
 
-    case AgentRouter.route(task_title, opts) do
+    case Router.route(task_title, opts) do
       {:ok, recommendation} ->
         json(conn, %{recommendation: recommendation})
 
@@ -1687,7 +1687,7 @@ defmodule ControlKeelWeb.ApiController do
       auto_bootstrap: integration.auto_bootstrap,
       provider_bridge: integration.provider_bridge,
       auth_mode: integration.auth_mode,
-      auth_owner: ControlKeel.AgentIntegration.auth_owner(integration),
+      auth_owner: ControlKeel.Agent.Integration.auth_owner(integration),
       mcp_mode: integration.mcp_mode,
       skills_mode: integration.skills_mode,
       alias_of: integration.alias_of,
@@ -1704,7 +1704,7 @@ defmodule ControlKeelWeb.ApiController do
       registry_url: integration.registry_url,
       registry_stale: integration.registry_stale,
       required_mcp_tools: integration.required_mcp_tools,
-      install_channels: ControlKeel.AgentIntegration.install_channels(integration.id),
+      install_channels: ControlKeel.Agent.Integration.install_channels(integration.id),
       export_targets: integration.export_targets
     }
   end

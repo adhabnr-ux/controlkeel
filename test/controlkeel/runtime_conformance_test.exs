@@ -6,7 +6,7 @@ defmodule ControlKeel.RuntimeConformanceTest do
 
   use ExUnit.Case, async: true
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.MCP.Protocol
   alias ControlKeel.Mcp.ProtocolInterop
 
@@ -15,7 +15,7 @@ defmodule ControlKeel.RuntimeConformanceTest do
   describe "all attach_client runtimes expose required struct fields" do
     for agent_id <- @attach_clients do
       test "#{agent_id} has non-empty runtime_capabilities" do
-        integration = AgentIntegration.get(unquote(agent_id))
+        integration = Integration.get(unquote(agent_id))
 
         assert integration != nil
         assert integration.support_class == "attach_client"
@@ -24,21 +24,21 @@ defmodule ControlKeel.RuntimeConformanceTest do
       end
 
       test "#{agent_id} has runtime_transport" do
-        integration = AgentIntegration.get(unquote(agent_id))
+        integration = Integration.get(unquote(agent_id))
 
         assert is_binary(integration.runtime_transport)
         assert String.length(integration.runtime_transport) > 0
       end
 
       test "#{agent_id} has runtime_review_transport" do
-        integration = AgentIntegration.get(unquote(agent_id))
+        integration = Integration.get(unquote(agent_id))
 
         assert is_binary(integration.runtime_review_transport)
         assert String.length(integration.runtime_review_transport) > 0
       end
 
       test "#{agent_id} has runtime_session_support map" do
-        integration = AgentIntegration.get(unquote(agent_id))
+        integration = Integration.get(unquote(agent_id))
 
         assert is_map(integration.runtime_session_support)
         assert Map.has_key?(integration.runtime_session_support, "create")
@@ -48,7 +48,7 @@ defmodule ControlKeel.RuntimeConformanceTest do
       end
 
       test "#{agent_id} capability map has all 5 required keys" do
-        integration = AgentIntegration.get(unquote(agent_id))
+        integration = Integration.get(unquote(agent_id))
         caps = integration.runtime_capabilities
 
         assert Map.has_key?(caps, :policy_gate)
@@ -59,7 +59,7 @@ defmodule ControlKeel.RuntimeConformanceTest do
       end
 
       test "#{agent_id} has valid submission/feedback/phase modes" do
-        integration = AgentIntegration.get(unquote(agent_id))
+        integration = Integration.get(unquote(agent_id))
 
         assert integration.submission_mode in [
                  "tool_call",
@@ -78,7 +78,7 @@ defmodule ControlKeel.RuntimeConformanceTest do
   describe "policy gate parity" do
     for agent_id <- @attach_clients do
       test "#{agent_id} has policy_gate enabled" do
-        integration = AgentIntegration.get(unquote(agent_id))
+        integration = Integration.get(unquote(agent_id))
 
         assert integration.runtime_capabilities[:policy_gate] == true
       end

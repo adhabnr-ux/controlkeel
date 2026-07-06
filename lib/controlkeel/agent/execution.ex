@@ -1,10 +1,10 @@
-defmodule ControlKeel.AgentExecution do
+defmodule ControlKeel.Agent.Execution do
   @moduledoc false
 
   require Logger
 
-  alias ControlKeel.AgentIntegration
-  alias ControlKeel.AgentRouter
+  alias ControlKeel.Agent.Integration
+  alias ControlKeel.Agent.Router
   alias ControlKeel.ExecutionSandbox
   alias ControlKeel.Intent
   alias ControlKeel.MCP.Tools.CkValidate
@@ -254,14 +254,14 @@ defmodule ControlKeel.AgentExecution do
     integration =
       cond do
         is_binary(requested) ->
-          AgentIntegration.canonical(requested)
+          Integration.canonical(requested)
 
         true ->
           resolve_auto_integration(task, project_root)
       end
 
     case integration do
-      %AgentIntegration{} = found -> {:ok, found}
+      %Integration{} = found -> {:ok, found}
       _ -> {:error, :unknown_agent}
     end
   end
@@ -270,18 +270,18 @@ defmodule ControlKeel.AgentExecution do
     with {:ok, binding, _mode} <- Binding.read_effective(project_root),
          attached when is_map(attached) <- Map.get(binding, "attached_agents", %{}),
          {agent_id, _attrs} <- Enum.at(attached, 0),
-         %AgentIntegration{} = integration <- AgentIntegration.canonical(agent_id) do
+         %Integration{} = integration <- Integration.canonical(agent_id) do
       integration
     else
       _ ->
-        case AgentRouter.route(task.title, []) do
-          {:ok, %{agent: agent_id}} -> AgentIntegration.canonical(agent_id)
-          _ -> AgentIntegration.canonical("claude-code")
+        case Router.route(task.title, []) do
+          {:ok, %{agent: agent_id}} -> Integration.canonical(agent_id)
+          _ -> Integration.canonical("claude-code")
         end
     end
   end
 
-  defp resolve_execution_mode(%AgentIntegration{} = integration, opts) do
+  defp resolve_execution_mode(%Integration{} = integration, opts) do
     case normalize_requested_mode(Keyword.get(opts, :mode)) do
       "auto" ->
         case integration.execution_support do
@@ -867,12 +867,12 @@ defmodule ControlKeel.AgentExecution do
   defp runnable?("direct", configured_command, _executable_path, _integration),
     do: configured_command != nil
 
-  defp runnable?("handoff", _configured_command, _executable_path, %AgentIntegration{
+  defp runnable?("handoff", _configured_command, _executable_path, %Integration{
          preferred_target: target
        }),
        do: is_binary(target)
 
-  defp runnable?("runtime", _configured_command, _executable_path, %AgentIntegration{}), do: true
+  defp runnable?("runtime", _configured_command, _executable_path, %Integration{}), do: true
   defp runnable?(_, _configured_command, _executable_path, _integration), do: false
 
   defp policy_gate_reason(session) do
@@ -1018,7 +1018,7 @@ defmodule ControlKeel.AgentExecution do
     """
   end
 
-  defp export_bundle_into_package(package_root, project_root, %AgentIntegration{
+  defp export_bundle_into_package(package_root, project_root, %Integration{
          preferred_target: target
        })
        when is_binary(target) do

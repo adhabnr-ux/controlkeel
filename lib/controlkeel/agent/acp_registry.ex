@@ -1,7 +1,7 @@
-defmodule ControlKeel.ACPRegistry do
+defmodule ControlKeel.Agent.ACPRegistry do
   @moduledoc false
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.Runtime.Paths
 
   @default_registry_url "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json"
@@ -76,18 +76,18 @@ defmodule ControlKeel.ACPRegistry do
     Enum.map(integrations, &enrich_integration(&1, entries, stale))
   end
 
-  def enrich_integration(%AgentIntegration{} = integration) do
+  def enrich_integration(%Integration{} = integration) do
     cache = read_cache()
     enrich_integration(integration, registry_entries(cache), cache_stale?(cache))
   end
 
-  defp enrich_integration(%AgentIntegration{} = integration, entries, stale) do
+  defp enrich_integration(%Integration{} = integration, entries, stale) do
     case find_match(entries, integration) do
       nil ->
         integration
 
       entry ->
-        %AgentIntegration{
+        %Integration{
           integration
           | registry_match: true,
             registry_id: entry["id"],
@@ -98,7 +98,7 @@ defmodule ControlKeel.ACPRegistry do
     end
   end
 
-  defp find_match(entries, %AgentIntegration{} = integration) do
+  defp find_match(entries, %Integration{} = integration) do
     candidates =
       Enum.uniq(
         registry_candidates(integration) ++
@@ -115,15 +115,15 @@ defmodule ControlKeel.ACPRegistry do
     end)
   end
 
-  defp canonical_integration(%AgentIntegration{alias_of: alias_of}) when is_binary(alias_of) do
-    AgentIntegration.get(alias_of)
+  defp canonical_integration(%Integration{alias_of: alias_of}) when is_binary(alias_of) do
+    Integration.get(alias_of)
   end
 
   defp canonical_integration(_integration), do: nil
 
   defp registry_candidates(nil), do: []
 
-  defp registry_candidates(%AgentIntegration{} = integration) do
+  defp registry_candidates(%Integration{} = integration) do
     default =
       [integration.id, integration.alias_of]
       |> Enum.filter(&is_binary/1)
@@ -144,7 +144,7 @@ defmodule ControlKeel.ACPRegistry do
   end
 
   defp matched_integrations(entries) do
-    AgentIntegration.catalog()
+    Integration.catalog()
     |> Enum.count(fn integration -> find_match(entries, integration) != nil end)
   end
 

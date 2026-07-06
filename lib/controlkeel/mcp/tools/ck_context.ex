@@ -2,7 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkContext do
   @moduledoc false
 
   alias ControlKeel.Budget
-  alias ControlKeel.AutonomyLoop
+  alias ControlKeel.Agent.AutonomyLoop
   alias ControlKeel.Intent
   alias ControlKeel.Memory
   alias ControlKeel.Mission

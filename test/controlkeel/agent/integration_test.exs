@@ -1,11 +1,11 @@
-defmodule ControlKeel.AgentIntegrationTest do
+defmodule ControlKeel.Agent.IntegrationTest do
   use ExUnit.Case, async: true
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.Skills.SkillTarget
 
   test "catalog exposes the supported attach matrix" do
-    ids = Enum.map(AgentIntegration.catalog(), & &1.id)
+    ids = Enum.map(Integration.catalog(), & &1.id)
 
     assert "claude-code" in ids
     assert "codex-cli" in ids
@@ -39,26 +39,26 @@ defmodule ControlKeel.AgentIntegrationTest do
   end
 
   test "labels and targets are available for native-first agents" do
-    claude = AgentIntegration.get("claude-code")
-    codex = AgentIntegration.get("codex-cli")
-    cline = AgentIntegration.get("cline")
-    devin_terminal = AgentIntegration.get("devin-terminal")
-    warp = AgentIntegration.get("warp")
-    warp_oz = AgentIntegration.get("warp-oz")
-    roo = AgentIntegration.get("roo-code")
-    goose = AgentIntegration.get("goose")
-    pi = AgentIntegration.get("pi")
-    windsurf = AgentIntegration.get("windsurf")
-    continue = AgentIntegration.get("continue")
-    cursor = AgentIntegration.get("cursor")
-    gemini = AgentIntegration.get("gemini-cli")
-    kiro = AgentIntegration.get("kiro")
-    amp = AgentIntegration.get("amp")
-    augment = AgentIntegration.get("augment")
-    aider = AgentIntegration.get("aider")
-    conductor = AgentIntegration.get("conductor")
-    conductor_web = AgentIntegration.get("conductor-web")
-    dmux = AgentIntegration.get("dmux")
+    claude = Integration.get("claude-code")
+    codex = Integration.get("codex-cli")
+    cline = Integration.get("cline")
+    devin_terminal = Integration.get("devin-terminal")
+    warp = Integration.get("warp")
+    warp_oz = Integration.get("warp-oz")
+    roo = Integration.get("roo-code")
+    goose = Integration.get("goose")
+    pi = Integration.get("pi")
+    windsurf = Integration.get("windsurf")
+    continue = Integration.get("continue")
+    cursor = Integration.get("cursor")
+    gemini = Integration.get("gemini-cli")
+    kiro = Integration.get("kiro")
+    amp = Integration.get("amp")
+    augment = Integration.get("augment")
+    aider = Integration.get("aider")
+    conductor = Integration.get("conductor")
+    conductor_web = Integration.get("conductor-web")
+    dmux = Integration.get("dmux")
 
     assert claude.label == "Claude Code"
     assert claude.support_class == "attach_client"
@@ -199,14 +199,14 @@ defmodule ControlKeel.AgentIntegrationTest do
     assert continue.submission_mode == "command"
     assert ".continue/mcpServers/controlkeel.yaml" in continue.artifact_surfaces
 
-    opencode = AgentIntegration.get("opencode")
+    opencode = Integration.get("opencode")
     assert opencode.support_class == "attach_client"
     assert opencode.preferred_target == "opencode-native"
     assert ".opencode/skills" in opencode.artifact_surfaces
     assert ".agents/skills" in opencode.artifact_surfaces
     assert ".opencode/plugins/controlkeel-governance.ts" in opencode.artifact_surfaces
 
-    letta = AgentIntegration.get("letta-code")
+    letta = Integration.get("letta-code")
     assert letta.support_class == "attach_client"
     assert letta.preferred_target == "letta-code-native"
     assert letta.skills_mode == "native"
@@ -235,7 +235,7 @@ defmodule ControlKeel.AgentIntegrationTest do
     assert kiro.review_experience == "native_review"
     assert ".kiro/settings" in kiro.artifact_surfaces
 
-    kilo = AgentIntegration.get("kilo")
+    kilo = Integration.get("kilo")
     assert kilo.support_class == "attach_client"
     assert kilo.preferred_target == "kilo-native"
     assert kilo.auth_mode == "ck_owned"
@@ -299,7 +299,7 @@ defmodule ControlKeel.AgentIntegrationTest do
     assert aider.submission_mode == "command"
     assert "AIDER.md" in aider.artifact_surfaces
 
-    droid = AgentIntegration.get("droid")
+    droid = Integration.get("droid")
     assert droid.preferred_target == "droid-bundle"
     assert "droid-plugin" in droid.export_targets
     assert "native_skills" in droid.agent_uses_ck_via
@@ -329,7 +329,7 @@ defmodule ControlKeel.AgentIntegrationTest do
              owner: "agent"
            }
 
-    paperclip = AgentIntegration.get("paperclip")
+    paperclip = Integration.get("paperclip")
 
     assert paperclip.support_class == "framework_adapter"
     assert paperclip.agent_uses_ck_via == ["local_mcp", "native_skills", "commands", "plugin"]
@@ -368,18 +368,18 @@ defmodule ControlKeel.AgentIntegrationTest do
     assert conductor_web.alias_of == "conductor"
     assert conductor_web.preferred_target == "claude-standalone"
 
-    openclaw = AgentIntegration.get("openclaw")
+    openclaw = Integration.get("openclaw")
 
     assert Enum.any?(
              openclaw.direct_install_methods,
              &(&1["command"] == "controlkeel plugin install openclaw")
            )
 
-    codex_alias = AgentIntegration.get("codex")
-    t3code = AgentIntegration.get("t3code")
-    gemini_alias = AgentIntegration.get("gemini")
-    kiro_cli_alias = AgentIntegration.get("kiro-cli")
-    roo_alias = AgentIntegration.get("roo")
+    codex_alias = Integration.get("codex")
+    t3code = Integration.get("t3code")
+    gemini_alias = Integration.get("gemini")
+    kiro_cli_alias = Integration.get("kiro-cli")
+    roo_alias = Integration.get("roo")
 
     assert codex_alias.support_class == "alias"
     assert codex_alias.alias_of == "codex-cli"
@@ -414,10 +414,10 @@ defmodule ControlKeel.AgentIntegrationTest do
   end
 
   test "skills-compatible agent names stay honest about support tier" do
-    jcode = AgentIntegration.get("jcode")
-    clawdbot = AgentIntegration.get("clawdbot")
-    nous = AgentIntegration.get("nous-research")
-    trae = AgentIntegration.get("trae")
+    jcode = Integration.get("jcode")
+    clawdbot = Integration.get("clawdbot")
+    nous = Integration.get("nous-research")
+    trae = Integration.get("trae")
 
     assert jcode.support_class == "unverified"
     assert jcode.preferred_target == "instructions-only"
@@ -455,7 +455,7 @@ defmodule ControlKeel.AgentIntegrationTest do
   test "every integration references valid targets and install channels" do
     target_ids = SkillTarget.ids()
 
-    Enum.each(AgentIntegration.catalog(), fn integration ->
+    Enum.each(Integration.catalog(), fn integration ->
       if integration.preferred_target do
         assert integration.preferred_target in target_ids
       end
@@ -567,17 +567,17 @@ defmodule ControlKeel.AgentIntegrationTest do
   end
 
   test "typed runtime, provider, and alias rows stay truthful" do
-    devin = AgentIntegration.get("devin")
-    devin_terminal = AgentIntegration.get("devin-terminal")
-    warp = AgentIntegration.get("warp")
-    warp_oz = AgentIntegration.get("warp-oz")
-    executor = AgentIntegration.get("executor")
-    virtual_bash = AgentIntegration.get("virtual-bash")
-    codex_app = AgentIntegration.get("codex-app-server")
-    vllm = AgentIntegration.get("vllm")
-    vscode = AgentIntegration.get("vscode")
-    opencode = AgentIntegration.get("opencode")
-    copilot = AgentIntegration.get("copilot")
+    devin = Integration.get("devin")
+    devin_terminal = Integration.get("devin-terminal")
+    warp = Integration.get("warp")
+    warp_oz = Integration.get("warp-oz")
+    executor = Integration.get("executor")
+    virtual_bash = Integration.get("virtual-bash")
+    codex_app = Integration.get("codex-app-server")
+    vllm = Integration.get("vllm")
+    vscode = Integration.get("vscode")
+    opencode = Integration.get("opencode")
+    copilot = Integration.get("copilot")
 
     assert devin.support_class == "headless_runtime"
     assert devin.runtime_export_command == "controlkeel runtime export devin"
@@ -597,7 +597,7 @@ defmodule ControlKeel.AgentIntegrationTest do
     assert virtual_bash.support_class == "headless_runtime"
     assert virtual_bash.runtime_export_command == "controlkeel runtime export virtual-bash"
     assert virtual_bash.preferred_target == "virtual-bash-runtime"
-    assert AgentIntegration.get("letta-code").execution_support == "direct"
+    assert Integration.get("letta-code").execution_support == "direct"
 
     assert codex_app.support_class == "attach_client"
     assert codex_app.attach_command == "controlkeel attach codex-cli"
@@ -605,7 +605,7 @@ defmodule ControlKeel.AgentIntegrationTest do
     assert codex_app.runtime_review_transport == "app_server_review"
     assert codex_app.runtime_session_support["fork"]
 
-    t3code = AgentIntegration.get("t3code")
+    t3code = Integration.get("t3code")
     assert t3code.support_class == "attach_client"
     assert t3code.attach_command == "controlkeel attach codex-cli"
     assert t3code.runtime_transport == "t3code_provider_runtime"
@@ -633,25 +633,25 @@ defmodule ControlKeel.AgentIntegrationTest do
 
   describe "mcp_install_command/1" do
     test "returns the Claude CLI one-liner for claude-code" do
-      cmd = AgentIntegration.mcp_install_command("claude-code")
+      cmd = Integration.mcp_install_command("claude-code")
       assert cmd =~ "claude mcp add-json controlkeel"
       assert cmd =~ ~s({"command":"controlkeel","args":["mcp"]})
     end
 
     test "returns the OpenCode one-liner" do
-      assert AgentIntegration.mcp_install_command("opencode") ==
+      assert Integration.mcp_install_command("opencode") ==
                "opencode mcp add controlkeel controlkeel mcp"
     end
 
     test "returns the Cursor JSON snippet" do
-      cmd = AgentIntegration.mcp_install_command("cursor")
+      cmd = Integration.mcp_install_command("cursor")
       assert cmd =~ "mcpServers"
       assert cmd =~ "controlkeel"
     end
 
     test "returns nil for hosts without a canonical one-liner" do
-      assert AgentIntegration.mcp_install_command("aider") == nil
-      assert AgentIntegration.mcp_install_command("not-a-host") == nil
+      assert Integration.mcp_install_command("aider") == nil
+      assert Integration.mcp_install_command("not-a-host") == nil
     end
   end
 end

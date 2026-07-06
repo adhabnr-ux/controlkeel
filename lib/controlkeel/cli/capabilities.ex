@@ -1,7 +1,7 @@
 defmodule ControlKeel.CLI.Capabilities do
   @moduledoc false
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.CLI.Catalog
 
   def payload do
@@ -10,7 +10,7 @@ defmodule ControlKeel.CLI.Capabilities do
     %{
       "commands" => Enum.map(entries, &command_payload/1),
       "families" => family_payload(entries),
-      "hosts" => Enum.map(AgentIntegration.attach_catalog(), &host_payload/1),
+      "hosts" => Enum.map(Integration.attach_catalog(), &host_payload/1),
       "mcp_tools" => unique_catalog_values(entries, :related_mcp_tools),
       "skills" => unique_catalog_values(entries, :related_skills),
       "hooks" => unique_catalog_values(entries, :related_hooks),
@@ -21,7 +21,7 @@ defmodule ControlKeel.CLI.Capabilities do
         "dry_run_capable_commands" => Enum.count(entries, & &1.safety.dry_run),
         "read_only_commands" => Enum.count(entries, &(not &1.safety.mutates)),
         "mutating_commands" => Enum.count(entries, & &1.safety.mutates),
-        "host_count" => length(AgentIntegration.attach_catalog())
+        "host_count" => length(Integration.attach_catalog())
       }
     }
   end

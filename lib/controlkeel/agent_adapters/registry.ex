@@ -1,7 +1,7 @@
 defmodule ControlKeel.AgentAdapters.Registry do
   @moduledoc false
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.Skills.SkillTarget
 
   @modules [
@@ -21,7 +21,7 @@ defmodule ControlKeel.AgentAdapters.Registry do
     Enum.find(@modules, &(apply(&1, :id, []) == id))
   end
 
-  def enrich_integration(%AgentIntegration{} = integration) do
+  def enrich_integration(%Integration{} = integration) do
     case get(integration.id) do
       nil ->
         integration
@@ -32,7 +32,7 @@ defmodule ControlKeel.AgentAdapters.Registry do
         capabilities = adapter.host_capabilities()
         artifacts = adapter.artifact_manifest(scope: integration.default_scope)
 
-        %AgentIntegration{
+        %Integration{
           integration
           | install_experience:
               Map.get(capabilities, :install_experience, integration.install_experience),

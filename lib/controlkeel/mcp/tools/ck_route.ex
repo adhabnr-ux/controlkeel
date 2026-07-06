@@ -1,7 +1,7 @@
 defmodule ControlKeel.MCP.Tools.CkRoute do
   @moduledoc false
 
-  alias ControlKeel.AgentRouter
+  alias ControlKeel.Agent.Router
 
   @doc """
   MCP tool: ck_route
@@ -25,7 +25,7 @@ defmodule ControlKeel.MCP.Tools.CkRoute do
       |> maybe_put(:allowed_agents, Map.get(arguments, "allowed_agents"))
       |> maybe_put(:token_overhead_k, Map.get(arguments, "token_overhead_k"))
 
-    case AgentRouter.route(task, opts) do
+    case Router.route(task, opts) do
       {:ok, recommendation} ->
         {:ok, stringify_keys(recommendation)}
 

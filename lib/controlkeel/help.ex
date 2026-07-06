@@ -1,7 +1,7 @@
 defmodule ControlKeel.Help do
   @moduledoc false
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.CLI.Catalog
   alias ControlKeel.CLI.Output
 
@@ -1046,7 +1046,7 @@ defmodule ControlKeel.Help do
   end
 
   defp matched_agent(tokens) do
-    AgentIntegration.attach_catalog()
+    Integration.attach_catalog()
     |> Enum.find(fn integration ->
       candidate_tokens =
         ([integration.id, integration.label, integration.preferred_target] ++
@@ -1070,7 +1070,7 @@ defmodule ControlKeel.Help do
   end
 
   defp supported_attach_agents_text do
-    AgentIntegration.attach_catalog()
+    Integration.attach_catalog()
     |> Enum.map(& &1.id)
     |> Enum.join(", ")
   end

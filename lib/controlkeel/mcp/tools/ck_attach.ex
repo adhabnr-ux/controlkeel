@@ -33,7 +33,7 @@ defmodule ControlKeel.MCP.Tools.CkAttach do
   outside the project root. Same trust class as any MCP write tool.
   """
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.CLI
 
   def call(arguments) when is_map(arguments) do
@@ -75,18 +75,18 @@ defmodule ControlKeel.MCP.Tools.CkAttach do
   defp require_host(_), do: {:error, {:invalid_arguments, "host is required"}}
 
   defp validate_host(host) do
-    attachable = AgentIntegration.attachable_ids()
+    attachable = Integration.attachable_ids()
 
     cond do
       host not in attachable ->
         {:error,
          {:invalid_arguments, "unknown host: #{host}. Supported: #{Enum.join(attachable, ", ")}"}}
 
-      AgentIntegration.get(host) == nil ->
+      Integration.get(host) == nil ->
         {:error, {:invalid_arguments, "host #{host} is not in the integration catalog"}}
 
       true ->
-        {:ok, AgentIntegration.get(host)}
+        {:ok, Integration.get(host)}
     end
   end
 
@@ -104,8 +104,8 @@ defmodule ControlKeel.MCP.Tools.CkAttach do
 
   @doc """
   List of host IDs this tool can attach — the canonical attach-client set from
-  AgentIntegration, so the agent-facing ck_attach surface never drifts below the
+  Integration, so the agent-facing ck_attach surface never drifts below the
   hosts the CLI actually attaches.
   """
-  def attachable_hosts, do: AgentIntegration.attachable_ids()
+  def attachable_hosts, do: Integration.attachable_ids()
 end

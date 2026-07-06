@@ -1,8 +1,8 @@
 defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   @moduledoc false
 
-  alias ControlKeel.AgentExecution
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Execution
+  alias ControlKeel.Agent.Integration
   alias ControlKeel.ClaudeCLI
   alias ControlKeel.CodexConfig
   alias ControlKeel.ProviderBroker
@@ -492,7 +492,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   def run_command(%{command: :agents_doctor, options: options}, project_root) do
     with {:ok, format} <- effective_cli_format(options) do
       root = resolve_project_root(options, project_root)
-      doctor = AgentExecution.doctor(root)
+      doctor = Execution.doctor(root)
       snapshot = SetupAdvisor.snapshot(root)
 
       case format do
@@ -526,7 +526,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   def run_command(%{command: :attach_doctor, options: options}, project_root) do
     with {:ok, format} <- effective_cli_format(options) do
       root = resolve_project_root(options, project_root)
-      doctor = AgentExecution.doctor(root)
+      doctor = Execution.doctor(root)
       snapshot = SetupAdvisor.snapshot(root)
       provider_status = ProviderBroker.status(root)
 
@@ -582,7 +582,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
   def run_command(%{command: :agents_list, options: options}, project_root) do
     with {:ok, format} <- effective_cli_format(options) do
       root = resolve_project_root(options, project_root)
-      agents = AgentExecution.list_agents(root)
+      agents = Execution.list_agents(root)
 
       case format do
         "json" ->
@@ -655,7 +655,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
 
   # Resolve the *actual* key an agent was stored under in attached_agents.
   # attach is inconsistent (claude-code -> "claude_code", most others use their
-  # raw dashed name), and AgentIntegration.canonical/1 returns a struct, so we
+  # raw dashed name), and Integration.canonical/1 returns a struct, so we
   # match against a candidate set of dash/underscore variants.
   defp resolve_attached(agent, binding) do
     agents = Map.get(binding, "attached_agents", %{})
@@ -668,7 +668,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
 
   defp attached_key_candidates(agent) do
     canonical_id =
-      case AgentIntegration.canonical(agent) do
+      case Integration.canonical(agent) do
         %{id: id} when is_binary(id) -> id
         _ -> agent
       end

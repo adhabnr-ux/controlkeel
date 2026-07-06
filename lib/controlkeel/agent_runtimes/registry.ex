@@ -1,7 +1,7 @@
 defmodule ControlKeel.AgentRuntimes.Registry do
   @moduledoc false
 
-  alias ControlKeel.AgentIntegration
+  alias ControlKeel.Agent.Integration
 
   @modules [
     ControlKeel.AgentRuntimes.Augment,
@@ -22,13 +22,13 @@ defmodule ControlKeel.AgentRuntimes.Registry do
     Enum.find(@modules, &(apply(&1, :id, []) == id))
   end
 
-  def enrich_integration(%AgentIntegration{} = integration) do
+  def enrich_integration(%Integration{} = integration) do
     case get(integration.id) do
       nil ->
         integration
 
       runtime ->
-        %AgentIntegration{
+        %Integration{
           integration
           | runtime_transport: runtime.runtime_transport(),
             runtime_auth_owner: runtime.runtime_auth_owner(),
