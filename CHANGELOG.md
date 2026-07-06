@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.62 — 2026-07-06
+
+### What's changed
+
+- refactor: group cloud telemetry and usage modules into namespaces
+- refactor: reorganize lib/controlkeel structure
+- refactor: consolidate scattered modules into domain subdirectories
+
 ## v0.3.61 — 2026-07-06
 
 ### What's changed
