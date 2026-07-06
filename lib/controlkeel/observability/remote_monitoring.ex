@@ -1,4 +1,4 @@
-defmodule ControlKeel.RemoteMonitoring do
+defmodule ControlKeel.Observability.RemoteMonitoring do
   @moduledoc """
   Remote monitoring hooks system for session event streaming.
   Provides webhook/subscription capabilities for read-only monitoring.

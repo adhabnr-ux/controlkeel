@@ -1,4 +1,4 @@
-defmodule ControlKeel.ProviderConfig do
+defmodule ControlKeel.ProviderBroker.Config do
   @moduledoc false
 
   alias ControlKeel.Runtime.Paths

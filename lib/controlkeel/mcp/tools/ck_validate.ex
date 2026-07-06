@@ -1,11 +1,11 @@
 defmodule ControlKeel.MCP.Tools.CkValidate do
   @moduledoc false
 
-  alias ControlKeel.AutoFix
+  alias ControlKeel.Scanner.AutoFix
   alias ControlKeel.Intent.Domains
   alias ControlKeel.Learning.OutcomeTracker
   alias ControlKeel.Mission
-  alias ControlKeel.Precedent
+  alias ControlKeel.Memory.Precedent
   alias ControlKeel.Scanner
   alias ControlKeel.Scanner.FastPath
   alias ControlKeel.Governance.SecurityWorkflow

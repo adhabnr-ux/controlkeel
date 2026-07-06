@@ -1,8 +1,8 @@
-defmodule ControlKeel.PrecedentTest do
+defmodule ControlKeel.Memory.PrecedentTest do
   use ControlKeel.DataCase, async: false
 
   alias ControlKeel.Mission.Session
-  alias ControlKeel.Precedent
+  alias ControlKeel.Memory.Precedent
 
   describe "workspace scoping guards" do
     test "for_rule_ids/for_rule_id return [] when workspace_id is nil" do

@@ -267,9 +267,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     root = resolve_project_root(options, project_root)
     overrides = %{"agent" => options[:agent] || "claude"}
 
-    case Local.load_or_bootstrap(root, overrides,
-           ephemeral_ok: options[:ephemeral_ok] != false
-         ) do
+    case Local.load_or_bootstrap(root, overrides, ephemeral_ok: options[:ephemeral_ok] != false) do
       {:ok, binding, session, mode} ->
         {:ok,
          [

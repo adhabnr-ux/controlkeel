@@ -5,7 +5,7 @@ defmodule ControlKeel.Mission do
 
   alias Ecto.Multi
   alias ControlKeel.Accounts
-  alias ControlKeel.AutoFix
+  alias ControlKeel.Scanner.AutoFix
   alias ControlKeel.Mission.DecisionGates
   alias ControlKeel.Mission.GovernedManifest
   alias ControlKeel.Intent.ExecutionBrief

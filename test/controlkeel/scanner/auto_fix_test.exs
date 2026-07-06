@@ -1,7 +1,7 @@
-defmodule ControlKeel.AutoFixTest do
+defmodule ControlKeel.Scanner.AutoFixTest do
   use ControlKeel.DataCase
 
-  alias ControlKeel.AutoFix
+  alias ControlKeel.Scanner.AutoFix
 
   import ControlKeel.MissionFixtures
 

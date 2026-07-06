@@ -1,4 +1,4 @@
-defmodule ControlKeel.AutoFix do
+defmodule ControlKeel.Scanner.AutoFix do
   @moduledoc false
 
   alias ControlKeel.Mission.Finding

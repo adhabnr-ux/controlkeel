@@ -1,7 +1,7 @@
 defmodule ControlKeel.Runtime.ModeTest do
   use ExUnit.Case, async: false
 
-  alias ControlKeel.{Runtime, Runtime.Defaults, Runtime.Mode, SelfHost}
+  alias ControlKeel.{Runtime, Runtime.Defaults, Runtime.Mode, Ops.SelfHost}
 
   setup do
     previous_runtime_mode = Application.get_env(:controlkeel, :runtime_mode)

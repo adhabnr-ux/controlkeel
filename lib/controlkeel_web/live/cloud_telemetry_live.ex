@@ -14,7 +14,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
   alias ControlKeel.Accounts
   alias ControlKeel.Budget
   alias ControlKeel.Platform
-  alias ControlKeel.ProviderConfig
+  alias ControlKeel.ProviderBroker.Config
   alias ControlKeel.Cloud.BaselineAnalyzer
   alias ControlKeel.Cloud.Guardrails
   alias ControlKeel.Cloud.WorkspaceBaseline
@@ -672,7 +672,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
   end
 
   defp load_fallback_chain do
-    case ProviderConfig.read() do
+    case Config.read() do
       {:ok, config} -> Map.get(config, "fallback_chain", [])
       _ -> []
     end

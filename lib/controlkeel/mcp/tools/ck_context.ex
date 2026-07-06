@@ -8,7 +8,7 @@ defmodule ControlKeel.MCP.Tools.CkContext do
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Finding, Session}
   alias ControlKeel.ProviderBroker
-  alias ControlKeel.Precedent
+  alias ControlKeel.Memory.Precedent
   alias ControlKeel.Project.Local
   alias ControlKeel.Repo
   alias ControlKeel.Mission.TaskAugmentation

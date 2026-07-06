@@ -1,4 +1,4 @@
-defmodule ControlKeel.Precedent do
+defmodule ControlKeel.Memory.Precedent do
   @moduledoc false
 
   alias ControlKeel.Memory

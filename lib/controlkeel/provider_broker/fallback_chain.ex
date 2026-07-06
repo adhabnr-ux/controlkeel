@@ -16,7 +16,7 @@ defmodule ControlKeel.ProviderBroker.FallbackChain do
 
   alias ControlKeel.Budget
   alias ControlKeel.ProviderBroker
-  alias ControlKeel.ProviderConfig
+  alias ControlKeel.ProviderBroker.Config
 
   @default_chain ~w(anthropic openai openrouter ollama)
 
@@ -59,7 +59,7 @@ defmodule ControlKeel.ProviderBroker.FallbackChain do
   end
 
   defp configured_chain do
-    case ProviderConfig.read() do
+    case Config.read() do
       {:ok, %{"fallback_chain" => chain}} when is_list(chain) and chain != [] -> chain
       _ -> @default_chain
     end

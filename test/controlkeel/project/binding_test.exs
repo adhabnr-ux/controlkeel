@@ -168,9 +168,7 @@ defmodule ControlKeel.Project.BindingTest do
     # Dev/build artifact paths that must not be baked into a shipped wrapper.
     assert Binding.dev_or_build_path?("/repo/_build/prod/rel/controlkeel/bin/controlkeel")
 
-    assert Binding.dev_or_build_path?(
-             "/home/u/.burrito/controlkeel_erts-15/bin/controlkeel"
-           )
+    assert Binding.dev_or_build_path?("/home/u/.burrito/controlkeel_erts-15/bin/controlkeel")
 
     assert Binding.dev_or_build_path?("/opt/app/erts-15.2/bin/controlkeel")
     assert Binding.dev_or_build_path?("/repo/deps/controlkeel/controlkeel")

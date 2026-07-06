@@ -37,9 +37,7 @@ defmodule ControlKeel.Project.LocalTest do
     File.mkdir_p!(project_root)
 
     assert {:ok, binding, session, :bootstrapped_project} =
-             Local.load_or_bootstrap(project_root, %{"agent" => "codex"},
-               ephemeral_ok: true
-             )
+             Local.load_or_bootstrap(project_root, %{"agent" => "codex"}, ephemeral_ok: true)
 
     assert binding["project_root"] ==
              Binding.bootstrap_summary(project_root)["project_root"]
@@ -63,9 +61,7 @@ defmodule ControlKeel.Project.LocalTest do
     end)
 
     assert {:ok, binding, session, :bootstrapped_ephemeral} =
-             Local.load_or_bootstrap(project_root, %{"agent" => "claude"},
-               ephemeral_ok: true
-             )
+             Local.load_or_bootstrap(project_root, %{"agent" => "claude"}, ephemeral_ok: true)
 
     assert binding["project_root"] ==
              Binding.bootstrap_summary(project_root)["project_root"]

@@ -2,7 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
   @moduledoc false
 
   alias ControlKeel.Mission
-  alias ControlKeel.Precedent
+  alias ControlKeel.Memory.Precedent
 
   @allowed_decisions ~w(allow warn block escalate_to_human)
   @disposition_modes ~w(resolve dismiss escalate)

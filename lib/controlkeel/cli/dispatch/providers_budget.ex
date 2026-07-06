@@ -5,7 +5,7 @@ defmodule ControlKeel.CLI.Dispatch.ProvidersBudget do
   alias ControlKeel.Accounts
   alias ControlKeel.Accounts.WorkspaceToolPolicy
   alias ControlKeel.ProviderBroker
-  alias ControlKeel.ProviderConfig
+  alias ControlKeel.ProviderBroker.Config
   import ControlKeel.CLI, except: [run_command: 2]
 
   def run_command(%{command: :workspace_tool_policy_get, options: options}, _project_root) do
@@ -205,13 +205,13 @@ defmodule ControlKeel.CLI.Dispatch.ProvidersBudget do
         _project_root
       )
       when providers != [] do
-    case ProviderConfig.set_fallback_chain(providers) do
+    case Config.set_fallback_chain(providers) do
       {:ok, _config} ->
         {:ok, ["Fallback chain set: #{Enum.join(providers, " → ")}"]}
 
       {:error, {:unknown_providers, bad}} ->
         {:error,
-         "Unknown provider(s): #{Enum.join(bad, ", ")}. Allowed: #{Enum.join(ProviderConfig.allowed_providers(), ", ")}"}
+         "Unknown provider(s): #{Enum.join(bad, ", ")}. Allowed: #{Enum.join(Config.allowed_providers(), ", ")}"}
 
       {:error, reason} ->
         {:error, "Failed to set fallback chain: #{inspect(reason)}"}

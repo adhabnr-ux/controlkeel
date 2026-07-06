@@ -4,7 +4,7 @@ defmodule ControlKeel.ProviderBroker do
   alias ControlKeel.Agent.Integration
   alias ControlKeel.AgentRuntimes.Registry, as: RuntimeRegistry
   alias ControlKeel.Project.Binding
-  alias ControlKeel.ProviderConfig
+  alias ControlKeel.ProviderBroker.Config
 
   @hosted_provider_envs %{
     "anthropic" => "ANTHROPIC_API_KEY",
@@ -14,7 +14,7 @@ defmodule ControlKeel.ProviderBroker do
   @ollama_model_env "CONTROLKEEL_INTENT_OLLAMA_MODEL"
 
   def provider_ids do
-    ProviderConfig.allowed_providers()
+    Config.allowed_providers()
   end
 
   def status(project_root \\ File.cwd!(), opts \\ []) do
@@ -95,20 +95,20 @@ defmodule ControlKeel.ProviderBroker do
         Binding.put_provider_override(project_root, %{"default_source" => source})
 
       _ ->
-        ProviderConfig.set_default_source(source)
+        Config.set_default_source(source)
     end
   end
 
   def set_key(provider, value) when is_binary(value) do
-    ProviderConfig.put_profile(provider, %{"api_key" => value})
+    Config.put_profile(provider, %{"api_key" => value})
   end
 
   def set_base_url(provider, value) when is_binary(value) do
-    ProviderConfig.put_profile(provider, %{"base_url" => normalize_optional_string(value)})
+    Config.put_profile(provider, %{"base_url" => normalize_optional_string(value)})
   end
 
   def set_model(provider, value) when is_binary(value) do
-    ProviderConfig.put_profile(provider, %{"model" => normalize_optional_string(value)})
+    Config.put_profile(provider, %{"model" => normalize_optional_string(value)})
   end
 
   def doctor(project_root \\ File.cwd!(), opts \\ []) do
@@ -229,7 +229,7 @@ defmodule ControlKeel.ProviderBroker do
 
   defp workspace_profile_resolution_for(provider, opts) do
     config = global_config()
-    profile = ProviderConfig.profile(config, provider)
+    profile = Config.profile(config, provider)
 
     if configured_profile?(profile) do
       resolution(
@@ -260,7 +260,7 @@ defmodule ControlKeel.ProviderBroker do
   end
 
   defp user_profile_resolution_for(provider, opts) do
-    profile = ProviderConfig.profile(global_config(), provider)
+    profile = Config.profile(global_config(), provider)
 
     if configured_profile?(effective_profile(provider, profile, opts)) do
       resolution(
@@ -286,7 +286,7 @@ defmodule ControlKeel.ProviderBroker do
           source == "heuristic" ->
             nil
 
-          provider in ProviderConfig.allowed_providers() ->
+          provider in Config.allowed_providers() ->
             project_override_resolution_for(provider, binding, opts)
 
           true ->
@@ -301,7 +301,7 @@ defmodule ControlKeel.ProviderBroker do
   defp project_override_resolution_for(provider, binding, opts) do
     case binding do
       %{"provider_override" => _override} ->
-        profile = ProviderConfig.profile(global_config(), provider)
+        profile = Config.profile(global_config(), provider)
 
         if configured_profile?(effective_profile(provider, profile, opts)) do
           resolution(
@@ -526,7 +526,7 @@ defmodule ControlKeel.ProviderBroker do
   defp default_model(_provider, _opts), do: nil
 
   defp profile_summary(config, provider) do
-    profile = ProviderConfig.profile(config, provider)
+    profile = Config.profile(config, provider)
     env_key = Map.get(@hosted_provider_envs, provider)
 
     profile_resolution =
@@ -1049,9 +1049,9 @@ defmodule ControlKeel.ProviderBroker do
   defp maybe_append(list, value), do: list ++ [value]
 
   defp global_config do
-    case ProviderConfig.read() do
+    case Config.read() do
       {:ok, config} -> config
-      {:error, _reason} -> ProviderConfig.default_config()
+      {:error, _reason} -> Config.default_config()
     end
   end
 end

@@ -32,9 +32,7 @@ defmodule ControlKeel.CLI.Dispatch.MemoryContinuity do
            |> Map.put("session_id", target.id)
            |> Map.put("workspace_id", target.workspace_id),
          {:ok, written} <-
-           Binding.write_effective(updated, project_root,
-             mode: binding_write_mode(binding)
-           ),
+           Binding.write_effective(updated, project_root, mode: binding_write_mode(binding)),
          {:ok, _updated_session} <-
            Mission.attach_session_runtime_context(target.id, %{
              "project_root" => Root.resolve(project_root)
