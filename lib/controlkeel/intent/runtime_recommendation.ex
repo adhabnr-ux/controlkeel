@@ -2,7 +2,7 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
   @moduledoc false
 
   alias ControlKeel.Agent.Integration
-  alias ControlKeel.Intent.{ExecutionBrief, ExecutionPosture, RuntimePolicyProfile}
+  alias ControlKeel.Intent.{ExecutionPosture, RuntimePolicyProfile}
   alias ControlKeel.ProviderBroker
 
   @approval_keywords ~w(approval approvals review reviewed reviewer human manual signoff)
@@ -19,7 +19,13 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
 
   def build(brief, opts \\ [])
 
-  def build(%ExecutionBrief{} = brief, opts), do: build(ExecutionBrief.to_map(brief), opts)
+  def build(%{__struct__: _} = brief, opts) do
+    brief
+    |> Map.from_struct()
+    |> Map.drop([:__meta__])
+    |> Enum.into(%{}, fn {k, v} -> {to_string(k), v} end)
+    |> then(&build(&1, opts))
+  end
 
   def build(brief, opts) when is_map(brief) do
     posture = ExecutionPosture.build(brief)
@@ -282,9 +288,9 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
       fetch_string(brief, "data_summary"),
       fetch_string(brief, "recommended_stack"),
       fetch_string(brief, "next_step"),
-      list_text(fetch_value(brief, "compliance")),
-      list_text(fetch_value(brief, "acceptance_criteria")),
-      list_text(fetch_value(brief, "open_questions")),
+      list_text(Map.get(brief, "compliance")),
+      list_text(Map.get(brief, "acceptance_criteria")),
+      list_text(Map.get(brief, "open_questions")),
       nested_constraint_text(brief)
     ]
     |> Enum.reject(&is_nil/1)
@@ -294,11 +300,11 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
 
   defp nested_constraint_text(brief) do
     brief
-    |> fetch_value("compiler")
+    |> Map.get("compiler")
     |> case do
       compiler when is_map(compiler) ->
         compiler
-        |> fetch_value("interview_answers")
+        |> Map.get("interview_answers")
         |> case do
           answers when is_map(answers) -> fetch_string(answers, "constraints")
           _ -> nil
@@ -321,7 +327,7 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
 
   defp compiler_provider(brief) do
     brief
-    |> fetch_value("compiler")
+    |> Map.get("compiler")
     |> case do
       compiler when is_map(compiler) -> fetch_string(compiler, "provider")
       _ -> nil
@@ -332,11 +338,9 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
   defp list_text(_value), do: nil
 
   defp fetch_string(map, key) do
-    case fetch_value(map, key) do
+    case Map.get(map, key) do
       value when is_binary(value) ->
-        value
-        |> String.trim()
-        |> case do
+        case String.trim(value) do
           "" -> nil
           trimmed -> trimmed
         end
@@ -345,24 +349,6 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
         nil
     end
   end
-
-  defp fetch_value(map, key) when is_map(map) do
-    Map.get(map, key) || Map.get(map, known_atom_key(key))
-  end
-
-  defp known_atom_key("idea"), do: :idea
-  defp known_atom_key("objective"), do: :objective
-  defp known_atom_key("data_summary"), do: :data_summary
-  defp known_atom_key("recommended_stack"), do: :recommended_stack
-  defp known_atom_key("next_step"), do: :next_step
-  defp known_atom_key("compliance"), do: :compliance
-  defp known_atom_key("acceptance_criteria"), do: :acceptance_criteria
-  defp known_atom_key("open_questions"), do: :open_questions
-  defp known_atom_key("compiler"), do: :compiler
-  defp known_atom_key("interview_answers"), do: :interview_answers
-  defp known_atom_key("constraints"), do: :constraints
-  defp known_atom_key("provider"), do: :provider
-  defp known_atom_key(_key), do: nil
 
   defp availability(opts) do
     project_root = Keyword.get(opts, :project_root, File.cwd!())

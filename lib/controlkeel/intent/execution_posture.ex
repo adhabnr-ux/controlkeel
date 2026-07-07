@@ -1,7 +1,6 @@
 defmodule ControlKeel.Intent.ExecutionPosture do
   @moduledoc false
 
-  alias ControlKeel.Intent.ExecutionBrief
   alias ControlKeel.Runtime.CodeModePolicy
 
   @default_clearance_focus ~w(file_write network deploy secrets)
@@ -18,11 +17,17 @@ defmodule ControlKeel.Intent.ExecutionPosture do
       "Prefer read-only discovery first, keep durable state in typed storage surfaces, use typed runtimes for large tool and API interactions when available, and treat shell as the broad fallback surface for mutation and execution."
   }
 
-  def build(%ExecutionBrief{} = brief), do: build(ExecutionBrief.to_map(brief))
+  def build(%{__struct__: _} = brief) do
+    brief
+    |> Map.from_struct()
+    |> Map.drop([:__meta__])
+    |> Enum.into(%{}, fn {k, v} -> {to_string(k), v} end)
+    |> build()
+  end
 
   def build(brief) when is_map(brief) do
     risk_tier = fetch_string(brief, "risk_tier")
-    compliance = normalize_list(fetch_value(brief, "compliance"))
+    compliance = normalize_list(Map.get(brief, "compliance"))
 
     regulated? =
       risk_tier in @regulated_risk_tiers or
@@ -106,11 +111,9 @@ defmodule ControlKeel.Intent.ExecutionPosture do
   defp normalize_list(_value), do: []
 
   defp fetch_string(map, key) do
-    case fetch_value(map, key) do
+    case Map.get(map, key) do
       value when is_binary(value) ->
-        value
-        |> String.trim()
-        |> case do
+        case String.trim(value) do
           "" -> nil
           trimmed -> trimmed
         end
@@ -119,14 +122,4 @@ defmodule ControlKeel.Intent.ExecutionPosture do
         nil
     end
   end
-
-  defp fetch_value(map, key) when is_map(map) do
-    Map.get(map, key) || Map.get(map, known_atom_key(key))
-  end
-
-  defp known_atom_key("risk_tier"), do: :risk_tier
-  defp known_atom_key("compliance"), do: :compliance
-  defp known_atom_key("data_summary"), do: :data_summary
-  defp known_atom_key("recommended_stack"), do: :recommended_stack
-  defp known_atom_key(_key), do: nil
 end

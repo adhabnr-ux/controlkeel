@@ -1,8 +1,6 @@
 defmodule ControlKeel.Intent.HarnessPolicy do
   @moduledoc false
 
-  alias ControlKeel.Intent.ExecutionBrief
-
   @regulated_risk_tiers ~w(high critical)
 
   @default_policy %{
@@ -104,7 +102,13 @@ defmodule ControlKeel.Intent.HarnessPolicy do
     }
   }
 
-  def build(%ExecutionBrief{} = brief), do: build(ExecutionBrief.to_map(brief))
+  def build(%{__struct__: _} = brief) do
+    brief
+    |> Map.from_struct()
+    |> Map.drop([:__meta__])
+    |> Enum.into(%{}, fn {k, v} -> {to_string(k), v} end)
+    |> build()
+  end
 
   def build(brief) when is_map(brief) do
     risk_tier = fetch_string(brief, "risk_tier")
@@ -222,7 +226,7 @@ defmodule ControlKeel.Intent.HarnessPolicy do
   defp delegation_policy(false), do: @default_policy["delegation"]
 
   defp regulated_or_sensitive?(brief, risk_tier) do
-    compliance = normalize_list(fetch_value(brief, "compliance"))
+    compliance = normalize_list(Map.get(brief, "compliance"))
 
     risk_tier in @regulated_risk_tiers or
       compliance != [] or
@@ -252,7 +256,7 @@ defmodule ControlKeel.Intent.HarnessPolicy do
   defp normalize_list(_value), do: []
 
   defp fetch_string(map, key) do
-    case fetch_value(map, key) do
+    case Map.get(map, key) do
       value when is_binary(value) ->
         case String.trim(value) do
           "" -> nil
@@ -263,14 +267,4 @@ defmodule ControlKeel.Intent.HarnessPolicy do
         nil
     end
   end
-
-  defp fetch_value(map, key) when is_map(map) do
-    Map.get(map, key) || Map.get(map, known_atom_key(key))
-  end
-
-  defp known_atom_key("risk_tier"), do: :risk_tier
-  defp known_atom_key("compliance"), do: :compliance
-  defp known_atom_key("data_summary"), do: :data_summary
-  defp known_atom_key("recommended_stack"), do: :recommended_stack
-  defp known_atom_key(_key), do: nil
 end
