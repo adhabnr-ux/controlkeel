@@ -8,6 +8,7 @@ defmodule ControlKeel.Governance do
   alias ControlKeel.Mission.ProofBundle
   alias ControlKeel.Scanner
   alias ControlKeel.Scanner.FastPath
+  alias ControlKeel.Utils
   alias ControlKeel.Governance.SecurityWorkflow
   alias ControlKeel.Utils
 
@@ -715,17 +716,17 @@ defmodule ControlKeel.Governance do
     "#{length(findings)} blocking finding(s) remain unresolved."
   end
 
-  defp smoke_ready?(%{"ready" => value}), do: truthy?(value)
+  defp smoke_ready?(%{"ready" => value}), do: Utils.truthy?(value)
 
   defp smoke_ready?(evidence) do
     status = evidence["status"] || evidence["conclusion"]
-    truthy?(evidence["success"]) or status in ["success", "passed", "green"]
+    Utils.truthy?(evidence["success"]) or status in ["success", "passed", "green"]
   end
 
-  defp provenance_verified?(%{"verified" => value}), do: truthy?(value)
+  defp provenance_verified?(%{"verified" => value}), do: Utils.truthy?(value)
 
   defp provenance_verified?(evidence) do
-    truthy?(evidence["attested"]) or truthy?(evidence["verified"]) or
+    Utils.truthy?(evidence["attested"]) or Utils.truthy?(evidence["verified"]) or
       (evidence["status"] || evidence["conclusion"]) in ["success", "verified", "attested"]
   end
 
@@ -935,7 +936,4 @@ defmodule ControlKeel.Governance do
   defp normalize_map(_value), do: %{}
 
   defp blank_to_nil(value), do: Utils.blank_to_nil(value)
-
-  defp truthy?(value) when value in [true, "true", "1", 1, "yes"], do: true
-  defp truthy?(_value), do: false
 end

@@ -143,7 +143,7 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
     )
     |> Map.put(
       "evidence_type",
-      normalize_enum(
+      Utils.normalize_enum(
         normalized["evidence_type"] || attrs["evidence_type"],
         @evidence_types,
         "source"
@@ -151,7 +151,7 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
     )
     |> Map.put(
       "exploitability_status",
-      normalize_enum(
+      Utils.normalize_enum(
         normalized["exploitability_status"] || attrs["exploitability_status"],
         @exploitability_statuses,
         "suspected"
@@ -159,11 +159,15 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
     )
     |> Map.put(
       "patch_status",
-      normalize_enum(normalized["patch_status"] || attrs["patch_status"], @patch_statuses, "none")
+      Utils.normalize_enum(
+        normalized["patch_status"] || attrs["patch_status"],
+        @patch_statuses,
+        "none"
+      )
     )
     |> Map.put(
       "disclosure_status",
-      normalize_enum(
+      Utils.normalize_enum(
         normalized["disclosure_status"] || attrs["disclosure_status"],
         @disclosure_statuses,
         "draft"
@@ -173,7 +177,7 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
     |> maybe_put_string("cve_id", normalized["cve_id"] || attrs["cve_id"])
     |> Map.put(
       "maintainer_scope",
-      normalize_enum(
+      Utils.normalize_enum(
         normalized["maintainer_scope"] || attrs["maintainer_scope"],
         @maintainer_scopes,
         "first_party"
@@ -261,7 +265,7 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
 
   def isolated_runtime_required?(task) when is_map(task) do
     metadata = Map.get(task, :metadata) || Map.get(task, "metadata") || %{}
-    truthy?(metadata["requires_isolated_runtime"])
+    Utils.truthy?(metadata["requires_isolated_runtime"])
   end
 
   def isolated_runtime_path?(claim_metadata) when is_map(claim_metadata) do
@@ -306,13 +310,6 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
 
   defp normalize_security_occupation(value), do: value
 
-  defp normalize_enum(value, allowed, default) when is_binary(value) do
-    trimmed = String.trim(value)
-    if trimmed in allowed, do: trimmed, else: default
-  end
-
-  defp normalize_enum(_value, _allowed, default), do: default
-
   defp normalize_string_list(value) when is_list(value) do
     value
     |> Enum.map(&to_string/1)
@@ -340,6 +337,4 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
       _ -> nil
     end
   end
-
-  defp truthy?(value), do: value in [true, "true", 1, "1", "yes"]
 end

@@ -2,6 +2,7 @@ defmodule ControlKeel.Governance.TrustBoundary do
   @moduledoc false
 
   alias ControlKeel.Scanner
+  alias ControlKeel.Utils
 
   @source_types ~w(
     system
@@ -61,14 +62,14 @@ defmodule ControlKeel.Governance.TrustBoundary do
 
   def normalize_validation_context(input) when is_map(input) do
     source_type =
-      normalize_enum(
+      Utils.normalize_enum(
         Map.get(input, "source_type") || Map.get(input, :source_type),
         @source_types,
         "repository"
       )
 
     trust_level =
-      normalize_enum(
+      Utils.normalize_enum(
         Map.get(input, "trust_level") || Map.get(input, :trust_level),
         @trust_levels,
         inferred_trust_level(source_type)
@@ -80,7 +81,7 @@ defmodule ControlKeel.Governance.TrustBoundary do
         "code"
 
     intended_use =
-      normalize_enum(
+      Utils.normalize_enum(
         Map.get(input, "intended_use") || Map.get(input, :intended_use),
         @intended_uses,
         default_intended_use(kind)
@@ -397,15 +398,6 @@ defmodule ControlKeel.Governance.TrustBoundary do
   end
 
   defp normalize_capabilities(_value), do: []
-
-  defp normalize_enum(nil, _allowed, default), do: default
-
-  defp normalize_enum(value, allowed, default) when is_binary(value) do
-    normalized = String.trim(value)
-    if normalized in allowed, do: normalized, else: default
-  end
-
-  defp normalize_enum(_value, _allowed, default), do: default
 
   defp inferred_trust_level(source_type)
        when source_type in ~w(system controlkeel developer human_review approved_skill),

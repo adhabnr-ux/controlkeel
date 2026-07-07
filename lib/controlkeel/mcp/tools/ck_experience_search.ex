@@ -3,12 +3,13 @@ defmodule ControlKeel.MCP.Tools.CkExperienceSearch do
 
   alias ControlKeel.MCP.Arguments
   alias ControlKeel.Mission
+  alias ControlKeel.Utils
 
   @max_limit 20
 
   def call(arguments) when is_map(arguments) do
     with {:ok, session_id} <- Arguments.resolve_session_id(arguments),
-         {:ok, session} <- fetch_session(session_id),
+         {:ok, session} <- Utils.fetch_session(session_id),
          {:ok, query} <- Arguments.required_string(arguments, "query"),
          {:ok, limit} <- optional_integer(arguments, "limit", 10),
          :ok <- validate_limit(limit) do
@@ -17,13 +18,6 @@ defmodule ControlKeel.MCP.Tools.CkExperienceSearch do
   end
 
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
-
-  defp fetch_session(session_id) do
-    case Mission.get_session(session_id) do
-      nil -> {:error, {:invalid_arguments, "Session not found"}}
-      session -> {:ok, session}
-    end
-  end
 
   defp optional_integer(arguments, key, default) do
     case Map.get(arguments, key) do

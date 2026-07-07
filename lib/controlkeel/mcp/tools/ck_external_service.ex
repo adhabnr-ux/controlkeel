@@ -3,6 +3,7 @@ defmodule ControlKeel.MCP.Tools.CkExternalService do
 
   alias ControlKeel.Governance.ExternalServiceTracker
   alias ControlKeel.MCP.Arguments
+  alias ControlKeel.Utils
 
   def call(arguments) when is_map(arguments) do
     try do
@@ -42,8 +43,11 @@ defmodule ControlKeel.MCP.Tools.CkExternalService do
             }
 
             case ExternalServiceTracker.record(attrs) do
-              {:ok, interaction} -> {:ok, format_interaction(interaction)}
-              {:error, changeset} -> {:error, {:invalid_arguments, format_errors(changeset)}}
+              {:ok, interaction} ->
+                {:ok, format_interaction(interaction)}
+
+              {:error, changeset} ->
+                {:error, {:invalid_arguments, Utils.format_changeset_errors(changeset)}}
             end
 
           "summary" ->
@@ -79,11 +83,5 @@ defmodule ControlKeel.MCP.Tools.CkExternalService do
       "cost_cents" => interaction.cost_cents,
       "redacted" => interaction.redacted
     }
-  end
-
-  defp format_errors(changeset) do
-    changeset.errors
-    |> Enum.map(fn {field, {msg, _opts}} -> "#{field}: #{msg}" end)
-    |> Enum.join("; ")
   end
 end

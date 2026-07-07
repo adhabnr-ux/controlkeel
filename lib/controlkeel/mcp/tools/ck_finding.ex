@@ -4,13 +4,14 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
   alias ControlKeel.Mission
   alias ControlKeel.Memory.Precedent
   alias ControlKeel.MCP.Arguments
+  alias ControlKeel.Utils
 
   @allowed_decisions ~w(allow warn block escalate_to_human)
   @disposition_modes ~w(resolve dismiss escalate)
 
   def call(arguments) when is_map(arguments) do
     with {:ok, session_id} <- Arguments.required_integer(arguments, "session_id"),
-         {:ok, _session} <- fetch_session(session_id),
+         {:ok, _session} <- Utils.fetch_session(session_id),
          {:ok, mode} <- normalize_mode(arguments) do
       case mode do
         "create" -> do_create(arguments, session_id)
@@ -181,7 +182,7 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
 
       metadata =
         Map.get(arguments, "metadata", %{})
-        |> ensure_map()
+        |> Utils.ensure_map()
         |> Map.put_new("source", "mcp")
         |> maybe_put("task_id", task_id)
 
@@ -232,13 +233,6 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
 
   defp resolve_matching_findings(_attrs), do: {:ok, []}
 
-  defp fetch_session(session_id) do
-    case Mission.get_session(session_id) do
-      nil -> {:error, {:invalid_arguments, "Session not found"}}
-      session -> {:ok, session}
-    end
-  end
-
   defp validate_task(nil, _session_id), do: {:ok, nil}
 
   defp validate_task(task_id, session_id) do
@@ -260,9 +254,6 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
          {:invalid_arguments, "`decision` must be allow, warn, block, or escalate_to_human"}}
     end
   end
-
-  defp ensure_map(value) when is_map(value), do: value
-  defp ensure_map(_value), do: %{}
 
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)

@@ -4,6 +4,7 @@ defmodule ControlKeel.Skills.Parser do
   alias ControlKeel.Skills.SkillDefinition
   alias ControlKeel.Skills.SkillDiagnostic
   alias ControlKeel.Skills.SkillTarget
+  alias ControlKeel.Utils
 
   @name_regex ~r/^[a-z0-9][a-z0-9-]{0,63}$/
   @resource_dirs ~w(scripts references assets agents)
@@ -105,9 +106,11 @@ defmodule ControlKeel.Skills.Parser do
            disallowed_tools: disallowed_tools,
            required_mcp_tools: required_mcp_tools,
            disable_model_invocation:
-             truthy?(Map.get(meta, "disable-model-invocation")) ||
-               openai_metadata |> get_in(["policy", "allow_implicit_invocation"]) |> falsey?(),
-           user_invocable: not falsey?(Map.get(meta, "user-invocable")),
+             Utils.truthy?(Map.get(meta, "disable-model-invocation")) ||
+               openai_metadata
+               |> get_in(["policy", "allow_implicit_invocation"])
+               |> Utils.falsey?(),
+           user_invocable: not Utils.falsey?(Map.get(meta, "user-invocable")),
            context: normalize_nil(Map.get(meta, "context")),
            agent: normalize_nil(Map.get(meta, "agent")),
            paths: normalize_list(Map.get(meta, "paths")),
@@ -485,7 +488,7 @@ defmodule ControlKeel.Skills.Parser do
   end
 
   defp quality_lint_applicable?(meta, skill_path) do
-    user_invocable = not falsey?(Map.get(meta, "user-invocable"))
+    user_invocable = not Utils.falsey?(Map.get(meta, "user-invocable"))
     source = classify_source(skill_path)
 
     user_invocable and source != "builtin"
@@ -768,9 +771,6 @@ defmodule ControlKeel.Skills.Parser do
 
   defp normalize_nil(""), do: nil
   defp normalize_nil(value), do: value
-
-  defp truthy?(value), do: value in [true, "true", "True", 1, "1", "yes"]
-  defp falsey?(value), do: value in [false, "false", "False", 0, "0", "no"]
 
   # Parses result_schema from frontmatter. Accepts either:
   # - A JSON schema as a string (inline or multi-line)

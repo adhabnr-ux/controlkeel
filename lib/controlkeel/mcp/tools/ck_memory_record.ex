@@ -30,7 +30,7 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
 
     metadata =
       Map.get(payload, "metadata", %{})
-      |> ensure_map()
+      |> Utils.ensure_map()
       |> Map.put_new("source", "mcp")
 
     Memory.record(%{
@@ -41,7 +41,7 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
       title: title_for(payload, memory),
       summary: summary_for(payload, memory),
       body: body_for(payload, memory),
-      tags: normalize_tags(Map.get(payload, "tags")),
+      tags: Utils.normalize_tags(Map.get(payload, "tags")),
       source_type: Map.get(payload, "source_type", "generated"),
       source_id: Map.get(payload, "source_id"),
       metadata:
@@ -118,20 +118,6 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
       _ -> memory
     end
   end
-
-  defp normalize_tags(tags) when is_list(tags), do: Enum.map(tags, &to_string/1)
-
-  defp normalize_tags(tags) when is_binary(tags) do
-    tags
-    |> String.split(",", trim: true)
-    |> Enum.map(&String.trim/1)
-    |> Enum.reject(&(&1 == ""))
-  end
-
-  defp normalize_tags(_tags), do: []
-
-  defp ensure_map(value) when is_map(value), do: value
-  defp ensure_map(_value), do: %{}
 
   defp maybe_put_metadata(map, _key, nil), do: map
   defp maybe_put_metadata(map, key, value), do: Map.put(map, key, value)

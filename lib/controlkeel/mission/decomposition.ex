@@ -43,15 +43,15 @@ defmodule ControlKeel.Mission.Decomposition do
 
     %{
       "node_type" =>
-        normalize_enum(decomposition["node_type"], @node_types, defaults["node_type"]),
+        Utils.normalize_enum(decomposition["node_type"], @node_types, defaults["node_type"]),
       "execution_mode" =>
-        normalize_enum(
+        Utils.normalize_enum(
           decomposition["execution_mode"],
           @execution_modes,
           defaults["execution_mode"]
         ),
       "context_strategy" =>
-        normalize_enum(
+        Utils.normalize_enum(
           decomposition["context_strategy"],
           @context_strategies,
           defaults["context_strategy"]
@@ -231,13 +231,6 @@ defmodule ControlKeel.Mission.Decomposition do
     |> Enum.reject(fn {value, _rows} -> is_nil(value) end)
     |> Enum.into(%{}, fn {value, rows} -> {value, length(rows)} end)
   end
-
-  defp normalize_enum(value, allowed, default) when is_binary(value) do
-    trimmed = String.trim(value)
-    if trimmed in allowed, do: trimmed, else: default
-  end
-
-  defp normalize_enum(_value, _allowed, default), do: default
 
   defp normalize_string(value) when is_binary(value) do
     case String.trim(value) do

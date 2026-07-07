@@ -3,6 +3,7 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
 
   alias ControlKeel.Governance.WorkspaceAgent
   alias ControlKeel.MCP.Arguments
+  alias ControlKeel.Utils
 
   def call(arguments) when is_map(arguments) do
     try do
@@ -46,7 +47,7 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
                  {:invalid_arguments, "A primary agent already exists for this workspace"}}
 
               {:error, changeset} ->
-                {:error, {:invalid_arguments, format_errors(changeset)}}
+                {:error, {:invalid_arguments, Utils.format_changeset_errors(changeset)}}
             end
         end
 
@@ -82,8 +83,11 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
               |> Map.new()
 
             case WorkspaceAgent.update(aid, attrs) do
-              {:ok, agent} -> {:ok, format_agent(agent)}
-              {:error, changeset} -> {:error, {:invalid_arguments, format_errors(changeset)}}
+              {:ok, agent} ->
+                {:ok, format_agent(agent)}
+
+              {:error, changeset} ->
+                {:error, {:invalid_arguments, Utils.format_changeset_errors(changeset)}}
             end
         end
 
@@ -150,11 +154,5 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
       "sessions_count" => agent.sessions_count,
       "last_active_at" => agent.last_active_at
     }
-  end
-
-  defp format_errors(changeset) do
-    changeset.errors
-    |> Enum.map(fn {field, {msg, _opts}} -> "#{field}: #{msg}" end)
-    |> Enum.join("; ")
   end
 end

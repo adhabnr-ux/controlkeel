@@ -8,6 +8,7 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
   alias ControlKeel.Mission
   alias ControlKeel.MCP.Arguments
   alias ControlKeel.Repo
+  alias ControlKeel.Utils
 
   @goal_statuses ~w(active paused completed superseded)
   @goal_horizons ~w(task session workspace)
@@ -15,7 +16,7 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
 
   def call(arguments) when is_map(arguments) do
     with {:ok, session_id} <- Arguments.required_integer(arguments, "session_id"),
-         {:ok, session} <- fetch_session(session_id),
+         {:ok, session} <- Utils.fetch_session(session_id),
          {:ok, mode} <- required_mode(arguments) do
       run_mode(mode, arguments, session)
     end
@@ -83,13 +84,6 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
     end
   end
 
-  defp fetch_session(session_id) do
-    case Mission.get_session(session_id) do
-      nil -> {:error, {:invalid_arguments, "Session not found"}}
-      session -> {:ok, session}
-    end
-  end
-
   defp fetch_goal(goal_id, session_id) do
     case Memory.get_record(goal_id) do
       %Record{session_id: ^session_id, record_type: "goal"} = record ->
@@ -109,7 +103,7 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
   defp create_goal(arguments, session, task_id, goal, status, horizon) do
     metadata =
       Map.get(arguments, "metadata", %{})
-      |> ensure_map()
+      |> Utils.ensure_map()
       |> Map.put_new("source", "mcp")
       |> Map.put("goal_status", status)
       |> Map.put("goal_horizon", horizon)
@@ -234,29 +228,18 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
 
   defp goal_tags(tags, status, horizon) do
     tags
-    |> normalize_tags()
+    |> Utils.normalize_tags()
     |> Kernel.++(["goal", status, horizon])
     |> Enum.uniq()
   end
 
   defp retag_goal(tags, status) do
     tags
-    |> normalize_tags()
+    |> Utils.normalize_tags()
     |> Enum.reject(&(&1 in @goal_statuses))
     |> Kernel.++([status])
     |> Enum.uniq()
   end
-
-  defp normalize_tags(tags) when is_list(tags), do: Enum.map(tags, &to_string/1)
-
-  defp normalize_tags(tags) when is_binary(tags) do
-    tags
-    |> String.split(",", trim: true)
-    |> Enum.map(&String.trim/1)
-    |> Enum.reject(&(&1 == ""))
-  end
-
-  defp normalize_tags(_tags), do: []
 
   defp required_mode(arguments) do
     case Map.get(arguments, "mode") do
@@ -330,7 +313,4 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
       _other -> {:error, {:invalid_arguments, "`task_id` must belong to the current session"}}
     end
   end
-
-  defp ensure_map(value) when is_map(value), do: value
-  defp ensure_map(_value), do: %{}
 end
