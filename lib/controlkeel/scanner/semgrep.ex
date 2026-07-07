@@ -75,12 +75,6 @@ defmodule ControlKeel.Scanner.Semgrep do
             cleanup(temp_dir)
             result(:malformed_output, [], duration_ms)
 
-          {:error, :no_snippets, temp_dir} ->
-            duration_ms = System.monotonic_time(:millisecond) - start
-            emit_telemetry(duration_ms, :skipped, 0)
-            cleanup(temp_dir)
-            result(:skipped, [], duration_ms)
-
           {:error, reason, temp_dir} ->
             duration_ms = System.monotonic_time(:millisecond) - start
             emit_telemetry(duration_ms, reason, 0)
@@ -104,12 +98,10 @@ defmodule ControlKeel.Scanner.Semgrep do
 
     with :ok <- File.mkdir_p(temp_dir),
          snippets when is_list(snippets) <- snippets(normalized),
-         true <- snippets != [] || {:error, :no_snippets, temp_dir},
          {:ok, files} <- write_snippets(temp_dir, snippets, normalized) do
       {:ok, temp_dir, files}
     else
       {:error, reason} -> {:error, reason, temp_dir}
-      false -> {:error, :no_snippets, temp_dir}
     end
   end
 

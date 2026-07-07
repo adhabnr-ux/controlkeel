@@ -432,7 +432,6 @@ defmodule ControlKeel.Platform do
     else
       nil -> {:error, :not_found}
       {:error, _reason} = error -> error
-      false -> {:error, :invalid_status}
     end
   end
 

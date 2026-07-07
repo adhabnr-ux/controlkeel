@@ -21,11 +21,6 @@ defmodule ControlKeel.Mission.Planner do
       compliance: ["PCI-DSS", "SOX", "OWASP Top 10"],
       stack: "Phoenix + Postgres + role-based access and immutable audit trails"
     },
-    "ecommerce" => %{
-      label: "E-Commerce",
-      compliance: ["PCI-DSS", "GDPR", "WCAG 2.1 AA"],
-      stack: "Phoenix + Stripe-style payments isolation + CDN-backed storefront"
-    },
     "education" => %{
       label: "Education",
       compliance: ["FERPA", "COPPA", "WCAG 2.1 AA"],
@@ -87,10 +82,15 @@ defmodule ControlKeel.Mission.Planner do
       compliance: ["Donor privacy", "Grant audit trails", "Beneficiary safeguards"],
       stack: "Phoenix + Postgres + grant-aware reporting and privacy-scoped service workflows"
     },
-    "iot" => %{
-      label: "IoT / Hardware",
-      compliance: ["NIST", "Safety standards", "OWASP Top 10"],
-      stack: "Phoenix API + event ingestion + device audit trails"
+    "privacy" => %{
+      label: "Privacy / Data Protection",
+      compliance: [
+        "GDPR",
+        "Data subject rights",
+        "Retention policy",
+        "Third-party transfer review"
+      ],
+      stack: "Phoenix + Postgres + consent-aware storage and data subject request workflows"
     },
     "security" => %{
       label: "Defensive Security",
@@ -111,87 +111,40 @@ defmodule ControlKeel.Mission.Planner do
   }
 
   @agent_labels %{
-    # Existing
-    "claude" => "Claude Code",
-    "cursor" => "Cursor",
-    "codex" => "Codex CLI",
-    "copilot" => "GitHub Copilot",
-    "windsurf" => "Windsurf",
-    "replit" => "Replit",
-    "bolt" => "Bolt / Lovable",
-    "generic" => "Generic Agent",
     # Local IDEs
+    "claude" => "Claude Code",
     "claude-code" => "Claude Code",
+    "cursor" => "Cursor",
+    "windsurf" => "Windsurf",
     "kiro" => "Kiro (Amazon)",
     "augment" => "Augment Code",
     "amp" => "Amp (Sourcegraph)",
     # Local CLIs
     "aider" => "Aider",
     "opencode" => "OpenCode",
+    "codex" => "Codex CLI",
     "codex-cli" => "Codex CLI",
     "gemini-cli" => "Gemini CLI",
     "antigravity" => "Antigravity",
     "continue" => "Continue",
     "ollama" => "Ollama (local)",
     # Cloud platforms
+    "bolt" => "Bolt",
     "lovable" => "Lovable",
+    "replit" => "Replit",
     "v0" => "v0 (Vercel)",
     "factory" => "Factory",
     "devin" => "Devin (Cognition)",
     "ai-studio" => "Google AI Studio",
+    "generic" => "Generic Agent",
     "generic-cli" => "Generic CLI",
     # Review & spec tools
+    "copilot" => "GitHub Copilot",
     "coderabbit" => "CodeRabbit",
     "qodo" => "Qodo",
     "specpilot" => "SpecPilot",
     "chatprd" => "ChatPRD",
-    "specced" => "Specced",
-    # LLM providers
-    "openai" => "OpenAI",
-    "anthropic" => "Anthropic",
-    "gemini" => "Google Gemini",
-    "deepseek" => "DeepSeek",
-    "mistral" => "Mistral AI",
-    "openrouter" => "OpenRouter",
-    "glm" => "Zhipu GLM",
-    "kimi" => "Kimi (Moonshot)",
-    "qwen" => "Qwen (Alibaba)",
-    # Frameworks
-    "crewai" => "CrewAI",
-    "langchain" => "LangChain",
-    "deepagents" => "DeepAgents",
-    "nemo-guardrails" => "NeMo Guardrails",
-    "langgraph" => "LangGraph",
-    "autogen" => "Microsoft AutoGen",
-    "semantic-kernel" => "Semantic Kernel",
-    "dspy" => "DSPy",
-    "haystack" => "Haystack (deepset)",
-    "dify" => "Dify",
-    "flowise" => "Flowise",
-    "n8n" => "n8n",
-    "prefect" => "Prefect",
-    "mastra" => "Mastra",
-    "dmux" => "dmux",
-    # Cloud LLM providers (enterprise auth)
-    "bedrock" => "AWS Bedrock",
-    "vertex-ai" => "Google Vertex AI",
-    "azure-openai" => "Azure OpenAI",
-    "cohere" => "Cohere",
-    "groq" => "Groq Cloud",
-    "together" => "Together AI",
-    "huggingface" => "Hugging Face Inference",
-    "replicate" => "Replicate",
-    # Managed agent platforms
-    "bedrock-agents" => "AWS Bedrock Agents",
-    "azure-ai-agent" => "Azure AI Agent Service",
-    "vertex-ai-agent" => "Vertex AI Agent Builder",
-    # Workflow automation
-    "zapier" => "Zapier",
-    "make" => "Make (Integromat)",
-    # Observability & prompt ops
-    "agentops" => "AgentOps",
-    "vellum" => "Vellum",
-    "promptflow" => "Azure Prompt Flow"
+    "specced" => "Specced"
   }
 
   def build(attrs) do

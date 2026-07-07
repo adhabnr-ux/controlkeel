@@ -28,7 +28,12 @@ defmodule ControlKeel.Benchmark.Subjects.ControlKeelProxy do
       "completed",
       result,
       System.monotonic_time(:millisecond) - started_at,
-      %{"runner" => "controlkeel_proxy", "provider" => "openai", "tool" => "chat_completions"}
+      %{
+        "runner" => "controlkeel_proxy_policy_scan",
+        "provider" => "none",
+        "tool" => "policy_scan",
+        "provider_execution" => false
+      }
     )
   rescue
     error ->

@@ -45,7 +45,6 @@ defmodule ControlKeel.Mcp.ProtocolAccess do
       {:ok, service_account}
     else
       {:error, reason} -> {:error, reason}
-      false -> {:error, :unauthorized}
     end
   end
 

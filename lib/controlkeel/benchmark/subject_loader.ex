@@ -10,13 +10,13 @@ defmodule ControlKeel.Benchmark.SubjectLoader do
     },
     %{
       "id" => "controlkeel_proxy",
-      "label" => "ControlKeel Proxy",
+      "label" => "ControlKeel Proxy Policy Scan",
       "type" => "controlkeel_proxy",
       "configured" => true
     },
     %{
       "id" => "ungoverned_baseline",
-      "label" => "Without ControlKeel (No Policy Gate)",
+      "label" => "Null Policy Baseline",
       "type" => "ungoverned_baseline",
       "configured" => true
     }

@@ -37,9 +37,6 @@ defmodule ControlKeel.MCP.Annotations do
   # when readOnlyHint is false).
   @destructive ~w(ck_rollback ck_checkpoint_restore ck_git_commit ck_worktree_switch)
 
-  @doc "List of tool names CK advertises as read-only (no side effects)."
-  def read_only_tools, do: @read_only
-
   @doc """
   Annotation map for a tool. Read-only tools are also idempotent; everything else is
   conservatively treated as non-read-only and non-idempotent unless explicitly destructive.

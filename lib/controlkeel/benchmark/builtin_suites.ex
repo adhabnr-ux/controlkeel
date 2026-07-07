@@ -17,7 +17,6 @@ defmodule ControlKeel.Benchmark.BuiltinSuites do
          {:ok, payload} <- Jason.decode(contents) do
       {:ok, payload}
     else
-      false -> {:error, :not_found}
       {:error, reason} -> {:error, reason}
     end
   end

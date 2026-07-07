@@ -879,14 +879,14 @@ defmodule ControlKeel.Intent.Domains do
   }
 
   @agent_options [
-    # Local IDEs (MCP attach supported)
+    # Local IDEs
     {"claude", "Claude Code"},
     {"cursor", "Cursor"},
     {"windsurf", "Windsurf"},
     {"kiro", "Kiro (Amazon)"},
     {"augment", "Augment Code"},
     {"amp", "Amp (Sourcegraph)"},
-    # Local CLIs (MCP attach supported)
+    # Local CLIs
     {"aider", "Aider"},
     {"opencode", "OpenCode"},
     {"codex-cli", "Codex CLI"},
@@ -894,7 +894,7 @@ defmodule ControlKeel.Intent.Domains do
     {"antigravity", "Antigravity"},
     {"continue", "Continue"},
     {"ollama", "Ollama (local)"},
-    # Cloud scaffolders / platforms
+    # Cloud platforms & scaffolders
     {"bolt", "Bolt"},
     {"lovable", "Lovable"},
     {"replit", "Replit"},
@@ -903,26 +903,6 @@ defmodule ControlKeel.Intent.Domains do
     {"devin", "Devin"},
     {"ai-studio", "Google AI Studio"},
     {"codex", "OpenAI Codex"},
-    # LLM providers
-    {"openai", "OpenAI"},
-    {"anthropic", "Anthropic"},
-    {"gemini", "Google Gemini"},
-    {"deepseek", "DeepSeek"},
-    {"mistral", "Mistral AI"},
-    {"openrouter", "OpenRouter"},
-    {"glm", "Zhipu GLM"},
-    {"kimi", "Kimi (Moonshot)"},
-    {"qwen", "Qwen (Alibaba)"},
-    # Cloud managed LLM (enterprise IAM auth)
-    {"bedrock", "AWS Bedrock"},
-    {"vertex-ai", "Google Vertex AI"},
-    {"azure-openai", "Azure OpenAI"},
-    {"cohere", "Cohere"},
-    # Fast / cheap inference APIs
-    {"groq", "Groq Cloud"},
-    {"together", "Together AI"},
-    {"huggingface", "Hugging Face Inference"},
-    {"replicate", "Replicate"},
     # Code review & spec tools
     {"copilot", "GitHub Copilot"},
     {"coderabbit", "CodeRabbit"},
@@ -930,33 +910,7 @@ defmodule ControlKeel.Intent.Domains do
     {"specpilot", "SpecPilot"},
     {"chatprd", "ChatPRD"},
     {"specced", "Specced"},
-    # Orchestration frameworks
-    {"crewai", "CrewAI"},
-    {"langchain", "LangChain"},
-    {"deepagents", "DeepAgents"},
-    {"nemo-guardrails", "NeMo Guardrails"},
-    {"langgraph", "LangGraph"},
-    {"autogen", "Microsoft AutoGen"},
-    {"semantic-kernel", "Semantic Kernel"},
-    {"dspy", "DSPy"},
-    {"haystack", "Haystack"},
-    {"dify", "Dify"},
-    {"flowise", "Flowise"},
-    {"n8n", "n8n"},
-    {"prefect", "Prefect"},
-    {"mastra", "Mastra"},
-    {"dmux", "dmux"},
-    # Managed agent platforms
-    {"bedrock-agents", "AWS Bedrock Agents"},
-    {"azure-ai-agent", "Azure AI Agent Service"},
-    {"vertex-ai-agent", "Vertex AI Agent Builder"},
-    # Workflow automation
-    {"zapier", "Zapier"},
-    {"make", "Make (Integromat)"},
-    # Observability & prompt ops
-    {"agentops", "AgentOps"},
-    {"vellum", "Vellum"},
-    {"promptflow", "Azure Prompt Flow"},
+    # Other
     {"generic", "Other / custom agent"}
   ]
 

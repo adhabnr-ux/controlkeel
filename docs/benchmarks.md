@@ -60,14 +60,14 @@ controlkeel benchmark compare <run-id> --json
 controlkeel benchmark export <run-id> --format json
 ```
 
-`ungoverned_baseline` is intentionally not a competitor. It means "the generated output proceeds without a ControlKeel policy gate," so CK can always show a deterministic with-vs-without comparison even before a team configures Copilot, OpenCode, Claude, Codex, or another external subject.
+`ungoverned_baseline` is intentionally not a competitor. It is a null policy baseline: the generated artifact proceeds unchanged without a ControlKeel gate. Use it only for deterministic with-vs-without policy-gate evidence before a team configures Copilot, OpenCode, Claude, Codex, or another external subject.
 
 For VC/YC-style summaries, report a compact scoreboard:
 
 | Metric | Meaning |
 | --- | --- |
 | Completion rate | Percentage of scenario runs that reached a completed result without timing out or staying pending. |
-| Catch-rate lift | Percentage-point increase in risky scenarios with findings vs `ungoverned_baseline`. |
+| Catch-rate lift | Percentage-point increase in risky scenarios with findings vs the null policy baseline. |
 | Block-rate lift | Percentage-point increase in hard blocks for scenarios expected to stop. |
 | Expected-rule lift | Percentage-point increase in expected policy-rule hits. |
 | Benign false-positive rate | Findings on paired safe scenarios; must stay visible. |
@@ -99,7 +99,7 @@ Paired benign suite: `benign_baseline_v1` v1, 10 public safe scenarios.
 
 Investor-safe headline from this snapshot:
 
-> CK added +100 percentage points of risky-output catch rate versus no policy gate on `host_comparison_v1`, while preserving 0.000 FPR and 0 false blocks on the paired benign suite, with 0 provider tokens and median deterministic validation under 60 ms.
+> CK added +100 percentage points of deterministic policy-gate catch rate versus the null baseline on `host_comparison_v1`, while preserving 0.000 FPR and 0 false blocks on the paired benign suite, with 0 provider tokens and median deterministic validation under 60 ms.
 
 For external competitors or model-backed subjects, keep the same columns and add provider tokens plus cost source when available. A competitor can plug in through `manual_import` or `shell` subjects and compete directly against `controlkeel_validate` on the same built-in suites.
 
@@ -242,9 +242,9 @@ Use [observability-feedback-loop.md](observability-feedback-loop.md) for the loc
 
 Built-in subjects (available without configuration):
 
-- `ungoverned_baseline` — explicit no-CK policy gate baseline for with-vs-without comparisons.
+- `ungoverned_baseline` — null policy baseline; no CK gate runs and the artifact proceeds unchanged.
 - `controlkeel_validate` — direct deterministic validation path.
-- `controlkeel_proxy` — governed proxy path.
+- `controlkeel_proxy` — proxy-shaped policy scan path; it does not execute provider traffic.
 
 Subject types (for external subjects configured via `controlkeel/benchmark_subjects.json`):
 

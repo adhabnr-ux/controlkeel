@@ -182,7 +182,7 @@ defmodule ControlKeel.Budget.CostOptimizer do
           priority: :low,
           title: "Consider local models for simple tasks",
           description:
-            "You're spending $#{monthly_cost_cents / 100}/month on API calls. Running open-source models locally (like Llama 3.3 70B or DeepSeek Coder) costs $0 for simple tasks. Best for code review, formatting, and routine tasks.",
+            "You're spending $#{monthly_cost_cents / 100}/month on API calls. Running local models via Ollama costs $0 for simple tasks. Best for code review, formatting, and routine tasks.",
           savings_percent: 60,
           current_monthly_cents: monthly_cost_cents
         }
@@ -256,11 +256,9 @@ defmodule ControlKeel.Budget.CostOptimizer do
   defp default_agents do
     [
       {"Claude Code", "anthropic", "claude-sonnet-4.5"},
+      {"Claude Opus", "anthropic", "claude-opus-4.5"},
       {"Codex CLI", "openai", "o3"},
-      {"Gemini CLI", "google", "gemini-2.5-pro"},
-      {"DeepSeek", "deepseek", "deepseek-v3"},
-      {"Grok", "xai", "grok-3"},
-      {"Local Llama", "local", "llama-3.3-70b"}
+      {"Codex Mini", "openai", "o4-mini"}
     ]
   end
 end

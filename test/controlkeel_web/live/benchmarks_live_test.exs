@@ -108,7 +108,7 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
 
     # Loop access: each subject label renders (zip alignment + subject lookup).
     assert html =~ "ControlKeel Validate"
-    assert html =~ "ControlKeel Proxy"
+    assert html =~ "ControlKeel Proxy Policy Scan"
 
     # Loop access: result fields resolve inside scenario_result/1.
     assert html =~ "findings"

@@ -155,14 +155,15 @@ defmodule ControlKeel.Benchmark.Runner do
         "runner" => subject["type"],
         "label" => subject["label"],
         "configured" => true,
-        "comparison_role" => "without_controlkeel_policy_gate",
+        "comparison_role" => "null_policy_baseline",
         "input_tokens" => 0,
         "output_tokens" => 0,
         "total_tokens" => 0,
         "cost_cents" => 0
       },
       "payload" => %{
-        "summary" => "No ControlKeel policy gate applied; raw output would proceed.",
+        "summary" =>
+          "Null baseline: no ControlKeel policy gate is applied, so the artifact proceeds unchanged.",
         "findings" => []
       }
     }

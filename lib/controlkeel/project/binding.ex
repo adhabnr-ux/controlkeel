@@ -17,7 +17,6 @@ defmodule ControlKeel.Project.Binding do
          :ok <- validate(decoded, canonical_root(project_root)) do
       {:ok, decoded}
     else
-      false -> {:error, :not_found}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -325,7 +324,6 @@ defmodule ControlKeel.Project.Binding do
          :ok <- validate(decoded, expected_root) do
       {:ok, decoded}
     else
-      false -> {:error, :not_found}
       {:error, reason} -> {:error, reason}
     end
   end
