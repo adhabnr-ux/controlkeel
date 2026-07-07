@@ -21,11 +21,10 @@ Every shipped integration row now declares both a **support class** and a **two-
 - `attach_client`
 - `headless_runtime`
 - `framework_adapter`
-- `provider_only`
 - `alias`
 - `unverified`
 
-Only `attach_client` rows produce real `controlkeel attach <id>` commands. `headless_runtime` rows export runtime bundles, `framework_adapter` rows surface through benchmark/policy tooling, `provider_only` rows surface through CK provider flows, and `alias` rows point at a canonical shipped target.
+Only `attach_client` rows produce real `controlkeel attach <id>` commands. `headless_runtime` rows export runtime bundles, `framework_adapter` rows remain only where they point at a concrete CK export/underlying surface, and `alias` rows point at a canonical shipped target.
 
 Every shipped row also carries the stricter parity contract exposed in `/skills` and `GET /api/v1/skills/targets`:
 
@@ -200,20 +199,7 @@ Runtime transport truth for those first-class hosts:
 | `multica-cloud` | headless_runtime | `controlkeel runtime export multica-cloud` | `hosted_mcp` | `runtime` | `runtime` | `oauth_runtime` / `instructions_only` | `multica-cloud-runtime` |
 | `executor` | headless_runtime | `controlkeel runtime export executor` | `hosted_mcp` | `runtime` | `runtime` | `oauth_runtime` / `instructions_only` | `executor-runtime` |
 | `virtual-bash` | headless_runtime | `controlkeel runtime export virtual-bash` | `hosted_mcp` | `runtime` | `runtime` | `ck_owned` / `instructions_only` | `virtual-bash-runtime` |
-| `dspy` | framework_adapter | reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
-| `gepa` | framework_adapter | reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
-| `deepagents` | framework_adapter | reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
-| `fastmcp` | framework_adapter | reference only | none | `none` | `inbound_only` | `none` / `none` | none |
 | `conductor` | framework_adapter | adapter only | `local_mcp`, `native_skills`, `commands` | `none` | `inbound_only` | `heuristic` / `native` | `claude-standalone` |
-| `paperclip` | framework_adapter | reference only | `local_mcp`, `native_skills`, `commands`, `plugin` | `none` | `inbound_only` | `config_reference` / `native` | none |
-| `dmux` | framework_adapter | reference only | `local_mcp`, `native_skills`, `commands`, `hooks` | `none` | `inbound_only` | `config_reference` / `native` | none |
-| `augment-intent` | framework_adapter | reference only | none | `none` | `inbound_only` | `none` / `none` | none |
-| `codestral` | provider_only | provider reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
-| `ollama-runtime` | provider_only | provider reference only | none | `none` | `inbound_only` | `local` / `none` | none |
-| `vllm` | provider_only | provider reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
-| `sglang` | provider_only | provider reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
-| `lmstudio` | provider_only | provider reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
-| `huggingface` | provider_only | provider reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
 | `claude-dispatch` | alias | use `claude-code` | same as `claude-code` | same as `claude-code` | same as `claude-code` | `env_bridge` / `native` | `claude-standalone` |
 | `cognition` | alias | use `devin` | same as `devin` | same as `devin` | same as `devin` | `oauth_runtime` / `instructions_only` | `devin-runtime` |
 | `cursor-agent` | alias | use `cursor` | same as `cursor` | same as `cursor` | same as `cursor` | `ck_owned` / `native` | `cursor-native` |
@@ -251,7 +237,7 @@ The shipped `copilot` attach target is the repo-native path for GitHub Copilot, 
 
 All shipped attach/runtime rows currently use `policy_gated` autonomy. `/skills` and `GET /api/v1/skills/targets` expose the exact code-backed values as `agent_uses_ck_via`, `ck_runs_agent_via`, `execution_support`, and `autonomy_mode`.
 
-Provider-only backends such as `vllm`, `sglang`, `lmstudio`, `huggingface`, and `codestral` currently flow through the CK `openai` provider path with a custom `base_url` and `model`; they are cataloged separately so the support matrix stays honest about the backend you are really targeting.
+Provider backends now flow through provider configuration (`base_url`, `model`, and credentials) instead of separate integration rows. Add a catalog row only when CK ships an attach/export/runtime surface for that backend.
 
 **Router agent IDs** (for `ck_route` / policy): where set in code, the integration’s `router_agent_id` matches the attach id (e.g. `opencode`, `cursor`); VS Code / Copilot use `nil` in the catalog.
 

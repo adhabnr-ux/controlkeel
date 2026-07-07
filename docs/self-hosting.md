@@ -3,8 +3,9 @@
 ControlKeel ships as one Phoenix release. Local mode uses SQLite on a developer
 machine; cloud/self-host mode uses Postgres and hosted HTTP endpoints for teams.
 
-Self-host when proof, finding, memory, telemetry, SSO, or audit data must stay in
-and `docs/getting-started.md` instead.
+Self-host when proof, finding, memory, telemetry, SSO, or audit data must stay
+inside your own infrastructure. For local-only setup, use
+[`docs/getting-started.md`](getting-started.md) instead.
 
 ## What self-hosting provides
 
@@ -87,9 +88,9 @@ machine and transfer it across the boundary:
 
 ```bash
 controlkeel selfhost pack --output /tmp/ck-bundle.tar.gz
-controlkeel selfhost verify --bundle /tmp/ck-bundle.tar.gz
-controlkeel selfhost manifest --bundle /tmp/ck-bundle.tar.gz
-controlkeel selfhost install-guide --bundle /tmp/ck-bundle.tar.gz
+controlkeel selfhost verify
+controlkeel selfhost manifest
+controlkeel selfhost install-guide
 ```
 
 Follow the generated install guide inside the bundle on the deploy host.

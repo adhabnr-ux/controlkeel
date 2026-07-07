@@ -8,7 +8,6 @@ defmodule ControlKeel.Agent.RouterTest do
     "ollama",
     "aider",
     "opencode",
-    "nemo-guardrails",
     "claude-code",
     "cursor",
     "windsurf",
@@ -108,22 +107,12 @@ defmodule ControlKeel.Agent.RouterTest do
       refute rec.agent in ["bolt", "replit", "lovable", "v0", "ai-studio", "chatprd", "specced"]
     end
 
-    test "all cloud LLM providers excluded at critical risk" do
-      cloud_llm = [
-        "openai",
-        "anthropic",
-        "gemini",
-        "deepseek",
-        "mistral",
-        "openrouter",
-        "glm",
-        "kimi",
-        "qwen"
-      ]
+    test "raw LLM providers are not routable agents" do
+      cloud_llm = ["openai", "anthropic", "gemini"]
 
       assert {:error, :no_suitable_agent, _} =
-               Router.route("PHI data update",
-                 risk_tier: "critical",
+               Router.route("Implement an API endpoint",
+                 risk_tier: "low",
                  allowed_agents: cloud_llm
                )
     end
@@ -155,10 +144,6 @@ defmodule ControlKeel.Agent.RouterTest do
                "ollama",
                "aider",
                "opencode",
-               "crewai",
-               "langchain",
-               "deepagents",
-               "nemo-guardrails",
                "continue"
              ]
     end
@@ -220,30 +205,6 @@ defmodule ControlKeel.Agent.RouterTest do
     end
   end
 
-  describe "route/2 — LLM providers" do
-    test "anthropic routes when allowed and budget sufficient at low risk" do
-      assert {:ok, rec} =
-               Router.route("Build a REST endpoint",
-                 risk_tier: "low",
-                 allowed_agents: ["anthropic"],
-                 budget_remaining_cents: 500
-               )
-
-      assert rec.agent == "anthropic"
-    end
-
-    test "openai routes when allowed at medium risk" do
-      assert {:ok, rec} =
-               Router.route("Implement auth middleware",
-                 risk_tier: "medium",
-                 allowed_agents: ["openai"],
-                 budget_remaining_cents: 500
-               )
-
-      assert rec.agent == "openai"
-    end
-  end
-
   describe "route/2 — local CLI category" do
     test "aider passes critical risk tier" do
       assert {:ok, rec} =
@@ -263,36 +224,6 @@ defmodule ControlKeel.Agent.RouterTest do
                )
 
       assert rec.agent == "opencode"
-    end
-  end
-
-  describe "route/2 — orchestration frameworks" do
-    test "nemo-guardrails passes critical risk tier (local + critical security)" do
-      assert {:ok, rec} =
-               Router.route("Build governed LLM orchestration layer",
-                 risk_tier: "critical",
-                 allowed_agents: ["nemo-guardrails"]
-               )
-
-      assert rec.agent == "nemo-guardrails"
-    end
-
-    test "crewai is excluded at critical risk (medium security tier)" do
-      assert {:error, :no_suitable_agent, _} =
-               Router.route("Build multi-agent system",
-                 risk_tier: "critical",
-                 allowed_agents: ["crewai"]
-               )
-    end
-
-    test "langchain routes at low risk" do
-      assert {:ok, rec} =
-               Router.route("Build LLM orchestration with multiple agents",
-                 risk_tier: "low",
-                 allowed_agents: ["langchain"]
-               )
-
-      assert rec.agent == "langchain"
     end
   end
 
@@ -319,7 +250,7 @@ defmodule ControlKeel.Agent.RouterTest do
   describe "list_agents/0" do
     test "returns all supported agents" do
       agents = Router.list_agents()
-      assert map_size(agents) == 67
+      assert map_size(agents) == 28
     end
 
     test "contains all expected categories" do
@@ -361,22 +292,10 @@ defmodule ControlKeel.Agent.RouterTest do
       assert Map.has_key?(agents, "chatprd")
       assert Map.has_key?(agents, "specced")
 
-      # LLM providers
-      assert Map.has_key?(agents, "openai")
-      assert Map.has_key?(agents, "anthropic")
-      assert Map.has_key?(agents, "gemini")
-      assert Map.has_key?(agents, "deepseek")
-      assert Map.has_key?(agents, "mistral")
-      assert Map.has_key?(agents, "openrouter")
-      assert Map.has_key?(agents, "glm")
-      assert Map.has_key?(agents, "kimi")
-      assert Map.has_key?(agents, "qwen")
-
-      # Frameworks
-      assert Map.has_key?(agents, "crewai")
-      assert Map.has_key?(agents, "langchain")
-      assert Map.has_key?(agents, "deepagents")
-      assert Map.has_key?(agents, "nemo-guardrails")
+      # Non-agent providers/frameworks are intentionally excluded from routing.
+      refute Map.has_key?(agents, "openai")
+      refute Map.has_key?(agents, "langchain")
+      refute Map.has_key?(agents, "n8n")
     end
   end
 
@@ -405,88 +324,9 @@ defmodule ControlKeel.Agent.RouterTest do
       assert :pr_review in agent.capabilities
     end
 
-    test "returns correct profile for nemo-guardrails" do
-      agent = Router.get_agent("nemo-guardrails")
-      assert agent.security_tier == :critical
-      assert agent.local == true
-      assert :multi_agent in agent.capabilities
-    end
-
-    test "anthropic has highest swe_bench_score among original LLM providers" do
-      agents = Router.list_agents()
-
-      llm_providers = [
-        "openai",
-        "anthropic",
-        "gemini",
-        "deepseek",
-        "mistral",
-        "openrouter",
-        "glm",
-        "kimi",
-        "qwen"
-      ]
-
-      best =
-        llm_providers
-        |> Enum.map(&{&1, agents[&1].swe_bench_score})
-        |> Enum.max_by(&elem(&1, 1))
-
-      assert elem(best, 0) == "anthropic"
-    end
-
-    test "azure-openai has highest swe_bench_score among enterprise cloud LLMs" do
-      agents = Router.list_agents()
-      enterprise = ["bedrock", "vertex-ai", "azure-openai"]
-
-      best =
-        enterprise
-        |> Enum.map(&{&1, agents[&1].swe_bench_score})
-        |> Enum.max_by(&elem(&1, 1))
-
-      assert elem(best, 0) == "azure-openai"
-    end
-
-    test "enterprise cloud LLMs all have :high security tier" do
-      agents = Router.list_agents()
-
-      for id <- ["bedrock", "vertex-ai", "azure-openai"] do
-        assert agents[id].security_tier == :high, "expected #{id} to have :high security tier"
-      end
-    end
-
-    test "contains all new framework agents" do
-      agents = Router.list_agents()
-
-      for id <- [
-            "langgraph",
-            "autogen",
-            "semantic-kernel",
-            "dspy",
-            "haystack",
-            "dify",
-            "flowise",
-            "n8n",
-            "prefect",
-            "mastra"
-          ] do
-        assert Map.has_key?(agents, id), "missing agent: #{id}"
-      end
-    end
-
-    test "contains all managed platform agents" do
-      agents = Router.list_agents()
-
-      for id <- ["bedrock-agents", "azure-ai-agent", "vertex-ai-agent"] do
-        assert Map.has_key?(agents, id), "missing agent: #{id}"
-      end
-    end
-
-    test "contains workflow automation and observability agents" do
-      agents = Router.list_agents()
-
-      for id <- ["zapier", "make", "agentops", "vellum", "promptflow"] do
-        assert Map.has_key?(agents, id), "missing agent: #{id}"
+    test "non-agent provider, framework, workflow, and observability rows are not routable" do
+      for id <- ["openai", "anthropic", "dspy", "nemo-guardrails", "zapier", "agentops"] do
+        assert Router.get_agent(id) == nil
       end
     end
   end
@@ -497,183 +337,14 @@ defmodule ControlKeel.Agent.RouterTest do
       assert rec.task_type == :workflow
     end
 
-    test "n8n scores highest for :workflow vs generic-cli at low risk" do
+    test "workflow task routes to a real coding/runtime agent, not SaaS automation rows" do
       assert {:ok, rec} =
                Router.route("Set up a webhook automation trigger",
                  risk_tier: "low",
-                 allowed_agents: ["n8n", "generic-cli"]
+                 allowed_agents: ["generic-cli", "opencode"]
                )
 
-      assert rec.agent == "n8n"
-    end
-
-    test "zapier routes for :workflow task at low risk" do
-      assert {:ok, rec} =
-               Router.route("Automate Zapier integrations",
-                 risk_tier: "low",
-                 allowed_agents: ["zapier"]
-               )
-
-      assert rec.agent == "zapier"
-    end
-
-    test "make routes for :workflow task at low risk" do
-      assert {:ok, rec} =
-               Router.route("Build workflow automation with connectors",
-                 risk_tier: "low",
-                 allowed_agents: ["make"]
-               )
-
-      assert rec.agent == "make"
-    end
-
-    test "agentops excluded for :workflow (observability-only, no workflow/multi_agent/bash)" do
-      assert {:error, :no_suitable_agent, _} =
-               Router.route("Automate webhook triggers",
-                 risk_tier: "low",
-                 allowed_agents: ["agentops"]
-               )
-    end
-  end
-
-  describe "route/2 — enterprise cloud LLM providers" do
-    test "bedrock routes at high risk (security_tier: :high)" do
-      assert {:ok, rec} =
-               Router.route("Build a REST endpoint",
-                 risk_tier: "high",
-                 allowed_agents: ["bedrock"],
-                 budget_remaining_cents: 500
-               )
-
-      assert rec.agent == "bedrock"
-    end
-
-    test "azure-openai routes at high risk" do
-      assert {:ok, rec} =
-               Router.route("Build auth middleware",
-                 risk_tier: "high",
-                 allowed_agents: ["azure-openai"],
-                 budget_remaining_cents: 500
-               )
-
-      assert rec.agent == "azure-openai"
-    end
-
-    test "bedrock excluded at critical risk (cloud, non-local)" do
-      assert {:error, :no_suitable_agent, _} =
-               Router.route("Update PHI data",
-                 risk_tier: "critical",
-                 allowed_agents: ["bedrock"]
-               )
-    end
-
-    test "groq routes at low risk (cheap inference)" do
-      assert {:ok, rec} =
-               Router.route("Generate code for auth module",
-                 risk_tier: "low",
-                 allowed_agents: ["groq"],
-                 budget_remaining_cents: 100
-               )
-
-      assert rec.agent == "groq"
-    end
-
-    test "groq excluded at high risk (security_tier: :medium)" do
-      assert {:error, :no_suitable_agent, _} =
-               Router.route("Edit HIPAA records",
-                 risk_tier: "high",
-                 allowed_agents: ["groq"]
-               )
-    end
-  end
-
-  describe "route/2 — managed agent platforms" do
-    test "bedrock-agents routes for :deploy task at high risk" do
-      assert {:ok, rec} =
-               Router.route("Deploy multi-agent system to production",
-                 risk_tier: "high",
-                 allowed_agents: ["bedrock-agents"],
-                 budget_remaining_cents: 2000
-               )
-
-      assert rec.agent == "bedrock-agents"
-    end
-
-    test "azure-ai-agent routes for :deploy task at high risk" do
-      assert {:ok, rec} =
-               Router.route("Deploy agent pipeline to Kubernetes",
-                 risk_tier: "high",
-                 allowed_agents: ["azure-ai-agent"],
-                 budget_remaining_cents: 2000
-               )
-
-      assert rec.agent == "azure-ai-agent"
-    end
-
-    test "managed platforms excluded at critical risk (cloud)" do
-      for id <- ["bedrock-agents", "azure-ai-agent", "vertex-ai-agent"] do
-        assert {:error, :no_suitable_agent, _} =
-                 Router.route("Update PHI data",
-                   risk_tier: "critical",
-                   allowed_agents: [id]
-                 )
-      end
-    end
-
-    test "managed platforms excluded when budget < 1000 cents" do
-      assert {:error, :no_suitable_agent, _} =
-               Router.route("Deploy agent",
-                 budget_remaining_cents: 500,
-                 allowed_agents: ["azure-ai-agent"]
-               )
-    end
-  end
-
-  describe "route/2 — new frameworks" do
-    test "semantic-kernel passes high risk (security_tier: :high, local: true)" do
-      assert {:ok, rec} =
-               Router.route("Orchestrate multi-agent system",
-                 risk_tier: "high",
-                 allowed_agents: ["semantic-kernel"]
-               )
-
-      assert rec.agent == "semantic-kernel"
-    end
-
-    test "prefect passes high risk (security_tier: :high, local: true)" do
-      assert {:ok, rec} =
-               Router.route("Automate data processing with event triggers",
-                 risk_tier: "high",
-                 allowed_agents: ["prefect"]
-               )
-
-      assert rec.agent == "prefect"
-    end
-
-    test "langgraph excluded at critical risk (security_tier: :medium)" do
-      assert {:error, :no_suitable_agent, _} =
-               Router.route("Build stateful agent",
-                 risk_tier: "critical",
-                 allowed_agents: ["langgraph"]
-               )
-    end
-
-    test "n8n beats make for :workflow with free budget (both free-tier, n8n has multi_agent)" do
-      assert {:ok, rec} =
-               Router.route("Automate webhook connector flows",
-                 risk_tier: "low",
-                 allowed_agents: ["n8n", "make"]
-               )
-
-      assert rec.agent == "n8n"
-    end
-
-    test "vellum excluded for :workflow task (prompt_management only)" do
-      assert {:error, :no_suitable_agent, _} =
-               Router.route("Automate webhook triggers",
-                 risk_tier: "low",
-                 allowed_agents: ["vellum"]
-               )
+      assert rec.agent in ["generic-cli", "opencode"]
     end
   end
 end

@@ -297,9 +297,9 @@ defmodule ControlKeel.Learning.OutcomeTrackerTest do
   test "recorded outcomes close the learning loop into router ranking" do
     # Baseline: no outcomes recorded -> router uses the pure static heuristic.
     assert {:ok, baseline} =
-             ControlKeel.Agent.Router.route("Automate webhook connector flows",
+             ControlKeel.Agent.Router.route("Build a Python service",
                risk_tier: "low",
-               allowed_agents: ["n8n", "make"]
+               allowed_agents: ["opencode", "codex-cli"]
              )
 
     assert baseline.policy_source == "heuristic"
@@ -310,15 +310,15 @@ defmodule ControlKeel.Learning.OutcomeTrackerTest do
 
     for _ <- 1..6 do
       OutcomeTracker.record(session.id, :deploy_success,
-        agent_id: "n8n",
+        agent_id: "opencode",
         workspace_id: workspace.workspace_id
       )
     end
 
     assert {:ok, learned} =
-             ControlKeel.Agent.Router.route("Automate webhook connector flows",
+             ControlKeel.Agent.Router.route("Build a Python service",
                risk_tier: "low",
-               allowed_agents: ["n8n", "make"]
+               allowed_agents: ["opencode", "codex-cli"]
              )
 
     # The learned signal now reaches routing: policy provenance reflects it.

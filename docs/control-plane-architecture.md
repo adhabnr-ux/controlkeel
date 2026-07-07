@@ -15,7 +15,7 @@ This is the part of your AI stack you keep when you change models. The frontier 
 - **Burrito:** For single-binary distribution via GitHub releases.
 
 ## Major Subsystems
-- **Agent Integration Layer (`Agent.Integration`):** Adapts ControlKeel to 40+ native and headless runtimes (MCP, CLI plugins, Hooks).
+- **Agent Integration Layer (`Agent.Integration`):** Maintains a typed catalog of attach clients, headless runtime exports, provider references, adapters, aliases, and research rows. First-class product support is bounded by `docs/support-matrix.md`.
 - **Governance Engine (`Governance`, `FastPath`):** Evaluates diffs, plans, and arbitrary code through the deterministic scanner. Applied through PreToolUse hooks before mutations.
 - **Protocol Router (`ControlKeelWeb.Router`):** Exposes MCP, A2A, and internal `/api/v1` routes with workspace-scoped authorization.
 - **Typed Memory (`Memory`, `Memory.Store`):** Workspace/org-scoped, source-id idempotent, visibility-validated records with FTS + semantic retrieval.
@@ -36,7 +36,7 @@ The learning loop is the asset. Each pass through the loop makes the next decisi
 4. **Closure** — benchmark run results automatically archive (all matched) or reopen (any miss) the originating eval candidate, closing the feedback loop.
 5. **Precedent** — when the same rule fires again, the prior resolution is surfaced in-path, so the agent (or human) does not re-derive the same edge case.
 
-This is what makes ControlKeel a hill-climbing machine rather than a logbook: every decision generates outcome signal, every outcome feeds evaluation, and every evaluation becomes searchable precedent for the next decision.
+The loop is designed to turn decisions into auditable outcome signals, candidate evals, and retrievable precedent. Promotion still requires benchmark evidence; unsupported claims stay out of the product surface.
 
 ## Enforcement model
 | Layer | Enforcement | Surface |

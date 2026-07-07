@@ -63,9 +63,15 @@ Hosted protocol endpoints:
 
 Provider proxy endpoints:
 
-- `/proxy/openai/:proxy_token/v1/*`
-- `/proxy/anthropic/:proxy_token/v1/messages`
-- `/proxy/gemini/:proxy_token/v1beta/*`
+- `POST /proxy/openai/:proxy_token/v1/responses`
+- `POST /proxy/openai/:proxy_token/v1/chat/completions`
+- `POST /proxy/openai/:proxy_token/v1/completions`
+- `POST /proxy/openai/:proxy_token/v1/embeddings`
+- `GET /proxy/openai/:proxy_token/v1/models`
+- `GET /proxy/openai/:proxy_token/v1/realtime`
+- `POST /proxy/anthropic/:proxy_token/v1/messages`
+- `POST /proxy/gemini/:proxy_token/v1beta/chat/completions`
+- `GET /proxy/gemini/:proxy_token/v1beta/openai/models`
 
 ## Cloud sync and runtime callbacks
 

@@ -1075,82 +1075,6 @@ defmodule ControlKeel.Agent.Integration do
         export_targets: ["virtual-bash-runtime"]
       }),
       framework_adapter(%{
-        id: "dspy",
-        label: "DSPy",
-        category: "framework-adapter",
-        description:
-          "Framework adapter for benchmark harnesses and policy-training exports, not a first-class local attach client.",
-        companion_delivery:
-          "Tracked for benchmark/runtime context only; no generated adapter bundle ships today.",
-        preferred_target: nil,
-        default_scope: "export",
-        auth_mode: "ck_owned",
-        mcp_mode: "none",
-        skills_mode: "none",
-        upstream_slug: "stanfordnlp/dspy",
-        upstream_docs_url: "https://github.com/stanfordnlp/dspy",
-        provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
-        supported_scopes: ["export"],
-        export_targets: []
-      }),
-      framework_adapter(%{
-        id: "gepa",
-        label: "GEPA",
-        category: "framework-adapter",
-        description:
-          "Optimizer/policy-training adapter surface for GEPA-style workflows, not a local attach target.",
-        companion_delivery:
-          "Tracked for benchmark/policy-training context only; no generated adapter bundle ships today.",
-        preferred_target: nil,
-        default_scope: "export",
-        auth_mode: "ck_owned",
-        mcp_mode: "none",
-        skills_mode: "none",
-        upstream_slug: "stanfordnlp/dspy",
-        upstream_docs_url: "https://github.com/stanfordnlp/dspy",
-        provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
-        supported_scopes: ["export"],
-        export_targets: []
-      }),
-      framework_adapter(%{
-        id: "deepagents",
-        label: "DeepAgents",
-        category: "framework-adapter",
-        description:
-          "Runtime harness adapter for LangGraph DeepAgents and benchmark subject integration.",
-        companion_delivery:
-          "Tracked for benchmark/runtime context only; no generated adapter bundle ships today.",
-        preferred_target: nil,
-        default_scope: "export",
-        auth_mode: "ck_owned",
-        mcp_mode: "none",
-        skills_mode: "none",
-        upstream_slug: "langchain-ai/deepagents",
-        upstream_docs_url: "https://github.com/langchain-ai/deepagents",
-        provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
-        supported_scopes: ["export"],
-        export_targets: []
-      }),
-      framework_adapter(%{
-        id: "fastmcp",
-        label: "FastMCP",
-        category: "framework-adapter",
-        description:
-          "Framework/tooling surface for MCP client-server interop and sampling, not a local `attach` target.",
-        companion_delivery:
-          "Tracked as generic MCP interoperability context rather than a dedicated attach or export flow.",
-        preferred_target: nil,
-        default_scope: "export",
-        auth_mode: "none",
-        mcp_mode: "none",
-        skills_mode: "none",
-        upstream_slug: "jlowin/fastmcp",
-        upstream_docs_url: "https://gofastmcp.com/clients/sampling",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        supported_scopes: ["export"],
-        export_targets: []
-      }),
-      framework_adapter(%{
         id: "conductor",
         label: "Conductor",
         category: "framework-adapter",
@@ -1185,222 +1109,6 @@ defmodule ControlKeel.Agent.Integration do
         subagent_visibility: "primary_only",
         execution_support: "inbound_only",
         ck_runs_agent_via: "none"
-      }),
-      framework_adapter(%{
-        id: "paperclip",
-        label: "Paperclip",
-        category: "framework-adapter",
-        description:
-          "Multi-agent orchestration control plane that runs CK-enabled local agents through adapter configs and heartbeats, not through a native `controlkeel attach` path.",
-        companion_delivery:
-          "Use CK's native attach/install surfaces inside the underlying Paperclip agent runtimes such as Claude, Codex, Gemini, OpenClaw, Hermes, Pi, and Cursor. Paperclip itself is tracked as orchestration context, not a generated CK export.",
-        preferred_target: nil,
-        default_scope: "project",
-        auth_mode: "config_reference",
-        mcp_mode: "native",
-        skills_mode: "native",
-        upstream_slug: "paperclipai/paperclip",
-        upstream_docs_url: "https://docs.paperclip.ing/adapters/overview",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        supported_scopes: ["project", "export"],
-        export_targets: [],
-        agent_uses_ck_via: ["local_mcp", "native_skills", "commands", "plugin"],
-        artifact_surfaces: [
-          "~/.paperclip/instances/default/config.json",
-          "Paperclip adapter config",
-          "Paperclip plugins",
-          "AGENTS.md"
-        ],
-        install_experience: "guided",
-        confidence_level: "experimental",
-        execution_support: "inbound_only",
-        ck_runs_agent_via: "none"
-      }),
-      framework_adapter(%{
-        id: "dmux",
-        label: "dmux",
-        category: "framework-adapter",
-        description:
-          "Parallel-agent tmux/worktree orchestrator. CK support inside dmux-managed worktrees is real, but it comes from the underlying repo-local agent surfaces rather than a dedicated `controlkeel attach dmux` command.",
-        companion_delivery:
-          "Install dmux separately, then attach CK to the underlying agents you run inside dmux such as Codex, Claude Code, OpenCode, Copilot, or Gemini CLI. dmux worktrees inherit those repo-local CK surfaces; CK does not generate a dmux adapter bundle.",
-        preferred_target: nil,
-        default_scope: "project",
-        auth_mode: "config_reference",
-        mcp_mode: "native",
-        skills_mode: "native",
-        upstream_slug: "standardagents/dmux",
-        upstream_docs_url: "https://github.com/standardagents/dmux",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        supported_scopes: ["project", "export"],
-        export_targets: [],
-        agent_uses_ck_via: ["local_mcp", "native_skills", "commands", "hooks"],
-        artifact_surfaces: [
-          ".dmux.defaults.json",
-          ".dmux-hooks/",
-          ".dmux/worktrees/",
-          "underlying repo-local host config (.codex/, .claude/, .opencode/, .github/, .gemini/)",
-          "AGENTS.md"
-        ],
-        direct_install_methods: [
-          direct_install("npm_cli", "dmux via npm", "npm -g i dmux"),
-          direct_install(
-            "openrouter_env",
-            "OpenRouter key",
-            ~s|export OPENROUTER_API_KEY="sk-or-..."|
-          ),
-          direct_install("ck_attach_codex", "CK + Codex", "controlkeel attach codex-cli"),
-          direct_install(
-            "ck_attach_claude",
-            "CK + Claude Code",
-            "controlkeel attach claude-code"
-          ),
-          direct_install("ck_attach_opencode", "CK + OpenCode", "controlkeel attach opencode")
-        ],
-        install_experience: "guided",
-        confidence_level: "experimental",
-        review_experience: "browser_review",
-        submission_mode: "command",
-        feedback_mode: "command_reply",
-        phase_model: "host_plan_mode",
-        browser_embed: "external",
-        subagent_visibility: "all",
-        execution_support: "inbound_only",
-        ck_runs_agent_via: "none"
-      }),
-      framework_adapter(%{
-        id: "augment-intent",
-        label: "Intent by Augment",
-        category: "framework-adapter",
-        description:
-          "Spec-driven, multi-agent orchestration workspace. Tracked as an orchestration adapter, not a CK attach target.",
-        companion_delivery:
-          "Tracked as orchestration context while canonical CK execution still runs through shipped attach/runtime integrations.",
-        preferred_target: nil,
-        default_scope: "export",
-        auth_mode: "none",
-        mcp_mode: "none",
-        skills_mode: "none",
-        upstream_slug: "augmentcode/intent",
-        upstream_docs_url: "https://docs.augmentcode.com/intent/overview",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        supported_scopes: ["export"],
-        export_targets: []
-      }),
-      provider_only(%{
-        id: "codestral",
-        label: "Codestral",
-        category: "provider-only",
-        description:
-          "Provider/model reference for Mistral Codestral-style APIs and proxy compatibility, not an attachable client.",
-        companion_delivery:
-          "Use provider configuration directly; CK does not generate provider profile templates.",
-        preferred_target: nil,
-        default_scope: "export",
-        auth_mode: "ck_owned",
-        mcp_mode: "none",
-        skills_mode: "none",
-        upstream_slug: "mistral/codestral",
-        upstream_docs_url: "https://docs.mistral.ai/capabilities/code_generation/",
-        provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
-        supported_scopes: ["export"],
-        export_targets: []
-      }),
-      provider_only(%{
-        id: "ollama-runtime",
-        label: "Ollama",
-        category: "provider-only",
-        description:
-          "Local runtime profile for Ollama's native API and OpenAI-compatible bridge, not an attachable client.",
-        companion_delivery:
-          "Use provider configuration directly; CK does not generate provider profile templates.",
-        preferred_target: nil,
-        default_scope: "export",
-        auth_mode: "local",
-        mcp_mode: "none",
-        skills_mode: "none",
-        upstream_slug: "ollama/ollama",
-        upstream_docs_url: "https://docs.ollama.com/api/openai-compatibility",
-        provider_bridge: %{supported: false, mode: "local", owner: "local"},
-        supported_scopes: ["export"],
-        export_targets: []
-      }),
-      provider_only(%{
-        id: "vllm",
-        label: "vLLM",
-        category: "provider-only",
-        description:
-          "OpenAI-compatible backend profile for vLLM deployments, configured through CK provider base URL and model settings.",
-        companion_delivery:
-          "Use provider configuration directly for CK-owned OpenAI-compatible endpoints.",
-        preferred_target: nil,
-        default_scope: "export",
-        auth_mode: "ck_owned",
-        mcp_mode: "none",
-        skills_mode: "none",
-        upstream_slug: "vllm-project/vllm",
-        upstream_docs_url: "https://docs.vllm.ai/en/latest/serving/openai_compatible_server/",
-        provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
-        supported_scopes: ["export"],
-        export_targets: []
-      }),
-      provider_only(%{
-        id: "sglang",
-        label: "SGLang",
-        category: "provider-only",
-        description:
-          "OpenAI-compatible backend profile for SGLang deployments, configured through CK provider base URL and model settings.",
-        companion_delivery:
-          "Use provider configuration directly for CK-owned OpenAI-compatible endpoints.",
-        preferred_target: nil,
-        default_scope: "export",
-        auth_mode: "ck_owned",
-        mcp_mode: "none",
-        skills_mode: "none",
-        upstream_slug: "sgl-project/sglang",
-        upstream_docs_url: "https://docs.sglang.ai",
-        provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
-        supported_scopes: ["export"],
-        export_targets: []
-      }),
-      provider_only(%{
-        id: "lmstudio",
-        label: "LM Studio",
-        category: "provider-only",
-        description:
-          "OpenAI-compatible backend profile for LM Studio local server endpoints, configured through CK provider base URL and model settings.",
-        companion_delivery:
-          "Use provider configuration directly for CK-owned local OpenAI-compatible endpoints.",
-        preferred_target: nil,
-        default_scope: "export",
-        auth_mode: "ck_owned",
-        mcp_mode: "none",
-        skills_mode: "none",
-        upstream_slug: "lmstudio/lmstudio",
-        upstream_docs_url: "https://lmstudio.ai/docs/app/api/endpoints/openai",
-        provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
-        supported_scopes: ["export"],
-        export_targets: []
-      }),
-      provider_only(%{
-        id: "huggingface",
-        label: "Hugging Face Inference Providers",
-        category: "provider-only",
-        description:
-          "OpenAI-compatible backend profile for Hugging Face chat-completion endpoints, configured through CK provider base URL and HF token settings.",
-        companion_delivery:
-          "Use provider configuration directly for CK-owned Hugging Face endpoints.",
-        preferred_target: nil,
-        default_scope: "export",
-        auth_mode: "ck_owned",
-        mcp_mode: "none",
-        skills_mode: "none",
-        upstream_slug: "huggingface/inference-providers",
-        upstream_docs_url:
-          "https://huggingface.co/docs/inference-providers/tasks/chat-completion",
-        provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
-        supported_scopes: ["export"],
-        export_targets: []
       }),
       alias_entry(%{
         id: "claude-dispatch",
@@ -2147,14 +1855,6 @@ defmodule ControlKeel.Agent.Integration do
     )
   end
 
-  defp provider_only(attrs) do
-    entry(
-      attrs
-      |> Map.put(:support_class, "provider_only")
-      |> Map.put(:auto_bootstrap, false)
-    )
-  end
-
   defp alias_entry(attrs) do
     entry(
       attrs
@@ -2232,7 +1932,7 @@ defmodule ControlKeel.Agent.Integration do
         attrs[:direct_install_methods] || default_direct_install_methods(attrs),
       supported_scopes: attrs[:supported_scopes] || [],
       required_mcp_tools:
-        if(attrs[:support_class] in ["framework_adapter", "provider_only", "unverified"],
+        if(attrs[:support_class] in ["framework_adapter", "unverified"],
           do: [],
           else: Distribution.required_mcp_tools()
         ),
@@ -2261,14 +1961,7 @@ defmodule ControlKeel.Agent.Integration do
     }
   end
 
-  defp default_cost_profile(%{id: id}, _auth_owner) when id in ["ollama-runtime"] do
-    "local_free"
-  end
-
   defp default_cost_profile(%{support_class: "unverified"}, _auth_owner), do: "unknown"
-
-  defp default_cost_profile(%{support_class: "provider_only"}, _auth_owner),
-    do: "provider_metered"
 
   defp default_cost_profile(_attrs, "agent"), do: "host_subscription_or_agent_metered"
   defp default_cost_profile(_attrs, "controlkeel"), do: "ck_budget_metered"
@@ -2277,8 +1970,6 @@ defmodule ControlKeel.Agent.Integration do
 
   defp default_performance_profile("headless_runtime", _execution_support),
     do: "background_runtime"
-
-  defp default_performance_profile("provider_only", _execution_support), do: "provider_backend"
 
   defp default_performance_profile("framework_adapter", _execution_support),
     do: "adapter_dependent"
@@ -2292,7 +1983,6 @@ defmodule ControlKeel.Agent.Integration do
   defp default_token_pressure_profile(attrs, auth_owner) do
     cond do
       attrs[:support_class] in ["unverified", "framework_adapter"] -> "unknown"
-      attrs[:support_class] == "provider_only" -> "provider_context_window"
       auth_owner == "agent" -> "host_quota_sensitive"
       auth_owner == "workspace" -> "workspace_quota_sensitive"
       true -> "ck_budget_sensitive"
@@ -2307,7 +1997,6 @@ defmodule ControlKeel.Agent.Integration do
   defp default_time_profile(_support_class, _execution_support), do: "manual"
 
   defp default_ux_profile(_attrs, "unverified"), do: "research_only"
-  defp default_ux_profile(_attrs, "provider_only"), do: "provider_configuration"
   defp default_ux_profile(_attrs, "headless_runtime"), do: "runtime_export"
 
   defp default_ux_profile(attrs, _support_class) do
@@ -2496,15 +2185,13 @@ defmodule ControlKeel.Agent.Integration do
     "fallback"
   end
 
-  defp default_install_experience(%{support_class: support_class})
-       when support_class in ["framework_adapter", "provider_only"] do
+  defp default_install_experience(%{support_class: "framework_adapter"}) do
     "guided"
   end
 
   defp default_install_experience(_attrs), do: "first_class"
 
   defp default_review_experience(%{support_class: "unverified"}), do: "none"
-  defp default_review_experience(%{support_class: "provider_only"}), do: "none"
   defp default_review_experience(%{support_class: "framework_adapter"}), do: "feedback_only"
 
   defp default_review_experience(%{id: id})
@@ -2528,7 +2215,6 @@ defmodule ControlKeel.Agent.Integration do
   defp default_review_experience(_attrs), do: "feedback_only"
 
   defp default_submission_mode(%{support_class: "unverified"}), do: "manual"
-  defp default_submission_mode(%{support_class: "provider_only"}), do: "manual"
   defp default_submission_mode(%{support_class: "framework_adapter"}), do: "manual"
 
   defp default_submission_mode(%{id: id})
@@ -2552,7 +2238,6 @@ defmodule ControlKeel.Agent.Integration do
   defp default_submission_mode(_attrs), do: "manual"
 
   defp default_feedback_mode(%{support_class: "unverified"}), do: "manual"
-  defp default_feedback_mode(%{support_class: "provider_only"}), do: "manual"
 
   defp default_feedback_mode(%{id: id})
        when id in ["claude-code", "codex-cli", "amp", "opencode", "devin-terminal", "warp"] do
@@ -2582,8 +2267,7 @@ defmodule ControlKeel.Agent.Integration do
 
   defp default_feedback_mode(_attrs), do: "command_reply"
 
-  defp default_plan_phase_support(%{support_class: support_class})
-       when support_class in ["unverified", "provider_only"] do
+  defp default_plan_phase_support(%{support_class: "unverified"}) do
     []
   end
 
@@ -2594,11 +2278,9 @@ defmodule ControlKeel.Agent.Integration do
 
   defp default_confidence_level(%{support_class: "unverified"}), do: "research"
   defp default_confidence_level(%{support_class: "framework_adapter"}), do: "experimental"
-  defp default_confidence_level(%{support_class: "provider_only"}), do: "experimental"
   defp default_confidence_level(_attrs), do: "shipped"
 
   defp default_phase_model(%{support_class: "unverified"}), do: "review_only"
-  defp default_phase_model(%{support_class: "provider_only"}), do: "review_only"
   defp default_phase_model(%{support_class: "framework_adapter"}), do: "review_only"
   defp default_phase_model(%{id: "pi"}), do: "file_plan_mode"
   defp default_phase_model(%{id: "codex-cli"}), do: "review_only"
@@ -2900,7 +2582,6 @@ defmodule ControlKeel.Agent.Integration do
 
   defp default_direct_install_methods(%{support_class: "headless_runtime"}), do: []
   defp default_direct_install_methods(%{support_class: "framework_adapter"}), do: []
-  defp default_direct_install_methods(%{support_class: "provider_only"}), do: []
   defp default_direct_install_methods(%{support_class: "alias"}), do: []
   defp default_direct_install_methods(_attrs), do: []
 

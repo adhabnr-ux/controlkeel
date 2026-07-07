@@ -4,7 +4,7 @@ defmodule ControlKeel.Agent.IntegrationTest do
   alias ControlKeel.Agent.Integration
   alias ControlKeel.Skills.SkillTarget
 
-  test "catalog exposes the supported attach matrix" do
+  test "catalog exposes shipped attach and runtime integrations" do
     ids = Enum.map(Integration.catalog(), & &1.id)
 
     assert "claude-code" in ids
@@ -21,10 +21,7 @@ defmodule ControlKeel.Agent.IntegrationTest do
     assert "warp" in ids
     assert "warp-oz" in ids
     assert "devin" in ids
-    assert "dmux" in ids
     assert "virtual-bash" in ids
-    assert "vllm" in ids
-    assert "huggingface" in ids
     assert "codex" in ids
     assert "gemini" in ids
     assert "kiro-cli" in ids
@@ -36,6 +33,23 @@ defmodule ControlKeel.Agent.IntegrationTest do
     assert "kilo" in ids
     assert "nous-research" in ids
     assert "trae" in ids
+
+    refute "dmux" in ids
+    refute "paperclip" in ids
+    refute "vllm" in ids
+    refute "huggingface" in ids
+  end
+
+  test "product catalog excludes aliases, unverified rows, and reference-only backends" do
+    product = Integration.product_catalog()
+    ids = Enum.map(product, & &1.id)
+
+    assert Enum.all?(product, &(&1.support_class in ["attach_client", "headless_runtime"]))
+    assert "claude-code" in ids
+    assert "virtual-bash" in ids
+    refute "codex" in ids
+    refute "jcode" in ids
+    refute "vllm" in ids
   end
 
   test "labels and targets are available for native-first agents" do
@@ -58,7 +72,6 @@ defmodule ControlKeel.Agent.IntegrationTest do
     aider = Integration.get("aider")
     conductor = Integration.get("conductor")
     conductor_web = Integration.get("conductor-web")
-    dmux = Integration.get("dmux")
 
     assert claude.label == "Claude Code"
     assert claude.support_class == "attach_client"
@@ -329,43 +342,6 @@ defmodule ControlKeel.Agent.IntegrationTest do
              owner: "agent"
            }
 
-    paperclip = Integration.get("paperclip")
-
-    assert paperclip.support_class == "framework_adapter"
-    assert paperclip.agent_uses_ck_via == ["local_mcp", "native_skills", "commands", "plugin"]
-    assert "~/.paperclip/instances/default/config.json" in paperclip.artifact_surfaces
-    assert paperclip.mcp_mode == "native"
-    assert paperclip.skills_mode == "native"
-    assert paperclip.execution_support == "inbound_only"
-    assert paperclip.ck_runs_agent_via == "none"
-    assert paperclip.preferred_target == nil
-    assert paperclip.export_targets == []
-    assert paperclip.provider_bridge == %{supported: false, mode: "none", owner: "none"}
-
-    assert dmux.support_class == "framework_adapter"
-    assert dmux.agent_uses_ck_via == ["local_mcp", "native_skills", "commands", "hooks"]
-    assert ".dmux-hooks/" in dmux.artifact_surfaces
-    assert ".dmux.defaults.json" in dmux.artifact_surfaces
-    assert ".dmux/worktrees/" in dmux.artifact_surfaces
-    assert dmux.mcp_mode == "native"
-    assert dmux.skills_mode == "native"
-    assert dmux.execution_support == "inbound_only"
-    assert dmux.ck_runs_agent_via == "none"
-    assert dmux.preferred_target == nil
-    assert dmux.export_targets == []
-    assert dmux.provider_bridge == %{supported: false, mode: "none", owner: "none"}
-    assert dmux.phase_model == "host_plan_mode"
-    assert dmux.review_experience == "browser_review"
-    assert dmux.submission_mode == "command"
-    assert dmux.feedback_mode == "command_reply"
-
-    assert Enum.any?(dmux.direct_install_methods, &(&1["command"] == "npm -g i dmux"))
-
-    assert Enum.any?(
-             dmux.direct_install_methods,
-             &(&1["command"] == "controlkeel attach codex-cli")
-           )
-
     assert conductor_web.support_class == "alias"
     assert conductor_web.alias_of == "conductor"
     assert conductor_web.preferred_target == "claude-standalone"
@@ -547,7 +523,7 @@ defmodule ControlKeel.Agent.IntegrationTest do
                "manual"
              ]
 
-      if integration.support_class in ["framework_adapter", "provider_only", "unverified"] do
+      if integration.support_class in ["framework_adapter", "unverified"] do
         assert integration.required_mcp_tools == []
       else
         assert integration.required_mcp_tools != []
@@ -568,7 +544,7 @@ defmodule ControlKeel.Agent.IntegrationTest do
     end)
   end
 
-  test "typed runtime, provider, and alias rows stay truthful" do
+  test "typed runtime and alias rows stay truthful" do
     devin = Integration.get("devin")
     devin_terminal = Integration.get("devin-terminal")
     warp = Integration.get("warp")
@@ -576,7 +552,6 @@ defmodule ControlKeel.Agent.IntegrationTest do
     executor = Integration.get("executor")
     virtual_bash = Integration.get("virtual-bash")
     codex_app = Integration.get("codex-app-server")
-    vllm = Integration.get("vllm")
     vscode = Integration.get("vscode")
     opencode = Integration.get("opencode")
     copilot = Integration.get("copilot")
@@ -616,10 +591,6 @@ defmodule ControlKeel.Agent.IntegrationTest do
     assert t3code.runtime_capabilities[:policy_gate] == true
     assert t3code.runtime_capabilities[:tool_approval] == true
 
-    assert vllm.support_class == "provider_only"
-    assert vllm.preferred_target == nil
-    assert vllm.export_targets == []
-    assert vllm.attach_command == nil
     assert "vscode-companion" in vscode.export_targets
     assert vscode.phase_model == "review_only"
     assert vscode.runtime_transport == "vscode_companion"

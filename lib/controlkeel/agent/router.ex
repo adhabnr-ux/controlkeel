@@ -5,19 +5,10 @@ defmodule ControlKeel.Agent.Router do
   Selects the best agent for a task based on task type, security tier,
   budget remaining, and domain. Returns a recommendation with rationale.
 
-  Supported agents (67 total across 9 categories):
-
-  Local IDEs:          claude-code, cursor, windsurf, kiro, augment, amp
-  Local CLIs:          aider, opencode, codex-cli, antigravity, continue, ollama
-  Cloud platforms:     bolt, replit, lovable, v0, factory, devin, ai-studio, codex, gemini-cli, generic-cli
-  Review / spec:       coderabbit, copilot, qodo, specpilot, chatprd, specced
-  LLM providers:       openai, anthropic, gemini, deepseek, mistral, openrouter, glm, kimi, qwen,
-                       bedrock, vertex-ai, azure-openai, groq, together, cohere, huggingface, replicate
-  Frameworks:          crewai, langchain, deepagents, nemo-guardrails,
-                       langgraph, autogen, semantic-kernel, dspy, haystack, dify, flowise, n8n, prefect, mastra
-  Managed platforms:   bedrock-agents, azure-ai-agent, vertex-ai-agent
-  Workflow automation: zapier, make
-  Observability / ops: agentops, vellum, promptflow
+  Product routing is intentionally bounded to coding/review/runtime agents. Raw
+  LLM providers, generic frameworks, workflow tools, and observability products
+  are configured through provider/runtime integrations instead of being ranked as
+  first-class agents.
   """
 
   # ── Capability key reference ─────────────────────────────────────────────────
@@ -603,6 +594,13 @@ defmodule ControlKeel.Agent.Router do
     }
   }
 
+  @routable_agent_ids ~w(
+    claude-code cursor windsurf kiro augment amp
+    aider opencode codex-cli antigravity continue ollama
+    bolt replit lovable v0 factory devin ai-studio codex gemini-cli generic-cli
+    coderabbit copilot qodo specpilot chatprd specced
+  )
+
   @doc """
   Route a task to the best agent.
 
@@ -618,12 +616,13 @@ defmodule ControlKeel.Agent.Router do
     risk_tier = Keyword.get(opts, :risk_tier, "medium")
     task_type = Keyword.get(opts, :task_type) || infer_task_type(task_title)
     budget_remaining = Keyword.get(opts, :budget_remaining_cents)
-    allowed = Keyword.get(opts, :allowed_agents, Map.keys(@agents))
+    agents = routable_agents()
+    allowed = Keyword.get(opts, :allowed_agents, Map.keys(agents))
     domain_pack = Keyword.get(opts, :domain_pack, "software")
     token_overhead_k = Keyword.get(opts, :token_overhead_k)
 
     candidates =
-      @agents
+      agents
       |> Enum.filter(fn {id, _} -> id in allowed end)
       |> Enum.filter(fn {_, agent} -> security_ok?(agent, risk_tier) end)
       |> Enum.filter(fn {_, agent} -> capability_match?(agent, task_type) end)
@@ -668,12 +667,16 @@ defmodule ControlKeel.Agent.Router do
   end
 
   @doc "List all supported agents with their capabilities."
-  def list_agents, do: @agents
+  def list_agents, do: routable_agents()
 
   @doc "Get a specific agent's profile."
-  def get_agent(id), do: Map.get(@agents, id)
+  def get_agent(id), do: Map.get(routable_agents(), id)
 
   # ── Internals ────────────────────────────────────────────────────────────────
+
+  defp routable_agents do
+    Map.take(@agents, @routable_agent_ids)
+  end
 
   defp infer_task_type(title) do
     t = String.downcase(title)
