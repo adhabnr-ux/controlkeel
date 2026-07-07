@@ -55,6 +55,8 @@ controlkeel cloud connect --enroll https://govern.acme.com --name "alice-mbp"
 ```
 
 This creates or reuses a local Ed25519 keypair, builds a proof-of-possession
+envelope signed with the private key, and registers the workspace with the
+self-host endpoint.
 
 With an org invite:
 

@@ -37,9 +37,9 @@ Recommended public bundle:
 2. Run `benign_baseline_v1` with the same subjects to disclose false positives and false blocks.
 3. Keep `policy_holdout_v1` internal for promotion gates; summarize only aggregate held-out status unless the operator intentionally publishes it.
 
-## Golden dataset and value metric
+## Built-in suites and value metric
 
-CK's golden dataset is the versioned built-in suite bundle:
+CK's built-in suite bundle is the versioned fixture set:
 
 - `host_comparison_v1` — risky host-shaped outputs for investor/user-facing policy-enforcement lift.
 - `vibe_failures_v1` — common vibe-coding failures for deterministic regression checks.
@@ -101,7 +101,7 @@ Investor-safe headline from this snapshot:
 
 > CK added +100 percentage points of risky-output catch rate versus no policy gate on `host_comparison_v1`, while preserving 0.000 FPR and 0 false blocks on the paired benign suite, with 0 provider tokens and median deterministic validation under 60 ms.
 
-For external competitors or model-backed subjects, keep the same columns and add provider tokens plus cost source when available. A competitor can plug in through `manual_import` or `shell` subjects and compete directly against `controlkeel_validate` on the same golden dataset.
+For external competitors or model-backed subjects, keep the same columns and add provider tokens plus cost source when available. A competitor can plug in through `manual_import` or `shell` subjects and compete directly against `controlkeel_validate` on the same built-in suites.
 
 ## Agent-host LLM benchmark protocol (OpenCode, Claude Code, and other hosts)
 
@@ -269,7 +269,7 @@ Keep these eval families separate:
 
 | Family | Use |
 | --- | --- |
-| Capability eval | Measures a hill the system is trying to climb. |
+| Capability eval | Measures a target capability the system is trying to reach. |
 | Regression eval | Preserves behavior that already works. |
 | Red-team eval | Tests hostile inputs, tool misuse, leakage, or prohibited actions. |
 | Persona eval | Scores role-specific output expectations without averaging them away. |

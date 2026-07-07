@@ -14,7 +14,7 @@ ControlKeel agents execute user-defined skills and hooks against local repositor
 1. **Hybrid** — agents stay on the user's IDE/device; governance state (findings, proofs, budget, policy) lives in the cloud; skills/hooks fire locally and emit results to cloud.
 2. **Cloud sandbox** — ephemeral container per session clones the repo; skills/hooks run server-side on CK infrastructure.
 
-This decision gates P3.4 and any future cloud-side execution feature.
+This decision gates cloud-side execution features.
 
 ## Decision
 
@@ -26,7 +26,7 @@ The codebase already implements this de facto:
 - `Cloud.Redactor` enforces per-schema `sync_fields/0` allowlists — only governance artifacts cross the boundary.
 - `Accounts.authorize_cloud_execution/2` gates cloud-side operations at the workspace level.
 - Skills are loaded from `.controlkeel/skills/*` on local disk — no cloud sync path exists for skill definitions or execution.
-- The PubSub + LiveAuth hook pattern (P2/P2b) proves real-time cloud→agent notification works for membership eviction and sign-out-everywhere.
+- The PubSub + LiveAuth hook pattern proves real-time cloud→agent notification works for membership eviction and sign-out-everywhere.
 
 ## Consequences
 
@@ -49,7 +49,7 @@ The codebase already implements this de facto:
 The following are explicitly out of scope for the current product:
 
 - **Cloud sandbox (Option 2)** — revisit if/when zero-install browser-only usage becomes a hard product requirement. Would require container orchestration, repo cloning, and sandboxed execution environments.
-- **Skill sync** — skills are local-only by design. Cloud management of skill definitions is a P4+ feature.
+- **Skill sync** — skills are local-only by design. Cloud management of skill definitions is a future feature.
 - **Cross-device session handoff** — currently a single agent per workspace session. Multi-device sessions would require session state serialization.
 - **CRDT-based sync** — last-write-wins is sufficient for current governance state. CRDTs would be needed for concurrent multi-device editing of the same policy.
 
@@ -57,6 +57,6 @@ The following are explicitly out of scope for the current product:
 
 - `Cloud.SyncEngine` — lib/controlkeel/cloud/sync_engine.ex
 - `Cloud.Redactor` — lib/controlkeel/cloud/redactor.ex
-- `Accounts.authorize_cloud_execution/2` — lib/controlkeel/accounts.ex:1063
+- `Accounts.authorize_cloud_execution/2` — lib/controlkeel/accounts.ex
 - `Cloud.RuntimeContext` — lib/controlkeel/cloud/runtime_context.ex
-- CLOUD_READINESS.md — P3.4, finding CK-CLOUD-EXEC-003
+- Finding CK-CLOUD-EXEC-003 (#293)

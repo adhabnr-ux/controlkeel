@@ -201,19 +201,13 @@ Runtime transport truth for those first-class hosts:
 | `virtual-bash` | headless_runtime | `controlkeel runtime export virtual-bash` | `hosted_mcp` | `runtime` | `runtime` | `ck_owned` / `instructions_only` | `virtual-bash-runtime` |
 | `conductor` | framework_adapter | adapter only | `local_mcp`, `native_skills`, `commands` | `none` | `inbound_only` | `heuristic` / `native` | `claude-standalone` |
 | `claude-dispatch` | alias | use `claude-code` | same as `claude-code` | same as `claude-code` | same as `claude-code` | `env_bridge` / `native` | `claude-standalone` |
-| `cognition` | alias | use `devin` | same as `devin` | same as `devin` | same as `devin` | `oauth_runtime` / `instructions_only` | `devin-runtime` |
 | `cursor-agent` | alias | use `cursor` | same as `cursor` | same as `cursor` | same as `cursor` | `ck_owned` / `native` | `cursor-native` |
 | `codex` | alias | use `codex-cli` | same as `codex-cli` | same as `codex-cli` | same as `codex-cli` | `agent_runtime` / `native` | `codex` |
 | `codex-app-server` | attach_client | `controlkeel attach codex-cli` | `local_mcp`, `plugin`, `native_skills` | `embedded` | `direct` | `agent_runtime` / `native` | `codex` |
 | `copilot-cli` | alias | use `copilot` | same as `copilot` | same as `copilot` | same as `copilot` | `ck_owned` / `native` | `github-repo` |
-| `copilot-web` | alias | use `copilot` | same as `copilot` | same as `copilot` | same as `copilot` | `ck_owned` / `native` | `github-repo` |
-| `augment-cli` | alias | use `augment` | same as `augment` | same as `augment` | same as `augment` | `agent_runtime` / `native` | `augment-native` |
-| `auggie-cli` | alias | use `augment` | same as `augment` | same as `augment` | same as `augment` | `agent_runtime` / `native` | `augment-native` |
-| `cursor-web` | alias | use `cursor` | same as `cursor` | same as `cursor` | same as `cursor` | `ck_owned` / `native` | `cursor-native` |
 | `conductor-web` | alias | use `conductor` | same as `conductor` | same as `conductor` | same as `conductor` | `heuristic` / `native` | `claude-standalone` |
 | `gemini` | alias | use `gemini-cli` | same as `gemini-cli` | same as `gemini-cli` | same as `gemini-cli` | `ck_owned` / `native` | `gemini-cli-native` |
 | `kiro-cli` | alias | use `kiro` | same as `kiro` | same as `kiro` | same as `kiro` | `ck_owned` / `native` | `kiro-native` |
-| `kimi-cli` | alias | use `codex-cli` | same as `codex-cli` | same as `codex-cli` | same as `codex-cli` | `agent_runtime` / `native` | `codex` |
 | `roo` | alias | use `roo-code` | same as `roo-code` | same as `roo-code` | same as `roo-code` | `ck_owned` / `native` | `roo-native` |
 | `t3code` | attach_client | `controlkeel attach codex-cli` | `local_mcp`, `plugin`, `native_skills` | `embedded` | `direct` | `agent_runtime` / `native` | `codex` |
 | `jcode` | unverified | research only | `local_mcp` | `none` | `inbound_only` | `none` / `instructions_only` | `instructions-only` |

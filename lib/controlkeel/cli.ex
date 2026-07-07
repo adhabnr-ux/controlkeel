@@ -2,9 +2,9 @@ defmodule ControlKeel.CLI do
   @moduledoc false
 
   # IMPORTANT: run_command/2 clauses are intentionally organized by functionality
-  # (skills, deploy, observability, etc.) rather than grouped together for maintainability
-  # in this large 7000+ line module. The compiler warning about clause grouping is expected
-  # and acceptable. Grouping all 50+ run_command clauses together would harm maintainability.
+  # (skills, deploy, observability, etc.) rather than grouped together for maintainability.
+  # The compiler warning about clause grouping is expected and acceptable.
+  # Grouping all run_command clauses together would harm maintainability.
 
   require Logger
 

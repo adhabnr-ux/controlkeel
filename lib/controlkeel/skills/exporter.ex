@@ -1240,43 +1240,6 @@ defmodule ControlKeel.Skills.Exporter do
     """
   end
 
-  def framework_adapter_contents(project_root, opts) do
-    project_root =
-      if portable_project_root?(opts),
-        do: Distribution.portable_project_root(),
-        else: Path.expand(project_root)
-
-    """
-    # Framework adapter scaffold
-
-    This export is the typed bridge for framework-style integrations that are not local `attach` targets.
-
-    - Repo root: `#{project_root}`
-    - Use for DSPy benchmark subjects, GEPA optimizer/policy-training artifacts, and DeepAgents runtime harness adapters.
-    - GEPA fits here as an outer-loop optimizer for prompts, instructions, and other text parameters; CK remains the governed benchmark, evidence, and promotion surface.
-    - ControlKeel still owns governance, proofs, benchmark orchestration, and provider brokerage around these frameworks.
-    """
-  end
-
-  def provider_profile_contents(project_root, opts) do
-    project_root =
-      if portable_project_root?(opts),
-        do: Distribution.portable_project_root(),
-        else: Path.expand(project_root)
-
-    """
-    # Provider profile templates
-
-    This export provides CK-owned provider templates for provider/model integrations that are not local `attach` clients.
-
-    - Repo root: `#{project_root}`
-    - Use with `controlkeel provider set-key ...`, `controlkeel provider set-base-url ...`, `controlkeel provider set-model ...`, and `controlkeel provider default ...`
-    - Included templates cover Codestral, vLLM, SGLang, LM Studio, Hugging Face, and Ollama
-    - OpenAI-compatible backends flow through the CK OpenAI provider path; use a custom base URL and model, then add a token only when the backend requires one
-    - CK accepts base URLs with or without a trailing `/v1`, but the templates here omit it for consistency
-    """
-  end
-
   def codex_plugin_manifest do
     %{
       "name" => "controlkeel",

@@ -8,7 +8,7 @@
     "split": "public",
     "source": "controlkeel_builtin",
     "default_subjects": ["controlkeel_validate", "controlkeel_proxy"],
-    "paired_suite": "host_comparison_v1"
+    "paired_suite": "vibe_failures_v1"
   },
   "scenarios": [
     {

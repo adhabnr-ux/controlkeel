@@ -1125,21 +1125,6 @@ defmodule ControlKeel.Agent.Integration do
         export_targets: ["claude-standalone", "claude-plugin"]
       }),
       alias_entry(%{
-        id: "cognition",
-        label: "Cognition / Devin",
-        category: "alias",
-        description: "Alias to the shipped Devin headless-runtime export.",
-        alias_of: "devin",
-        auth_mode: "oauth_runtime",
-        mcp_mode: "export_only",
-        skills_mode: "instructions_only",
-        upstream_slug: "cognition/devin",
-        upstream_docs_url: "https://docs.devin.ai/work-with-devin/mcp",
-        supported_scopes: ["project", "export"],
-        preferred_target: "devin-runtime",
-        export_targets: ["devin-runtime"]
-      }),
-      alias_entry(%{
         id: "cursor-agent",
         label: "Cursor agent",
         category: "alias",
@@ -1231,62 +1216,6 @@ defmodule ControlKeel.Agent.Integration do
         export_targets: ["github-repo", "copilot-plugin"]
       }),
       alias_entry(%{
-        id: "copilot-web",
-        label: "GitHub Copilot web surfaces",
-        category: "alias",
-        description:
-          "Alias for GitHub Copilot web and agent-management surfaces; CK support resolves to the canonical repo-native Copilot integration.",
-        alias_of: "copilot",
-        auth_mode: "ck_owned",
-        upstream_slug: "github/copilot-web",
-        upstream_docs_url: "https://docs.github.com/en/copilot",
-        supported_scopes: ["project"],
-        preferred_target: "github-repo",
-        export_targets: ["github-repo", "copilot-plugin"]
-      }),
-      alias_entry(%{
-        id: "augment-cli",
-        label: "Augment CLI",
-        category: "alias",
-        description:
-          "Alias to the shipped Augment / Auggie CLI integration and plugin bundle surfaces.",
-        alias_of: "augment",
-        auth_mode: "agent_runtime",
-        upstream_slug: "augmentcode/auggie",
-        upstream_docs_url: "https://docs.augmentcode.com/cli",
-        supported_scopes: ["project", "export"],
-        preferred_target: "augment-native",
-        export_targets: ["augment-native", "augment-plugin", "instructions-only"]
-      }),
-      alias_entry(%{
-        id: "auggie-cli",
-        label: "Auggie CLI",
-        category: "alias",
-        description:
-          "Alias to the shipped Augment / Auggie CLI integration and plugin bundle surfaces.",
-        alias_of: "augment",
-        auth_mode: "agent_runtime",
-        upstream_slug: "augmentcode/auggie",
-        upstream_docs_url: "https://docs.augmentcode.com/cli",
-        supported_scopes: ["project", "export"],
-        preferred_target: "augment-native",
-        export_targets: ["augment-native", "augment-plugin", "instructions-only"]
-      }),
-      alias_entry(%{
-        id: "cursor-web",
-        label: "Cursor web/mobile surfaces",
-        category: "alias",
-        description:
-          "Alias for Cursor web/mobile agent surfaces; CK support resolves to the canonical Cursor integration.",
-        alias_of: "cursor",
-        auth_mode: "ck_owned",
-        upstream_slug: "cursor/web",
-        upstream_docs_url: "https://cursor.com/blog/agent-web",
-        supported_scopes: ["project"],
-        preferred_target: "cursor-native",
-        export_targets: ["cursor-native", "instructions-only"]
-      }),
-      alias_entry(%{
         id: "conductor-web",
         label: "Conductor web",
         category: "alias",
@@ -1327,20 +1256,6 @@ defmodule ControlKeel.Agent.Integration do
         supported_scopes: ["project", "export"],
         preferred_target: "kiro-native",
         export_targets: ["kiro-native", "instructions-only"]
-      }),
-      alias_entry(%{
-        id: "kimi-cli",
-        label: "Kimi Code CLI",
-        category: "alias",
-        description:
-          "Alias path for Kimi Code CLI through CK's canonical terminal-agent companion flow until a dedicated native CK target is validated.",
-        alias_of: "codex-cli",
-        auth_mode: "agent_runtime",
-        upstream_slug: "MoonshotAI/kimi-cli",
-        upstream_docs_url: "https://moonshotai.github.io/kimi-cli/en/",
-        supported_scopes: ["user", "project"],
-        preferred_target: "codex",
-        export_targets: ["codex", "codex-plugin", "open-standard"]
       }),
       alias_entry(%{
         id: "roo",

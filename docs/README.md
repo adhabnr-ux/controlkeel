@@ -5,7 +5,7 @@ ControlKeel is the control plane for AI-agent work: policy gates, findings, proo
 ## Start and prove value
 
 - [getting-started.md](getting-started.md): install, attach one agent host, reach the first governed finding, and create proof you can show a teammate or buyer
-- [benchmarks.md](benchmarks.md): golden dataset, with-vs-without CK comparison, false-positive disclosure, latency/token fields when measured, and claim discipline without benchmark theater
+- [benchmarks.md](benchmarks.md): built-in suites, with-vs-without CK comparison, false-positive disclosure, latency/token fields when measured, and bounded claim wording
 - [cost-governance.md](cost-governance.md): token, rate-limit, subscription-window, and budget-control guidance
 
 ## Connect the tools people already use
