@@ -7,7 +7,6 @@ defmodule ControlKeel.Cloud.DoctorTest do
     original_mode = Application.get_env(:controlkeel, :runtime_mode)
     original_repo_config = Application.get_env(:controlkeel, ControlKeel.CloudRepo)
     original_database_url = System.get_env("DATABASE_URL")
-    original_nats_url = System.get_env("CONTROLKEEL_NATS_URL")
     original_runtime_env = System.get_env("CONTROLKEEL_RUNTIME_MODE")
     original_phx_host = System.get_env("PHX_HOST")
     original_endpoint = Application.get_env(:controlkeel, ControlKeelWeb.Endpoint)
@@ -36,7 +35,6 @@ defmodule ControlKeel.Cloud.DoctorTest do
       end
 
       restore_env("DATABASE_URL", original_database_url)
-      restore_env("CONTROLKEEL_NATS_URL", original_nats_url)
       restore_env("CONTROLKEEL_RUNTIME_MODE", original_runtime_env)
     end)
 
@@ -134,15 +132,14 @@ defmodule ControlKeel.Cloud.DoctorTest do
   end
 
   describe "report/0 bus checks" do
-    test "Bus.Local reports info status in any mode" do
+    test "Bus reports info status (removed)" do
       Application.put_env(:controlkeel, :runtime_mode, :local)
-      Application.put_env(:controlkeel, :bus, :local)
 
       report = Doctor.report()
       bus = find_check(report, :bus)
 
       assert bus.status == :info
-      assert bus.detail =~ "Bus.Local"
+      assert bus.detail =~ "removed"
     end
   end
 

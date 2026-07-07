@@ -107,13 +107,13 @@ For external competitors or model-backed subjects, keep the same columns and add
 
 Deterministic policy-gate evidence answers: "Does CK catch risky artifacts cheaply?" Agent-host evidence answers a different question: "Does a real coding agent using CK produce safer work for the cost/time it spends?" Keep these tables separate.
 
-The protocol below is host-agnostic. It is documented for OpenCode + GPT-5.5 and Claude Code (Sonnet/Opus), and the same five steps apply to Copilot, Codex, Gemini, or any future host: the only credible comparison is the **same host and model run twice** — once with ControlKeel disabled (`pure`) and once with ControlKeel available and bounded (`ck-bounded`) — so exactly one variable changes.
+The protocol below is host-agnostic. It is documented for OpenCode and Claude Code (Sonnet/Opus), and the same five steps apply to Copilot, Codex, Gemini, or any future host: the only credible comparison is the **same host and model run twice** — once with ControlKeel disabled (`pure`) and once with ControlKeel available and bounded (`ck-bounded`) — so exactly one variable changes.
 
 Industry agent/MCP evals generally score three layers: end-to-end completion, trajectory/action quality, and operational efficiency. For CK this maps to completion rate and unsafe-final-output rate; tool-call count, CK tool-call rate, and tool calls per completed task; plus latency, tokens, cost, and cost per completed task. These are the metrics emitted by `benchmark compare` so a host with CK can be compared against the same host without CK.
 
 This mirrors how current MCP/tool-use eval work is structured: MCP-Bench, MCP-AgentBench/MCP-Eval, MCP-Universe/MCPMark, tau-bench-style agent environments, and production eval platforms such as Promptfoo, Braintrust, LangSmith/Langfuse, Weave, DeepEval, and OpenAI Evals all separate final task success from trajectory/tool-use diagnostics and operational spend. The common denominator is: same golden task, same subject matrix, trace capture, deterministic checks where possible, tool-call/argument correctness where applicable, latency, tokens, and cost per successful task.
 
-Use this protocol for OpenCode + GPT-5.5, Claude Code, and for any future competitor:
+Use this protocol for OpenCode, Claude Code, and for any future competitor:
 
 1. Choose the same golden suite and split for every subject.
 2. Record host, model, CK mode, prompt version, CK version, and policy version.
@@ -121,15 +121,15 @@ Use this protocol for OpenCode + GPT-5.5, Claude Code, and for any future compet
 4. Import the final artifact plus telemetry into the benchmark run.
 5. Report both quality and efficiency. Do not promote a higher-quality run if it is too slow or too expensive for the approved envelope.
 
-Recommended subject matrix for OpenCode + GPT-5.5:
+Recommended subject matrix for OpenCode:
 
 These subject IDs are not built-in. They are external subjects configured via `controlkeel/benchmark_subjects.json` in the project root. `controlkeel_validate` is the only built-in subject in this matrix.
 
 | Subject | Purpose | CK availability |
 | --- | --- | --- |
-| `opencode_pure_manual` | Raw OpenCode + GPT-5.5 with no CK attachment/plugin/MCP. | none |
-| `opencode_ck_manual` | OpenCode + GPT-5.5 with CK attached and available. | passive/tool-available |
-| `opencode_ck_bounded_manual` | OpenCode + GPT-5.5 instructed to call CK context + validation once, then stop. | bounded active |
+| `opencode_pure_manual` | Raw OpenCode with no CK attachment/plugin/MCP. | none |
+| `opencode_ck_manual` | OpenCode with CK attached and available. | passive/tool-available |
+| `opencode_ck_bounded_manual` | OpenCode instructed to call CK context + validation once, then stop. | bounded active |
 | `controlkeel_validate` | Deterministic CK scanner; no model. | direct policy gate |
 
 Run skeleton:
@@ -188,7 +188,7 @@ Manual import payload shape:
   "duration_ms": 23772,
   "metadata": {
     "host": "opencode",
-    "model": "openai/gpt-5.5",
+    "model": "operator-chosen-model",
     "ck_mode": "bounded_active",
     "input_tokens": 12345,
     "output_tokens": 2345,

@@ -36,7 +36,6 @@ kill_timeout = "10s"
 
 [env]
   CONTROLKEEL_RUNTIME_MODE = "cloud"
-  CONTROLKEEL_BUS = "local"
   PHX_SERVER = "true"
   PHX_HOST = "controlkeel.com"
   PORT = "8080"

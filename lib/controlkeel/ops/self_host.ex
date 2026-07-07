@@ -25,7 +25,6 @@ defmodule ControlKeel.Ops.SelfHost do
 
   @required_env_vars ~w(DATABASE_URL SECRET_KEY_BASE PHX_HOST)
   @recommended_env_vars ~w(
-    CONTROLKEEL_NATS_URL
     CK_AUDIT_SIGNING_KEY
     CONTROLKEEL_OIDC_CLIENT_SECRET
     CONTROLKEEL_RUNTIME_MODE
@@ -217,12 +216,11 @@ defmodule ControlKeel.Ops.SelfHost do
     ## Boot order
 
     1. Provision Postgres and set `DATABASE_URL`.
-    2. (Optional, cloud or self-hosted mode) Provision NATS JetStream and set `CONTROLKEEL_NATS_URL`.
-    3. Extract this bundle.
-    4. Run `bin/controlkeel eval` to confirm the release loads.
-    5. Run `bin/controlkeel migrate` to apply migrations.
-    6. Run `bin/controlkeel start` to start the application.
-    7. From outside the release, run `controlkeel selfhost verify` to confirm
+    2. Extract this bundle.
+    3. Run `bin/controlkeel eval` to confirm the release loads.
+    4. Run `bin/controlkeel migrate` to apply migrations.
+    5. Run `bin/controlkeel start` to start the application.
+    6. From outside the release, run `controlkeel selfhost verify` to confirm
        env vars and Repo reachability.
 
     ## Verifying readiness

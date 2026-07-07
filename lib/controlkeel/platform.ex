@@ -220,7 +220,7 @@ defmodule ControlKeel.Platform do
     |> Repo.all()
   end
 
-  def replay_delivery(id) when is_integer(id) do
+  defp replay_delivery(id) when is_integer(id) do
     case IntegrationDelivery |> Repo.get(id) |> Repo.preload(:webhook) do
       nil ->
         {:error, :not_found}
@@ -272,12 +272,6 @@ defmodule ControlKeel.Platform do
         end
       end)
     end
-
-    _ =
-      ControlKeel.Runtime.bus_module().publish_json(
-        "controlkeel.events.#{event}",
-        Utils.stringify_keys_deep_list(payload)
-      )
 
     :ok
   end

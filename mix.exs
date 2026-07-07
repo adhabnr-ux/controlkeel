@@ -75,7 +75,6 @@ defmodule ControlKeel.MixProject do
        depth: 1},
       {:req, "~> 0.5"},
       {:chromic_pdf, "~> 1.17"},
-      {:gnat, "~> 1.10"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},

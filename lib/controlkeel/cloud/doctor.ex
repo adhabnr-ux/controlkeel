@@ -119,32 +119,13 @@ defmodule ControlKeel.Cloud.Doctor do
     end
   end
 
-  defp bus_check(mode) do
-    bus_module = Runtime.bus_module()
-    nats_url = System.get_env("CONTROLKEEL_NATS_URL")
-
-    detail =
-      case {bus_module, nats_url} do
-        {ControlKeel.Bus.Nats, nil} ->
-          "Bus.Nats selected but CONTROLKEEL_NATS_URL is not set"
-
-        {ControlKeel.Bus.Nats, url} when is_binary(url) ->
-          "Bus.Nats configured (CONTROLKEEL_NATS_URL set)"
-
-        {ControlKeel.Bus.Local, _} ->
-          "Bus.Local (in-process pub/sub)"
-
-        {other, _} ->
-          "custom bus: #{inspect(other)}"
-      end
-
-    status =
-      case {mode, bus_module, nats_url} do
-        {mode, ControlKeel.Bus.Nats, nil} when mode in [:cloud, :self_hosted] -> :error
-        _ -> :info
-      end
-
-    %{id: :bus, label: "Bus", status: status, detail: detail}
+  defp bus_check(_mode) do
+    %{
+      id: :bus,
+      label: "Bus",
+      status: :info,
+      detail: "removed (Phoenix.PubSub only)"
+    }
   end
 
   defp service_account_check(:local) do

@@ -10,9 +10,6 @@ defmodule ControlKeel.Analytics do
   alias ControlKeel.Utils
 
   @aggregate_session_limit 20
-  @funnel_steps ~w(project_initialized agent_attached mission_created first_finding_recorded)
-
-  def funnel_steps, do: @funnel_steps
 
   def stage_label("project_initialized"), do: "Project initialized"
   def stage_label("agent_attached"), do: "Agent attached"
@@ -82,9 +79,12 @@ defmodule ControlKeel.Analytics do
     findings = Enum.map(recent_sessions, & &1.total_findings)
 
     steps =
-      Enum.map(@funnel_steps, fn step ->
-        %{step: step, count: count_sessions_at_step(session_sets, step)}
-      end)
+      Enum.map(
+        ~w(project_initialized agent_attached mission_created first_finding_recorded),
+        fn step ->
+          %{step: step, count: count_sessions_at_step(session_sets, step)}
+        end
+      )
       |> attach_conversion_rates()
 
     %{

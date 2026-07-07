@@ -45,7 +45,6 @@ kill_timeout = "10s"
 
 [env]
   CONTROLKEEL_RUNTIME_MODE = "cloud"
-  CONTROLKEEL_BUS = "local"          # change to "nats" if you front a JetStream cluster
   PHX_SERVER = "true"
   PHX_HOST = "govern.acme.com"       # CHANGE — public hostname for your instance
   PORT = "8080"

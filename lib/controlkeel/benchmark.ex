@@ -98,7 +98,7 @@ defmodule ControlKeel.Benchmark do
     |> preload_run()
   end
 
-  def get_run!(id) when is_integer(id) do
+  defp get_run!(id) when is_integer(id) do
     Run
     |> Repo.get!(id)
     |> preload_run()
@@ -319,7 +319,7 @@ defmodule ControlKeel.Benchmark do
     }
   end
 
-  def comparison_chart(subjects) when is_list(subjects) do
+  defp comparison_chart(subjects) when is_list(subjects) do
     Enum.map(subjects, fn metrics ->
       rate = metrics["catch_rate"] || 0.0
       blocks = round(rate / 5)
@@ -335,15 +335,7 @@ defmodule ControlKeel.Benchmark do
     end)
   end
 
-  @doc """
-  Computes OWASP-style classification metrics from run results.
-
-  Uses `expected_decision` ground truth on each scenario:
-  - Scenarios expecting "block" or "warn" are positive (should trigger findings)
-  - Scenarios expecting "allow" or nil are negative (should NOT trigger findings)
-
-  Returns TP, FP, TN, FN counts plus TPR, FPR, and Youden's J (TPR − FPR).
-  """
+  @doc false
   def classification_metrics(%Run{} = run) do
     evaluated =
       run.results
@@ -755,6 +747,7 @@ defmodule ControlKeel.Benchmark do
     |> Enum.uniq()
   end
 
+  @doc false
   def suite_eval_profile(%Suite{} = suite) do
     scenarios = suite.scenarios || []
 
@@ -808,6 +801,7 @@ defmodule ControlKeel.Benchmark do
     Map.put(profile, "diagnostic_findings", integrity_findings(profile, %{"run_id" => run.id}))
   end
 
+  @doc false
   def promotion_integrity_profile(profile) when is_map(profile) do
     split_summary = Map.get(profile, "split_summary") || %{}
     behavior_tag_summary = Map.get(profile, "behavior_tag_summary") || %{}
@@ -851,6 +845,7 @@ defmodule ControlKeel.Benchmark do
     }
   end
 
+  @doc false
   def integrity_findings(profile, attrs \\ %{}) when is_map(profile) do
     integrity = Map.get(profile, "promotion_integrity") || promotion_integrity_profile(profile)
     warnings = integrity["warnings"] || []

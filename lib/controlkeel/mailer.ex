@@ -14,7 +14,6 @@ defmodule ControlKeel.Mailer do
 
   ## Usage
 
-      Mailer.deliver(%{to: "x@y", subject: "Hello", body: "World"})
       Mailer.deliver_invitation(%{email: "x@y"}, "raw_token_string")
 
   Returns `:ok` or `{:error, term}`. Callers should NOT fail their flow if
@@ -25,19 +24,6 @@ defmodule ControlKeel.Mailer do
   require Logger
 
   alias ControlKeel.Mailer.TestInbox
-
-  @doc """
-  Deliver a generic email payload (contact form, notifications, etc.).
-
-  Accepts a map with `:to`, `:subject`, and `:body` keys.
-  """
-  @spec deliver(map()) :: :ok | {:error, term()}
-  def deliver(%{to: to, subject: subject, body: body} = payload)
-      when is_binary(to) and is_binary(subject) and is_binary(body) do
-    deliver(adapter(), :generic, payload)
-  end
-
-  def deliver(_payload), do: {:error, :invalid_payload}
 
   @doc """
   Deliver an invitation email payload.
@@ -60,9 +46,7 @@ defmodule ControlKeel.Mailer do
 
   def deliver_invitation(_recipient, _token), do: {:error, :invalid_recipient}
 
-  @doc "Return the currently configured adapter atom."
-  @spec adapter() :: :log | :test | atom()
-  def adapter, do: Application.get_env(:controlkeel, :mailer_adapter, :log)
+  defp adapter, do: Application.get_env(:controlkeel, :mailer_adapter, :log)
 
   # ── Adapter dispatch ───────────────────────────────────────────────
 

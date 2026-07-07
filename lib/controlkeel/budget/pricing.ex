@@ -2,25 +2,23 @@ defmodule ControlKeel.Budget.Pricing do
   @moduledoc false
 
   @models %{
-    {"anthropic", "claude-sonnet-4.5"} => %{input: 300, cached_input: 30, output: 1500},
-    {"anthropic", "claude-opus-4.5"} => %{input: 500, cached_input: 50, output: 2500},
+    {"anthropic", "claude-sonnet-4.6"} => %{input: 300, cached_input: 30, output: 1500},
+    {"anthropic", "claude-opus-4.8"} => %{input: 500, cached_input: 50, output: 2500},
     {"anthropic", "claude-haiku-4.5"} => %{input: 100, cached_input: 10, output: 500},
     {"openai", "o3"} => %{input: 200, cached_input: 10, output: 800},
     {"openai", "o4-mini"} => %{input: 110, cached_input: 8, output: 440},
     {"google", "gemini-2.5-pro"} => %{input: 125, cached_input: 13, output: 500},
     {"google", "gemini-2.5-flash"} => %{input: 15, cached_input: 2, output: 60},
-    {"google", "gemini-2.0-flash"} => %{input: 10, cached_input: 1, output: 40},
     {"local", "llama-3.3-70b"} => %{input: 0, cached_input: 0, output: 0},
-    {"local", "deepseek-coder-v2"} => %{input: 0, cached_input: 0, output: 0}
+    {"local", "deepseek-v4-flash"} => %{input: 0, cached_input: 0, output: 0}
   }
 
   @aliases %{
-    {"anthropic", "claude sonnet 4.5"} => {"anthropic", "claude-sonnet-4.5"},
-    {"anthropic", "claude opus 4.5"} => {"anthropic", "claude-opus-4.5"},
+    {"anthropic", "claude sonnet 4.6"} => {"anthropic", "claude-sonnet-4.6"},
+    {"anthropic", "claude opus 4.8"} => {"anthropic", "claude-opus-4.8"},
     {"anthropic", "claude haiku 4.5"} => {"anthropic", "claude-haiku-4.5"},
     {"google", "gemini 2.5 pro"} => {"google", "gemini-2.5-pro"},
-    {"google", "gemini 2.5 flash"} => {"google", "gemini-2.5-flash"},
-    {"google", "gemini 2.0 flash"} => {"google", "gemini-2.0-flash"}
+    {"google", "gemini 2.5 flash"} => {"google", "gemini-2.5-flash"}
   }
 
   def estimate_cost_cents(provider, model, counts) when is_map(counts) do

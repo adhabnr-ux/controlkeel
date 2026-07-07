@@ -255,10 +255,9 @@ defmodule ControlKeel.Budget.CostOptimizer do
 
   defp default_agents do
     [
-      {"Claude Code", "anthropic", "claude-sonnet-4.5"},
-      {"Claude Opus", "anthropic", "claude-opus-4.5"},
-      {"Codex CLI", "openai", "o3"},
-      {"Codex Mini", "openai", "o4-mini"}
+      {"Claude Code", "anthropic", "claude-sonnet-4.6"},
+      {"Claude Opus", "anthropic", "claude-opus-4.8"},
+      {"Codex CLI", "openai", "o4-mini"}
     ]
   end
 end

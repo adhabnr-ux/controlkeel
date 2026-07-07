@@ -79,16 +79,8 @@ runtime_mode =
     _ -> :local
   end
 
-bus_mode =
-  case System.get_env("CONTROLKEEL_BUS", if(runtime_mode == :cloud, do: "nats", else: "local")) do
-    "nats" -> :nats
-    :nats -> :nats
-    _ -> :local
-  end
-
 config :controlkeel,
-  runtime_mode: runtime_mode,
-  bus: bus_mode
+  runtime_mode: runtime_mode
 
 # Configure MCP tool groups for token optimization
 # Adaptive mode is now enabled by default and will automatically select tool groups
@@ -197,12 +189,6 @@ if config_env() == :prod do
       url: database_url,
       pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
       ssl: System.get_env("ECTO_USE_SSL", "false") == "true"
-
-    if nats_url = System.get_env("CONTROLKEEL_NATS_URL") do
-      connection_settings = ControlKeel.Bus.Nats.connection_settings_from_env(nats_url)
-
-      config :controlkeel, ControlKeel.Bus.Nats, connection_settings: connection_settings
-    end
   end
 
   if endpoint = System.get_env("CONTROLKEEL_CLOUD_TELEMETRY_ENDPOINT") do

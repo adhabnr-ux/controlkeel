@@ -73,7 +73,7 @@ defmodule ControlKeel.Intent.RouterTest do
         conn,
         200,
         Jason.encode!(%{
-          "model" => "claude-sonnet-4-5",
+          "model" => "claude-sonnet-4.6",
           "content" => [%{"type" => "tool_use", "input" => payload}]
         })
       )
@@ -84,18 +84,18 @@ defmodule ControlKeel.Intent.RouterTest do
         anthropic: %{
           api_key: "anthropic-test",
           base_url: base_url(bypass),
-          model: "claude-sonnet-4-5"
+          model: "claude-sonnet-4.6"
         }
       }
     })
 
-    assert {:ok, brief_map, %{"model" => "claude-sonnet-4-5"}} =
+    assert {:ok, brief_map, %{"model" => "claude-sonnet-4.6"}} =
              Anthropic.compile(Prompt.build(sample_intent_attrs()), [])
 
     assert {:ok, brief} =
              ExecutionBrief.from_provider_response(
                brief_map,
-               compiler_metadata(%{"provider" => "anthropic", "model" => "claude-sonnet-4-5"})
+               compiler_metadata(%{"provider" => "anthropic", "model" => "claude-sonnet-4.6"})
              )
 
     assert brief.domain_pack == "healthcare"
@@ -220,7 +220,7 @@ defmodule ControlKeel.Intent.RouterTest do
         conn,
         200,
         Jason.encode!(%{
-          "model" => "claude-sonnet-4-5",
+          "model" => "claude-sonnet-4.6",
           "content" => [%{"type" => "tool_use", "input" => valid}]
         })
       )
@@ -234,7 +234,7 @@ defmodule ControlKeel.Intent.RouterTest do
         anthropic: %{
           api_key: "anthropic-test",
           base_url: base_url(anthropic),
-          model: "claude-sonnet-4-5"
+          model: "claude-sonnet-4.6"
         },
         openrouter: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "unused"},
         ollama: %{base_url: "http://127.0.0.1:1", model: "unused"}
@@ -259,7 +259,7 @@ defmodule ControlKeel.Intent.RouterTest do
         conn,
         200,
         Jason.encode!(%{
-          "model" => "claude-sonnet-4-5",
+          "model" => "claude-sonnet-4.6",
           "content" => [%{"type" => "tool_use", "input" => provider_brief_payload()}]
         })
       )
@@ -271,7 +271,7 @@ defmodule ControlKeel.Intent.RouterTest do
         anthropic: %{
           api_key: "anthropic-test",
           base_url: base_url(anthropic),
-          model: "claude-sonnet-4-5"
+          model: "claude-sonnet-4.6"
         },
         openrouter: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "unused"},
         ollama: %{base_url: "http://127.0.0.1:1", model: "unused"}
@@ -295,7 +295,7 @@ defmodule ControlKeel.Intent.RouterTest do
         conn,
         200,
         Jason.encode!(%{
-          "model" => "claude-sonnet-4-5",
+          "model" => "claude-sonnet-4.6",
           "content" => [%{"type" => "tool_use", "input" => provider_brief_payload()}]
         })
       )
@@ -307,7 +307,7 @@ defmodule ControlKeel.Intent.RouterTest do
         anthropic: %{
           api_key: "anthropic-test",
           base_url: base_url(anthropic),
-          model: "claude-sonnet-4-5"
+          model: "claude-sonnet-4.6"
         },
         openai: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "unused"},
         openrouter: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "unused"}
@@ -332,7 +332,7 @@ defmodule ControlKeel.Intent.RouterTest do
       default_provider: nil,
       dev_fallback: false,
       providers: %{
-        anthropic: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "claude-sonnet-4-5"},
+        anthropic: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "claude-sonnet-4.6"},
         openai: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "o3"},
         openrouter: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "openrouter/test"},
         ollama: %{base_url: "http://127.0.0.1:1", model: "llama3.2"}

@@ -3971,7 +3971,7 @@ defmodule ControlKeel.Skills.Exporter do
     name = "controlkeel-reviewer"
     description = "Review-focused Codex agent for correctness, security, regressions, and missing tests in ControlKeel-governed work."
     nickname_candidates = ["Atlas Review", "Delta Review", "Echo Review"]
-    model = "o3"
+    model = "o4-mini"
     model_reasoning_effort = "high"
     sandbox_mode = "read-only"
 

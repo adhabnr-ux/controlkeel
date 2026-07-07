@@ -13,18 +13,6 @@ defmodule ControlKeel.Runtime do
   def placement(surface), do: Mode.placement(mode(), surface)
   def placement_map, do: Mode.placement_map(mode())
 
-  def bus do
-    Application.get_env(:controlkeel, :bus, default_bus())
-  end
-
-  def bus_module do
-    case bus() do
-      :nats -> ControlKeel.Bus.Nats
-      :jet_stream -> ControlKeel.Bus.JetStream
-      _ -> ControlKeel.Bus.Local
-    end
-  end
-
   def pdf_renderer do
     case Application.get_env(:controlkeel, :pdf_renderer, :chromic) do
       :chromic -> ControlKeel.AuditExports.Renderer.Chromic
@@ -39,9 +27,5 @@ defmodule ControlKeel.Runtime do
 
   def memory_store_mode do
     if cloud_repo_enabled?(), do: :pgvector, else: :sqlite
-  end
-
-  defp default_bus do
-    if remote?(), do: :nats, else: :local
   end
 end

@@ -75,9 +75,6 @@ defmodule ControlKeel.Application do
       ControlKeel.Repo
     ] ++
       cloud_repo_children() ++
-      [
-        ControlKeel.Runtime.bus_module()
-      ] ++
       analytics_children() ++
       cloud_emitter_children() ++
       mailer_test_inbox_children() ++
@@ -112,9 +109,6 @@ defmodule ControlKeel.Application do
       ControlKeel.Repo
     ] ++
       cloud_repo_children() ++
-      [
-        ControlKeel.Runtime.bus_module()
-      ] ++
       analytics_children() ++
       cloud_emitter_children() ++
       [

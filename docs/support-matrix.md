@@ -215,15 +215,8 @@ Runtime transport truth for those first-class hosts:
 | `antigravity-ide` | attach_client | `controlkeel attach antigravity-ide` | `local_mcp` | `none` | `inbound_only` | `agent_runtime` / `native` | `antigravity-cli-native` |
 | `clawdbot` | unverified | research only | `native_skills` | `none` | `inbound_only` | `none` / `native` | `open-standard` |
 | `nous-research` | unverified | research only | `native_skills` | `none` | `inbound_only` | `none` / `native` | `open-standard` |
-| `rlm-agent` | unverified | research only | none | `none` | `inbound_only` | `none` / `none` | n/a |
-| `slate` | unverified | research only | none | `none` | `inbound_only` | `none` / `none` | n/a |
-| `retune` | unverified | research only | none | `none` | `inbound_only` | `none` / `none` | n/a |
-| `claw-code` | unverified | research only | none | `none` | `inbound_only` | `none` / `none` | n/a |
-| `claude-code-source-mirror` | unverified | research only | none | `none` | `inbound_only` | `none` / `none` | n/a |
 | `trae` | unverified | research only | `native_skills` | `none` | `inbound_only` | `none` / `native` | `open-standard` |
 | `z-ai-cli` | unverified | research only | none | `none` | `inbound_only` | `none` / `none` | n/a |
-| `capydotai` | unverified | research only | none | `none` | `inbound_only` | `none` / `none` | n/a |
-| `neosigma` | unverified | research only | none | `none` | `inbound_only` | `none` / `none` | n/a |
 | `open-agents` | framework_adapter | adapter only | `native_skills`, `cli_bash` | `none` | `inbound_only` | `heuristic` / `native` | `open-standard` |
 | `cloudflare-workers` | headless_runtime | `controlkeel runtime export cloudflare-workers` | `hosted_mcp` | `runtime` | `runtime` | `ck_owned` / `instructions_only` | `cloudflare-workers-runtime` |
 
@@ -430,15 +423,33 @@ These directories ship with the repo and are discovered by [`ControlKeel.Skills.
 | Skill directory | Role |
 | ----------------- | ------ |
 | `agent-integration` | Agent integration workflows and references (e.g. target matrix). |
+| `agent-pattern-verification` | AI agent code pattern verification. |
+| `align` | Pre-work alignment interview. |
+| `architect-first` | Architect-first module design. |
 | `benchmark-operator` | Benchmark operator playbooks. |
+| `challenge` | Adversarial plan challenge. |
+| `cli-for-agents` | CLI design for agent-friendliness. |
+| `cloudflare-agent` | Cloudflare agent governance. |
 | `compliance-audit` | Compliance / control matrix audits. |
+| `continual-learning` | Session learning and memory. |
+| `continuity` | Codebase pattern continuity. |
 | `controlkeel-governance` | Governance workflow references. |
 | `cost-optimization` | Budget and cost playbooks. |
+| `deep-code-quality-review` | Deep maintainability review. |
+| `deslop` | AI slop cleanup. |
 | `domain-audit` | Domain-specific review matrices. |
+| `handoff` | Session state handoff. |
+| `investigate` | Read-only codebase Q&A. |
+| `orchestrate-tasks` | Parallel task orchestration. |
+| `parallel-review` | Concurrent security + quality review. |
+| `plan-slice` | Vertical slice decomposition. |
 | `policy-training` | Offline policy training / promotion references. |
 | `proof-memory` | Proof bundles and typed memory workflow. |
+| `reviewable-pr` | PR preparation for review. |
 | `security-review` | Security review checklist. |
 | `ship-readiness` | Release / ship checklist. |
+| `standup-summary` | Work summary and standup. |
+| `tdd-bugfix` | TDD bugfix workflow. |
 
 Export targets on each integration (e.g. `claude-plugin`, `codex`) refer to **CLI** `controlkeel skills export --target …` bundles, not separate MCP tools.
 

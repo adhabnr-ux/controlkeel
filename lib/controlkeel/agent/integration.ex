@@ -1464,69 +1464,6 @@ defmodule ControlKeel.Agent.Integration do
         ]
       }),
       unverified_entry(%{
-        id: "rlm-agent",
-        label: "RLM agent",
-        category: "unverified",
-        description:
-          "Research name only. No canonical official upstream or documented ControlKeel integration contract was verified.",
-        auth_mode: "none",
-        upstream_slug: "unverified/rlm-agent",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        mcp_mode: "none",
-        skills_mode: "none"
-      }),
-      unverified_entry(%{
-        id: "slate",
-        label: "Slate",
-        category: "unverified",
-        description:
-          "Research name only. No canonical official upstream or documented ControlKeel integration contract was verified.",
-        auth_mode: "none",
-        upstream_slug: "unverified/slate",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        mcp_mode: "none",
-        skills_mode: "none"
-      }),
-      unverified_entry(%{
-        id: "retune",
-        label: "Retune",
-        category: "unverified",
-        description:
-          "Research name only. No canonical official upstream or documented ControlKeel integration contract was verified.",
-        auth_mode: "none",
-        upstream_slug: "khadgi-sujan/retune",
-        upstream_docs_url: "https://github.com/khadgi-sujan/retune",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        mcp_mode: "none",
-        skills_mode: "none"
-      }),
-      unverified_entry(%{
-        id: "claw-code",
-        label: "Claw Code community ports",
-        category: "unverified",
-        description:
-          "Community ports and rewrites tied to leaked Claude Code snapshots are tracked for awareness only. No stable, official integration contract has been verified for CK attach/runtime flows.",
-        auth_mode: "none",
-        upstream_slug: "instructkr/claw-code",
-        upstream_docs_url: "https://github.com/instructkr/claw-code",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        mcp_mode: "none",
-        skills_mode: "none"
-      }),
-      unverified_entry(%{
-        id: "claude-code-source-mirror",
-        label: "Claude Code source mirror ports",
-        category: "unverified",
-        description:
-          "Leak-derived Claude Code source mirrors/ports are intentionally classified as unverified. Prefer the official `claude-code` integration path and avoid treating mirror repos as trusted supply-chain inputs.",
-        auth_mode: "none",
-        upstream_slug: "VineeTagarwaL-code/claude-code",
-        upstream_docs_url: "https://github.com/VineeTagarwaL-code/claude-code",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        mcp_mode: "none",
-        skills_mode: "none"
-      }),
-      unverified_entry(%{
         id: "trae",
         label: "Trae",
         category: "skills-compatible",
@@ -1560,31 +1497,6 @@ defmodule ControlKeel.Agent.Integration do
         auth_mode: "none",
         upstream_slug: "z-ai/cli-ecosystem",
         upstream_docs_url: "https://docs.z.ai/devpack/using5.1",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        mcp_mode: "none",
-        skills_mode: "none"
-      }),
-      unverified_entry(%{
-        id: "capydotai",
-        label: "Capy.ai / captain-agent style surfaces",
-        category: "unverified",
-        description:
-          "Community references to capy/captain agent orchestration are tracked for awareness only; no canonical integration contract was verified.",
-        auth_mode: "none",
-        upstream_slug: "unverified/capydotai",
-        provider_bridge: %{supported: false, mode: "none", owner: "none"},
-        mcp_mode: "none",
-        skills_mode: "none"
-      }),
-      unverified_entry(%{
-        id: "neosigma",
-        label: "NeoSigma",
-        category: "unverified",
-        description:
-          "Tracked as an emerging agentic platform/research surface without a verified attach/runtime integration contract for ControlKeel yet.",
-        auth_mode: "none",
-        upstream_slug: "neosigma/agent-platform",
-        upstream_docs_url: "https://www.neosigma.ai",
         provider_bridge: %{supported: false, mode: "none", owner: "none"},
         mcp_mode: "none",
         skills_mode: "none"

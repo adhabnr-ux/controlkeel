@@ -116,8 +116,6 @@ Optional:
 | `AUDIT_EXPORT_SIGNING_KEY` | HMAC key for signed audit export envelopes. | unset |
 | `ECTO_USE_SSL` | Enforce TLS for Postgres. | `false` |
 | `POOL_SIZE` | DB connection pool size. | `10` |
-| `CONTROLKEEL_BUS` | `local` or `nats`. | `local` |
-| `CONTROLKEEL_NATS_URL` | NATS connection string when `CONTROLKEEL_BUS=nats`. | unset |
 | `CONTROLKEEL_CLOUD_TELEMETRY_ENDPOINT` | Sender-side telemetry endpoint override. | unset |
 | `LOGGER_LEVEL` | Logger level. | `info` |
 

@@ -4,7 +4,7 @@ defmodule ControlKeel.Ops.SelfHostTest do
   alias ControlKeel.Ops.SelfHost
 
   @env_vars ~w(DATABASE_URL SECRET_KEY_BASE PHX_HOST
-              CONTROLKEEL_NATS_URL CK_AUDIT_SIGNING_KEY
+              CK_AUDIT_SIGNING_KEY
               CONTROLKEEL_OIDC_CLIENT_SECRET CONTROLKEEL_RUNTIME_MODE)
 
   setup do
