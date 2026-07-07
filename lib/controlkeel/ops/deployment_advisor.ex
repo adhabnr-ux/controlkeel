@@ -1,89 +1,7 @@
 defmodule ControlKeel.Ops.DeploymentAdvisor do
   @moduledoc false
 
-  @platforms [
-    %{
-      id: :fly_io,
-      name: "Fly.io",
-      url: "https://fly.io",
-      docs: "https://fly.io/docs",
-      stack_fit: [:phoenix, :rails, :node, :python, :static],
-      tier: %{name: "Free", monthly_low: 0, monthly_high: 0},
-      notes: "Best for Phoenix/Elixir apps. Native IPv6, free tier available."
-    },
-    %{
-      id: :railway,
-      name: "Railway",
-      url: "https://railway.app",
-      docs: "https://docs.railway.app",
-      stack_fit: [:phoenix, :rails, :node, :python, :react],
-      tier: %{name: "Hobby", monthly_low: 0, monthly_high: 5},
-      notes: "Easy deploy from CLI. Good for rapid prototyping."
-    },
-    %{
-      id: :render,
-      name: "Render",
-      url: "https://render.com",
-      docs: "https://render.com/docs",
-      stack_fit: [:phoenix, :rails, :node, :python, :react, :static],
-      tier: %{name: "Free", monthly_low: 0, monthly_high: 0},
-      notes: "Free tier for static sites. Good for Phoenix, React, and Node apps."
-    },
-    %{
-      id: :vercel,
-      name: "Vercel",
-      url: "https://vercel.com",
-      docs: "https://vercel.com/docs",
-      stack_fit: [:react, :static],
-      tier: %{name: "Hobby", monthly_low: 0, monthly_high: 0},
-      notes: "Best for Next.js/React frontend apps. Serverless functions."
-    },
-    %{
-      id: :heroku,
-      name: "Heroku",
-      url: "https://heroku.com",
-      docs: "https://devcenter.heroku.com",
-      stack_fit: [:phoenix, :rails, :node, :python],
-      tier: %{name: "Eco", monthly_low: 7, monthly_high: 7},
-      notes: "Good for Rails/Phoenix apps. Has eco dyno tier."
-    },
-    %{
-      id: :aws,
-      name: "AWS (Elastic Beanstalk)",
-      url: "https://aws.amazon.com/elasticbeanstalk",
-      docs: "https://docs.aws.amazon.com/elasticbeanstalk",
-      stack_fit: [:phoenix, :rails, :node, :python, :react, :static],
-      tier: %{name: "Free Tier", monthly_low: 0, monthly_high: 0},
-      notes: "Most features. Free tier includes 750 hours EC2 per month."
-    },
-    %{
-      id: :gcp,
-      name: "Google Cloud Run",
-      url: "https://cloud.google.com/run",
-      docs: "https://cloud.google.com/run/docs",
-      stack_fit: [:phoenix, :rails, :node, :python, :react, :static],
-      tier: %{name: "Free Tier", monthly_low: 0, monthly_high: 0},
-      notes: "Serverless containers. Good for any stack. Generous free tier."
-    },
-    %{
-      id: :digitalocean,
-      name: "DigitalOcean App Platform",
-      url: "https://www.digitalocean.com/products/app-platform",
-      docs: "https://docs.digitalocean.com/products/app-platform",
-      stack_fit: [:phoenix, :rails, :node, :python, :react, :static],
-      tier: %{name: "Basic", monthly_low: 5, monthly_high: 5},
-      notes: "Good for small apps. Simple pricing."
-    },
-    %{
-      id: :netlify,
-      name: "Netlify",
-      url: "https://www.netlify.com",
-      docs: "https://docs.netlify.com",
-      stack_fit: [:static, :react],
-      tier: %{name: "Starter", monthly_low: 0, monthly_high: 0},
-      notes: "Best for static sites and JAMstack. Free tier."
-    }
-  ]
+  alias ControlKeel.Ops.HostingCost
 
   def analyze(project_root) do
     root = Path.expand(project_root)
@@ -217,7 +135,9 @@ defmodule ControlKeel.Ops.DeploymentAdvisor do
   end
 
   defp filter_platforms(stack) do
-    Enum.filter(@platforms, fn p -> stack in p.stack_fit end)
+    HostingCost.available_platforms()
+    |> Enum.map(&deployment_platform/1)
+    |> Enum.filter(fn p -> stack in p.stack_fit end)
     |> Enum.sort_by(fn p ->
       cond do
         stack == :phoenix and p.id == :fly_io -> 0
@@ -226,6 +146,18 @@ defmodule ControlKeel.Ops.DeploymentAdvisor do
         true -> 1
       end
     end)
+  end
+
+  defp deployment_platform(platform) do
+    %{
+      id: platform.id,
+      name: platform.name,
+      url: platform.url,
+      docs: platform.url,
+      stack_fit: platform.best_for,
+      tier: %{name: "See hosting cost estimate", monthly_low: nil, monthly_high: nil},
+      notes: platform.notes
+    }
   end
 
   defp estimate_monthly_cost(stack) do

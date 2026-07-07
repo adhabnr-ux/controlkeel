@@ -27,9 +27,8 @@ defmodule ControlKeel.Cloud.Telemetry.Sender do
 
   Headers:
 
-    - `Authorization: Bearer <workspace_id>` (placeholder; will be replaced by
-      a workspace-keypair-signed token in a follow-up slice once the server
-      side supports it)
+    - `Authorization: Bearer <signed workspace token>` generated from the local
+      workspace keypair
     - `Content-Type: application/json`
     - `Idempotency-Key: <batch-ULID>` (so the server can dedupe whole batches
       under retry; individual events also carry their own idempotency_key)

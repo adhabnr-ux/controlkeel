@@ -200,20 +200,20 @@ Runtime transport truth for those first-class hosts:
 | `multica-cloud` | headless_runtime | `controlkeel runtime export multica-cloud` | `hosted_mcp` | `runtime` | `runtime` | `oauth_runtime` / `instructions_only` | `multica-cloud-runtime` |
 | `executor` | headless_runtime | `controlkeel runtime export executor` | `hosted_mcp` | `runtime` | `runtime` | `oauth_runtime` / `instructions_only` | `executor-runtime` |
 | `virtual-bash` | headless_runtime | `controlkeel runtime export virtual-bash` | `hosted_mcp` | `runtime` | `runtime` | `ck_owned` / `instructions_only` | `virtual-bash-runtime` |
-| `dspy` | framework_adapter | adapter only | none | `none` | `inbound_only` | `ck_owned` / `none` | `framework-adapter` |
-| `gepa` | framework_adapter | adapter only | none | `none` | `inbound_only` | `ck_owned` / `none` | `framework-adapter` |
-| `deepagents` | framework_adapter | adapter only | none | `none` | `inbound_only` | `ck_owned` / `none` | `framework-adapter` |
-| `fastmcp` | framework_adapter | adapter only | none | `none` | `inbound_only` | `none` / `none` | `framework-adapter` |
+| `dspy` | framework_adapter | reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
+| `gepa` | framework_adapter | reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
+| `deepagents` | framework_adapter | reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
+| `fastmcp` | framework_adapter | reference only | none | `none` | `inbound_only` | `none` / `none` | none |
 | `conductor` | framework_adapter | adapter only | `local_mcp`, `native_skills`, `commands` | `none` | `inbound_only` | `heuristic` / `native` | `claude-standalone` |
-| `paperclip` | framework_adapter | adapter only | `local_mcp`, `native_skills`, `commands`, `plugin` | `none` | `inbound_only` | `config_reference` / `native` | `framework-adapter` |
-| `dmux` | framework_adapter | adapter only | `local_mcp`, `native_skills`, `commands`, `hooks` | `none` | `inbound_only` | `config_reference` / `native` | `framework-adapter` |
-| `augment-intent` | framework_adapter | adapter only | none | `none` | `inbound_only` | `none` / `none` | `framework-adapter` |
-| `codestral` | provider_only | provider template only | none | `none` | `inbound_only` | `ck_owned` / `none` | `provider-profile` |
-| `ollama-runtime` | provider_only | provider template only | none | `none` | `inbound_only` | `local` / `none` | `provider-profile` |
-| `vllm` | provider_only | provider template only | none | `none` | `inbound_only` | `ck_owned` / `none` | `provider-profile` |
-| `sglang` | provider_only | provider template only | none | `none` | `inbound_only` | `ck_owned` / `none` | `provider-profile` |
-| `lmstudio` | provider_only | provider template only | none | `none` | `inbound_only` | `ck_owned` / `none` | `provider-profile` |
-| `huggingface` | provider_only | provider template only | none | `none` | `inbound_only` | `ck_owned` / `none` | `provider-profile` |
+| `paperclip` | framework_adapter | reference only | `local_mcp`, `native_skills`, `commands`, `plugin` | `none` | `inbound_only` | `config_reference` / `native` | none |
+| `dmux` | framework_adapter | reference only | `local_mcp`, `native_skills`, `commands`, `hooks` | `none` | `inbound_only` | `config_reference` / `native` | none |
+| `augment-intent` | framework_adapter | reference only | none | `none` | `inbound_only` | `none` / `none` | none |
+| `codestral` | provider_only | provider reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
+| `ollama-runtime` | provider_only | provider reference only | none | `none` | `inbound_only` | `local` / `none` | none |
+| `vllm` | provider_only | provider reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
+| `sglang` | provider_only | provider reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
+| `lmstudio` | provider_only | provider reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
+| `huggingface` | provider_only | provider reference only | none | `none` | `inbound_only` | `ck_owned` / `none` | none |
 | `claude-dispatch` | alias | use `claude-code` | same as `claude-code` | same as `claude-code` | same as `claude-code` | `env_bridge` / `native` | `claude-standalone` |
 | `cognition` | alias | use `devin` | same as `devin` | same as `devin` | same as `devin` | `oauth_runtime` / `instructions_only` | `devin-runtime` |
 | `cursor-agent` | alias | use `cursor` | same as `cursor` | same as `cursor` | same as `cursor` | `ck_owned` / `native` | `cursor-native` |

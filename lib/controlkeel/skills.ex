@@ -29,7 +29,7 @@ defmodule ControlKeel.Skills do
   end
 
   def targets, do: SkillTarget.catalog()
-  def agent_integrations, do: Integration.catalog() |> ACPRegistry.enrich_integrations()
+  def agent_integrations, do: Integration.product_catalog() |> ACPRegistry.enrich_integrations()
   def release_targets, do: SkillTarget.release_targets()
   def install_channels, do: Distribution.install_channels()
   def current_install_channels, do: Distribution.current_install_channels()

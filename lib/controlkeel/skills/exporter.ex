@@ -245,14 +245,6 @@ defmodule ControlKeel.Skills.Exporter do
     ControlKeel.Skills.Exporter.CloudflareWorkersRuntime.write(root, project_root, skills, opts)
   end
 
-  defp write_target(%SkillTarget{id: "framework-adapter"}, root, project_root, skills, opts) do
-    ControlKeel.Skills.Exporter.FrameworkAdapter.write(root, project_root, skills, opts)
-  end
-
-  defp write_target(%SkillTarget{id: "provider-profile"}, root, project_root, skills, opts) do
-    ControlKeel.Skills.Exporter.ProviderProfile.write(root, project_root, skills, opts)
-  end
-
   defp write_target(%SkillTarget{id: "antigravity-cli-native"}, root, project_root, skills, opts) do
     ControlKeel.Skills.Exporter.AntigravityCliNative.write(root, project_root, skills, opts)
   end

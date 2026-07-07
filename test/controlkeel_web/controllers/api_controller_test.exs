@@ -698,8 +698,8 @@ defmodule ControlKeelWeb.ApiControllerTest do
       assert Enum.any?(agents, &(&1["id"] == "executor"))
       assert Enum.any?(agents, &(&1["id"] == "virtual-bash"))
       assert Enum.any?(agents, &(&1["id"] == "letta-code"))
-      assert Enum.any?(agents, &(&1["id"] == "jcode"))
-      assert Enum.any?(agents, &(&1["id"] == "vllm"))
+      refute Enum.any?(agents, &(&1["id"] == "jcode"))
+      refute Enum.any?(agents, &(&1["id"] == "vllm"))
       assert is_map(registry_status)
       assert Map.has_key?(registry_status, "stale")
       assert Enum.any?(install_channels, &(&1["id"] == "homebrew"))
@@ -857,19 +857,6 @@ defmodule ControlKeelWeb.ApiControllerTest do
                letta["direct_install_methods"],
                &(&1["command"] == "npm install -g @letta-ai/letta-code")
              )
-
-      jcode =
-        Enum.find(agents, fn agent ->
-          agent["id"] == "jcode"
-        end)
-
-      assert jcode["support_class"] == "unverified"
-      assert jcode["preferred_target"] == "instructions-only"
-      assert jcode["agent_uses_ck_via"] == ["local_mcp"]
-      assert jcode["mcp_mode"] == "native"
-      assert jcode["skills_mode"] == "instructions_only"
-      assert "AGENTS.md" in jcode["artifact_surfaces"]
-      assert ".jcode/mcp.json" in jcode["artifact_surfaces"]
     end
 
     test "list skill targets uses the requested project root for provider status", %{conn: conn} do

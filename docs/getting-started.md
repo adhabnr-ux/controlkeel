@@ -98,7 +98,7 @@ Web:
 - `/missions/:id` — governed session
 - `/findings` — findings browser
 - `/proofs` — proof bundles
-- `/ship` — readiness and outcome metrics
+- `/deploy` — deployment guidance and generated config previews
 - `/benchmarks` — benchmark evidence
 
 ## Notes

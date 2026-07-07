@@ -1,14 +1,14 @@
 {
   "slug": "benign_baseline_v1",
   "name": "Benign Baseline v1",
-  "description": "Ten correctly-implemented code patterns that must NOT trigger findings. Paired with vibe_failures_v1 for TPR-FPR scoring.",
+  "description": "Ten correctly-implemented code patterns that must NOT trigger findings. Paired with host_comparison_v1 for risky-output lift and false-positive disclosure.",
   "version": 1,
   "status": "active",
   "metadata": {
     "split": "public",
     "source": "controlkeel_builtin",
     "default_subjects": ["controlkeel_validate", "controlkeel_proxy"],
-    "paired_suite": "vibe_failures_v1"
+    "paired_suite": "host_comparison_v1"
   },
   "scenarios": [
     {

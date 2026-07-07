@@ -39,8 +39,7 @@ defmodule ControlKeel.MCP.Discovery do
 
     case transport do
       :http ->
-        with :ok <- check_url_safety(server_url),
-             :ok <- ensure_inets_started() do
+        with :ok <- check_url_safety(server_url) do
           discover_http(server_url, timeout)
         end
 
@@ -62,13 +61,6 @@ defmodule ControlKeel.MCP.Discovery do
 
       true ->
         :http
-    end
-  end
-
-  defp ensure_inets_started do
-    case Application.ensure_all_started(:inets) do
-      {:ok, _} -> :ok
-      {:error, reason} -> {:error, {:inets_unavailable, reason}}
     end
   end
 
@@ -122,40 +114,30 @@ defmodule ControlKeel.MCP.Discovery do
   end
 
   defp discover_http(server_url, timeout) do
-    request_body =
-      Jason.encode!(%{
-        "jsonrpc" => "2.0",
-        "id" => 1,
-        "method" => "tools/list",
-        "params" => %{}
-      })
+    request_body = %{
+      "jsonrpc" => "2.0",
+      "id" => 1,
+      "method" => "tools/list",
+      "params" => %{}
+    }
 
-    url = String.to_charlist(normalize_http_url(server_url))
-    headers = [{~c"Content-Type", ~c"application/json"}, {~c"Accept", ~c"application/json"}]
-    content_type = ~c"application/json"
+    url = normalize_http_url(server_url)
 
-    http_options = [
-      timeout: timeout,
-      connect_timeout: min(timeout, 5_000),
-      autoredirect: false,
-      ssl: ssl_options()
-    ]
-
-    request_options = [body_format: :binary]
-
-    case :httpc.request(
-           :post,
-           {url, headers, content_type, request_body},
-           http_options,
-           request_options
+    case Req.post(url,
+           json: request_body,
+           headers: [{"accept", "application/json"}],
+           receive_timeout: timeout,
+           connect_options: [timeout: min(timeout, 5_000)],
+           redirect: false,
+           retry: false
          ) do
-      {:ok, {{_http_version, 200, _reason_phrase}, _resp_headers, body}} ->
+      {:ok, %Req.Response{status: 200, body: body}} ->
         case enforce_response_size(body) do
           :ok -> parse_tools_response(body, server_url, :http)
           {:error, _} = err -> err
         end
 
-      {:ok, {{_http_version, status, _reason_phrase}, _resp_headers, _body}} ->
+      {:ok, %Req.Response{status: status}} ->
         {:error, {:http_error, status}}
 
       {:error, reason} ->
@@ -177,26 +159,7 @@ defmodule ControlKeel.MCP.Discovery do
     _ -> {:error, {:response_too_large, :unknown}}
   end
 
-  defp ssl_options do
-    # :public_key.cacerts_get/0 was added in OTP 25; fall back to verify_none
-    # only if no system CA store is available.
-    try do
-      cacerts = :public_key.cacerts_get()
-
-      [
-        verify: :verify_peer,
-        cacerts: cacerts,
-        depth: 4,
-        customize_hostname_check: [
-          match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
-        ]
-      ]
-    rescue
-      _ -> [verify: :verify_none]
-    catch
-      _, _ -> [verify: :verify_none]
-    end
-  end
+  defp enforce_response_size(_decoded_json), do: :ok
 
   defp normalize_http_url(url) do
     case URI.parse(url) do
@@ -206,16 +169,31 @@ defmodule ControlKeel.MCP.Discovery do
     end
   end
 
-  defp discover_stdio(server_path, _timeout) do
+  defp discover_stdio(_server_path, _timeout) do
+    {:error, {:unsupported_transport, :stdio}}
+  end
+
+  defp parse_tools_response(%{"result" => %{"tools" => tools}}, server_url, transport)
+       when is_list(tools) do
+    normalized_tools = normalize_tools(tools)
+    security = ToolSecurity.scan_tools(normalized_tools)
+
     {:ok,
      %{
-       server_url: server_path,
-       transport: :stdio,
-       tools: [],
-       total: 0,
-       note: "stdio discovery requires process spawning - not yet implemented"
+       server_url: server_url,
+       transport: transport,
+       tools: normalized_tools,
+       total: length(tools),
+       trust_level: security["trust_level"],
+       security: security
      }}
   end
+
+  defp parse_tools_response(%{"error" => error}, _server_url, _transport),
+    do: {:error, {:mcp_error, error}}
+
+  defp parse_tools_response(decoded, _server_url, _transport) when is_map(decoded),
+    do: {:error, {:unexpected_response, decoded}}
 
   defp parse_tools_response(body, server_url, transport) when is_binary(body) do
     case Jason.decode(body) do

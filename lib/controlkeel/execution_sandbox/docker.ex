@@ -16,7 +16,10 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
     with :ok <- ensure_image_available(image) do
       env_vars = merge_env_vars(env, allowed_env_vars)
 
-      docker_args = build_docker_args(command, args, env_vars, cwd, image, timeout)
+      requested_capabilities = Keyword.get(opts, :requested_capabilities, [])
+
+      docker_args =
+        build_docker_args(command, args, env_vars, cwd, image, timeout, requested_capabilities)
 
       try do
         {output, exit_status} = System.cmd("docker", docker_args, stderr_to_stdout: true)
@@ -69,7 +72,7 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
   @impl true
   def adapter_name, do: "docker"
 
-  defp build_docker_args(command, args, env, cwd, image, timeout) do
+  defp build_docker_args(command, args, env, cwd, image, timeout, requested_capabilities) do
     base = ["run", "--rm"]
 
     env_flags =
@@ -78,7 +81,12 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
 
     volume_flags =
       if cwd do
-        ["-v", "#{Path.expand(cwd)}:/workspace:rw", "-w", "/workspace"]
+        [
+          "-v",
+          "#{Path.expand(cwd)}:/workspace:#{mount_mode(requested_capabilities)}",
+          "-w",
+          "/workspace"
+        ]
       else
         []
       end
@@ -95,6 +103,17 @@ defmodule ControlKeel.ExecutionSandbox.Docker do
     do: ["--stop-timeout", to_string(timeout)]
 
   defp timeout_flag(_), do: []
+
+  defp mount_mode(requested_capabilities) do
+    if Enum.any?(
+         requested_capabilities,
+         &(&1 in ["filesystem", :filesystem, "file_write", :file_write])
+       ) do
+      "rw"
+    else
+      "ro"
+    end
+  end
 
   defp network_flag do
     case config_network() do

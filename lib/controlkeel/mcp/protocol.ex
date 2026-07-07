@@ -2645,7 +2645,7 @@ defmodule ControlKeel.MCP.Protocol do
             "type" => "string",
             "enum" => ["http", "stdio"],
             "description" =>
-              "Transport type. Auto-detected from server_url if not specified. HTTP uses Erlang's built-in :httpc (no extra dependencies)."
+              "Transport type. Auto-detected from server_url if not specified. HTTP discovery uses Req with normal TLS verification; stdio discovery returns an explicit unsupported-transport error."
           }
         }
       }

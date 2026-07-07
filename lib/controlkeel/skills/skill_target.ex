@@ -374,24 +374,6 @@ defmodule ControlKeel.Skills.SkillTarget do
         true
       ),
       target(
-        "framework-adapter",
-        "Framework adapter template",
-        "Adapter/export scaffold for framework-backed integrations such as DSPy, GEPA, and DeepAgents.",
-        false,
-        "export",
-        ["export"],
-        true
-      ),
-      target(
-        "provider-profile",
-        "Provider profile template",
-        "Provider/model profile template for integrations such as Codestral.",
-        false,
-        "export",
-        ["export"],
-        true
-      ),
-      target(
         "antigravity-cli-native",
         "Antigravity CLI native bundle",
         "Full 7-surface CK governance bundle for Antigravity CLI: plugin manifest, skills, agents, rules, hooks, MCP config, and instructions.",

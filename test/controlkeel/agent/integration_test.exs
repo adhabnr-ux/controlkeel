@@ -338,7 +338,8 @@ defmodule ControlKeel.Agent.IntegrationTest do
     assert paperclip.skills_mode == "native"
     assert paperclip.execution_support == "inbound_only"
     assert paperclip.ck_runs_agent_via == "none"
-    assert paperclip.preferred_target == "framework-adapter"
+    assert paperclip.preferred_target == nil
+    assert paperclip.export_targets == []
     assert paperclip.provider_bridge == %{supported: false, mode: "none", owner: "none"}
 
     assert dmux.support_class == "framework_adapter"
@@ -350,7 +351,8 @@ defmodule ControlKeel.Agent.IntegrationTest do
     assert dmux.skills_mode == "native"
     assert dmux.execution_support == "inbound_only"
     assert dmux.ck_runs_agent_via == "none"
-    assert dmux.preferred_target == "framework-adapter"
+    assert dmux.preferred_target == nil
+    assert dmux.export_targets == []
     assert dmux.provider_bridge == %{supported: false, mode: "none", owner: "none"}
     assert dmux.phase_model == "host_plan_mode"
     assert dmux.review_experience == "browser_review"
@@ -615,7 +617,8 @@ defmodule ControlKeel.Agent.IntegrationTest do
     assert t3code.runtime_capabilities[:tool_approval] == true
 
     assert vllm.support_class == "provider_only"
-    assert vllm.preferred_target == "provider-profile"
+    assert vllm.preferred_target == nil
+    assert vllm.export_targets == []
     assert vllm.attach_command == nil
     assert "vscode-companion" in vscode.export_targets
     assert vscode.phase_model == "review_only"

@@ -223,7 +223,7 @@ defmodule ControlKeel.Ops.HostingCost do
   def available_platforms do
     @platforms
     |> Enum.map(fn {id, p} ->
-      %{id: id, name: p.name, url: p.url, best_for: p.best_for}
+      %{id: id, name: p.name, url: p.url, best_for: p.best_for, notes: p.notes}
     end)
     |> Enum.sort_by(& &1.name)
   end

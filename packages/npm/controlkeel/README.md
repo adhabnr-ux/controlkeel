@@ -26,7 +26,7 @@ Main project docs:
 
 - [Repository README](https://github.com/aryaminus/controlkeel#readme)
 - [Getting started](https://github.com/aryaminus/controlkeel/blob/main/docs/getting-started.md)
-- [Direct host installs](https://github.com/aryaminus/controlkeel/blob/main/docs/direct-host-installs.md)
+- [Agent integrations](https://github.com/aryaminus/controlkeel/blob/main/docs/agent-integrations.md)
 - [Support matrix](https://github.com/aryaminus/controlkeel/blob/main/docs/support-matrix.md)
 
 You can also install the same bootstrap package from GitHub Packages:
@@ -43,7 +43,7 @@ This package uses a lazy download model for maximum security:
 
 - No install scripts (removed postinstall)
 - No environment variable access (hardcoded configuration)
-- Base64-encoded URL construction (prevents scanner detection)
+- Plain GitHub Release URLs for transparent scanner and reviewer visibility
 - SHA-256 checksum verification for all downloads
 
 The native binary is downloaded on first use rather than during installation. For detailed information about security practices, see [SECURITY.md](SECURITY.md).
