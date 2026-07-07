@@ -101,11 +101,4 @@ defmodule ControlKeel.MCP.Tools.CkAttach do
       "Verify: controlkeel cloud doctor"
     ]
   end
-
-  @doc """
-  List of host IDs this tool can attach — the canonical attach-client set from
-  Integration, so the agent-facing ck_attach surface never drifts below the
-  hosts the CLI actually attaches.
-  """
-  def attachable_hosts, do: Integration.attachable_ids()
 end

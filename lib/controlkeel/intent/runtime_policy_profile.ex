@@ -45,10 +45,6 @@ defmodule ControlKeel.Intent.RuntimePolicyProfile do
 
   def resolve(_), do: resolve(@default_mode)
 
-  def profiles, do: @profiles
-
-  def modes, do: Map.keys(@profiles)
-
   defp normalize_mode("full-access"), do: "full_access"
   defp normalize_mode("full_access"), do: "full_access"
   defp normalize_mode("approval-required"), do: "approval_required"

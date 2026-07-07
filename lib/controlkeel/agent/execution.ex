@@ -712,10 +712,6 @@ defmodule ControlKeel.Agent.Execution do
     ## Objective
 
     #{session.objective || "No objective recorded."}
-
-    ## Boundary
-
-    #{format_boundary_markdown(Intent.boundary_summary(session.execution_brief || %{}))}
     """
   end
 
@@ -985,27 +981,6 @@ defmodule ControlKeel.Agent.Execution do
 
   defp maybe_put_map_value(map, _key, nil), do: map
   defp maybe_put_map_value(map, key, value), do: Map.put(map, key, value)
-
-  defp format_boundary_markdown(summary) do
-    constraints =
-      summary
-      |> Map.get("constraints", [])
-      |> case do
-        [] -> "- No explicit operational constraints recorded."
-        values -> Enum.map_join(values, "\n", &"- #{&1}")
-      end
-
-    """
-    - Budget note: #{summary["budget_note"] || "n/a"}
-    - Data summary: #{summary["data_summary"] || "n/a"}
-    - Launch window: #{summary["launch_window"] || "n/a"}
-    - Next step: #{summary["next_step"] || "n/a"}
-
-    ### Constraints
-
-    #{constraints}
-    """
-  end
 
   defp export_bundle_into_package(package_root, project_root, %Integration{
          preferred_target: target

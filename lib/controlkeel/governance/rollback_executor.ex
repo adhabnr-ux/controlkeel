@@ -36,20 +36,6 @@ defmodule ControlKeel.Governance.RollbackExecutor do
   end
 
   @doc """
-  Finalize a snapshot by recording the post-task commit SHA.
-  """
-  def finalize(snapshot_id, opts \\ []) do
-    project_root = Keyword.get(opts, :project_root, File.cwd!())
-    snapshot = Repo.get!(RollbackSnapshot, snapshot_id)
-
-    with {:ok, commit_sha} <- git_head_sha(project_root) do
-      snapshot
-      |> RollbackSnapshot.changeset(%{commit_sha_after: commit_sha})
-      |> Repo.update()
-    end
-  end
-
-  @doc """
   Execute a rollback for a task. Returns {:ok, snapshot} or {:error, reason}.
 
   Safety checks:

@@ -52,11 +52,6 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
   def security_domain?(@domain_pack), do: true
   def security_domain?(_other), do: false
 
-  def security_occupation?(occupation) when is_binary(occupation),
-    do: occupation in @security_occupations
-
-  def security_occupation?(_occupation), do: false
-
   def default_cyber_access_mode("security_researcher"), do: "verified_research"
 
   def default_cyber_access_mode(occupation) when occupation in @security_occupations,
@@ -64,14 +59,12 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
 
   def default_cyber_access_mode(_occupation), do: "standard"
 
-  def normalize_cyber_access_mode(mode, default \\ "standard")
-
-  def normalize_cyber_access_mode(mode, default) when is_binary(mode) do
+  defp normalize_cyber_access_mode(mode, default) when is_binary(mode) do
     value = String.trim(mode)
     if value in @cyber_access_modes, do: value, else: default
   end
 
-  def normalize_cyber_access_mode(_mode, default), do: default
+  defp normalize_cyber_access_mode(_mode, default), do: default
 
   def session_cyber_access_mode(%Session{} = session) do
     metadata_mode =

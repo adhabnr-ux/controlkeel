@@ -49,8 +49,7 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
             |> Enum.map(&elem(&1, 1))
             |> Enum.take(2)
             |> Enum.map(&summarize(&1, availability)),
-          "rationale" => rationale(strategy, best, brief, posture, availability),
-          "model_tier" => recommend_model_tier(brief)
+          "rationale" => rationale(strategy, best, brief, posture, availability)
         }
     end
   end
@@ -437,27 +436,5 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
         File.dir?(Path.join([root, "controlkeel", "dist", integration.preferred_target]))
     end)
     |> Enum.map(& &1.id)
-  end
-
-  # ── Model tier recommendation ─────────────────────────────────────────────
-  # Recommends the cheapest model tier that can safely handle this brief.
-  # Signals are derived from the execution brief text so the recommendation
-  # stays consistent whether the caller is ck_route, ck_context, or ck_delegate.
-  #
-  # haiku  — pure read/search/exploration; no mutations, no governance decisions
-  # opus   — high-risk or deploy; needs full reasoning capacity
-  # sonnet — everything else (default)
-
-  @haiku_keywords ~w(explore search find locate grep read-only discovery scan list)
-  @opus_keywords ~w(deploy release infra critical hipaa compliance legal approve sign-off)
-
-  defp recommend_model_tier(brief) do
-    risk = fetch_string(brief, "risk_tier") || ""
-
-    cond do
-      String.contains?(risk, "critical") or mentions?(brief, @opus_keywords) -> "opus"
-      mentions?(brief, @haiku_keywords) and not approval_heavy?(brief) -> "haiku"
-      true -> "sonnet"
-    end
   end
 end

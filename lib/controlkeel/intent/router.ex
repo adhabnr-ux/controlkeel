@@ -21,7 +21,7 @@ defmodule ControlKeel.Intent.Router do
     try_providers(resolutions, prompt, attrs, fallback_chain, opts)
   end
 
-  def provider_module(provider), do: Map.fetch!(@providers, provider)
+  defp provider_module(provider), do: Map.fetch!(@providers, provider)
 
   defp ordered_resolutions(attrs, opts) do
     preflight = Domains.preflight_context(attrs)

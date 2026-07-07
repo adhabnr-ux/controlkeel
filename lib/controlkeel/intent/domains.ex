@@ -956,7 +956,7 @@ defmodule ControlKeel.Intent.Domains do
     |> Map.fetch!(:questions)
   end
 
-  def occupation_profile(id) do
+  defp occupation_profile(id) do
     Enum.find(@occupation_profiles, &(&1.id == id)) || List.first(@occupation_profiles)
   end
 
@@ -980,7 +980,7 @@ defmodule ControlKeel.Intent.Domains do
     }
   end
 
-  def content_blob(attrs) do
+  defp content_blob(attrs) do
     answers =
       Map.get(attrs, "interview_answers", %{})
       |> Map.values()
@@ -991,21 +991,21 @@ defmodule ControlKeel.Intent.Domains do
     |> String.downcase()
   end
 
-  def preliminary_risk_tier("healthcare", content) do
+  defp preliminary_risk_tier("healthcare", content) do
     cond do
       String.contains?(content, ["patient", "medical", "insurance", "phi"]) -> "critical"
       true -> "high"
     end
   end
 
-  def preliminary_risk_tier("education", content) do
+  defp preliminary_risk_tier("education", content) do
     cond do
       String.contains?(content, ["student record", "child", "minor", "discipline"]) -> "high"
       true -> "moderate"
     end
   end
 
-  def preliminary_risk_tier("finance", content) do
+  defp preliminary_risk_tier("finance", content) do
     cond do
       String.contains?(content, ["card", "pci", "payment", "transaction", "bank"]) -> "critical"
       String.contains?(content, ["invoice", "reconciliation", "ledger", "salary"]) -> "high"
@@ -1013,7 +1013,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("hr", content) do
+  defp preliminary_risk_tier("hr", content) do
     cond do
       String.contains?(content, ["salary", "termination", "performance", "discrimination"]) ->
         "high"
@@ -1026,7 +1026,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("legal", content) do
+  defp preliminary_risk_tier("legal", content) do
     cond do
       String.contains?(content, ["privilege", "discovery", "litigation", "confidential"]) ->
         "critical"
@@ -1039,7 +1039,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("marketing", content) do
+  defp preliminary_risk_tier("marketing", content) do
     cond do
       String.contains?(content, ["pii", "gdpr", "consent", "personal data"]) -> "high"
       String.contains?(content, ["email list", "contact", "subscriber"]) -> "moderate"
@@ -1047,7 +1047,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("sales", content) do
+  defp preliminary_risk_tier("sales", content) do
     cond do
       String.contains?(content, ["revenue", "quota", "commission", "salary"]) -> "high"
       String.contains?(content, ["crm", "contact", "lead", "pipeline"]) -> "moderate"
@@ -1055,7 +1055,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("realestate", content) do
+  defp preliminary_risk_tier("realestate", content) do
     cond do
       String.contains?(content, ["ssn", "financial disclosure", "tax", "mortgage"]) -> "high"
       String.contains?(content, ["client", "transaction", "offer", "listing"]) -> "moderate"
@@ -1063,7 +1063,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("government", content) do
+  defp preliminary_risk_tier("government", content) do
     cond do
       String.contains?(content, ["ssn", "benefits", "juvenile", "case file", "license"]) ->
         "critical"
@@ -1076,7 +1076,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("insurance", content) do
+  defp preliminary_risk_tier("insurance", content) do
     cond do
       String.contains?(content, ["diagnosis", "claim denial", "underwriting", "beneficiary"]) ->
         "critical"
@@ -1089,7 +1089,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("ecommerce", content) do
+  defp preliminary_risk_tier("ecommerce", content) do
     cond do
       String.contains?(content, ["card", "cvv", "refund", "chargeback", "checkout"]) -> "high"
       String.contains?(content, ["order", "cart", "customer", "return", "catalog"]) -> "moderate"
@@ -1097,7 +1097,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("logistics", content) do
+  defp preliminary_risk_tier("logistics", content) do
     cond do
       String.contains?(content, ["hazmat", "customs", "driver", "chain of custody"]) -> "high"
       String.contains?(content, ["shipment", "dispatch", "warehouse", "delivery"]) -> "moderate"
@@ -1105,7 +1105,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("manufacturing", content) do
+  defp preliminary_risk_tier("manufacturing", content) do
     cond do
       String.contains?(content, ["safety interlock", "recall", "lot trace", "quality hold"]) ->
         "high"
@@ -1118,7 +1118,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("nonprofit", content) do
+  defp preliminary_risk_tier("nonprofit", content) do
     cond do
       String.contains?(content, ["donor card", "beneficiary", "minor", "tax receipt"]) -> "high"
       String.contains?(content, ["grant", "donor", "volunteer", "program"]) -> "moderate"
@@ -1126,7 +1126,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("security", content) do
+  defp preliminary_risk_tier("security", content) do
     cond do
       String.contains?(content, [
         "exploit",
@@ -1145,7 +1145,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier("gdpr", content) do
+  defp preliminary_risk_tier("gdpr", content) do
     cond do
       String.contains?(content, ["health", "medical", "biometric", "criminal record"]) ->
         "critical"
@@ -1158,7 +1158,7 @@ defmodule ControlKeel.Intent.Domains do
     end
   end
 
-  def preliminary_risk_tier(_domain_pack, content) do
+  defp preliminary_risk_tier(_domain_pack, content) do
     cond do
       String.contains?(content, [
         "payment",
