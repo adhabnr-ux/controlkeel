@@ -27,5 +27,5 @@ ControlKeel is the control plane for AI-agent work: policy gates, findings, proo
 - [self-hosting.md](self-hosting.md): self-hosted deployment guidance
 - [hosting/](hosting/): hosting-related documentation
 - [api-reference.md](api-reference.md): code-aligned HTTP routes for sessions, reviews, findings, proofs, benchmarks, service accounts, webhooks, policy sets, hosted protocols, and cloud telemetry
-- [cli-reference.md](cli-reference.md): command surface including attach/export, review, cloud sync, governance, observability, benchmarks, providers, and self-hosting
+- [cli-reference.md](cli-reference.md): command topics, common commands, and pointer to live `controlkeel help`
 - [adrs/](adrs/): Architecture Decision Records for major technical decisions

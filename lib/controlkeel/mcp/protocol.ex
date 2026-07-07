@@ -2157,7 +2157,7 @@ defmodule ControlKeel.MCP.Protocol do
           },
           "model" => %{
             "type" => "string",
-            "description" => "AI model identifier (e.g., gpt-4, claude-sonnet-4.6)."
+            "description" => "AI model identifier (e.g., claude-sonnet-4.5, o3)."
           },
           "input_tokens" => %{
             "type" => ["integer", "string"],

@@ -141,7 +141,7 @@ defmodule ControlKeel.ProviderBrokerTest do
   } do
     hermes_dir = Path.join(home_dir, ".hermes")
     File.mkdir_p!(hermes_dir)
-    File.write!(Path.join(hermes_dir, "config.yaml"), "provider: openai\nmodel: gpt-5.4-mini\n")
+    File.write!(Path.join(hermes_dir, "config.yaml"), "provider: openai\nmodel: o4-mini\n")
     System.put_env("OPENAI_API_KEY", "sk-hermes-openai")
 
     assert {:ok, _binding} =

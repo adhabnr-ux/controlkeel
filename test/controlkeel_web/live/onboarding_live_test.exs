@@ -82,7 +82,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
       ControlKeel.Intent,
       %{
         providers: %{
-          openai: %{api_key: "sk-secret-test", base_url: "http://127.0.0.1:1", model: "gpt-5.4"}
+          openai: %{api_key: "sk-secret-test", base_url: "http://127.0.0.1:1", model: "o3"}
         }
       }
     )

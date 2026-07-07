@@ -3947,7 +3947,7 @@ defmodule ControlKeel.Skills.Exporter do
     name = "controlkeel-operator"
     description = "Operate inside a ControlKeel-governed project with CK skills and MCP tools."
     nickname_candidates = ["Atlas", "Delta", "Echo"]
-    model = "gpt-5.4-mini"
+    model = "o4-mini"
     model_reasoning_effort = "medium"
 
     developer_instructions = "Call `controlkeel update --json` once at startup. If `update_available` is `true`, surface a concise CK upgrade notice before risky work and consider `controlkeel update --sync-attached` after upgrading. Start with the `controlkeel-governance` skill, then add domain-specific skills as needed."
@@ -3971,7 +3971,7 @@ defmodule ControlKeel.Skills.Exporter do
     name = "controlkeel-reviewer"
     description = "Review-focused Codex agent for correctness, security, regressions, and missing tests in ControlKeel-governed work."
     nickname_candidates = ["Atlas Review", "Delta Review", "Echo Review"]
-    model = "gpt-5.4"
+    model = "o3"
     model_reasoning_effort = "high"
     sandbox_mode = "read-only"
 
@@ -3984,7 +3984,7 @@ defmodule ControlKeel.Skills.Exporter do
     name = "controlkeel-docs-researcher"
     description = "Documentation-focused Codex agent for verifying APIs, config surfaces, and host behavior before CK integration changes land."
     nickname_candidates = ["Atlas Docs", "Delta Docs", "Echo Docs"]
-    model = "gpt-5.4-mini"
+    model = "o4-mini"
     model_reasoning_effort = "medium"
     sandbox_mode = "read-only"
 

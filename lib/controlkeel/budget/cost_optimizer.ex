@@ -255,8 +255,8 @@ defmodule ControlKeel.Budget.CostOptimizer do
 
   defp default_agents do
     [
-      {"Claude Code", "anthropic", "claude-sonnet-4.6"},
-      {"Codex CLI", "openai", "gpt-5.4"},
+      {"Claude Code", "anthropic", "claude-sonnet-4.5"},
+      {"Codex CLI", "openai", "o3"},
       {"Gemini CLI", "google", "gemini-2.5-pro"},
       {"DeepSeek", "deepseek", "deepseek-v3"},
       {"Grok", "xai", "grok-3"},

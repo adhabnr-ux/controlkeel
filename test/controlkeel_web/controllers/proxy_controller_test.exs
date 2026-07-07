@@ -57,7 +57,7 @@ defmodule ControlKeelWeb.ProxyControllerTest do
       |> put_req_header("authorization", "Bearer test-key")
       |> post(
         "/proxy/openai/#{session.proxy_token}/v1/responses",
-        Jason.encode!(%{"model" => "gpt-5.4-mini", "input" => "hello"})
+        Jason.encode!(%{"model" => "o4-mini", "input" => "hello"})
       )
 
     assert json_response(conn, 200)["output_text"] == "all good"
@@ -82,7 +82,7 @@ defmodule ControlKeelWeb.ProxyControllerTest do
       |> post(
         "/proxy/openai/#{session.proxy_token}/v1/responses",
         Jason.encode!(%{
-          "model" => "gpt-5.4-mini",
+          "model" => "o4-mini",
           "input" => "SELECT * FROM users WHERE email = '\" + params.email + \"' OR 1=1 --"
         })
       )
@@ -122,7 +122,7 @@ defmodule ControlKeelWeb.ProxyControllerTest do
       |> post(
         "/proxy/openai/#{session.proxy_token}/v1/responses",
         Jason.encode!(%{
-          "model" => "gpt-5.4-mini",
+          "model" => "o4-mini",
           "input" =>
             "```js\nquery = format(\"SELECT * FROM users WHERE name = %s\", user_input)\n```"
         })
@@ -151,7 +151,7 @@ defmodule ControlKeelWeb.ProxyControllerTest do
       |> put_req_header("content-type", "application/json")
       |> post(
         "/proxy/openai/#{session.proxy_token}/v1/completions",
-        Jason.encode!(%{"model" => "gpt-5.4-mini", "prompt" => "Finish this"})
+        Jason.encode!(%{"model" => "o4-mini", "prompt" => "Finish this"})
       )
 
     assert json_response(conn, 200)["choices"] |> hd() |> Map.fetch!("text") == "done"
@@ -191,13 +191,13 @@ defmodule ControlKeelWeb.ProxyControllerTest do
       |> Plug.Conn.put_resp_content_type("application/json")
       |> Plug.Conn.resp(
         200,
-        Jason.encode!(%{"data" => [%{"id" => "gpt-5.4-mini"}, %{"id" => "gpt-5.4"}]})
+        Jason.encode!(%{"data" => [%{"id" => "o4-mini"}, %{"id" => "o3"}]})
       )
     end)
 
     conn = get(conn, "/proxy/openai/#{session.proxy_token}/v1/models")
 
-    assert Enum.map(json_response(conn, 200)["data"], & &1["id"]) == ["gpt-5.4-mini", "gpt-5.4"]
+    assert Enum.map(json_response(conn, 200)["data"], & &1["id"]) == ["o4-mini", "o3"]
   end
 
   test "streams SSE through and terminates with a provider-shaped error on blocked deltas", %{
@@ -230,7 +230,7 @@ defmodule ControlKeelWeb.ProxyControllerTest do
       |> put_req_header("content-type", "application/json")
       |> post(
         "/proxy/openai/#{session.proxy_token}/v1/responses",
-        Jason.encode!(%{"model" => "gpt-5.4-mini", "input" => "hello", "stream" => true})
+        Jason.encode!(%{"model" => "o4-mini", "input" => "hello", "stream" => true})
       )
 
     assert conn.status == 200

@@ -886,9 +886,14 @@ defmodule ControlKeel.CLI.Help do
       - review
       - findings
       - run
+      - sessions
       - skills
       - providers
       - troubleshooting
+      - worktrees
+      - checkpoints
+      - git
+      - monitoring
       - mcp
     """
   end

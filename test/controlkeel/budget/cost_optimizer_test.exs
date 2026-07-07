@@ -12,7 +12,7 @@ defmodule ControlKeel.Budget.CostOptimizerTest do
     assert {:ok, suggestions} =
              CostOptimizer.suggest("session_2",
                top_provider: "openai",
-               top_model: "gpt-5.4"
+               top_model: "o3"
              )
 
     model_suggestions = Enum.filter(suggestions, &(&1.type == :model_switch))

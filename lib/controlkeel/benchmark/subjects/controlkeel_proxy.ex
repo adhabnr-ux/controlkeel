@@ -10,7 +10,7 @@ defmodule ControlKeel.Benchmark.Subjects.ControlKeelProxy do
     started_at = System.monotonic_time(:millisecond)
 
     payload = %{
-      "model" => "gpt-5.4-mini",
+      "model" => "o4-mini",
       "messages" => [%{"role" => "user", "content" => scenario.content}],
       "max_tokens" => 512
     }

@@ -518,9 +518,9 @@ defmodule ControlKeel.ProviderBroker do
     }
   end
 
-  defp default_model("anthropic", _opts), do: "claude-sonnet-4.6"
-  defp default_model("openai", _opts), do: "gpt-5.4"
-  defp default_model("openrouter", _opts), do: "openai/gpt-5.4-mini"
+  defp default_model("anthropic", _opts), do: nil
+  defp default_model("openai", _opts), do: nil
+  defp default_model("openrouter", _opts), do: nil
   defp default_model("ollama", _opts), do: System.get_env(@ollama_model_env) || "qwen2.5:7b"
   defp default_model(_provider, _opts), do: nil
 

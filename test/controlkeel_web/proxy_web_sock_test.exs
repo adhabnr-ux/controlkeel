@@ -51,7 +51,7 @@ defmodule ControlKeelWeb.ProxyWebSockTest do
     :ok =
       __MODULE__.TestClient.send_text(
         client,
-        Jason.encode!(%{"mode" => "safe", "model" => "gpt-5.4-mini", "text" => "hello"})
+        Jason.encode!(%{"mode" => "safe", "model" => "o4-mini", "text" => "hello"})
       )
 
     assert_receive {:upstream_in, payload}, 1_000
@@ -79,7 +79,7 @@ defmodule ControlKeelWeb.ProxyWebSockTest do
     :ok =
       __MODULE__.TestClient.send_text(
         client,
-        Jason.encode!(%{"mode" => "block", "model" => "gpt-5.4-mini", "text" => "hello"})
+        Jason.encode!(%{"mode" => "block", "model" => "o4-mini", "text" => "hello"})
       )
 
     assert_receive {:client_text, error_frame}, 1_000

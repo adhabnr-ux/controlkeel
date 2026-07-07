@@ -841,53 +841,6 @@ defmodule ControlKeel.Intent.Domains do
         "Prefer repo-local discovery, typed validation artifacts, isolated runtimes for reproduction, and proof-backed patching. Treat disclosure state, authorization scope, and rollback evidence as first-class constraints.",
       validation_language:
         "This is a defender workflow, not an offensive automation track. Require explicit scope, artifact references, redaction by default, and release readiness that accounts for unresolved vulnerability cases.",
-      vulnerability_categories: [
-        %{
-          family: "access_control",
-          types: ["idor", "privilege_escalation", "auth_bypass", "horizontal_escalation"],
-          cwe_ids: ["CWE-639", "CWE-285", "CWE-287"]
-        },
-        %{
-          family: "injection",
-          types: ["sql_injection", "nosql_injection", "command_injection", "ldap_injection"],
-          cwe_ids: ["CWE-89", "CWE-943", "CWE-78", "CWE-90"]
-        },
-        %{
-          family: "server_side",
-          types: ["ssrf", "xxe", "deserialization", "path_traversal"],
-          cwe_ids: ["CWE-918", "CWE-611", "CWE-502", "CWE-22"]
-        },
-        %{
-          family: "client_side",
-          types: ["xss", "prototype_pollution", "dom_vulnerabilities", "csrf"],
-          cwe_ids: ["CWE-79", "CWE-1321", "CWE-79", "CWE-352"]
-        },
-        %{
-          family: "business_logic",
-          types: [
-            "race_conditions",
-            "workflow_manipulation",
-            "price_manipulation",
-            "limit_bypass"
-          ],
-          cwe_ids: ["CWE-362", "CWE-840", "CWE-841"]
-        },
-        %{
-          family: "authentication",
-          types: ["jwt_vulnerabilities", "session_fixation", "weak_credentials", "token_leakage"],
-          cwe_ids: ["CWE-347", "CWE-384", "CWE-521"]
-        },
-        %{
-          family: "infrastructure",
-          types: [
-            "misconfigurations",
-            "exposed_services",
-            "default_credentials",
-            "information_disclosure"
-          ],
-          cwe_ids: ["CWE-16", "CWE-200", "CWE-798"]
-        }
-      ],
       questions: [
         %{
           id: "who_uses_it",
@@ -1054,7 +1007,6 @@ defmodule ControlKeel.Intent.Domains do
   end
 
   def pack(domain_pack), do: domain_pack |> normalize_pack() |> then(&Map.fetch!(@packs, &1))
-  def packs, do: @packs
 
   def preflight_context(attrs) do
     occupation = occupation_profile(Map.get(attrs, "occupation"))

@@ -266,11 +266,11 @@ defmodule ControlKeel.AccountsReviewTest do
                  category: "governance",
                  rule_id: "governance.model_provenance.fixture",
                  plain_message: "Decision should carry model provenance.",
-                 metadata: %{"provider" => "anthropic", "model" => "claude-sonnet-4.6"}
+                 metadata: %{"provider" => "anthropic", "model" => "claude-sonnet-4.5"}
                })
 
       assert finding.metadata["model_provenance"]["provider"] == "anthropic"
-      assert finding.metadata["model_provenance"]["model"] == "claude-sonnet-4.6"
+      assert finding.metadata["model_provenance"]["model"] == "claude-sonnet-4.5"
     end
 
     test "trace packet preserves decision-time metadata after mutable state changes", %{

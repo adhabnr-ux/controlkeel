@@ -81,7 +81,7 @@ Example investor-safe wording:
 
 ### Verified local snapshot
 
-The following numbers were verified locally on 2026-06-05 with ControlKeel `0.3.45` using deterministic validation only. They are reproducible without provider keys and should be treated as the current local proof baseline, not a universal safety claim.
+The following numbers were verified locally on 2026-06-05 with ControlKeel `0.3.45` using deterministic validation only. They are reproducible without provider keys and should be treated as a version-pinned local proof baseline, not a universal safety claim. Rerun the suite on the current version before making external claims.
 
 Risky suite: `host_comparison_v1` v1, 12 public risky scenarios, subjects `ungoverned_baseline,controlkeel_validate`, baseline `ungoverned_baseline`.
 

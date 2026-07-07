@@ -28,7 +28,7 @@ defmodule ControlKeel.CLI.CodexConfigTest do
     File.write!(
       config_path,
       """
-      model = "gpt-5.4"
+      model = "o3"
 
       [features]
       multi_agent = true
@@ -42,7 +42,7 @@ defmodule ControlKeel.CLI.CodexConfigTest do
              })
 
     first_write = File.read!(config_path)
-    assert first_write =~ ~s(model = "gpt-5.4")
+    assert first_write =~ ~s(model = "o3")
     assert first_write =~ "[features]"
     assert first_write =~ "multi_agent = true"
     assert first_write =~ "codex_hooks = true"
@@ -57,7 +57,7 @@ defmodule ControlKeel.CLI.CodexConfigTest do
              })
 
     second_write = File.read!(config_path)
-    assert second_write =~ ~s(model = "gpt-5.4")
+    assert second_write =~ ~s(model = "o3")
     assert second_write =~ "codex_hooks = true"
     assert second_write =~ ~s(args = ["mcp", "--project-root", "/repo/two"])
     refute second_write =~ ~s(args = ["mcp", "--project-root", "/repo/one"])

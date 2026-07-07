@@ -43,7 +43,7 @@ defmodule ControlKeel.MissionTest do
         },
         compiler: %{
           "provider" => "openai",
-          "model" => "gpt-5.4",
+          "model" => "o3",
           "occupation" => "education",
           "domain_pack" => "education"
         }
@@ -77,7 +77,7 @@ defmodule ControlKeel.MissionTest do
         },
         compiler: %{
           "provider" => "openai",
-          "model" => "gpt-5.4",
+          "model" => "o3",
           "occupation" => "education",
           "domain_pack" => "education"
         }

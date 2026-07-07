@@ -1661,9 +1661,6 @@ defmodule ControlKeel.Agent.Integration do
   Returns `nil` for hosts where there is no canonical one-liner (the user
   must edit a config file manually). Callers should fall back to
   `integration.attach_command` (the "Path A" install) for full setup.
-
-  See [docs/one-line-install.md](../../docs/one-line-install.md) for the
-  human-readable reference.
   """
   @spec mcp_install_command(String.t() | nil) :: String.t() | nil
   def mcp_install_command(host_id) do

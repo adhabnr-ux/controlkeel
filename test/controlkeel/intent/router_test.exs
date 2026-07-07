@@ -36,17 +36,17 @@ defmodule ControlKeel.Intent.RouterTest do
       Plug.Conn.resp(
         conn,
         200,
-        Jason.encode!(%{"model" => "gpt-5.4", "output_text" => Jason.encode!(payload)})
+        Jason.encode!(%{"model" => "o3", "output_text" => Jason.encode!(payload)})
       )
     end)
 
     put_intent_config(%{
       providers: %{
-        openai: %{api_key: "openai-test", base_url: base_url(bypass), model: "gpt-5.4"}
+        openai: %{api_key: "openai-test", base_url: base_url(bypass), model: "o3"}
       }
     })
 
-    assert {:ok, brief_map, %{"model" => "gpt-5.4"}} =
+    assert {:ok, brief_map, %{"model" => "o3"}} =
              OpenAI.compile(Prompt.build(sample_intent_attrs(%{"occupation" => "founder"})), [])
 
     assert {:ok, brief} =
@@ -54,7 +54,7 @@ defmodule ControlKeel.Intent.RouterTest do
                brief_map,
                compiler_metadata(%{
                  "provider" => "openai",
-                 "model" => "gpt-5.4",
+                 "model" => "o3",
                  "occupation" => "founder",
                  "domain_pack" => "software"
                })
@@ -211,7 +211,7 @@ defmodule ControlKeel.Intent.RouterTest do
       Plug.Conn.resp(
         conn,
         200,
-        Jason.encode!(%{"model" => "gpt-5.4", "output_text" => Jason.encode!(invalid)})
+        Jason.encode!(%{"model" => "o3", "output_text" => Jason.encode!(invalid)})
       )
     end)
 
@@ -230,7 +230,7 @@ defmodule ControlKeel.Intent.RouterTest do
       default_provider: nil,
       dev_fallback: false,
       providers: %{
-        openai: %{api_key: "openai-test", base_url: base_url(openai), model: "gpt-5.4"},
+        openai: %{api_key: "openai-test", base_url: base_url(openai), model: "o3"},
         anthropic: %{
           api_key: "anthropic-test",
           base_url: base_url(anthropic),
@@ -267,7 +267,7 @@ defmodule ControlKeel.Intent.RouterTest do
 
     put_intent_config(%{
       providers: %{
-        openai: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "gpt-5.4"},
+        openai: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "o3"},
         anthropic: %{
           api_key: "anthropic-test",
           base_url: base_url(anthropic),
@@ -333,7 +333,7 @@ defmodule ControlKeel.Intent.RouterTest do
       dev_fallback: false,
       providers: %{
         anthropic: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "claude-sonnet-4-5"},
-        openai: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "gpt-5.4"},
+        openai: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "o3"},
         openrouter: %{api_key: nil, base_url: "http://127.0.0.1:1", model: "openrouter/test"},
         ollama: %{base_url: "http://127.0.0.1:1", model: "llama3.2"}
       }

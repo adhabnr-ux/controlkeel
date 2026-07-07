@@ -151,7 +151,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert attach != nil
     assert attach["inputSchema"]["required"] == ["host"]
     assert get_in(attach, ["inputSchema", "properties", "host", "type"]) == "string"
-    # Description must mention the one-line-install gap so LLMs know when to call it.
+    # Description must mention the one-line install path so LLMs know when to call it.
     assert attach["description"] =~ "one-line"
     assert attach["description"] =~ "host"
   end
@@ -3033,7 +3033,7 @@ defmodule ControlKeel.MCP.ProtocolTest do
           "arguments" => %{
             "session_id" => session.id,
             "provider" => "openai",
-            "model" => "gpt-5.4-mini",
+            "model" => "o4-mini",
             "input_tokens" => 100_000,
             "output_tokens" => 50_000
           }

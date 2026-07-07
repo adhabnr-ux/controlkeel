@@ -311,7 +311,7 @@ defmodule ControlKeel.MCP.Tools.CkContext do
               "completion-review slash command, and AGENTS.md governance preamble, call " <>
               "the `ck_attach` tool with the host you're running in " <>
               "(e.g. {\"host\":\"claude-code\"}), or run `controlkeel attach <host>` " <>
-              "from your shell. See docs/one-line-install.md for the full host list."
+              "from your shell. See docs/agent-integrations.md for the full host list."
         }
 
       true ->
