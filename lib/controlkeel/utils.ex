@@ -41,4 +41,11 @@ defmodule ControlKeel.Utils do
     do: Enum.map(value, &stringify_keys_deep_list_value/1)
 
   defp stringify_keys_deep_list_value(value), do: value
+
+  @doc """
+  Converts nil and empty strings to nil, passes through all other values.
+  """
+  def blank_to_nil(nil), do: nil
+  def blank_to_nil(""), do: nil
+  def blank_to_nil(value), do: value
 end

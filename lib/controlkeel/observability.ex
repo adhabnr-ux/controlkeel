@@ -3509,26 +3509,7 @@ defmodule ControlKeel.Observability do
     |> Repo.aggregate(:count, :id)
   end
 
-  defp session_context_counts(session_id) do
-    %{
-      tasks:
-        Repo.aggregate(
-          from(t in ControlKeel.Mission.Task, where: t.session_id == ^session_id),
-          :count,
-          :id
-        ),
-      findings:
-        Repo.aggregate(from(f in Finding, where: f.session_id == ^session_id), :count, :id),
-      reviews:
-        Repo.aggregate(
-          from(r in ControlKeel.Mission.Review, where: r.session_id == ^session_id),
-          :count,
-          :id
-        ),
-      invocations:
-        Repo.aggregate(from(i in Invocation, where: i.session_id == ^session_id), :count, :id)
-    }
-  end
+  defp session_context_counts(session_id), do: Mission.session_context_counts(session_id)
 
   defp frequencies(items, fun) do
     items

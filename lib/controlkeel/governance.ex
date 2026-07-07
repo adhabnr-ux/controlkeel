@@ -9,6 +9,7 @@ defmodule ControlKeel.Governance do
   alias ControlKeel.Scanner
   alias ControlKeel.Scanner.FastPath
   alias ControlKeel.Governance.SecurityWorkflow
+  alias ControlKeel.Utils
 
   @config_extensions ~w(.conf .config .env .ini .json .lock .toml .xml .yaml .yml)
   @shell_extensions ~w(.bash .ps1 .sh .zsh)
@@ -933,9 +934,7 @@ defmodule ControlKeel.Governance do
 
   defp normalize_map(_value), do: %{}
 
-  defp blank_to_nil(nil), do: nil
-  defp blank_to_nil(""), do: nil
-  defp blank_to_nil(value), do: value
+  defp blank_to_nil(value), do: Utils.blank_to_nil(value)
 
   defp truthy?(value) when value in [true, "true", "1", 1, "yes"], do: true
   defp truthy?(_value), do: false

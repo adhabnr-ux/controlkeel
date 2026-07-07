@@ -161,11 +161,11 @@ defmodule ControlKeel.CLI.SetupAdvisor do
   end
 
   defp host_presence("cursor", _agent) do
-    detect_directory(Path.dirname(cursor_mcp_config_path()), "config")
+    detect_directory(Path.dirname(ControlKeel.CLI.cursor_mcp_config_path()), "config")
   end
 
   defp host_presence("windsurf", _agent) do
-    detect_directory(Path.dirname(windsurf_mcp_config_path()), "config")
+    detect_directory(Path.dirname(ControlKeel.CLI.windsurf_mcp_config_path()), "config")
   end
 
   defp host_presence("kiro", _agent) do
@@ -213,39 +213,6 @@ defmodule ControlKeel.CLI.SetupAdvisor do
 
   defp detect_directory(path, reason) do
     if File.dir?(path), do: %{reason: reason, path: path}, else: %{reason: nil, path: nil}
-  end
-
-  defp cursor_mcp_config_path do
-    home = user_home()
-
-    case :os.type() do
-      {:win32, _} ->
-        Path.join([
-          System.get_env("APPDATA") || home,
-          "Cursor",
-          "User",
-          "globalStorage",
-          "cursor.mcp.json"
-        ])
-
-      {:unix, :darwin} ->
-        Path.join([
-          home,
-          "Library",
-          "Application Support",
-          "Cursor",
-          "User",
-          "globalStorage",
-          "cursor.mcp.json"
-        ])
-
-      _ ->
-        Path.join([home, ".config", "Cursor", "User", "globalStorage", "cursor.mcp.json"])
-    end
-  end
-
-  defp windsurf_mcp_config_path do
-    Path.join([user_home(), ".codeium", "windsurf", "mcp_config.json"])
   end
 
   defp user_home do

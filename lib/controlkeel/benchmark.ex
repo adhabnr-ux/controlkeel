@@ -871,7 +871,7 @@ defmodule ControlKeel.Benchmark do
     end)
   end
 
-  def scenario_behavior_tags(%Scenario{} = scenario) do
+  defp scenario_behavior_tags(%Scenario{} = scenario) do
     metadata = scenario.metadata || %{}
 
     [

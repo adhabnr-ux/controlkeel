@@ -53,9 +53,4 @@ defmodule ControlKeel.Mission.WorkspaceGithubRepo do
       message: "this repository is already bound to the workspace"
     )
   end
-
-  @doc "Returns the canonical `https://github.com/owner/repo` URL."
-  @spec html_url(%__MODULE__{}) :: String.t()
-  def html_url(%__MODULE__{owner: owner, repo: repo}),
-    do: "https://github.com/#{owner}/#{repo}"
 end

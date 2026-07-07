@@ -6,6 +6,7 @@ defmodule ControlKeel.Skills.Exporter do
   alias ControlKeel.Skills
   alias ControlKeel.Skills.SkillExportPlan
   alias ControlKeel.Skills.SkillTarget
+  alias ControlKeel.Utils.Yaml, as: UtilsYaml
 
   import ControlKeel.Skills.Exporter.Shared
 
@@ -4464,52 +4465,7 @@ defmodule ControlKeel.Skills.Exporter do
     """
   end
 
-  def yaml_document(value) do
-    yaml_encode(value, 0)
-  end
-
-  def yaml_encode(value, indent) when is_map(value) do
-    value
-    |> Enum.sort_by(fn {key, _value} -> to_string(key) end)
-    |> Enum.map_join("", fn {key, nested} ->
-      yaml_key_value(to_string(key), nested, indent)
-    end)
-  end
-
-  def yaml_encode(value, indent) when is_list(value) do
-    Enum.map_join(value, "", fn
-      nested when is_map(nested) ->
-        "#{String.duplicate(" ", indent)}-\n" <> yaml_encode(nested, indent + 2)
-
-      nested ->
-        "#{String.duplicate(" ", indent)}- #{yaml_scalar(nested)}\n"
-    end)
-  end
-
-  def yaml_key_value(key, value, indent) when is_map(value) do
-    if map_size(value) == 0 do
-      "#{String.duplicate(" ", indent)}#{key}: {}\n"
-    else
-      "#{String.duplicate(" ", indent)}#{key}:\n" <> yaml_encode(value, indent + 2)
-    end
-  end
-
-  def yaml_key_value(key, value, indent) when is_list(value) do
-    if value == [] do
-      "#{String.duplicate(" ", indent)}#{key}: []\n"
-    else
-      "#{String.duplicate(" ", indent)}#{key}:\n" <> yaml_encode(value, indent + 2)
-    end
-  end
-
-  def yaml_key_value(key, value, indent) do
-    "#{String.duplicate(" ", indent)}#{key}: #{yaml_scalar(value)}\n"
-  end
-
-  def yaml_scalar(value) when is_binary(value), do: Jason.encode!(value)
-  def yaml_scalar(value) when is_boolean(value), do: if(value, do: "true", else: "false")
-  def yaml_scalar(nil), do: "null"
-  def yaml_scalar(value) when is_integer(value) or is_float(value), do: to_string(value)
+  def yaml_document(value), do: UtilsYaml.document(value)
 
   def same_path?(left, right) do
     Path.expand(left) == Path.expand(right)

@@ -31,6 +31,7 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.CLI.SetupAdvisor
   alias ControlKeel.Skills
   alias ControlKeel.Project.WorkspaceContext
+  alias ControlKeel.Utils.Yaml, as: UtilsYaml
   alias ControlKeelWeb.Endpoint
 
   def standalone_argv do
@@ -3128,52 +3129,7 @@ defmodule ControlKeel.CLI do
   def normalize_yaml_map(value) when is_map(value), do: value
   def normalize_yaml_map(_value), do: %{}
 
-  def yaml_document(value) do
-    yaml_encode(value, 0)
-  end
-
-  def yaml_encode(value, indent) when is_map(value) do
-    value
-    |> Enum.sort_by(fn {key, _value} -> to_string(key) end)
-    |> Enum.map_join("", fn {key, nested} ->
-      yaml_key_value(to_string(key), nested, indent)
-    end)
-  end
-
-  def yaml_encode(value, indent) when is_list(value) do
-    Enum.map_join(value, "", fn
-      nested when is_map(nested) ->
-        "#{String.duplicate(" ", indent)}-\n" <> yaml_encode(nested, indent + 2)
-
-      nested ->
-        "#{String.duplicate(" ", indent)}- #{yaml_scalar(nested)}\n"
-    end)
-  end
-
-  def yaml_key_value(key, value, indent) when is_map(value) do
-    if map_size(value) == 0 do
-      "#{String.duplicate(" ", indent)}#{key}: {}\n"
-    else
-      "#{String.duplicate(" ", indent)}#{key}:\n" <> yaml_encode(value, indent + 2)
-    end
-  end
-
-  def yaml_key_value(key, value, indent) when is_list(value) do
-    if value == [] do
-      "#{String.duplicate(" ", indent)}#{key}: []\n"
-    else
-      "#{String.duplicate(" ", indent)}#{key}:\n" <> yaml_encode(value, indent + 2)
-    end
-  end
-
-  def yaml_key_value(key, value, indent) do
-    "#{String.duplicate(" ", indent)}#{key}: #{yaml_scalar(value)}\n"
-  end
-
-  def yaml_scalar(value) when is_binary(value), do: Jason.encode!(value)
-  def yaml_scalar(value) when is_boolean(value), do: if(value, do: "true", else: "false")
-  def yaml_scalar(nil), do: "null"
-  def yaml_scalar(value) when is_integer(value) or is_float(value), do: to_string(value)
+  def yaml_document(value), do: UtilsYaml.document(value)
 
   def auto_attach_claude_code(project_root) do
     claude_dir = Path.join(user_home(), ".claude")
