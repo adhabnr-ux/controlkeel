@@ -3,9 +3,10 @@ defmodule ControlKeel.MCP.Tools.CkReviewFeedback do
 
   alias ControlKeel.Mission
   alias ControlKeel.Mission.ReviewBridge
+  alias ControlKeel.MCP.Arguments
 
   def call(arguments) when is_map(arguments) do
-    with {:ok, review_id} <- required_integer(arguments, "review_id"),
+    with {:ok, review_id} <- Arguments.required_integer(arguments, "review_id"),
          {:ok, decision} <- required_decision(arguments),
          {:ok, review} <- fetch_review(review_id),
          {:ok, updated} <- respond_review(review, decision, arguments) do
@@ -303,29 +304,10 @@ defmodule ControlKeel.MCP.Tools.CkReviewFeedback do
     end
   end
 
-  defp required_integer(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-      value -> normalize_integer(value, key)
-    end
-  end
-
   defp required_decision(arguments) do
     case Map.get(arguments, "decision") do
       value when value in ["approved", "denied"] -> {:ok, value}
       _ -> {:error, {:invalid_arguments, "`decision` must be approved or denied"}}
     end
   end
-
-  defp normalize_integer(value, _field) when is_integer(value), do: {:ok, value}
-
-  defp normalize_integer(value, field) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> {:ok, parsed}
-      _ -> {:error, {:invalid_arguments, "`#{field}` must be an integer if provided"}}
-    end
-  end
-
-  defp normalize_integer(_value, field),
-    do: {:error, {:invalid_arguments, "`#{field}` must be an integer if provided"}}
 end

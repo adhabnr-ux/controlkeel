@@ -3,6 +3,7 @@ defmodule ControlKeel.Analytics do
 
   import Ecto.Query, warn: false
 
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.Analytics.Event
   alias ControlKeel.Mission.{Finding, Invocation, ProofBundle, Session, Task, TaskCheckpoint}
   alias ControlKeel.Repo
@@ -146,8 +147,8 @@ defmodule ControlKeel.Analytics do
     %{
       event: attrs["event"],
       source: attrs["source"] || "app",
-      session_id: normalize_integer(attrs["session_id"]),
-      workspace_id: normalize_integer(attrs["workspace_id"]),
+      session_id: Arguments.parse_integer(attrs["session_id"]),
+      workspace_id: Arguments.parse_integer(attrs["workspace_id"]),
       project_root: blank_to_nil(attrs["project_root"]),
       metadata: normalize_map(attrs["metadata"]),
       happened_at: normalize_datetime(attrs["happened_at"]) || now()
@@ -537,16 +538,6 @@ defmodule ControlKeel.Analytics do
   defp average_cents(_total_cents, 0), do: nil
   defp average_cents(_total_cents, nil), do: nil
   defp average_cents(total_cents, count), do: Float.round(total_cents / count, 1)
-
-  defp normalize_integer(nil), do: nil
-  defp normalize_integer(value) when is_integer(value), do: value
-
-  defp normalize_integer(value) do
-    case Integer.parse(to_string(value)) do
-      {parsed, ""} -> parsed
-      _ -> nil
-    end
-  end
 
   defp normalize_map(%{} = value), do: stringify_keys(value)
   defp normalize_map(_value), do: %{}

@@ -8,7 +8,7 @@ defmodule ControlKeel.MCP.Tools.CkExperienceRead do
     with {:ok, session_id} <- Arguments.resolve_session_id(arguments),
          {:ok, source_session_id} <- optional_integer(arguments, "source_session_id", session_id),
          {:ok, task_id} <- optional_integer(arguments, "task_id"),
-         {:ok, artifact_type} <- required_string(arguments, "artifact_type") do
+         {:ok, artifact_type} <- Arguments.required_string(arguments, "artifact_type") do
       Mission.experience_history_read(session_id,
         source_session_id: source_session_id,
         task_id: task_id,
@@ -22,26 +22,7 @@ defmodule ControlKeel.MCP.Tools.CkExperienceRead do
   defp optional_integer(arguments, key, default \\ nil) do
     case Map.get(arguments, key, default) do
       nil -> {:ok, nil}
-      value -> normalize_integer(value, key)
+      value -> Arguments.normalize_integer(value, key)
     end
   end
-
-  defp required_string(arguments, key) do
-    case Map.get(arguments, key) do
-      value when is_binary(value) and value != "" -> {:ok, value}
-      _ -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-    end
-  end
-
-  defp normalize_integer(value, _key) when is_integer(value), do: {:ok, value}
-
-  defp normalize_integer(value, key) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> {:ok, parsed}
-      _ -> {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
-    end
-  end
-
-  defp normalize_integer(_value, key),
-    do: {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
 end

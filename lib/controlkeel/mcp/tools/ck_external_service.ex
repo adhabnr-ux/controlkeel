@@ -2,6 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkExternalService do
   @moduledoc false
 
   alias ControlKeel.Governance.ExternalServiceTracker
+  alias ControlKeel.MCP.Arguments
 
   def call(arguments) when is_map(arguments) do
     try do
@@ -14,7 +15,7 @@ defmodule ControlKeel.MCP.Tools.CkExternalService do
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
 
   defp do_call(arguments) do
-    session_id = normalize_integer(arguments["session_id"])
+    session_id = Arguments.parse_integer(arguments["session_id"])
     mode = Map.get(arguments, "mode", "summary")
 
     case session_id do
@@ -26,17 +27,17 @@ defmodule ControlKeel.MCP.Tools.CkExternalService do
           "record" ->
             attrs = %{
               session_id: id,
-              task_id: normalize_integer(arguments["task_id"]),
+              task_id: Arguments.parse_integer(arguments["task_id"]),
               service_name: arguments["service_name"],
               interaction_type: arguments["interaction_type"] || "api_call",
               method: arguments["method"],
               endpoint: arguments["endpoint"],
-              status_code: normalize_integer(arguments["status_code"]),
-              request_size_bytes: normalize_integer(arguments["request_size_bytes"]) || 0,
-              response_size_bytes: normalize_integer(arguments["response_size_bytes"]) || 0,
-              latency_ms: normalize_integer(arguments["latency_ms"]),
-              tokens_used: normalize_integer(arguments["tokens_used"]) || 0,
-              cost_cents: normalize_integer(arguments["cost_cents"]) || 0,
+              status_code: Arguments.parse_integer(arguments["status_code"]),
+              request_size_bytes: Arguments.parse_integer(arguments["request_size_bytes"]) || 0,
+              response_size_bytes: Arguments.parse_integer(arguments["response_size_bytes"]) || 0,
+              latency_ms: Arguments.parse_integer(arguments["latency_ms"]),
+              tokens_used: Arguments.parse_integer(arguments["tokens_used"]) || 0,
+              cost_cents: Arguments.parse_integer(arguments["cost_cents"]) || 0,
               metadata: arguments["metadata"] || %{}
             }
 
@@ -52,7 +53,7 @@ defmodule ControlKeel.MCP.Tools.CkExternalService do
             {:ok, ExternalServiceTracker.rate_limit_status(id)}
 
           "top_services" ->
-            limit = normalize_integer(arguments["limit"]) || 10
+            limit = Arguments.parse_integer(arguments["limit"]) || 10
             services = ExternalServiceTracker.top_services(id, limit: limit)
             {:ok, %{"services" => services, "count" => length(services)}}
 
@@ -84,15 +85,5 @@ defmodule ControlKeel.MCP.Tools.CkExternalService do
     changeset.errors
     |> Enum.map(fn {field, {msg, _opts}} -> "#{field}: #{msg}" end)
     |> Enum.join("; ")
-  end
-
-  defp normalize_integer(nil), do: nil
-  defp normalize_integer(value) when is_integer(value), do: value
-
-  defp normalize_integer(value) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> parsed
-      _ -> nil
-    end
   end
 end

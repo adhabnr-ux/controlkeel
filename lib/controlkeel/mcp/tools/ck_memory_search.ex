@@ -8,7 +8,7 @@ defmodule ControlKeel.MCP.Tools.CkMemorySearch do
 
   def call(arguments) when is_map(arguments) do
     with {:ok, task_id} <- Arguments.optional_integer(arguments, "task_id"),
-         {:ok, query} <- required_binary(arguments, "query"),
+         {:ok, query} <- Arguments.required_binary(arguments, "query"),
          {:ok, top_k} <- Arguments.optional_top_k(arguments, default: 5, max: @max_top_k),
          {:ok, session} <- Arguments.fetch_session(arguments),
          :ok <- Arguments.validate_task(task_id, session.id) do
@@ -39,21 +39,6 @@ defmodule ControlKeel.MCP.Tools.CkMemorySearch do
   end
 
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
-
-  defp required_binary(arguments, key) do
-    case Map.get(arguments, key) do
-      value when is_binary(value) ->
-        value
-        |> String.trim()
-        |> case do
-          "" -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-          trimmed -> {:ok, trimmed}
-        end
-
-      _ ->
-        {:error, {:invalid_arguments, "`#{key}` is required"}}
-    end
-  end
 
   defp memory_summary(entry, full?) do
     base = %{

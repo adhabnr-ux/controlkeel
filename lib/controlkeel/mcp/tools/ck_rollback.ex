@@ -2,6 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkRollback do
   @moduledoc false
 
   alias ControlKeel.Governance.RollbackExecutor
+  alias ControlKeel.MCP.Arguments
 
   def call(arguments) when is_map(arguments) do
     try do
@@ -14,7 +15,7 @@ defmodule ControlKeel.MCP.Tools.CkRollback do
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
 
   defp do_call(arguments) do
-    session_id = normalize_integer(arguments["session_id"])
+    session_id = Arguments.parse_integer(arguments["session_id"])
     mode = Map.get(arguments, "mode", "status")
     project_root = project_root(arguments)
 
@@ -25,7 +26,7 @@ defmodule ControlKeel.MCP.Tools.CkRollback do
       id when is_integer(id) ->
         case mode do
           "checkpoint" ->
-            task_id = normalize_integer(arguments["task_id"])
+            task_id = Arguments.parse_integer(arguments["task_id"])
 
             case task_id do
               nil ->
@@ -39,7 +40,7 @@ defmodule ControlKeel.MCP.Tools.CkRollback do
             end
 
           "execute" ->
-            task_id = normalize_integer(arguments["task_id"])
+            task_id = Arguments.parse_integer(arguments["task_id"])
             reason = Map.get(arguments, "reason", "Operator-initiated rollback")
 
             case task_id do
@@ -54,7 +55,7 @@ defmodule ControlKeel.MCP.Tools.CkRollback do
             end
 
           "status" ->
-            task_id = normalize_integer(arguments["task_id"])
+            task_id = Arguments.parse_integer(arguments["task_id"])
 
             case task_id do
               nil ->
@@ -95,16 +96,6 @@ defmodule ControlKeel.MCP.Tools.CkRollback do
       "rolled_back_by" => snapshot.rolled_back_by,
       "finding_id" => snapshot.finding_id
     }
-  end
-
-  defp normalize_integer(nil), do: nil
-  defp normalize_integer(value) when is_integer(value), do: value
-
-  defp normalize_integer(value) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> parsed
-      _ -> nil
-    end
   end
 
   defp project_root(arguments) do

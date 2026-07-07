@@ -3,12 +3,13 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
 
   alias ControlKeel.Mission
   alias ControlKeel.Memory.Precedent
+  alias ControlKeel.MCP.Arguments
 
   @allowed_decisions ~w(allow warn block escalate_to_human)
   @disposition_modes ~w(resolve dismiss escalate)
 
   def call(arguments) when is_map(arguments) do
-    with {:ok, session_id} <- required_integer(arguments, "session_id"),
+    with {:ok, session_id} <- Arguments.required_integer(arguments, "session_id"),
          {:ok, _session} <- fetch_session(session_id),
          {:ok, mode} <- normalize_mode(arguments) do
       case mode do
@@ -37,7 +38,7 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
   # ---- create (default mode) ----
 
   defp do_create(arguments, session_id) do
-    with {:ok, task_id} <- optional_integer(arguments, "task_id"),
+    with {:ok, task_id} <- Arguments.optional_integer(arguments, "task_id"),
          {:ok, _task_id} <- validate_task(task_id, session_id),
          {:ok, attrs} <- normalize(arguments, session_id, task_id),
          {:ok, resolved_ids} <- resolve_matching_findings(attrs),
@@ -72,9 +73,9 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
   # ---- disposition modes (resolve | dismiss | escalate) ----
 
   defp do_dispose(mode, arguments, session_id) do
-    reason = optional_binary(arguments, "reason")
+    {:ok, reason} = Arguments.optional_binary(arguments, "reason")
 
-    case optional_integer(arguments, "finding_id") do
+    case Arguments.optional_integer(arguments, "finding_id") do
       {:ok, nil} -> dispose_bulk(mode, arguments, session_id, reason)
       {:ok, finding_id} -> dispose_single(mode, finding_id, session_id, reason)
       error -> error
@@ -113,8 +114,8 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
   defp dispose_bulk(mode, arguments, session_id, reason) do
     filter =
       %{reason: reason}
-      |> put_filter(:rule_id, optional_binary(arguments, "rule_id"))
-      |> put_filter(:category, optional_binary(arguments, "category"))
+      |> put_filter(:rule_id, elem(Arguments.optional_binary(arguments, "rule_id"), 1))
+      |> put_filter(:category, elem(Arguments.optional_binary(arguments, "category"), 1))
       |> put_filter(:statuses, bulk_statuses(arguments))
 
     if filter_present?(filter) do
@@ -140,9 +141,9 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
   end
 
   defp bulk_statuses(arguments) do
-    case optional_binary(arguments, "status") do
-      nil -> nil
-      status -> [status]
+    case Arguments.optional_binary(arguments, "status") do
+      {:ok, nil} -> nil
+      {:ok, status} -> [status]
     end
   end
 
@@ -164,13 +165,14 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
   # ---- create-path helpers ----
 
   defp normalize(arguments, session_id, task_id) do
-    with {:ok, category} <- required_binary(arguments, "category"),
-         {:ok, severity} <- required_binary(arguments, "severity"),
-         {:ok, rule_id} <- required_binary(arguments, "rule_id"),
-         {:ok, plain_message} <- required_binary(arguments, "plain_message"),
+    with {:ok, category} <- Arguments.required_binary(arguments, "category"),
+         {:ok, severity} <- Arguments.required_binary(arguments, "severity"),
+         {:ok, rule_id} <- Arguments.required_binary(arguments, "rule_id"),
+         {:ok, plain_message} <- Arguments.required_binary(arguments, "plain_message"),
          {:ok, decision} <- optional_decision(arguments),
-         {:ok, extends_finding_id} <- optional_integer(arguments, "extends_finding_id"),
-         {:ok, contradicts_finding_id} <- optional_integer(arguments, "contradicts_finding_id") do
+         {:ok, extends_finding_id} <- Arguments.optional_integer(arguments, "extends_finding_id"),
+         {:ok, contradicts_finding_id} <-
+           Arguments.optional_integer(arguments, "contradicts_finding_id") do
       title =
         case Map.get(arguments, "title") do
           value when is_binary(value) and value != "" -> value
@@ -246,57 +248,6 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
     end
   rescue
     Ecto.NoResultsError -> {:error, {:invalid_arguments, "`task_id` was not found"}}
-  end
-
-  defp required_integer(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-      value -> normalize_integer(value, key)
-    end
-  end
-
-  defp optional_integer(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:ok, nil}
-      value -> normalize_integer(value, key)
-    end
-  end
-
-  defp normalize_integer(value, _key) when is_integer(value), do: {:ok, value}
-
-  defp normalize_integer(value, key) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> {:ok, parsed}
-      _ -> {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
-    end
-  end
-
-  defp required_binary(arguments, key) do
-    case Map.get(arguments, key) do
-      value when is_binary(value) ->
-        value
-        |> String.trim()
-        |> case do
-          "" -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-          trimmed -> {:ok, trimmed}
-        end
-
-      _ ->
-        {:error, {:invalid_arguments, "`#{key}` is required"}}
-    end
-  end
-
-  defp optional_binary(arguments, key) do
-    case Map.get(arguments, key) do
-      value when is_binary(value) ->
-        case String.trim(value) do
-          "" -> nil
-          trimmed -> trimmed
-        end
-
-      _ ->
-        nil
-    end
   end
 
   defp optional_decision(arguments) do

@@ -1,6 +1,7 @@
 defmodule ControlKeel.MCP.Tools.CkDeploymentAdvisor do
   @moduledoc false
 
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.Ops.DeploymentAdvisor, as: Advisor
 
   @allowed_modes ~w(analyze generate_files dns_guide)
@@ -32,7 +33,7 @@ defmodule ControlKeel.MCP.Tools.CkDeploymentAdvisor do
 
   defp normalize(arguments) do
     with {:ok, mode} <- mode(arguments),
-         {:ok, project_root} <- required_string(arguments, "project_root") do
+         {:ok, project_root} <- Arguments.required_string(arguments, "project_root") do
       {:ok,
        %{
          "mode" => mode,
@@ -50,14 +51,6 @@ defmodule ControlKeel.MCP.Tools.CkDeploymentAdvisor do
       _ ->
         {:error,
          {:invalid_arguments, "`mode` must be `analyze`, `generate_files`, or `dns_guide`"}}
-    end
-  end
-
-  defp required_string(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-      value when is_binary(value) -> {:ok, value}
-      _ -> {:error, {:invalid_arguments, "`#{key}` must be a string"}}
     end
   end
 end

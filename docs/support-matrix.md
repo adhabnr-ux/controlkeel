@@ -2,19 +2,19 @@
 
 This document is the **single inventory** for attach targets, MCP tools, and bundled skills. It is maintained to match:
 
-- [`lib/controlkeel/agent_integration.ex`](../lib/controlkeel/agent_integration.ex) — `AgentIntegration.catalog/0`
-- [`lib/controlkeel/acp_registry.ex`](../lib/controlkeel/acp_registry.ex) — ACP registry enrichment and cache status
-- [`lib/controlkeel/distribution.ex`](../lib/controlkeel/distribution.ex) — `required_mcp_tools/0`, install channels
+- [`lib/controlkeel/agent/integration.ex`](../lib/controlkeel/agent/integration.ex) — `Agent.Integration.catalog/0`
+- [`lib/controlkeel/agent/acp_registry.ex`](../lib/controlkeel/agent/acp_registry.ex) — ACP registry enrichment and cache status
+- [`lib/controlkeel/ops/distribution.ex`](../lib/controlkeel/ops/distribution.ex) — `required_mcp_tools/0`, install channels
 - [`lib/controlkeel/mcp/protocol.ex`](../lib/controlkeel/mcp/protocol.ex) — tool schemas exposed to MCP clients
-- [`lib/controlkeel/protocol_access.ex`](../lib/controlkeel/protocol_access.ex) — hosted MCP/A2A token flow and protocol scopes
-- [`lib/controlkeel/protocol_interop.ex`](../lib/controlkeel/protocol_interop.ex) — hosted MCP/A2A dispatch wrappers
+- [`lib/controlkeel/mcp/protocol_access.ex`](../lib/controlkeel/mcp/protocol_access.ex) — hosted MCP/A2A token flow and protocol scopes
+- [`lib/controlkeel/mcp/protocol_interop.ex`](../lib/controlkeel/mcp/protocol_interop.ex) — hosted MCP/A2A dispatch wrappers
 - [`priv/skills/`](../priv/skills/) — on-disk AgentSkills bundles
 
 If you want the smaller user-facing docs map first, start with [README.md](README.md).
 
 For install paths and proxy URLs, see [agent-integrations.md](agent-integrations.md), [getting-started.md](getting-started.md), and [packages.md](packages.md).
 
-## Typed integration catalog (`AgentIntegration.catalog/0`)
+## Typed integration catalog (`Agent.Integration.catalog/0`)
 
 Every shipped integration row now declares both a **support class** and a **two-way execution model**:
 
@@ -466,9 +466,9 @@ Export targets on each integration (e.g. `claude-plugin`, `codex`) refer to **CL
 ## Adding a new attach target (maintainers)
 
 1. Confirm a **documented** MCP or config file location for that client.
-2. Add a new `integration(...)` entry to `AgentIntegration.catalog/0` with accurate `provider_bridge`, `supported_scopes`, and `export_targets`.
+2. Add a new `integration(...)` entry to `Agent.Integration.catalog/0` with accurate `provider_bridge`, `supported_scopes`, and `export_targets`.
 3. Wire CLI `attach` for that id if not already present in [`lib/controlkeel/cli.ex`](../lib/controlkeel/cli.ex) (or runtime attach module).
 4. Update this matrix and [agent-integrations.md](agent-integrations.md).
 5. Add or extend tests for attach behavior where feasible.
 
-Historical research names do **not** automatically get catalog entries. A target becomes shipped support only after it has a documented config surface, a truthful `AgentIntegration` row, CLI/export coverage, docs, and tests.
+Historical research names do **not** automatically get catalog entries. A target becomes shipped support only after it has a documented config surface, a truthful `Agent.Integration` row, CLI/export coverage, docs, and tests.

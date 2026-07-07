@@ -54,6 +54,86 @@ defmodule ControlKeel.MCP.Arguments do
   def normalize_integer(_value, key),
     do: {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
 
+  @doc """
+  Parse a value to an integer, returning `nil` on failure.
+  Accepts integers, binaries, and floats that equal their truncation.
+  """
+  def parse_integer(nil), do: nil
+  def parse_integer(value) when is_integer(value), do: value
+
+  def parse_integer(value) when is_binary(value) do
+    case Integer.parse(String.trim(value)) do
+      {parsed, ""} -> parsed
+      _ -> nil
+    end
+  end
+
+  def parse_integer(value) when is_float(value) do
+    if finite_float?(value) and value == trunc(value), do: trunc(value), else: nil
+  end
+
+  def parse_integer(_value), do: nil
+
+  def optional_boolean(arguments, key, default \\ nil) when is_map(arguments) do
+    case Map.get(arguments, key, default) do
+      nil -> {:ok, default}
+      value when is_boolean(value) -> {:ok, value}
+      value when is_binary(value) -> {:ok, String.downcase(value) in ["true", "1", "yes"]}
+      _ -> {:ok, default}
+    end
+  end
+
+  def required_string(arguments, key) when is_map(arguments) do
+    case Map.get(arguments, key) do
+      nil -> {:error, {:invalid_arguments, "`#{key}` is required"}}
+      value when is_binary(value) -> trim_required(value, key)
+      _ -> {:error, {:invalid_arguments, "`#{key}` must be a string"}}
+    end
+  end
+
+  def optional_string(arguments, key) when is_map(arguments) do
+    case Map.get(arguments, key) do
+      nil ->
+        {:ok, nil}
+
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> {:ok, nil}
+          trimmed -> {:ok, trimmed}
+        end
+
+      value ->
+        {:ok, to_string(value)}
+    end
+  end
+
+  def required_binary(arguments, key) when is_map(arguments) do
+    case Map.get(arguments, key) do
+      value when is_binary(value) -> trim_required(value, key)
+      _ -> {:error, {:invalid_arguments, "`#{key}` is required"}}
+    end
+  end
+
+  def optional_binary(arguments, key) when is_map(arguments) do
+    case Map.get(arguments, key) do
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> {:ok, nil}
+          trimmed -> {:ok, trimmed}
+        end
+
+      _ ->
+        {:ok, nil}
+    end
+  end
+
+  defp trim_required(value, key) do
+    case String.trim(value) do
+      "" -> {:error, {:invalid_arguments, "`#{key}` is required"}}
+      trimmed -> {:ok, trimmed}
+    end
+  end
+
   def optional_top_k(arguments, opts \\ []) when is_map(arguments) do
     default = Keyword.get(opts, :default, 5)
     max = Keyword.get(opts, :max, 20)

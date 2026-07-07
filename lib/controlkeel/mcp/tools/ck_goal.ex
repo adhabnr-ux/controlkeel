@@ -6,6 +6,7 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
   alias ControlKeel.Memory
   alias ControlKeel.Memory.Record
   alias ControlKeel.Mission
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.Repo
 
   @goal_statuses ~w(active paused completed superseded)
@@ -13,7 +14,7 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
   @max_limit 25
 
   def call(arguments) when is_map(arguments) do
-    with {:ok, session_id} <- required_integer(arguments, "session_id"),
+    with {:ok, session_id} <- Arguments.required_integer(arguments, "session_id"),
          {:ok, session} <- fetch_session(session_id),
          {:ok, mode} <- required_mode(arguments) do
       run_mode(mode, arguments, session)
@@ -26,9 +27,9 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
   def horizons, do: @goal_horizons
 
   defp run_mode("record", arguments, session) do
-    with {:ok, task_id} <- optional_integer(arguments, "task_id"),
+    with {:ok, task_id} <- Arguments.optional_integer(arguments, "task_id"),
          :ok <- validate_task(task_id, session.id),
-         {:ok, goal} <- required_binary(arguments, "goal"),
+         {:ok, goal} <- Arguments.required_binary(arguments, "goal"),
          {:ok, status} <- optional_status(arguments, "status", "active"),
          {:ok, horizon} <- optional_horizon(arguments, task_id),
          {:ok, record} <- create_goal(arguments, session, task_id, goal, status, horizon) do
@@ -46,7 +47,7 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
   end
 
   defp run_mode("list", arguments, session) do
-    with {:ok, task_id} <- optional_integer(arguments, "task_id"),
+    with {:ok, task_id} <- Arguments.optional_integer(arguments, "task_id"),
          :ok <- validate_task(task_id, session.id),
          {:ok, status_filter} <- optional_status_filter(arguments),
          {:ok, limit} <- optional_limit(arguments) do
@@ -67,7 +68,7 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
   end
 
   defp run_mode("update_status", arguments, session) do
-    with {:ok, goal_id} <- required_integer(arguments, "goal_id"),
+    with {:ok, goal_id} <- Arguments.required_integer(arguments, "goal_id"),
          {:ok, status} <- optional_status(arguments, "status", nil),
          {:ok, goal_record} <- fetch_goal(goal_id, session.id),
          {:ok, updated} <-
@@ -327,47 +328,6 @@ defmodule ControlKeel.MCP.Tools.CkGoal do
       %{session_id: ^session_id} -> :ok
       nil -> {:error, {:invalid_arguments, "`task_id` was not found"}}
       _other -> {:error, {:invalid_arguments, "`task_id` must belong to the current session"}}
-    end
-  end
-
-  defp required_integer(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-      value -> normalize_integer(value, key)
-    end
-  end
-
-  defp optional_integer(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:ok, nil}
-      value -> normalize_integer(value, key)
-    end
-  end
-
-  defp normalize_integer(value, _key) when is_integer(value), do: {:ok, value}
-
-  defp normalize_integer(value, key) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> {:ok, parsed}
-      _ -> {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
-    end
-  end
-
-  defp normalize_integer(_value, key),
-    do: {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
-
-  defp required_binary(arguments, key) do
-    case Map.get(arguments, key) do
-      value when is_binary(value) ->
-        value
-        |> String.trim()
-        |> case do
-          "" -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-          trimmed -> {:ok, trimmed}
-        end
-
-      _ ->
-        {:error, {:invalid_arguments, "`#{key}` is required"}}
     end
   end
 

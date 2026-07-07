@@ -2,6 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkSessionDigest do
   @moduledoc false
 
   alias ControlKeel.Governance.SessionDigest, as: DigestEngine
+  alias ControlKeel.MCP.Arguments
 
   def call(arguments) when is_map(arguments) do
     try do
@@ -14,7 +15,7 @@ defmodule ControlKeel.MCP.Tools.CkSessionDigest do
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
 
   defp do_call(arguments) do
-    session_id = normalize_integer(arguments["session_id"])
+    session_id = Arguments.parse_integer(arguments["session_id"])
     mode = Map.get(arguments, "mode", "generate")
 
     case session_id do
@@ -73,15 +74,5 @@ defmodule ControlKeel.MCP.Tools.CkSessionDigest do
       "generated_at" => digest.generated_at,
       "metadata" => digest.metadata
     }
-  end
-
-  defp normalize_integer(nil), do: nil
-  defp normalize_integer(value) when is_integer(value), do: value
-
-  defp normalize_integer(value) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> parsed
-      _ -> nil
-    end
   end
 end

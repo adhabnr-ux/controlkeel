@@ -1,11 +1,13 @@
 defmodule ControlKeel.MCP.Tools.CkResultPeek do
   @moduledoc false
 
+  alias ControlKeel.MCP.Arguments
+
   @default_peek_bytes 2_000
   @max_peek_bytes 32_000
 
   def call(arguments) when is_map(arguments) do
-    with {:ok, package_root} <- required_binary(arguments, "package_root"),
+    with {:ok, package_root} <- Arguments.required_binary(arguments, "package_root"),
          {:ok, peek_bytes} <- normalize_peek_bytes(Map.get(arguments, "peek_bytes")),
          {:ok, offset} <- normalize_offset(Map.get(arguments, "offset")) do
       stdout_path = Path.join(package_root, "stdout.txt")
@@ -47,13 +49,6 @@ defmodule ControlKeel.MCP.Tools.CkResultPeek do
   end
 
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
-
-  defp required_binary(arguments, key) do
-    case Map.get(arguments, key) do
-      value when is_binary(value) and value != "" -> {:ok, String.trim(value)}
-      _ -> {:error, {:invalid_arguments, "`#{key}` is required"}}
-    end
-  end
 
   defp normalize_peek_bytes(nil), do: {:ok, @default_peek_bytes}
   defp normalize_peek_bytes(n) when is_integer(n) and n > 0, do: {:ok, min(n, @max_peek_bytes)}

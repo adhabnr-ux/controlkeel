@@ -2,6 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkCopilot do
   @moduledoc false
 
   alias ControlKeel.Governance.CopilotChannel
+  alias ControlKeel.MCP.Arguments
 
   def call(arguments) when is_map(arguments) do
     try do
@@ -14,7 +15,7 @@ defmodule ControlKeel.MCP.Tools.CkCopilot do
   def call(_arguments), do: {:error, {:invalid_arguments, "Tool arguments must be an object"}}
 
   defp do_call(arguments) do
-    session_id = normalize_integer(arguments["session_id"])
+    session_id = Arguments.parse_integer(arguments["session_id"])
     mode = Map.get(arguments, "mode", "history")
 
     case session_id do
@@ -39,7 +40,7 @@ defmodule ControlKeel.MCP.Tools.CkCopilot do
               when et in ~w(human.viewing human.editing human.approving human.commenting agent.status agent.progress) ->
                 CopilotChannel.publish(id, et, payload,
                   actor: arguments["actor"] || "unknown",
-                  task_id: normalize_integer(arguments["task_id"])
+                  task_id: Arguments.parse_integer(arguments["task_id"])
                 )
 
                 {:ok, %{"status" => "published", "session_id" => id, "event_type" => et}}
@@ -54,7 +55,7 @@ defmodule ControlKeel.MCP.Tools.CkCopilot do
             {:ok, CopilotChannel.presence(id)}
 
           "history" ->
-            limit = normalize_integer(arguments["limit"]) || 50
+            limit = Arguments.parse_integer(arguments["limit"]) || 50
             {:ok, events} = CopilotChannel.history(id, limit: limit)
             {:ok, %{"events" => Enum.map(events, &format_event/1), "count" => length(events)}}
 
@@ -75,15 +76,5 @@ defmodule ControlKeel.MCP.Tools.CkCopilot do
       "payload" => event.payload,
       "timestamp" => event.timestamp
     }
-  end
-
-  defp normalize_integer(nil), do: nil
-  defp normalize_integer(value) when is_integer(value), do: value
-
-  defp normalize_integer(value) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> parsed
-      _ -> nil
-    end
   end
 end

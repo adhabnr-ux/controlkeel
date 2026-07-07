@@ -13,6 +13,7 @@ defmodule ControlKeelWeb.ApiController do
   alias ControlKeel.Project.Local
   alias ControlKeel.Memory
   alias ControlKeel.Mission.Decomposition
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.MCP.Tools.CkContext
   alias ControlKeel.Mission
   alias ControlKeel.Platform
@@ -415,14 +416,14 @@ defmodule ControlKeelWeb.ApiController do
   end
 
   def create_finding(conn, params) do
-    session_id = normalize_integer_param(params["session_id"])
+    session_id = Arguments.parse_integer(params["session_id"])
 
     decision = Map.get(params, "decision", "warn")
     status = if decision == "block", do: "blocked", else: "open"
 
     attrs = %{
       "session_id" => session_id,
-      "task_id" => normalize_integer_param(params["task_id"]),
+      "task_id" => Arguments.parse_integer(params["task_id"]),
       "category" => Map.get(params, "category", "security"),
       "severity" => Map.get(params, "severity", "medium"),
       "rule_id" => Map.get(params, "rule_id", "agent.manual_review"),
@@ -687,7 +688,7 @@ defmodule ControlKeelWeb.ApiController do
           org_id: opts.org_id,
           visibility: opts.visibility,
           session_id: opts.session_id,
-          task_id: normalize_integer_param(params["task_id"]),
+          task_id: Arguments.parse_integer(params["task_id"]),
           record_type: params["type"]
         })
 
@@ -728,7 +729,7 @@ defmodule ControlKeelWeb.ApiController do
   end
 
   def create_memory(conn, params) do
-    session_id = normalize_integer_param(params["session_id"])
+    session_id = Arguments.parse_integer(params["session_id"])
     body = Map.get(params, "memory", Map.get(params, "body", ""))
 
     case session_id && Mission.get_session(session_id) do
@@ -737,7 +738,7 @@ defmodule ControlKeelWeb.ApiController do
           attrs = %{
             "workspace_id" => session.workspace_id,
             "session_id" => session_id,
-            "task_id" => normalize_integer_param(params["task_id"]),
+            "task_id" => Arguments.parse_integer(params["task_id"]),
             "record_type" => Map.get(params, "record_type", "decision"),
             "title" => Map.get(params, "title", String.slice(body, 0, 80)),
             "summary" => Map.get(params, "summary", body),
@@ -746,7 +747,7 @@ defmodule ControlKeelWeb.ApiController do
             "source_type" => Map.get(params, "source_type", "user"),
             "source_id" => Map.get(params, "source_id"),
             "visibility" => Map.get(params, "visibility", "workspace"),
-            "shared_org_id" => normalize_integer_param(params["shared_org_id"]),
+            "shared_org_id" => Arguments.parse_integer(params["shared_org_id"]),
             "metadata" => Map.get(params, "metadata", %{})
           }
 
@@ -1326,7 +1327,7 @@ defmodule ControlKeelWeb.ApiController do
 
   def review_diff(conn, params) do
     project_root = Map.get(params, "project_root", File.cwd!())
-    session_id = normalize_integer_param(Map.get(params, "session_id"))
+    session_id = Arguments.parse_integer(Map.get(params, "session_id"))
 
     with {:ok, base_ref} <- require_param(params, "base"),
          {:ok, head_ref} <- require_param(params, "head"),
@@ -1354,7 +1355,7 @@ defmodule ControlKeelWeb.ApiController do
 
   def review_pr(conn, params) do
     project_root = Map.get(params, "project_root", File.cwd!())
-    session_id = normalize_integer_param(Map.get(params, "session_id"))
+    session_id = Arguments.parse_integer(Map.get(params, "session_id"))
 
     governance_opts = [
       session_id: session_id,
@@ -1389,7 +1390,7 @@ defmodule ControlKeelWeb.ApiController do
   end
 
   def release_readiness(conn, params) do
-    session_id = normalize_integer_param(Map.get(params, "session_id"))
+    session_id = Arguments.parse_integer(Map.get(params, "session_id"))
 
     with {:ok, session_id} <- ensure_integer_param(session_id, "session_id"),
          :ok <- authorize_session_access(conn, session_id, "tasks:read"),
@@ -2134,16 +2135,6 @@ defmodule ControlKeelWeb.ApiController do
     end)
   end
 
-  defp normalize_integer_param(nil), do: nil
-  defp normalize_integer_param(value) when is_integer(value), do: value
-
-  defp normalize_integer_param(value) do
-    case Integer.parse(to_string(value)) do
-      {parsed, ""} -> parsed
-      _ -> nil
-    end
-  end
-
   defp current_workspace_id(conn) do
     case conn.assigns[:api_auth] do
       %{type: :service_account, service_account: %{workspace_id: ws_id}} when is_integer(ws_id) ->
@@ -2191,7 +2182,7 @@ defmodule ControlKeelWeb.ApiController do
   end
 
   defp memory_search_opts(conn, params) do
-    session_id = normalize_integer_param(params["session_id"])
+    session_id = Arguments.parse_integer(params["session_id"])
 
     case {session_id, current_service_account(conn)} do
       {nil, nil} ->
@@ -2220,7 +2211,7 @@ defmodule ControlKeelWeb.ApiController do
   end
 
   defp maybe_authorize_workspace_id(conn, workspace_id, scope) do
-    case normalize_integer_param(workspace_id) do
+    case Arguments.parse_integer(workspace_id) do
       nil -> :ok
       parsed_id -> authorize_workspace_for_conn(conn, parsed_id, scope)
     end
@@ -2228,10 +2219,10 @@ defmodule ControlKeelWeb.ApiController do
 
   defp authorize_review_target(conn, attrs) do
     cond do
-      task_id = normalize_integer_param(attrs["task_id"] || attrs[:task_id]) ->
+      task_id = Arguments.parse_integer(attrs["task_id"] || attrs[:task_id]) ->
         authorize_task_access(conn, task_id, "reviews:write")
 
-      session_id = normalize_integer_param(attrs["session_id"] || attrs[:session_id]) ->
+      session_id = Arguments.parse_integer(attrs["session_id"] || attrs[:session_id]) ->
         authorize_session_access(conn, session_id, "reviews:write")
 
       true ->

@@ -61,15 +61,15 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
   end
 
   defp report_opts(arguments) do
-    with {:ok, session_id} <- optional_integer(arguments, "session_id"),
-         {:ok, workspace_id} <- optional_integer(arguments, "workspace_id"),
-         {:ok, task_id} <- optional_integer(arguments, "task_id"),
-         {:ok, limit} <- optional_integer(arguments, "limit"),
-         {:ok, days} <- optional_integer(arguments, "days"),
-         {:ok, stale_days} <- optional_integer(arguments, "stale_days"),
-         {:ok, by} <- optional_string(arguments, "by"),
-         {:ok, project_root} <- optional_string(arguments, "project_root"),
-         {:ok, persist} <- optional_boolean(arguments, "persist") do
+    with {:ok, session_id} <- Arguments.optional_integer(arguments, "session_id"),
+         {:ok, workspace_id} <- Arguments.optional_integer(arguments, "workspace_id"),
+         {:ok, task_id} <- Arguments.optional_integer(arguments, "task_id"),
+         {:ok, limit} <- Arguments.optional_integer(arguments, "limit"),
+         {:ok, days} <- Arguments.optional_integer(arguments, "days"),
+         {:ok, stale_days} <- Arguments.optional_integer(arguments, "stale_days"),
+         {:ok, by} <- Arguments.optional_string(arguments, "by"),
+         {:ok, project_root} <- Arguments.optional_string(arguments, "project_root"),
+         {:ok, persist} <- Arguments.optional_boolean(arguments, "persist") do
       opts = []
       opts = if session_id, do: Keyword.put(opts, :session_id, session_id), else: opts
       opts = if workspace_id, do: Keyword.put(opts, :workspace_id, workspace_id), else: opts
@@ -103,41 +103,6 @@ defmodule ControlKeel.MCP.Tools.CkObservability do
         end
 
       {:ok, opts}
-    end
-  end
-
-  defp optional_integer(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:ok, nil}
-      value -> Arguments.normalize_integer(value, key)
-    end
-  end
-
-  defp optional_string(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:ok, nil}
-      value when is_binary(value) -> {:ok, value}
-      value -> {:ok, to_string(value)}
-    end
-  end
-
-  defp optional_boolean(arguments, key) do
-    case Map.get(arguments, key) do
-      nil ->
-        {:ok, nil}
-
-      value when is_boolean(value) ->
-        {:ok, value}
-
-      value when is_binary(value) ->
-        lower = String.downcase(value)
-
-        if lower in ["true", "1", "yes"],
-          do: {:ok, true},
-          else: if(lower in ["false", "0", "no"], do: {:ok, false}, else: {:ok, nil})
-
-      _ ->
-        {:ok, nil}
     end
   end
 

@@ -25,7 +25,8 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
          {:ok, cached_input_tokens} <-
            optional_non_negative_integer(arguments, "cached_input_tokens"),
          {:ok, output_tokens} <- optional_non_negative_integer(arguments, "output_tokens"),
-         {:ok, include_token_overhead} <- optional_boolean(arguments, "include_token_overhead") do
+         {:ok, include_token_overhead} <-
+           Arguments.optional_boolean(arguments, "include_token_overhead") do
       {:ok,
        %{
          "session_id" => session_id,
@@ -109,15 +110,6 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
     end
   end
 
-  defp optional_boolean(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:ok, nil}
-      value when is_boolean(value) -> {:ok, value}
-      value when is_binary(value) -> {:ok, String.downcase(value) in ["true", "1", "yes"]}
-      _ -> {:ok, nil}
-    end
-  end
-
   defp optional_non_negative_integer(arguments, key) do
     case Map.get(arguments, key) do
       nil -> {:ok, nil}
@@ -125,17 +117,11 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
     end
   end
 
-  defp normalize_integer(value, _key) when is_integer(value) and value >= 0, do: {:ok, value}
-
-  defp normalize_integer(value, key) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} when parsed >= 0 -> {:ok, parsed}
+  defp normalize_integer(value, key) do
+    case Arguments.normalize_integer(value, key) do
+      {:ok, parsed} when parsed >= 0 -> {:ok, parsed}
       _ -> {:error, {:invalid_arguments, "`#{key}` must be a non-negative integer if provided"}}
     end
-  end
-
-  defp normalize_integer(_value, key) do
-    {:error, {:invalid_arguments, "`#{key}` must be a non-negative integer if provided"}}
   end
 
   defp optional_binary(arguments, key) do

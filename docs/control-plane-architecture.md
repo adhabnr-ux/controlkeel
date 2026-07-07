@@ -15,7 +15,7 @@ This is the part of your AI stack you keep when you change models. The frontier 
 - **Burrito:** For single-binary distribution via GitHub releases.
 
 ## Major Subsystems
-- **Agent Integration Layer (`AgentIntegration`, `AdapterRegistry`):** Adapts ControlKeel to 40+ native and headless runtimes (MCP, CLI plugins, Hooks).
+- **Agent Integration Layer (`Agent.Integration`):** Adapts ControlKeel to 40+ native and headless runtimes (MCP, CLI plugins, Hooks).
 - **Governance Engine (`Governance`, `FastPath`):** Evaluates diffs, plans, and arbitrary code through the deterministic scanner. Applied through PreToolUse hooks before mutations.
 - **Protocol Router (`ControlKeelWeb.Router`):** Exposes MCP, A2A, and internal `/api/v1` routes with workspace-scoped authorization.
 - **Typed Memory (`Memory`, `Memory.Store`):** Workspace/org-scoped, source-id idempotent, visibility-validated records with FTS + semantic retrieval.

@@ -3,6 +3,7 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
 
   alias ControlKeel.Mission
   alias ControlKeel.Mission.ReviewBridge
+  alias ControlKeel.MCP.Arguments
 
   @wait_timeout_seconds 1
 
@@ -39,12 +40,14 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
   defp resolve_review(arguments) do
     cond do
       Map.has_key?(arguments, "review_id") ->
-        with {:ok, review_id} <- normalize_integer(Map.get(arguments, "review_id"), "review_id") do
+        with {:ok, review_id} <-
+               Arguments.normalize_integer(Map.get(arguments, "review_id"), "review_id") do
           resolve_review_by_id(review_id)
         end
 
       Map.has_key?(arguments, "task_id") ->
-        with {:ok, task_id} <- normalize_integer(Map.get(arguments, "task_id"), "task_id"),
+        with {:ok, task_id} <-
+               Arguments.normalize_integer(Map.get(arguments, "task_id"), "task_id"),
              review when not is_nil(review) <-
                Mission.latest_review_for_task(task_id, Map.get(arguments, "review_type", "plan")) do
           {:ok, Mission.get_review_with_context(review.id)}
@@ -327,16 +330,4 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
         scan_json_object(rest, depth, false, false, index + 1)
     end
   end
-
-  defp normalize_integer(value, _field) when is_integer(value), do: {:ok, value}
-
-  defp normalize_integer(value, field) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> {:ok, parsed}
-      _ -> {:error, {:invalid_arguments, "`#{field}` must be an integer if provided"}}
-    end
-  end
-
-  defp normalize_integer(_value, field),
-    do: {:error, {:invalid_arguments, "`#{field}` must be an integer if provided"}}
 end

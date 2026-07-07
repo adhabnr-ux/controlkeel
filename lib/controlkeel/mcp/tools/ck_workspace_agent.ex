@@ -2,6 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
   @moduledoc false
 
   alias ControlKeel.Governance.WorkspaceAgent
+  alias ControlKeel.MCP.Arguments
 
   def call(arguments) when is_map(arguments) do
     try do
@@ -18,7 +19,7 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
 
     case mode do
       "register" ->
-        workspace_id = normalize_integer(arguments["workspace_id"])
+        workspace_id = Arguments.parse_integer(arguments["workspace_id"])
 
         case workspace_id do
           nil ->
@@ -30,8 +31,8 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
               name: arguments["name"],
               role: arguments["role"] || "specialized",
               agent_type: arguments["agent_type"],
-              budget_cents: normalize_integer(arguments["budget_cents"]) || 0,
-              maintainer_id: normalize_integer(arguments["maintainer_id"]),
+              budget_cents: Arguments.parse_integer(arguments["budget_cents"]) || 0,
+              maintainer_id: Arguments.parse_integer(arguments["maintainer_id"]),
               scope: arguments["scope"] || %{},
               policy_overrides: arguments["policy_overrides"] || %{}
             }
@@ -50,7 +51,7 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
         end
 
       "update" ->
-        agent_id = normalize_integer(arguments["agent_id"])
+        agent_id = Arguments.parse_integer(arguments["agent_id"])
 
         case agent_id do
           nil ->
@@ -71,11 +72,11 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
               |> Map.new()
               |> Map.update(:budget_cents, nil, fn
                 nil -> nil
-                v -> normalize_integer(v)
+                v -> Arguments.parse_integer(v)
               end)
               |> Map.update(:maintainer_id, nil, fn
                 nil -> nil
-                v -> normalize_integer(v)
+                v -> Arguments.parse_integer(v)
               end)
               |> Enum.reject(fn {_k, v} -> is_nil(v) end)
               |> Map.new()
@@ -87,7 +88,7 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
         end
 
       "list" ->
-        workspace_id = normalize_integer(arguments["workspace_id"])
+        workspace_id = Arguments.parse_integer(arguments["workspace_id"])
 
         case workspace_id do
           nil ->
@@ -99,7 +100,7 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
         end
 
       "health" ->
-        agent_id = normalize_integer(arguments["agent_id"])
+        agent_id = Arguments.parse_integer(arguments["agent_id"])
 
         case agent_id do
           nil ->
@@ -110,7 +111,7 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
         end
 
       "retire" ->
-        agent_id = normalize_integer(arguments["agent_id"])
+        agent_id = Arguments.parse_integer(arguments["agent_id"])
 
         case agent_id do
           nil ->
@@ -155,15 +156,5 @@ defmodule ControlKeel.MCP.Tools.CkWorkspaceAgent do
     changeset.errors
     |> Enum.map(fn {field, {msg, _opts}} -> "#{field}: #{msg}" end)
     |> Enum.join("; ")
-  end
-
-  defp normalize_integer(nil), do: nil
-  defp normalize_integer(value) when is_integer(value), do: value
-
-  defp normalize_integer(value) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> parsed
-      _ -> nil
-    end
   end
 end

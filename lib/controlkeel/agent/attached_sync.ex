@@ -175,38 +175,4 @@ defmodule ControlKeel.Agent.AttachedSync do
   defp controlkeel_version do
     to_string(Application.spec(:controlkeel, :vsn) || "0.2.0")
   end
-
-  @doc """
-  Remove stale ephemeral bindings older than the given number of days.
-  Called periodically to prevent unbounded accumulation in ~/.controlkeel/cache/bindings/.
-  """
-  def clean_stale_ephemeral_bindings(max_age_days \\ 90) do
-    cache_dir = Path.join(System.user_home!(), ".controlkeel/cache/bindings")
-
-    if File.dir?(cache_dir) do
-      cutoff = DateTime.utc_now() |> DateTime.add(-max_age_days * 86400, :second)
-
-      File.ls!(cache_dir)
-      |> Enum.filter(&String.ends_with?(&1, ".json"))
-      |> Enum.each(fn filename ->
-        path = Path.join(cache_dir, filename)
-
-        case File.stat(path) do
-          {:ok, %File.Stat{mtime: mtime}} ->
-            mtime_datetime = NaiveDateTime.from_erl!(mtime) |> DateTime.from_naive!("Etc/UTC")
-
-            if DateTime.compare(mtime_datetime, cutoff) == :lt do
-              File.rm(path)
-            end
-
-          _ ->
-            :ok
-        end
-      end)
-    end
-
-    :ok
-  rescue
-    _ -> :ok
-  end
 end

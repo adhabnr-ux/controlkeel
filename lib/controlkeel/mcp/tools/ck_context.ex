@@ -5,6 +5,7 @@ defmodule ControlKeel.MCP.Tools.CkContext do
   alias ControlKeel.Agent.AutonomyLoop
   alias ControlKeel.Intent
   alias ControlKeel.Memory
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.Mission
   alias ControlKeel.Mission.{Finding, Session}
   alias ControlKeel.ProviderBroker
@@ -18,7 +19,7 @@ defmodule ControlKeel.MCP.Tools.CkContext do
 
   def call(arguments) when is_map(arguments) do
     with {:ok, session_id} <- required_session_id(arguments),
-         {:ok, task_id} <- optional_integer(arguments, "task_id"),
+         {:ok, task_id} <- Arguments.optional_integer(arguments, "task_id"),
          {:ok, session} <- fetch_session(session_id, arguments),
          {:ok, task} <- resolve_task(session, task_id) do
       project_root = project_root(arguments, session)
@@ -419,11 +420,11 @@ defmodule ControlKeel.MCP.Tools.CkContext do
             resolve_active_session_id(arguments)
 
           _ ->
-            normalize_integer(normalized, "session_id")
+            Arguments.normalize_integer(normalized, "session_id")
         end
 
       value ->
-        normalize_integer(value, "session_id")
+        Arguments.normalize_integer(value, "session_id")
     end
   end
 
@@ -442,32 +443,6 @@ defmodule ControlKeel.MCP.Tools.CkContext do
         {:error,
          {:invalid_arguments,
           "`session_id` must be an integer. For `current`, run from a bound project or pass --project-root with an active binding."}}
-    end
-  end
-
-  defp optional_integer(arguments, key) do
-    case Map.get(arguments, key) do
-      nil -> {:ok, nil}
-      "" -> {:ok, nil}
-      value when is_binary(value) -> normalize_optional_integer_string(value, key)
-      value -> normalize_integer(value, key)
-    end
-  end
-
-  defp normalize_optional_integer_string(value, key) do
-    case Integer.parse(value) do
-      {parsed, ""} -> {:ok, parsed}
-      _ when key == "task_id" -> {:ok, nil}
-      _ -> {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
-    end
-  end
-
-  defp normalize_integer(value, _key) when is_integer(value), do: {:ok, value}
-
-  defp normalize_integer(value, key) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> {:ok, parsed}
-      _ -> {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
     end
   end
 

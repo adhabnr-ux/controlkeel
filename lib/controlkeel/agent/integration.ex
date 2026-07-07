@@ -2017,8 +2017,6 @@ defmodule ControlKeel.Agent.Integration do
     ]
   end
 
-  def ids, do: Enum.map(catalog(), & &1.id)
-
   def attach_catalog do
     Enum.filter(catalog(), &attachable?/1)
   end
@@ -2086,21 +2084,6 @@ defmodule ControlKeel.Agent.Integration do
       %__MODULE__{label: label} -> label
       nil -> id
     end
-  end
-
-  def support_classes do
-    [
-      {"attach_client", "Attachable client with a real ControlKeel setup command"},
-      {"headless_runtime", "Headless runtime export rather than a local attach target"},
-      {"framework_adapter", "Framework adapter surfaced through benchmark/policy tooling"},
-      {"provider_only", "Provider/model template surfaced through CK provider flows"},
-      {"alias", "Alias that resolves to a canonical shipped target"},
-      {"unverified", "Research name without a verified official integration contract"}
-    ]
-  end
-
-  def categories do
-    support_classes()
   end
 
   def install_channels(id \\ nil)

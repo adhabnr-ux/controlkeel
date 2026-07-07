@@ -2,6 +2,7 @@ defmodule ControlKeel.Governance do
   @moduledoc false
 
   alias ControlKeel.Analytics
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.Ops.Distribution
   alias ControlKeel.Mission
   alias ControlKeel.Mission.ProofBundle
@@ -43,7 +44,7 @@ defmodule ControlKeel.Governance do
 
   def review_patch(patch, opts \\ []) when is_binary(patch) do
     fragments = parse_unified_diff(patch)
-    session_id = normalize_integer(opts[:session_id])
+    session_id = Arguments.parse_integer(opts[:session_id])
     domain_pack = blank_to_nil(opts[:domain_pack])
     project_root = opts[:project_root] || File.cwd!()
     dependency_review = normalize_map(opts[:dependency_review])
@@ -146,7 +147,7 @@ defmodule ControlKeel.Governance do
   end
 
   defp do_release_readiness(opts) do
-    session_id = normalize_integer(opts["session_id"] || opts[:session_id])
+    session_id = Arguments.parse_integer(opts["session_id"] || opts[:session_id])
 
     case session_id && Mission.get_session_context(session_id) do
       nil ->
@@ -931,16 +932,6 @@ defmodule ControlKeel.Governance do
   end
 
   defp normalize_map(_value), do: %{}
-
-  defp normalize_integer(nil), do: nil
-  defp normalize_integer(value) when is_integer(value), do: value
-
-  defp normalize_integer(value) do
-    case Integer.parse(to_string(value)) do
-      {parsed, ""} -> parsed
-      _ -> nil
-    end
-  end
 
   defp blank_to_nil(nil), do: nil
   defp blank_to_nil(""), do: nil

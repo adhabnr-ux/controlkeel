@@ -9,7 +9,7 @@ defmodule ControlKeel.MCP.Tools.CkExperienceSearch do
   def call(arguments) when is_map(arguments) do
     with {:ok, session_id} <- Arguments.resolve_session_id(arguments),
          {:ok, session} <- fetch_session(session_id),
-         {:ok, query} <- required_string(arguments, "query"),
+         {:ok, query} <- Arguments.required_string(arguments, "query"),
          {:ok, limit} <- optional_integer(arguments, "limit", 10),
          :ok <- validate_limit(limit) do
       Mission.experience_search(session.workspace_id, query, limit: limit)
@@ -25,29 +25,10 @@ defmodule ControlKeel.MCP.Tools.CkExperienceSearch do
     end
   end
 
-  defp required_string(arguments, key) do
-    case Map.get(arguments, key) do
-      value when is_binary(value) and value != "" -> {:ok, value}
-      _ -> {:error, {:invalid_arguments, "`#{key}` is required and must be a non-empty string"}}
-    end
-  end
-
   defp optional_integer(arguments, key, default) do
     case Map.get(arguments, key) do
-      nil ->
-        {:ok, default}
-
-      value when is_integer(value) ->
-        {:ok, value}
-
-      value when is_binary(value) ->
-        case Integer.parse(value) do
-          {parsed, ""} -> {:ok, parsed}
-          _ -> {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
-        end
-
-      _ ->
-        {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
+      nil -> {:ok, default}
+      value -> Arguments.normalize_integer(value, key)
     end
   end
 
