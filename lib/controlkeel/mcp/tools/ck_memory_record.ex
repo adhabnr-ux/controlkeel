@@ -3,6 +3,7 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
 
   alias ControlKeel.Memory
   alias ControlKeel.MCP.Arguments
+  alias ControlKeel.Utils
 
   def call(arguments) when is_map(arguments) do
     with {:ok, task_id} <- Arguments.optional_integer(arguments, "task_id"),
@@ -86,7 +87,7 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
     case Map.get(arguments, "memory") do
       value when is_map(value) ->
         value
-        |> stringify_keys()
+        |> Utils.stringify_keys()
         |> Map.put_new("memory", memory)
         |> Map.merge(Map.delete(arguments, "memory"), fn _key, memory_value, arg_value ->
           if blank_value?(arg_value), do: memory_value, else: arg_value
@@ -128,13 +129,6 @@ defmodule ControlKeel.MCP.Tools.CkMemoryRecord do
   end
 
   defp normalize_tags(_tags), do: []
-
-  defp stringify_keys(map) do
-    Map.new(map, fn
-      {key, value} when is_atom(key) -> {Atom.to_string(key), value}
-      {key, value} -> {key, value}
-    end)
-  end
 
   defp ensure_map(value) when is_map(value), do: value
   defp ensure_map(_value), do: %{}
