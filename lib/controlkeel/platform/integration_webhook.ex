@@ -4,6 +4,7 @@ defmodule ControlKeel.Platform.IntegrationWebhook do
 
   alias ControlKeel.Mission.Workspace
   alias ControlKeel.Platform.IntegrationDelivery
+  alias ControlKeel.Utils
 
   schema "integration_webhooks" do
     field :name, :string
@@ -22,7 +23,7 @@ defmodule ControlKeel.Platform.IntegrationWebhook do
   def changeset(webhook, attrs) do
     attrs =
       attrs
-      |> stringify_keys()
+      |> Utils.stringify_keys()
       |> normalize_events()
 
     webhook
@@ -68,9 +69,5 @@ defmodule ControlKeel.Platform.IntegrationWebhook do
         wrapped = %{"values" => events}
         Map.put(attrs, "subscribed_events", wrapped)
     end
-  end
-
-  defp stringify_keys(attrs) when is_map(attrs) do
-    Enum.into(attrs, %{}, fn {key, value} -> {to_string(key), value} end)
   end
 end

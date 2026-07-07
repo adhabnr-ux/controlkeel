@@ -3,6 +3,7 @@ defmodule ControlKeel.Project.Binding do
 
   alias ControlKeel.Project.Root
   alias ControlKeel.Runtime.Paths
+  alias ControlKeel.Utils
 
   @version 1
   @compile_source_root Path.expand("../../..", __DIR__)
@@ -192,7 +193,7 @@ defmodule ControlKeel.Project.Binding do
   def update_attached_agent(binding, agent_key, attrs) when is_map(binding) and is_map(attrs) do
     attached =
       attrs
-      |> stringify_keys()
+      |> Utils.stringify_keys()
       |> Map.put("controlkeel_version", controlkeel_version())
 
     attached_agents =
@@ -205,7 +206,7 @@ defmodule ControlKeel.Project.Binding do
 
   def put_provider_override(project_root \\ File.cwd!(), attrs) when is_map(attrs) do
     with {:ok, binding, mode} <- read_effective(project_root),
-         updated <- Map.put(binding, "provider_override", stringify_keys(attrs)),
+         updated <- Map.put(binding, "provider_override", Utils.stringify_keys(attrs)),
          {:ok, written} <- write_effective(updated, project_root, mode: mode) do
       {:ok, written}
     end
@@ -428,10 +429,6 @@ defmodule ControlKeel.Project.Binding do
       {:win32, _} -> :ok
       _ -> File.chmod(path, 0o755)
     end
-  end
-
-  defp stringify_keys(attrs) when is_map(attrs) do
-    Enum.into(attrs, %{}, fn {key, value} -> {to_string(key), value} end)
   end
 
   defp binding_path(project_root, :project), do: path(project_root)

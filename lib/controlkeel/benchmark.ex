@@ -17,6 +17,7 @@ defmodule ControlKeel.Benchmark do
   alias ControlKeel.Intent.Domains
   alias ControlKeel.Repo
   alias ControlKeel.Repo.Retry, as: RepoRetry
+  alias ControlKeel.Utils
 
   @recent_runs_limit 12
   @busy_retry_backoff_ms [0, 1_000, 3_000, 7_000, 15_000]
@@ -1064,7 +1065,7 @@ defmodule ControlKeel.Benchmark do
     Enum.reduce_while(result_attrs, {:ok, []}, fn attrs, {:ok, acc} ->
       attrs =
         attrs
-        |> stringify_keys()
+        |> Utils.stringify_keys()
         |> Map.put("run_id", run.id)
         |> Map.put_new("payload", %{})
         |> Map.put_new("metadata", %{})
@@ -1405,9 +1406,5 @@ defmodule ControlKeel.Benchmark do
     Application.spec(:controlkeel, :vsn)
     |> Kernel.||("0.1.0")
     |> to_string()
-  end
-
-  defp stringify_keys(map) when is_map(map) do
-    Enum.into(map, %{}, fn {key, value} -> {to_string(key), value} end)
   end
 end

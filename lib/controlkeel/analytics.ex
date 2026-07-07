@@ -7,8 +7,8 @@ defmodule ControlKeel.Analytics do
   alias ControlKeel.Analytics.Event
   alias ControlKeel.Mission.{Finding, Invocation, ProofBundle, Session, Task, TaskCheckpoint}
   alias ControlKeel.Repo
+  alias ControlKeel.Utils
 
-  @recent_session_limit 10
   @aggregate_session_limit 20
   @funnel_steps ~w(project_initialized agent_attached mission_created first_finding_recorded)
 
@@ -58,14 +58,6 @@ defmodule ControlKeel.Analytics do
     end
   end
 
-  def session_outcome_metrics(session_id) when is_integer(session_id) do
-    elem(session_outcome_data(session_id), 0)
-  end
-
-  def session_agent_outcomes(session_id) when is_integer(session_id) do
-    elem(session_outcome_data(session_id), 1)
-  end
-
   def session_outcome_data(session_id) when is_integer(session_id) do
     case fetch_session_for_outcome(session_id) do
       nil -> {default_outcome_metrics(), []}
@@ -104,14 +96,6 @@ defmodule ControlKeel.Analytics do
       outcome_metrics: outcome_metrics,
       agent_outcomes: agent_outcomes
     }
-  end
-
-  def recent_ship_sessions(opts \\ []) do
-    limit = Keyword.get(opts, :limit, @recent_session_limit)
-
-    limit
-    |> recent_sessions()
-    |> ship_session_rows()
   end
 
   defp recent_sessions(limit) do
@@ -539,7 +523,7 @@ defmodule ControlKeel.Analytics do
   defp average_cents(_total_cents, nil), do: nil
   defp average_cents(total_cents, count), do: Float.round(total_cents / count, 1)
 
-  defp normalize_map(%{} = value), do: stringify_keys(value)
+  defp normalize_map(%{} = value), do: Utils.stringify_keys_deep(value)
   defp normalize_map(_value), do: %{}
 
   defp normalize_datetime(%DateTime{} = value), do: DateTime.truncate(value, :second)
@@ -555,13 +539,6 @@ defmodule ControlKeel.Analytics do
       "" -> nil
       trimmed -> trimmed
     end
-  end
-
-  defp stringify_keys(map) do
-    Enum.into(map, %{}, fn
-      {key, value} when is_map(value) -> {to_string(key), stringify_keys(value)}
-      {key, value} -> {to_string(key), value}
-    end)
   end
 
   defp default_metrics(session_id) do

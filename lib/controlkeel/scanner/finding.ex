@@ -22,4 +22,17 @@ defmodule ControlKeel.Scanner.Finding do
     :location,
     :metadata
   ]
+
+  def to_map(%__MODULE__{} = finding) do
+    %{
+      "id" => finding.id,
+      "severity" => finding.severity,
+      "category" => finding.category,
+      "rule_id" => finding.rule_id,
+      "decision" => finding.decision,
+      "plain_message" => finding.plain_message,
+      "location" => finding.location,
+      "metadata" => finding.metadata
+    }
+  end
 end

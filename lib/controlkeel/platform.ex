@@ -23,6 +23,7 @@ defmodule ControlKeel.Platform do
   }
 
   alias ControlKeel.Policy.Rule
+  alias ControlKeel.Utils
 
   @webhook_events [
     "task.ready",
@@ -60,7 +61,7 @@ defmodule ControlKeel.Platform do
 
     attrs =
       attrs
-      |> stringify_keys()
+      |> Utils.stringify_keys_deep_list()
       |> Map.put("workspace_id", workspace_id)
       |> Map.put("token_hash", token_hash(token))
       |> Map.put_new("status", "active")
@@ -138,7 +139,7 @@ defmodule ControlKeel.Platform do
   def create_policy_set(attrs) do
     attrs =
       attrs
-      |> stringify_keys()
+      |> Utils.stringify_keys_deep_list()
       |> Map.put_new("status", "active")
       |> Map.put_new("metadata", %{})
 
@@ -161,7 +162,7 @@ defmodule ControlKeel.Platform do
   def apply_policy_set(workspace_id, policy_set_id, attrs \\ %{}) do
     attrs =
       attrs
-      |> stringify_keys()
+      |> Utils.stringify_keys_deep_list()
       |> Map.put("workspace_id", workspace_id)
       |> Map.put("policy_set_id", policy_set_id)
       |> Map.put_new("enabled", true)
@@ -200,7 +201,7 @@ defmodule ControlKeel.Platform do
   def create_webhook(workspace_id, attrs) do
     attrs =
       attrs
-      |> stringify_keys()
+      |> Utils.stringify_keys_deep_list()
       |> Map.put("workspace_id", workspace_id)
       |> Map.put_new("status", "active")
       |> Map.put_new("metadata", %{})
@@ -258,7 +259,7 @@ defmodule ControlKeel.Platform do
             webhook_id: webhook.id,
             workspace_id: webhook.workspace_id,
             event: event,
-            payload: stringify_keys(payload),
+            payload: Utils.stringify_keys_deep_list(payload),
             status: "pending",
             metadata: %{}
           })
@@ -275,7 +276,7 @@ defmodule ControlKeel.Platform do
     _ =
       ControlKeel.Runtime.bus_module().publish_json(
         "controlkeel.events.#{event}",
-        stringify_keys(payload)
+        Utils.stringify_keys_deep_list(payload)
       )
 
     :ok
@@ -402,7 +403,7 @@ defmodule ControlKeel.Platform do
 
       attrs =
         attrs
-        |> stringify_keys()
+        |> Utils.stringify_keys_deep_list()
         |> Map.put_new("execution_mode", execution_mode_for(service_account))
         |> Map.put_new("metadata", %{})
         |> Map.put_new("output", %{})
@@ -497,7 +498,7 @@ defmodule ControlKeel.Platform do
   end
 
   defp normalize_task_check(check, git) when is_map(check) do
-    normalized = stringify_keys(check)
+    normalized = Utils.stringify_keys_deep_list(check)
     payload = Map.get(normalized, "payload", %{}) |> normalize_check_map()
     metadata = Map.get(normalized, "metadata", %{}) |> normalize_check_map()
     proof = task_check_proof_metadata(payload, metadata, git)
@@ -509,7 +510,7 @@ defmodule ControlKeel.Platform do
 
   defp normalize_task_check(_check, _git), do: %{"payload" => %{}, "metadata" => %{}}
 
-  defp normalize_check_map(value) when is_map(value), do: stringify_keys(value)
+  defp normalize_check_map(value) when is_map(value), do: Utils.stringify_keys_deep_list(value)
   defp normalize_check_map(_value), do: %{}
 
   defp task_check_proof_metadata(payload, metadata, git) do
@@ -691,7 +692,7 @@ defmodule ControlKeel.Platform do
       run_attrs =
         %{
           output: output,
-          metadata: Map.merge(run.metadata || %{}, stringify_keys(metadata)),
+          metadata: Map.merge(run.metadata || %{}, Utils.stringify_keys_deep_list(metadata)),
           finished_at:
             if(requested_status in ["done", "failed", "blocked", "paused"], do: now(), else: nil),
           status: requested_status
@@ -889,7 +890,7 @@ defmodule ControlKeel.Platform do
   defp apply_task_report(task, "done", output, metadata) do
     with {:ok, updated_task} <-
            Mission.update_task(task, %{
-             metadata: Map.merge(task.metadata || %{}, stringify_keys(metadata))
+             metadata: Map.merge(task.metadata || %{}, Utils.stringify_keys_deep_list(metadata))
            }),
          {:ok, done_task} <- Mission.complete_task(updated_task.id) do
       _ = output
@@ -910,7 +911,7 @@ defmodule ControlKeel.Platform do
 
     Mission.update_task(task, %{
       status: status,
-      metadata: Map.merge(task.metadata || %{}, stringify_keys(metadata))
+      metadata: Map.merge(task.metadata || %{}, Utils.stringify_keys_deep_list(metadata))
     })
   end
 
@@ -979,14 +980,6 @@ defmodule ControlKeel.Platform do
 
   defp maybe_filter(query, _field, nil), do: query
   defp maybe_filter(query, field, value), do: where(query, [row], field(row, ^field) == ^value)
-
-  defp stringify_keys(map) when is_map(map) do
-    Enum.into(map, %{}, fn {key, value} -> {to_string(key), normalize_value(value)} end)
-  end
-
-  defp normalize_value(value) when is_map(value), do: stringify_keys(value)
-  defp normalize_value(value) when is_list(value), do: Enum.map(value, &normalize_value/1)
-  defp normalize_value(value), do: value
 
   defp maybe_put_service_account(attrs, %ServiceAccount{} = account),
     do: Map.put(attrs, "service_account_id", account.id)

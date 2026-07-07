@@ -4,6 +4,7 @@ defmodule ControlKeel.Platform.ServiceAccount do
 
   alias ControlKeel.Mission.Workspace
   alias ControlKeel.Platform.TaskRun
+  alias ControlKeel.Utils
 
   schema "service_accounts" do
     field :name, :string
@@ -22,7 +23,7 @@ defmodule ControlKeel.Platform.ServiceAccount do
   def changeset(service_account, attrs) do
     attrs =
       attrs
-      |> stringify_keys()
+      |> Utils.stringify_keys()
       |> normalize_scopes()
 
     service_account
@@ -60,9 +61,5 @@ defmodule ControlKeel.Platform.ServiceAccount do
 
         Map.put(attrs, "scopes", %{"values" => scopes})
     end
-  end
-
-  defp stringify_keys(attrs) when is_map(attrs) do
-    Enum.into(attrs, %{}, fn {key, value} -> {to_string(key), value} end)
   end
 end

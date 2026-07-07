@@ -123,6 +123,8 @@ Use this protocol for OpenCode + GPT-5.5, Claude Code, and for any future compet
 
 Recommended subject matrix for OpenCode + GPT-5.5:
 
+These subject IDs are not built-in. They are external subjects configured via `controlkeel/benchmark_subjects.json` in the project root. `controlkeel_validate` is the only built-in subject in this matrix.
+
 | Subject | Purpose | CK availability |
 | --- | --- | --- |
 | `opencode_pure_manual` | Raw OpenCode + GPT-5.5 with no CK attachment/plugin/MCP. | none |
@@ -148,6 +150,8 @@ controlkeel benchmark compare <run-id> --json
 ```
 
 Recommended subject matrix for Claude Code:
+
+These subject IDs are external shell subjects configured via `controlkeel/benchmark_subjects.json`. `controlkeel_validate` is the only built-in subject in this matrix.
 
 | Subject | Purpose | CK availability |
 | --- | --- | --- |
@@ -260,9 +264,14 @@ Use [observability-feedback-loop.md](observability-feedback-loop.md) for the loc
 
 ## Subject types
 
+Built-in subjects (available without configuration):
+
 - `ungoverned_baseline` — explicit no-CK policy gate baseline for with-vs-without comparisons.
 - `controlkeel_validate` — direct deterministic validation path.
 - `controlkeel_proxy` — governed proxy path.
+
+Subject types (for external subjects configured via `controlkeel/benchmark_subjects.json`):
+
 - `manual_import` — awaiting-import run first, then import captured external output.
 - `shell` — scriptable subject that writes stdout or files for rescoring. Shell subjects can also write `.controlkeel_metrics.json` in `CONTROLKEEL_BENCHMARK_OUTPUT_DIR`; CK merges that sidecar into result metadata and excludes it from artifact scanning.
 

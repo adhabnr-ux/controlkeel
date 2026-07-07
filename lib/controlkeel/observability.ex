@@ -3599,4 +3599,21 @@ defmodule ControlKeel.Observability do
     """
     |> String.trim()
   end
+
+  def fingerprint(payload) do
+    payload
+    |> canonical_term()
+    |> :erlang.term_to_binary()
+    |> then(&:crypto.hash(:sha256, &1))
+    |> Base.encode16(case: :lower)
+  end
+
+  defp canonical_term(value) when is_map(value) do
+    value
+    |> Enum.map(fn {key, item} -> {to_string(key), canonical_term(item)} end)
+    |> Enum.sort_by(fn {key, _item} -> key end)
+  end
+
+  defp canonical_term(value) when is_list(value), do: Enum.map(value, &canonical_term/1)
+  defp canonical_term(value), do: value
 end

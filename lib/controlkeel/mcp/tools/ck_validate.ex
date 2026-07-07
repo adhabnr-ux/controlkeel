@@ -303,7 +303,7 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
       "allowed" => result.allowed,
       "decision" => result.decision,
       "summary" => result.summary,
-      "findings" => Enum.map(result.findings, &finding_to_map/1),
+      "findings" => Enum.map(result.findings, &Scanner.Finding.to_map/1),
       "fix_prompts" => fix_prompts,
       "scanned_at" => result.scanned_at,
       "precedent" => precedent,
@@ -347,19 +347,6 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
       _ ->
         nil
     end
-  end
-
-  defp finding_to_map(%Scanner.Finding{} = finding) do
-    %{
-      "id" => finding.id,
-      "severity" => finding.severity,
-      "category" => finding.category,
-      "rule_id" => finding.rule_id,
-      "decision" => finding.decision,
-      "plain_message" => finding.plain_message,
-      "location" => finding.location,
-      "metadata" => finding.metadata
-    }
   end
 
   defp optional_binary(arguments, key), do: Arguments.optional_binary_value(arguments, key)

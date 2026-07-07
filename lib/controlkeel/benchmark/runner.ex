@@ -5,6 +5,8 @@ defmodule ControlKeel.Benchmark.Runner do
   alias ControlKeel.Benchmark.SubjectLoader
   alias ControlKeel.Benchmark.Subjects.{ControlKeelProxy, ControlKeelValidate, Shell}
   alias ControlKeel.MCP.Tools.CkValidate
+  alias ControlKeel.Scanner.Finding
+  alias ControlKeel.Utils
 
   def execute(scenarios, subjects, opts \\ []) when is_list(scenarios) and is_list(subjects) do
     Enum.flat_map(subjects, fn subject ->
@@ -82,7 +84,9 @@ defmodule ControlKeel.Benchmark.Runner do
             }
           }),
         "metadata" =>
-          Map.merge(result["metadata"], %{"import_metadata" => stringify_keys(metadata)})
+          Map.merge(result["metadata"], %{
+            "import_metadata" => Utils.stringify_keys_deep(metadata)
+          })
       }),
       scenario
     )
@@ -107,7 +111,7 @@ defmodule ControlKeel.Benchmark.Runner do
   end
 
   def outcome_from_scan_result(status, result, latency_ms, metadata) do
-    findings = Enum.map(result.findings, &finding_to_map/1)
+    findings = Enum.map(result.findings, &Finding.to_map/1)
 
     %{
       "status" => status,
@@ -362,26 +366,4 @@ defmodule ControlKeel.Benchmark.Runner do
 
   defp pending_summary(status, subject),
     do: "#{subject["label"] || subject["id"]} is in #{status} state."
-
-  defp finding_to_map(finding) do
-    %{
-      "id" => finding.id,
-      "severity" => finding.severity,
-      "category" => finding.category,
-      "rule_id" => finding.rule_id,
-      "decision" => finding.decision,
-      "plain_message" => finding.plain_message,
-      "location" => finding.location,
-      "metadata" => finding.metadata
-    }
-  end
-
-  defp stringify_keys(map) when is_map(map) do
-    Enum.into(map, %{}, fn
-      {key, value} when is_map(value) -> {to_string(key), stringify_keys(value)}
-      {key, value} -> {to_string(key), value}
-    end)
-  end
-
-  defp stringify_keys(value), do: value
 end

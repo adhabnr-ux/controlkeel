@@ -230,20 +230,5 @@ defmodule ControlKeel.Observability.Workshop do
   defp maybe_add(recommendations, true, message), do: recommendations ++ [message]
   defp maybe_add(recommendations, false, _message), do: recommendations
 
-  defp fingerprint(snapshot) do
-    snapshot
-    |> canonical_term()
-    |> :erlang.term_to_binary()
-    |> then(&:crypto.hash(:sha256, &1))
-    |> Base.encode16(case: :lower)
-  end
-
-  defp canonical_term(value) when is_map(value) do
-    value
-    |> Enum.map(fn {key, item} -> {to_string(key), canonical_term(item)} end)
-    |> Enum.sort_by(fn {key, _item} -> key end)
-  end
-
-  defp canonical_term(value) when is_list(value), do: Enum.map(value, &canonical_term/1)
-  defp canonical_term(value), do: value
+  defp fingerprint(snapshot), do: ControlKeel.Observability.fingerprint(snapshot)
 end

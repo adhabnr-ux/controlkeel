@@ -2,6 +2,7 @@ defmodule ControlKeel.Benchmark.Metadata do
   @moduledoc false
 
   alias ControlKeel.Intent.Domains
+  alias ControlKeel.Utils
 
   # Documented eval_source values for scenario metadata
   @valid_eval_sources ~w(production_trace synthetic review_feedback operator_debrief red_team)
@@ -34,7 +35,7 @@ defmodule ControlKeel.Benchmark.Metadata do
     metadata =
       payload
       |> Map.get("metadata", %{})
-      |> stringify_keys()
+      |> Utils.stringify_keys_deep()
 
     base = %{
       "task_type" => infer_task_type(payload, metadata),
@@ -72,7 +73,7 @@ defmodule ControlKeel.Benchmark.Metadata do
   """
   def normalize_run_metadata(metadata) when is_map(metadata) do
     metadata
-    |> stringify_keys()
+    |> Utils.stringify_keys_deep()
     |> normalize_eval_fields()
   end
 
@@ -364,12 +365,5 @@ defmodule ControlKeel.Benchmark.Metadata do
   defp normalize_domain_pack(value) do
     pack = Domains.normalize_pack(value, "__unsupported__")
     if Domains.supported_pack?(pack), do: pack, else: nil
-  end
-
-  defp stringify_keys(map) do
-    Enum.into(map, %{}, fn
-      {key, value} when is_map(value) -> {to_string(key), stringify_keys(value)}
-      {key, value} -> {to_string(key), value}
-    end)
   end
 end

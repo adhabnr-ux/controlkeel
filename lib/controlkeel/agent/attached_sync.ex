@@ -5,6 +5,7 @@ defmodule ControlKeel.Agent.AttachedSync do
   alias ControlKeel.Project.Binding
   alias ControlKeel.Skills
   alias ControlKeel.Skills.Installer
+  alias ControlKeel.Utils
 
   def sync(binding, project_root, opts \\ []) when is_map(binding) do
     mode = Keyword.get(opts, :mode, :project)
@@ -54,7 +55,7 @@ defmodule ControlKeel.Agent.AttachedSync do
 
   defp sync_agent(agent_key, attrs, project_root, current_version) do
     try do
-      attrs = stringify_keys(attrs)
+      attrs = Utils.stringify_keys(attrs)
       recorded_version = attrs["controlkeel_version"]
 
       cond do
@@ -167,10 +168,6 @@ defmodule ControlKeel.Agent.AttachedSync do
 
   defp maybe_put(attrs, _key, nil), do: attrs
   defp maybe_put(attrs, key, value), do: Map.put(attrs, key, value)
-
-  defp stringify_keys(attrs) when is_map(attrs) do
-    Enum.into(attrs, %{}, fn {key, value} -> {to_string(key), value} end)
-  end
 
   defp controlkeel_version do
     to_string(Application.spec(:controlkeel, :vsn) || "0.2.0")

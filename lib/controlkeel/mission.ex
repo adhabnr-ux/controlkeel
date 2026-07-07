@@ -37,6 +37,7 @@ defmodule ControlKeel.Mission do
   }
 
   alias ControlKeel.Scanner
+  alias ControlKeel.Utils
 
   @findings_page_size 20
   @proofs_page_size 20
@@ -5746,7 +5747,7 @@ defmodule ControlKeel.Mission do
   defp put_runtime_context_metadata(attrs, runtime_context) do
     update_in(attrs, ["metadata"], fn metadata ->
       metadata = metadata || %{}
-      Map.put(metadata, "runtime_context", stringify_keys(runtime_context))
+      Map.put(metadata, "runtime_context", Utils.stringify_keys(runtime_context))
     end)
   end
 
@@ -5786,7 +5787,7 @@ defmodule ControlKeel.Mission do
         %{}
 
     runtime_env_context()
-    |> Map.merge(stringify_keys(attr_context))
+    |> Map.merge(Utils.stringify_keys(attr_context))
     |> Enum.reject(fn {_key, value} -> value in [nil, ""] end)
     |> Enum.into(%{})
   end
@@ -5864,7 +5865,7 @@ defmodule ControlKeel.Mission do
     Map.put(
       metadata || %{},
       "runtime_context",
-      Map.merge(existing, stringify_keys(runtime_context))
+      Map.merge(existing, Utils.stringify_keys(runtime_context))
     )
   end
 
@@ -5874,10 +5875,6 @@ defmodule ControlKeel.Mission do
     context["agent_id"] == agent_id and
       context["thread_id"] == thread_id and
       (is_nil(host_session_id) or host_session_id == context["host_session_id"])
-  end
-
-  defp stringify_keys(map) when is_map(map) do
-    Enum.into(map, %{}, fn {key, value} -> {to_string(key), value} end)
   end
 
   def record_runtime_findings(session_id, findings, opts \\ []) when is_list(findings) do

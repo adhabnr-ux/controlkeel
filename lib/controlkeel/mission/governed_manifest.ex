@@ -8,12 +8,13 @@ defmodule ControlKeel.Mission.GovernedManifest do
   """
 
   alias ControlKeel.Mission.DecisionGates
+  alias ControlKeel.Utils
 
   @version "1.0.0"
   @scopes ~w(new feature bugfix refactor)
 
   def build(attrs \\ %{}) when is_map(attrs) do
-    attrs = stringify_keys(attrs)
+    attrs = Utils.stringify_keys(attrs)
     phase = normalize_phase(attrs["phase"] || attrs["current_phase"])
     scope = normalize_scope(attrs["scope"])
     gates = normalize_gates(attrs["gates"] || attrs["decision_gates"], phase)
@@ -52,7 +53,7 @@ defmodule ControlKeel.Mission.GovernedManifest do
 
   defp normalize_gates(gates, _phase) when is_list(gates) do
     Enum.map(gates, fn
-      gate when is_map(gate) -> stringify_keys(gate)
+      gate when is_map(gate) -> Utils.stringify_keys(gate)
       gate_id -> DecisionGates.review_gate_summary(gate_id) || %{"id" => to_string(gate_id)}
     end)
   end
@@ -92,10 +93,6 @@ defmodule ControlKeel.Mission.GovernedManifest do
   defp normalize_list(nil), do: []
   defp normalize_list(value) when is_list(value), do: value
   defp normalize_list(value), do: [value]
-
-  defp stringify_keys(map) when is_map(map) do
-    Enum.into(map, %{}, fn {key, value} -> {to_string(key), value} end)
-  end
 
   defp drop_nil_values(map) do
     Enum.reject(map, fn {_key, value} -> is_nil(value) end) |> Map.new()

@@ -3,6 +3,7 @@ defmodule ControlKeel.Platform.PolicySet do
   import Ecto.Changeset
 
   alias ControlKeel.Platform.WorkspacePolicySet
+  alias ControlKeel.Utils
 
   schema "policy_sets" do
     field :name, :string
@@ -20,7 +21,7 @@ defmodule ControlKeel.Platform.PolicySet do
   def changeset(policy_set, attrs) do
     attrs =
       attrs
-      |> stringify_keys()
+      |> Utils.stringify_keys()
       |> normalize_rules()
 
     policy_set
@@ -78,9 +79,5 @@ defmodule ControlKeel.Platform.PolicySet do
     else
       add_error(changeset, :rules, "must contain additive ControlKeel rule entries")
     end
-  end
-
-  defp stringify_keys(attrs) when is_map(attrs) do
-    Enum.into(attrs, %{}, fn {key, value} -> {to_string(key), value} end)
   end
 end

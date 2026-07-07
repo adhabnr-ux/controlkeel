@@ -1,6 +1,8 @@
 defmodule ControlKeel.Mission.Decomposition do
   @moduledoc false
 
+  alias ControlKeel.Utils
+
   @node_types ~w(analyze synthesize implement delegate review_gate)
   @execution_modes ~w(serial parallel recursive human_gate)
   @context_strategies ~w(focused wide_scan evidence_first resume_from_proof)
@@ -33,8 +35,8 @@ defmodule ControlKeel.Mission.Decomposition do
   def task_summary(task, tasks, edges) when is_map(task) do
     tasks = normalize_list(tasks)
     edges = normalize_list(edges)
-    metadata = stringify_keys(Map.get(task, :metadata, %{}) || %{})
-    decomposition = metadata |> Map.get("decomposition", %{}) |> stringify_keys()
+    metadata = Utils.stringify_keys_deep_list(Map.get(task, :metadata, %{}) || %{})
+    decomposition = metadata |> Map.get("decomposition", %{}) |> Utils.stringify_keys_deep_list()
     defaults = default_decomposition(task, metadata)
     incoming = Enum.filter(edges, &(&1.to_task_id == task.id))
     outgoing = Enum.filter(edges, &(&1.from_task_id == task.id))
@@ -251,16 +253,4 @@ defmodule ControlKeel.Mission.Decomposition do
 
   defp normalize_list(value) when is_list(value), do: value
   defp normalize_list(_value), do: []
-
-  defp stringify_keys(map) when is_map(map) do
-    Enum.into(map, %{}, fn {key, value} ->
-      {to_string(key), normalize_value(value)}
-    end)
-  end
-
-  defp stringify_keys(_other), do: %{}
-
-  defp normalize_value(value) when is_map(value), do: stringify_keys(value)
-  defp normalize_value(value) when is_list(value), do: Enum.map(value, &normalize_value/1)
-  defp normalize_value(value), do: value
 end

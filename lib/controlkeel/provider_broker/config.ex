@@ -2,6 +2,7 @@ defmodule ControlKeel.ProviderBroker.Config do
   @moduledoc false
 
   alias ControlKeel.Runtime.Paths
+  alias ControlKeel.Utils
 
   @version 1
   @providers ~w(anthropic openai openrouter ollama)
@@ -74,7 +75,7 @@ defmodule ControlKeel.ProviderBroker.Config do
         config
         |> get_in(["profiles", provider])
         |> Kernel.||(%{})
-        |> Map.merge(stringify_keys(attrs))
+        |> Map.merge(Utils.stringify_keys(attrs))
         |> then(&normalize_profile(provider, &1))
 
       updated =
@@ -105,7 +106,7 @@ defmodule ControlKeel.ProviderBroker.Config do
 
   defp normalized(config) do
     config
-    |> stringify_keys()
+    |> Utils.stringify_keys()
     |> merge_defaults()
     |> update_in(["profiles"], fn profiles ->
       profiles
@@ -130,7 +131,7 @@ defmodule ControlKeel.ProviderBroker.Config do
   defp normalize_profile(provider, attrs) do
     provider
     |> default_profile()
-    |> Map.merge(stringify_keys(attrs))
+    |> Map.merge(Utils.stringify_keys(attrs))
     |> Map.update("provider", provider, &normalize_provider/1)
     |> Map.update("enabled", true, &truthy?/1)
   end
@@ -169,10 +170,6 @@ defmodule ControlKeel.ProviderBroker.Config do
       "workspace_profile" -> "workspace_profile"
       _ -> @default_source
     end
-  end
-
-  defp stringify_keys(attrs) when is_map(attrs) do
-    Enum.into(attrs, %{}, fn {key, value} -> {to_string(key), value} end)
   end
 
   defp truthy?(value) when value in [true, "true", "1", 1, "yes"], do: true

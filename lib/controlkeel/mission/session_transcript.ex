@@ -5,6 +5,7 @@ defmodule ControlKeel.Mission.SessionTranscript do
 
   alias ControlKeel.Mission.SessionEvent
   alias ControlKeel.Repo
+  alias ControlKeel.Utils
 
   @recent_limit 10
   @summary_max 280
@@ -76,7 +77,7 @@ defmodule ControlKeel.Mission.SessionTranscript do
   end
 
   defp normalize_attrs(attrs) do
-    attrs = stringify_keys(attrs)
+    attrs = Utils.stringify_keys(attrs)
 
     %{
       event_type: attrs["event_type"] || "other.recorded",
@@ -145,9 +146,5 @@ defmodule ControlKeel.Mission.SessionTranscript do
       [family] -> family
       _ -> "other"
     end
-  end
-
-  defp stringify_keys(map) when is_map(map) do
-    Enum.into(map, %{}, fn {key, value} -> {to_string(key), value} end)
   end
 end

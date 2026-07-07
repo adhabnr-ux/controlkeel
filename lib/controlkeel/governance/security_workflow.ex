@@ -4,6 +4,7 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
   alias ControlKeel.Intent.Domains
   alias ControlKeel.Mission.Session
   alias ControlKeel.Platform.ServiceAccount
+  alias ControlKeel.Utils
 
   @domain_pack "security"
   @security_occupations ~w(
@@ -138,8 +139,8 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
 
   def ensure_vulnerability_metadata(metadata, attrs \\ %{})
       when is_map(metadata) and is_map(attrs) do
-    normalized = stringify_keys(metadata)
-    attrs = stringify_keys(attrs)
+    normalized = Utils.stringify_keys(metadata)
+    attrs = Utils.stringify_keys(attrs)
 
     normalized
     |> Map.put("finding_family", "vulnerability_case")
@@ -293,10 +294,6 @@ defmodule ControlKeel.Governance.SecurityWorkflow do
         if(unresolved_release_risk?(finding), do: "blocked", else: "ready"),
       "sensitive_content_redacted" => true
     }
-  end
-
-  defp stringify_keys(map) do
-    Enum.into(map, %{}, fn {key, value} -> {to_string(key), value} end)
   end
 
   defp normalize_security_occupation(value) when is_binary(value) do
