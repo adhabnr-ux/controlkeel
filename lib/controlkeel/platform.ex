@@ -4,7 +4,7 @@ defmodule ControlKeel.Platform do
   import Ecto.Query, warn: false
 
   alias Ecto.Multi
-  alias ControlKeel.{AuditExports, Bus, Mission, Repo}
+  alias ControlKeel.{AuditExports, Mission, Repo}
   alias ControlKeel.Mission.Decomposition
   alias ControlKeel.Mission.{ProofBundle, Session, Task}
 
@@ -272,7 +272,12 @@ defmodule ControlKeel.Platform do
       end)
     end
 
-    _ = Bus.publish_json("controlkeel.events.#{event}", stringify_keys(payload))
+    _ =
+      ControlKeel.Runtime.bus_module().publish_json(
+        "controlkeel.events.#{event}",
+        stringify_keys(payload)
+      )
+
     :ok
   end
 

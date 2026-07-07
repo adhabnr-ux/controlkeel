@@ -2,7 +2,6 @@ defmodule ControlKeel.ProviderBroker do
   @moduledoc false
 
   alias ControlKeel.Agent.Integration
-  alias ControlKeel.Agent.Runtimes.Registry, as: RuntimeRegistry
   alias ControlKeel.Project.Binding
   alias ControlKeel.ProviderBroker.Config
 
@@ -580,13 +579,13 @@ defmodule ControlKeel.ProviderBroker do
 
   defp attached_agents(_binding, _raw), do: []
 
-  defp attached_agent_summaries(binding, project_root, opts) do
+  defp attached_agent_summaries(binding, _project_root, _opts) do
     binding
     |> attached_agents(binding)
     |> Enum.map(fn {id, attrs} ->
       normalized_id = normalize_agent_id(id)
       integration = Integration.get(normalized_id)
-      runtime_hint = RuntimeRegistry.provider_hint(normalized_id, project_root, opts)
+      runtime_hint = integration && integration.runtime_provider_hint
 
       %{
         "id" => normalized_id,
@@ -608,13 +607,14 @@ defmodule ControlKeel.ProviderBroker do
     end)
   end
 
-  defp runtime_hint_summaries(binding, project_root, opts) do
+  defp runtime_hint_summaries(binding, _project_root, _opts) do
     binding
     |> attached_agents(binding)
     |> Enum.flat_map(fn {id, _attrs} ->
       normalized_id = normalize_agent_id(id)
+      integration = Integration.get(normalized_id)
 
-      case RuntimeRegistry.provider_hint(normalized_id, project_root, opts) do
+      case integration && integration.runtime_provider_hint do
         nil ->
           []
 
@@ -622,11 +622,7 @@ defmodule ControlKeel.ProviderBroker do
           [
             %{
               "agent_id" => normalized_id,
-              "transport" =>
-                case Integration.get(normalized_id) do
-                  nil -> nil
-                  integration -> integration.runtime_transport
-                end,
+              "transport" => integration && integration.runtime_transport,
               "hint" => sanitize_runtime_hint(hint)
             }
           ]

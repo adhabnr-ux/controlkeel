@@ -2,7 +2,6 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
   @moduledoc false
 
   alias ControlKeel.Agent.Integration
-  alias ControlKeel.Agent.Runtimes.Registry, as: RuntimeRegistry
   alias ControlKeel.Intent.{ExecutionBrief, ExecutionPosture, RuntimePolicyProfile}
   alias ControlKeel.ProviderBroker
 
@@ -310,10 +309,13 @@ defmodule ControlKeel.Intent.RuntimeRecommendation do
     end
   end
 
-  defp runtime_provider(integration_id, project_root) do
-    case RuntimeRegistry.provider_hint(integration_id, project_root) do
-      %{"provider" => provider} when is_binary(provider) -> provider
-      _ -> nil
+  defp runtime_provider(integration_id, _project_root) do
+    case Integration.get(integration_id) do
+      nil ->
+        nil
+
+      integration ->
+        integration.runtime_provider_hint && integration.runtime_provider_hint["provider"]
     end
   end
 

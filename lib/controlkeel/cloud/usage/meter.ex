@@ -9,18 +9,15 @@ defmodule ControlKeel.Cloud.Usage.Meter do
 
   - Keys: `{{org_id, Date.t()}, :spend}}` → integer (cents accumulated)
   - Midnight rollover: schedules itself via `Process.send_after/3`
-  - UsageEmitter: called after each record if configured
   - Survives process crash: ETS table is `public` with `write_concurrency`
 
   ## Future work (P4)
 
   - DB-backed persistence for durable billing records
-  - Stripe Metering Events adapter via UsageEmitter behaviour
+  - Stripe Metering Events adapter
   """
 
   use GenServer
-
-  require Logger
 
   @table :ck_cloud_usage_meter
 
@@ -41,11 +38,6 @@ defmodule ControlKeel.Cloud.Usage.Meter do
     rescue
       ArgumentError ->
         :ets.insert_new(@table, {{:spend, key}, cents})
-    end
-
-    # Emit to the configured emitter
-    if Keyword.get(opts, :emit, true) do
-      emit_usage(org_id, date)
     end
 
     :ok
@@ -132,20 +124,5 @@ defmodule ControlKeel.Cloud.Usage.Meter do
     midnight = DateTime.new!(tomorrow, ~T[00:00:00], "Etc/UTC")
     ms_until_midnight = max(DateTime.diff(midnight, now, :millisecond), 1)
     Process.send_after(self(), :rollover, ms_until_midnight)
-  end
-
-  defp emit_usage(org_id, date) do
-    spend = usage_for_date(org_id, date)
-    emitter = Application.get_env(:controlkeel, :usage_emitter, nil)
-
-    if emitter do
-      usage = %{org_id: org_id, date: date, spend_cents: spend}
-      # Best-effort; never block the caller on emitter failures.
-      try do
-        emitter.emit_usage(org_id, usage)
-      rescue
-        e -> Logger.warning("UsageEmitter #{inspect(emitter)} failed: #{inspect(e)}")
-      end
-    end
   end
 end

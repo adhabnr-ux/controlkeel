@@ -1,8 +1,6 @@
 defmodule ControlKeel.Agent.Integration do
   @moduledoc false
 
-  alias ControlKeel.Agent.Adapters.Registry, as: AdapterRegistry
-  alias ControlKeel.Agent.Runtimes.Registry, as: RuntimeRegistry
   alias ControlKeel.Ops.Distribution
 
   defstruct [
@@ -25,6 +23,7 @@ defmodule ControlKeel.Agent.Integration do
     :runtime_transport,
     :runtime_auth_owner,
     :runtime_review_transport,
+    :runtime_provider_hint,
     :confidence_level,
     :preferred_target,
     :default_scope,
@@ -87,7 +86,41 @@ defmodule ControlKeel.Agent.Integration do
           owner: "agent"
         },
         supported_scopes: ["user", "project"],
-        export_targets: ["claude-standalone", "claude-plugin"]
+        export_targets: ["claude-standalone", "claude-plugin"],
+        submission_mode: "hook",
+        feedback_mode: "command_reply",
+        artifact_surfaces: [
+          "skills/",
+          "agents/controlkeel-operator.md",
+          ".claude-plugin/plugin.json",
+          "hooks/hooks.json",
+          "hooks/controlkeel-review.sh",
+          "hooks/controlkeel-review.ps1",
+          "settings.json",
+          ".mcp.json"
+        ],
+        runtime_transport: "claude_agent_sdk",
+        runtime_auth_owner: "agent",
+        runtime_session_support: %{
+          "create" => true,
+          "fork" => true,
+          "resume" => true,
+          "streaming" => true
+        },
+        runtime_review_transport: "hook_sdk",
+        runtime_capabilities: %{
+          policy_gate: true,
+          tool_approval: true,
+          user_input_pause_resume: true,
+          deterministic_event_ids: false,
+          replay_safe_delivery: false
+        },
+        runtime_provider_hint: %{
+          "provider" => "anthropic",
+          "source" => "agent_runtime",
+          "auth_mode" => "env_bridge",
+          "auth_owner" => "agent"
+        }
       }),
       attach_client(%{
         id: "codex-cli",
@@ -115,10 +148,49 @@ defmodule ControlKeel.Agent.Integration do
           owner: "agent"
         },
         supported_scopes: ["user", "project"],
-        submission_mode: "tool_call",
-        feedback_mode: "tool_call",
+        submission_mode: "command",
+        feedback_mode: "command_reply",
         phase_model: "review_only",
-        export_targets: ["codex", "codex-plugin", "open-standard"]
+        export_targets: ["codex", "codex-plugin", "open-standard"],
+        artifact_surfaces: [
+          ".agents/skills",
+          ".codex/skills",
+          ".codex/config.toml",
+          ".codex/hooks.json",
+          ".codex/hooks",
+          ".codex/agents/controlkeel-operator.toml",
+          ".codex/agents/controlkeel-reviewer.toml",
+          ".codex/agents/controlkeel-docs-researcher.toml",
+          ".codex/commands/controlkeel-review.md",
+          ".codex/commands/controlkeel-annotate.md",
+          ".codex/commands/controlkeel-last.md",
+          ".codex/commands/controlkeel-diff-review.md",
+          ".codex/commands/controlkeel-completion-review.md",
+          ".mcp.json",
+          "AGENTS.md"
+        ],
+        runtime_transport: "codex_sdk",
+        runtime_auth_owner: "agent",
+        runtime_session_support: %{
+          "create" => true,
+          "fork" => false,
+          "resume" => true,
+          "streaming" => true
+        },
+        runtime_review_transport: "command_thread",
+        runtime_capabilities: %{
+          policy_gate: true,
+          tool_approval: false,
+          user_input_pause_resume: false,
+          deterministic_event_ids: false,
+          replay_safe_delivery: false
+        },
+        runtime_provider_hint: %{
+          "provider" => "openai",
+          "source" => "agent_runtime",
+          "auth_mode" => "agent_runtime",
+          "auth_owner" => "agent"
+        }
       }),
       attach_client(%{
         id: "vscode",
@@ -140,7 +212,33 @@ defmodule ControlKeel.Agent.Integration do
         upstream_docs_url: "https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode",
         provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
         supported_scopes: ["project"],
-        export_targets: ["github-repo", "copilot-plugin", "vscode-companion"]
+        export_targets: ["github-repo", "copilot-plugin", "vscode-companion"],
+        submission_mode: "command",
+        artifact_surfaces: [
+          ".github/skills",
+          ".github/agents",
+          ".github/mcp.json",
+          ".vscode/mcp.json",
+          ".vscode/extensions.json",
+          "extension/package.json",
+          "extension/extension.js"
+        ],
+        runtime_transport: "vscode_companion",
+        runtime_auth_owner: "workspace",
+        runtime_session_support: %{
+          "create" => false,
+          "fork" => false,
+          "resume" => false,
+          "streaming" => false
+        },
+        runtime_review_transport: "vscode_ipc",
+        runtime_capabilities: %{
+          policy_gate: true,
+          tool_approval: false,
+          user_input_pause_resume: false,
+          deterministic_event_ids: false,
+          replay_safe_delivery: false
+        }
       }),
       attach_client(%{
         id: "copilot",
@@ -162,7 +260,41 @@ defmodule ControlKeel.Agent.Integration do
         upstream_docs_url: "https://docs.github.com/copilot",
         provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
         supported_scopes: ["project"],
-        export_targets: ["github-repo", "copilot-plugin"]
+        export_targets: ["github-repo", "copilot-plugin"],
+        review_experience: "native_review",
+        artifact_surfaces: [
+          ".github/skills",
+          ".github/agents",
+          ".github/mcp.json",
+          ".github/copilot-instructions.md",
+          ".github/commands/controlkeel-plan-review.md",
+          ".vscode/mcp.json",
+          ".vscode/extensions.json",
+          "plugin.json",
+          "hooks.json"
+        ],
+        runtime_transport: "hook_session_parser",
+        runtime_auth_owner: "agent",
+        runtime_session_support: %{
+          "create" => false,
+          "fork" => false,
+          "resume" => false,
+          "streaming" => false
+        },
+        runtime_review_transport: "hook_session_state",
+        runtime_capabilities: %{
+          policy_gate: true,
+          tool_approval: false,
+          user_input_pause_resume: false,
+          deterministic_event_ids: false,
+          replay_safe_delivery: false
+        },
+        runtime_provider_hint: %{
+          "provider" => "openai",
+          "source" => "agent_runtime",
+          "auth_mode" => "agent_runtime",
+          "auth_owner" => "agent"
+        }
       }),
       attach_client(%{
         id: "pi",
@@ -188,11 +320,37 @@ defmodule ControlKeel.Agent.Integration do
         feedback_mode: "command_reply",
         artifact_surfaces: [
           ".agents/skills",
-          ".pi/commands",
+          ".pi/controlkeel.json",
+          ".pi/commands/controlkeel-review.md",
+          ".pi/commands/controlkeel-submit-plan.md",
           ".pi/mcp.json",
           "pi-extension.json",
+          "package.json",
+          "README.md",
           "PI.md"
-        ]
+        ],
+        runtime_transport: "pi_rpc",
+        runtime_auth_owner: "agent",
+        runtime_session_support: %{
+          "create" => true,
+          "fork" => false,
+          "resume" => false,
+          "streaming" => true
+        },
+        runtime_review_transport: "extension_rpc",
+        runtime_capabilities: %{
+          policy_gate: true,
+          tool_approval: false,
+          user_input_pause_resume: false,
+          deterministic_event_ids: false,
+          replay_safe_delivery: false
+        },
+        runtime_provider_hint: %{
+          "provider" => "pi_connected",
+          "source" => "agent_runtime",
+          "auth_mode" => "agent_runtime",
+          "auth_owner" => "agent"
+        }
       }),
       attach_client(%{
         id: "cursor",
@@ -332,7 +490,46 @@ defmodule ControlKeel.Agent.Integration do
           owner: "agent"
         },
         supported_scopes: ["project", "export"],
-        export_targets: ["augment-native", "augment-plugin", "instructions-only"]
+        export_targets: ["augment-native", "augment-plugin", "instructions-only"],
+        artifact_surfaces: [
+          ".augment/skills/controlkeel-governance/SKILL.md",
+          ".augment/agents/controlkeel-operator.md",
+          ".augment/commands/controlkeel-review.md",
+          ".augment/commands/controlkeel-submit-plan.md",
+          ".augment/commands/controlkeel-annotate.md",
+          ".augment/commands/controlkeel-last.md",
+          ".augment/rules/controlkeel.md",
+          ".augment/mcp.json",
+          ".augment/settings.controlkeel.json",
+          ".augment-plugin/plugin.json",
+          "hooks/hooks.json",
+          "hooks/controlkeel-review.sh",
+          "AGENTS.md",
+          "AUGMENT.md",
+          "README.md"
+        ],
+        runtime_transport: "auggie_sdk_acp",
+        runtime_auth_owner: "agent",
+        runtime_session_support: %{
+          "create" => true,
+          "fork" => false,
+          "resume" => true,
+          "streaming" => true
+        },
+        runtime_review_transport: "plugin_hook_acp",
+        runtime_capabilities: %{
+          policy_gate: true,
+          tool_approval: true,
+          user_input_pause_resume: false,
+          deterministic_event_ids: false,
+          replay_safe_delivery: false
+        },
+        runtime_provider_hint: %{
+          "provider" => "augment_runtime",
+          "source" => "agent_runtime",
+          "auth_mode" => "agent_runtime",
+          "auth_owner" => "agent"
+        }
       }),
       attach_client(%{
         id: "opencode",
@@ -355,7 +552,43 @@ defmodule ControlKeel.Agent.Integration do
         upstream_docs_url: "https://opencode.ai",
         provider_bridge: %{supported: false, mode: "ck_owned", owner: "controlkeel"},
         supported_scopes: ["project", "export"],
-        export_targets: ["opencode-native", "instructions-only"]
+        export_targets: ["opencode-native", "instructions-only"],
+        feedback_mode: "command_reply",
+        artifact_surfaces: [
+          ".opencode/skills",
+          ".agents/skills",
+          ".opencode/plugins/controlkeel-governance.ts",
+          ".opencode/agents/controlkeel-operator.md",
+          ".opencode/commands/controlkeel-review.md",
+          ".opencode/commands/controlkeel-submit-plan.md",
+          ".opencode/mcp.json",
+          "package.json",
+          "index.js",
+          "README.md",
+          "AGENTS.md"
+        ],
+        runtime_transport: "opencode_sdk",
+        runtime_auth_owner: "agent",
+        runtime_session_support: %{
+          "create" => true,
+          "fork" => true,
+          "resume" => true,
+          "streaming" => true
+        },
+        runtime_review_transport: "plugin_session_tool",
+        runtime_capabilities: %{
+          policy_gate: true,
+          tool_approval: true,
+          user_input_pause_resume: false,
+          deterministic_event_ids: false,
+          replay_safe_delivery: false
+        },
+        runtime_provider_hint: %{
+          "provider" => "opencode_connected",
+          "source" => "agent_runtime",
+          "auth_mode" => "agent_runtime",
+          "auth_owner" => "agent"
+        }
       }),
       attach_client(%{
         id: "gemini-cli",
@@ -1250,7 +1483,29 @@ defmodule ControlKeel.Agent.Integration do
           owner: "agent"
         },
         supported_scopes: ["user", "project"],
-        export_targets: ["codex", "codex-plugin", "open-standard"]
+        export_targets: ["codex", "codex-plugin", "open-standard"],
+        runtime_transport: "codex_app_server_json_rpc",
+        runtime_auth_owner: "agent",
+        runtime_session_support: %{
+          "create" => true,
+          "fork" => true,
+          "resume" => true,
+          "streaming" => true
+        },
+        runtime_review_transport: "app_server_review",
+        runtime_capabilities: %{
+          policy_gate: true,
+          tool_approval: true,
+          user_input_pause_resume: true,
+          deterministic_event_ids: true,
+          replay_safe_delivery: true
+        },
+        runtime_provider_hint: %{
+          "provider" => "openai",
+          "source" => "agent_runtime",
+          "auth_mode" => "agent_runtime",
+          "auth_owner" => "agent"
+        }
       }),
       alias_entry(%{
         id: "copilot-cli",
@@ -1413,7 +1668,29 @@ defmodule ControlKeel.Agent.Integration do
         upstream_docs_url: "https://github.com/pingdotgg/t3code",
         provider_bridge: %{supported: true, mode: "agent_runtime", owner: "agent"},
         supported_scopes: ["user", "project"],
-        export_targets: ["codex", "codex-plugin", "open-standard"]
+        export_targets: ["codex", "codex-plugin", "open-standard"],
+        runtime_transport: "t3code_provider_runtime",
+        runtime_auth_owner: "agent",
+        runtime_session_support: %{
+          "create" => true,
+          "fork" => true,
+          "resume" => true,
+          "streaming" => true
+        },
+        runtime_review_transport: "orchestration_domain_event",
+        runtime_capabilities: %{
+          policy_gate: true,
+          tool_approval: true,
+          user_input_pause_resume: true,
+          deterministic_event_ids: true,
+          replay_safe_delivery: true
+        },
+        runtime_provider_hint: %{
+          "provider" => "provider_neutral",
+          "source" => "agent_runtime",
+          "auth_mode" => "agent_runtime",
+          "auth_owner" => "agent"
+        }
       }),
       unverified_entry(%{
         id: "jcode",
@@ -1965,10 +2242,14 @@ defmodule ControlKeel.Agent.Integration do
           else: Distribution.required_mcp_tools()
         ),
       install_channels: install_channels,
-      export_targets: attrs[:export_targets] || []
+      export_targets: attrs[:export_targets] || [],
+      runtime_transport: attrs[:runtime_transport],
+      runtime_auth_owner: attrs[:runtime_auth_owner],
+      runtime_session_support: attrs[:runtime_session_support] || %{},
+      runtime_review_transport: attrs[:runtime_review_transport],
+      runtime_capabilities: attrs[:runtime_capabilities] || %{},
+      runtime_provider_hint: attrs[:runtime_provider_hint]
     }
-    |> AdapterRegistry.enrich_integration()
-    |> RuntimeRegistry.enrich_integration()
   end
 
   defp default_experience_profile(attrs) do
@@ -2351,7 +2632,102 @@ defmodule ControlKeel.Agent.Integration do
   defp default_subagent_visibility(%{support_class: "attach_client"}), do: "all"
   defp default_subagent_visibility(_attrs), do: "none"
 
-  defp default_package_outputs(%{id: id}), do: AdapterRegistry.package_outputs(id)
+  defp default_package_outputs(%{id: "claude-code"}) do
+    [
+      %{
+        "kind" => "release_bundle",
+        "name" => "claude-plugin",
+        "artifact" => "controlkeel-claude-plugin.tar.gz"
+      }
+    ]
+  end
+
+  defp default_package_outputs(%{id: "augment"}) do
+    [
+      %{
+        "kind" => "release_bundle",
+        "name" => "augment-native",
+        "artifact" => "controlkeel-augment-native.tar.gz"
+      },
+      %{
+        "kind" => "release_bundle",
+        "name" => "augment-plugin",
+        "artifact" => "controlkeel-augment-plugin.tar.gz"
+      }
+    ]
+  end
+
+  defp default_package_outputs(%{id: "codex-cli"}) do
+    [
+      %{
+        "kind" => "release_bundle",
+        "name" => "codex",
+        "artifact" => "controlkeel-codex.tar.gz"
+      },
+      %{
+        "kind" => "release_bundle",
+        "name" => "codex-plugin",
+        "artifact" => "controlkeel-codex-plugin.tar.gz"
+      }
+    ]
+  end
+
+  defp default_package_outputs(%{id: "copilot"}) do
+    [
+      %{
+        "kind" => "release_bundle",
+        "name" => "copilot-plugin",
+        "artifact" => "controlkeel-copilot-plugin.tar.gz"
+      }
+    ]
+  end
+
+  defp default_package_outputs(%{id: "opencode"}) do
+    [
+      %{
+        "kind" => "release_bundle",
+        "name" => "opencode-native",
+        "artifact" => "controlkeel-opencode-native.tar.gz"
+      },
+      %{
+        "kind" => "npm_package",
+        "name" => "@aryaminus/controlkeel-opencode",
+        "artifact" => "controlkeel-opencode-native.tgz"
+      }
+    ]
+  end
+
+  defp default_package_outputs(%{id: "pi"}) do
+    [
+      %{
+        "kind" => "release_bundle",
+        "name" => "pi-native",
+        "artifact" => "controlkeel-pi-native.tar.gz"
+      },
+      %{
+        "kind" => "npm_package",
+        "name" => "@aryaminus/controlkeel-pi-extension",
+        "artifact" => "controlkeel-pi-native.tgz"
+      }
+    ]
+  end
+
+  defp default_package_outputs(%{id: "vscode"}) do
+    [
+      %{
+        "kind" => "release_bundle",
+        "name" => "github-repo",
+        "artifact" => "controlkeel-github-repo.tar.gz"
+      },
+      %{
+        "kind" => "vsix",
+        "name" => "vscode-companion",
+        "artifact" => "controlkeel-vscode-companion.vsix"
+      }
+    ]
+  end
+
+  defp default_package_outputs(_attrs), do: []
 
   defp default_direct_install_methods(%{id: "claude-code"}) do
     [

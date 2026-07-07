@@ -1,8 +1,6 @@
 defmodule ControlKeel.Skills.SkillTarget do
   @moduledoc false
 
-  alias ControlKeel.Agent.Adapters.Registry, as: AdapterRegistry
-
   defstruct [
     :id,
     :label,
@@ -411,7 +409,21 @@ defmodule ControlKeel.Skills.SkillTarget do
         ["export"],
         true
       )
-    ] ++ AdapterRegistry.skill_targets()
+    ] ++ vscode_companion_targets()
+  end
+
+  defp vscode_companion_targets do
+    [
+      target(
+        "vscode-companion",
+        "VS Code companion extension",
+        "VS Code webview companion that opens ControlKeel browser reviews inside the editor and injects terminal routing env vars.",
+        true,
+        "export",
+        ["export"],
+        true
+      )
+    ]
   end
 
   def ids, do: Enum.map(catalog(), & &1.id)
