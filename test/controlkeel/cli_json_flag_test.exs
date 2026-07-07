@@ -82,14 +82,6 @@ defmodule ControlKeel.CLI.JsonFlagTest do
       assert_json_parsed!(["progress", "--json"], :progress)
     end
 
-    test "circuit-breaker status --json" do
-      assert_json_parsed!(["circuit-breaker", "status", "--json"], :circuit_breaker_status)
-    end
-
-    test "agents monitor --json" do
-      assert_json_parsed!(["agents", "monitor", "--json"], :agents_monitor)
-    end
-
     test "skills list --json" do
       assert_json_parsed!(["skills", "list", "--json"], :skills_list)
     end

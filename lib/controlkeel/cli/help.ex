@@ -694,14 +694,6 @@ defmodule ControlKeel.CLI.Help do
                                       Show session progress, tasks, and findings
       controlkeel findings translate [--session-id ID]
                                       Translate findings to plain English
-      controlkeel circuit-breaker status [--agent-id ID]
-                                      Show circuit breaker status for agents
-      controlkeel circuit-breaker trip <agent-id>
-                                      Manually trip circuit breaker
-      controlkeel circuit-breaker reset <agent-id>
-                                      Reset circuit breaker for an agent
-      controlkeel agents monitor [--agent-id ID]
-                                      Show live agent activity and events
       controlkeel outcome record <session-id> <outcome>
                                       Record an agent outcome (deploy_success, test_pass, etc.)
       controlkeel outcome score <agent-id>

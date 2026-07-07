@@ -1,8 +1,6 @@
 defmodule ControlKeel.CLI.Dispatch.SandboxSecurityCodeMode do
   @moduledoc false
 
-  alias ControlKeel.Governance.AgentMonitor
-  alias ControlKeel.Governance.CircuitBreaker
   alias ControlKeel.Governance.PreCommitHook
   alias ControlKeel.ExecutionSandbox
   alias ControlKeel.Runtime.Paths
@@ -114,98 +112,6 @@ defmodule ControlKeel.CLI.Dispatch.SandboxSecurityCodeMode do
 
       {:ok, :no_hook_found} ->
         {:ok, ["No pre-commit hook found."]}
-    end
-  end
-
-  def run_command(%{command: :circuit_breaker_status, options: options}, _project_root) do
-    agent_id = options[:agent_id]
-
-    if agent_id do
-      case CircuitBreaker.check_status(agent_id) do
-        {:ok, status} ->
-          lines = [
-            "Agent: #{status.agent_id}",
-            "Status: #{status.status}",
-            "Events: #{status.event_count} (API: #{status.api_calls}, Files: #{status.file_modifications}, Errors: #{status.errors})"
-          ]
-
-          lines =
-            if status.trip_reason do
-              lines ++ ["Trip reason: #{status.trip_reason}"]
-            else
-              lines
-            end
-
-          {:ok, lines}
-
-        {:error, reason} ->
-          {:error, inspect(reason)}
-      end
-    else
-      case CircuitBreaker.get_all_statuses() do
-        {:ok, statuses} ->
-          if statuses == [] do
-            {:ok, ["No agents tracked by circuit breaker."]}
-          else
-            lines =
-              Enum.map(statuses, fn s ->
-                "#{s.agent_id}: #{s.status} (#{s.event_count} events)"
-              end)
-
-            {:ok, ["Circuit Breaker Status:", "" | lines]}
-          end
-      end
-    end
-  end
-
-  def run_command(%{command: :circuit_breaker_trip, options: options}, _project_root) do
-    agent_id = options[:agent_id]
-
-    case CircuitBreaker.trip_breaker(agent_id, "manual CLI trip") do
-      {:ok, _} ->
-        {:ok, ["Circuit breaker tripped for agent: #{agent_id}"]}
-    end
-  end
-
-  def run_command(%{command: :circuit_breaker_reset, options: options}, _project_root) do
-    agent_id = options[:agent_id]
-
-    case CircuitBreaker.reset_breaker(agent_id) do
-      {:ok, _} ->
-        {:ok, ["Circuit breaker reset for agent: #{agent_id}"]}
-    end
-  end
-
-  def run_command(%{command: :agents_monitor, options: options}, _project_root) do
-    agent_id = options[:agent_id]
-
-    if agent_id do
-      {:ok, events} = AgentMonitor.get_events(agent_id, limit: 20)
-
-      if events == [] do
-        {:ok, ["No events for agent: #{agent_id}"]}
-      else
-        lines =
-          Enum.map(events, fn e ->
-            ts = e.timestamp |> DateTime.to_iso8601()
-            ts <> " " <> to_string(e.event_type) <> " " <> inspect(e.metadata)
-          end)
-
-        {:ok, ["Recent events for #{agent_id}:", "" | lines]}
-      end
-    else
-      {:ok, agents} = AgentMonitor.get_active_agents()
-
-      if agents == [] do
-        {:ok, ["No active agents."]}
-      else
-        lines =
-          Enum.map(agents, fn a ->
-            "#{a.agent_id}: #{to_string(a.status)} (#{a.recent_events_5min} events in 5min, #{a.total_events} total)"
-          end)
-
-        {:ok, ["Active agents:", "" | lines]}
-      end
     end
   end
 end

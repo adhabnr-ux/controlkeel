@@ -258,10 +258,6 @@ defmodule ControlKeel.CLI.Catalog do
   defp command_path(:precommit_check), do: "precommit-check"
   defp command_path(:precommit_install), do: "precommit-install"
   defp command_path(:precommit_uninstall), do: "precommit-uninstall"
-  defp command_path(:circuit_breaker_status), do: "circuit-breaker status"
-  defp command_path(:circuit_breaker_trip), do: "circuit-breaker trip <agent-id>"
-  defp command_path(:circuit_breaker_reset), do: "circuit-breaker reset <agent-id>"
-  defp command_path(:agents_monitor), do: "agents monitor"
   defp command_path(:outcome_record), do: "outcome record <session-id> <outcome>"
   defp command_path(:outcome_score), do: "outcome score <agent-id>"
   defp command_path(:outcome_leaderboard), do: "outcome leaderboard"
@@ -642,11 +638,7 @@ defmodule ControlKeel.CLI.Catalog do
           :sandbox_config,
           :precommit_check,
           :precommit_install,
-          :precommit_uninstall,
-          :circuit_breaker_status,
-          :circuit_breaker_trip,
-          :circuit_breaker_reset,
-          :agents_monitor
+          :precommit_uninstall
         ],
         help_topic: "security",
         outputs: [:text, :json],

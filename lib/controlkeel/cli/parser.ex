@@ -87,7 +87,6 @@ defmodule ControlKeel.CLI.Parser do
     json: :boolean
   ]
   @progress_switches [session_id: :integer, format: :string, json: :boolean]
-  @circuit_breaker_switches [agent_id: :string, json: :boolean]
   @skills_list_switches [project_root: :string, target: :string, format: :string, json: :boolean]
   @skills_validate_switches [project_root: :string, json: :boolean]
   @skills_export_switches [project_root: :string, target: :string, scope: :string, json: :boolean]
@@ -922,18 +921,6 @@ defmodule ControlKeel.CLI.Parser do
 
       ["progress" | rest] ->
         parse_with_switches(:progress, rest, @progress_switches)
-
-      ["circuit-breaker", "status" | rest] ->
-        parse_with_switches(:circuit_breaker_status, rest, @circuit_breaker_switches)
-
-      ["circuit-breaker", "trip", agent_id] ->
-        {:ok, %{command: :circuit_breaker_trip, options: %{agent_id: agent_id}, args: []}}
-
-      ["circuit-breaker", "reset", agent_id] ->
-        {:ok, %{command: :circuit_breaker_reset, options: %{agent_id: agent_id}, args: []}}
-
-      ["agents", "monitor" | rest] ->
-        parse_with_switches(:agents_monitor, rest, @circuit_breaker_switches)
 
       ["outcome", "record", session_id, outcome | rest] ->
         case parse_with_switches(:outcome_record, rest, @outcome_record_switches) do
