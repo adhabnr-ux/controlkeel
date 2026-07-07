@@ -27,6 +27,7 @@ defmodule ControlKeel.Cloud.RuntimeContext do
   alias ControlKeel.Cloud.RunPackage
   alias ControlKeel.Cloud.Scope
   alias ControlKeel.Accounts
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.Repo
 
   @doc """
@@ -49,7 +50,7 @@ defmodule ControlKeel.Cloud.RuntimeContext do
           {:ok, RunPackage.t(), String.t()}
           | {:error, Ecto.Changeset.t() | :unauthorized | :not_found | :org_suspended}
   def create_package(attrs) when is_map(attrs) do
-    workspace_id = parse_integer(attrs[:workspace_id] || attrs["workspace_id"])
+    workspace_id = Arguments.parse_integer(attrs[:workspace_id] || attrs["workspace_id"])
 
     with :ok <- authorize_workspace(workspace_id, attrs) do
       raw_token = generate_token()
@@ -352,21 +353,11 @@ defmodule ControlKeel.Cloud.RuntimeContext do
   defp authorize_workspace(nil, _attrs), do: :ok
 
   defp authorize_workspace(workspace_id, attrs) when is_integer(workspace_id) do
-    user_id = parse_integer(attrs[:user_id] || attrs["user_id"])
+    user_id = Arguments.parse_integer(attrs[:user_id] || attrs["user_id"])
 
     case Accounts.authorize_cloud_execution(workspace_id, user_id: user_id) do
       {:ok, :authorized} -> :ok
       {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp parse_integer(nil), do: nil
-  defp parse_integer(value) when is_integer(value), do: value
-
-  defp parse_integer(value) when is_binary(value) do
-    case Integer.parse(value) do
-      {n, ""} -> n
-      _ -> nil
     end
   end
 

@@ -127,6 +127,16 @@ defmodule ControlKeel.MCP.Arguments do
     end
   end
 
+  @doc """
+  Raw-value variant of `optional_binary/2` for inline map construction.
+  Returns the trimmed binary or `nil` instead of `{:ok, value}`.
+  """
+  def optional_binary_value(arguments, key) when is_map(arguments) do
+    case optional_binary(arguments, key) do
+      {:ok, value} -> value
+    end
+  end
+
   defp trim_required(value, key) do
     case String.trim(value) do
       "" -> {:error, {:invalid_arguments, "`#{key}` is required"}}

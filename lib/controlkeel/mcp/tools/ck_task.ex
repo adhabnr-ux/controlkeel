@@ -256,16 +256,5 @@ defmodule ControlKeel.MCP.Tools.CkTask do
     end
   end
 
-  defp optional_binary(arguments, key) do
-    case Map.get(arguments, key) do
-      value when is_binary(value) ->
-        case String.trim(value) do
-          "" -> nil
-          trimmed -> trimmed
-        end
-
-      _ ->
-        nil
-    end
-  end
+  defp optional_binary(arguments, key), do: Arguments.optional_binary_value(arguments, key)
 end

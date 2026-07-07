@@ -7,6 +7,7 @@ defmodule ControlKeel.Agent.Execution do
   alias ControlKeel.Agent.Router
   alias ControlKeel.ExecutionSandbox
   alias ControlKeel.Intent
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.MCP.Tools.CkValidate
   alias ControlKeel.Mission
   alias ControlKeel.Platform
@@ -225,7 +226,7 @@ defmodule ControlKeel.Agent.Execution do
       Map.has_key?(arguments, "task_id") ->
         arguments
         |> Map.get("task_id")
-        |> parse_integer("task_id")
+        |> Arguments.normalize_integer("task_id")
         |> case do
           {:ok, task_id} -> run_task(task_id, opts)
           {:error, _reason} = error -> error
@@ -234,7 +235,7 @@ defmodule ControlKeel.Agent.Execution do
       Map.has_key?(arguments, "session_id") ->
         arguments
         |> Map.get("session_id")
-        |> parse_integer("session_id")
+        |> Arguments.normalize_integer("session_id")
         |> case do
           {:ok, session_id} -> run_session(session_id, opts)
           {:error, _reason} = error -> error
@@ -984,18 +985,6 @@ defmodule ControlKeel.Agent.Execution do
 
   defp maybe_put_map_value(map, _key, nil), do: map
   defp maybe_put_map_value(map, key, value), do: Map.put(map, key, value)
-
-  defp parse_integer(value, _field) when is_integer(value), do: {:ok, value}
-
-  defp parse_integer(value, field) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> {:ok, parsed}
-      _ -> {:error, {:invalid_arguments, "`#{field}` must be an integer"}}
-    end
-  end
-
-  defp parse_integer(_value, field),
-    do: {:error, {:invalid_arguments, "`#{field}` must be an integer"}}
 
   defp format_boundary_markdown(summary) do
     constraints =

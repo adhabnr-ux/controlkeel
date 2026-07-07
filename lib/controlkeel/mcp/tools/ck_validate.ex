@@ -4,6 +4,7 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
   alias ControlKeel.Scanner.AutoFix
   alias ControlKeel.Intent.Domains
   alias ControlKeel.Learning.OutcomeTracker
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.Mission
   alias ControlKeel.Memory.Precedent
   alias ControlKeel.Scanner
@@ -361,12 +362,7 @@ defmodule ControlKeel.MCP.Tools.CkValidate do
     }
   end
 
-  defp optional_binary(arguments, key) do
-    case Map.get(arguments, key) do
-      value when is_binary(value) and value != "" -> value
-      _ -> nil
-    end
-  end
+  defp optional_binary(arguments, key), do: Arguments.optional_binary_value(arguments, key)
 
   defp normalize_optional_enum(arguments, key, allowed) do
     case Map.get(arguments, key) do

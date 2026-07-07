@@ -5,6 +5,7 @@ defmodule ControlKeel.Mcp.ProtocolInterop do
   alias ControlKeel.Cloud.Guardrails
   alias ControlKeel.Cloud.Mcp.AuditLog
   alias ControlKeel.Cloud.Mcp.Policy
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.MCP.Protocol
   alias ControlKeel.Mission
   alias ControlKeel.Platform.ServiceAccount
@@ -227,7 +228,7 @@ defmodule ControlKeel.Mcp.ProtocolInterop do
   defp verify_cyber_access(_service_account, _tool_name, _arguments), do: :ok
 
   defp delegated_task(%{"task_id" => task_id}) do
-    with {:ok, parsed_id} <- parse_integer(task_id, "task_id"),
+    with {:ok, parsed_id} <- Arguments.normalize_integer(task_id, "task_id"),
          %{} = task <- Mission.get_task(parsed_id) do
       {:ok, task}
     else
@@ -282,7 +283,7 @@ defmodule ControlKeel.Mcp.ProtocolInterop do
   defp maybe_verify_session_workspace(_service_account, nil), do: :ok
 
   defp maybe_verify_session_workspace(%ServiceAccount{} = service_account, session_id) do
-    with {:ok, parsed_id} <- parse_integer(session_id, "session_id"),
+    with {:ok, parsed_id} <- Arguments.normalize_integer(session_id, "session_id"),
          %{workspace_id: workspace_id} <- Mission.get_session(parsed_id) do
       if workspace_id == service_account.workspace_id do
         :ok
@@ -298,7 +299,7 @@ defmodule ControlKeel.Mcp.ProtocolInterop do
   defp maybe_verify_task_workspace(_service_account, nil), do: :ok
 
   defp maybe_verify_task_workspace(%ServiceAccount{} = service_account, task_id) do
-    with {:ok, parsed_id} <- parse_integer(task_id, "task_id"),
+    with {:ok, parsed_id} <- Arguments.normalize_integer(task_id, "task_id"),
          %{session_id: session_id} <- Mission.get_task(parsed_id),
          %{workspace_id: workspace_id} <- Mission.get_session(session_id) do
       if workspace_id == service_account.workspace_id do
@@ -315,7 +316,7 @@ defmodule ControlKeel.Mcp.ProtocolInterop do
   defp maybe_verify_review_workspace(_service_account, nil), do: :ok
 
   defp maybe_verify_review_workspace(%ServiceAccount{} = service_account, review_id) do
-    with {:ok, parsed_id} <- parse_integer(review_id, "review_id"),
+    with {:ok, parsed_id} <- Arguments.normalize_integer(review_id, "review_id"),
          %{session_id: session_id} <- Mission.get_review(parsed_id),
          %{workspace_id: workspace_id} <- Mission.get_session(session_id) do
       if workspace_id == service_account.workspace_id do
@@ -332,7 +333,7 @@ defmodule ControlKeel.Mcp.ProtocolInterop do
   defp maybe_verify_workspace_argument(_service_account, nil), do: :ok
 
   defp maybe_verify_workspace_argument(%ServiceAccount{} = service_account, workspace_id) do
-    with {:ok, parsed_id} <- parse_integer(workspace_id, "workspace_id") do
+    with {:ok, parsed_id} <- Arguments.normalize_integer(workspace_id, "workspace_id") do
       if parsed_id == service_account.workspace_id do
         :ok
       else
@@ -357,18 +358,6 @@ defmodule ControlKeel.Mcp.ProtocolInterop do
       :error -> {:error, :unsupported_tool}
     end
   end
-
-  defp parse_integer(value, _field) when is_integer(value), do: {:ok, value}
-
-  defp parse_integer(value, field) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> {:ok, parsed}
-      _ -> {:error, {:invalid_arguments, "`#{field}` must be an integer if provided"}}
-    end
-  end
-
-  defp parse_integer(_value, field),
-    do: {:error, {:invalid_arguments, "`#{field}` must be an integer if provided"}}
 
   defp verify_a2a_tool(tool_name) when tool_name in @a2a_skill_ids, do: :ok
   defp verify_a2a_tool(_tool_name), do: {:error, {:invalid_arguments, "Unsupported A2A tool"}}

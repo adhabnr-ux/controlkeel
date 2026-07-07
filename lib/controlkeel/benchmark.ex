@@ -16,6 +16,7 @@ defmodule ControlKeel.Benchmark do
 
   alias ControlKeel.Intent.Domains
   alias ControlKeel.Repo
+  alias ControlKeel.Repo.Retry, as: RepoRetry
 
   @recent_runs_limit 12
   @busy_retry_backoff_ms [0, 1_000, 3_000, 7_000, 15_000]
@@ -970,7 +971,7 @@ defmodule ControlKeel.Benchmark do
       catch_rate: 0.0,
       metadata: metadata
     })
-    |> insert_with_busy_retry()
+    |> RepoRetry.insert_with_busy_retry(@busy_retry_backoff_ms)
   end
 
   defp builtin_suite_count(domain_pack) do
@@ -1011,88 +1012,29 @@ defmodule ControlKeel.Benchmark do
   end
 
   defp sync_builtin_suite(payload, expected_scenarios) do
-    transaction_with_busy_retry(fn ->
-      suite =
-        Repo.get_by(Suite, slug: payload["slug"]) ||
-          %Suite{}
+    RepoRetry.transaction_with_busy_retry(
+      fn ->
+        suite =
+          Repo.get_by(Suite, slug: payload["slug"]) ||
+            %Suite{}
 
-      {:ok, suite} =
+        {:ok, suite} =
+          suite
+          |> Suite.changeset(%{
+            slug: payload["slug"],
+            name: payload["name"],
+            description: payload["description"],
+            version: payload["version"],
+            status: payload["status"] || "active",
+            metadata: payload["metadata"] || %{}
+          })
+          |> Repo.insert_or_update()
+
+        sync_scenarios(suite, expected_scenarios)
         suite
-        |> Suite.changeset(%{
-          slug: payload["slug"],
-          name: payload["name"],
-          description: payload["description"],
-          version: payload["version"],
-          status: payload["status"] || "active",
-          metadata: payload["metadata"] || %{}
-        })
-        |> Repo.insert_or_update()
-
-      sync_scenarios(suite, expected_scenarios)
-      suite
-    end)
-  end
-
-  defp transaction_with_busy_retry(operation, attempt \\ 0)
-
-  defp transaction_with_busy_retry(operation, attempt) do
-    Repo.transaction(operation)
-  rescue
-    error ->
-      if busy_error?(error) and attempt < length(@busy_retry_backoff_ms) - 1 do
-        Process.sleep(Enum.at(@busy_retry_backoff_ms, attempt + 1))
-        transaction_with_busy_retry(operation, attempt + 1)
-      else
-        reraise error, __STACKTRACE__
-      end
-  end
-
-  defp insert_with_busy_retry(changeset, attempt \\ 0)
-
-  defp insert_with_busy_retry(changeset, attempt) do
-    Repo.insert(changeset)
-  rescue
-    error ->
-      if busy_error?(error) and attempt < length(@busy_retry_backoff_ms) - 1 do
-        Process.sleep(Enum.at(@busy_retry_backoff_ms, attempt + 1))
-        insert_with_busy_retry(changeset, attempt + 1)
-      else
-        reraise error, __STACKTRACE__
-      end
-  end
-
-  defp update_with_busy_retry(changeset, attempt \\ 0)
-
-  defp update_with_busy_retry(changeset, attempt) do
-    Repo.update(changeset)
-  rescue
-    error ->
-      if busy_error?(error) and attempt < length(@busy_retry_backoff_ms) - 1 do
-        Process.sleep(Enum.at(@busy_retry_backoff_ms, attempt + 1))
-        update_with_busy_retry(changeset, attempt + 1)
-      else
-        reraise error, __STACKTRACE__
-      end
-  end
-
-  defp update_with_busy_retry!(changeset, attempt \\ 0)
-
-  defp update_with_busy_retry!(changeset, attempt) do
-    Repo.update!(changeset)
-  rescue
-    error ->
-      if busy_error?(error) and attempt < length(@busy_retry_backoff_ms) - 1 do
-        Process.sleep(Enum.at(@busy_retry_backoff_ms, attempt + 1))
-        update_with_busy_retry!(changeset, attempt + 1)
-      else
-        reraise error, __STACKTRACE__
-      end
-  end
-
-  defp busy_error?(error) do
-    error
-    |> Exception.message()
-    |> String.contains?("Database busy")
+      end,
+      @busy_retry_backoff_ms
+    )
   end
 
   defp maybe_exclude_internal(suites, true), do: suites
@@ -1127,7 +1069,9 @@ defmodule ControlKeel.Benchmark do
         |> Map.put_new("payload", %{})
         |> Map.put_new("metadata", %{})
 
-      case %Result{} |> Result.changeset(attrs) |> insert_with_busy_retry() do
+      case %Result{}
+           |> Result.changeset(attrs)
+           |> RepoRetry.insert_with_busy_retry(@busy_retry_backoff_ms) do
         {:ok, result} -> {:cont, {:ok, [result | acc]}}
         {:error, changeset} -> {:halt, {:error, changeset}}
       end
@@ -1143,7 +1087,7 @@ defmodule ControlKeel.Benchmark do
         {:ok, overhead_percent} ->
           result
           |> Result.changeset(%{overhead_percent: overhead_percent})
-          |> update_with_busy_retry!()
+          |> RepoRetry.update_with_busy_retry!(@busy_retry_backoff_ms)
 
         :error ->
           :ok
@@ -1155,7 +1099,7 @@ defmodule ControlKeel.Benchmark do
 
     refreshed
     |> Run.changeset(aggregates)
-    |> update_with_busy_retry()
+    |> RepoRetry.update_with_busy_retry(@busy_retry_backoff_ms)
   end
 
   defp aggregate_run(%Run{} = run) do
@@ -1238,7 +1182,7 @@ defmodule ControlKeel.Benchmark do
       payload: outcome["payload"],
       metadata: outcome["metadata"]
     })
-    |> update_with_busy_retry()
+    |> RepoRetry.update_with_busy_retry(@busy_retry_backoff_ms)
   end
 
   defp maybe_filter_scenarios(scenarios, []), do: scenarios

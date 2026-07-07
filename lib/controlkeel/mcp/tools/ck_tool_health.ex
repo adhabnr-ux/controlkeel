@@ -15,19 +15,8 @@ defmodule ControlKeel.MCP.Tools.CkToolHealth do
 
   defp optional_integer(arguments, key, default) do
     case Map.get(arguments, key, default) do
-      value -> normalize_integer(value, key)
+      nil -> {:ok, nil}
+      value -> Arguments.normalize_integer(value, key)
     end
   end
-
-  defp normalize_integer(value, _key) when is_integer(value), do: {:ok, value}
-
-  defp normalize_integer(value, key) when is_binary(value) do
-    case Integer.parse(value) do
-      {parsed, ""} -> {:ok, parsed}
-      _ -> {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
-    end
-  end
-
-  defp normalize_integer(_value, key),
-    do: {:error, {:invalid_arguments, "`#{key}` must be an integer if provided"}}
 end

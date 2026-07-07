@@ -75,24 +75,6 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
   end
 
   @doc """
-  Revalidates existing findings to reduce false positives.
-  """
-  def revalidate(opts \\ []) do
-    workspace_path = Keyword.get(opts, :workspace_path) || Config.workspace_path()
-
-    if File.exists?(workspace_path) do
-      {bin, args} = resolve_command(["revalidate"])
-
-      case safe_cmd(bin, args, cd: workspace_path) do
-        {output, 0} -> {:ok, output}
-        {output, _} -> {:error, output}
-      end
-    else
-      {:error, "Deepsec not initialized. Run init first."}
-    end
-  end
-
-  @doc """
   Exports findings in the specified format.
   """
   def export(format, opts \\ []) do
@@ -129,59 +111,6 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
     System.find_executable(bin) != nil
   end
 
-  @doc """
-  Gets the deepsec version.
-  """
-  def version do
-    {bin, args} = resolve_command(["--version"])
-
-    case safe_cmd(bin, args) do
-      {output, 0} -> {:ok, String.trim(output)}
-      {output, _} -> {:error, output}
-    end
-  end
-
-  @doc """
-  Parses JSON output from deepsec commands.
-  """
-  def parse_json_output(output) do
-    try do
-      json_pattern = ~r/\{[\s\S]*\}/
-
-      case Regex.run(json_pattern, output) do
-        [json_string] ->
-          case Jason.decode(json_string) do
-            {:ok, data} -> {:ok, data}
-            {:error, reason} -> {:error, "JSON parse error: #{inspect(reason)}"}
-          end
-
-        _ ->
-          {:error, "No JSON found in output"}
-      end
-    rescue
-      e -> {:error, "Parse error: #{inspect(e)}"}
-    end
-  end
-
-  @doc """
-  Extracts findings from deepsec process output.
-  """
-  def extract_findings(output) do
-    case parse_json_output(output) do
-      {:ok, data} ->
-        findings = Map.get(data, "findings", [])
-
-        if is_list(findings) do
-          {:ok, findings}
-        else
-          {:error, "Invalid findings format in output"}
-        end
-
-      {:error, _reason} ->
-        extract_findings_from_text(output)
-    end
-  end
-
   # Resolves the configured deepsec binary and builds the full argument list.
   # If configured as "npx", returns {"npx", ["-y", "deepsec" | sub_args]}.
   # Otherwise returns the binary path with sub_args directly.
@@ -197,40 +126,8 @@ defmodule ControlKeel.Integrations.Deepsec.CLI do
     end
   end
 
-  defp extract_findings_from_text(output) do
-    lines = String.split(output, "\n")
-
-    findings =
-      lines
-      |> Enum.filter(fn line ->
-        String.contains?(String.downcase(line), "vulnerability") or
-          String.contains?(String.downcase(line), "finding") or
-          String.contains?(String.downcase(line), "issue")
-      end)
-      |> Enum.map(fn line ->
-        %{
-          "type" => "text_extracted",
-          "message" => String.trim(line),
-          "severity" => infer_severity_from_text(line)
-        }
-      end)
-
-    {:ok, findings}
-  end
-
-  defp infer_severity_from_text(text) do
-    text_lower = String.downcase(text)
-
-    cond do
-      String.contains?(text_lower, "critical") -> "CRITICAL"
-      String.contains?(text_lower, "high") -> "HIGH"
-      String.contains?(text_lower, "medium") -> "MEDIUM"
-      true -> "LOW"
-    end
-  end
-
   # Safely execute System.cmd, catching :enoent errors when command is not found
-  defp safe_cmd(command, args, opts \\ []) do
+  defp safe_cmd(command, args, opts) do
     opts = Keyword.put(opts, :stderr_to_stdout, true)
 
     case Keyword.get(opts, :cd) do
