@@ -20,7 +20,7 @@ defmodule ControlKeel.MCP.Annotations do
     ck_experience_search ck_trace_packet ck_failure_clusters ck_tool_health
     ck_skill_evolution ck_fs_ls ck_fs_read ck_fs_find ck_fs_grep ck_git_diff
     ck_git_status ck_review_status ck_memory_search ck_route ck_cost_optimizer
-    ck_token_audit ck_result_peek ck_engineer_mirror ck_skill_list ck_skill_validate
+    ck_token_audit ck_result_peek ck_skill_list ck_skill_validate
     ck_worktree_list ck_checkpoint_list ck_load_resources
     ck_validate ck_mcp_discover ck_skill_load
   )

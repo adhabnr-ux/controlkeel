@@ -62,12 +62,6 @@ defmodule ControlKeel.CLI.Parser do
     json: :boolean
   ]
   @mcp_switches [project_root: :string, json: :boolean]
-  @me_switches [
-    session_id: :integer,
-    format: :string,
-    json: :boolean,
-    project_root: :string
-  ]
   @memory_search_switches [session_id: :integer, type: :string, json: :boolean]
   @deploy_analyze_switches [project_root: :string, json: :boolean]
   @deploy_cost_switches [
@@ -138,7 +132,6 @@ defmodule ControlKeel.CLI.Parser do
     execute: :boolean
   ]
   @obs_import_switches [dry_run: :boolean, persist: :boolean, format: :string, json: :boolean]
-  @obs_workshop_switches [dry_run: :boolean, format: :string, json: :boolean]
   @audit_log_switches [format: :string, json: :boolean]
   @service_account_create_switches [
     workspace_id: :integer,
@@ -420,9 +413,6 @@ defmodule ControlKeel.CLI.Parser do
 
       ["capabilities" | rest] ->
         parse_with_switches(:capabilities, rest, @capabilities_switches)
-
-      ["me" | rest] ->
-        parse_with_switches(:me, rest, @me_switches)
 
       ["init" | rest] ->
         parse_with_switches(:init, rest, @init_switches)
@@ -753,9 +743,6 @@ defmodule ControlKeel.CLI.Parser do
       ["obs", "import", file_path | rest] ->
         parse_obs_import(file_path, rest)
 
-      ["obs", "workshop", file_path | rest] ->
-        parse_obs_workshop(file_path, rest)
-
       ["obs", "run", session_id | rest] ->
         parse_obs_run(session_id, rest)
 
@@ -1031,12 +1018,6 @@ defmodule ControlKeel.CLI.Parser do
 
   defp parse_obs_import(file_path, rest) do
     with {:ok, parsed} <- parse_with_switches(:obs_import, rest, @obs_import_switches) do
-      {:ok, %{parsed | args: [file_path]}}
-    end
-  end
-
-  defp parse_obs_workshop(file_path, rest) do
-    with {:ok, parsed} <- parse_with_switches(:obs_workshop, rest, @obs_workshop_switches) do
       {:ok, %{parsed | args: [file_path]}}
     end
   end

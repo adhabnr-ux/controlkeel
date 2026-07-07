@@ -33,7 +33,6 @@ defmodule ControlKeel.MCP.ToolGroups do
       "ck_cost_optimizer",
       "ck_deployment_advisor",
       "ck_outcome_tracker",
-      "ck_engineer_mirror",
       "ck_session_digest",
       "ck_rollback",
       "ck_workspace_agent",

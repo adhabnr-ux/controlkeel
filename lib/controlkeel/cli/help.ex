@@ -621,8 +621,6 @@ defmodule ControlKeel.CLI.Help do
       controlkeel obs export <id>     Export a local observability envelope
       controlkeel obs import <file> --dry-run|--persist
                                       Preview or persist a local observability envelope snapshot
-      controlkeel obs workshop <file> --dry-run
-                                      Preview a local Raindrop Workshop trace snapshot without persistence
       controlkeel update [options]    Check for a newer GitHub release and refresh attached surfaces
       controlkeel context [options]   Show governed session context via the CK context surface
       controlkeel validate [options]  Validate proposed content via the CK validation surface

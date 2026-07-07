@@ -54,10 +54,6 @@ defmodule ControlKeel.CLI.JsonFlagTest do
       assert_json_parsed!(["mcp", "--json"], :mcp)
     end
 
-    test "me --json" do
-      assert_json_parsed!(["me", "--json"], :me)
-    end
-
     test "memory search --json" do
       assert_json_parsed!(["memory", "search", "test", "--json"], :memory_search)
     end

@@ -130,17 +130,6 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     end
   end
 
-  def run_command(%{command: :me, options: options}, project_root) do
-    with {:ok, format} <- effective_cli_format(options),
-         {:ok, _binding, default_session, _mode} <- ensure_local_project(project_root) do
-      session_id = options[:session_id] || default_session.id
-
-      payload = ControlKeel.Learning.EngineerMirror.build(session_id)
-
-      render_format(format, payload, fn p -> [render_engineer_mirror(p)] end)
-    end
-  end
-
   def run_command(%{command: :status, options: options}, project_root) do
     project_root = resolve_project_root(options, project_root)
 

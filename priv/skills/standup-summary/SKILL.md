@@ -14,7 +14,7 @@ metadata:
   author: controlkeel
   version: "1.1"
   category: reporting
-  ck_mcp_tools: [ck_session_digest, ck_engineer_mirror, ck_memory_search]
+  ck_mcp_tools: [ck_session_digest, ck_outcome_tracker, ck_memory_search]
   related_skills: [proof-memory]
 ---
 
@@ -35,7 +35,7 @@ Summarize work over a time period. Enriches git log with CK session data for ric
    ```
 3. Enrich with CK data:
    - `ck_session_digest` (mode: `generate`) for session tasks, findings, budget
-   - `ck_engineer_mirror` for daily reflection and approval patterns
+   - `ck_outcome_tracker` (mode: `get_session`) for session outcomes and approval patterns
    - `ck_memory_search` for active decisions in the time window
 4. Synthesize: prioritize substantial changes, omit cosmetic-only.
 5. Output format:

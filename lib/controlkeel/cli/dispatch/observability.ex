@@ -459,29 +459,4 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          "Observability envelope integrity must be verified before persistence; got #{status || "unknown"}."}
     end
   end
-
-  def run_command(%{command: :obs_workshop, args: [file_path], options: options}, _project_root) do
-    with {:ok, format} <- effective_cli_format(options),
-         {:ok, preview} <- observability_workshop_preview(file_path, options) do
-      render_format(format, preview, &observability_workshop_lines/1)
-    else
-      {:error, {:invalid_output_format, message}} ->
-        {:error, message}
-
-      {:error, :dry_run_required} ->
-        {:error, "Workshop observability preview requires --dry-run."}
-
-      {:error, :enoent} ->
-        {:error, "Workshop snapshot file was not found."}
-
-      {:error, {:invalid_json, message}} ->
-        {:error, "Workshop snapshot must be valid JSON: #{message}"}
-
-      {:error, {:invalid_field, field}} ->
-        {:error, "Workshop snapshot field `#{field}` has an invalid shape."}
-
-      {:error, :invalid_workshop_snapshot} ->
-        {:error, "Workshop snapshot must contain runs or a run with optional spans/live_events."}
-    end
-  end
 end

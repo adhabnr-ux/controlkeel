@@ -46,7 +46,6 @@ defmodule ControlKeel.MCP.Protocol do
     CkValidate,
     CkCostOptimizer,
     CkDeploymentAdvisor,
-    CkEngineerMirror,
     CkOutcomeTracker,
     CkRollback,
     CkSessionDigest,
@@ -340,7 +339,6 @@ defmodule ControlKeel.MCP.Protocol do
         ck_cost_optimizer_tool(),
         ck_deployment_advisor_tool(),
         ck_outcome_tracker_tool(),
-        ck_engineer_mirror_tool(),
         ck_load_resources_tool(),
         ck_mcp_discover_tool(),
         ck_token_audit_tool(),
@@ -474,7 +472,6 @@ defmodule ControlKeel.MCP.Protocol do
     do_dispatch_tool(tool_name, arguments)
   end
 
-  defp do_dispatch_tool("ck_engineer_mirror", arguments), do: CkEngineerMirror.call(arguments)
   defp do_dispatch_tool("ck_validate", arguments), do: CkValidate.call(arguments)
   defp do_dispatch_tool("ck_execute_code", arguments), do: CkExecuteCode.call(arguments)
   defp do_dispatch_tool("ck_context", arguments), do: CkContext.call(arguments)
@@ -2425,28 +2422,6 @@ defmodule ControlKeel.MCP.Protocol do
             "description" => "Maximum number of results to return."
           },
           "window" => %{"type" => "integer"}
-        }
-      }
-    }
-  end
-
-  defp ck_engineer_mirror_tool do
-    %{
-      "name" => "ck_engineer_mirror",
-      "description" =>
-        "Engineer-facing daily mirror: composes today's plans submitted, first-pass approvals, denials, " <>
-          "30-day prompt-quality outcomes (prompt_first_pass / prompt_refined_once / prompt_refined_repeatedly / prompt_abandoned), " <>
-          "learned review patterns from the operator's decision history, and one top signal + suggestion. " <>
-          "Read-only. Surfaces how the human is steering — not how the agent is performing. " <>
-          "Pass session_id to inspect the current session's reflection view.",
-      "inputSchema" => %{
-        "type" => "object",
-        "required" => ["session_id"],
-        "properties" => %{
-          "session_id" => %{
-            "type" => ["integer", "string"],
-            "description" => "Unique session identifier for the engineer reflection view."
-          }
         }
       }
     }

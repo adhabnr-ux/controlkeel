@@ -148,7 +148,7 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
       end
     end
 
-    test "all 56 tools have output schema definitions" do
+    test "all 55 tools have output schema definitions" do
       all_tools = ToolGroups.all_tools()
       schema_tools = OutputSchemas.tool_names()
 
@@ -157,8 +157,8 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
                "Tool #{tool_name} missing from OutputSchemas"
       end
 
-      assert length(all_tools) == 56
-      assert length(schema_tools) >= 56
+      assert length(all_tools) == 55
+      assert length(schema_tools) >= 55
     end
   end
 

@@ -3,8 +3,8 @@ defmodule ControlKeel.Learning.Stats do
 
   @doc """
   Numeric median of a list. Returns nil for an empty list, a float rounded to
-  one decimal place otherwise. Shared by EngineerMirror and PreferenceAdapter
-  so depth/length aggregates stay consistent across surfaces.
+  one decimal place otherwise. Used by OutcomeTracker and observability so
+  depth/length aggregates stay consistent across surfaces.
   """
   def median([]), do: nil
 

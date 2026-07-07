@@ -473,18 +473,6 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "leaderboard" => %{"type" => "array", "items" => %{"type" => "object"}}
       }
     },
-    "ck_engineer_mirror" => %{
-      "type" => "object",
-      "properties" => %{
-        "session_id" => %{"type" => "integer"},
-        "plans_submitted" => %{"type" => "array", "items" => %{"type" => "object"}},
-        "first_pass_approvals" => %{"type" => "integer"},
-        "denials" => %{"type" => "integer"},
-        "prompt_quality" => %{"type" => "object"},
-        "top_signal" => %{"type" => "string"},
-        "suggestion" => %{"type" => "string"}
-      }
-    },
     "ck_token_audit" => %{
       "type" => "object",
       "properties" => %{

@@ -226,7 +226,6 @@ defmodule ControlKeel.CLI.Catalog do
   defp command_path(:obs_memory_quality), do: "obs memory-quality"
   defp command_path(:obs_export), do: "obs export <id>"
   defp command_path(:obs_import), do: "obs import <file>"
-  defp command_path(:obs_workshop), do: "obs workshop <file>"
   defp command_path(:findings_translate), do: "findings translate"
   defp command_path(:memory_search), do: "memory search <query>"
   defp command_path(:skills_list), do: "skills list"
@@ -289,7 +288,6 @@ defmodule ControlKeel.CLI.Catalog do
           :init,
           :bootstrap,
           :status,
-          :me,
           :watch
         ],
         help_topic: "getting-started",
@@ -481,7 +479,6 @@ defmodule ControlKeel.CLI.Catalog do
           :obs_memory_quality,
           :obs_export,
           :obs_import,
-          :obs_workshop,
           :telemetry_enable,
           :telemetry_disable,
           :baseline_compute
@@ -492,7 +489,6 @@ defmodule ControlKeel.CLI.Catalog do
         safety: %{local_write: true, network: true, cloud: true, mutates: true, dry_run: true},
         related_mcp_tools: [
           "ck_observability",
-          "ck_engineer_mirror",
           "ck_session_digest",
           "ck_external_service"
         ],

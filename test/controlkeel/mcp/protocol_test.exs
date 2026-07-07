@@ -95,7 +95,6 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "ck_cost_optimizer",
              "ck_deployment_advisor",
              "ck_outcome_tracker",
-             "ck_engineer_mirror",
              "ck_load_resources",
              "ck_mcp_discover",
              "ck_token_audit",

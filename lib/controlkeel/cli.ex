@@ -23,7 +23,6 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Mission
   alias ControlKeel.Observability
   alias ControlKeel.Observability.Telemetry, as: ObservabilityTelemetry
-  alias ControlKeel.Observability.Workshop, as: ObservabilityWorkshop
   alias ControlKeel.ProviderBroker
   alias ControlKeel.Project.Binding
   alias ControlKeel.Project.Root
@@ -1156,32 +1155,6 @@ defmodule ControlKeel.CLI do
     end
   end
 
-  def observability_workshop_preview(file_path, options) do
-    if options[:dry_run] == true do
-      ObservabilityWorkshop.preview_file(file_path)
-    else
-      {:error, :dry_run_required}
-    end
-  end
-
-  def observability_workshop_lines(preview) do
-    counts = preview.counts
-    integrity = preview.integrity
-
-    [
-      "Workshop observability dry-run:",
-      "Schema: #{preview.schema_version}",
-      "Runs: #{counts.runs}",
-      "Spans: #{counts.spans} (tools #{counts.tool_spans}, errors #{counts.error_spans})",
-      "Live events: #{counts.live_events}",
-      "Saved events: #{counts.saved_events}",
-      "Redaction: #{preview.redaction.policy} (raw span and event payloads excluded)",
-      "Payload chars redacted: #{counts.payload_chars_redacted}",
-      "Integrity: #{integrity.payload_sha256}",
-      "Mutation: #{preview.mutation}"
-    ] ++ Enum.map(preview.recommendations, &"- #{&1}")
-  end
-
   def observability_import_lines(%{dry_run: true} = preview) do
     [
       "Observability import dry-run:",
@@ -1540,71 +1513,6 @@ defmodule ControlKeel.CLI do
         "- #{group.name}: #{group.invocations} call(s), #{format_money(group.estimated_cost_cents)}, #{group.cost_per_call_cents} cent(s)/call, #{group.tokens_per_call} token(s)/call, decisions #{inspect(group.decisions)}"
       end) ++
       ["Recommendations:"] ++ Enum.map(comparison.recommendations, &"- #{&1}")
-  end
-
-  def render_engineer_mirror(%{"error" => msg}), do: "Error: #{msg}"
-
-  def render_engineer_mirror(%{} = m) do
-    today = Map.get(m, "today", %{})
-    rolling = Map.get(m, "rolling_30d", %{})
-    patterns = Map.get(m, "review_patterns")
-
-    rate =
-      case Map.get(rolling, "first_pass_rate") do
-        nil -> "n/a"
-        v when is_float(v) -> "#{trunc(v * 100)}%"
-        _ -> "n/a"
-      end
-
-    median_depth =
-      case Map.get(rolling, "median_refinement_depth") do
-        nil -> "n/a"
-        v -> "#{v}"
-      end
-
-    breakdown =
-      rolling
-      |> Map.get("outcome_breakdown", %{})
-      |> Enum.map(fn {k, v} -> "  #{k}: #{v}" end)
-      |> Enum.join("\n")
-
-    patterns_section =
-      case patterns do
-        nil ->
-          ""
-
-        p ->
-          [
-            "",
-            "Learned review patterns:",
-            "  median_refinement_depth: #{Map.get(p, "median_refinement_depth") || "n/a"}",
-            "  avg_approved_body_length: #{Map.get(p, "avg_approved_body_length") || "n/a"}",
-            "  sample_size: #{Map.get(p, "sample_size", 0)}"
-          ]
-          |> Enum.join("\n")
-      end
-
-    """
-    You — session ##{Map.get(m, "session_id")}
-
-    Today
-      plans submitted:        #{Map.get(today, "plans_submitted", 0)}
-      first-pass approvals:   #{Map.get(today, "first_pass_approvals", 0)}
-      denials:                #{Map.get(today, "denials", 0)}
-
-    Rolling 30 days
-      first-pass rate:        #{rate}
-      median refinement depth: #{median_depth}
-      prompt outcomes:
-    #{if breakdown == "", do: "  (none yet)", else: breakdown}
-    #{patterns_section}
-
-    Top signal
-      #{Map.get(m, "top_signal") || "(none — keep steering)"}
-
-    Suggestion
-      #{Map.get(m, "one_suggestion") || "(nothing to flag right now)"}
-    """
   end
 
   def render_observability_timeline(session_id, limit, format) do
