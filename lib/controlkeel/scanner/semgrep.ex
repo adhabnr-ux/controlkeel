@@ -3,14 +3,7 @@ defmodule ControlKeel.Scanner.Semgrep do
 
   alias ControlKeel.Proxy
   alias ControlKeel.Scanner.Finding
-
-  @code_extensions ~w(
-    .c .cc .cpp .cs .css .env .ex .exs .go .graphql .heex .html .ini .java .js .json .jsx .kt
-    .md .php .py .rb .rs .sh .sql .swift .toml .ts .tsx .xml .yaml .yml
-  )
-
-  @fence_regex ~r/```([\w#+.-]+)?\s*\n([\s\S]*?)```/
-  @code_markers ~r/\b(def|class|function|const|let|var|SELECT|INSERT|UPDATE|DELETE|apiVersion|kind|resource)\b/
+  alias ControlKeel.Scanner.SnippetMaterializer, as: SM
 
   def available? do
     executable()
@@ -20,23 +13,15 @@ defmodule ControlKeel.Scanner.Semgrep do
     end
   end
 
-  def code_like?(input, opts \\ []) when is_map(input) do
-    normalized = normalize_input(input)
-    force? = Keyword.get(opts, :force, false)
-
-    force? or
-      normalized["kind"] in ["code", "config", "shell"] or
-      path_code_like?(normalized["path"]) or
-      Regex.match?(@fence_regex, normalized["content"]) or
-      Regex.match?(@code_markers, normalized["content"])
-  end
+  def code_like?(input, opts \\ []) when is_map(input),
+    do: SM.code_like?(input, opts)
 
   def scan(input, opts \\ []) when is_map(input) do
-    normalized = normalize_input(input)
+    normalized = SM.normalize_input(input)
 
     cond do
       not code_like?(normalized, opts) ->
-        result(:skipped, [], 0)
+        SM.result(:skipped, [], 0)
 
       is_nil(executable()) ->
         emit_telemetry(0, :unavailable, 0)
@@ -46,7 +31,7 @@ defmodule ControlKeel.Scanner.Semgrep do
         start = System.monotonic_time(:millisecond)
         timeout_ms = Keyword.get(opts, :timeout_ms, Proxy.timeout_ms())
 
-        with {:ok, temp_dir, files} <- materialize_files(normalized),
+        with {:ok, temp_dir, files} <- SM.materialize_files(normalized, "controlkeel-semgrep"),
              {:ok, output, status} <- run_semgrep(temp_dir, files, timeout_ms),
              {:ok, findings} <- decode_output(output, normalized, temp_dir) do
           duration_ms = System.monotonic_time(:millisecond) - start
@@ -54,87 +39,34 @@ defmodule ControlKeel.Scanner.Semgrep do
           case status do
             exit_status when exit_status in [0, 1] ->
               emit_telemetry(duration_ms, :ok, length(findings))
-              cleanup(temp_dir)
-              result(:ok, findings, duration_ms)
+              SM.cleanup(temp_dir)
+              SM.result(:ok, findings, duration_ms)
 
             _other ->
               emit_telemetry(duration_ms, :error, 0)
-              cleanup(temp_dir)
-              result(:error, [], duration_ms)
+              SM.cleanup(temp_dir)
+              SM.result(:error, [], duration_ms)
           end
         else
           {:timeout, temp_dir} ->
             duration_ms = System.monotonic_time(:millisecond) - start
             emit_telemetry(duration_ms, :timeout, 0)
-            cleanup(temp_dir)
-            result(:timeout, [], duration_ms)
+            SM.cleanup(temp_dir)
+            SM.result(:timeout, [], duration_ms)
 
           {:error, :malformed_output, temp_dir} ->
             duration_ms = System.monotonic_time(:millisecond) - start
             emit_telemetry(duration_ms, :malformed_output, 0)
-            cleanup(temp_dir)
-            result(:malformed_output, [], duration_ms)
+            SM.cleanup(temp_dir)
+            SM.result(:malformed_output, [], duration_ms)
 
           {:error, reason, temp_dir} ->
             duration_ms = System.monotonic_time(:millisecond) - start
             emit_telemetry(duration_ms, reason, 0)
-            cleanup(temp_dir)
-            result(reason, [], duration_ms)
+            SM.cleanup(temp_dir)
+            SM.result(reason, [], duration_ms)
         end
     end
-  end
-
-  defp normalize_input(input) do
-    %{
-      "content" => Map.get(input, "content", Map.get(input, :content, "")) || "",
-      "path" => Map.get(input, "path", Map.get(input, :path)),
-      "kind" => Map.get(input, "kind", Map.get(input, :kind, "code")) || "code"
-    }
-  end
-
-  defp materialize_files(normalized) do
-    temp_dir =
-      Path.join(System.tmp_dir!(), "controlkeel-semgrep-#{System.unique_integer([:positive])}")
-
-    with :ok <- File.mkdir_p(temp_dir),
-         snippets when is_list(snippets) <- snippets(normalized),
-         {:ok, files} <- write_snippets(temp_dir, snippets, normalized) do
-      {:ok, temp_dir, files}
-    else
-      {:error, reason} -> {:error, reason, temp_dir}
-    end
-  end
-
-  defp snippets(%{"content" => content, "path" => path, "kind" => kind}) do
-    fenced =
-      Regex.scan(@fence_regex, content)
-      |> Enum.map(fn
-        [_, language, snippet] -> %{content: snippet, language: normalize_language(language)}
-      end)
-
-    cond do
-      fenced != [] ->
-        fenced
-
-      true ->
-        [%{content: content, language: extension_to_language(path) || normalize_language(kind)}]
-    end
-  end
-
-  defp write_snippets(temp_dir, snippets, normalized) do
-    files =
-      snippets
-      |> Enum.with_index(1)
-      |> Enum.map(fn {%{content: content, language: language}, index} ->
-        ext = language_to_extension(language, normalized["path"])
-        path = Path.join(temp_dir, "snippet_#{index}#{ext}")
-        File.write!(path, content)
-        path
-      end)
-
-    {:ok, files}
-  rescue
-    error -> {:error, {:write_failed, error}}
   end
 
   defp run_semgrep(temp_dir, files, timeout_ms) do
@@ -160,21 +92,7 @@ defmodule ControlKeel.Scanner.Semgrep do
         {:args, args}
       ])
 
-    collect_output(port, "", timeout_ms, temp_dir)
-  end
-
-  defp collect_output(port, acc, timeout_ms, temp_dir) do
-    receive do
-      {^port, {:data, data}} ->
-        collect_output(port, acc <> data, timeout_ms, temp_dir)
-
-      {^port, {:exit_status, status}} ->
-        {:ok, acc, status}
-    after
-      timeout_ms ->
-        Port.close(port)
-        {:timeout, temp_dir}
-    end
+    SM.collect_output(port, "", timeout_ms, temp_dir)
   end
 
   defp decode_output(output, normalized, temp_dir) do
@@ -257,73 +175,11 @@ defmodule ControlKeel.Scanner.Semgrep do
     end
   end
 
-  defp path_code_like?(nil), do: false
-
-  defp path_code_like?(path) do
-    path
-    |> Path.extname()
-    |> String.downcase()
-    |> then(&(&1 in @code_extensions))
-  end
-
-  defp normalize_language(nil), do: nil
-  defp normalize_language(""), do: nil
-  defp normalize_language(language), do: String.downcase(language)
-
-  defp extension_to_language(nil), do: nil
-
-  defp extension_to_language(path) do
-    case Path.extname(path || "") do
-      ".ex" -> "elixir"
-      ".exs" -> "elixir"
-      ".js" -> "javascript"
-      ".jsx" -> "javascript"
-      ".ts" -> "typescript"
-      ".tsx" -> "typescript"
-      ".py" -> "python"
-      ".rb" -> "ruby"
-      ".go" -> "go"
-      ".java" -> "java"
-      ".json" -> "json"
-      ".yaml" -> "yaml"
-      ".yml" -> "yaml"
-      ".sql" -> "sql"
-      ".sh" -> "bash"
-      _other -> nil
-    end
-  end
-
-  defp language_to_extension(nil, path), do: Path.extname(path || "") |> default_extension()
-  defp language_to_extension("elixir", _path), do: ".ex"
-  defp language_to_extension("javascript", _path), do: ".js"
-  defp language_to_extension("typescript", _path), do: ".ts"
-  defp language_to_extension("python", _path), do: ".py"
-  defp language_to_extension("ruby", _path), do: ".rb"
-  defp language_to_extension("go", _path), do: ".go"
-  defp language_to_extension("java", _path), do: ".java"
-  defp language_to_extension("yaml", _path), do: ".yml"
-  defp language_to_extension("json", _path), do: ".json"
-  defp language_to_extension("sql", _path), do: ".sql"
-  defp language_to_extension("bash", _path), do: ".sh"
-  defp language_to_extension("config", _path), do: ".yml"
-  defp language_to_extension("shell", _path), do: ".sh"
-  defp language_to_extension(_language, path), do: Path.extname(path || "") |> default_extension()
-
-  defp default_extension(""), do: ".txt"
-  defp default_extension(ext), do: ext
-
   defp emit_telemetry(duration_ms, status, findings_count) do
     :telemetry.execute(
       [:controlkeel, :semgrep, :stop],
       %{duration_ms: duration_ms},
       %{status: status, findings_count: findings_count}
     )
-  end
-
-  defp cleanup(temp_dir) when is_binary(temp_dir), do: File.rm_rf(temp_dir)
-  defp cleanup(_temp_dir), do: :ok
-
-  defp result(status, findings, duration_ms) do
-    {:ok, %{status: status, findings: findings, duration_ms: duration_ms}}
   end
 end
