@@ -186,7 +186,7 @@ defmodule ControlKeel.Git.Workflow do
     lines =
       status_output
       |> String.split("\n", trim: true)
-      |> Enum.filter(&porcelain_entry?/1)
+      |> Enum.filter(&ControlKeel.Git.porcelain_entry?/1)
 
     %{
       "modified" => count_status(lines, ~r/^[AM]./),
@@ -198,7 +198,6 @@ defmodule ControlKeel.Git.Workflow do
     }
   end
 
-  defp porcelain_entry?(line), do: ControlKeel.Git.porcelain_entry?(line)
 
   defp count_status(lines, regex) do
     Enum.count(lines, fn line -> Regex.match?(regex, line) end)

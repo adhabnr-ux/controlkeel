@@ -140,12 +140,8 @@ defmodule ControlKeel.Analytics.TelemetryHandler do
     }
   end
 
-  defp normalize_metadata(metadata) when is_map(metadata) do
-    Enum.into(metadata, %{}, fn
-      {key, value} when is_map(value) -> {to_string(key), normalize_metadata(value)}
-      {key, value} -> {to_string(key), value}
-    end)
-  end
+  defp normalize_metadata(metadata) when is_map(metadata),
+    do: ControlKeel.Utils.stringify_keys_deep(metadata)
 
   defp normalize_metadata(_value), do: %{}
 end

@@ -165,7 +165,7 @@ defmodule ControlKeel.Project.WorkspaceContext do
       {output, 0} ->
         output
         |> String.split("\n", trim: true)
-        |> Enum.filter(&porcelain_entry?/1)
+        |> Enum.filter(&ControlKeel.Git.porcelain_entry?/1)
         |> Enum.reduce(%{"modified" => 0, "staged" => 0, "untracked" => 0}, fn line, acc ->
           cond do
             String.starts_with?(line, "??") ->
@@ -183,7 +183,6 @@ defmodule ControlKeel.Project.WorkspaceContext do
     end
   end
 
-  defp porcelain_entry?(line), do: ControlKeel.Git.porcelain_entry?(line)
 
   defp discovered_files(root, candidates) do
     Enum.flat_map(candidates, fn {relative_path, kind} ->

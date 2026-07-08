@@ -41,7 +41,7 @@ defmodule ControlKeel.Observability.Telemetry do
     end
   end
 
-  def validate_envelope(payload) when is_map(payload) do
+  defp validate_envelope(payload) when is_map(payload) do
     missing = Enum.reject(@required_keys, &Map.has_key?(payload, &1))
 
     cond do
@@ -62,7 +62,7 @@ defmodule ControlKeel.Observability.Telemetry do
     end
   end
 
-  def validate_envelope(_payload), do: {:error, :invalid_envelope}
+  defp validate_envelope(_payload), do: {:error, :invalid_envelope}
 
   defp read_envelope(path) do
     with {:ok, contents} <- File.read(path),

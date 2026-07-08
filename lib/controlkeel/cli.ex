@@ -3012,7 +3012,7 @@ defmodule ControlKeel.CLI do
       )
 
     with :ok <- File.mkdir_p(Path.dirname(config_path)),
-         :ok <- File.write(config_path, yaml_document(updated)) do
+         :ok <- File.write(config_path, UtilsYaml.document(updated)) do
       {:ok,
        %{
          "server_name" => "controlkeel",
@@ -3037,7 +3037,6 @@ defmodule ControlKeel.CLI do
   def normalize_yaml_map(value) when is_map(value), do: value
   def normalize_yaml_map(_value), do: %{}
 
-  def yaml_document(value), do: UtilsYaml.document(value)
 
   def auto_attach_claude_code(project_root) do
     claude_dir = Path.join(user_home(), ".claude")

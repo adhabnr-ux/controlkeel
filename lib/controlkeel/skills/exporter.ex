@@ -844,7 +844,7 @@ defmodule ControlKeel.Skills.Exporter do
 
   def goose_extension_yaml(project_root, opts) do
     goose_extension_config(project_root, opts)
-    |> yaml_document()
+    |> UtilsYaml.document()
   end
 
   def goose_extension_config(project_root, opts) do
@@ -3934,7 +3934,7 @@ defmodule ControlKeel.Skills.Exporter do
       "command" => mcp_command(project_root, opts),
       "args" => mcp_args(project_root, opts)
     }
-    |> yaml_document()
+    |> UtilsYaml.document()
   end
 
   def codex_agent_contents(project_root, skills, opts) do
@@ -4420,7 +4420,6 @@ defmodule ControlKeel.Skills.Exporter do
     """
   end
 
-  def yaml_document(value), do: UtilsYaml.document(value)
 
   def same_path?(left, right) do
     Path.expand(left) == Path.expand(right)

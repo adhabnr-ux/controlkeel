@@ -619,7 +619,7 @@ defmodule ControlKeel.Platform do
       {output, 0} when is_binary(output) ->
         output
         |> String.split("\n", trim: true)
-        |> Enum.any?(&porcelain_entry?/1)
+        |> Enum.any?(&ControlKeel.Git.porcelain_entry?/1)
 
       _ ->
         nil
@@ -628,7 +628,6 @@ defmodule ControlKeel.Platform do
 
   # Porcelain v1 entries begin with a two-character status field drawn from a
   # fixed alphabet followed by a space; warning/fatal/hint text cannot match.
-  defp porcelain_entry?(line), do: ControlKeel.Git.porcelain_entry?(line)
 
   defp redact_secret_text(nil), do: nil
 

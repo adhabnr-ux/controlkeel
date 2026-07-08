@@ -927,11 +927,8 @@ defmodule ControlKeel.Governance do
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
-  defp normalize_map(value) when is_map(value) do
-    Enum.into(value, %{}, fn {key, nested} ->
-      {to_string(key), if(is_map(nested), do: normalize_map(nested), else: nested)}
-    end)
-  end
+  defp normalize_map(value) when is_map(value),
+    do: Utils.stringify_keys_deep(value)
 
   defp normalize_map(_value), do: %{}
 
