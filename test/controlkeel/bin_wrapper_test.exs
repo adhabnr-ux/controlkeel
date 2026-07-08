@@ -1,22 +1,36 @@
 defmodule ControlKeel.BinWrapperTest do
   use ExUnit.Case, async: false
 
+  alias ControlKeel.Repo
+  alias Ecto.Adapters.SQL.Sandbox
+
   @wrapper Path.expand("../../bin/controlkeel", __DIR__)
 
   # The wrapper runs as a *subprocess* (System.cmd), so its DB writes are
   # outside the Ecto sandbox and would leak into the shared test DB.
-  # Point the subprocess at a throwaway database via CK_TEST_DB so any
-  # auto-bootstrap it triggers stays isolated.
+  # Copy the already-migrated test DB to a throwaway path and point the
+  # subprocess at it via CK_TEST_DB so any auto-bootstrap it triggers stays
+  # fully isolated. Copying the migrated DB (rather than relying on the
+  # subprocess to auto-migrate) avoids a migration-timing race on CI.
   setup do
+    source_db = Repo.config() |> Keyword.fetch!(:database)
     tmp_db =
       Path.join(
         System.tmp_dir!(),
         "controlkeel-bin-wrapper-#{System.unique_integer([:positive])}.db"
       )
 
-    File.rm(tmp_db)
+    # Checkpoint the WAL into the main DB file so the copy is self-contained,
+    # then copy the main file (schema is committed data, independent of any
+    # open sandbox transaction).
+    Sandbox.unboxed_run(Repo, fn -> Repo.query!("PRAGMA wal_checkpoint(TRUNCATE)") end)
+    File.cp!(source_db, tmp_db)
 
-    on_exit(fn -> File.rm(tmp_db) end)
+    on_exit(fn ->
+      File.rm(tmp_db)
+      File.rm(tmp_db <> "-wal")
+      File.rm(tmp_db <> "-shm")
+    end)
 
     env = [
       {"CK_PROJECT_ROOT", File.cwd!()},
