@@ -172,4 +172,10 @@ docs/governance-failure-*.md
 /.opencode/skills/
 /.opencode/agents/
 /.opencode/plugins/
+/.gemini/commands/
+/skills/
+/.devin/agents/
+/.devin/config.json
+/.devin/hooks/
+/.devin/skills/
 # End ControlKeel managed

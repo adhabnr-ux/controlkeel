@@ -1100,6 +1100,32 @@ defmodule ControlKeel.SkillsTest do
     assert get_in(mcp, ["mcpServers", "controlkeel", "args"]) == []
   end
 
+  test "cursor-native MCP stays portable when a bootstrap wrapper exists", %{tmp_dir: tmp_dir} do
+    :ok = ControlKeel.Project.Binding.ensure_mcp_wrapper(tmp_dir)
+    wrapper = ControlKeel.Project.Binding.mcp_wrapper_path(tmp_dir)
+    assert File.exists?(wrapper)
+
+    assert {:ok, _} = Skills.install("cursor-native", tmp_dir, scope: "project")
+
+    mcp = Jason.decode!(File.read!(Path.join(tmp_dir, ".cursor/mcp.json")))
+    command = get_in(mcp, ["mcpServers", "controlkeel", "command"])
+    args = get_in(mcp, ["mcpServers", "controlkeel", "args"])
+
+    refute String.contains?(command || "", tmp_dir)
+    assert command == "controlkeel"
+    assert args == ["mcp", "--project-root", "."]
+  end
+
+  test "cursor plugin manifest MCP stays portable for marketplace installs", %{tmp_dir: tmp_dir} do
+    manifest = ControlKeel.Skills.Exporter.cursor_plugin_manifest(tmp_dir, version: "1.2.3")
+    server = get_in(manifest, ["mcpServers", "controlkeel"])
+
+    assert server["command"] == "controlkeel"
+    assert server["args"] == ["mcp", "--project-root", "."]
+    assert get_in(server, ["env", "CK_PROJECT_ROOT"]) == "${workspaceFolder}"
+    refute String.contains?(inspect(server), tmp_dir)
+  end
+
   test "project-local MCP configs stay portable even when a bootstrap wrapper exists", %{
     tmp_dir: tmp_dir
   } do

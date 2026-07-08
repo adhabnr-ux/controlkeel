@@ -6,7 +6,9 @@ defmodule ControlKeel.MCP.Tools.CkFsLs do
 
   def call(arguments) when is_map(arguments) do
     with {:ok, session_id} <- Arguments.resolve_session_id(arguments) do
-      VirtualWorkspace.list(session_id, Map.get(arguments, "path", "."))
+      VirtualWorkspace.list(session_id, Map.get(arguments, "path", "."),
+        fallback_root: Map.get(arguments, "project_root")
+      )
     end
   end
 

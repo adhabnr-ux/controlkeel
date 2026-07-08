@@ -63,6 +63,103 @@ defmodule ControlKeel.Project.VirtualWorkspaceTest do
     %{session: session}
   end
 
+  describe "resolve_root/2 with stale runtime_context" do
+    setup do
+      bound_dir =
+        Path.join(
+          System.tmp_dir!(),
+          "controlkeel-bound-root-#{System.unique_integer([:positive])}"
+        )
+
+      File.rm_rf!(bound_dir)
+      File.mkdir_p!(bound_dir)
+      # Project marker so Root.resolve stops here rather than walking up.
+      File.write!(Path.join(bound_dir, "mix.exs"), "~")
+
+      workspace_attrs = %{
+        name: "Stale root workspace",
+        slug: "stale-root-#{System.unique_integer([:positive])}",
+        industry: "software",
+        agent: "test",
+        budget_cents: 0,
+        compliance_profile: "none",
+        status: "active"
+      }
+
+      assert {:ok, workspace} = Mission.create_workspace(workspace_attrs)
+
+      # Session carries a runtime_context.project_root pointing at a dir that
+      # does not exist on disk (the regression we are guarding against).
+      stale_root =
+        Path.join(
+          System.tmp_dir!(),
+          "controlkeel-deleted-root-#{System.unique_integer([:positive])}"
+        )
+
+      session_attrs = %{
+        title: "Stale runtime root session",
+        objective: "Fallback to binding",
+        risk_tier: "low",
+        status: "planned",
+        budget_cents: 0,
+        daily_budget_cents: 0,
+        spent_cents: 0,
+        execution_brief: %{},
+        metadata: %{"runtime_context" => %{"project_root" => stale_root}},
+        workspace_id: workspace.id
+      }
+
+      assert {:ok, session} = Mission.create_session(session_attrs)
+
+      # Write a project binding at bound_dir that owns this session.
+      ControlKeel.Project.Binding.write(
+        %{
+          "workspace_id" => workspace.id,
+          "session_id" => session.id,
+          "agent" => "test"
+        },
+        bound_dir
+      )
+
+      on_exit(fn -> File.rm_rf!(bound_dir) end)
+
+      %{session: session, bound_dir: bound_dir, stale_root: stale_root}
+    end
+
+    test "falls back to the project binding when runtime root is missing on disk",
+         %{session: session, bound_dir: bound_dir, stale_root: stale_root} do
+      refute File.dir?(stale_root)
+
+      assert {:ok, resolved} = VirtualWorkspace.resolve_root(session.id, bound_dir)
+      # Binding canonicalizes via Root.resolve (realpath), so compare canonical forms.
+      assert resolved == ControlKeel.Project.Root.resolve(bound_dir)
+    end
+
+    test "prefers the runtime root when it exists on disk", %{
+      session: session,
+      bound_dir: bound_dir
+    } do
+      # Refresh the session metadata to a real runtime root.
+      real_runtime =
+        Path.join(
+          System.tmp_dir!(),
+          "controlkeel-real-runtime-#{System.unique_integer([:positive])}"
+        )
+
+      File.mkdir_p!(real_runtime)
+
+      {:ok, _} =
+        Mission.update_session(session, %{
+          metadata: %{"runtime_context" => %{"project_root" => real_runtime}}
+        })
+
+      assert {:ok, resolved} = VirtualWorkspace.resolve_root(session.id, bound_dir)
+      assert resolved == Path.expand(real_runtime)
+
+      File.rm_rf!(real_runtime)
+    end
+  end
+
   test "find ranks source-ish paths first and emits orientation metadata", %{session: session} do
     assert {:ok, result} = VirtualWorkspace.find(session.id, "checkpoint_store", limit: 10)
 

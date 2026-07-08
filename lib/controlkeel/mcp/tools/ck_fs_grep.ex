@@ -14,7 +14,8 @@ defmodule ControlKeel.MCP.Tools.CkFsGrep do
         path: Map.get(arguments, "path", "."),
         limit: limit,
         ignore_case: ignore_case,
-        fixed_strings: fixed_strings
+        fixed_strings: fixed_strings,
+        fallback_root: Map.get(arguments, "project_root")
       )
     end
   end

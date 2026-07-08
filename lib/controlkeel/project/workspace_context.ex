@@ -43,9 +43,20 @@ defmodule ControlKeel.Project.WorkspaceContext do
   def resolve_project_root(%{id: session_id, metadata: metadata}, fallback_root) do
     runtime_root = get_in(metadata || %{}, ["runtime_context", "project_root"])
 
+    # Only prefer the runtime root when it still exists on disk. A stale
+    # runtime_context.project_root (e.g. a deleted temp bootstrap dir) must
+    # not short-circuit the correct project binding and break every fs tool.
+    resolved_runtime =
+      if is_binary(runtime_root) and runtime_root != "" do
+        expanded = Path.expand(runtime_root)
+        if File.dir?(expanded), do: expanded, else: nil
+      else
+        nil
+      end
+
     cond do
-      is_binary(runtime_root) and runtime_root != "" ->
-        Path.expand(runtime_root)
+      resolved_runtime != nil ->
+        resolved_runtime
 
       true ->
         case Binding.read_effective(fallback_root) do

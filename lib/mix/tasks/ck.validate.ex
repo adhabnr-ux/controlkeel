@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Ck.Validate do
 
       case CLI.run_command(parsed, File.cwd!()) do
         {:ok, lines} ->
-          Enum.each(lines, fn line -> Mix.shell().info(line) end)
+          emit_lines(lines, quiet_json?)
 
         {:error, message} ->
           Mix.raise(message)
@@ -28,6 +28,14 @@ defmodule Mix.Tasks.Ck.Validate do
     after
       if quiet_json?, do: Logger.configure(level: previous_level)
     end
+  end
+
+  defp emit_lines(lines, true = _quiet_json?) do
+    Enum.each(lines, fn line -> IO.puts(line) end)
+  end
+
+  defp emit_lines(lines, false = _quiet_json?) do
+    Enum.each(lines, fn line -> Mix.shell().info(line) end)
   end
 
   defp json_args?(args) do

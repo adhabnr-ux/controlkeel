@@ -2,7 +2,6 @@ defmodule ControlKeel.Skills.Exporter do
   @moduledoc false
 
   alias ControlKeel.Ops.Distribution
-  alias ControlKeel.Project.Binding
   alias ControlKeel.Skills
   alias ControlKeel.Skills.SkillExportPlan
   alias ControlKeel.Skills.SkillTarget
@@ -2855,25 +2854,21 @@ defmodule ControlKeel.Skills.Exporter do
     """
   end
 
-  def cursor_plugin_manifest(project_root, opts) do
+  def cursor_plugin_manifest(_project_root, opts) do
     version = Keyword.get(opts, :version, app_version())
-    base_server = get_in(mcp_payload(project_root, opts), ["mcpServers", "controlkeel"]) || %{}
 
-    server =
-      base_server
-      |> Map.put(
-        "env",
-        Map.merge(
-          Map.get(base_server, "env", %{}),
-          %{
-            "CK_PROJECT_ROOT" => "${workspaceFolder}",
-            "CK_MCP_MODE" => "1",
-            "LOGGER_LEVEL" => "warning",
-            "MIX_QUIET" => "1"
-          }
-        )
-      )
-      |> maybe_cursor_ide_mcp_command!(project_root, opts)
+    # Distributable Cursor plugins must stay portable: marketplace installs land in
+    # arbitrary governed projects, not only the ControlKeel source checkout.
+    server = %{
+      "command" => "controlkeel",
+      "args" => ["mcp", "--project-root", "."],
+      "env" => %{
+        "CK_PROJECT_ROOT" => "${workspaceFolder}",
+        "CK_MCP_MODE" => "1",
+        "LOGGER_LEVEL" => "warning",
+        "MIX_QUIET" => "1"
+      }
+    }
 
     slug = Distribution.github_repo_slug()
 
@@ -2980,19 +2975,11 @@ defmodule ControlKeel.Skills.Exporter do
           "${workspaceFolder}/bin/controlkeel-mcp"
 
         :error ->
-          wrapper = Binding.mcp_wrapper_path(root)
-
-          if File.exists?(wrapper) do
-            rel =
-              wrapper
-              |> Path.expand()
-              |> Path.relative_to(root)
-              |> String.replace("\\", "/")
-
-            "${workspaceFolder}/" <> rel
-          else
-            "controlkeel"
-          end
+          # Match mcp_command/2: bare `controlkeel` on PATH with portable args.
+          # Never bake controlkeel/bin/controlkeel-mcp wrapper paths into
+          # .cursor/mcp.json — Path.relative_to/2 can fail across /var vs
+          # /private/var symlinks and leak machine-specific absolute paths.
+          "controlkeel"
       end
     end
   end

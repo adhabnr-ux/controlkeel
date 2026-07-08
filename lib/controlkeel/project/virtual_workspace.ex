@@ -13,12 +13,15 @@ defmodule ControlKeel.Project.VirtualWorkspace do
   @max_grep_matches 200
 
   def resolve_root(session_id, fallback_root \\ File.cwd!()) when is_integer(session_id) do
+    effective_fallback =
+      if is_binary(fallback_root) and fallback_root != "", do: fallback_root, else: File.cwd!()
+
     case Mission.get_session(session_id) do
       nil ->
         {:error, {:invalid_arguments, "Session not found"}}
 
       session ->
-        root = WorkspaceContext.resolve_project_root(session, fallback_root)
+        root = WorkspaceContext.resolve_project_root(session, effective_fallback)
 
         cond do
           is_nil(root) ->
@@ -33,8 +36,8 @@ defmodule ControlKeel.Project.VirtualWorkspace do
     end
   end
 
-  def list(session_id, path, _opts \\ []) when is_integer(session_id) and is_binary(path) do
-    with {:ok, root} <- resolve_root(session_id),
+  def list(session_id, path, opts \\ []) when is_integer(session_id) and is_binary(path) do
+    with {:ok, root} <- resolve_root(session_id, Keyword.get(opts, :fallback_root)),
          {:ok, absolute_path, relative_path} <- safe_path(root, path),
          :ok <- ensure_directory(absolute_path),
          {:ok, entries} <- File.ls(absolute_path) do
@@ -57,7 +60,7 @@ defmodule ControlKeel.Project.VirtualWorkspace do
   end
 
   def read(session_id, path, opts \\ []) when is_integer(session_id) and is_binary(path) do
-    with {:ok, root} <- resolve_root(session_id),
+    with {:ok, root} <- resolve_root(session_id, Keyword.get(opts, :fallback_root)),
          {:ok, absolute_path, relative_path} <- safe_path(root, path),
          :ok <- ensure_regular_file(absolute_path),
          {:ok, contents} <- File.read(absolute_path),
@@ -88,7 +91,7 @@ defmodule ControlKeel.Project.VirtualWorkspace do
   end
 
   def find(session_id, query, opts \\ []) when is_integer(session_id) and is_binary(query) do
-    with {:ok, root} <- resolve_root(session_id),
+    with {:ok, root} <- resolve_root(session_id, Keyword.get(opts, :fallback_root)),
          {:ok, scope_path, scope_relative_path} <- safe_path(root, Keyword.get(opts, :path, ".")),
          {:ok, limit} <- normalize_positive_integer(Keyword.get(opts, :limit, 50), "limit") do
       normalized_query = String.downcase(String.trim(query))
@@ -121,7 +124,7 @@ defmodule ControlKeel.Project.VirtualWorkspace do
   end
 
   def grep(session_id, query, opts \\ []) when is_integer(session_id) and is_binary(query) do
-    with {:ok, root} <- resolve_root(session_id),
+    with {:ok, root} <- resolve_root(session_id, Keyword.get(opts, :fallback_root)),
          {:ok, scope_path, scope_relative_path} <- safe_path(root, Keyword.get(opts, :path, ".")),
          {:ok, limit} <- normalize_positive_integer(Keyword.get(opts, :limit, 50), "limit") do
       max_matches = min(limit, @max_grep_matches)

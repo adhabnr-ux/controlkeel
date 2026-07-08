@@ -11,7 +11,8 @@ defmodule ControlKeel.MCP.Tools.CkFsRead do
          {:ok, max_lines} <- optional_integer(arguments, "max_lines", 400) do
       VirtualWorkspace.read(session_id, path,
         start_line: start_line,
-        max_lines: max_lines
+        max_lines: max_lines,
+        fallback_root: Map.get(arguments, "project_root")
       )
     end
   end

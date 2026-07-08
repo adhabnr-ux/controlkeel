@@ -10,7 +10,8 @@ defmodule ControlKeel.MCP.Tools.CkFsFind do
          {:ok, limit} <- optional_integer(arguments, "limit", 50) do
       VirtualWorkspace.find(session_id, query,
         path: Map.get(arguments, "path", "."),
-        limit: limit
+        limit: limit,
+        fallback_root: Map.get(arguments, "project_root")
       )
     end
   end

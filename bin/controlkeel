@@ -32,7 +32,10 @@ _has_json_flag() {
 }
 
 if _has_json_flag "$@"; then
-  export MIX_QUIET=1
+  # CK_CLI_MODE skips Phoenix listeners/reloaders; do not set MIX_QUIET here —
+  # Mix suppresses Mix.shell().info output when MIX_QUIET=1, which breaks JSON
+  # emitted by mix ck.context / ck.validate (used by Cursor hooks).
+  export CK_CLI_MODE=1
   export LOGGER_LEVEL=error
 fi
 
