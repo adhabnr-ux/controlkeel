@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.3.63 — 2026-07-08
+
+### What's changed
+
+- fix: grep_with_elixir ignored all files under /tmp/ + add ripgrep to pg CI
+- fix(test): skip SQLite-only bin-wrapper test on Postgres lane
+- fix: increase benchmark_suites.description column to text for Postgres
+- fix(test): copy migrated test DB for bin-wrapper subprocess instead of auto-migrating
+- fix(test): isolate bin-wrapper subprocess DB to stop shared-DB pollution
+- fix(test): make onboarding session assertions relative to starting count
+- feat: enhance project root resolution and improve CLI output handling
+- chore: fix broken paths in Copilot plugin.json
+- fix: CLI --json flag ignored for findings/proofs/benchmarks + stale hook flag
+- fix: close review findings on refat branch
+- 18th pass: prune stale schemas, APIs, benchmarks, deployment writes
+- feat(skill-evolution): close Self-Harness validation loop
+- 17th pass (Batch 4): remove redundant Semgrep, relocate deepsec scanner
+- 17th pass: remove dead modules, dedup scanner/MCP helpers, tighten visibility
+- refactor: strip dead analytics events, RemoteMonitoring, matcher subsystem, dedup review helpers
+- refactor: dedup normalize_metadata, inline trivial wrappers, tighten visibility
+- refactor(scanner): extract shared SnippetMaterializer module
+- refactor: remove dead APIs, fix stale rule-ids, add missing webhook event
+- refactor: clean up benchmark subjects, improve telemetry command documentation, and streamline code policies
+- refactor: remove unused benchmark subjects and streamline documentation
+- refactor: extract shared helpers to Utils, deduplicate across 11 files
+- refactor: remove dead code, tighten visibility, strip Anthropic-specific tier
+- refactor(mcp): deduplicate stringify_keys into Utils
+- refactor(intent): remove ExecutionBrief.to_map bridge and fetch_value duplication
+- refactor: drop dead CircuitBreaker and AgentMonitor GenServers
+
 ## v0.3.62 — 2026-07-06
 
 ### What's changed
