@@ -29,7 +29,7 @@ defmodule ControlKeel.MCP.Annotations do
   # because they also expose write/generate modes. Tools with only write semantics remain
   # the default (readOnlyHint: false, destructiveHint: false):
   #   ck_goal (record/update_status modes), ck_session_digest (generate mode),
-  #   ck_deployment_advisor (generate_files mode), ck_checkpoint_create, ck_monitor_subscribe,
+  #   ck_deployment_advisor (generate_files mode), ck_checkpoint_create,
   #   ck_task, ck_session, ck_budget, ck_outcome_tracker, ck_workspace_agent,
   #   ck_copilot, ck_external_service, ck_delegate, ck_execute_code, ck_attach.
 

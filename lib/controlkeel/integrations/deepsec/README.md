@@ -5,7 +5,7 @@ This directory contains the live ControlKeel integration with deepsec. Keep it l
 ## Live modules
 
 - `adapter.ex` converts deepsec findings into `ControlKeel.Scanner.Finding` structs.
-- `cli.ex` wraps the installed deepsec CLI for init/scan/process/export. Output parsing lives in `ControlKeel.Validation.Matchers.Scanner`.
+- `cli.ex` wraps the installed deepsec CLI for init/scan/process/export.
 - `config.ex` reads the `:deepsec` configuration used by the scanner gate.
 - `../deepsec.ex` is the budget/config gate used before invoking the CLI scan.
 
@@ -20,20 +20,7 @@ config :controlkeel, :deepsec,
   min_severity_for_investigation: :high,
   max_scan_budget_cents: 10_000,
   workspace_path: ".deepsec"
-
-config :controlkeel, :matcher_system, enabled: true
 ```
-
-> The matcher subsystem (Layer 3) additionally requires its Registry process to be
-> running and the built-in matchers loaded. Start and seed it before enabling the flag:
->
-> ```elixir
-> {:ok, _} = ControlKeel.Validation.Matchers.Registry.start_link()
-> :ok = ControlKeel.Validation.Matchers.Registry.load_built_ins()
-> ```
->
-> If the flag is enabled without a running Registry, the scanner safely skips Layer 3
-> (it no longer crashes), so no matcher findings are produced until the Registry is up.
 
 ## API
 

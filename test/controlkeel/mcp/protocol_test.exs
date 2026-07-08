@@ -78,7 +78,6 @@ defmodule ControlKeel.MCP.ProtocolTest do
              "ck_git_diff",
              "ck_git_commit",
              "ck_git_status",
-             "ck_monitor_subscribe",
              "ck_finding",
              "ck_review_submit",
              "ck_review_status",

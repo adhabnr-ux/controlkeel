@@ -9,14 +9,7 @@ defmodule ControlKeel.Analytics.TelemetryHandler do
   @events [
     [:controlkeel, :local_project, :initialized],
     [:controlkeel, :claude, :attach, :succeeded],
-    [:controlkeel, :intent, :interview, :started],
-    [:controlkeel, :intent, :interview, :step_completed],
     [:controlkeel, :intent, :mission, :created],
-    [:controlkeel, :proxy, :decision],
-    [:controlkeel, :finding, :approved],
-    [:controlkeel, :finding, :rejected],
-    [:controlkeel, :autofix, :viewed],
-    [:controlkeel, :autofix, :copied],
     [:controlkeel, :session, :first_finding_recorded]
   ]
 
@@ -64,40 +57,8 @@ defmodule ControlKeel.Analytics.TelemetryHandler do
     build_payload("agent_attached", "claude", measurements, metadata)
   end
 
-  defp analytics_payload([:controlkeel, :intent, :interview, :started], measurements, metadata) do
-    build_payload("intent_interview_started", "intent", measurements, metadata)
-  end
-
-  defp analytics_payload(
-         [:controlkeel, :intent, :interview, :step_completed],
-         measurements,
-         metadata
-       ) do
-    build_payload("intent_interview_step_completed", "intent", measurements, metadata)
-  end
-
   defp analytics_payload([:controlkeel, :intent, :mission, :created], measurements, metadata) do
     build_payload("mission_created", "intent", measurements, metadata)
-  end
-
-  defp analytics_payload([:controlkeel, :proxy, :decision], measurements, metadata) do
-    build_payload("proxy_decision", "proxy", measurements, metadata)
-  end
-
-  defp analytics_payload([:controlkeel, :finding, :approved], measurements, metadata) do
-    build_payload("finding_approved", "finding", measurements, metadata)
-  end
-
-  defp analytics_payload([:controlkeel, :finding, :rejected], measurements, metadata) do
-    build_payload("finding_rejected", "finding", measurements, metadata)
-  end
-
-  defp analytics_payload([:controlkeel, :autofix, :viewed], measurements, metadata) do
-    build_payload("autofix_viewed", "autofix", measurements, metadata)
-  end
-
-  defp analytics_payload([:controlkeel, :autofix, :copied], measurements, metadata) do
-    build_payload("autofix_copied", "autofix", measurements, metadata)
   end
 
   defp analytics_payload(

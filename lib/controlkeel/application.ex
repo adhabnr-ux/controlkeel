@@ -86,7 +86,6 @@ defmodule ControlKeel.Application do
         {Phoenix.PubSub, name: ControlKeel.PubSub},
         ControlKeel.Skills.Activation,
         ControlKeel.Memory.Store.Sqlite,
-        ControlKeel.Observability.RemoteMonitoring,
         ControlKeel.Governance.CopilotChannel,
         ControlKeel.Cloud.SyncEngine,
         {DynamicSupervisor, strategy: :one_for_one, name: ControlKeel.MCP.Supervisor},
@@ -115,7 +114,6 @@ defmodule ControlKeel.Application do
         {Phoenix.PubSub, name: ControlKeel.PubSub},
         ControlKeel.Skills.Activation,
         ControlKeel.Memory.Store.Sqlite,
-        ControlKeel.Observability.RemoteMonitoring,
         ControlKeel.Governance.CopilotChannel,
         ControlKeel.Cloud.SyncEngine,
         ControlKeel.MCP.ToolGroupTracker

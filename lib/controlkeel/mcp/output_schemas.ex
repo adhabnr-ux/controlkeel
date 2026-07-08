@@ -300,14 +300,6 @@ defmodule ControlKeel.MCP.OutputSchemas do
         "findings_correlation" => %{"type" => "object"}
       }
     },
-    "ck_monitor_subscribe" => %{
-      "type" => "object",
-      "properties" => %{
-        "subscribed" => %{"type" => "boolean"},
-        "subscriber_url" => %{"type" => "string"},
-        "event_types" => %{"type" => "array", "items" => %{"type" => "string"}}
-      }
-    },
     "ck_review_submit" => %{
       "type" => "object",
       "properties" => %{

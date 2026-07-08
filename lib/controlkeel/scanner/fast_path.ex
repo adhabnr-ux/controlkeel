@@ -100,19 +100,7 @@ defmodule ControlKeel.Scanner.FastPath do
         []
       end
 
-    layer3 =
-      if matcher_system_enabled?() and matcher_registry_running?() and code_content?(normalized) do
-        MatcherScanner.scan(
-          normalized["content"],
-          normalized["path"] || "unknown",
-          session_id: normalized["session_id"],
-          task_id: normalized["task_id"]
-        )
-      else
-        []
-      end
-
-    combined = uniq_findings(layer1 ++ layer2 ++ layer2b ++ layer3)
+    combined = uniq_findings(layer1 ++ layer2 ++ layer2b)
 
     layer4 = Advisory.scan(normalized, combined)
     merged = uniq_findings(combined ++ layer4)
@@ -623,19 +611,6 @@ defmodule ControlKeel.Scanner.FastPath do
 
         []
     end
-  end
-
-  # Layer 3 (the matcher subsystem) only runs when its Registry process is actually
-  # started. The matcher_system flag alone is not enough — without a live Registry the
-  # matcher scan would hit a dead process. This guard keeps enabling the flag from
-  # crashing the scan when the Registry is not supervised.
-  defp matcher_registry_running? do
-    is_pid(Process.whereis(ControlKeel.Validation.Matchers.Registry))
-  end
-
-  defp matcher_system_enabled? do
-    Application.get_env(:controlkeel, :matcher_system, [])
-    |> Keyword.get(:enabled, false)
   end
 
   defp deepsec_enabled? do

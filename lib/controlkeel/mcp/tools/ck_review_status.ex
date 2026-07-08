@@ -2,8 +2,8 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
   @moduledoc false
 
   alias ControlKeel.Mission
-  alias ControlKeel.Mission.ReviewBridge
   alias ControlKeel.MCP.Arguments
+  alias ControlKeel.MCP.Tools.ReviewHelpers
 
   @wait_timeout_seconds 1
 
@@ -25,12 +25,13 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
          "plan_refinement" => plan_refinement,
          "plan_quality" => plan_refinement["quality"],
          "grill_questions" => get_in(plan_refinement, ["quality", "grill_questions"]) || [],
-         "agent_feedback" => review_agent_feedback(review),
+         "agent_feedback" => ReviewHelpers.review_agent_feedback(review),
          "responded_at" => review.responded_at,
-         "browser_url" => review_browser_url(review),
-         "review_url" => review_browser_url(review),
-         "approval_instructions" => approval_instructions(review, review_browser_url(review)),
-         "review_roles" => review_roles(review.review_type, plan_refinement)
+         "browser_url" => ReviewHelpers.review_browser_url(review),
+         "review_url" => ReviewHelpers.review_browser_url(review),
+         "approval_instructions" =>
+           ReviewHelpers.approval_instructions(review, ReviewHelpers.review_browser_url(review)),
+         "review_roles" => ReviewHelpers.review_roles(review.review_type, plan_refinement)
        }}
     end
   end
@@ -77,7 +78,7 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
   end
 
   defp fallback_review_status(review_id) do
-    executable = controlkeel_bin()
+    executable = ReviewHelpers.controlkeel_bin()
 
     args = [
       "review",
@@ -90,7 +91,7 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
       "--json"
     ]
 
-    try_fallback_variants(executable, args, fallback_variants())
+    try_fallback_variants(executable, args, ReviewHelpers.fallback_variants())
   end
 
   defp try_fallback_variants(_executable, _args, []), do: {:error, :fallback_failed}
@@ -102,29 +103,10 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
     end
   end
 
-  defp fallback_variants do
-    root = resolved_project_root()
-
-    [
-      [cd: root, stderr_to_stdout: true],
-      [stderr_to_stdout: true],
-      [cd: root, stderr_to_stdout: true, env: fallback_env("prod")],
-      [stderr_to_stdout: true, env: fallback_env("prod")],
-      [cd: root, stderr_to_stdout: true, env: fallback_env("dev")],
-      [stderr_to_stdout: true, env: fallback_env("dev")]
-    ]
-  end
-
-  defp fallback_env(mix_env) do
-    System.get_env()
-    |> Map.put("MIX_ENV", mix_env)
-    |> Enum.into([])
-  end
-
   defp run_fallback_wait(executable, args, opts) do
     case System.cmd(executable, args, opts) do
       {output, _status} ->
-        case extract_json_object(output) do
+        case ReviewHelpers.extract_json_object(output) do
           {:ok, payload} when is_map(payload) -> {:ok, payload}
           _ -> {:error, :invalid_fallback_payload}
         end
@@ -137,13 +119,13 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
        when is_map(review_payload) do
     review =
       %{
-        id: map_integer(review_payload, "id", review_id),
-        title: map_string(review_payload, "title"),
-        review_type: map_string(review_payload, "review_type"),
-        status: map_string(review_payload, "status", "pending"),
-        session_id: map_integer_or_nil(review_payload, "session_id"),
-        task_id: map_integer_or_nil(review_payload, "task_id"),
-        feedback_notes: map_string_or_nil(review_payload, "feedback_notes"),
+        id: ReviewHelpers.map_integer(review_payload, "id", review_id),
+        title: ReviewHelpers.map_string(review_payload, "title"),
+        review_type: ReviewHelpers.map_string(review_payload, "review_type"),
+        status: ReviewHelpers.map_string(review_payload, "status", "pending"),
+        session_id: ReviewHelpers.map_integer_or_nil(review_payload, "session_id"),
+        task_id: ReviewHelpers.map_integer_or_nil(review_payload, "task_id"),
+        feedback_notes: ReviewHelpers.map_string_or_nil(review_payload, "feedback_notes"),
         annotations: Map.get(review_payload, "annotations"),
         metadata: %{},
         responded_at: nil,
@@ -155,179 +137,6 @@ defmodule ControlKeel.MCP.Tools.CkReviewStatus do
 
   defp extract_review_from_payload(_, _review_id), do: {:error, :missing_review}
 
-  defp map_string(map, key, default \\ nil) do
-    case Map.get(map, key) do
-      value when is_binary(value) and value != "" -> value
-      value when is_atom(value) -> Atom.to_string(value)
-      _ -> default
-    end
-  end
-
-  defp map_string_or_nil(map, key) do
-    case Map.get(map, key) do
-      nil -> nil
-      value -> map_string(%{key => value}, key)
-    end
-  end
-
-  defp map_integer(map, key, default) do
-    case map_integer_or_nil(map, key) do
-      nil -> default
-      value -> value
-    end
-  end
-
-  defp map_integer_or_nil(map, key) do
-    case Map.get(map, key) do
-      value when is_integer(value) ->
-        value
-
-      value when is_binary(value) ->
-        case Integer.parse(value) do
-          {parsed, ""} -> parsed
-          _ -> nil
-        end
-
-      _ ->
-        nil
-    end
-  end
-
-  defp review_agent_feedback(%{fallback_payload: payload}) do
-    payload["agent_feedback"]
-  end
-
-  defp review_agent_feedback(review), do: ReviewBridge.agent_feedback(review)
-
-  defp review_browser_url(%{fallback_payload: payload}) do
-    Map.get(payload, "browser_url") || safe_review_url(Map.get(payload, "review", %{})["id"])
-  end
-
-  defp review_browser_url(review), do: safe_review_url(review.id)
-
-  defp approval_instructions(review, nil) do
-    %{
-      "primary" =>
-        "Review #{review.review_type} ##{review.id} in the ControlKeel UI when available.",
-      "fallback_status_command" => "controlkeel review status #{review.id}",
-      "fallback_approve_command" => "controlkeel review approve #{review.id}",
-      "fallback_deny_command" => "controlkeel review deny #{review.id} --feedback '<reason>'"
-    }
-  end
-
-  defp approval_instructions(review, browser_url) do
-    %{
-      "primary" => "Open #{browser_url} to approve or deny #{review.review_type} ##{review.id}.",
-      "fallback_status_command" => "controlkeel review status #{review.id}",
-      "fallback_approve_command" => "controlkeel review approve #{review.id}",
-      "fallback_deny_command" => "controlkeel review deny #{review.id} --feedback '<reason>'"
-    }
-  end
-
-  defp review_roles("completion", _plan_refinement),
-    do: ["operator", "security reviewer", "product/human QA"]
-
-  defp review_roles(_review_type, plan_refinement) do
-    case Map.get(plan_refinement, "consulted_roles") do
-      roles when is_list(roles) and roles != [] -> roles
-      _ -> ["operator", "security reviewer", "platform maintainer"]
-    end
-  end
-
   defp review_metadata(%{metadata: metadata}) when is_map(metadata), do: metadata
   defp review_metadata(_review), do: %{}
-
-  defp safe_review_url(nil), do: nil
-
-  defp safe_review_url(review_id) do
-    try do
-      ControlKeelWeb.Endpoint.url() <> "/reviews/#{review_id}"
-    rescue
-      _ -> nil
-    catch
-      _, _ -> nil
-    end
-  end
-
-  defp controlkeel_bin do
-    case System.get_env("CONTROLKEEL_BIN") do
-      value when is_binary(value) and value != "" -> value
-      _ -> System.find_executable("controlkeel") || "controlkeel"
-    end
-  end
-
-  defp resolved_project_root do
-    case System.get_env("CONTROLKEEL_PROJECT_ROOT") do
-      value when is_binary(value) and value != "" -> String.trim(value)
-      _ -> fallback_project_root()
-    end
-  end
-
-  defp fallback_project_root do
-    case System.get_env("CK_PROJECT_ROOT") do
-      value when is_binary(value) and value != "" -> String.trim(value)
-      _ -> File.cwd!()
-    end
-  end
-
-  defp extract_json_object(output) when is_binary(output) do
-    indices = :binary.matches(output, "{")
-
-    Enum.reduce_while(indices, {:error, :json_not_found}, fn {offset, _length}, _acc ->
-      slice = binary_part(output, offset, byte_size(output) - offset)
-
-      with {:ok, candidate} <- take_balanced_json_object(slice),
-           {:ok, decoded} <- Jason.decode(candidate) do
-        {:halt, {:ok, decoded}}
-      else
-        _ -> {:cont, {:error, :json_not_found}}
-      end
-    end)
-  end
-
-  defp extract_json_object(_output), do: {:error, :json_not_found}
-
-  defp take_balanced_json_object("{" <> _ = input) do
-    bytes = :binary.bin_to_list(input)
-
-    case scan_json_object(bytes, 0, false, false, 0) do
-      {:ok, end_index} -> {:ok, binary_part(input, 0, end_index + 1)}
-      :error -> {:error, :json_not_found}
-    end
-  end
-
-  defp take_balanced_json_object(_input), do: {:error, :json_not_found}
-
-  defp scan_json_object([], _depth, _in_string, _escaped, _index), do: :error
-
-  defp scan_json_object([char | rest], depth, in_string, escaped, index) do
-    cond do
-      in_string and escaped ->
-        scan_json_object(rest, depth, true, false, index + 1)
-
-      in_string and char == ?\\ ->
-        scan_json_object(rest, depth, true, true, index + 1)
-
-      in_string and char == ?\" ->
-        scan_json_object(rest, depth, false, false, index + 1)
-
-      in_string ->
-        scan_json_object(rest, depth, true, false, index + 1)
-
-      char == ?\" ->
-        scan_json_object(rest, depth, true, false, index + 1)
-
-      char == ?{ ->
-        scan_json_object(rest, depth + 1, false, false, index + 1)
-
-      char == ?} and depth == 1 ->
-        {:ok, index}
-
-      char == ?} and depth > 1 ->
-        scan_json_object(rest, depth - 1, false, false, index + 1)
-
-      true ->
-        scan_json_object(rest, depth, false, false, index + 1)
-    end
-  end
 end

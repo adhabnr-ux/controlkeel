@@ -48,7 +48,6 @@ defmodule ControlKeel.MCP.ToolGroups do
       "ck_experience_search",
       "ck_trace_packet",
       "ck_failure_clusters",
-      "ck_monitor_subscribe",
       "ck_tool_health",
       "ck_skill_evolution"
     ],

@@ -157,8 +157,8 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
                "Tool #{tool_name} missing from OutputSchemas"
       end
 
-      assert length(all_tools) == 55
-      assert length(schema_tools) >= 55
+      assert length(all_tools) == 54
+      assert length(schema_tools) >= 54
     end
   end
 

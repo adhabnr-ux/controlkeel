@@ -2,6 +2,7 @@ defmodule ControlKeel.MCP.Tools.CkReviewSubmit do
   @moduledoc false
 
   alias ControlKeel.Mission
+  alias ControlKeel.MCP.Tools.ReviewHelpers
 
   def call(arguments) when is_map(arguments) do
     try do
@@ -31,12 +32,8 @@ defmodule ControlKeel.MCP.Tools.CkReviewSubmit do
             _ -> nil
           end
 
-        approval_instructions = approval_instructions(review, browser_url)
-
         quality = plan_refinement["quality"]
-
-        quality_safe =
-          if is_map(quality), do: quality, else: nil
+        quality_safe = if is_map(quality), do: quality, else: nil
 
         {:ok,
          %{
@@ -52,8 +49,8 @@ defmodule ControlKeel.MCP.Tools.CkReviewSubmit do
            "grill_questions" => get_in(plan_refinement, ["quality", "grill_questions"]) || [],
            "browser_url" => browser_url,
            "review_url" => browser_url,
-           "approval_instructions" => approval_instructions,
-           "review_roles" => review_roles(review.review_type, plan_refinement)
+           "approval_instructions" => ReviewHelpers.approval_instructions(review, browser_url),
+           "review_roles" => ReviewHelpers.review_roles(review.review_type, plan_refinement)
          }}
 
       {:error, {:invalid_arguments, reason}} ->
@@ -61,35 +58,6 @@ defmodule ControlKeel.MCP.Tools.CkReviewSubmit do
 
       {:error, reason} ->
         {:error, reason}
-    end
-  end
-
-  defp approval_instructions(review, nil) do
-    %{
-      "primary" =>
-        "Review #{review.review_type} ##{review.id} in the ControlKeel UI when available.",
-      "fallback_status_command" => "controlkeel review status #{review.id}",
-      "fallback_approve_command" => "controlkeel review approve #{review.id}",
-      "fallback_deny_command" => "controlkeel review deny #{review.id} --feedback '<reason>'"
-    }
-  end
-
-  defp approval_instructions(review, browser_url) do
-    %{
-      "primary" => "Open #{browser_url} to approve or deny #{review.review_type} ##{review.id}.",
-      "fallback_status_command" => "controlkeel review status #{review.id}",
-      "fallback_approve_command" => "controlkeel review approve #{review.id}",
-      "fallback_deny_command" => "controlkeel review deny #{review.id} --feedback '<reason>'"
-    }
-  end
-
-  defp review_roles("completion", _plan_refinement),
-    do: ["operator", "security reviewer", "product/human QA"]
-
-  defp review_roles(_review_type, plan_refinement) do
-    case Map.get(plan_refinement, "consulted_roles") do
-      roles when is_list(roles) and roles != [] -> roles
-      _ -> ["operator", "security reviewer", "platform maintainer"]
     end
   end
 end

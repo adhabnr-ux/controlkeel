@@ -1,109 +1,14 @@
 defmodule ControlKeel.Validation.Matchers.Scanner do
   @moduledoc """
-  Scanner that uses matchers to detect security patterns.
+  Scanner that integrates with the deepsec CLI for security pattern detection.
 
-  This module integrates with ControlKeel's validation system
-  to run matchers against file content and generate findings.
+  This module provides `deepsec_scan/1`, the production entrypoint for running a
+  deepsec scan and returning CK findings. The fast-path scanner calls it only when
+  Deepsec is enabled, the artifact is security/code-like, severity passes the
+  configured threshold, and the session has enough budget remaining.
   """
 
   alias ControlKeel.Integrations.Deepsec.{Adapter, CLI}
-  alias ControlKeel.Scanner.Finding
-  alias ControlKeel.Validation.Matchers.{Matcher, Registry}
-
-  @doc """
-  Scans content using registered matchers.
-
-  ## Parameters
-  - content: File content to scan
-  - file_path: Path to the file (for pattern matching)
-  - opts: Optional parameters
-    - session_id: Session ID for finding metadata
-    - task_id: Task ID for finding metadata
-    - max_findings: Maximum number of findings to return (default: 100)
-
-  ## Returns
-  List of Finding structs
-  """
-  def scan(content, file_path, opts \\ []) do
-    session_id = Keyword.get(opts, :session_id)
-    task_id = Keyword.get(opts, :task_id)
-    max_findings = Keyword.get(opts, :max_findings, 100)
-
-    # Get matchers that could match this file
-    matchers = Registry.for_file(file_path)
-
-    # Run matchers and generate findings
-    matchers
-    |> Enum.flat_map(fn matcher ->
-      case Matcher.matches?(matcher, file_path, content) do
-        {:ok, matches} ->
-          Enum.map(matches, fn match ->
-            build_finding(matcher, match, file_path, session_id, task_id)
-          end)
-
-        :error ->
-          []
-      end
-    end)
-    |> Enum.take(max_findings)
-  end
-
-  @doc """
-  Scans content using specific matchers by slug.
-
-  ## Parameters
-  - content: File content to scan
-  - file_path: Path to the file
-  - matcher_slugs: List of matcher slugs to use
-  - opts: Optional parameters (same as scan/3)
-
-  ## Returns
-  List of Finding structs
-  """
-  def scan_with_matchers(content, file_path, matcher_slugs, opts \\ []) do
-    session_id = Keyword.get(opts, :session_id)
-    task_id = Keyword.get(opts, :task_id)
-
-    matchers =
-      matcher_slugs
-      |> Enum.map(&Registry.get/1)
-      |> Enum.filter(fn
-        {:ok, _} -> true
-        _ -> false
-      end)
-      |> Enum.map(fn {:ok, matcher} -> matcher end)
-
-    matchers
-    |> Enum.flat_map(fn matcher ->
-      case Matcher.matches?(matcher, file_path, content) do
-        {:ok, matches} ->
-          Enum.map(matches, fn match ->
-            build_finding(matcher, match, file_path, session_id, task_id)
-          end)
-
-        :error ->
-          []
-      end
-    end)
-  end
-
-  @doc """
-  Returns statistics about the matcher registry.
-
-  ## Returns
-  Map with matcher statistics
-  """
-  def statistics do
-    matchers = Registry.all()
-
-    %{
-      total_matchers: length(matchers),
-      by_tier:
-        Enum.group_by(matchers, & &1.noise_tier) |> Map.new(fn {k, v} -> {k, length(v)} end),
-      by_category:
-        Enum.group_by(matchers, & &1.category) |> Map.new(fn {k, v} -> {k, length(v)} end)
-    }
-  end
 
   @doc """
   Runs a deepsec CLI scan and converts results to CK findings.
@@ -237,51 +142,5 @@ defmodule ControlKeel.Validation.Matchers.Scanner do
       {:error, reason} ->
         {:error, "Failed to read file: #{reason}"}
     end
-  end
-
-  defp build_finding(matcher, match, file_path, session_id, task_id) do
-    {line, col} =
-      case match do
-        {line, col} when is_integer(line) and is_integer(col) -> {line, col}
-        {line, _} when is_integer(line) -> {line, 0}
-        [{line, col}] when is_integer(line) and is_integer(col) -> {line, col}
-        [{line, _}] when is_integer(line) -> {line, 0}
-        _ -> {0, 0}
-      end
-
-    # Determine decision based on severity
-    decision = decision_for_severity(matcher.severity)
-
-    %Finding{
-      id: generate_finding_id(matcher.slug, file_path, line),
-      severity: matcher.severity,
-      category: matcher.category || "security",
-      rule_id: "matcher.#{matcher.slug}",
-      decision: decision,
-      plain_message: "[#{matcher.slug}] #{matcher.description}",
-      location: %{
-        "path" => file_path,
-        "kind" => "code",
-        "line" => line,
-        "column" => col
-      },
-      metadata: %{
-        "scanner" => "matcher_system",
-        "matcher_slug" => matcher.slug,
-        "noise_tier" => Atom.to_string(matcher.noise_tier),
-        "matcher_description" => matcher.description,
-        "session_id" => session_id,
-        "task_id" => task_id
-      }
-    }
-  end
-
-  defp decision_for_severity("critical"), do: "block"
-  defp decision_for_severity("high"), do: "warn"
-  defp decision_for_severity(_), do: "warn"
-
-  defp generate_finding_id(slug, file_path, line) do
-    seed = "matcher:#{slug}:#{file_path}:#{line}"
-    "mt_" <> (:crypto.hash(:sha256, seed) |> Base.encode16(case: :lower) |> binary_part(0, 12))
   end
 end

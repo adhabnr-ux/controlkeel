@@ -61,8 +61,7 @@ defmodule ControlKeel.MCP.Protocol do
     CkResultPeek,
     CkGitDiff,
     CkGitCommit,
-    CkGitStatus,
-    CkMonitorSubscribe
+    CkGitStatus
   }
 
   defp server_info do
@@ -322,7 +321,6 @@ defmodule ControlKeel.MCP.Protocol do
         ck_git_diff_tool(),
         ck_git_commit_tool(),
         ck_git_status_tool(),
-        ck_monitor_subscribe_tool(),
         ck_finding_tool(),
         ck_review_submit_tool(),
         ck_review_status_tool(),
@@ -500,7 +498,6 @@ defmodule ControlKeel.MCP.Protocol do
   defp do_dispatch_tool("ck_git_diff", arguments), do: CkGitDiff.call(arguments)
   defp do_dispatch_tool("ck_git_commit", arguments), do: CkGitCommit.call(arguments)
   defp do_dispatch_tool("ck_git_status", arguments), do: CkGitStatus.call(arguments)
-  defp do_dispatch_tool("ck_monitor_subscribe", arguments), do: CkMonitorSubscribe.call(arguments)
   defp do_dispatch_tool("ck_finding", arguments), do: CkFinding.call(arguments)
   defp do_dispatch_tool("ck_review_submit", arguments), do: CkReviewSubmit.call(arguments)
   defp do_dispatch_tool("ck_review_status", arguments), do: CkReviewStatus.call(arguments)
@@ -1495,38 +1492,6 @@ defmodule ControlKeel.MCP.Protocol do
               "Absolute path to the project root directory on the local filesystem."
           },
           "session_id" => %{"type" => ["integer", "string"]}
-        }
-      }
-    }
-  end
-
-  def ck_monitor_subscribe_tool do
-    %{
-      "name" => "ck_monitor_subscribe",
-      "description" =>
-        "Subscribe to session events for remote monitoring via webhook. Provides read-only visibility into session activity.",
-      "inputSchema" => %{
-        "type" => "object",
-        "required" => ["subscriber_url"],
-        "properties" => %{
-          "session_id" => %{
-            "type" => ["integer", "string"],
-            "description" =>
-              "Unique session identifier for correlating findings, proofs, budget, and audit trail."
-          },
-          "subscriber_url" => %{
-            "type" => "string",
-            "description" => "Webhook URL that will receive session event notifications."
-          },
-          "event_types" => %{
-            "type" => "array",
-            "items" => %{
-              "type" => "string",
-              "description" => "Event type filters for the subscription."
-            },
-            "description" =>
-              "Array of event types to subscribe to. Omit for all events. Examples: task_started, task_completed, finding_created"
-          }
         }
       }
     }
