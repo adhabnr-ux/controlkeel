@@ -66,7 +66,6 @@ defmodule ControlKeel.MCP.Tools.CkSessionDigest do
       "reviews_approved" => digest.reviews_approved,
       "budget_spent_cents" => digest.budget_spent_cents,
       "budget_remaining_cents" => digest.budget_remaining_cents,
-      "circuit_breaker_trips" => digest.circuit_breaker_trips,
       "top_rule_ids" => digest.top_rule_ids,
       "top_categories" => digest.top_categories,
       "highlights" => digest.highlights,

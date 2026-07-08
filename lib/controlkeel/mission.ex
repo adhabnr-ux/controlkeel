@@ -2206,41 +2206,60 @@ defmodule ControlKeel.Mission do
 
   defp validate_regression(_session, domain_pack, project_root) do
     suite_slug = "vibe_failures_v1"
+    subject = "controlkeel_validate"
+
+    baseline = ControlKeel.Benchmark.latest_completed_run(suite_slug, subject)
 
     attrs = %{
       "suite" => suite_slug,
-      "subjects" => ["controlkeel_validate"],
+      "subjects" => [subject],
       "domain_pack" => domain_pack
     }
 
     case ControlKeel.Benchmark.run_suite(attrs, project_root) do
       {:ok, run} ->
-        catch_rate = run.catch_rate || 0.0
-        threshold = 0.0
-
-        if catch_rate >= threshold do
-          %{
-            "passed" => true,
-            "detail" =>
-              "Policy gate catch rate #{Float.round(catch_rate, 1)}% — no regression (threshold #{threshold}%).",
-            "catch_rate" => catch_rate,
-            "run_id" => run.id
-          }
-        else
-          %{
-            "passed" => false,
-            "detail" =>
-              "Policy gate catch rate #{Float.round(catch_rate, 1)}% below threshold #{threshold}%.",
-            "catch_rate" => catch_rate,
-            "run_id" => run.id
-          }
-        end
+        regression_verdict(run.catch_rate || 0.0, baseline, run.id)
 
       {:error, reason} ->
         %{
           "passed" => false,
           "detail" => "Benchmark run failed: #{inspect(reason)}. Cannot confirm no regression."
         }
+    end
+  end
+
+  defp regression_verdict(catch_rate, nil, run_id) do
+    %{
+      "passed" => true,
+      "detail" =>
+        "Policy gate catch rate #{Float.round(catch_rate, 1)}% — baseline established (no prior completed run to compare).",
+      "catch_rate" => catch_rate,
+      "baseline_catch_rate" => nil,
+      "run_id" => run_id
+    }
+  end
+
+  defp regression_verdict(catch_rate, baseline, run_id) do
+    baseline_rate = baseline.catch_rate || 0.0
+
+    if catch_rate >= baseline_rate do
+      %{
+        "passed" => true,
+        "detail" =>
+          "Policy gate catch rate #{Float.round(catch_rate, 1)}% — no regression vs baseline #{Float.round(baseline_rate, 1)}% (run ##{baseline.id}).",
+        "catch_rate" => catch_rate,
+        "baseline_catch_rate" => baseline_rate,
+        "run_id" => run_id
+      }
+    else
+      %{
+        "passed" => false,
+        "detail" =>
+          "Policy gate catch rate #{Float.round(catch_rate, 1)}% dropped below baseline #{Float.round(baseline_rate, 1)}% (run ##{baseline.id}).",
+        "catch_rate" => catch_rate,
+        "baseline_catch_rate" => baseline_rate,
+        "run_id" => run_id
+      }
     end
   end
 

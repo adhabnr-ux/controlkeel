@@ -386,21 +386,6 @@ defmodule ControlKeel.CLI.Help do
       related: ["review", "findings", "mcp"]
     },
     %{
-      id: "monitoring",
-      title: "Remote monitoring subscriptions",
-      summary:
-        "Subscribe to session events via webhook for read-only remote monitoring. This is intended for lightweight observability, not remote control.",
-      keywords: ["monitor", "monitoring", "webhook", "subscribe", "events", "remote"],
-      phrases: ["subscribe to events", "webhook monitoring"],
-      commands: ["MCP: ck_monitor_subscribe"],
-      next_steps: [
-        "Use `ck_monitor_subscribe` to register a webhook URL for session event notifications.",
-        "Treat webhook endpoints as sensitive; they can leak project activity if shared.",
-        "If you need cross-device control, consider pairing CK governance with an external remote-control host (e.g., Omnara) rather than extending CK into a full remote UI."
-      ],
-      related: ["mcp", "observability"]
-    },
-    %{
       id: "mcp",
       title: "MCP, hosted access, and remote clients",
       summary:

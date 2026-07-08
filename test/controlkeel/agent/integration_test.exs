@@ -628,4 +628,15 @@ defmodule ControlKeel.Agent.IntegrationTest do
       assert Integration.mcp_install_command("not-a-host") == nil
     end
   end
+
+  describe "router/catalog consistency" do
+    test "every non-nil router_agent_id in the catalog resolves to a routable router profile" do
+      for integration <- Integration.catalog(),
+          is_binary(integration.router_agent_id) do
+        assert ControlKeel.Agent.Router.get_agent(integration.router_agent_id) != nil,
+               "integration #{integration.id} declares router_agent_id " <>
+                 "#{inspect(integration.router_agent_id)} which is not routable via Agent.Router"
+      end
+    end
+  end
 end

@@ -1,5 +1,12 @@
 defmodule ControlKeel.Utils.Yaml do
-  @moduledoc false
+  @moduledoc """
+  Minimal YAML *writer* for CK-generated config files.
+
+  A custom serializer is used instead of a YAML library because CK's write
+  path needs deterministic output: sorted keys and explicit `{}` / `[]`
+  rendering for empty collections, so exported files diff cleanly between
+  runs. Parsing still goes through `YamlElixir` — this module is write-only.
+  """
 
   @doc """
   Serializes a map/list value into a YAML document string with sorted keys

@@ -21,7 +21,6 @@ defmodule ControlKeel.Mission.SessionDigest do
     field :reviews_approved, :integer, default: 0
     field :budget_spent_cents, :integer, default: 0
     field :budget_remaining_cents, :integer, default: 0
-    field :circuit_breaker_trips, :integer, default: 0
     field :top_rule_ids, :map, default: %{}
     field :top_categories, :map, default: %{}
     field :highlights, :map, default: %{}
@@ -51,7 +50,6 @@ defmodule ControlKeel.Mission.SessionDigest do
       :reviews_approved,
       :budget_spent_cents,
       :budget_remaining_cents,
-      :circuit_breaker_trips,
       :top_rule_ids,
       :top_categories,
       :highlights,
@@ -95,7 +93,6 @@ defmodule ControlKeel.Mission.SessionDigest do
        :reviews_approved,
        :budget_spent_cents,
        :budget_remaining_cents,
-       :circuit_breaker_trips,
        :top_rule_ids,
        :top_categories,
        {:redact, :highlights},

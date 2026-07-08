@@ -57,7 +57,6 @@ defmodule ControlKeel.Governance.SessionDigest do
       reviews_approved: Enum.count(reviews, &(&1.status == "approved")),
       budget_spent_cents: session.spent_cents,
       budget_remaining_cents: max(session.budget_cents - session.spent_cents, 0),
-      circuit_breaker_trips: Keyword.get(opts, :circuit_breaker_trips, 0),
       top_rule_ids: top_rule_ids,
       top_categories: top_categories,
       highlights: highlights,

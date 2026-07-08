@@ -2135,6 +2135,165 @@ defmodule ControlKeel.MCP.ProtocolTest do
            )
   end
 
+  test "tools/call ck_skill_evolution regression check fails when catch rate drops below baseline" do
+    workspace = workspace_fixture()
+
+    # No domain_pack: the full vibe_failures_v1 suite runs, where the
+    # deterministic `controlkeel_validate` subject scores below 100%.
+    session =
+      session_fixture(%{
+        workspace: workspace,
+        execution_brief: %{}
+      })
+
+    task = task_fixture(%{session: session, status: "done"})
+
+    _finding =
+      finding_fixture(%{
+        session: session,
+        status: "blocked",
+        rule_id: "security.sql_injection",
+        title: "SQL injection risk",
+        plain_message: "Unsafe SQL concatenation was detected.",
+        metadata: %{"task_id" => task.id}
+      })
+
+    # Seed a completed baseline run with a catch rate above what the
+    # deterministic subject achieves on the full suite, so the new run
+    # registers as a regression.
+    suite = ControlKeel.Benchmark.get_suite_by_slug("vibe_failures_v1")
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    baseline =
+      %ControlKeel.Benchmark.Run{}
+      |> ControlKeel.Benchmark.Run.changeset(%{
+        suite_id: suite.id,
+        status: "completed",
+        baseline_subject: "controlkeel_validate",
+        subjects: ["controlkeel_validate"],
+        started_at: now,
+        finished_at: now,
+        total_scenarios: 10,
+        caught_count: 10,
+        blocked_count: 10,
+        catch_rate: 100.0
+      })
+      |> Repo.insert!()
+
+    tmp_dir =
+      Path.join(
+        System.tmp_dir!(),
+        "ck-skill-evolution-regression-#{System.unique_integer([:positive])}"
+      )
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 202_612,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_skill_evolution",
+          "arguments" => %{
+            "session_id" => session.id,
+            "session_limit" => 5,
+            "validate_only" => true,
+            "current_skill_name" => "secure-sql-review",
+            "project_root" => tmp_dir
+          }
+        }
+      })
+
+    verdict = get_in(response, ["result", "structuredContent"])
+    regression = verdict["checks"]["regression"]
+
+    assert regression["passed"] == false
+    assert regression["baseline_catch_rate"] == 100.0
+    assert is_number(regression["catch_rate"])
+    assert regression["catch_rate"] < 100.0
+    assert regression["run_id"] != baseline.id
+    assert verdict["accepted"] == false
+    assert Enum.any?(verdict["notes"], &String.contains?(&1, "dropped below baseline"))
+  end
+
+  test "tools/call ck_skill_evolution regression check passes against an equal-or-lower baseline" do
+    workspace = workspace_fixture()
+
+    session =
+      session_fixture(%{
+        workspace: workspace,
+        execution_brief: %{"domain_pack" => "software"}
+      })
+
+    task = task_fixture(%{session: session, status: "done"})
+
+    _finding =
+      finding_fixture(%{
+        session: session,
+        status: "blocked",
+        rule_id: "security.sql_injection",
+        title: "SQL injection risk",
+        plain_message: "Unsafe SQL concatenation was detected.",
+        metadata: %{"task_id" => task.id}
+      })
+
+    suite = ControlKeel.Benchmark.get_suite_by_slug("vibe_failures_v1")
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    _baseline =
+      %ControlKeel.Benchmark.Run{}
+      |> ControlKeel.Benchmark.Run.changeset(%{
+        suite_id: suite.id,
+        status: "completed",
+        baseline_subject: "controlkeel_validate",
+        subjects: ["controlkeel_validate"],
+        started_at: now,
+        finished_at: now,
+        total_scenarios: 10,
+        caught_count: 0,
+        blocked_count: 0,
+        catch_rate: 0.0
+      })
+      |> Repo.insert!()
+
+    tmp_dir =
+      Path.join(
+        System.tmp_dir!(),
+        "ck-skill-evolution-regression-pass-#{System.unique_integer([:positive])}"
+      )
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 202_613,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_skill_evolution",
+          "arguments" => %{
+            "session_id" => session.id,
+            "session_limit" => 5,
+            "validate_only" => true,
+            "current_skill_name" => "secure-sql-review",
+            "project_root" => tmp_dir
+          }
+        }
+      })
+
+    verdict = get_in(response, ["result", "structuredContent"])
+    regression = verdict["checks"]["regression"]
+
+    assert regression["passed"] == true
+    assert regression["baseline_catch_rate"] == 0.0
+    assert regression["catch_rate"] >= 0.0
+  end
+
   test "tools/call ck_skill_evolution install writes the skill only when validation passes" do
     workspace = workspace_fixture()
 

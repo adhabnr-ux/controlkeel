@@ -5,17 +5,23 @@ defmodule ControlKeel.Mission.SessionTranscript do
 
   alias ControlKeel.Mission.SessionEvent
   alias ControlKeel.Repo
+  alias ControlKeel.Repo.Retry, as: RepoRetry
   alias ControlKeel.Utils
 
   @recent_limit 10
   @summary_max 280
   @body_max 2_048
   @payload_string_max 4_096
-  @max_busy_retries 5
+  # Transcript writes are hot-path: keep retries short so recording never
+  # stalls the session loop the way the default Repo.Retry backoff would.
+  @busy_retry_backoff_ms [0, 20, 40, 60, 80]
 
   def record(attrs) when is_map(attrs) do
     attrs = normalize_attrs(attrs)
-    do_record(attrs, 1)
+
+    %SessionEvent{}
+    |> SessionEvent.changeset(attrs)
+    |> RepoRetry.insert_with_busy_retry(@busy_retry_backoff_ms)
   end
 
   def recent_events(session_id, opts \\ []) when is_integer(session_id) do
@@ -119,26 +125,6 @@ defmodule ControlKeel.Mission.SessionTranscript do
   end
 
   defp clip_text(value, max_length), do: value |> to_string() |> clip_text(max_length)
-
-  defp do_record(attrs, attempt) do
-    %SessionEvent{}
-    |> SessionEvent.changeset(attrs)
-    |> Repo.insert()
-  rescue
-    error ->
-      if busy_error?(error) and attempt < @max_busy_retries do
-        Process.sleep(attempt * 20)
-        do_record(attrs, attempt + 1)
-      else
-        reraise error, __STACKTRACE__
-      end
-  end
-
-  defp busy_error?(error) do
-    error
-    |> Exception.message()
-    |> String.contains?("Database busy")
-  end
 
   defp event_family(event_type) when is_binary(event_type) do
     case String.split(event_type, ".", parts: 2) do

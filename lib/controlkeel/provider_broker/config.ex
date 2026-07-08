@@ -133,7 +133,7 @@ defmodule ControlKeel.ProviderBroker.Config do
     |> default_profile()
     |> Map.merge(Utils.stringify_keys(attrs))
     |> Map.update("provider", provider, &normalize_provider/1)
-    |> Map.update("enabled", true, &truthy?/1)
+    |> Map.update("enabled", true, &coerce_enabled/1)
   end
 
   defp default_profile(provider) do
@@ -172,8 +172,11 @@ defmodule ControlKeel.ProviderBroker.Config do
     end
   end
 
-  defp truthy?(value) when value in [true, "true", "1", 1, "yes"], do: true
-  defp truthy?(value) when value in [false, "false", "0", 0, "no"], do: false
-  defp truthy?(value) when is_nil(value), do: false
-  defp truthy?(_value), do: true
+  # Default-true boolean coercion for the profile "enabled" flag: only explicit
+  # falsey values or nil disable a profile. Distinct from the strict
+  # `ControlKeel.Utils.truthy?/1`, which is default-false.
+  defp coerce_enabled(value) when value in [true, "true", "1", 1, "yes"], do: true
+  defp coerce_enabled(value) when value in [false, "false", "0", 0, "no"], do: false
+  defp coerce_enabled(value) when is_nil(value), do: false
+  defp coerce_enabled(_value), do: true
 end

@@ -104,6 +104,22 @@ defmodule ControlKeel.Benchmark do
     |> preload_run()
   end
 
+  @doc """
+  Returns the most recent completed run of the given suite that included the
+  given subject, or `nil` when no such run exists. Used as the regression
+  baseline for Self-Harness skill-evolution validation.
+  """
+  def latest_completed_run(suite_slug, subject)
+      when is_binary(suite_slug) and is_binary(subject) do
+    Run
+    |> join(:inner, [run], suite in assoc(run, :suite))
+    |> where([run, suite], suite.slug == ^suite_slug and run.status == "completed")
+    |> order_by([run], desc: run.inserted_at, desc: run.id)
+    |> limit(50)
+    |> Repo.all()
+    |> Enum.find(fn run -> subject in (run.subjects || []) end)
+  end
+
   def available_subjects(project_root \\ File.cwd!()) do
     SubjectLoader.builtin_subjects() ++ SubjectLoader.external_subjects(project_root)
   end
