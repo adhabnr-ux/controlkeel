@@ -91,7 +91,7 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
   end
 
   def run_command(%{command: :findings, options: options}, project_root) do
-    with {:ok, format} <- cli_output_format(options),
+    with {:ok, format} <- effective_cli_format(options),
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       findings =
         Mission.list_session_findings(session.id, %{
@@ -183,7 +183,7 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
   end
 
   def run_command(%{command: :proofs, options: options}, project_root) do
-    with {:ok, format} <- cli_output_format(options),
+    with {:ok, format} <- effective_cli_format(options),
          {:ok, _binding, session, _mode} <- ensure_local_project(project_root) do
       browser =
         Mission.browse_proof_bundles(%{
@@ -384,7 +384,7 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
     else
       case ControlKeel.Mission.Progress.compute(session_id) do
         {:ok, progress} ->
-          with {:ok, format} <- cli_output_format(options) do
+          with {:ok, format} <- effective_cli_format(options) do
             current_task = progress.tasks.current_task
 
             lines = [

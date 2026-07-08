@@ -69,7 +69,7 @@ defmodule ControlKeel.CLI.Dispatch.BenchmarksHarness do
   end
 
   def run_command(%{command: :benchmark_list, options: options}, project_root) do
-    with {:ok, format} <- cli_output_format(options) do
+    with {:ok, format} <- effective_cli_format(options) do
       filter_opts = benchmark_filter_opts(options[:domain_pack])
       suites = Benchmark.list_suites(filter_opts)
       runs = Benchmark.list_recent_runs(filter_opts)
@@ -243,7 +243,7 @@ defmodule ControlKeel.CLI.Dispatch.BenchmarksHarness do
   end
 
   def run_command(%{command: :benchmark_compare, args: [id], options: options}, _project_root) do
-    with {:ok, format} <- cli_output_format(options),
+    with {:ok, format} <- effective_cli_format(options),
          {:ok, run_id} <- parse_id(id),
          {:ok, comparison} <- Benchmark.compare_run(run_id) do
       render_format(format, comparison, &benchmark_compare_lines/1)

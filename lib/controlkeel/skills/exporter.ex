@@ -2017,7 +2017,7 @@ defmodule ControlKeel.Skills.Exporter do
       session_id=$(printf '%s' "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null)
     fi
 
-    ck_run context --session-id "${session_id:-1}" --save-snapshot --json >/dev/null 2>&1 || true
+    ck_run context --session-id "${session_id:-1}" --json >/dev/null 2>&1 || true
 
     exit 0
     """
