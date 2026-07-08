@@ -214,12 +214,13 @@ defmodule ControlKeel.Scanner.AutoFix do
           "requires_human" => true
         }
 
-      rule when rule in [
-               "security.semgrep.sql_injection",
-               "security.semgrep.java_sql_concat",
-               "security.semgrep.ruby_sql_injection",
-               "security.semgrep.go_sql_format"
-             ] ->
+      rule
+      when rule in [
+             "security.semgrep.sql_injection",
+             "security.semgrep.java_sql_concat",
+             "security.semgrep.ruby_sql_injection",
+             "security.semgrep.go_sql_format"
+           ] ->
         %{
           "supported" => true,
           "fix_kind" => "query_parameterization",

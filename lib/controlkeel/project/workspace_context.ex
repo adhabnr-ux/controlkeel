@@ -183,7 +183,6 @@ defmodule ControlKeel.Project.WorkspaceContext do
     end
   end
 
-
   defp discovered_files(root, candidates) do
     Enum.flat_map(candidates, fn {relative_path, kind} ->
       path = Path.join(root, relative_path)

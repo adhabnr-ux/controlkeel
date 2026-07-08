@@ -97,8 +97,6 @@ defmodule ControlKeel.Mission.DecisionGates do
     }
   }
 
-  def gate_order, do: @gate_order
-
   def gates, do: Enum.map(@gate_order, &Map.fetch!(@gates, &1))
 
   def get(id) when is_atom(id), do: get(Atom.to_string(id))

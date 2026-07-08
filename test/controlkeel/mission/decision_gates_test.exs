@@ -4,7 +4,9 @@ defmodule ControlKeel.Mission.DecisionGatesTest do
   alias ControlKeel.Mission.DecisionGates
 
   test "exposes D1-D5 gate presets in lifecycle order" do
-    assert DecisionGates.gate_order() == [
+    gate_ids = DecisionGates.gates() |> Enum.map(& &1["id"])
+
+    assert gate_ids == [
              "D1_requirements",
              "D2_decomposition",
              "D3_design",

@@ -41,14 +41,14 @@ defmodule ControlKeel.Scanner.Patterns do
   end
 
   defp finding_from_match(rule, input, match) do
-    redacted = redact(match)
+    redacted = Finding.redact(match)
 
     %Finding{
       id: fingerprint(rule.id, redacted, input),
       severity: rule.severity,
       category: rule.category,
       rule_id: rule.id,
-      decision: action_to_decision(rule.action),
+      decision: Finding.action_to_decision(rule.action),
       plain_message: rule.plain_message,
       location: %{
         "path" => Map.get(input, "path"),
@@ -69,18 +69,5 @@ defmodule ControlKeel.Scanner.Patterns do
       |> Enum.join(":")
 
     "fp_" <> (:crypto.hash(:sha256, seed) |> Base.encode16(case: :lower) |> binary_part(0, 12))
-  end
-
-  defp action_to_decision("block"), do: "block"
-  defp action_to_decision("warn"), do: "warn"
-  defp action_to_decision("escalate_to_human"), do: "warn"
-  defp action_to_decision(_action), do: "allow"
-
-  defp redact(value) when byte_size(value) <= 12, do: "[redacted]"
-
-  defp redact(value) do
-    prefix = binary_part(value, 0, 4)
-    suffix = binary_part(value, byte_size(value) - 4, 4)
-    prefix <> "..." <> suffix
   end
 end

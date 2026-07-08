@@ -3037,7 +3037,6 @@ defmodule ControlKeel.CLI do
   def normalize_yaml_map(value) when is_map(value), do: value
   def normalize_yaml_map(_value), do: %{}
 
-
   def auto_attach_claude_code(project_root) do
     claude_dir = Path.join(user_home(), ".claude")
     command_spec = Binding.mcp_command_spec(project_root)

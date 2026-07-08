@@ -232,4 +232,23 @@ defmodule ControlKeel.MCP.Arguments do
   end
 
   defp finite_float?(value), do: value == value and value not in [:infinity, :negative_infinity]
+
+  @doc """
+  Returns `{:ok, value}` if value is in the allowed list, otherwise `{:error, :invalid_mode}`.
+  """
+  def resolve_mode(arguments, allowed_modes, default \\ nil) do
+    value = Map.get(arguments, "mode", default)
+
+    if value in allowed_modes do
+      {:ok, value}
+    else
+      {:error, :invalid_mode}
+    end
+  end
+
+  @doc """
+  Puts a key-value pair into a map only if the value is not nil.
+  """
+  def maybe_put(map, _key, nil), do: map
+  def maybe_put(map, key, value), do: Map.put(map, key, value)
 end

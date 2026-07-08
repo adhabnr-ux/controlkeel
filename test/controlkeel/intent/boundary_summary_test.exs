@@ -79,15 +79,6 @@ defmodule ControlKeel.Intent.BoundarySummaryTest do
 
     assert summary["harness_policy"]["delegation"]["isolated_worktree"] ==
              "required_for_mutating_subagents"
-
-    assert summary["runtime_recommendation"]["strategy"] == "attach_client"
-    assert summary["runtime_recommendation"]["recommended_integration"]["id"] == "claude-code"
-
-    assert summary["runtime_recommendation"]["recommended_integration"]["availability"] ==
-             "attached"
-
-    assert summary["runtime_recommendation"]["recommended_integration"]["attach_command"] ==
-             "controlkeel attach claude-code"
   end
 
   test "normalizes blank or comma-separated constraints into a short list" do
@@ -233,13 +224,6 @@ defmodule ControlKeel.Intent.BoundarySummaryTest do
                  "rationale" =>
                    "Delegated slices should carry isolated context and bounded authority; mutating subagents should prefer isolated worktrees or equivalent runtime sandboxes."
                }
-             },
-             "runtime_recommendation" => %{
-               "strategy" => "undecided",
-               "recommended_integration" => nil,
-               "alternatives" => [],
-               "rationale" =>
-                 "CK needs a populated execution brief before it can recommend a concrete host or runtime path."
              }
            }
 

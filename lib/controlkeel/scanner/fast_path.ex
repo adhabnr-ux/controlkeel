@@ -287,7 +287,7 @@ defmodule ControlKeel.Scanner.FastPath do
               severity: rule.severity,
               category: rule.category,
               rule_id: rule.id,
-              decision: action_to_decision(rule.action),
+              decision: Scanner.Finding.action_to_decision(rule.action),
               plain_message: rule.plain_message,
               location: %{"path" => path, "kind" => kind},
               metadata: %{
@@ -637,9 +637,4 @@ defmodule ControlKeel.Scanner.FastPath do
   defp evidence_type_for_artifact("telemetry_rule"), do: "telemetry"
   defp evidence_type_for_artifact("diff"), do: "diff"
   defp evidence_type_for_artifact(_artifact_type), do: "source"
-
-  defp action_to_decision("block"), do: "block"
-  defp action_to_decision("warn"), do: "warn"
-  defp action_to_decision("escalate_to_human"), do: "warn"
-  defp action_to_decision(_action), do: "allow"
 end

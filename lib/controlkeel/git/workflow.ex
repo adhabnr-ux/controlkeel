@@ -198,7 +198,6 @@ defmodule ControlKeel.Git.Workflow do
     }
   end
 
-
   defp count_status(lines, regex) do
     Enum.count(lines, fn line -> Regex.match?(regex, line) end)
   end

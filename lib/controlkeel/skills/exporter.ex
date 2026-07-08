@@ -4420,7 +4420,6 @@ defmodule ControlKeel.Skills.Exporter do
     """
   end
 
-
   def same_path?(left, right) do
     Path.expand(left) == Path.expand(right)
   end

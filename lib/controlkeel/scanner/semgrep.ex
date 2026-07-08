@@ -132,7 +132,7 @@ defmodule ControlKeel.Scanner.Semgrep do
       },
       metadata: %{
         "scanner" => "semgrep",
-        "matched_text_redacted" => redact(line_text),
+        "matched_text_redacted" => Finding.redact(line_text),
         "check_id" => result["check_id"]
       }
     }
@@ -147,15 +147,6 @@ defmodule ControlKeel.Scanner.Semgrep do
     end_line = end_location && end_location["line"]
     seed = Enum.join(Enum.reject([rule_id, path, start_line, end_line], &is_nil/1), ":")
     "sg_" <> (:crypto.hash(:sha256, seed) |> Base.encode16(case: :lower) |> binary_part(0, 12))
-  end
-
-  defp redact(value) when not is_binary(value) or value == "", do: nil
-  defp redact(value) when byte_size(value) <= 12, do: "[redacted]"
-
-  defp redact(value) do
-    prefix = binary_part(value, 0, 4)
-    suffix = binary_part(value, byte_size(value) - 4, 4)
-    prefix <> "..." <> suffix
   end
 
   defp semgrep_rules_path do

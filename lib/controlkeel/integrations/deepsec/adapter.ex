@@ -53,20 +53,12 @@ defmodule ControlKeel.Integrations.Deepsec.Adapter do
     |> Enum.reject(&is_nil/1)
   end
 
-  @doc """
-  Converts deepsec severity to ControlKeel severity.
-
-  ## Mapping
-  - LOW -> "low"
-  - MEDIUM -> "medium"
-  - HIGH -> "high"
-  - CRITICAL -> "critical"
-  """
-  def map_severity("LOW"), do: "low"
-  def map_severity("MEDIUM"), do: "medium"
-  def map_severity("HIGH"), do: "high"
-  def map_severity("CRITICAL"), do: "critical"
-  def map_severity(_), do: "medium"
+  # Severity mapping (private — used internally by build_ck_finding/2)
+  defp map_severity("LOW"), do: "low"
+  defp map_severity("MEDIUM"), do: "medium"
+  defp map_severity("HIGH"), do: "high"
+  defp map_severity("CRITICAL"), do: "critical"
+  defp map_severity(_), do: "medium"
 
   # Private functions
 

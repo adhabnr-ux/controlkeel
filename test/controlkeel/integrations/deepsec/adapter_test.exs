@@ -156,14 +156,4 @@ defmodule ControlKeel.Integrations.Deepsec.AdapterTest do
       assert length(ck_findings) == 1
     end
   end
-
-  describe "map_severity/1" do
-    test "maps deepsec severity to CK severity" do
-      assert Adapter.map_severity("LOW") == "low"
-      assert Adapter.map_severity("MEDIUM") == "medium"
-      assert Adapter.map_severity("HIGH") == "high"
-      assert Adapter.map_severity("CRITICAL") == "critical"
-      assert Adapter.map_severity("UNKNOWN") == "medium"
-    end
-  end
 end

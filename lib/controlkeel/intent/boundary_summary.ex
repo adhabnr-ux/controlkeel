@@ -1,19 +1,19 @@
 defmodule ControlKeel.Intent.BoundarySummary do
   @moduledoc false
 
-  alias ControlKeel.Intent.{ExecutionPosture, HarnessPolicy, RuntimeRecommendation}
+  alias ControlKeel.Intent.{ExecutionPosture, HarnessPolicy}
 
-  def build(brief, opts \\ [])
+  def build(brief)
 
-  def build(%{__struct__: _} = brief, opts) do
+  def build(%{__struct__: _} = brief) do
     brief
     |> Map.from_struct()
     |> Map.drop([:__meta__])
     |> Enum.into(%{}, fn {k, v} -> {to_string(k), v} end)
-    |> then(&build(&1, opts))
+    |> then(&build/1)
   end
 
-  def build(brief, opts) when is_map(brief) do
+  def build(brief) when is_map(brief) do
     compiler = Map.get(brief, "compiler") || %{}
     answers = Map.get(compiler, "interview_answers") || %{}
 
@@ -27,12 +27,11 @@ defmodule ControlKeel.Intent.BoundarySummary do
       "launch_window" => optional_string(brief, "launch_window"),
       "next_step" => optional_string(brief, "next_step"),
       "execution_posture" => ExecutionPosture.build(brief),
-      "harness_policy" => HarnessPolicy.build(brief),
-      "runtime_recommendation" => RuntimeRecommendation.build(brief, opts)
+      "harness_policy" => HarnessPolicy.build(brief)
     }
   end
 
-  def build(_brief, _opts), do: empty_summary()
+  def build(_brief), do: empty_summary()
 
   defp optional_string(map, key) do
     case Map.get(map, key) do
@@ -77,8 +76,7 @@ defmodule ControlKeel.Intent.BoundarySummary do
       "launch_window" => nil,
       "next_step" => nil,
       "execution_posture" => ExecutionPosture.build(nil),
-      "harness_policy" => HarnessPolicy.build(nil),
-      "runtime_recommendation" => RuntimeRecommendation.build(nil)
+      "harness_policy" => HarnessPolicy.build(nil)
     }
   end
 end

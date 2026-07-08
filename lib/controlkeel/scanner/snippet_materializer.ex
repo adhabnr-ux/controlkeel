@@ -9,10 +9,6 @@ defmodule ControlKeel.Scanner.SnippetMaterializer do
   @fence_regex ~r/```([\w#+.-]+)?\s*\n([\s\S]*?)```/
   @code_markers ~r/\b(def|class|function|const|let|var|SELECT|INSERT|UPDATE|DELETE|apiVersion|kind|resource)\b/
 
-  def code_extensions, do: @code_extensions
-  def fence_regex, do: @fence_regex
-  def code_markers, do: @code_markers
-
   def code_like?(input, opts \\ []) when is_map(input) do
     normalized = normalize_input(input)
     force? = Keyword.get(opts, :force, false)

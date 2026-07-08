@@ -7,6 +7,7 @@ defmodule ControlKeel.MCP.Tools.CkLoadResources do
   through MCP resources/read.
   """
 
+  alias ControlKeel.MCP.Arguments
   alias ControlKeel.MCP.Tools.CkSkillLoad
 
   def call(%{"uris" => uris} = arguments) when is_list(uris) do
@@ -26,9 +27,9 @@ defmodule ControlKeel.MCP.Tools.CkLoadResources do
   def load_resource_uri("skills://" <> name, project_root, target, session_id) do
     arguments =
       %{"name" => name}
-      |> maybe_put("project_root", project_root)
-      |> maybe_put("target", target)
-      |> maybe_put("session_id", session_id)
+      |> Arguments.maybe_put("project_root", project_root)
+      |> Arguments.maybe_put("target", target)
+      |> Arguments.maybe_put("session_id", session_id)
 
     case CkSkillLoad.call(arguments) do
       {:ok, result} ->
@@ -59,7 +60,4 @@ defmodule ControlKeel.MCP.Tools.CkLoadResources do
       end
     end)
   end
-
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 end

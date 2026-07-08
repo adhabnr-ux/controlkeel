@@ -184,7 +184,7 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
         Map.get(arguments, "metadata", %{})
         |> Utils.ensure_map()
         |> Map.put_new("source", "mcp")
-        |> maybe_put("task_id", task_id)
+        |> Arguments.maybe_put("task_id", task_id)
 
       attrs =
         %{
@@ -198,8 +198,8 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
           metadata: metadata,
           session_id: session_id
         }
-        |> maybe_put(:extends_finding_id, extends_finding_id)
-        |> maybe_put(:contradicts_finding_id, contradicts_finding_id)
+        |> Arguments.maybe_put(:extends_finding_id, extends_finding_id)
+        |> Arguments.maybe_put(:contradicts_finding_id, contradicts_finding_id)
 
       {:ok, attrs}
     end
@@ -254,9 +254,6 @@ defmodule ControlKeel.MCP.Tools.CkFinding do
          {:invalid_arguments, "`decision` must be allow, warn, block, or escalate_to_human"}}
     end
   end
-
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp humanize_rule(rule_id) do
     rule_id

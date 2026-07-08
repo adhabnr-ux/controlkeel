@@ -177,8 +177,7 @@ defmodule ControlKeel.Scanner.Aislop do
     Map.get(@engine_category_map, engine, "code_quality")
   end
 
-  defp decision_for_severity("high"), do: "warn"
-  defp decision_for_severity(_), do: "warn"
+  defp decision_for_severity(_severity), do: "warn"
 
   defp fingerprint(rule_id, path, line) do
     seed = Enum.join(Enum.reject([rule_id, path, line], &is_nil/1), ":")

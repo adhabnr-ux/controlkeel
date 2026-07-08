@@ -229,21 +229,18 @@ defmodule ControlKeel.MCP.Tools.CkTask do
 
   defp proof_response(metadata, payload) do
     %{}
-    |> maybe_put("proof_strength", metadata["proof_strength"])
-    |> maybe_put("command", metadata["command"])
-    |> maybe_put("exit_code", metadata["exit_code"])
-    |> maybe_put("output_sha256", metadata["output_sha256"] || payload["output_sha256"])
-    |> maybe_put("output_bytes", metadata["output_bytes"])
-    |> maybe_put("output_excerpt_bytes", metadata["output_excerpt_bytes"])
-    |> maybe_put("output_truncated", metadata["output_truncated"])
-    |> maybe_put("artifact_sha256", metadata["artifact_sha256"])
-    |> maybe_put("artifact_uri", metadata["artifact_uri"])
-    |> maybe_put("git_head_sha", metadata["git_head_sha"])
-    |> maybe_put("working_tree_dirty", metadata["working_tree_dirty"])
+    |> Arguments.maybe_put("proof_strength", metadata["proof_strength"])
+    |> Arguments.maybe_put("command", metadata["command"])
+    |> Arguments.maybe_put("exit_code", metadata["exit_code"])
+    |> Arguments.maybe_put("output_sha256", metadata["output_sha256"] || payload["output_sha256"])
+    |> Arguments.maybe_put("output_bytes", metadata["output_bytes"])
+    |> Arguments.maybe_put("output_excerpt_bytes", metadata["output_excerpt_bytes"])
+    |> Arguments.maybe_put("output_truncated", metadata["output_truncated"])
+    |> Arguments.maybe_put("artifact_sha256", metadata["artifact_sha256"])
+    |> Arguments.maybe_put("artifact_uri", metadata["artifact_uri"])
+    |> Arguments.maybe_put("git_head_sha", metadata["git_head_sha"])
+    |> Arguments.maybe_put("working_tree_dirty", metadata["working_tree_dirty"])
   end
-
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp mode(arguments) do
     case Map.get(arguments, "mode", "status") do
