@@ -7,6 +7,10 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
   alias ControlKeel.Mission
 
   test "user can complete onboarding, regenerate, and create a mission", %{conn: conn} do
+    # The shared (async: false) sandbox may carry sessions from earlier tests;
+    # assert against the delta, not an absolute empty list.
+    initial_session_count = length(Mission.list_sessions())
+
     {:ok, view, html} = live(conn, ~p"/missions/start")
 
     assert html =~ "Choose the domain and primary agent"
@@ -45,11 +49,13 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
     assert review_html =~ "Production boundary"
     assert review_html =~ "Local-first deploy"
     assert review_html =~ "approval before production"
-    assert Mission.list_sessions() == []
+    # Review step must not persist a session.
+    assert length(Mission.list_sessions()) == initial_session_count
 
     regenerated_html = render_click(element(view, "button[phx-click=\"regenerate\"]"))
     assert regenerated_html =~ "Review the compiled brief"
-    assert Mission.list_sessions() == []
+    # Regenerate must not persist a session either.
+    assert length(Mission.list_sessions()) == initial_session_count
 
     render_click(element(view, "button[phx-click=\"accept\"]"))
     {path, _flash} = assert_redirect(view)
@@ -63,7 +69,8 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
       |> html_response(200)
 
     assert redirected_html =~ "Clinic Intake"
-    assert length(Mission.list_sessions()) == 1
+    # Accept creates exactly one new session.
+    assert length(Mission.list_sessions()) == initial_session_count + 1
   end
 
   test "validation errors render and provider keys are not exposed in the browser", %{conn: conn} do
