@@ -44,7 +44,4 @@ defmodule ControlKeel.Platform.NhiAuditEvent do
   end
 
   def decode_metadata(_), do: %{}
-
-  @doc "Valid event types."
-  def event_types, do: @event_types
 end

@@ -50,8 +50,6 @@ defmodule ControlKeel.Mission.ExternalServiceInteraction do
     |> maybe_redact_endpoint()
   end
 
-  def valid_interaction_types, do: @valid_interaction_types
-
   defp maybe_redact_endpoint(changeset) do
     case get_field(changeset, :endpoint) do
       nil ->

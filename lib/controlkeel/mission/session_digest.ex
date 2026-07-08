@@ -117,6 +117,4 @@ defmodule ControlKeel.Mission.SessionDigest do
         changeset
     end
   end
-
-  def valid_digest_types, do: @valid_digest_types
 end

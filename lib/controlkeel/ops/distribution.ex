@@ -3,9 +3,6 @@ defmodule ControlKeel.Ops.Distribution do
 
   @github_owner "aryaminus"
   @github_repo "controlkeel"
-  @homebrew_tap "aryaminus/controlkeel"
-  @homebrew_repo "aryaminus/homebrew-controlkeel"
-  @npm_package "@aryaminus/controlkeel"
   @core_mcp_tools ~w(
     ck_context
     ck_validate
@@ -78,17 +75,12 @@ defmodule ControlKeel.Ops.Distribution do
   def github_repo_slug, do: "#{@github_owner}/#{@github_repo}"
   def github_releases_url, do: "https://github.com/#{github_repo_slug()}/releases"
   def latest_download_base_url, do: github_releases_url() <> "/latest/download"
-  def homebrew_tap, do: @homebrew_tap
-  def homebrew_repo, do: @homebrew_repo
-  def npm_package, do: @npm_package
   def required_mcp_tools, do: @core_mcp_tools
   def install_channels, do: @install_channels
 
   def install_channels(ids) when is_list(ids) do
     Enum.filter(@install_channels, &(&1.id in ids))
   end
-
-  def install_channel(id), do: Enum.find(@install_channels, &(&1.id == id))
 
   def current_install_channels do
     current_platform = current_platform()

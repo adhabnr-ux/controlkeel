@@ -45,7 +45,4 @@ defmodule ControlKeel.Mission.RollbackSnapshot do
     |> assoc_constraint(:session)
     |> assoc_constraint(:task)
   end
-
-  def valid_statuses, do: @valid_statuses
-  def valid_methods, do: @valid_methods
 end

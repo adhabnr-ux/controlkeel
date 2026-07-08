@@ -61,10 +61,6 @@ defmodule ControlKeel.Mission.WorkspaceAgent do
     |> maybe_generate_external_id()
   end
 
-  def valid_roles, do: @valid_roles
-  def valid_statuses, do: @valid_statuses
-  def valid_agent_types, do: @valid_agent_types
-
   @doc """
   Allowlist of fields safe to ship via cloud sync. `policy_overrides` and
   `scope` may contain workspace-scoped configuration including credentials —

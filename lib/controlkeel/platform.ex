@@ -31,6 +31,7 @@ defmodule ControlKeel.Platform do
     "task.waiting_callback",
     "task.completed",
     "task.failed",
+    "task.verified",
     "finding.created",
     "finding.approved",
     "finding.rejected",

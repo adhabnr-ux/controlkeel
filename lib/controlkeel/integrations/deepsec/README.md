@@ -5,8 +5,8 @@ This directory contains the live ControlKeel integration with deepsec. Keep it l
 ## Live modules
 
 - `adapter.ex` converts deepsec findings into `ControlKeel.Scanner.Finding` structs.
-- `cli.ex` wraps the installed deepsec CLI for init/scan/process/export plus output parsing.
-- `config.ex` reads the `:deepsec` and matcher-system configuration used by the scanner gate.
+- `cli.ex` wraps the installed deepsec CLI for init/scan/process/export. Output parsing lives in `ControlKeel.Validation.Matchers.Scanner`.
+- `config.ex` reads the `:deepsec` configuration used by the scanner gate.
 - `../deepsec.ex` is the budget/config gate used before invoking the CLI scan.
 
 `ControlKeel.Validation.Matchers.Scanner.deepsec_scan/1` is the production entrypoint for running a scan and returning CK findings. The fast-path scanner calls it only when Deepsec is enabled, the artifact is security/code-like, severity passes the configured threshold, and the session has enough budget remaining.
@@ -67,4 +67,4 @@ alias ControlKeel.Validation.Matchers.Scanner
 
 ## Environment
 
-The CLI wrapper resolves `CONTROLKEEL_DEEPSEC_BIN`; when unset it falls back to `npx -y deepsec`.
+The CLI wrapper resolves `CONTROLKEEL_DEEPSEC_BIN`; when unset it defaults to the `deepsec` binary on PATH.

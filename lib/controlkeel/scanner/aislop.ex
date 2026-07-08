@@ -259,7 +259,6 @@ defmodule ControlKeel.Scanner.Aislop do
     Map.get(@engine_category_map, engine, "code_quality")
   end
 
-  defp decision_for_severity("critical"), do: "block"
   defp decision_for_severity("high"), do: "warn"
   defp decision_for_severity(_), do: "warn"
 

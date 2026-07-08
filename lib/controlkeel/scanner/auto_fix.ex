@@ -4,24 +4,6 @@ defmodule ControlKeel.Scanner.AutoFix do
   alias ControlKeel.Mission.Finding
   alias ControlKeel.Scanner
 
-  @supported_rule_ids ~w(
-    secret.aws_access_key
-    secret.hardcoded_credential
-    secret.high_entropy_token
-    security.sql_injection
-    security.xss_unsafe_html
-    gdpr.personal_data_logging
-    gdpr.unencrypted_pii_field
-    healthcare.phi_pattern
-    security.semgrep.sql_injection
-    hr.discriminatory_criteria
-    legal.privileged_content_logging
-    realestate.fair_housing_criteria
-    finance.pci_pattern
-    marketing.email_no_unsubscribe
-    software.hardcoded_credential
-  )
-
   def generate(%Scanner.Finding{} = finding) do
     generate_from(finding.rule_id, finding.metadata, finding.location["path"])
   end
@@ -232,7 +214,12 @@ defmodule ControlKeel.Scanner.AutoFix do
           "requires_human" => true
         }
 
-      rule when rule in ["security.semgrep.sql_injection", "security.semgrep.sql-concat"] ->
+      rule when rule in [
+               "security.semgrep.sql_injection",
+               "security.semgrep.java_sql_concat",
+               "security.semgrep.ruby_sql_injection",
+               "security.semgrep.go_sql_format"
+             ] ->
         %{
           "supported" => true,
           "fix_kind" => "query_parameterization",
@@ -421,10 +408,6 @@ defmodule ControlKeel.Scanner.AutoFix do
         }
     end
   end
-
-  def supported?(%Scanner.Finding{} = f), do: f.rule_id in @supported_rule_ids
-  def supported?(%Finding{} = f), do: f.rule_id in @supported_rule_ids
-  def supported_rule_ids, do: @supported_rule_ids
 
   defp match_clause(nil), do: ""
   defp match_clause(match), do: " (matched snippet #{match})"
