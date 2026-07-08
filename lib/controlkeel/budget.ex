@@ -68,10 +68,7 @@ defmodule ControlKeel.Budget do
          "remaining_session_cents" => remaining(projected_session, session.budget_cents),
          "rolling_24h_spend_cents" => projected_daily,
          "remaining_daily_cents" => remaining(projected_daily, session.daily_budget_cents),
-         "recorded" => false,
-         "hint_source" => nil,
-         "hint_probability" => nil,
-         "artifact_version" => nil
+         "recorded" => false
        }}
     end
   end

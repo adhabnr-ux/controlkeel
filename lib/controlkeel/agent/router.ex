@@ -334,7 +334,6 @@ defmodule ControlKeel.Agent.Router do
            agent: best_id,
            agent_name: best_agent.name,
            task_type: task_type,
-           model_tier: recommend_model_tier(task_type, risk_tier),
            rationale: rationale,
            warnings: warnings,
            alternatives: alternative_summary(rest),
@@ -569,22 +568,6 @@ defmodule ControlKeel.Agent.Router do
         artifact_version: candidate.artifact_version
       }
     end)
-  end
-
-  # ── Model tier recommendation ─────────────────────────────────────────────
-  # Guidance for the caller on which model tier to use for this task.
-  # Read-only exploration is cheapest on haiku; governance/deploy decisions
-  # warrant opus; everything else fits sonnet.
-
-  @exploration_tasks ~w(review spec skill)a
-  @heavyweight_tasks ~w(deploy)a
-
-  defp recommend_model_tier(task_type, risk_tier) do
-    cond do
-      task_type in @heavyweight_tasks or risk_tier in ["high", "critical"] -> :opus
-      task_type in @exploration_tasks -> :haiku
-      true -> :sonnet
-    end
   end
 
   defp budget_tier(nil), do: "medium"

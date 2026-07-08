@@ -6,7 +6,7 @@ ControlKeel benchmarks test whether a governed change improved a concrete agent 
 
 Good claims:
 
-- "Direct deterministic validation caught 12/12 risky scenarios in `host_comparison_v1`; 9/12 were hard blocks."
+- "Direct deterministic validation produced findings on 12/12 curated risky fixtures in `host_comparison_v1`; 9/12 were hard blocks and 9/12 hit the expected rule."
 - "Bounded active governance used roughly half the tokens of exhaustive active governance on the same suite."
 - "This promotion improved held-out catch rate without increasing false blocks on the benign baseline."
 
@@ -41,7 +41,7 @@ Recommended public bundle:
 
 CK's built-in suite bundle is the versioned fixture set:
 
-- `host_comparison_v1` — risky host-shaped outputs for investor/user-facing policy-enforcement lift.
+- `host_comparison_v1` — curated, synthetic host-shaped risky artifacts for deterministic policy-enforcement lift. These are not observed host runs.
 - `vibe_failures_v1` — common vibe-coding failures for deterministic regression checks.
 - `benign_baseline_v1` — paired safe outputs for false-positive and false-block disclosure.
 - `domain_expansion_v1` / `domain_expansion_v2` — domain-pack coverage for regulated and operations-heavy workflows.
@@ -79,9 +79,9 @@ Example investor-safe wording:
 
 > On `host_comparison_v1`, ControlKeel improved risky-output catch rate by `<N>` percentage points versus no policy gate. On the paired benign suite, false-positive rate was `<FPR>`. This demonstrates measurable policy-enforcement lift for the named benchmark, not universal agent safety.
 
-### Verified local snapshot
+### Historical local snapshot
 
-The following numbers were verified locally on 2026-06-05 with ControlKeel `0.3.45` using deterministic validation only. They are reproducible without provider keys and should be treated as a version-pinned local proof baseline, not a universal safety claim. Rerun the suite on the current version before making external claims.
+The following numbers are a historical local snapshot from 2026-06-05 with ControlKeel `0.3.45` using deterministic validation only. They are reproducible without provider keys on that version and should be treated as an archived proof baseline, not current product evidence or a universal safety claim. Rerun the suite on the current version before making external claims.
 
 Risky suite: `host_comparison_v1` v1, 12 public risky scenarios, subjects `ungoverned_baseline,controlkeel_validate`, baseline `ungoverned_baseline`.
 
@@ -97,9 +97,9 @@ Paired benign suite: `benign_baseline_v1` v1, 10 public safe scenarios.
 | `ungoverned_baseline` | 0/10 | 0/10 | 10/10 | 0.000 | 0 ms | 0 | $0 |
 | `controlkeel_validate` | 0/10 | 0/10 | 10/10 | 0.000 | 42 ms | 0 | $0 |
 
-Investor-safe headline from this snapshot:
+Bounded historical headline from this snapshot:
 
-> CK added +100 percentage points of deterministic policy-gate catch rate versus the null baseline on `host_comparison_v1`, while preserving 0.000 FPR and 0 false blocks on the paired benign suite, with 0 provider tokens and median deterministic validation under 60 ms.
+> CK added +100 percentage points of any-finding deterministic policy-gate catch rate versus the null baseline on `host_comparison_v1`, while preserving 0.000 FPR and 0 false blocks on the paired benign suite, with 0 provider tokens in this archived local run.
 
 For external competitors or model-backed subjects, keep the same columns and add provider tokens plus cost source when available. A competitor can plug in through `manual_import` or `shell` subjects and compete directly against `controlkeel_validate` on the same built-in suites.
 
@@ -165,7 +165,7 @@ Automated run skeleton (shell wrapper, no manual import):
 # The shell subjects run Claude Code directly and emit token/cost/tool telemetry.
 # Prerequisites: `claude` CLI installed and authenticated; for the bounded arm,
 # the ControlKeel MCP server attached to this project.
-CLAUDE_BENCHMARK_MODEL=claude-sonnet-4-6 \
+CLAUDE_BENCHMARK_MODEL=<pin-a-current-claude-model> \
 controlkeel benchmark run \
   --suite host_comparison_v1 \
   --subjects claude_pure_shell,claude_ck_bounded_shell,controlkeel_validate \

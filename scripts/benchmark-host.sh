@@ -27,8 +27,8 @@
 #   CONTROLKEEL_BENCHMARK_SCENARIO_FILE scenario JSON (slug + artifact path)
 #   CONTROLKEEL_BENCHMARK_OUTPUT_DIR    where to write the artifact + telemetry
 # Optional env:
-#   OPENCODE_BENCHMARK_MODEL  default: openai/gpt-5.5
-#   CLAUDE_BENCHMARK_MODEL    default: claude-sonnet-4-6
+#   OPENCODE_BENCHMARK_MODEL  default: openai/gpt-5.5 (example; pin explicitly for published runs)
+#   CLAUDE_BENCHMARK_MODEL    default: claude-sonnet-4.6 (example; pin explicitly for published runs)
 set -euo pipefail
 
 host="${1:-opencode}"
@@ -142,7 +142,7 @@ PY
       exit 127
     fi
 
-    model="${CLAUDE_BENCHMARK_MODEL:-claude-sonnet-4-6}"
+    model="${CLAUDE_BENCHMARK_MODEL:-claude-sonnet-4.6}"
     prompt="${base_prompt}"
 
     run_args=(--print --model "${model}" --output-format json --permission-mode bypassPermissions)

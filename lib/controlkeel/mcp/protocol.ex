@@ -2609,8 +2609,7 @@ defmodule ControlKeel.MCP.Protocol do
         "properties" => %{
           "server_url" => %{
             "type" => "string",
-            "description" =>
-              "URL of the MCP server (e.g., 'http://localhost:3001/mcp' for HTTP, or a path for stdio)"
+            "description" => "HTTP URL of the MCP server (e.g., 'http://localhost:3001/mcp')."
           },
           "timeout" => %{
             "type" => "integer",
@@ -2618,9 +2617,9 @@ defmodule ControlKeel.MCP.Protocol do
           },
           "transport" => %{
             "type" => "string",
-            "enum" => ["http", "stdio"],
+            "enum" => ["http"],
             "description" =>
-              "Transport type. Auto-detected from server_url if not specified. HTTP discovery uses Req with normal TLS verification; stdio discovery returns an explicit unsupported-transport error."
+              "Transport type. Auto-detected from server_url if not specified. HTTP discovery uses Req with normal TLS verification."
           }
         }
       }

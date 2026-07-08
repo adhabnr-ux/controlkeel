@@ -71,9 +71,6 @@ defmodule ControlKeel.MCP.Tools.CkMcpDiscover do
           "http" ->
             [{:transport, :http} | opts]
 
-          "stdio" ->
-            [{:transport, :stdio} | opts]
-
           _ ->
             opts
         end
@@ -102,7 +99,7 @@ defmodule ControlKeel.MCP.Tools.CkMcpDiscover do
   end
 
   defp format_error({:unsupported_transport, transport}) do
-    "Unsupported transport: #{inspect(transport)}. Supported transports: http, stdio"
+    "Unsupported transport: #{inspect(transport)}. Supported transport: http"
   end
 
   defp format_error({:http_error, status}) do

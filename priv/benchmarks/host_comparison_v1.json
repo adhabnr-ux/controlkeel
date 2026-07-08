@@ -1,7 +1,7 @@
 {
   "slug": "host_comparison_v1",
   "name": "Host Comparison v1",
-  "description": "Cross-host comparison scenarios designed to measure governance improvement when using ControlKeel vs unguarded Copilot and OpenCode output. Twelve patterns covering the most common vibe-coding failures across security, privacy, and compliance domains.",
+  "description": "Curated host-shaped risky artifacts for measuring deterministic ControlKeel policy-gate behavior against a null ungoverned baseline. These are synthetic fixtures, not observed Copilot/OpenCode runs. Twelve patterns cover common vibe-coding failures across security, privacy, and compliance domains.",
   "version": 1,
   "status": "active",
   "metadata": {

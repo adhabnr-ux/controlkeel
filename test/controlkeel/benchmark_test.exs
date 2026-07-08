@@ -809,7 +809,7 @@ defmodule ControlKeel.BenchmarkTest do
            end)
   end
 
-  test "available subjects include copilot benchmark subjects", %{tmp_dir: tmp_dir} do
+  test "available subjects include manual benchmark subjects", %{tmp_dir: tmp_dir} do
     write_benchmark_subjects!(tmp_dir, [
       %{
         "id" => "opencode_manual",
@@ -820,15 +820,6 @@ defmodule ControlKeel.BenchmarkTest do
         "id" => "copilot_manual",
         "label" => "GitHub Copilot (Manual Import)",
         "type" => "manual_import"
-      },
-      %{
-        "id" => "copilot_shell",
-        "label" => "GitHub Copilot (Shell Wrapper)",
-        "type" => "shell",
-        "command" => "./scripts/benchmark-host.sh",
-        "args" => ["copilot"],
-        "timeout_ms" => 120_000,
-        "output_mode" => "stdout"
       }
     ])
 
@@ -838,7 +829,7 @@ defmodule ControlKeel.BenchmarkTest do
 
     assert "controlkeel_validate" in subject_ids
     assert "copilot_manual" in subject_ids
-    assert "copilot_shell" in subject_ids
+    refute "copilot_shell" in subject_ids
   end
 
   test "repo benchmark subjects include all supported host templates" do
