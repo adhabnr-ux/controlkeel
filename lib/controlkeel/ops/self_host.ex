@@ -2,22 +2,18 @@ defmodule ControlKeel.Ops.SelfHost do
   @moduledoc """
   Air-gapped / self-host packaging helpers.
 
-  Three responsibilities for this first slice:
+  Main responsibilities:
 
     1. `verify_environment/0` — report which required and recommended env vars
        are present, whether the cloud Repo is configured, and which runtime
        mode is active. Used by `controlkeel selfhost verify` so an operator
        can sanity-check a deployment before booting.
-    2. `bundle_manifest/0` — declare which on-disk paths belong in an
-       air-gapped install bundle (release tarball + migrations + skill
-       priv data). Used by the manifest CLI command and by any future
-       packager task (the actual tar creation is intentionally deferred —
-       this slice only fixes the contract).
+    2. `bundle_manifest/0` and `pack/2` — declare and package the on-disk paths
+       that belong in an air-gapped install bundle (release tarball + migrations
+       + skill priv data).
     3. `install_guide/0` — render a short, deterministic INSTALL.md whose
        text is governed by this module so an operator's deployment never
        drifts from the env-var contract.
-
-  No actual filesystem writes happen here; this module is pure read + render.
   """
 
   alias ControlKeel.Repo

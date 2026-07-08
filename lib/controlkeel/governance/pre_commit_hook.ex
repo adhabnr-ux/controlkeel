@@ -135,14 +135,7 @@ defmodule ControlKeel.Governance.PreCommitHook do
       domain_pack: domain_pack
     }
 
-    packs =
-      if domain_pack do
-        ["baseline", domain_pack]
-      else
-        ["baseline"]
-      end
-
-    case Scanner.FastPath.scan(input, packs: packs) do
+    case Scanner.FastPath.scan(input) do
       %{findings: findings} -> findings
     end
   rescue

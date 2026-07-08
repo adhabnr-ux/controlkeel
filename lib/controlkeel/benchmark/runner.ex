@@ -231,7 +231,7 @@ defmodule ControlKeel.Benchmark.Runner do
     Path.join(output_dir, "**/*")
     |> Path.wildcard()
     |> Enum.filter(&File.regular?/1)
-    |> Enum.reject(&(Path.basename(&1) == ".controlkeel_metrics.json"))
+    |> Enum.reject(&(Path.basename(&1) in [".controlkeel_metrics.json", "host-events.jsonl"]))
   end
 
   def subject_ids_from_input(nil), do: SubjectLoader.default_subject_ids()

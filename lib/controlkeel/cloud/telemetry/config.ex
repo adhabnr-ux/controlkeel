@@ -4,13 +4,8 @@ defmodule ControlKeel.Cloud.Telemetry.Config do
 
   Telemetry is disabled by default. State lives in a plain JSON file under
   `ControlKeel.Runtime.Paths.config_dir/0` so it survives package reinstalls and
-  is human-inspectable. No code path mutates this file as a side effect — the
-  user must explicitly opt in via `controlkeel telemetry enable` (Phase 2,
-  upcoming slice).
-
-  This module is read-only in this slice. Write operations are intentionally
-  deferred so the schema can stabilize through review before any mutation API
-  ships.
+  is human-inspectable. The file is mutated only by explicit telemetry commands
+  such as `controlkeel telemetry enable` and `controlkeel telemetry disable`.
 
   ## Levels
 

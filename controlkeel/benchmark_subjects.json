@@ -6,18 +6,6 @@
       "type": "manual_import"
     },
     {
-      "id": "opencode_shell",
-      "label": "OpenCode (Shell Wrapper)",
-      "type": "shell",
-      "command": "./scripts/benchmark-host.sh",
-      "args": [
-        "opencode"
-      ],
-      "working_dir": ".",
-      "timeout_ms": 120000,
-      "output_mode": "stdout"
-    },
-    {
       "id": "opencode_pure_shell",
       "label": "OpenCode Pure Mode (Shell Wrapper)",
       "type": "shell",
@@ -60,18 +48,6 @@
       "id": "claude_manual",
       "label": "Claude Code (Manual Import)",
       "type": "manual_import"
-    },
-    {
-      "id": "claude_shell",
-      "label": "Claude Code (Shell Wrapper)",
-      "type": "shell",
-      "command": "./scripts/benchmark-host.sh",
-      "args": [
-        "claude"
-      ],
-      "working_dir": ".",
-      "timeout_ms": 120000,
-      "output_mode": "stdout"
     },
     {
       "id": "claude_pure_shell",

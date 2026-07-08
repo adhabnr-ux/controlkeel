@@ -18,7 +18,7 @@ defmodule ControlKeel.CLI.Dispatch.Observability do
          "Workspace: #{state.workspace_id}",
          "Redaction policy version: #{state.redaction_policy_version}",
          "Config path: #{state.path}",
-         "Note: this writes local state only. No remote sync is performed until the sync pipeline ships."
+         "Note: events sync only when a telemetry endpoint is configured; otherwise they remain queued locally."
        ]}
     else
       {:error, {:missing_option, option}} ->

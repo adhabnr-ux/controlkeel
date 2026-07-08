@@ -49,7 +49,6 @@ defmodule ControlKeel.Budget do
       projected_daily = rolling_24h + estimated_cost_cents
       base_decision = decision(session, projected_session, projected_daily)
       base_summary = summary(session, base_decision, projected_session, projected_daily)
-      _active_findings_count = active_findings_count(session.id)
 
       decision = base_decision
       summary = base_summary
@@ -331,11 +330,6 @@ defmodule ControlKeel.Budget do
 
   defp exceeds_limit?(value), do: value >= 1.0
   defp near_limit?(value), do: value >= @warn_threshold
-
-  defp active_findings_count(session_id) do
-    Mission.list_session_findings(session_id)
-    |> Enum.count(&(&1.status in ["open", "blocked", "escalated"]))
-  end
 
   defp proxy_token_counts(attrs) do
     input_text = Map.get(attrs, "input_text", "")

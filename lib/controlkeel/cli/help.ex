@@ -493,9 +493,9 @@ defmodule ControlKeel.CLI.Help do
        controlkeel cloud migrate        Check and apply cloud sync migrations (external_id, lock_version).
       controlkeel telemetry status    Show opt-in cloud telemetry sync state (disabled by default)
       controlkeel telemetry enable --level health|governance|evidence|full_audit
-                                      Opt in to cloud telemetry at the specified level.
-                                      Requires `controlkeel cloud connect` first.
-                                      Writes local state only; no remote sync until pipeline ships.
+                                       Opt in to cloud telemetry at the specified level.
+                                       Requires `controlkeel cloud connect` first.
+                                       Events sync only when a telemetry endpoint is configured.
       controlkeel telemetry disable   Opt out of cloud telemetry. Workspace identity is preserved.
       controlkeel telemetry queue [--limit N]
                                       Inspect pending telemetry events queued for upstream sync.

@@ -18,7 +18,7 @@ defmodule ControlKeel.Runtime.CodeModePolicyTest do
     assert "generated_source" in policy["proof_artifacts"]
   end
 
-  test "build allows reviewed network only with an allowlist and approval" do
+  test "build records network allowlists for review but keeps execution network disabled" do
     policy =
       CodeModePolicy.build(
         risk_tier: "medium",
@@ -27,10 +27,16 @@ defmodule ControlKeel.Runtime.CodeModePolicyTest do
       )
 
     assert policy["approval_required"] == true
-    assert policy["allowed_capabilities"] == ["read_api", "network"]
+    assert policy["allowed_capabilities"] == ["read_api"]
     assert policy["network_allowlist"] == ["api.example.test"]
-    assert policy["limits"]["max_network_requests"] == 10
-    assert policy["rate_policy"]["max_requests_per_minute"] == 30
+    assert policy["limits"]["max_network_requests"] == 0
+    assert policy["rate_policy"]["max_requests_per_minute"] == 0
+
+    assert Enum.any?(
+             policy["review_notes"],
+             &String.contains?(&1, "execution keeps network disabled")
+           )
+
     refute "secrets" in policy["allowed_capabilities"]
   end
 
