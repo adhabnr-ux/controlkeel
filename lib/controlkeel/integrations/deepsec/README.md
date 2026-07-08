@@ -9,7 +9,7 @@ This directory contains the live ControlKeel integration with deepsec. Keep it l
 - `config.ex` reads the `:deepsec` configuration used by the scanner gate.
 - `../deepsec.ex` is the budget/config gate used before invoking the CLI scan.
 
-`ControlKeel.Validation.Matchers.Scanner.deepsec_scan/1` is the production entrypoint for running a scan and returning CK findings. The fast-path scanner calls it only when Deepsec is enabled, the artifact is security/code-like, severity passes the configured threshold, and the session has enough budget remaining.
+`ControlKeel.Integrations.Deepsec.Scanner.deepsec_scan/1` is the production entrypoint for running a scan and returning CK findings. The fast-path scanner calls it only when Deepsec is enabled, the artifact is security/code-like, severity passes the configured threshold, and the session has enough budget remaining.
 
 ## Configuration
 
@@ -30,7 +30,7 @@ config :controlkeel, :deepsec,
 ```
 
 ```elixir
-alias ControlKeel.Validation.Matchers.Scanner
+alias ControlKeel.Integrations.Deepsec.Scanner
 
 {:ok, findings} =
   Scanner.deepsec_scan(

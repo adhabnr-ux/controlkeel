@@ -1,7 +1,7 @@
-defmodule ControlKeel.Validation.Matchers.ScannerTest do
+defmodule ControlKeel.Integrations.Deepsec.ScannerTest do
   use ExUnit.Case
 
-  alias ControlKeel.Validation.Matchers.Scanner
+  alias ControlKeel.Integrations.Deepsec.Scanner
 
   describe "deepsec_scan/1" do
     test "returns error when deepsec CLI is not available" do

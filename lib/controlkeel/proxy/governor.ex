@@ -7,7 +7,7 @@ defmodule ControlKeel.Proxy.Governor do
   alias ControlKeel.Mission.Session
   alias ControlKeel.ProviderBroker.FallbackChain
   alias ControlKeel.Scanner
-  alias ControlKeel.Scanner.{FastPath, Semgrep}
+  alias ControlKeel.Scanner.FastPath
 
   def benchmark_evaluate(extracted, opts \\ []) when is_map(extracted) do
     scan = scan_content(extracted.text || "", opts[:path], opts[:kind] || "text", opts)
@@ -162,20 +162,7 @@ defmodule ControlKeel.Proxy.Governor do
     fast_path =
       if String.trim(content || "") == "", do: empty_result(), else: FastPath.scan(normalized)
 
-    semgrep_findings =
-      if Semgrep.code_like?(normalized, force: fast_path.findings != []) do
-        case Semgrep.scan(normalized,
-               force: fast_path.findings != [],
-               timeout_ms: opts[:timeout_ms]
-             ) do
-          {:ok, %{findings: findings}} -> findings
-          _other -> []
-        end
-      else
-        []
-      end
-
-    findings = uniq_findings(fast_path.findings ++ semgrep_findings)
+    findings = fast_path.findings
     decision = findings |> Enum.map(& &1.decision) |> final_decision_from_list()
 
     %{

@@ -1,4 +1,4 @@
-defmodule ControlKeel.Validation.Matchers.Scanner do
+defmodule ControlKeel.Integrations.Deepsec.Scanner do
   @moduledoc """
   Scanner that integrates with the deepsec CLI for security pattern detection.
 
