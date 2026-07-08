@@ -318,7 +318,11 @@ defmodule ControlKeel.Project.VirtualWorkspace do
       matches =
         scope_path
         |> walk_children()
-        |> Stream.reject(&ignored_path?/1)
+        # walk_children already prunes ignored entries (deps, .git, tmp, etc.)
+        # at every recursion level via ignored_entry?/1 on the directory entry
+        # name. Do NOT re-check the absolute path here — ignored_path?/1 on a
+        # full path like /tmp/foo/lib/x.ex would wrongly reject every file
+        # under a /tmp/ parent.
         |> Stream.filter(&File.regular?/1)
         |> Stream.transform(0, fn path, count ->
           if count >= max_matches do
@@ -447,8 +451,6 @@ defmodule ControlKeel.Project.VirtualWorkspace do
 
   defp maybe_downcase(value, true), do: String.downcase(value)
   defp maybe_downcase(value, false), do: value
-
-  defp ignored_path?(path), do: Enum.any?(Path.split(path), &ignored_entry?/1)
 
   defp ignored_rg_globs do
     Enum.flat_map(@ignored_dirs, fn dir -> ["--glob", "!#{dir}/**"] end)

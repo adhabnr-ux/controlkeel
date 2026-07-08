@@ -106,6 +106,8 @@ jobs:
       - run: mix compile --warnings-as-errors
       - run: mix ecto.create
       - run: mix ecto.migrate
+      - name: Install ripgrep
+        run: sudo apt-get install -y ripgrep
       - name: Run tests against Postgres
         run: mix test
         timeout-minutes: 30
