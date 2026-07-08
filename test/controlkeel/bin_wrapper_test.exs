@@ -1,6 +1,10 @@
 defmodule ControlKeel.BinWrapperTest do
   use ExUnit.Case, async: false
 
+  # The wrapper subprocess is isolated by copying the SQLite DB file, which is
+  # inherently SQLite-only. The shell script itself is adapter-agnostic.
+  @moduletag :sqlite_only
+
   alias ControlKeel.Repo
   alias Ecto.Adapters.SQL.Sandbox
 
