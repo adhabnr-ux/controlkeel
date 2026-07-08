@@ -76,14 +76,14 @@ defmodule ControlKeel.Project.VirtualWorkspaceTest do
     assert is_integer(first["orientation_score"])
 
     assert Enum.any?(rest, &(&1["orientation_hint"] == "test"))
-    assert Enum.any?(rest, &(&1["orientation_hint"] == "vendor"))
+    refute Enum.any?(result["matches"], &String.starts_with?(&1["path"], "deps/"))
   end
 
   test "grep emits file summaries and per-match orientation metadata", %{session: session} do
     assert {:ok, result} =
              VirtualWorkspace.grep(session.id, "needle", limit: 10, fixed_strings: true)
 
-    assert result["file_count"] == 3
+    assert result["file_count"] == 2
     assert [%{"path" => "lib/checkpoint_store.ex", "rank" => 1} | _] = result["files"]
 
     assert Enum.all?(result["matches"], &is_integer(&1["rank"]))

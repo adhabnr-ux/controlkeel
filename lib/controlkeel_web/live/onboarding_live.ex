@@ -593,7 +593,7 @@ defmodule ControlKeelWeb.OnboardingLive do
          |> assign(:compiled_brief, brief)
          |> assign(
            :compiled_boundary_summary,
-           Intent.boundary_summary(brief, project_root: socket.assigns.project_root)
+           Intent.boundary_summary(brief)
          )
          |> assign(:step, 4)
          |> assign_form()}

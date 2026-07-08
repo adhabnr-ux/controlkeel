@@ -1,6 +1,10 @@
 defmodule ControlKeel.Project.VirtualWorkspace do
   @moduledoc false
 
+  @ignored_dirs MapSet.new(
+                  ~w(.git .elixir_ls _build deps node_modules vendor priv/static tmp log)
+                )
+
   alias ControlKeel.Mission
   alias ControlKeel.Project.WorkspaceContext
 
@@ -270,19 +274,19 @@ defmodule ControlKeel.Project.VirtualWorkspace do
   end
 
   defp grep_with_rg(rg, root, scope_path, query, opts, max_matches) do
+    scope_arg = Path.relative_to(scope_path, root)
+
     args =
-      [
-        "--json",
-        "--line-number",
-        "--hidden",
-        "--glob",
-        "!.git"
-      ]
+      ([
+         "--json",
+         "--line-number",
+         "--hidden"
+       ] ++ ignored_rg_globs())
       |> maybe_add_arg(Keyword.get(opts, :ignore_case, false), "-i")
       |> maybe_add_arg(Keyword.get(opts, :fixed_strings, true), "-F")
-      |> Kernel.++([query, scope_path])
+      |> Kernel.++([query, if(scope_arg == "", do: ".", else: scope_arg)])
 
-    case System.cmd(rg, args, stderr_to_stdout: true) do
+    case System.cmd(rg, args, cd: root, stderr_to_stdout: true) do
       {output, exit_code} when exit_code in [0, 1] ->
         matches =
           output
@@ -311,7 +315,7 @@ defmodule ControlKeel.Project.VirtualWorkspace do
       matches =
         scope_path
         |> walk_children()
-        |> Stream.reject(&path_within_git?/1)
+        |> Stream.reject(&ignored_path?/1)
         |> Stream.filter(&File.regular?/1)
         |> Stream.transform(0, fn path, count ->
           if count >= max_matches do
@@ -441,7 +445,11 @@ defmodule ControlKeel.Project.VirtualWorkspace do
   defp maybe_downcase(value, true), do: String.downcase(value)
   defp maybe_downcase(value, false), do: value
 
-  defp path_within_git?(path), do: ".git" in Path.split(path)
+  defp ignored_path?(path), do: Enum.any?(Path.split(path), &ignored_entry?/1)
+
+  defp ignored_rg_globs do
+    Enum.flat_map(@ignored_dirs, fn dir -> ["--glob", "!#{dir}/**"] end)
+  end
 
   defp safe_path(root, path) do
     candidate =
@@ -570,10 +578,14 @@ defmodule ControlKeel.Project.VirtualWorkspace do
         |> Stream.flat_map(fn entry ->
           path = Path.join(root, entry)
 
-          if File.dir?(path) do
-            Stream.concat([path], walk_children(path))
+          if ignored_entry?(entry) do
+            []
           else
-            [path]
+            if File.dir?(path) do
+              Stream.concat([path], walk_children(path))
+            else
+              [path]
+            end
           end
         end)
 
@@ -581,6 +593,8 @@ defmodule ControlKeel.Project.VirtualWorkspace do
         []
     end
   end
+
+  defp ignored_entry?(entry), do: MapSet.member?(@ignored_dirs, entry)
 
   defp grep_match(root, data) do
     path = get_in(data, ["path", "text"]) || ""

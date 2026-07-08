@@ -30,7 +30,7 @@ defmodule ControlKeel.Benchmark.Runner do
     finalize(ControlKeelProxy.run(scenario, subject, opts), scenario)
   end
 
-  def run_subject(%Scenario{} = scenario, %{"type" => "ungoverned_baseline"} = subject, _opts) do
+  def run_subject(%Scenario{} = scenario, %{"type" => "null_policy_baseline"} = subject, _opts) do
     finalize(ungoverned_outcome(subject), scenario)
   end
 
@@ -260,7 +260,7 @@ defmodule ControlKeel.Benchmark.Runner do
           {:error, reason} ->
             %{
               "allowed" => false,
-              "decision" => "allow",
+              "decision" => "block",
               "summary" => inspect(reason),
               "findings" => []
             }

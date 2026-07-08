@@ -15,9 +15,9 @@ defmodule ControlKeel.Benchmark.SubjectLoader do
       "configured" => true
     },
     %{
-      "id" => "ungoverned_baseline",
+      "id" => "null_policy_baseline",
       "label" => "Null Policy Baseline",
-      "type" => "ungoverned_baseline",
+      "type" => "null_policy_baseline",
       "configured" => true
     }
   ]

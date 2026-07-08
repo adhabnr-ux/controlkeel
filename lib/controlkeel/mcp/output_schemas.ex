@@ -465,7 +465,7 @@ defmodule ControlKeel.MCP.OutputSchemas do
       "properties" => %{
         "mode" => %{"type" => "string"},
         "suggestions" => %{"type" => "array", "items" => %{"type" => "object"}},
-        "comparison" => %{"type" => "object"}
+        "comparisons" => %{"type" => "array", "items" => %{"type" => "object"}}
       }
     },
     "ck_deployment_advisor" => %{
@@ -482,8 +482,8 @@ defmodule ControlKeel.MCP.OutputSchemas do
       "properties" => %{
         "mode" => %{"type" => "string"},
         "recorded" => %{"type" => "boolean"},
-        "session_outcome" => %{"type" => "object"},
-        "leaderboard" => %{"type" => "array", "items" => %{"type" => "object"}}
+        "outcomes" => %{"type" => "array", "items" => %{"type" => "object"}},
+        "entries" => %{"type" => "array", "items" => %{"type" => "object"}}
       }
     },
     "ck_token_audit" => %{

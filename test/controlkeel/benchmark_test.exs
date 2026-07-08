@@ -245,17 +245,17 @@ defmodule ControlKeel.BenchmarkTest do
     {:ok, run} =
       Benchmark.run_suite(%{
         "suite" => "vibe_failures_v1",
-        "subjects" => "ungoverned_baseline,controlkeel_validate",
-        "baseline_subject" => "ungoverned_baseline",
+        "subjects" => "null_policy_baseline,controlkeel_validate",
+        "baseline_subject" => "null_policy_baseline",
         "scenario_slugs" => "hardcoded_api_key_python_webhook,client_side_auth_bypass"
       })
 
     assert {:ok, comparison} = Benchmark.compare_run(run.id)
 
-    assert get_in(comparison, ["run", "baseline_subject"]) == "ungoverned_baseline"
+    assert get_in(comparison, ["run", "baseline_subject"]) == "null_policy_baseline"
     assert get_in(comparison, ["summary", "max_catch_rate_lift_points"]) > 0.0
 
-    baseline = Enum.find(comparison["subjects"], &(&1["subject"] == "ungoverned_baseline"))
+    baseline = Enum.find(comparison["subjects"], &(&1["subject"] == "null_policy_baseline"))
     ck = Enum.find(comparison["subjects"], &(&1["subject"] == "controlkeel_validate"))
 
     assert baseline["catch_rate"] == 0.0
@@ -752,8 +752,8 @@ defmodule ControlKeel.BenchmarkTest do
   test "exports benchmark runs as json and csv" do
     run =
       benchmark_run_fixture(%{
-        "subjects" => "ungoverned_baseline,controlkeel_validate",
-        "baseline_subject" => "ungoverned_baseline",
+        "subjects" => "null_policy_baseline,controlkeel_validate",
+        "baseline_subject" => "null_policy_baseline",
         "scenario_slugs" => "hardcoded_api_key_python_webhook,client_side_auth_bypass"
       })
 

@@ -1036,9 +1036,6 @@ defmodule ControlKeelWeb.MissionControlLive do
     brief = stringify_keys(session.execution_brief || %{})
     compiler = stringify_keys(Map.get(brief, "compiler", %{}))
 
-    project_root =
-      socket.assigns[:project_root] || socket.endpoint.config(:project_root) || File.cwd!()
-
     selected_finding =
       case socket.assigns[:selected_finding] do
         %{id: id} -> Enum.find(session.findings, &(&1.id == id))
@@ -1058,7 +1055,7 @@ defmodule ControlKeelWeb.MissionControlLive do
       session_metrics:
         Analytics.session_metrics(session.id) || default_session_metrics(session.id),
       brief: brief,
-      boundary_summary: Intent.boundary_summary(brief, project_root: project_root),
+      boundary_summary: Intent.boundary_summary(brief),
       compiler: compiler,
       current_task: current_task(session.tasks),
       selected_finding: selected_finding,

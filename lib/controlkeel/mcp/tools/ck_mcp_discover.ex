@@ -90,10 +90,6 @@ defmodule ControlKeel.MCP.Tools.CkMcpDiscover do
     "Invalid URL: #{inspect(url)}. Must include scheme and host."
   end
 
-  defp format_error({:inets_unavailable, reason}) do
-    "Could not start :inets for HTTP discovery: #{inspect(reason)}"
-  end
-
   defp format_error({:response_too_large, size}) do
     "MCP server response exceeded size limit (got #{inspect(size)} bytes)"
   end

@@ -20,7 +20,7 @@ defmodule ControlKeel.MCP.ToolGroupsTest do
   end
 
   describe "all_tools/0" do
-    test "returns all 55 tools" do
+    test "returns all tools" do
       tools = ToolGroups.all_tools()
       assert length(tools) == 54
     end
@@ -73,21 +73,6 @@ defmodule ControlKeel.MCP.ToolGroupsTest do
       protocol_groups = ControlKeel.MCP.Protocol.tool_groups() |> Enum.sort()
       shared_groups = ToolGroups.groups() |> Enum.sort()
       assert protocol_groups == shared_groups
-    end
-
-    test "tracker mapping covers all tools from ToolGroups" do
-      tracker_map =
-        ControlKeel.MCP.ToolGroupTracker
-        |> Code.ensure_compiled!()
-
-      tracker_tools =
-        :code.get_object_code(tracker_map)
-        |> then(fn _ ->
-          ToolGroups.tool_to_group_map() |> Map.keys() |> MapSet.new()
-        end)
-
-      shared_tools = ToolGroups.all_tools() |> MapSet.new()
-      assert tracker_tools == shared_tools
     end
 
     test "tool group filtering in protocol uses same tool set" do

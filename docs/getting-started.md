@@ -75,8 +75,8 @@ Use a real pending change, or run a controlled validation benchmark:
 ```bash
 controlkeel benchmark run \
   --suite host_comparison_v1 \
-  --subjects ungoverned_baseline,controlkeel_validate \
-  --baseline-subject ungoverned_baseline
+  --subjects null_policy_baseline,controlkeel_validate \
+  --baseline-subject null_policy_baseline
 controlkeel benchmark compare <run-id>
 ```
 

@@ -92,12 +92,6 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
   end
 
   @impl true
-  def handle_call({:get_stats, project_root}, _from, state) do
-    stats = collect_usage_stats(project_root)
-    {:reply, stats, state}
-  end
-
-  @impl true
   def handle_call({:suggest_groups, project_root}, _from, state) do
     groups = suggest_optimal_groups(project_root)
     {:reply, groups, state}

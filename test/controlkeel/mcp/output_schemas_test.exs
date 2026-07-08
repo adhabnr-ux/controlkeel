@@ -148,7 +148,7 @@ defmodule ControlKeel.MCP.OutputSchemasTest do
       end
     end
 
-    test "all 55 tools have output schema definitions" do
+    test "all tools have output schema definitions" do
       all_tools = ToolGroups.all_tools()
       schema_tools = OutputSchemas.tool_names()
 

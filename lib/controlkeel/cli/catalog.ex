@@ -677,7 +677,7 @@ defmodule ControlKeel.CLI.Catalog do
         related_skills: ["benchmark-operator"],
         examples: [
           "controlkeel eval run --suite governance-regression",
-          "controlkeel benchmark run --suite host_comparison_v1 --subjects ungoverned_baseline,controlkeel_validate --baseline-subject ungoverned_baseline",
+          "controlkeel benchmark run --suite host_comparison_v1 --subjects null_policy_baseline,controlkeel_validate --baseline-subject null_policy_baseline",
           "controlkeel benchmark compare <run-id> --json"
         ]
       ),

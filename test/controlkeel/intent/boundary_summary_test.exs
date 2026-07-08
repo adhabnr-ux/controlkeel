@@ -8,16 +8,7 @@ defmodule ControlKeel.Intent.BoundarySummaryTest do
   test "builds a production boundary summary from the execution brief and compiler answers" do
     brief = execution_brief_fixture()
 
-    summary =
-      Intent.boundary_summary(
-        brief,
-        provider_status: %{
-          "selected_source" => "agent_bridge",
-          "selected_provider" => "anthropic",
-          "attached_agents" => [%{"id" => "claude-code"}],
-          "runtime_hints" => [%{"agent_id" => "claude-code"}]
-        }
-      )
+    summary = Intent.boundary_summary(brief)
 
     assert summary["risk_tier"] == "critical"
     assert summary["budget_note"] == "$40/month to start"

@@ -9,9 +9,6 @@ defmodule ControlKeel.Agent.AutonomyLoop do
   @feedback_loop ["run", "observe", "evaluate", "improve", "rerun"]
   @autonomy_modes ["advise", "supervised_execute", "guarded_autonomy", "long_running_autonomy"]
 
-  def autonomy_modes, do: @autonomy_modes
-  def feedback_loop, do: @feedback_loop
-
   def session_autonomy_profile(%Session{} = session) do
     mode = autonomy_mode(session)
 
@@ -87,7 +84,7 @@ defmodule ControlKeel.Agent.AutonomyLoop do
     }
   end
 
-  def bottleneck_summary(%Session{} = session, current_task, latest_proof, trace_summary \\ %{}) do
+  defp bottleneck_summary(%Session{} = session, current_task, latest_proof, trace_summary) do
     findings = assoc_list(session.findings)
     active_findings = Enum.filter(findings, &(&1.status in ["open", "blocked", "escalated"]))
     blocked_findings = Enum.count(active_findings, &(&1.status == "blocked"))
@@ -132,7 +129,7 @@ defmodule ControlKeel.Agent.AutonomyLoop do
     }
   end
 
-  def ownership_summary(%Session{} = session) do
+  defp ownership_summary(%Session{} = session) do
     task_owners =
       session.tasks
       |> assoc_list()

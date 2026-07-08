@@ -73,7 +73,7 @@ ControlKeel includes a persisted benchmark engine. Current user-facing evidence 
 
 Verified with ControlKeel `0.3.45`:
 
-- Risky suite `host_comparison_v1`: `ungoverned_baseline` caught **0/12**; `controlkeel_validate` caught **12/12**, blocked **9/12**, and hit expected rules **9/12** with median deterministic validation time **52 ms**, **0 provider tokens**.
+- Risky suite `host_comparison_v1`: `null_policy_baseline` caught **0/12**; `controlkeel_validate` caught **12/12**, blocked **9/12**, and hit expected rules **9/12** with median deterministic validation time **52 ms**, **0 provider tokens**.
 - Paired benign suite `benign_baseline_v1`: `controlkeel_validate` produced **0/10 catches**, **0/10 blocks**, FPR **0.000**, median deterministic validation time **42 ms**, **0 provider tokens**.
 
 Read the numbers precisely: deterministic scanner evidence is not the same as model-backed agent-host evidence. Reproduction commands and the OpenCode/Copilot/Claude/Codex comparison protocol live in [docs/benchmarks.md](docs/benchmarks.md).

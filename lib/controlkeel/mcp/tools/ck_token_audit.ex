@@ -1,6 +1,8 @@
 defmodule ControlKeel.MCP.Tools.CkTokenAudit do
   @moduledoc false
 
+  alias ControlKeel.MCP.ToolGroups
+
   @target_word_count 1200
   @words_per_token 0.75
   @chars_per_token 4
@@ -650,7 +652,7 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
       # Get tools in these groups
       group_tool_names =
         groups
-        |> Enum.flat_map(fn group -> get_group_tool_names(group) end)
+        |> Enum.flat_map(&ToolGroups.tools_for_group/1)
         |> MapSet.new()
         |> MapSet.to_list()
 
@@ -674,39 +676,5 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
        }}
     end)
     |> Enum.into(%{})
-  end
-
-  defp get_group_tool_names(group_name) do
-    # This would ideally come from Protocol, but for now define inline
-    # to avoid circular dependency
-    case group_name do
-      "core" ->
-        ["ck_validate", "ck_context", "ck_execute_code", "ck_budget", "ck_route"]
-
-      "governance" ->
-        [
-          "ck_review_submit",
-          "ck_review_status",
-          "ck_finding",
-          "ck_goal",
-          "ck_memory_record",
-          "ck_memory_search",
-          "ck_memory_archive",
-          "ck_delegate"
-        ]
-
-      "observability" ->
-        [
-          "ck_observability",
-          "ck_experience_index",
-          "ck_experience_read",
-          "ck_experience_search",
-          "ck_trace_packet",
-          "ck_failure_clusters"
-        ]
-
-      _ ->
-        []
-    end
   end
 end

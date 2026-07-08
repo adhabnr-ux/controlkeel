@@ -41,8 +41,7 @@ defmodule ControlKeel.MCP.Tools.CkContext do
         "outcome_profile" => AutonomyLoop.session_outcome_profile(session),
         "improvement_loop" => AutonomyLoop.session_improvement_loop(session),
         "budget_summary" => budget_summary(session),
-        "boundary_summary" =>
-          Intent.boundary_summary(session.execution_brief || %{}, project_root: project_root),
+        "boundary_summary" => Intent.boundary_summary(session.execution_brief || %{}),
         "current_task" => task_summary(task),
         "past_patterns" => past_patterns(session),
         "proof_summary" => Mission.proof_summary_for_task(task),

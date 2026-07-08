@@ -68,21 +68,6 @@ defmodule ControlKeelWeb.DeploymentLive do
   end
 
   @impl true
-  def handle_event("write_files", _params, socket) do
-    {:ok, results} =
-      Advisor.generate_files(
-        socket.assigns.project_root,
-        socket.assigns.analysis.generators,
-        dry_run: false
-      )
-
-    {:noreply,
-     socket
-     |> assign(:generated_files, results)
-     |> put_flash(:info, "Files written successfully!")}
-  end
-
-  @impl true
   def render(assigns) do
     ~H"""
     <DashboardLayout.dashboard flash={@flash}>
@@ -92,7 +77,7 @@ defmodule ControlKeelWeb.DeploymentLive do
             <p class="ck-kicker">Deployment</p>
             <h1 class="ck-section-title">Deployment Advisor</h1>
             <p class="ck-lead ck-lead-tight">
-              Analyze your project stack, generate Dockerfiles, CI pipelines, and estimate hosting costs across major platforms.
+              Analyze your project stack, preview deployment files, and estimate hosting costs across major platforms.
             </p>
           </div>
           <div class="ck-action-row">
@@ -207,9 +192,6 @@ defmodule ControlKeelWeb.DeploymentLive do
               <div class="flex gap-2">
                 <button phx-click="generate_files" class="ck-btn ck-btn-sm">
                   Preview Files
-                </button>
-                <button phx-click="write_files" class="ck-btn ck-btn-primary ck-btn-sm">
-                  Write to Disk
                 </button>
               </div>
             </div>

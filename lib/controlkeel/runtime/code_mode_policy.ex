@@ -96,14 +96,12 @@ defmodule ControlKeel.Runtime.CodeModePolicy do
       network_allowlist != []
   end
 
-  defp rate_policy(risk_tier) do
+  defp rate_policy(_risk_tier) do
     %{
-      "max_requests_per_minute" => rpm_for(risk_tier),
+      "max_requests_per_minute" => 0,
       "respect_retry_after" => true
     }
   end
-
-  defp rpm_for(_risk_tier), do: 0
 
   defp review_notes(risk_tier, network_allowlist) do
     [

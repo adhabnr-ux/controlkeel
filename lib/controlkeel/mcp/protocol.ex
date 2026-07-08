@@ -1274,7 +1274,7 @@ defmodule ControlKeel.MCP.Protocol do
       "name" => "ck_fs_grep",
       "description" =>
         "Search file contents inside the bound project root using grep-style pattern matching. Read-only — no files are modified. " <>
-          "query is a regex pattern by default; set fixed_strings: true to match literal text without regex. " <>
+          "query uses fixed-string search by default; set fixed_strings: false to treat it as a regex. " <>
           "Scope the search with path (a relative directory or glob); omit to search the entire project. " <>
           "Returns matching lines with file path and line numbers. limit caps results (default 50). " <>
           "Use ck_fs_grep to find code patterns or strings inside files. Use ck_fs_find to locate files by name fragment. Use ck_fs_read to read a specific file by path.",

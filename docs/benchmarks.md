@@ -52,15 +52,15 @@ The default value metric is **catch-rate lift vs no CK policy gate**, paired wit
 ```bash
 controlkeel benchmark run \
   --suite host_comparison_v1 \
-  --subjects ungoverned_baseline,controlkeel_validate \
-  --baseline-subject ungoverned_baseline
+  --subjects null_policy_baseline,controlkeel_validate \
+  --baseline-subject null_policy_baseline
 
 controlkeel benchmark compare <run-id>
 controlkeel benchmark compare <run-id> --json
 controlkeel benchmark export <run-id> --format json
 ```
 
-`ungoverned_baseline` is intentionally not a competitor. It is a null policy baseline: the generated artifact proceeds unchanged without a ControlKeel gate. Use it only for deterministic with-vs-without policy-gate evidence before a team configures Copilot, OpenCode, Claude, Codex, or another external subject.
+`null_policy_baseline` is intentionally not a competitor. It is a null policy baseline: the generated artifact proceeds unchanged without a ControlKeel gate. Use it only for deterministic with-vs-without policy-gate evidence before a team configures Copilot, OpenCode, Claude, Codex, or another external subject.
 
 For VC/YC-style summaries, report a compact scoreboard:
 
@@ -83,18 +83,18 @@ Example investor-safe wording:
 
 The following numbers are a historical local snapshot from 2026-06-05 with ControlKeel `0.3.45` using deterministic validation only. They are reproducible without provider keys on that version and should be treated as an archived proof baseline, not current product evidence or a universal safety claim. Rerun the suite on the current version before making external claims.
 
-Risky suite: `host_comparison_v1` v1, 12 public risky scenarios, subjects `ungoverned_baseline,controlkeel_validate`, baseline `ungoverned_baseline`.
+Risky suite: `host_comparison_v1` v1, 12 public risky scenarios, subjects `null_policy_baseline,controlkeel_validate`, baseline `null_policy_baseline`.
 
 | Subject | Catch | Block | Expected-rule hit | TPR | Median validation time | Provider tokens | Est. provider cost |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `ungoverned_baseline` | 0/12 | 0/12 | 0/12 | 0.000 | 0 ms | 0 | $0 |
+| `null_policy_baseline` | 0/12 | 0/12 | 0/12 | 0.000 | 0 ms | 0 | $0 |
 | `controlkeel_validate` | 12/12 | 9/12 | 9/12 | 1.000 | 52 ms | 0 | $0 |
 
 Paired benign suite: `benign_baseline_v1` v1, 10 public safe scenarios.
 
 | Subject | Catch | Block | Expected-rule hit | FPR | Median validation time | Provider tokens | Est. provider cost |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `ungoverned_baseline` | 0/10 | 0/10 | 10/10 | 0.000 | 0 ms | 0 | $0 |
+| `null_policy_baseline` | 0/10 | 0/10 | 10/10 | 0.000 | 0 ms | 0 | $0 |
 | `controlkeel_validate` | 0/10 | 0/10 | 10/10 | 0.000 | 42 ms | 0 | $0 |
 
 Bounded historical headline from this snapshot:
@@ -242,7 +242,7 @@ Use [observability-feedback-loop.md](observability-feedback-loop.md) for the loc
 
 Built-in subjects (available without configuration):
 
-- `ungoverned_baseline` — null policy baseline; no CK gate runs and the artifact proceeds unchanged.
+- `null_policy_baseline` — null policy baseline; no CK gate runs and the artifact proceeds unchanged.
 - `controlkeel_validate` — direct deterministic validation path.
 - `controlkeel_proxy` — proxy-shaped policy scan path; it does not execute provider traffic.
 

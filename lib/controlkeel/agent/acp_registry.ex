@@ -14,7 +14,7 @@ defmodule ControlKeel.Agent.ACPRegistry do
     "opencode" => ["opencode"]
   }
 
-  def sync(_opts \\ []) do
+  def sync do
     cache = read_cache()
 
     headers =

@@ -21,7 +21,7 @@ defmodule ControlKeel.Intent do
   def preflight_context(attrs), do: Domains.preflight_context(attrs)
 
   def to_brief_map(%ExecutionBrief{} = brief), do: ExecutionBrief.to_map(brief)
-  def boundary_summary(brief_or_map, _opts \\ []), do: BoundarySummary.build(brief_or_map)
+  def boundary_summary(brief_or_map), do: BoundarySummary.build(brief_or_map)
   def execution_posture(brief_or_map), do: ExecutionPosture.build(brief_or_map)
 
   defp normalize_attrs(attrs) do
