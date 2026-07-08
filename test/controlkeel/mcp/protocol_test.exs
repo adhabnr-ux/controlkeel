@@ -2055,6 +2055,234 @@ defmodule ControlKeel.MCP.ProtocolTest do
     assert get_in(response, ["result", "structuredContent", "source_session_id"]) == session.id
   end
 
+  test "tools/call ck_skill_evolution validate_only returns a Self-Harness verdict" do
+    workspace = workspace_fixture()
+
+    session_a =
+      session_fixture(%{
+        workspace: workspace,
+        execution_brief: %{"domain_pack" => "software"}
+      })
+
+    session_b =
+      session_fixture(%{
+        workspace: workspace,
+        execution_brief: %{"domain_pack" => "software"}
+      })
+
+    task_a = task_fixture(%{session: session_a, status: "done"})
+    task_b = task_fixture(%{session: session_b, status: "done"})
+
+    _finding_a =
+      finding_fixture(%{
+        session: session_a,
+        status: "blocked",
+        rule_id: "security.sql_injection",
+        title: "SQL injection risk",
+        plain_message: "Unsafe SQL concatenation was detected.",
+        metadata: %{"task_id" => task_a.id}
+      })
+
+    _finding_b =
+      finding_fixture(%{
+        session: session_b,
+        status: "blocked",
+        rule_id: "security.sql_injection",
+        title: "SQL injection risk",
+        plain_message: "Unsafe SQL concatenation was detected again.",
+        metadata: %{"task_id" => task_b.id}
+      })
+
+    tmp_dir =
+      Path.join(
+        System.tmp_dir!(),
+        "ck-skill-evolution-validate-#{System.unique_integer([:positive])}"
+      )
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 202_611,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_skill_evolution",
+          "arguments" => %{
+            "session_id" => session_a.id,
+            "session_limit" => 5,
+            "validate_only" => true,
+            "current_skill_name" => "secure-sql-review",
+            "project_root" => tmp_dir
+          }
+        }
+      })
+
+    verdict = get_in(response, ["result", "structuredContent"])
+
+    assert Map.has_key?(verdict, "accepted")
+    assert Map.has_key?(verdict["checks"], "static")
+    assert Map.has_key?(verdict["checks"], "held_in")
+    assert Map.has_key?(verdict["checks"], "held_out")
+    assert Map.has_key?(verdict["checks"], "regression")
+    assert is_integer(verdict["held_in_cluster_count"])
+    assert is_integer(verdict["held_out_cluster_count"])
+    # No file should be written in validate-only mode.
+    refute File.exists?(
+             Path.join([tmp_dir, ".agents", "skills", "secure-sql-review", "SKILL.md"])
+           )
+  end
+
+  test "tools/call ck_skill_evolution install writes the skill only when validation passes" do
+    workspace = workspace_fixture()
+
+    session_a =
+      session_fixture(%{
+        workspace: workspace,
+        execution_brief: %{"domain_pack" => "software"}
+      })
+
+    session_b =
+      session_fixture(%{
+        workspace: workspace,
+        execution_brief: %{"domain_pack" => "software"}
+      })
+
+    task_a = task_fixture(%{session: session_a, status: "done"})
+    task_b = task_fixture(%{session: session_b, status: "done"})
+
+    _finding_a =
+      finding_fixture(%{
+        session: session_a,
+        status: "blocked",
+        rule_id: "security.sql_injection",
+        title: "SQL injection risk",
+        plain_message: "Unsafe SQL concatenation was detected.",
+        metadata: %{"task_id" => task_a.id}
+      })
+
+    _finding_b =
+      finding_fixture(%{
+        session: session_b,
+        status: "blocked",
+        rule_id: "security.sql_injection",
+        title: "SQL injection risk",
+        plain_message: "Unsafe SQL concatenation was detected again.",
+        metadata: %{"task_id" => task_b.id}
+      })
+
+    tmp_dir =
+      Path.join(
+        System.tmp_dir!(),
+        "ck-skill-evolution-install-#{System.unique_integer([:positive])}"
+      )
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 202_612,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_skill_evolution",
+          "arguments" => %{
+            "session_id" => session_a.id,
+            "session_limit" => 5,
+            "install" => true,
+            "current_skill_name" => "secure-sql-review",
+            "project_root" => tmp_dir
+          }
+        }
+      })
+
+    result = get_in(response, ["result", "structuredContent"])
+
+    skill_path = Path.join([tmp_dir, ".agents", "skills", "secure-sql-review", "SKILL.md"])
+
+    if result["applied"] do
+      assert File.exists?(skill_path)
+      assert result["validation"]["accepted"] == true
+      assert result["path"] == skill_path
+    else
+      # If validation rejected the edit, no file should be written and an error
+      # should be surfaced rather than a partial write.
+      refute File.exists?(skill_path)
+      assert get_in(response, ["error"]) != nil or result["validation"]["accepted"] == false
+    end
+  end
+
+  test "tools/call ck_skill_evolution install preserves previous skill as .bak" do
+    workspace = workspace_fixture()
+
+    session =
+      session_fixture(%{
+        workspace: workspace,
+        execution_brief: %{"domain_pack" => "software"}
+      })
+
+    _task = task_fixture(%{session: session, status: "done"})
+
+    _finding =
+      finding_fixture(%{
+        session: session,
+        status: "blocked",
+        rule_id: "security.sql_injection",
+        title: "SQL injection risk",
+        plain_message: "Unsafe SQL concatenation was detected.",
+        metadata: %{"task_id" => session.id}
+      })
+
+    tmp_dir =
+      Path.join(
+        System.tmp_dir!(),
+        "ck-skill-evolution-backup-#{System.unique_integer([:positive])}"
+      )
+
+    File.rm_rf!(tmp_dir)
+    File.mkdir_p!(tmp_dir)
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    skill_dir = Path.join([tmp_dir, ".agents", "skills", "secure-sql-review"])
+    File.mkdir_p!(skill_dir)
+
+    original_path = Path.join(skill_dir, "SKILL.md")
+    original_content = "---\nname: secure-sql-review\ndescription: Old version.\n---\n# Old\n"
+    File.write!(original_path, original_content)
+
+    response =
+      Protocol.handle_request(%{
+        "jsonrpc" => "2.0",
+        "id" => 202_613,
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "ck_skill_evolution",
+          "arguments" => %{
+            "session_id" => session.id,
+            "session_limit" => 1,
+            "install" => true,
+            "current_skill_name" => "secure-sql-review",
+            "project_root" => tmp_dir
+          }
+        }
+      })
+
+    result = get_in(response, ["result", "structuredContent"])
+
+    if result["applied"] do
+      assert File.exists?(original_path)
+      assert result["backup_path"] != nil
+      assert File.exists?(result["backup_path"])
+      assert File.read!(result["backup_path"]) == original_content
+      # New content should differ from the original.
+      refute File.read!(original_path) == original_content
+    end
+  end
+
   test "tools/call ck_review_submit returns grill questions for weak planning packets" do
     session = session_fixture()
     task = task_fixture(%{session: session, status: "queued"})

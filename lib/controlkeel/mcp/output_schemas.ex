@@ -201,8 +201,29 @@ defmodule ControlKeel.MCP.OutputSchemas do
       "properties" => %{
         "anti_patterns" => %{"type" => "array", "items" => %{"type" => "object"}},
         "reinforced_practices" => %{"type" => "array", "items" => %{"type" => "object"}},
-        "skill_draft" => %{"type" => "object"},
-        "install" => %{"type" => "object"}
+        "suggested_skill_document" => %{"type" => "string"},
+        "guidance" => %{"type" => "object"},
+        "merge_strategy" => %{"type" => "object"},
+        "validation" => %{
+          "type" => "object",
+          "properties" => %{
+            "accepted" => %{"type" => "boolean"},
+            "checks" => %{"type" => "object"},
+            "held_in_cluster_count" => %{"type" => "integer"},
+            "held_out_cluster_count" => %{"type" => "integer"},
+            "notes" => %{"type" => "array", "items" => %{"type" => "string"}}
+          }
+        },
+        "install" => %{
+          "type" => "object",
+          "properties" => %{
+            "applied" => %{"type" => "boolean"},
+            "skill_name" => %{"type" => "string"},
+            "path" => %{"type" => "string"},
+            "backup_path" => %{"type" => "string"},
+            "validation" => %{"type" => "object"}
+          }
+        }
       }
     },
     "ck_fs_ls" => %{

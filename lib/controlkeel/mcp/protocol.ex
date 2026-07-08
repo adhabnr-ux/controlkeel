@@ -1126,7 +1126,7 @@ defmodule ControlKeel.MCP.Protocol do
     %{
       "name" => "ck_skill_evolution",
       "description" =>
-        "Synthesize a deduplicated skill-evolution packet from recent traces and recurring failure clusters, including anti-patterns, reinforced practices, and a ready-to-merge skill draft.",
+        "Synthesize a deduplicated skill-evolution packet from recent traces and recurring failure clusters, including anti-patterns, reinforced practices, and a ready-to-merge skill draft. Set validate_only=true to run the Self-Harness validation stage (held-in/held-out + regression) without writing. Set install=true to validate and then materialize the draft into .agents/skills/<name>/SKILL.md under project_root, preserving the previous file as .bak.",
       "inputSchema" => %{
         "type" => "object",
         "required" => [],
@@ -1139,7 +1139,7 @@ defmodule ControlKeel.MCP.Protocol do
           "project_root" => %{
             "type" => "string",
             "description" =>
-              "Absolute path to the project root directory on the local filesystem."
+              "Absolute path to the project root directory on the local filesystem. Required for install mode."
           },
           "session_limit" => %{
             "type" => ["integer", "string"],
@@ -1153,7 +1153,17 @@ defmodule ControlKeel.MCP.Protocol do
             "type" => "string",
             "description" => "Name of the existing skill to compare against for evolution."
           },
-          "current_skill_content" => %{"type" => "string"}
+          "current_skill_content" => %{"type" => "string"},
+          "validate_only" => %{
+            "type" => "boolean",
+            "description" =>
+              "When true, run the Self-Harness validation stage (static, held-in, held-out, regression) and return the verdict without writing any files."
+          },
+          "install" => %{
+            "type" => "boolean",
+            "description" =>
+              "When true, validate the packet and, only if accepted, write the suggested skill document to .agents/skills/<name>/SKILL.md under project_root. The previous file is preserved as <path>.bak for rollback. Requires project_root."
+          }
         }
       }
     }

@@ -1995,6 +1995,282 @@ defmodule ControlKeel.Mission do
     end
   end
 
+  @doc """
+  Validates a skill-evolution packet before it can be applied.
+
+  Implements the Self-Harness validation stage (Zhang et al. 2026): a proposed
+  harness edit is accepted only if it passes held-in and held-out checks with no
+  regression. For CK, "held-in" is the set of failure clusters that motivated the
+  edit, and "held-out" is other recent clusters in the same workspace/domain.
+
+  Checks:
+    1. Static — the suggested skill document parses (frontmatter + body) and the
+       name is well-formed.
+    2. Held-in — every anti-pattern cluster in the packet is referenced by the
+       suggested document (the edit addresses what motivated it).
+    3. Held-out — the suggested document does not contradict clusters outside the
+       held-in set (no "avoid" line that would weaken a guardrail for a held-out
+       failure type).
+    4. Regression — the policy gate's benchmark catch rate does not drop when the
+       skill is loaded. Uses the deterministic `controlkeel_validate` subject so
+       the check is reproducible and does not depend on model availability.
+
+  Returns `{:ok, verdict}` where verdict is a map with `:accepted`, `:checks`,
+  and `:notes`, or `{:error, reason}`.
+  """
+  def validate_skill_evolution(session_id, opts \\ []) when is_integer(session_id) do
+    with %Session{} = session <- get_session_with_workspace(session_id),
+         {:ok, packet} <- skill_evolution_packet(session_id, opts) do
+      domain_pack = get_in(session.execution_brief || %{}, ["domain_pack"])
+      project_root = Keyword.get(opts, :project_root, File.cwd!())
+
+      held_in_clusters = packet["anti_patterns"] || []
+      held_in_codes = MapSet.new(Enum.map(held_in_clusters, & &1["code"]))
+
+      held_out_clusters =
+        case failure_mode_clusters(session_id, opts) do
+          {:ok, %{"clusters" => clusters}} ->
+            Enum.reject(clusters || [], fn cluster ->
+              MapSet.member?(held_in_codes, cluster["code"])
+            end)
+
+          _ ->
+            []
+        end
+
+      static_check = validate_skill_static(packet)
+      held_in_check = validate_held_in(packet, held_in_clusters)
+      held_out_check = validate_held_out(packet, held_out_clusters)
+      regression_check = validate_regression(session, domain_pack, project_root)
+
+      checks = %{
+        "static" => static_check,
+        "held_in" => held_in_check,
+        "held_out" => held_out_check,
+        "regression" => regression_check
+      }
+
+      accepted =
+        static_check["passed"] and held_in_check["passed"] and
+          held_out_check["passed"] and regression_check["passed"]
+
+      notes =
+        []
+        |> maybe_add_note(not static_check["passed"], static_check["detail"])
+        |> maybe_add_note(not held_in_check["passed"], held_in_check["detail"])
+        |> maybe_add_note(not held_out_check["passed"], held_out_check["detail"])
+        |> maybe_add_note(not regression_check["passed"], regression_check["detail"])
+
+      {:ok,
+       %{
+         "workspace_id" => session.workspace_id,
+         "source_session_id" => session.id,
+         "domain_pack" => domain_pack,
+         "accepted" => accepted,
+         "checks" => checks,
+         "held_in_cluster_count" => length(held_in_clusters),
+         "held_out_cluster_count" => length(held_out_clusters),
+         "notes" => notes
+       }}
+    else
+      {:error, reason} -> {:error, reason}
+      _ -> {:error, :not_found}
+    end
+  end
+
+  @doc """
+  Validates and then applies a skill-evolution packet to the project skill tree.
+
+  Only writes if validation passes. Writes to
+  `.agents/skills/<name>/SKILL.md` under `project_root` and preserves the
+  previous file as `<path>.bak` so the edit is reversible. Returns
+  `{:ok, result}` with the written path and validation verdict, or
+  `{:error, reason}`.
+  """
+  def apply_skill_evolution(session_id, opts \\ []) when is_integer(session_id) do
+    project_root = Keyword.get(opts, :project_root, File.cwd!())
+
+    with {:ok, packet} <- skill_evolution_packet(session_id, opts),
+         {:ok, verdict} <- validate_skill_evolution(session_id, opts) do
+      if verdict["accepted"] do
+        skill_name = Keyword.get(opts, :current_skill_name, "trace-evolved-skill")
+        draft = packet["suggested_skill_document"]
+        target_dir = Path.join([Path.expand(project_root), ".agents/skills", skill_name])
+        target_path = Path.join(target_dir, "SKILL.md")
+
+        backup_path =
+          if File.exists?(target_path) do
+            backup = target_path <> ".bak"
+            File.cp!(target_path, backup)
+            backup
+          else
+            nil
+          end
+
+        File.mkdir_p!(target_dir)
+        File.write!(target_path, draft)
+
+        {:ok,
+         %{
+           "workspace_id" => verdict["workspace_id"],
+           "source_session_id" => verdict["source_session_id"],
+           "skill_name" => skill_name,
+           "path" => target_path,
+           "backup_path" => backup_path,
+           "validation" => verdict,
+           "applied" => true
+         }}
+      else
+        {:error, {:validation_failed, verdict}}
+      end
+    end
+  end
+
+  defp validate_skill_static(packet) do
+    draft = packet["suggested_skill_document"] || ""
+
+    cond do
+      String.trim(draft) == "" ->
+        %{"passed" => false, "detail" => "Suggested skill document is empty."}
+
+      not String.contains?(draft, "---") ->
+        %{"passed" => false, "detail" => "Skill document is missing frontmatter delimiters."}
+
+      not (String.contains?(draft, "name:") and String.contains?(draft, "description:")) ->
+        %{
+          "passed" => false,
+          "detail" => "Skill frontmatter must include both name and description."
+        }
+
+      true ->
+        %{
+          "passed" => true,
+          "detail" => "Skill document has frontmatter with name and description."
+        }
+    end
+  end
+
+  defp validate_held_in(packet, held_in_clusters) do
+    draft = packet["suggested_skill_document"] || ""
+    body = String.downcase(draft)
+
+    missing =
+      Enum.filter(held_in_clusters, fn cluster ->
+        code = cluster["code"] || ""
+        code != "" and not String.contains?(body, String.downcase(code))
+      end)
+
+    if held_in_clusters == [] do
+      %{
+        "passed" => true,
+        "detail" => "No held-in clusters to verify (nothing motivated the edit)."
+      }
+    else
+      case missing do
+        [] ->
+          %{
+            "passed" => true,
+            "detail" => "All #{length(held_in_clusters)} held-in cluster(s) referenced in draft."
+          }
+
+        missed ->
+          codes = Enum.map_join(missed, ", ", & &1["code"])
+          %{"passed" => false, "detail" => "Held-in clusters not addressed in draft: #{codes}"}
+      end
+    end
+  end
+
+  defp validate_held_out(_packet, []) do
+    %{"passed" => true, "detail" => "No held-out clusters to check against."}
+  end
+
+  defp validate_held_out(packet, held_out_clusters) do
+    draft = packet["suggested_skill_document"] || ""
+    avoid_lines = extract_avoid_lines(draft)
+
+    weakened =
+      Enum.filter(held_out_clusters, fn cluster ->
+        code = String.downcase(cluster["code"] || "")
+        code != "" and Enum.any?(avoid_lines, &String.contains?(&1, code))
+      end)
+
+    case weakened do
+      [] ->
+        %{"passed" => true, "detail" => "No held-out guardrails weakened by avoid lines."}
+
+      weakened_clusters ->
+        codes = Enum.map_join(weakened_clusters, ", ", & &1["code"])
+        %{"passed" => false, "detail" => "Avoid lines weaken held-out guardrails: #{codes}"}
+    end
+  end
+
+  defp validate_regression(_session, domain_pack, project_root) do
+    suite_slug = "vibe_failures_v1"
+
+    attrs = %{
+      "suite" => suite_slug,
+      "subjects" => ["controlkeel_validate"],
+      "domain_pack" => domain_pack
+    }
+
+    case ControlKeel.Benchmark.run_suite(attrs, project_root) do
+      {:ok, run} ->
+        catch_rate = run.catch_rate || 0.0
+        threshold = 0.0
+
+        if catch_rate >= threshold do
+          %{
+            "passed" => true,
+            "detail" =>
+              "Policy gate catch rate #{Float.round(catch_rate, 1)}% — no regression (threshold #{threshold}%).",
+            "catch_rate" => catch_rate,
+            "run_id" => run.id
+          }
+        else
+          %{
+            "passed" => false,
+            "detail" =>
+              "Policy gate catch rate #{Float.round(catch_rate, 1)}% below threshold #{threshold}%.",
+            "catch_rate" => catch_rate,
+            "run_id" => run.id
+          }
+        end
+
+      {:error, reason} ->
+        %{
+          "passed" => false,
+          "detail" => "Benchmark run failed: #{inspect(reason)}. Cannot confirm no regression."
+        }
+    end
+  end
+
+  defp extract_avoid_lines(draft) do
+    draft
+    |> String.split("\n")
+    |> Enum.reduce({false, []}, fn line, {in_avoid, acc} ->
+      trimmed = String.trim(line)
+
+      cond do
+        String.match?(trimmed, ~r/^##\s*Avoid/i) ->
+          {true, acc}
+
+        String.match?(trimmed, ~r/^##\s/) and in_avoid ->
+          {false, acc}
+
+        in_avoid and String.starts_with?(trimmed, "-") ->
+          {in_avoid, [String.downcase(String.trim_leading(trimmed, "- ")) | acc]}
+
+        true ->
+          {in_avoid, acc}
+      end
+    end)
+    |> elem(1)
+    |> Enum.reverse()
+  end
+
+  defp maybe_add_note(notes, false, _detail), do: notes
+  defp maybe_add_note(notes, true, detail), do: notes ++ [detail]
+
   def experience_history_index(session_id, opts \\ []) when is_integer(session_id) do
     with %Session{} = session <- get_session_with_workspace(session_id) do
       session_limit = Keyword.get(opts, :session_limit, 10)

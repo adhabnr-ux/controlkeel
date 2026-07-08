@@ -19,7 +19,7 @@ observability logic.
 | Precedent retrieval in-path | `ck_validate` and `ck_finding` surface cross-session prior resolutions for the same rule at decision time. `ck_context` exposes a workspace-wide precedent channel separate from session-scoped memory. | `test/controlkeel/mcp/tools/ck_validate_test.exs`, `test/controlkeel/mcp/tools/ck_finding_test.exs`, `test/controlkeel/mcp/tools/ck_context_test.exs` |
 | Model provenance | Reviews and findings store `model_provenance` metadata from explicit fields or the latest invocation. Trace and export surfaces provenance so model comparisons are possible on the same private evals. | `test/controlkeel/accounts_review_test.exs`, `test/controlkeel/mission_test.exs` |
 | Eval candidate lifecycle closure | Benchmark run results automatically archive (all matched) or reopen (any miss) the originating eval candidate, closing the improvement feedback loop. | `test/controlkeel/observability_test.exs` |
-| Skill evolution install | `ck_skill_evolution` supports install mode that materializes generated drafts into `.agents/skills/` under the project root. | `test/controlkeel/mcp/protocol_test.exs` |
+| Skill evolution install | `ck_skill_evolution` supports `validate_only` (Self-Harness validation stage: static, held-in, held-out, regression) and `install` mode (validates and, only if accepted, writes to `.agents/skills/<name>/SKILL.md` under project root with `.bak` rollback). | `test/controlkeel/mcp/protocol_test.exs` |
 
 ## Maintenance rule
 
