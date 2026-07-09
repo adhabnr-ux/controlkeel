@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.64 — 2026-07-09
+
+### What's changed
+
+- fix: update .gitignore to exclude ControlKeel artifacts and remove deprecated controlkeel-operator agent
+
 ## v0.3.63 — 2026-07-08
 
 ### What's changed
