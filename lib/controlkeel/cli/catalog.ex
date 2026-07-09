@@ -297,7 +297,6 @@ defmodule ControlKeel.CLI.Catalog do
           doctor: read_only_json(),
           capabilities: read_only_json(),
           status: read_only_json(),
-          me: read_only(),
           watch: read_only()
         }
       ),

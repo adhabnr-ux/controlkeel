@@ -36,6 +36,46 @@ defmodule ControlKeel.ReleaseConfigTest do
     assert "server.json" in npm_package["files"]
   end
 
+  test "cursor plugin manifest declares well-formed relative resource paths" do
+    manifest = read_json(".cursor-plugin/plugin.json")
+
+    for key <- ~w(agents commands hooks rules skills) do
+      path = Map.fetch!(manifest, key)
+
+      assert String.starts_with?(path, "./"),
+             "expected #{key} to be a relative ./ path, got: #{inspect(path)}"
+
+      relative = String.trim_leading(path, "./") |> String.trim_trailing("/")
+
+      refute String.starts_with?(relative, "/"),
+             "expected #{key} to stay inside the plugin root, got: #{inspect(path)}"
+
+      refute String.starts_with?(relative, ".."),
+             "expected #{key} to not escape the plugin root, got: #{inspect(path)}"
+    end
+  end
+
+  test "cursor plugin manifest matches the canonical exporter output" do
+    manifest = read_json(".cursor-plugin/plugin.json")
+
+    generated =
+      ControlKeel.Skills.Exporter.cursor_plugin_manifest(@root, version: manifest["version"])
+
+    assert manifest["name"] == generated["name"]
+    assert manifest["description"] == generated["description"]
+    assert manifest["rules"] == generated["rules"]
+    assert manifest["skills"] == generated["skills"]
+    assert manifest["agents"] == generated["agents"]
+    assert manifest["commands"] == generated["commands"]
+    assert manifest["hooks"] == generated["hooks"]
+
+    assert get_in(manifest, ["mcpServers", "controlkeel", "command"]) ==
+             get_in(generated, ["mcpServers", "controlkeel", "command"])
+
+    assert get_in(manifest, ["mcpServers", "controlkeel", "args"]) ==
+             get_in(generated, ["mcpServers", "controlkeel", "args"])
+  end
+
   defp read_json(relative_path) do
     @root
     |> Path.join(relative_path)

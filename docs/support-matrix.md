@@ -433,7 +433,6 @@ These directories ship with the repo and are discovered by [`ControlKeel.Skills.
 | `orchestrate-tasks` | Parallel task orchestration. |
 | `parallel-review` | Concurrent security + quality review. |
 | `plan-slice` | Vertical slice decomposition. |
-| `policy-training` | Offline policy training / promotion references. |
 | `proof-memory` | Proof bundles and typed memory workflow. |
 | `reviewable-pr` | PR preparation for review. |
 | `security-review` | Security review checklist. |

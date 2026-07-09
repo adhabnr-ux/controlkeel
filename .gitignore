@@ -164,7 +164,6 @@ docs/governance-failure-*.md
 .controlkeel/tool_usage.json
 
 # ControlKeel managed (do not edit) - artifacts that must not be committed
-/controlkeel/
 /.controlkeel/
 /.agents/skills/
 /.opencode/

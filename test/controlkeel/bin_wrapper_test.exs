@@ -18,6 +18,7 @@ defmodule ControlKeel.BinWrapperTest do
   # subprocess to auto-migrate) avoids a migration-timing race on CI.
   setup do
     source_db = Repo.config() |> Keyword.fetch!(:database)
+
     tmp_db =
       Path.join(
         System.tmp_dir!(),
