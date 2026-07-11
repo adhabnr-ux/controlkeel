@@ -386,14 +386,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          registry-url: https://npm.pkg.github.com
+          scope: "@aryaminus"
       - name: Verify publish channels
         env:
           GH_TOKEN: ${{ github.token }}
+          NODE_AUTH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           TAG="${GITHUB_REF_NAME}"
@@ -417,7 +421,19 @@ jobs:
             FAIL=1
           fi
 
-          if npm view "${NPM_NAME}@${VERSION}" --registry=https://npm.pkg.github.com version >/dev/null 2>&1; then
+          # GitHub Packages can take a few minutes to index after publish.
+          # Retry with backoff so we don't false-fail on propagation delay.
+          GH_PKG_OK=false
+          for attempt in 1 2 3 4 5; do
+            if npm view "${NPM_NAME}@${VERSION}" --registry=https://npm.pkg.github.com version >/dev/null 2>&1; then
+              GH_PKG_OK=true
+              break
+            fi
+            echo "  GitHub Packages not visible yet (attempt ${attempt}/5), waiting 30s..."
+            sleep 30
+          done
+
+          if [ "$GH_PKG_OK" = "true" ]; then
             echo "PASS  GitHub Packages ${NPM_NAME}@${VERSION}"
           else
             echo "FAIL  GitHub Packages ${NPM_NAME}@${VERSION} not found"
