@@ -2745,13 +2745,25 @@ defmodule ControlKeel.MCP.Protocol do
   end
 
   defp safe_suggest_groups(project_root) do
-    try do
-      ControlKeel.MCP.ToolGroupTracker.suggest_groups(project_root)
-    rescue
-      _ -> nil
-    catch
-      :exit, _ -> nil
-      :throw, _ -> nil
+    # Use a Task with a short timeout so the MCP server's handle_call never
+    # blocks on the ToolGroupTracker GenServer. Under heavy load the tracker's
+    # message queue can build up; without a timeout the outer GenServer.call
+    # (5s default) times out before this catch clause can fire.
+    task =
+      Task.async(fn ->
+        try do
+          ControlKeel.MCP.ToolGroupTracker.suggest_groups(project_root)
+        rescue
+          _ -> nil
+        catch
+          :exit, _ -> nil
+          :throw, _ -> nil
+        end
+      end)
+
+    case Task.yield(task, 2_000) || Task.shutdown(task, :brutal_kill) do
+      {:ok, result} -> result
+      nil -> nil
     end
   end
 
