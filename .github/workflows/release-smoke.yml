@@ -307,7 +307,7 @@ jobs:
           find dist -maxdepth 1 -type f ! -name 'controlkeel-checksums.txt' -print0 | sort -z | xargs -0 sha256sum > dist/controlkeel-checksums.txt
       - name: Verify checksums
         run: |
-          cd dist && sha256sum -c controlkeel-checksums.txt
+          sha256sum -c dist/controlkeel-checksums.txt
       - uses: actions/upload-artifact@v4
         with:
           name: release-candidate-dist-${{ github.sha }}
