@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.67 — 2026-07-11
+
+### What's changed
+
+- fix(ci): authenticate verify-channels for GitHub Packages + retry on propagation delay
+
 ## v0.3.66 — 2026-07-11
 
 ### What's changed
