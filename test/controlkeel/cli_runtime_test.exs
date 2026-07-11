@@ -1451,5 +1451,24 @@ defmodule ControlKeel.CLIRuntimeTest do
                  )
       end)
     end
+
+    test "agents discover with --json does not crash on keyword-list options", %{
+      tmp_dir: tmp_dir
+    } do
+      # Regression: options from CLI parser are a keyword list, not a map.
+      # Map.get/3 on a keyword list crashes with BadMapError.
+      File.mkdir_p!(Path.join(tmp_dir, ".claude"))
+
+      output =
+        capture_io(fn ->
+          CLI.execute(
+            %{command: :agents_discover, args: [tmp_dir], options: [json: true]},
+            project_root: tmp_dir
+          )
+        end)
+
+      # Must produce valid JSON, not a crash dump
+      assert Jason.decode(output) != {:error, %Jason.DecodeError{}}
+    end
   end
 end

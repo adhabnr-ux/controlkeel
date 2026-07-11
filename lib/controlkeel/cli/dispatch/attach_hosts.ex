@@ -457,7 +457,7 @@ defmodule ControlKeel.CLI.Dispatch.AttachHosts do
         {:error, "Not a directory: #{path}"}
 
       {:ok, hits} ->
-        if Map.get(options, :json, false) do
+        if options[:json] == true do
           summary = AgentInventory.summarize(hits)
           {:ok, [Jason.encode!(%{hits: hits, summary: summary}, pretty: true)]}
         else
