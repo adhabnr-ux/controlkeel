@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.65 — 2026-07-11
+
+### What's changed
+
+- fix: replace System.cmd pwd shellout with pure Elixir symlink resolution
+- fix: add timeout to ToolGroupTracker lookup to prevent MCP server hang
+- feat: harden ControlKeel install/attach/release pipeline + fix symlink escape (#32)
+
 ## v0.3.64 — 2026-07-09
 
 ### What's changed
