@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.66 — 2026-07-11
+
+### What's changed
+
+- fix(ci): verify checksums from repo root, not dist/
+
 ## v0.3.65 — 2026-07-11
 
 ### What's changed
