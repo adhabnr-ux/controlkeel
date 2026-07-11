@@ -73,16 +73,36 @@ defmodule ControlKeel.Project.Root do
         expanded
 
       _ ->
-        case System.find_executable("pwd") do
-          nil ->
-            expanded
-
-          executable ->
-            case System.cmd(executable, ["-P"], cd: expanded, stderr_to_stdout: true) do
-              {realpath, 0} -> String.trim(realpath)
-              {_output, _code} -> expanded
-            end
-        end
+        resolve_symlinks(expanded)
     end
+  end
+
+  # Resolve symlinks in the path without shelling out to `pwd -P`.
+  # Walks each path component and resolves symlinks via :file.read_link/1.
+  # Falls back to the expanded path if any step fails.
+  defp resolve_symlinks(path) do
+    [root | components] = Path.split(path)
+
+    Enum.reduce_while(components, root, fn component, acc ->
+      candidate = Path.join(acc, component)
+
+      case :file.read_link(String.to_charlist(candidate)) do
+        {:ok, target_charlist} ->
+          target = List.to_string(target_charlist)
+
+          absolute =
+            if Path.type(target) == :absolute,
+              do: target,
+              else: Path.join(Path.dirname(candidate), target)
+
+          {:cont, Path.expand(absolute)}
+
+        {:error, _} ->
+          # Not a symlink — keep accumulating.
+          {:cont, candidate}
+      end
+    end)
+  rescue
+    _ -> path
   end
 end

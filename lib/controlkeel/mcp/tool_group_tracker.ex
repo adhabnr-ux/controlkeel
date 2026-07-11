@@ -27,7 +27,7 @@ defmodule ControlKeel.MCP.ToolGroupTracker do
   end
 
   def suggest_groups(project_root) do
-    GenServer.call(__MODULE__, {:suggest_groups, project_root})
+    GenServer.call(__MODULE__, {:suggest_groups, project_root}, 3_000)
   end
 
   def reset_project(project_root) do
