@@ -232,18 +232,29 @@ async function ensureBinary({ forceDownload = false } = {}) {
 
   ensureVendorDir();
   const asset = assetName();
-  const tempPath = path.join(os.tmpdir(), `${asset}-${Date.now()}`);
+  const tempPath = `${destination}.${process.pid}.tmp`;
   const url = `${releaseBaseUrl()}/${asset}`;
 
-  await download(url, tempPath);
-  await verifyChecksum(tempPath, asset);
-  await verifySignature(tempPath, asset, releaseBaseUrl());
+  try {
+    await download(url, tempPath);
+    await verifyChecksum(tempPath, asset);
+    await verifySignature(tempPath, asset, releaseBaseUrl());
 
-  fs.copyFileSync(tempPath, destination);
-  fs.rmSync(tempPath, { force: true });
+    // On Windows, fs.renameSync can fail if the destination already exists
+    // (e.g. forced refresh). Fall back to copy+unlink for atomic-ish replace.
+    try {
+      fs.renameSync(tempPath, destination);
+    } catch (renameErr) {
+      if (!fs.existsSync(destination)) throw renameErr;
+      fs.copyFileSync(tempPath, destination);
+      fs.rmSync(tempPath, { force: true });
+    }
 
-  if (process.platform !== "win32") {
-    fs.chmodSync(destination, 0o755);
+    if (process.platform !== "win32") {
+      fs.chmodSync(destination, 0o755);
+    }
+  } finally {
+    fs.rmSync(tempPath, { force: true });
   }
 
   return destination;
