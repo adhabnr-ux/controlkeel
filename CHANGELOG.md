@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.68 — 2026-07-12
+
+### What's changed
+
+- fix(test): increase MCP integration test call timeout for CI Postgres
+- fix(cli): handle keyword-list options for JSON in agents discover command
+
 ## v0.3.67 — 2026-07-11
 
 ### What's changed
