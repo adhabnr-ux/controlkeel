@@ -38,9 +38,7 @@ defmodule ControlKeelWeb do
 
   def controller do
     quote do
-      use Phoenix.Controller,
-        formats: [:html, :json],
-        layouts: [html: ControlKeelWeb.Layouts]
+      use Phoenix.Controller, formats: [:html, :json]
 
       use Gettext, backend: ControlKeelWeb.Gettext
 
