@@ -72,206 +72,204 @@ defmodule ControlKeelWeb.ReviewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
-        <%= if @review do %>
-          <div class="ck-section-header">
-            <div>
-              <p class="ck-kicker">Browser Review</p>
-              <h1 class="ck-section-title">{@review.title}</h1>
-              <p class="ck-lead ck-lead-tight">
-                Review type: {String.capitalize(@review.review_type)}. Task: {if @review.task,
-                  do: @review.task.title,
-                  else: "session-level submission"}.
-              </p>
-            </div>
-            <a class="ck-link" href={~p"/missions/#{@review.session_id}"}>Open mission</a>
+    <section class="ck-shell ck-shell-tight">
+      <%= if @review do %>
+        <div class="ck-section-header">
+          <div>
+            <p class="ck-kicker">Browser Review</p>
+            <h1 class="ck-section-title">{@review.title}</h1>
+            <p class="ck-lead ck-lead-tight">
+              Review type: {String.capitalize(@review.review_type)}. Task: {if @review.task,
+                do: @review.task.title,
+                else: "session-level submission"}.
+            </p>
           </div>
+          <a class="ck-link" href={~p"/missions/#{@review.session_id}"}>Open mission</a>
+        </div>
 
-          <div class="ck-stat-grid">
-            <div class="ck-card ck-stat-card" id="review-status-card">
-              <p class="ck-mini-label">Status</p>
-              <strong>{String.capitalize(@review.status)}</strong>
-            </div>
-            <div class="ck-card ck-stat-card">
-              <p class="ck-mini-label">Phase</p>
-              <strong>{review_phase(@review)}</strong>
-            </div>
-            <div class="ck-card ck-stat-card">
-              <p class="ck-mini-label">Submitted by</p>
-              <strong>{@review.submitted_by || "agent"}</strong>
-            </div>
-            <div class="ck-card ck-stat-card">
-              <p class="ck-mini-label">Shareable URL</p>
-              <a class="ck-link" href={@review_url}>{@review_url}</a>
-            </div>
+        <div class="ck-stat-grid">
+          <div class="ck-card ck-stat-card" id="review-status-card">
+            <p class="ck-mini-label">Status</p>
+            <strong>{String.capitalize(@review.status)}</strong>
           </div>
+          <div class="ck-card ck-stat-card">
+            <p class="ck-mini-label">Phase</p>
+            <strong>{review_phase(@review)}</strong>
+          </div>
+          <div class="ck-card ck-stat-card">
+            <p class="ck-mini-label">Submitted by</p>
+            <strong>{@review.submitted_by || "agent"}</strong>
+          </div>
+          <div class="ck-card ck-stat-card">
+            <p class="ck-mini-label">Shareable URL</p>
+            <a class="ck-link" href={@review_url}>{@review_url}</a>
+          </div>
+        </div>
 
-          <div class="ck-grid ck-grid-dashboard" style="margin-top: 1rem;">
-            <div class="space-y-4">
-              <article class="ck-card" id="review-submission-body">
-                <p class="ck-mini-label">Submission</p>
-                <pre class="ck-code-block whitespace-pre-wrap">{@review.submission_body}</pre>
-              </article>
+        <div class="ck-grid ck-grid-dashboard" style="margin-top: 1rem;">
+          <div class="space-y-4">
+            <article class="ck-card" id="review-submission-body">
+              <p class="ck-mini-label">Submission</p>
+              <pre class="ck-code-block whitespace-pre-wrap">{@review.submission_body}</pre>
+            </article>
 
-              <article
-                :if={
-                  present_plan_context?(@review, "alignment_context") or
-                    present_plan_context?(@review, "consulted_roles")
-                }
-                class="ck-card"
-                id="review-alignment-card"
-              >
-                <div class="ck-finding-head">
-                  <div>
-                    <p class="ck-mini-label">Alignment context</p>
-                    <h2>Human context gathered before execution</h2>
-                  </div>
+            <article
+              :if={
+                present_plan_context?(@review, "alignment_context") or
+                  present_plan_context?(@review, "consulted_roles")
+              }
+              class="ck-card"
+              id="review-alignment-card"
+            >
+              <div class="ck-finding-head">
+                <div>
+                  <p class="ck-mini-label">Alignment context</p>
+                  <h2>Human context gathered before execution</h2>
                 </div>
-                <div class="mt-4 space-y-4">
-                  <div :if={present_plan_context?(@review, "alignment_context")}>
-                    <p class="ck-mini-label">Context that shaped the plan</p>
-                    <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700">
-                      <li :for={entry <- plan_context(@review, "alignment_context")}>{entry}</li>
-                    </ul>
-                  </div>
-                  <div :if={present_plan_context?(@review, "consulted_roles")}>
-                    <p class="ck-mini-label">Roles consulted</p>
-                    <div class="flex flex-wrap gap-2">
-                      <span
-                        :for={role <- plan_context(@review, "consulted_roles")}
-                        class="ck-pill ck-pill-neutral"
-                      >
-                        {role}
-                      </span>
-                    </div>
-                  </div>
+              </div>
+              <div class="mt-4 space-y-4">
+                <div :if={present_plan_context?(@review, "alignment_context")}>
+                  <p class="ck-mini-label">Context that shaped the plan</p>
+                  <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700">
+                    <li :for={entry <- plan_context(@review, "alignment_context")}>{entry}</li>
+                  </ul>
                 </div>
-              </article>
-
-              <article
-                :if={present_semantic_boundaries?(@review)}
-                class="ck-card"
-                id="review-semantic-boundaries-card"
-              >
-                <div class="ck-finding-head">
-                  <div>
-                    <p class="ck-mini-label">Semantic boundaries</p>
-                    <h2>Agent execution guardrails</h2>
-                  </div>
-                </div>
-                <div class="mt-4 space-y-4">
-                  <div :for={boundary <- semantic_boundary_sections(@review)}>
-                    <p class="ck-mini-label">{boundary.label}</p>
-                    <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700">
-                      <li :for={entry <- boundary.entries}>{entry}</li>
-                    </ul>
-                  </div>
-                </div>
-              </article>
-
-              <article :if={@review.previous_review} class="ck-card" id="review-diff-card">
-                <div class="ck-finding-head">
-                  <div>
-                    <p class="ck-mini-label">Revision diff</p>
-                    <h2>Compared with review #{@review.previous_review_id}</h2>
-                  </div>
-                  <span class="ck-pill ck-pill-neutral">
-                    Previous: {String.capitalize(@review.previous_review.status)}
-                  </span>
-                </div>
-                <div class="mt-4 space-y-3">
-                  <%= for chunk <- @diff_chunks do %>
-                    <div class={diff_chunk_class(chunk.kind)}>
-                      <p class="ck-mini-label">{diff_chunk_label(chunk.kind)}</p>
-                      <pre class="ck-code-block whitespace-pre-wrap">{chunk.text}</pre>
-                    </div>
-                  <% end %>
-                </div>
-              </article>
-            </div>
-
-            <div class="space-y-4">
-              <article class="ck-card" id="review-response-card">
-                <div class="ck-finding-head">
-                  <div>
-                    <p class="ck-mini-label">Respond</p>
-                    <h2>Approve, deny, or annotate</h2>
-                  </div>
-                  <span class={review_status_pill_class(@review.status)}>
-                    {String.capitalize(@review.status)}
-                  </span>
-                </div>
-
-                <.form for={@response_form} id="review-response-form" phx-submit="respond">
-                  <div class="space-y-4">
-                    <.input
-                      field={@response_form[:decision]}
-                      type="select"
-                      label="Decision"
-                      options={[{"Approve", "approved"}, {"Deny", "denied"}]}
-                    />
-
-                    <.input
-                      field={@response_form[:feedback_notes]}
-                      type="textarea"
-                      label="Feedback notes"
-                      rows="6"
-                    />
-
-                    <.input
-                      field={@response_form[:annotation_text]}
-                      type="textarea"
-                      label="Annotations"
-                      rows="5"
-                    />
-
-                    <button
-                      class="ck-button ck-button-primary"
-                      id="review-response-submit"
-                      type="submit"
+                <div :if={present_plan_context?(@review, "consulted_roles")}>
+                  <p class="ck-mini-label">Roles consulted</p>
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      :for={role <- plan_context(@review, "consulted_roles")}
+                      class="ck-pill ck-pill-neutral"
                     >
-                      Save response
-                    </button>
+                      {role}
+                    </span>
                   </div>
-                </.form>
-              </article>
-
-              <article class="ck-card" id="review-audit-card">
-                <p class="ck-mini-label">Audit trail</p>
-                <div class="ck-finding-list">
-                  <article class="ck-finding-item">
-                    <div class="ck-finding-head">
-                      <h3>Submitted</h3>
-                      <span class="ck-pill ck-pill-neutral">{format_dt(@review.inserted_at)}</span>
-                    </div>
-                    <p class="ck-note">By {@review.submitted_by || "agent"}</p>
-                  </article>
-                  <article :if={@review.responded_at} class="ck-finding-item">
-                    <div class="ck-finding-head">
-                      <h3>Responded</h3>
-                      <span class={review_status_pill_class(@review.status)}>
-                        {String.capitalize(@review.status)}
-                      </span>
-                    </div>
-                    <p class="ck-note">At {format_dt(@review.responded_at)}</p>
-                    <p class="ck-note">By {@review.reviewed_by || "human"}</p>
-                    <p :if={present?(@review.feedback_notes)} class="ck-note">
-                      {@review.feedback_notes}
-                    </p>
-                  </article>
                 </div>
-              </article>
-            </div>
+              </div>
+            </article>
+
+            <article
+              :if={present_semantic_boundaries?(@review)}
+              class="ck-card"
+              id="review-semantic-boundaries-card"
+            >
+              <div class="ck-finding-head">
+                <div>
+                  <p class="ck-mini-label">Semantic boundaries</p>
+                  <h2>Agent execution guardrails</h2>
+                </div>
+              </div>
+              <div class="mt-4 space-y-4">
+                <div :for={boundary <- semantic_boundary_sections(@review)}>
+                  <p class="ck-mini-label">{boundary.label}</p>
+                  <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700">
+                    <li :for={entry <- boundary.entries}>{entry}</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <article :if={@review.previous_review} class="ck-card" id="review-diff-card">
+              <div class="ck-finding-head">
+                <div>
+                  <p class="ck-mini-label">Revision diff</p>
+                  <h2>Compared with review #{@review.previous_review_id}</h2>
+                </div>
+                <span class="ck-pill ck-pill-neutral">
+                  Previous: {String.capitalize(@review.previous_review.status)}
+                </span>
+              </div>
+              <div class="mt-4 space-y-3">
+                <%= for chunk <- @diff_chunks do %>
+                  <div class={diff_chunk_class(chunk.kind)}>
+                    <p class="ck-mini-label">{diff_chunk_label(chunk.kind)}</p>
+                    <pre class="ck-code-block whitespace-pre-wrap">{chunk.text}</pre>
+                  </div>
+                <% end %>
+              </div>
+            </article>
           </div>
-        <% else %>
-          <div class="ck-card" id="review-missing">
-            <p class="ck-mini-label">Browser Review</p>
-            <h1 class="ck-section-title">Review not found</h1>
+
+          <div class="space-y-4">
+            <article class="ck-card" id="review-response-card">
+              <div class="ck-finding-head">
+                <div>
+                  <p class="ck-mini-label">Respond</p>
+                  <h2>Approve, deny, or annotate</h2>
+                </div>
+                <span class={review_status_pill_class(@review.status)}>
+                  {String.capitalize(@review.status)}
+                </span>
+              </div>
+
+              <.form for={@response_form} id="review-response-form" phx-submit="respond">
+                <div class="space-y-4">
+                  <.input
+                    field={@response_form[:decision]}
+                    type="select"
+                    label="Decision"
+                    options={[{"Approve", "approved"}, {"Deny", "denied"}]}
+                  />
+
+                  <.input
+                    field={@response_form[:feedback_notes]}
+                    type="textarea"
+                    label="Feedback notes"
+                    rows="6"
+                  />
+
+                  <.input
+                    field={@response_form[:annotation_text]}
+                    type="textarea"
+                    label="Annotations"
+                    rows="5"
+                  />
+
+                  <button
+                    class="ck-button ck-button-primary"
+                    id="review-response-submit"
+                    type="submit"
+                  >
+                    Save response
+                  </button>
+                </div>
+              </.form>
+            </article>
+
+            <article class="ck-card" id="review-audit-card">
+              <p class="ck-mini-label">Audit trail</p>
+              <div class="ck-finding-list">
+                <article class="ck-finding-item">
+                  <div class="ck-finding-head">
+                    <h3>Submitted</h3>
+                    <span class="ck-pill ck-pill-neutral">{format_dt(@review.inserted_at)}</span>
+                  </div>
+                  <p class="ck-note">By {@review.submitted_by || "agent"}</p>
+                </article>
+                <article :if={@review.responded_at} class="ck-finding-item">
+                  <div class="ck-finding-head">
+                    <h3>Responded</h3>
+                    <span class={review_status_pill_class(@review.status)}>
+                      {String.capitalize(@review.status)}
+                    </span>
+                  </div>
+                  <p class="ck-note">At {format_dt(@review.responded_at)}</p>
+                  <p class="ck-note">By {@review.reviewed_by || "human"}</p>
+                  <p :if={present?(@review.feedback_notes)} class="ck-note">
+                    {@review.feedback_notes}
+                  </p>
+                </article>
+              </div>
+            </article>
           </div>
-        <% end %>
-      </section>
-    </DashboardLayout.dashboard>
+        </div>
+      <% else %>
+        <div class="ck-card" id="review-missing">
+          <p class="ck-mini-label">Browser Review</p>
+          <h1 class="ck-section-title">Review not found</h1>
+        </div>
+      <% end %>
+    </section>
     """
   end
 

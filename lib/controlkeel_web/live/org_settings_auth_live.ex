@@ -104,109 +104,107 @@ defmodule ControlKeelWeb.OrgSettingsAuthLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="ck-shell" style="max-width: 720px; margin: 4rem auto;">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">{@org.name}</p>
-            <h1 class="ck-section-title">Authentication</h1>
-            <p class="ck-lead ck-lead-tight">
-              Configure the identity provider members use to sign in via <code>/auth/login</code>.
-            </p>
-          </div>
+    <section class="ck-shell" style="max-width: 720px; margin: 4rem auto;">
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">{@org.name}</p>
+          <h1 class="ck-section-title">Authentication</h1>
+          <p class="ck-lead ck-lead-tight">
+            Configure the identity provider members use to sign in via <code>/auth/login</code>.
+          </p>
+        </div>
+      </div>
+
+      <.form
+        for={@form}
+        phx-submit="submit"
+        phx-change="change-type"
+        class="ck-card mt-6 flex flex-col gap-4"
+      >
+        <div>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Provider type</label>
+          <select
+            name="idp[type]"
+            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+          >
+            <option value="oidc" selected={@idp_type == "oidc"}>OIDC</option>
+            <option value="saml" selected={@idp_type == "saml"}>SAML</option>
+          </select>
         </div>
 
-        <.form
-          for={@form}
-          phx-submit="submit"
-          phx-change="change-type"
-          class="ck-card mt-6 flex flex-col gap-4"
-        >
+        <%= if @idp_type == "oidc" do %>
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Provider type</label>
-            <select
-              name="idp[type]"
+            <label class="block text-sm font-medium text-zinc-300 mb-1">Issuer</label>
+            <input
+              type="text"
+              name="idp[issuer]"
+              value={Map.get(@idp, "issuer", "")}
+              placeholder="https://accounts.google.com"
+              required
               class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-            >
-              <option value="oidc" selected={@idp_type == "oidc"}>OIDC</option>
-              <option value="saml" selected={@idp_type == "saml"}>SAML</option>
-            </select>
+            />
           </div>
-
-          <%= if @idp_type == "oidc" do %>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Issuer</label>
-              <input
-                type="text"
-                name="idp[issuer]"
-                value={Map.get(@idp, "issuer", "")}
-                placeholder="https://accounts.google.com"
-                required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Client ID</label>
-              <input
-                type="text"
-                name="idp[client_id]"
-                value={Map.get(@idp, "client_id", "")}
-                required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Client secret</label>
-              <input
-                type="password"
-                name="idp[client_secret]"
-                value={Map.get(@idp, "client_secret", "")}
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-              />
-              <p class="mt-1 text-xs text-zinc-500">Leave blank to keep the existing secret.</p>
-            </div>
-          <% else %>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Entity ID</label>
-              <input
-                type="text"
-                name="idp[entity_id]"
-                value={Map.get(@idp, "entity_id", "")}
-                required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">IdP metadata URL</label>
-              <input
-                type="text"
-                name="idp[idp_metadata_url]"
-                value={Map.get(@idp, "idp_metadata_url", "")}
-                required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-              />
-            </div>
-          <% end %>
-
-          <%= if @error do %>
-            <p class="ck-note ck-note-danger">{@error}</p>
-          <% end %>
-          <%= if @saved do %>
-            <p class="ck-note ck-note-success">
-              Settings saved. Test sign-in at <code>/auth/login</code>
-              with org slug <code>{@org.slug}</code>.
-            </p>
-          <% end %>
-
-          <div class="flex gap-2">
-            <button type="submit" class="ck-btn ck-btn-primary">Save</button>
-            <%= if @idp != %{} do %>
-              <button type="button" phx-click="clear" class="ck-btn ck-btn-secondary">Clear</button>
-            <% end %>
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-1">Client ID</label>
+            <input
+              type="text"
+              name="idp[client_id]"
+              value={Map.get(@idp, "client_id", "")}
+              required
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            />
           </div>
-        </.form>
-      </section>
-    </DashboardLayout.dashboard>
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-1">Client secret</label>
+            <input
+              type="password"
+              name="idp[client_secret]"
+              value={Map.get(@idp, "client_secret", "")}
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            />
+            <p class="mt-1 text-xs text-zinc-500">Leave blank to keep the existing secret.</p>
+          </div>
+        <% else %>
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-1">Entity ID</label>
+            <input
+              type="text"
+              name="idp[entity_id]"
+              value={Map.get(@idp, "entity_id", "")}
+              required
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-1">IdP metadata URL</label>
+            <input
+              type="text"
+              name="idp[idp_metadata_url]"
+              value={Map.get(@idp, "idp_metadata_url", "")}
+              required
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            />
+          </div>
+        <% end %>
+
+        <%= if @error do %>
+          <p class="ck-note ck-note-danger">{@error}</p>
+        <% end %>
+        <%= if @saved do %>
+          <p class="ck-note ck-note-success">
+            Settings saved. Test sign-in at <code>/auth/login</code>
+            with org slug <code>{@org.slug}</code>.
+          </p>
+        <% end %>
+
+        <div class="flex gap-2">
+          <button type="submit" class="ck-btn ck-btn-primary">Save</button>
+          <%= if @idp != %{} do %>
+            <button type="button" phx-click="clear" class="ck-btn ck-btn-secondary">Clear</button>
+          <% end %>
+        </div>
+      </.form>
+    </section>
     """
   end
 

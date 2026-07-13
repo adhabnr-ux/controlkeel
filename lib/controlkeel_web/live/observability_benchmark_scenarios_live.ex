@@ -24,92 +24,87 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkScenariosLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <ObservabilityLayout.observability
-      flash={@flash}
-      current_path="/observability/benchmarks/scenarios"
+    <section
+      id="observability-benchmark-scenarios-page"
+      class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
-      <section
-        id="observability-benchmark-scenarios-page"
-        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
-      >
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">
-              Materialized benchmark scenarios
-            </h1>
-            <p class="text-[var(--ck-muted)] text-sm mt-1">
-              Local Benchmark.Scenario records generated from approved observability drafts.
-            </p>
-          </div>
-          <div class="flex items-center gap-3 shrink-0">
-            <span id="observability-benchmark-scenarios-count" class={neutral_pill_class()}>
-              {@scenarios.count} scenario(s)
-            </span>
-          </div>
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-xl font-semibold text-[var(--ck-lime)]">
+            Materialized benchmark scenarios
+          </h1>
+          <p class="text-[var(--ck-muted)] text-sm mt-1">
+            Local Benchmark.Scenario records generated from approved observability drafts.
+          </p>
         </div>
-
-        <CommandPill.command_pill command="controlkeel obs benchmarks scenarios" />
-
-        <%= if @scenarios.recommendations != [] do %>
-          <div id="observability-benchmark-scenarios-summary" class="space-y-2">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Recommendations
-            </p>
-            <ul class="list-disc pl-5">
-              <%= for recommendation <- @scenarios.recommendations do %>
-                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
-              <% end %>
-            </ul>
-          </div>
-        <% end %>
-
-        <div
-          id="observability-benchmark-run-guidance"
-          class="space-y-3"
-        >
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-            Human-gated execution
-          </p>
-          <p class="text-[var(--ck-muted)] text-sm leading-relaxed">
-            Benchmark execution is CLI-only. Review generated scenarios first, then run an explicit command.
-          </p>
-          <code class="block rounded-lg border border-[var(--ck-stroke)] bg-[rgba(0,0,0,0.3)] px-3 py-2 text-xs text-[var(--ck-muted)] overflow-x-auto">
-            {@run_preview.command || "controlkeel obs benchmarks run --dry-run"}
-          </code>
-          <%= if @run_preview.recommendations != [] do %>
-            <ul class="list-disc pl-5">
-              <%= for recommendation <- @run_preview.recommendations do %>
-                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
-              <% end %>
-            </ul>
-          <% end %>
+        <div class="flex items-center gap-3 shrink-0">
+          <span id="observability-benchmark-scenarios-count" class={neutral_pill_class()}>
+            {@scenarios.count} scenario(s)
+          </span>
         </div>
+      </div>
 
-        <div id="observability-benchmark-scenarios-list" class="space-y-3">
+      <CommandPill.command_pill command="controlkeel obs benchmarks scenarios" />
+
+      <%= if @scenarios.recommendations != [] do %>
+        <div id="observability-benchmark-scenarios-summary" class="space-y-2">
           <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-            Scenarios
+            Recommendations
           </p>
-          <%= if @scenarios.scenarios == [] do %>
-            <p class="text-[var(--ck-muted)] text-sm">No materialized observability scenarios yet.</p>
-          <% else %>
-            <%= for scenario <- @scenarios.scenarios do %>
-              <div
-                id={"observability-benchmark-scenario-#{scenario.id}"}
-                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
-              >
-                <p class="text-sm font-semibold text-[var(--ck-text)]">{scenario.name}</p>
-                <p class="text-[var(--ck-muted)] text-xs">
-                  {scenario.suite_slug} · {scenario.slug} · {scenario.split}
-                </p>
-                <p class="text-[var(--ck-muted)] text-xs">
-                  Expected rules: {Enum.join(scenario.expected_rules, ", ")}
-                </p>
-              </div>
+          <ul class="list-disc pl-5">
+            <%= for recommendation <- @scenarios.recommendations do %>
+              <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
             <% end %>
-          <% end %>
+          </ul>
         </div>
-      </section>
-    </ObservabilityLayout.observability>
+      <% end %>
+
+      <div
+        id="observability-benchmark-run-guidance"
+        class="space-y-3"
+      >
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          Human-gated execution
+        </p>
+        <p class="text-[var(--ck-muted)] text-sm leading-relaxed">
+          Benchmark execution is CLI-only. Review generated scenarios first, then run an explicit command.
+        </p>
+        <code class="block rounded-lg border border-[var(--ck-stroke)] bg-[rgba(0,0,0,0.3)] px-3 py-2 text-xs text-[var(--ck-muted)] overflow-x-auto">
+          {@run_preview.command || "controlkeel obs benchmarks run --dry-run"}
+        </code>
+        <%= if @run_preview.recommendations != [] do %>
+          <ul class="list-disc pl-5">
+            <%= for recommendation <- @run_preview.recommendations do %>
+              <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+            <% end %>
+          </ul>
+        <% end %>
+      </div>
+
+      <div id="observability-benchmark-scenarios-list" class="space-y-3">
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          Scenarios
+        </p>
+        <%= if @scenarios.scenarios == [] do %>
+          <p class="text-[var(--ck-muted)] text-sm">No materialized observability scenarios yet.</p>
+        <% else %>
+          <%= for scenario <- @scenarios.scenarios do %>
+            <div
+              id={"observability-benchmark-scenario-#{scenario.id}"}
+              class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+            >
+              <p class="text-sm font-semibold text-[var(--ck-text)]">{scenario.name}</p>
+              <p class="text-[var(--ck-muted)] text-xs">
+                {scenario.suite_slug} · {scenario.slug} · {scenario.split}
+              </p>
+              <p class="text-[var(--ck-muted)] text-xs">
+                Expected rules: {Enum.join(scenario.expected_rules, ", ")}
+              </p>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    </section>
     """
   end
 end

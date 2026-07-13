@@ -43,11 +43,11 @@ Keep this root file lean: only project-specific governance, commands, and critic
 
 ## Phoenix v1.8
 
-- LiveView templates must start with `<DashboardLayout.dashboard flash={@flash} ...>` and pass `current_scope` when required.
-- `DashboardLayout` is aliased in `controlkeel_web.ex`; do not add redundant aliases.
-- The root layout is owned by `ControlKeelWeb.RootLayout` (`components/root_layout.ex` + `layouts/root.html.heex`); `put_root_layout` uses `{ControlKeelWeb.RootLayout, :root}`. `DashboardLayout` holds the in-page dashboard layout only.
-- Fix missing `current_scope` by moving routes into the right `live_session` and passing the assign through layout boundaries.
-- `<.flash_group>` belongs only in `dashboard_layout.ex`.
+- All layouts are **framework layouts** owned by `ControlKeelWeb.Layouts` (`components/layouts.ex`, `embed_templates "layouts/*"`): `:root`, `:public`, `:dashboard`, `:observability`, `:observability_session`. LiveView/controller templates render only their content; the framework wraps them — do NOT add per-page layout wrappers.
+- Set the layout per `live_session` (`layout: {ControlKeelWeb.Layouts, :dashboard}`) or per controller (`plug :put_layout, html: {ControlKeelWeb.Layouts, :public}`). The root layout is set via `put_root_layout` in the browser pipeline.
+- Framework layouts share the page's render context, so `@flash`, `@current_user`, `@current_membership`, and `@inner_content` are available with **no forwarding**. `@current_path` (subnav/tab highlighting) is set by the `ControlKeelWeb.NavHighlight` `on_mount` hook on `:observability` / `:observability_session`.
+- Reusable chrome (`<.sidebar>`, `<.flash_group>`) lives as function components in the `Layouts` module. `<.flash_group>` belongs there, called by the framework layouts.
+- See `docs/framework-layout-migration.md` for the migration rationale.
 - Use `<.icon name="hero-x-mark" class="w-5 h-5"/>`; do not call Heroicons modules directly.
 - Use imported `<.input>` for form inputs. If overriding `class`, fully style the input because defaults are not inherited.
 - Router scopes already include aliases; do not add duplicate route aliases.

@@ -109,120 +109,118 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
-        <div class="ck-section-header">
+    <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">{@workspace.name}</p>
+          <h1 class="ck-section-title">Service accounts</h1>
+          <p class="ck-lead ck-lead-tight">
+            Machine identities for CI, MCP, and external integrations. Tokens are shown once at creation or rotation; store them securely.
+          </p>
+        </div>
+      </div>
+
+      <%= if @new_token do %>
+        <div
+          class="ck-card mt-6"
+          id="new-token-banner"
+          style="border-color: rgba(190, 242, 100, 0.4);"
+        >
+          <p>
+            <strong>Token for {@new_token_for}.</strong> Copy it now — it will not be shown again.
+          </p>
+          <pre><code id="new-token-value">{@new_token}</code></pre>
+          <button type="button" phx-click="dismiss-token" class="ck-btn ck-btn-secondary">
+            Dismiss
+          </button>
+        </div>
+      <% end %>
+
+      <div class="ck-card mt-6">
+        <h2 class="ck-section-subtitle">Create service account</h2>
+        <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
           <div>
-            <p class="ck-kicker">{@workspace.name}</p>
-            <h1 class="ck-section-title">Service accounts</h1>
-            <p class="ck-lead ck-lead-tight">
-              Machine identities for CI, MCP, and external integrations. Tokens are shown once at creation or rotation; store them securely.
+            <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
+            <input
+              type="text"
+              name="sa[name]"
+              value={@create_form[:name].value || ""}
+              required
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-1">
+              Scopes (space or comma separated)
+            </label>
+            <input
+              type="text"
+              name="sa[scopes]"
+              value={@create_form[:scopes].value || ""}
+              placeholder="mcp:access context:read findings:write"
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            />
+            <p class="mt-1 text-xs text-zinc-500">
+              Use <code>admin</code> for full access, or scope strings like <code>mcp:access</code>.
             </p>
           </div>
-        </div>
-
-        <%= if @new_token do %>
-          <div
-            class="ck-card mt-6"
-            id="new-token-banner"
-            style="border-color: rgba(190, 242, 100, 0.4);"
-          >
-            <p>
-              <strong>Token for {@new_token_for}.</strong> Copy it now — it will not be shown again.
-            </p>
-            <pre><code id="new-token-value">{@new_token}</code></pre>
-            <button type="button" phx-click="dismiss-token" class="ck-btn ck-btn-secondary">
-              Dismiss
-            </button>
-          </div>
-        <% end %>
-
-        <div class="ck-card mt-6">
-          <h2 class="ck-section-subtitle">Create service account</h2>
-          <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
-              <input
-                type="text"
-                name="sa[name]"
-                value={@create_form[:name].value || ""}
-                required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">
-                Scopes (space or comma separated)
-              </label>
-              <input
-                type="text"
-                name="sa[scopes]"
-                value={@create_form[:scopes].value || ""}
-                placeholder="mcp:access context:read findings:write"
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-              />
-              <p class="mt-1 text-xs text-zinc-500">
-                Use <code>admin</code> for full access, or scope strings like <code>mcp:access</code>.
-              </p>
-            </div>
-            <%= if @create_error do %>
-              <p class="ck-note ck-note-danger">{@create_error}</p>
-            <% end %>
-            <button type="submit" class="ck-btn ck-btn-primary self-start">Create</button>
-          </.form>
-        </div>
-
-        <div class="ck-card mt-6">
-          <h2 class="ck-section-subtitle">Active service accounts</h2>
-          <%= if @accounts == [] do %>
-            <p class="ck-lead-tight">No service accounts yet.</p>
-          <% else %>
-            <table class="ck-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Scopes</th>
-                  <th>Status</th>
-                  <th>Last used</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <%= for sa <- @accounts do %>
-                  <tr id={"sa-#{sa.id}"}>
-                    <td>{sa.name}</td>
-                    <td><code>{ServiceAccount.scope_list(sa) |> Enum.join(" ")}</code></td>
-                    <td>{sa.status}</td>
-                    <td>{format_dt(sa.last_used_at)}</td>
-                    <td>
-                      <%= if sa.status == "active" do %>
-                        <button
-                          type="button"
-                          phx-click="rotate"
-                          phx-value-id={sa.id}
-                          class="ck-btn ck-btn-secondary"
-                        >
-                          Rotate
-                        </button>
-                        <button
-                          type="button"
-                          phx-click="revoke"
-                          phx-value-id={sa.id}
-                          data-confirm={"Revoke #{sa.name}?"}
-                          class="ck-btn ck-btn-danger"
-                        >
-                          Revoke
-                        </button>
-                      <% end %>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
+          <%= if @create_error do %>
+            <p class="ck-note ck-note-danger">{@create_error}</p>
           <% end %>
-        </div>
-      </section>
-    </DashboardLayout.dashboard>
+          <button type="submit" class="ck-btn ck-btn-primary self-start">Create</button>
+        </.form>
+      </div>
+
+      <div class="ck-card mt-6">
+        <h2 class="ck-section-subtitle">Active service accounts</h2>
+        <%= if @accounts == [] do %>
+          <p class="ck-lead-tight">No service accounts yet.</p>
+        <% else %>
+          <table class="ck-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Scopes</th>
+                <th>Status</th>
+                <th>Last used</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for sa <- @accounts do %>
+                <tr id={"sa-#{sa.id}"}>
+                  <td>{sa.name}</td>
+                  <td><code>{ServiceAccount.scope_list(sa) |> Enum.join(" ")}</code></td>
+                  <td>{sa.status}</td>
+                  <td>{format_dt(sa.last_used_at)}</td>
+                  <td>
+                    <%= if sa.status == "active" do %>
+                      <button
+                        type="button"
+                        phx-click="rotate"
+                        phx-value-id={sa.id}
+                        class="ck-btn ck-btn-secondary"
+                      >
+                        Rotate
+                      </button>
+                      <button
+                        type="button"
+                        phx-click="revoke"
+                        phx-value-id={sa.id}
+                        data-confirm={"Revoke #{sa.name}?"}
+                        class="ck-btn ck-btn-danger"
+                      >
+                        Revoke
+                      </button>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% end %>
+      </div>
+    </section>
     """
   end
 

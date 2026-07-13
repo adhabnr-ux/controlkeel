@@ -108,94 +108,92 @@ defmodule ControlKeelWeb.OrgSettingsGeneralLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="ck-shell" style="max-width: 640px; margin: 4rem auto;">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">{@org.name}</p>
-            <h1 class="ck-section-title">General settings</h1>
-            <p class="ck-lead ck-lead-tight">
-              Slug <code>{@org.slug}</code> cannot be changed — it's bound to your sign-in URL.
-            </p>
-          </div>
-          <div>
-            <.link navigate={~p"/org/#{@org.slug}/members"} class="ck-btn ck-btn-secondary">
-              Members
-            </.link>
-          </div>
+    <section class="ck-shell" style="max-width: 640px; margin: 4rem auto;">
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">{@org.name}</p>
+          <h1 class="ck-section-title">General settings</h1>
+          <p class="ck-lead ck-lead-tight">
+            Slug <code>{@org.slug}</code> cannot be changed — it's bound to your sign-in URL.
+          </p>
+        </div>
+        <div>
+          <.link navigate={~p"/org/#{@org.slug}/members"} class="ck-btn ck-btn-secondary">
+            Members
+          </.link>
+        </div>
+      </div>
+
+      <.form for={@form} phx-submit="submit" class="ck-card mt-6 flex flex-col gap-4">
+        <div>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Organization name</label>
+          <input
+            type="text"
+            name="settings[name]"
+            value={@form[:name].value}
+            required
+            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+          />
         </div>
 
-        <.form for={@form} phx-submit="submit" class="ck-card mt-6 flex flex-col gap-4">
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Organization name</label>
-            <input
-              type="text"
-              name="settings[name]"
-              value={@form[:name].value}
-              required
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Status</label>
-            <select
-              name="settings[status]"
-              disabled={not @is_owner}
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-            >
-              <option value="active" selected={@form[:status].value == "active"}>active</option>
-              <option value="disabled" selected={@form[:status].value == "disabled"}>disabled</option>
-            </select>
-            <%= unless @is_owner do %>
-              <p class="mt-1 text-xs text-zinc-500">Only owners can change status.</p>
-            <% end %>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Monthly budget (cents)</label>
-            <input
-              type="number"
-              name="settings[budget_cents]"
-              value={@form[:budget_cents].value || "0"}
-              min="0"
-              disabled={not @is_owner}
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-            />
-            <%= unless @is_owner do %>
-              <p class="mt-1 text-xs text-zinc-500">Only owners can change budget.</p>
-            <% end %>
-          </div>
-
-          <%= if @error do %>
-            <p class="ck-note ck-note-danger">{@error}</p>
+        <div>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Status</label>
+          <select
+            name="settings[status]"
+            disabled={not @is_owner}
+            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+          >
+            <option value="active" selected={@form[:status].value == "active"}>active</option>
+            <option value="disabled" selected={@form[:status].value == "disabled"}>disabled</option>
+          </select>
+          <%= unless @is_owner do %>
+            <p class="mt-1 text-xs text-zinc-500">Only owners can change status.</p>
           <% end %>
+        </div>
 
-          <%= if @saved do %>
-            <p class="ck-note ck-note-success">Saved.</p>
+        <div>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Monthly budget (cents)</label>
+          <input
+            type="number"
+            name="settings[budget_cents]"
+            value={@form[:budget_cents].value || "0"}
+            min="0"
+            disabled={not @is_owner}
+            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+          />
+          <%= unless @is_owner do %>
+            <p class="mt-1 text-xs text-zinc-500">Only owners can change budget.</p>
           <% end %>
+        </div>
 
-          <button type="submit" class="ck-btn ck-btn-primary self-start">Save</button>
-        </.form>
-
-        <%= if @is_owner do %>
-          <div class="ck-card mt-8">
-            <h2 class="text-lg font-semibold text-zinc-100 mb-2">Security</h2>
-            <p class="text-sm text-zinc-400 mb-4">
-              Sign out from all active browser sessions. You will stay signed in on this device.
-            </p>
-            <button
-              type="button"
-              phx-click="sign_out_everywhere"
-              data-confirm="This will sign out all other active sessions. Continue?"
-              class="ck-btn ck-btn-secondary"
-            >
-              Sign out everywhere
-            </button>
-          </div>
+        <%= if @error do %>
+          <p class="ck-note ck-note-danger">{@error}</p>
         <% end %>
-      </section>
-    </DashboardLayout.dashboard>
+
+        <%= if @saved do %>
+          <p class="ck-note ck-note-success">Saved.</p>
+        <% end %>
+
+        <button type="submit" class="ck-btn ck-btn-primary self-start">Save</button>
+      </.form>
+
+      <%= if @is_owner do %>
+        <div class="ck-card mt-8">
+          <h2 class="text-lg font-semibold text-zinc-100 mb-2">Security</h2>
+          <p class="text-sm text-zinc-400 mb-4">
+            Sign out from all active browser sessions. You will stay signed in on this device.
+          </p>
+          <button
+            type="button"
+            phx-click="sign_out_everywhere"
+            data-confirm="This will sign out all other active sessions. Continue?"
+            class="ck-btn ck-btn-secondary"
+          >
+            Sign out everywhere
+          </button>
+        </div>
+      <% end %>
+    </section>
     """
   end
 

@@ -1,12 +1,12 @@
 defmodule ControlKeelWeb.PageController do
   use ControlKeelWeb, :controller
 
-  # Public marketing pages render inside the :public framework layout
+  alias ControlKeel.Skills
+
+  # Public marketing pages render inside the `:public` framework layout
   # (ControlKeelWeb.Layouts). The layout reads @current_user/@flash directly,
   # so nothing needs to be forwarded from the templates.
   plug :put_layout, html: {ControlKeelWeb.Layouts, :public}
-
-  alias ControlKeel.Skills
 
   def home(conn, _params) do
     render(conn, :home)

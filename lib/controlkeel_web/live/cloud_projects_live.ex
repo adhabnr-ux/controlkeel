@@ -244,159 +244,151 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   @impl true
   def render(%{live_action: :show, state: :show} = assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section id="cloud-project-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">
-              <.link navigate={~p"/cloud/projects"}>Cloud projects</.link>
-              / <code>{@key.workspace_id}</code>
-            </p>
-            <h1 class="ck-section-title">{@key.name || @key.workspace_id}</h1>
-            <p class="ck-lead ck-lead-tight">
-              <span :if={@key.mission_workspace}>
-                Project: <strong>{@key.mission_workspace.slug}</strong> ·
-              </span>
-              Fingerprint <code>{String.slice(@key.fingerprint, 0, 16)}...</code>
-              ·
-              algorithm <code>{@key.algorithm}</code>
-              ·
-              last seen {format_dt(@key.last_seen_at)}
-            </p>
-          </div>
+    <section id="cloud-project-page" class="ck-shell ck-shell-tight">
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">
+            <.link navigate={~p"/cloud/projects"}>Cloud projects</.link>
+            / <code>{@key.workspace_id}</code>
+          </p>
+          <h1 class="ck-section-title">{@key.name || @key.workspace_id}</h1>
+          <p class="ck-lead ck-lead-tight">
+            <span :if={@key.mission_workspace}>
+              Project: <strong>{@key.mission_workspace.slug}</strong> ·
+            </span>
+            Fingerprint <code>{String.slice(@key.fingerprint, 0, 16)}...</code>
+            ·
+            algorithm <code>{@key.algorithm}</code>
+            ·
+            last seen {format_dt(@key.last_seen_at)}
+          </p>
         </div>
+      </div>
 
-        <div class="ck-card">
-          <h2>Event counts</h2>
-          <ul class="ck-stat-grid">
-            <%= for {kind, n} <- Enum.sort_by(@counts, fn {_k, v} -> -v end) do %>
-              <li><strong>{n}</strong> <span>{kind}</span></li>
-            <% end %>
-          </ul>
-        </div>
-
-        <div class="ck-card">
-          <h2>Cloud run packages</h2>
-          <%= cond do %>
-            <% is_nil(@key.mission_workspace_id) -> %>
-              <p class="ck-note">
-                This enrolled workspace is not yet linked to a project. Issue a scoped invite from the org to link it.
-              </p>
-            <% @packages == [] -> %>
-              <p class="ck-note">No cloud runs handed off yet.</p>
-            <% true -> %>
-              <table class="ck-table">
-                <thead>
-                  <tr>
-                    <th>Package</th>
-                    <th>Runtime</th>
-                    <th>Status</th>
-                    <th>Revision</th>
-                    <th>Budget</th>
-                    <th>Started</th>
-                    <th>Finished</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <%= for pkg <- @packages do %>
-                    <tr>
-                      <td><code>{pkg.external_id}</code></td>
-                      <td><code>{pkg.runtime_target}</code></td>
-                      <td>
-                        <span class={"ck-badge ck-badge-#{package_status_class(pkg.status)}"}>
-                          {pkg.status}
-                        </span>
-                      </td>
-                      <td>{format_revision(pkg)}</td>
-                      <td>{pkg.budget_cents_allocated}¢</td>
-                      <td>{format_dt(pkg.dispatched_at)}</td>
-                      <td>{format_dt(pkg.completed_at)}</td>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
+      <div class="ck-card">
+        <h2>Event counts</h2>
+        <ul class="ck-stat-grid">
+          <%= for {kind, n} <- Enum.sort_by(@counts, fn {_k, v} -> -v end) do %>
+            <li><strong>{n}</strong> <span>{kind}</span></li>
           <% end %>
-        </div>
+        </ul>
+      </div>
 
-        <div class="ck-card">
-          <h2>Recent events</h2>
-          <%= if @events == [] do %>
-            <p class="ck-note">No events received yet for this workspace.</p>
-          <% else %>
+      <div class="ck-card">
+        <h2>Cloud run packages</h2>
+        <%= cond do %>
+          <% is_nil(@key.mission_workspace_id) -> %>
+            <p class="ck-note">
+              This enrolled workspace is not yet linked to a project. Issue a scoped invite from the org to link it.
+            </p>
+          <% @packages == [] -> %>
+            <p class="ck-note">No cloud runs handed off yet.</p>
+          <% true -> %>
             <table class="ck-table">
               <thead>
                 <tr>
-                  <th>Received</th>
-                  <th>Kind</th>
-                  <th>Event ID</th>
-                  <th>Redaction</th>
+                  <th>Package</th>
+                  <th>Runtime</th>
+                  <th>Status</th>
+                  <th>Revision</th>
+                  <th>Budget</th>
+                  <th>Started</th>
+                  <th>Finished</th>
                 </tr>
               </thead>
               <tbody>
-                <%= for event <- @events do %>
+                <%= for pkg <- @packages do %>
                   <tr>
-                    <td>{format_dt(event.received_at)}</td>
-                    <td><code>{event.kind}</code></td>
-                    <td><code>{String.slice(event.event_id, 0, 16)}</code></td>
-                    <td><code>{event.redaction_policy_version}</code></td>
+                    <td><code>{pkg.external_id}</code></td>
+                    <td><code>{pkg.runtime_target}</code></td>
+                    <td>
+                      <span class={"ck-badge ck-badge-#{package_status_class(pkg.status)}"}>
+                        {pkg.status}
+                      </span>
+                    </td>
+                    <td>{format_revision(pkg)}</td>
+                    <td>{pkg.budget_cents_allocated}¢</td>
+                    <td>{format_dt(pkg.dispatched_at)}</td>
+                    <td>{format_dt(pkg.completed_at)}</td>
                   </tr>
                 <% end %>
               </tbody>
             </table>
-          <% end %>
-        </div>
-      </section>
-    </DashboardLayout.dashboard>
+        <% end %>
+      </div>
+
+      <div class="ck-card">
+        <h2>Recent events</h2>
+        <%= if @events == [] do %>
+          <p class="ck-note">No events received yet for this workspace.</p>
+        <% else %>
+          <table class="ck-table">
+            <thead>
+              <tr>
+                <th>Received</th>
+                <th>Kind</th>
+                <th>Event ID</th>
+                <th>Redaction</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for event <- @events do %>
+                <tr>
+                  <td>{format_dt(event.received_at)}</td>
+                  <td><code>{event.kind}</code></td>
+                  <td><code>{String.slice(event.event_id, 0, 16)}</code></td>
+                  <td><code>{event.redaction_policy_version}</code></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% end %>
+      </div>
+    </section>
     """
   end
 
   def render(%{live_action: :show, state: :forbidden} = assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
-        <h1 class="ck-section-title">Not visible</h1>
-        <p class="ck-lead">
-          This workspace is enrolled under a different org. Sign in to that org's
-          control plane to view its telemetry.
-        </p>
-      </section>
-    </DashboardLayout.dashboard>
+    <section class="ck-shell ck-shell-tight">
+      <h1 class="ck-section-title">Not visible</h1>
+      <p class="ck-lead">
+        This workspace is enrolled under a different org. Sign in to that org's
+        control plane to view its telemetry.
+      </p>
+    </section>
     """
   end
 
   def render(%{live_action: :show, state: :not_found} = assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="ck-shell ck-shell-tight">
-        <h1 class="ck-section-title">Workspace not found</h1>
-        <p class="ck-lead">
-          No registration matches that workspace ID. The workspace may have been
-          revoked, or it never enrolled with this control plane.
-        </p>
-      </section>
-    </DashboardLayout.dashboard>
+    <section class="ck-shell ck-shell-tight">
+      <h1 class="ck-section-title">Workspace not found</h1>
+      <p class="ck-lead">
+        No registration matches that workspace ID. The workspace may have been
+        revoked, or it never enrolled with this control plane.
+      </p>
+    </section>
     """
   end
 
   def render(assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section id="cloud-projects-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">Cloud</p>
-            <h1 class="ck-section-title">Projects</h1>
-            <p class="ck-lead ck-lead-tight">
-              Enrolled workspaces visible to your org. Each row is a laptop or
-              project that ran <code>controlkeel cloud connect --enroll</code>
-              against this control plane.
-            </p>
-          </div>
+    <section id="cloud-projects-page" class="ck-shell ck-shell-tight">
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">Cloud</p>
+          <h1 class="ck-section-title">Projects</h1>
+          <p class="ck-lead ck-lead-tight">
+            Enrolled workspaces visible to your org. Each row is a laptop or
+            project that ran <code>controlkeel cloud connect --enroll</code>
+            against this control plane.
+          </p>
         </div>
+      </div>
 
-        {render_body(assigns)}
-      </section>
-    </DashboardLayout.dashboard>
+      {render_body(assigns)}
+    </section>
     """
   end
 
