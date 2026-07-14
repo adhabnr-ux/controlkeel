@@ -90,120 +90,118 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">{@workspace.name}</p>
-            <h1 class="ck-section-title">GitHub repositories</h1>
-            <p class="ck-lead ck-lead-tight">
-              Bind GitHub repos so missions, findings, and proofs can reference them.
-              For governance via the GitHub App, set <code>installation_id</code>.
-            </p>
+    <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">{@workspace.name}</p>
+          <h1 class="ck-section-title">GitHub repositories</h1>
+          <p class="ck-lead ck-lead-tight">
+            Bind GitHub repos so missions, findings, and proofs can reference them.
+            For governance via the GitHub App, set <code>installation_id</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="ck-card mt-6">
+        <h2 class="ck-section-subtitle">Bind a repository</h2>
+        <.form for={@bind_form} phx-submit="bind" class="flex flex-col gap-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-zinc-300 mb-1">Owner</label>
+              <input
+                type="text"
+                name="bind[owner]"
+                value={@bind_form[:owner].value || ""}
+                placeholder="acme"
+                required
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-zinc-300 mb-1">Repo</label>
+              <input
+                type="text"
+                name="bind[repo]"
+                value={@bind_form[:repo].value || ""}
+                placeholder="payments"
+                required
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
+            </div>
           </div>
-        </div>
-
-        <div class="ck-card mt-6">
-          <h2 class="ck-section-subtitle">Bind a repository</h2>
-          <.form for={@bind_form} phx-submit="bind" class="flex flex-col gap-3">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">Owner</label>
-                <input
-                  type="text"
-                  name="bind[owner]"
-                  value={@bind_form[:owner].value || ""}
-                  placeholder="acme"
-                  required
-                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">Repo</label>
-                <input
-                  type="text"
-                  name="bind[repo]"
-                  value={@bind_form[:repo].value || ""}
-                  placeholder="payments"
-                  required
-                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-                />
-              </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-zinc-300 mb-1">
+                Default branch (optional)
+              </label>
+              <input
+                type="text"
+                name="bind[default_branch]"
+                value={@bind_form[:default_branch].value || ""}
+                placeholder="main"
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
             </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">
-                  Default branch (optional)
-                </label>
-                <input
-                  type="text"
-                  name="bind[default_branch]"
-                  value={@bind_form[:default_branch].value || ""}
-                  placeholder="main"
-                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">
-                  Installation ID (optional)
-                </label>
-                <input
-                  type="number"
-                  name="bind[installation_id]"
-                  value={@bind_form[:installation_id].value || ""}
-                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-                />
-              </div>
+            <div>
+              <label class="block text-sm font-medium text-zinc-300 mb-1">
+                Installation ID (optional)
+              </label>
+              <input
+                type="number"
+                name="bind[installation_id]"
+                value={@bind_form[:installation_id].value || ""}
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
             </div>
-            <%= if @bind_error do %>
-              <p class="ck-note ck-note-danger">{@bind_error}</p>
-            <% end %>
-            <button type="submit" class="ck-btn ck-btn-primary self-start">Bind repository</button>
-          </.form>
-        </div>
-
-        <div class="ck-card mt-6">
-          <h2 class="ck-section-subtitle">Bound repositories</h2>
-          <%= if @repos == [] do %>
-            <p class="ck-lead-tight">No repositories bound yet.</p>
-          <% else %>
-            <table class="ck-table">
-              <thead>
-                <tr>
-                  <th>Owner / Repo</th>
-                  <th>Default branch</th>
-                  <th>Installation ID</th>
-                  <th>Bound at</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <%= for r <- @repos do %>
-                  <tr id={"binding-#{r.id}"}>
-                    <td><code>{r.owner}/{r.repo}</code></td>
-                    <td>{r.default_branch || "—"}</td>
-                    <td>{r.installation_id || "—"}</td>
-                    <td>{format_dt(r.inserted_at)}</td>
-                    <td>
-                      <button
-                        type="button"
-                        phx-click="unbind"
-                        phx-value-owner={r.owner}
-                        phx-value-repo={r.repo}
-                        data-confirm={"Unbind #{r.owner}/#{r.repo}?"}
-                        class="ck-btn ck-btn-danger"
-                      >
-                        Unbind
-                      </button>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
+          </div>
+          <%= if @bind_error do %>
+            <p class="ck-note ck-note-danger">{@bind_error}</p>
           <% end %>
-        </div>
-      </section>
-    </DashboardLayout.dashboard>
+          <button type="submit" class="ck-btn ck-btn-primary self-start">Bind repository</button>
+        </.form>
+      </div>
+
+      <div class="ck-card mt-6">
+        <h2 class="ck-section-subtitle">Bound repositories</h2>
+        <%= if @repos == [] do %>
+          <p class="ck-lead-tight">No repositories bound yet.</p>
+        <% else %>
+          <table class="ck-table">
+            <thead>
+              <tr>
+                <th>Owner / Repo</th>
+                <th>Default branch</th>
+                <th>Installation ID</th>
+                <th>Bound at</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for r <- @repos do %>
+                <tr id={"binding-#{r.id}"}>
+                  <td><code>{r.owner}/{r.repo}</code></td>
+                  <td>{r.default_branch || "—"}</td>
+                  <td>{r.installation_id || "—"}</td>
+                  <td>{format_dt(r.inserted_at)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      phx-click="unbind"
+                      phx-value-owner={r.owner}
+                      phx-value-repo={r.repo}
+                      data-confirm={"Unbind #{r.owner}/#{r.repo}?"}
+                      class="ck-btn ck-btn-danger"
+                    >
+                      Unbind
+                    </button>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% end %>
+      </div>
+    </section>
     """
   end
 

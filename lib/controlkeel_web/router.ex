@@ -72,11 +72,19 @@ defmodule ControlKeelWeb.Router do
     get "/auth/saml/start", SamlController, :start
     get "/auth/logout", AuthController, :logout
     get "/auth/complete/:token", AuthController, :complete
-    live "/cloud/invitations/:token", InvitationLive, :show
+
+    # Public invitation-acceptance page. Uses the :dashboard framework layout
+    # for chrome but is NOT auth-gated (it handles its own session and works
+    # signed-out).
+    live_session :invitations,
+      layout: {ControlKeelWeb.Layouts, :dashboard} do
+      live "/cloud/invitations/:token", InvitationLive, :show
+    end
 
     # Cloud-auth gated: in cloud/self_hosted mode requires active membership.
     # In local mode the on_mount hook is a passthrough.
     live_session :cloud_auth,
+      layout: {ControlKeelWeb.Layouts, :dashboard},
       on_mount: [{ControlKeelWeb.LiveAuth, :require_cloud_auth}] do
       live "/dashboard", DashboardLive, :index
       live "/missions", MissionsLive, :index
@@ -97,6 +105,21 @@ defmodule ControlKeelWeb.Router do
       live "/workspaces/:id/service-accounts", WorkspaceServiceAccountsLive, :index
       live "/workspaces/:id/webhooks", WorkspaceWebhooksLive, :index
       live "/workspaces/:id/tool-policy", WorkspaceToolPolicyLive, :edit
+      live "/missions/:id", MissionControlLive, :show
+      live "/policies", PolicyStudioLive, :index
+      live "/skills", SkillsLive, :index
+      live "/deploy", DeploymentLive, :index
+    end
+
+    # Observability section routes use the :observability framework layout
+    # (ControlKeelWeb.Layouts). NavHighlight sets @current_path for subnav
+    # active-link highlighting.
+    live_session :observability,
+      layout: {ControlKeelWeb.Layouts, :observability},
+      on_mount: [
+        {ControlKeelWeb.LiveAuth, :require_cloud_auth},
+        ControlKeelWeb.NavHighlight
+      ] do
       live "/observability", ObservabilityOverviewLive, :index
       live "/observability/loop", ObservabilityLoopLive, :index
       live "/observability/benchmarks/drafts", ObservabilityBenchmarkDraftsLive, :index
@@ -113,15 +136,25 @@ defmodule ControlKeelWeb.Router do
       live "/observability/trends", ObservabilityTrendsLive, :index
       live "/observability/problems", ObservabilityProblemsLive, :index
       live "/observability/promotions", ObservabilityPromotionsLive, :index
+    end
+
+    # Session-scoped observability routes use the :observability_session
+    # framework layout (sidebar + session tabs). NavHighlight sets @current_path
+    # for tab highlighting.
+    live_session :observability_session,
+      layout: {ControlKeelWeb.Layouts, :observability_session},
+      on_mount: [
+        {ControlKeelWeb.LiveAuth, :require_cloud_auth},
+        ControlKeelWeb.NavHighlight
+      ] do
       live "/observability/sessions/:id/memory", ObservabilityMemoryLive, :show
       live "/observability/sessions/:id/timeline", ObservabilityTimelineLive, :show
       live "/observability/sessions/:id", ObservabilityLive, :show
-      live "/missions/:id", MissionControlLive, :show
-      live "/policies", PolicyStudioLive, :index
-      live "/skills", SkillsLive, :index
-      live "/deploy", DeploymentLive, :index
     end
 
+    # TODO: Auth-gate this route when OAuth/session auth is implemented (refactor/web-auth).
+    # Currently unprotected — the LiveView equivalents are gated via LiveAuth.require_cloud_auth
+    # but this controller GET has no equivalent plug. See Copilot review 2026-07-13.
     get "/observability/sessions/:id/export.json", ObservabilityController, :export_session
   end
 

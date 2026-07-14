@@ -147,124 +147,122 @@ defmodule ControlKeelWeb.OrgMembersLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">{@org.name}</p>
-            <h1 class="ck-section-title">Members</h1>
-            <p class="ck-lead ck-lead-tight">
-              Invite teammates and manage roles. Owners can promote and demote; the last owner is protected.
-            </p>
-          </div>
-          <div>
-            <.link navigate={~p"/org/#{@org.slug}/settings/auth"} class="ck-btn ck-btn-secondary">
-              Auth settings
-            </.link>
-          </div>
+    <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">{@org.name}</p>
+          <h1 class="ck-section-title">Members</h1>
+          <p class="ck-lead ck-lead-tight">
+            Invite teammates and manage roles. Owners can promote and demote; the last owner is protected.
+          </p>
         </div>
+        <div>
+          <.link navigate={~p"/org/#{@org.slug}/settings/auth"} class="ck-btn ck-btn-secondary">
+            Auth settings
+          </.link>
+        </div>
+      </div>
 
-        <%= if @invite_token do %>
-          <div
-            class="ck-card mt-6"
-            id="invite-token-banner"
-            style="border-color: rgba(190, 242, 100, 0.4);"
-          >
-            <p>
-              <strong>Invitation token issued.</strong>
-              Send this link to the invitee — the token will not be shown again.
-            </p>
-            <pre><code id="invite-token-value">/cloud/invitations/{@invite_token}</code></pre>
-            <button type="button" phx-click="dismiss-token" class="ck-btn ck-btn-secondary">
-              Dismiss
-            </button>
-          </div>
-        <% end %>
+      <%= if @invite_token do %>
+        <div
+          class="ck-card mt-6"
+          id="invite-token-banner"
+          style="border-color: rgba(190, 242, 100, 0.4);"
+        >
+          <p>
+            <strong>Invitation token issued.</strong>
+            Send this link to the invitee — the token will not be shown again.
+          </p>
+          <pre><code id="invite-token-value">/cloud/invitations/{@invite_token}</code></pre>
+          <button type="button" phx-click="dismiss-token" class="ck-btn ck-btn-secondary">
+            Dismiss
+          </button>
+        </div>
+      <% end %>
 
-        <div class="ck-card mt-6">
-          <h2 class="ck-section-subtitle">Invite member</h2>
-          <.form for={@invite_form} phx-submit="invite" class="flex flex-col gap-3">
-            <div class="grid grid-cols-3 gap-3">
-              <div class="col-span-2">
-                <label class="block text-sm font-medium text-zinc-300 mb-1">Email</label>
-                <input
-                  type="email"
-                  name="invite[email]"
-                  value={@invite_form[:email].value || ""}
-                  required
-                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">Role</label>
-                <select
-                  name="invite[role]"
-                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-                >
-                  <option value="viewer">viewer</option>
-                  <option value="member" selected>member</option>
-                  <option value="admin">admin</option>
-                  <option value="owner">owner</option>
-                </select>
-              </div>
+      <div class="ck-card mt-6">
+        <h2 class="ck-section-subtitle">Invite member</h2>
+        <.form for={@invite_form} phx-submit="invite" class="flex flex-col gap-3">
+          <div class="grid grid-cols-3 gap-3">
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-zinc-300 mb-1">Email</label>
+              <input
+                type="email"
+                name="invite[email]"
+                value={@invite_form[:email].value || ""}
+                required
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              />
             </div>
-            <%= if @invite_error do %>
-              <p class="ck-note ck-note-danger">{@invite_error}</p>
-            <% end %>
-            <button type="submit" class="ck-btn ck-btn-primary self-start">Send invitation</button>
-          </.form>
-        </div>
+            <div>
+              <label class="block text-sm font-medium text-zinc-300 mb-1">Role</label>
+              <select
+                name="invite[role]"
+                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              >
+                <option value="viewer">viewer</option>
+                <option value="member" selected>member</option>
+                <option value="admin">admin</option>
+                <option value="owner">owner</option>
+              </select>
+            </div>
+          </div>
+          <%= if @invite_error do %>
+            <p class="ck-note ck-note-danger">{@invite_error}</p>
+          <% end %>
+          <button type="submit" class="ck-btn ck-btn-primary self-start">Send invitation</button>
+        </.form>
+      </div>
 
-        <div class="ck-card mt-6">
-          <h2 class="ck-section-subtitle">Current members</h2>
-          <table class="ck-table">
-            <thead>
-              <tr>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th></th>
+      <div class="ck-card mt-6">
+        <h2 class="ck-section-subtitle">Current members</h2>
+        <table class="ck-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for m <- @memberships do %>
+              <tr id={"membership-#{m.id}"}>
+                <td>{(m.user && m.user.email) || "—"}</td>
+                <td>
+                  <form phx-change="change-role">
+                    <input type="hidden" name="membership-id" value={m.id} />
+                    <select
+                      name="role"
+                      class="rounded-md border border-white/10 bg-zinc-900 px-2 py-1 text-sm text-white"
+                    >
+                      <option value="owner" selected={m.role == "owner"}>owner</option>
+                      <option value="admin" selected={m.role == "admin"}>admin</option>
+                      <option value="member" selected={m.role == "member"}>member</option>
+                      <option value="viewer" selected={m.role == "viewer"}>viewer</option>
+                    </select>
+                  </form>
+                </td>
+                <td>{m.status}</td>
+                <td>
+                  <%= if m.status != "revoked" do %>
+                    <button
+                      type="button"
+                      phx-click="revoke"
+                      phx-value-membership-id={m.id}
+                      data-confirm={"Revoke membership for #{m.user && m.user.email}?"}
+                      class="ck-btn ck-btn-danger"
+                    >
+                      Revoke
+                    </button>
+                  <% end %>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              <%= for m <- @memberships do %>
-                <tr id={"membership-#{m.id}"}>
-                  <td>{(m.user && m.user.email) || "—"}</td>
-                  <td>
-                    <form phx-change="change-role">
-                      <input type="hidden" name="membership-id" value={m.id} />
-                      <select
-                        name="role"
-                        class="rounded-md border border-white/10 bg-zinc-900 px-2 py-1 text-sm text-white"
-                      >
-                        <option value="owner" selected={m.role == "owner"}>owner</option>
-                        <option value="admin" selected={m.role == "admin"}>admin</option>
-                        <option value="member" selected={m.role == "member"}>member</option>
-                        <option value="viewer" selected={m.role == "viewer"}>viewer</option>
-                      </select>
-                    </form>
-                  </td>
-                  <td>{m.status}</td>
-                  <td>
-                    <%= if m.status != "revoked" do %>
-                      <button
-                        type="button"
-                        phx-click="revoke"
-                        phx-value-membership-id={m.id}
-                        data-confirm={"Revoke membership for #{m.user && m.user.email}?"}
-                        class="ck-btn ck-btn-danger"
-                      >
-                        Revoke
-                      </button>
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </DashboardLayout.dashboard>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
     """
   end
 

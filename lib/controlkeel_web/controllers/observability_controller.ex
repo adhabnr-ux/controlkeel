@@ -1,6 +1,11 @@
 defmodule ControlKeelWeb.ObservabilityController do
   use ControlKeelWeb, :controller
 
+  # TODO: Add `plug ControlKeelWeb.Plugs.RequireSessionAuth` when OAuth/session auth
+  # lands (refactor/web-auth). Should mirror LiveAuth.require_cloud_auth: passthrough
+  # in local mode, require membership in cloud/self_hosted, verify org ownership of
+  # the session's workspace to prevent cross-org data leakage.
+
   alias ControlKeel.Observability.Telemetry
 
   def export_session(conn, %{"id" => id}) do

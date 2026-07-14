@@ -9,6 +9,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
   @impl true
   def mount(%{"id" => id}, _session, socket) do
     org_id = socket.assigns[:current_org_id]
+    socket = socket |> assign(:session_id, nil) |> assign(:session_title, nil)
 
     case Observability.session_run(id) do
       {:ok, run} ->
@@ -16,7 +17,9 @@ defmodule ControlKeelWeb.ObservabilityLive do
           {:ok,
            socket
            |> assign(:page_title, "Observability — #{run.session.title}")
-           |> assign(:run, run)}
+           |> assign(:run, run)
+           |> assign(:session_id, run.session.id)
+           |> assign(:session_title, run.session.title)}
         else
           {:ok,
            socket
@@ -45,299 +48,292 @@ defmodule ControlKeelWeb.ObservabilityLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <ObservabilitySessionLayout.session
-      flash={@flash}
-      current_path={"/observability/sessions/#{@run.session.id}"}
-      session_id={@run.session.id}
-      session_title={@run.session.title}
+    <section
+      id="observability-run-page"
+      class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
-      <section
-        id="observability-run-page"
-        class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
-      >
-        <div class="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 class="text-xl font-semibold text-[var(--ck-lime)]">{@run.session.objective}</h1>
-            <p class="text-[var(--ck-muted)] text-sm mt-1">
-              Run health and governed activity for this session.
-            </p>
-          </div>
-          <div class="flex items-center gap-3 shrink-0">
-            <span class={obs_health_pill_class(@run.health.status)}>{@run.health.status}</span>
-            <span class={neutral_pill_class()}>session ##{@run.session.id}</span>
-          </div>
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 class="text-xl font-semibold text-[var(--ck-lime)]">{@run.session.objective}</h1>
+          <p class="text-[var(--ck-muted)] text-sm mt-1">
+            Run health and governed activity for this session.
+          </p>
         </div>
-
-        <CommandPill.command_pill command={"controlkeel obs run #{@run.session.id}"} />
-
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div
-            id="observability-health-card"
-            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
-          >
-            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Health</p>
-            <p class="text-2xl font-semibold text-[var(--ck-text)]">{@run.health.label}</p>
-            <ul class="list-disc pl-5">
-              <%= for reason <- @run.health.reasons do %>
-                <li class="text-[var(--ck-muted)] text-xs leading-relaxed">{reason}</li>
-              <% end %>
-            </ul>
-          </div>
-
-          <div
-            id="observability-costs"
-            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
-          >
-            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Budget</p>
-            <p class="text-2xl font-semibold text-[var(--ck-text)]">
-              {@run.budget["decision"] || "unknown"}
-            </p>
-            <p class="text-[var(--ck-muted)] text-xs">
-              {format_currency(@run.budget["spent_cents"] || 0)} / {format_currency(
-                @run.budget["session_budget_cents"] || 0
-              )} used
-            </p>
-            <p class="text-[var(--ck-muted)] text-xs">
-              Rolling 24h: {format_currency(@run.budget["rolling_24h_spend_cents"] || 0)} / {format_currency(
-                @run.budget["daily_budget_cents"] || 0
-              )}
-            </p>
-          </div>
-
-          <div
-            id="observability-findings"
-            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
-          >
-            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Findings</p>
-            <p class="text-2xl font-semibold text-[var(--ck-text)]">
-              {@run.findings.active} active / {@run.findings.total} total
-            </p>
-            <p class="text-[var(--ck-muted)] text-xs">
-              {@run.findings.critical} critical · {@run.findings.high} high · {@run.findings.blocked} blocked
-            </p>
-            <.link
-              navigate={~p"/findings"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Open findings →
-            </.link>
-          </div>
-
-          <div
-            id="observability-gates"
-            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
-          >
-            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Gates</p>
-            <p class="text-2xl font-semibold text-[var(--ck-text)]">
-              {@run.gates.pending_reviews} pending
-            </p>
-            <p class="text-[var(--ck-muted)] text-xs">
-              {@run.gates.total_reviews} total review gates
-            </p>
-          </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span class={obs_health_pill_class(@run.health.status)}>{@run.health.status}</span>
+          <span class={neutral_pill_class()}>session ##{@run.session.id}</span>
         </div>
+      </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div
-            id="observability-timeline"
-            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3"
-          >
-            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Timeline</p>
-            <%= if @run.timeline.recent == [] do %>
-              <p class="text-[var(--ck-muted)] text-sm">No timeline events recorded yet.</p>
-            <% else %>
-              <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
-                <%= for event <- @run.timeline.recent do %>
-                  <div class="rounded-lg px-3 py-2 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)]">
-                    <div class="flex items-start justify-between gap-3">
-                      <p class="text-sm font-medium text-[var(--ck-text)]">
-                        {event.event_type || "event"}
-                      </p>
-                      <time class="text-[10px] font-mono text-[var(--ck-muted)] whitespace-nowrap shrink-0">
-                        {format_datetime(event.inserted_at)}
-                      </time>
-                    </div>
-                    <p class="text-[var(--ck-muted)] text-xs mt-1">
-                      {event.summary || "No summary"} · {event.actor || "unknown"}
-                    </p>
-                  </div>
-                <% end %>
-              </div>
+      <CommandPill.command_pill command={"controlkeel obs run #{@run.session.id}"} />
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div
+          id="observability-health-card"
+          class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
+        >
+          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Health</p>
+          <p class="text-2xl font-semibold text-[var(--ck-text)]">{@run.health.label}</p>
+          <ul class="list-disc pl-5">
+            <%= for reason <- @run.health.reasons do %>
+              <li class="text-[var(--ck-muted)] text-xs leading-relaxed">{reason}</li>
             <% end %>
-            <.link
-              navigate={~p"/observability/sessions/#{@run.session.id}/timeline"}
-              class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-            >
-              Open full timeline →
-            </.link>
-          </div>
-
-          <div class="space-y-4">
-            <div
-              id="observability-tools"
-              class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3"
-            >
-              <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
-                Hosts, models, and tools
-              </p>
-              <div class="grid grid-cols-2 gap-3">
-                <div class="space-y-1">
-                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
-                    Invocations
-                  </p>
-                  <p class="text-base font-semibold text-[var(--ck-text)]">
-                    {@run.hosts_models_tools.invocations}
-                  </p>
-                </div>
-                <div class="space-y-1">
-                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
-                    Estimated cost
-                  </p>
-                  <p class="text-base font-semibold text-[var(--ck-text)]">
-                    {format_currency(@run.hosts_models_tools.estimated_cost_cents)}
-                  </p>
-                </div>
-                <div class="space-y-1">
-                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Sources</p>
-                  <p class="text-[var(--ck-text)] text-xs">
-                    {format_frequency(@run.hosts_models_tools.by_source)}
-                  </p>
-                </div>
-                <div class="space-y-1">
-                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Models</p>
-                  <p class="text-[var(--ck-text)] text-xs">
-                    {format_frequency(@run.hosts_models_tools.by_model)}
-                  </p>
-                </div>
-                <div class="space-y-1">
-                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Tools</p>
-                  <p class="text-[var(--ck-text)] text-xs">
-                    {format_frequency(@run.hosts_models_tools.by_tool)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div
-              id="observability-memory-proof"
-              class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3"
-            >
-              <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
-                Context, memory, and proof
-              </p>
-              <div class="grid grid-cols-3 gap-3">
-                <div class="space-y-1">
-                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Memory</p>
-                  <p class="text-base font-semibold text-[var(--ck-text)]">{@run.memory.records}</p>
-                  <.link
-                    navigate={~p"/observability/sessions/#{@run.session.id}/memory"}
-                    class="text-xs text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-                  >
-                    Open →
-                  </.link>
-                </div>
-                <div class="space-y-1">
-                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Proofs</p>
-                  <p class="text-base font-semibold text-[var(--ck-text)]">{@run.proofs.count}</p>
-                  <.link
-                    navigate={~p"/proofs"}
-                    class="text-xs text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
-                  >
-                    Open →
-                  </.link>
-                </div>
-                <div class="space-y-1">
-                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Tasks</p>
-                  <p class="text-base font-semibold text-[var(--ck-text)]">
-                    {@run.tasks.active}/{@run.tasks.total}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          </ul>
         </div>
-
-        <%= if @run.recommendations != [] do %>
-          <div id="observability-recommendations" class="space-y-2">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Recommendations
-            </p>
-            <ul class="list-disc pl-5">
-              <%= for recommendation <- @run.recommendations do %>
-                <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
-              <% end %>
-            </ul>
-          </div>
-        <% end %>
 
         <div
-          id="observability-telemetry-export"
-          class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
+          id="observability-costs"
+          class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
         >
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-            Trace/proof export
+          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Budget</p>
+          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+            {@run.budget["decision"] || "unknown"}
           </p>
-          <p class="text-[var(--ck-muted)] text-sm leading-relaxed">
-            Download the local observability envelope for this run, then preview it locally with <code class="text-[var(--ck-lime)] font-semibold ml-2 text-xs">
-              controlkeel obs import &lt;file&gt; --dry-run
-            </code>.
+          <p class="text-[var(--ck-muted)] text-xs">
+            {format_currency(@run.budget["spent_cents"] || 0)} / {format_currency(
+              @run.budget["session_budget_cents"] || 0
+            )} used
+          </p>
+          <p class="text-[var(--ck-muted)] text-xs">
+            Rolling 24h: {format_currency(@run.budget["rolling_24h_spend_cents"] || 0)} / {format_currency(
+              @run.budget["daily_budget_cents"] || 0
+            )}
+          </p>
+        </div>
+
+        <div
+          id="observability-findings"
+          class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+        >
+          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Findings</p>
+          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+            {@run.findings.active} active / {@run.findings.total} total
+          </p>
+          <p class="text-[var(--ck-muted)] text-xs">
+            {@run.findings.critical} critical · {@run.findings.high} high · {@run.findings.blocked} blocked
           </p>
           <.link
-            href={~p"/observability/sessions/#{@run.session.id}/export.json"}
+            navigate={~p"/findings"}
             class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
           >
-            Download JSON envelope →
+            Open findings →
           </.link>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Recent findings
-            </p>
-            <%= if @run.findings.recent == [] do %>
-              <p class="text-[var(--ck-muted)] text-sm">No findings recorded yet.</p>
-            <% else %>
-              <div class="space-y-2">
-                <%= for finding <- @run.findings.recent do %>
-                  <div class="rounded-lg px-3 py-2 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)]">
-                    <p class="text-sm font-medium text-[var(--ck-text)]">{finding.title}</p>
-                    <p class="text-[var(--ck-muted)] text-xs">
-                      {finding.severity} / {finding.status} · {finding.rule_id}
+        <div
+          id="observability-gates"
+          class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+        >
+          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Gates</p>
+          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+            {@run.gates.pending_reviews} pending
+          </p>
+          <p class="text-[var(--ck-muted)] text-xs">
+            {@run.gates.total_reviews} total review gates
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div
+          id="observability-timeline"
+          class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3"
+        >
+          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Timeline</p>
+          <%= if @run.timeline.recent == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No timeline events recorded yet.</p>
+          <% else %>
+            <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+              <%= for event <- @run.timeline.recent do %>
+                <div class="rounded-lg px-3 py-2 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)]">
+                  <div class="flex items-start justify-between gap-3">
+                    <p class="text-sm font-medium text-[var(--ck-text)]">
+                      {event.event_type || "event"}
                     </p>
+                    <time class="text-[10px] font-mono text-[var(--ck-muted)] whitespace-nowrap shrink-0">
+                      {format_datetime(event.inserted_at)}
+                    </time>
                   </div>
-                <% end %>
+                  <p class="text-[var(--ck-muted)] text-xs mt-1">
+                    {event.summary || "No summary"} · {event.actor || "unknown"}
+                  </p>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+          <.link
+            navigate={~p"/observability/sessions/#{@run.session.id}/timeline"}
+            class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+          >
+            Open full timeline →
+          </.link>
+        </div>
+
+        <div class="space-y-4">
+          <div
+            id="observability-tools"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+              Hosts, models, and tools
+            </p>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                  Invocations
+                </p>
+                <p class="text-base font-semibold text-[var(--ck-text)]">
+                  {@run.hosts_models_tools.invocations}
+                </p>
               </div>
-            <% end %>
+              <div class="space-y-1">
+                <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                  Estimated cost
+                </p>
+                <p class="text-base font-semibold text-[var(--ck-text)]">
+                  {format_currency(@run.hosts_models_tools.estimated_cost_cents)}
+                </p>
+              </div>
+              <div class="space-y-1">
+                <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Sources</p>
+                <p class="text-[var(--ck-text)] text-xs">
+                  {format_frequency(@run.hosts_models_tools.by_source)}
+                </p>
+              </div>
+              <div class="space-y-1">
+                <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Models</p>
+                <p class="text-[var(--ck-text)] text-xs">
+                  {format_frequency(@run.hosts_models_tools.by_model)}
+                </p>
+              </div>
+              <div class="space-y-1">
+                <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Tools</p>
+                <p class="text-[var(--ck-text)] text-xs">
+                  {format_frequency(@run.hosts_models_tools.by_tool)}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Recent review gates
+          <div
+            id="observability-memory-proof"
+            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3"
+          >
+            <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+              Context, memory, and proof
             </p>
-            <%= if @run.gates.latest == [] do %>
-              <p class="text-[var(--ck-muted)] text-sm">No review gates recorded yet.</p>
-            <% else %>
-              <div class="space-y-2">
-                <%= for review <- @run.gates.latest do %>
-                  <div class="rounded-lg px-3 py-2 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)]">
-                    <.link
-                      navigate={~p"/reviews/#{review.id}"}
-                      class="text-sm font-medium text-[var(--ck-lime)] hover:opacity-80 transition-opacity"
-                    >
-                      {review.title}
-                    </.link>
-                    <p class="text-[var(--ck-muted)] text-xs">
-                      {review.review_type} / {review.status}
-                    </p>
-                  </div>
-                <% end %>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="space-y-1">
+                <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Memory</p>
+                <p class="text-base font-semibold text-[var(--ck-text)]">{@run.memory.records}</p>
+                <.link
+                  navigate={~p"/observability/sessions/#{@run.session.id}/memory"}
+                  class="text-xs text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+                >
+                  Open →
+                </.link>
               </div>
-            <% end %>
+              <div class="space-y-1">
+                <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Proofs</p>
+                <p class="text-base font-semibold text-[var(--ck-text)]">{@run.proofs.count}</p>
+                <.link
+                  navigate={~p"/proofs"}
+                  class="text-xs text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+                >
+                  Open →
+                </.link>
+              </div>
+              <div class="space-y-1">
+                <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Tasks</p>
+                <p class="text-base font-semibold text-[var(--ck-text)]">
+                  {@run.tasks.active}/{@run.tasks.total}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
-    </ObservabilitySessionLayout.session>
+      </div>
+
+      <%= if @run.recommendations != [] do %>
+        <div id="observability-recommendations" class="space-y-2">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Recommendations
+          </p>
+          <ul class="list-disc pl-5">
+            <%= for recommendation <- @run.recommendations do %>
+              <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div
+        id="observability-telemetry-export"
+        class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
+      >
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          Trace/proof export
+        </p>
+        <p class="text-[var(--ck-muted)] text-sm leading-relaxed">
+          Download the local observability envelope for this run, then preview it locally with <code class="text-[var(--ck-lime)] font-semibold ml-2 text-xs">
+              controlkeel obs import &lt;file&gt; --dry-run
+            </code>.
+        </p>
+        <.link
+          href={~p"/observability/sessions/#{@run.session.id}/export.json"}
+          class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+        >
+          Download JSON envelope →
+        </.link>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Recent findings
+          </p>
+          <%= if @run.findings.recent == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No findings recorded yet.</p>
+          <% else %>
+            <div class="space-y-2">
+              <%= for finding <- @run.findings.recent do %>
+                <div class="rounded-lg px-3 py-2 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)]">
+                  <p class="text-sm font-medium text-[var(--ck-text)]">{finding.title}</p>
+                  <p class="text-[var(--ck-muted)] text-xs">
+                    {finding.severity} / {finding.status} · {finding.rule_id}
+                  </p>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Recent review gates
+          </p>
+          <%= if @run.gates.latest == [] do %>
+            <p class="text-[var(--ck-muted)] text-sm">No review gates recorded yet.</p>
+          <% else %>
+            <div class="space-y-2">
+              <%= for review <- @run.gates.latest do %>
+                <div class="rounded-lg px-3 py-2 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.02)]">
+                  <.link
+                    navigate={~p"/reviews/#{review.id}"}
+                    class="text-sm font-medium text-[var(--ck-lime)] hover:opacity-80 transition-opacity"
+                  >
+                    {review.title}
+                  </.link>
+                  <p class="text-[var(--ck-muted)] text-xs">
+                    {review.review_type} / {review.status}
+                  </p>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </section>
     """
   end
 

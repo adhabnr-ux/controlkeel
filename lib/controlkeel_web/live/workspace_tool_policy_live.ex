@@ -77,63 +77,61 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="ck-shell" style="max-width: 720px; margin: 4rem auto;">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">{@workspace.name}</p>
-            <h1 class="ck-section-title">Tool policy</h1>
-            <p class="ck-lead ck-lead-tight">
-              Restrict which MCP tools agents in this workspace may invoke. <code>inherit</code>
-              falls back to the global allowlist; <code>allowlist</code>
-              and <code>denylist</code>
-              override it.
-            </p>
-          </div>
+    <section class="ck-shell" style="max-width: 720px; margin: 4rem auto;">
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">{@workspace.name}</p>
+          <h1 class="ck-section-title">Tool policy</h1>
+          <p class="ck-lead ck-lead-tight">
+            Restrict which MCP tools agents in this workspace may invoke. <code>inherit</code>
+            falls back to the global allowlist; <code>allowlist</code>
+            and <code>denylist</code>
+            override it.
+          </p>
+        </div>
+      </div>
+
+      <.form for={@form} phx-submit="submit" class="ck-card mt-6 flex flex-col gap-4">
+        <div>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">Mode</label>
+          <select
+            name="policy[mode]"
+            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+          >
+            <%= for m <- @modes do %>
+              <option value={m} selected={@form[:mode].value == m}>{m}</option>
+            <% end %>
+          </select>
         </div>
 
-        <.form for={@form} phx-submit="submit" class="ck-card mt-6 flex flex-col gap-4">
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Mode</label>
-            <select
-              name="policy[mode]"
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-            >
-              <%= for m <- @modes do %>
-                <option value={m} selected={@form[:mode].value == m}>{m}</option>
-              <% end %>
-            </select>
-          </div>
+        <div>
+          <label class="block text-sm font-medium text-zinc-300 mb-1">
+            Tool names (one per line)
+          </label>
+          <textarea
+            name="policy[tools]"
+            rows="8"
+            placeholder="ck_validate&#10;ck_finding&#10;ck_context"
+            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white font-mono"
+          >{@form[:tools].value || ""}</textarea>
+          <p class="mt-1 text-xs text-zinc-500">
+            Used by <code>allowlist</code>
+            and <code>denylist</code>
+            modes. Ignored under <code>inherit</code>.
+          </p>
+        </div>
 
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">
-              Tool names (one per line)
-            </label>
-            <textarea
-              name="policy[tools]"
-              rows="8"
-              placeholder="ck_validate&#10;ck_finding&#10;ck_context"
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white font-mono"
-            >{@form[:tools].value || ""}</textarea>
-            <p class="mt-1 text-xs text-zinc-500">
-              Used by <code>allowlist</code>
-              and <code>denylist</code>
-              modes. Ignored under <code>inherit</code>.
-            </p>
-          </div>
+        <%= if @error do %>
+          <p class="ck-note ck-note-danger">{@error}</p>
+        <% end %>
 
-          <%= if @error do %>
-            <p class="ck-note ck-note-danger">{@error}</p>
-          <% end %>
+        <%= if @saved do %>
+          <p class="ck-note ck-note-success">Saved.</p>
+        <% end %>
 
-          <%= if @saved do %>
-            <p class="ck-note ck-note-success">Saved.</p>
-          <% end %>
-
-          <button type="submit" class="ck-btn ck-btn-primary self-start">Save policy</button>
-        </.form>
-      </section>
-    </DashboardLayout.dashboard>
+        <button type="submit" class="ck-btn ck-btn-primary self-start">Save policy</button>
+      </.form>
+    </section>
     """
   end
 

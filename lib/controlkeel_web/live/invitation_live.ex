@@ -91,87 +91,79 @@ defmodule ControlKeelWeb.InvitationLive do
   @impl true
   def render(%{state: :ready} = assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section id="invitation-page" class="ck-shell ck-shell-tight">
-        <div class="ck-section-header">
-          <div>
-            <p class="ck-kicker">Cloud</p>
-            <h1 class="ck-section-title">Join {@org.name}</h1>
-            <p class="ck-lead ck-lead-tight">
-              You've been invited as <strong>{@membership.role}</strong>.
-            </p>
-          </div>
-        </div>
-
-        <div class="ck-card">
-          <p>
-            Confirm the email this invitation was issued to: <strong><code>{@invited_user.email}</code></strong>.
+    <section id="invitation-page" class="ck-shell ck-shell-tight">
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">Cloud</p>
+          <h1 class="ck-section-title">Join {@org.name}</h1>
+          <p class="ck-lead ck-lead-tight">
+            You've been invited as <strong>{@membership.role}</strong>.
           </p>
-
-          <form id="invitation-accept-form" phx-submit="accept">
-            <label class="ck-field">
-              <span class="ck-field-label">Email</span>
-              <input
-                type="email"
-                name="email"
-                value={@email_input}
-                required
-                autocomplete="email"
-              />
-            </label>
-
-            <%= if @form_error do %>
-              <p class="ck-note ck-note-danger" id="invitation-form-error">{@form_error}</p>
-            <% end %>
-
-            <button type="submit" class="ck-btn ck-btn-primary">Accept invitation</button>
-          </form>
         </div>
-      </section>
-    </DashboardLayout.dashboard>
+      </div>
+
+      <div class="ck-card">
+        <p>
+          Confirm the email this invitation was issued to: <strong><code>{@invited_user.email}</code></strong>.
+        </p>
+
+        <form id="invitation-accept-form" phx-submit="accept">
+          <label class="ck-field">
+            <span class="ck-field-label">Email</span>
+            <input
+              type="email"
+              name="email"
+              value={@email_input}
+              required
+              autocomplete="email"
+            />
+          </label>
+
+          <%= if @form_error do %>
+            <p class="ck-note ck-note-danger" id="invitation-form-error">{@form_error}</p>
+          <% end %>
+
+          <button type="submit" class="ck-btn ck-btn-primary">Accept invitation</button>
+        </form>
+      </div>
+    </section>
     """
   end
 
   def render(%{state: :accepted} = assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section id="invitation-page" class="ck-shell ck-shell-tight">
-        <div class="ck-card">
-          <h1 class="ck-section-title">You're in.</h1>
-          <p>Your membership is now active.</p>
-        </div>
-      </section>
-    </DashboardLayout.dashboard>
+    <section id="invitation-page" class="ck-shell ck-shell-tight">
+      <div class="ck-card">
+        <h1 class="ck-section-title">You're in.</h1>
+        <p>Your membership is now active.</p>
+      </div>
+    </section>
     """
   end
 
   def render(%{state: :already_accepted} = assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section id="invitation-page" class="ck-shell ck-shell-tight">
-        <div class="ck-card">
-          <h1 class="ck-section-title">Already accepted</h1>
-          <p>
-            This invitation has already been used. If you didn't accept it, contact the org owner.
-          </p>
-        </div>
-      </section>
-    </DashboardLayout.dashboard>
+    <section id="invitation-page" class="ck-shell ck-shell-tight">
+      <div class="ck-card">
+        <h1 class="ck-section-title">Already accepted</h1>
+        <p>
+          This invitation has already been used. If you didn't accept it, contact the org owner.
+        </p>
+      </div>
+    </section>
     """
   end
 
   def render(%{state: :invalid} = assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section id="invitation-page" class="ck-shell ck-shell-tight">
-        <div class="ck-card">
-          <h1 class="ck-section-title">Invitation not found</h1>
-          <p>
-            This invitation link is no longer valid. Ask the org owner to issue a new invitation.
-          </p>
-        </div>
-      </section>
-    </DashboardLayout.dashboard>
+    <section id="invitation-page" class="ck-shell ck-shell-tight">
+      <div class="ck-card">
+        <h1 class="ck-section-title">Invitation not found</h1>
+        <p>
+          This invitation link is no longer valid. Ask the org owner to issue a new invitation.
+        </p>
+      </div>
+    </section>
     """
   end
 end

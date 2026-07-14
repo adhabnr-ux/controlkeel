@@ -121,425 +121,421 @@ defmodule ControlKeelWeb.BenchmarksLive do
   @impl true
   def render(%{live_action: :show} = assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-4 pb-16 max-[900px]:w-[min(calc(100%-1.25rem),1180px)] max-[900px]:pt-6">
-        <.link
-          navigate={~p"/benchmarks"}
-          class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 hover:text-neutral-200"
-        >
-          <.icon name="hero-arrow-left" class="w-3 h-3" /> Back to benchmarks
-        </.link>
+    <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-4 pb-16 max-[900px]:w-[min(calc(100%-1.25rem),1180px)] max-[900px]:pt-6">
+      <.link
+        navigate={~p"/benchmarks"}
+        class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 hover:text-neutral-200"
+      >
+        <.icon name="hero-arrow-left" class="w-3 h-3" /> Back to benchmarks
+      </.link>
 
-        <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
-          <div class="space-y-1">
-            <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
-              Run ##{@run.id} — {@run.suite.name}
-            </h2>
-          </div>
-
-          <a
-            href={~p"/api/v1/benchmarks/runs/#{@run.id}/export?format=csv"}
-            class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] border border-neutral-400 rounded-xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] px-3 py-2 text-neutral-400 hover:text-neutral-200 hover:border-neutral-400"
-          >
-            <.icon name="hero-document-text" class="w-3 h-3" /> Export CSV
-          </a>
-        </div>
-
-        <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold mb-4">
-            Performance metrics
-          </p>
-
-          <div class="grid gap-4 grid-cols-2 max-[900px]:grid-cols-1">
-            <div>
-              <h3>Catch rate</h3>
-              <p class="text-[var(--ck-muted)]">{@run.catch_rate}%</p>
-            </div>
-
-            <div>
-              <h3>Block rate</h3>
-              <p class="text-[var(--ck-muted)]">{@detail_metrics.block_rate}%</p>
-            </div>
-
-            <div>
-              <h3>Expected rule hit rate</h3>
-              <p class="text-[var(--ck-muted)]">{@detail_metrics.expected_rule_hit_rate}%</p>
-            </div>
-
-            <div>
-              <h3>Average overhead</h3>
-              <p class="text-[var(--ck-muted)]">{format_percent(@run.average_overhead_percent)}</p>
-            </div>
-          </div>
-
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold mt-8 mb-4">
-            Run metadata
-          </p>
-          <div class="grid gap-4 grid-cols-2 max-[900px]:grid-cols-1">
-            <div>
-              <h3>Status</h3>
-              <p class="text-[var(--ck-muted)]">{run_status_label(@run.status)}</p>
-            </div>
-            <div>
-              <h3>Baseline subject</h3>
-              <p class="text-[var(--ck-muted)]">
-                {subject_label_by_id(@subjects_by_id, @run.baseline_subject)}
-              </p>
-            </div>
-            <div>
-              <h3>Subjects</h3>
-              <p class="text-[var(--ck-muted)]">
-                {Enum.map_join(@run.subjects, ", ", &subject_label_by_id(@subjects_by_id, &1))}
-              </p>
-            </div>
-            <div>
-              <h3>Median latency</h3>
-              <p class="text-[var(--ck-muted)]">{format_latency(@run.median_latency_ms)}</p>
-            </div>
-            <div>
-              <h3>Domain packs</h3>
-              <p class="text-[var(--ck-muted)]">
-                {Enum.map_join(Benchmark.domain_packs_for_run(@run), ", ", &format_domain_pack/1)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="border border-[var(--ck-stroke)] my-6 rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-            Promotion integrity
-          </p>
-          <% integrity = get_in(@eval_profile, ["promotion_integrity"]) || %{} %>
-          <div class="flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start">
-            <h3>{integrity["status"] || "unknown"}</h3>
-            <span class="border border-[var(--ck-stroke)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
-              {Enum.join(integrity["evidence_channels"] || [], ", ")}
-            </span>
-          </div>
-          <p class="text-[var(--ck-muted)]">
-            <%= case integrity["warnings"] || [] do %>
-              <% [] -> %>
-                Held-out, diversity, and classification evidence are present for this run.
-              <% warnings -> %>
-                Warnings: {Enum.join(warnings, ", ")}
-            <% end %>
-          </p>
-        </div>
-
-        <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
-          <div class="flex items-center justify-between gap-4">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Scenario matrix
-            </p>
-            <span class="text-xs text-[var(--ck-muted)]">
-              {length(@matrix.scenarios)} {if length(@matrix.scenarios) == 1,
-                do: "scenario",
-                else: "scenarios"}
-            </span>
-          </div>
-
-          <%= if @matrix.scenarios == [] do %>
-            <div class="mt-4 rounded-[1rem] border border-dashed border-[var(--ck-stroke)] p-8 text-center">
-              <p class="text-[var(--ck-text)] text-sm font-medium">No scenarios recorded</p>
-              <p class="text-[var(--ck-muted)] text-sm mt-1">This run has no scenario results yet.</p>
-            </div>
-          <% else %>
-            <div class="grid gap-4 mt-4 grid-cols-2 max-[900px]:grid-cols-1">
-              <%= for row <- @matrix.scenarios do %>
-                <article
-                  id={"scenario-#{row.scenario.slug}"}
-                  class="border border-white/[0.07] rounded-[1.1rem] bg-white/[0.03] p-4 grid gap-3"
-                >
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0 space-y-1">
-                      <strong class="block leading-snug">{row.scenario.name}</strong>
-                      <p class="text-[var(--ck-muted)] text-sm">{row.scenario.incident_label}</p>
-                    </div>
-                    <div class="flex flex-col items-end gap-1 shrink-0">
-                      <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-2 py-0.5 text-[0.7rem]">
-                        {format_domain_pack(get_in(row.scenario.metadata || %{}, ["domain_pack"]))}
-                      </span>
-                      <span class="text-[0.7rem] text-[var(--ck-muted)] uppercase tracking-wider">
-                        {get_in(row.scenario.metadata || %{}, ["risk_tier"]) || "n/a"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="grid gap-2">
-                    <%= for {result, subject_id} <- Enum.zip(row.results, @matrix.subjects) do %>
-                      <.scenario_result
-                        result={result}
-                        subject_label={subject_label_by_id(@subjects_by_id, subject_id)}
-                      />
-                    <% end %>
-                  </div>
-                </article>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-      </section>
-    </DashboardLayout.dashboard>
-    """
-  end
-
-  def render(assigns) do
-    ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-8 pb-16 max-[900px]:w-[min(calc(100%-1.25rem),1180px)] max-[900px]:pt-6">
+      <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div class="space-y-1">
           <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
-            Benchmark engine
+            Run ##{@run.id} — {@run.suite.name}
           </h2>
-          <p class="text-[var(--ck-muted)]">
-            Compare governed subjects and external agents on the same scenario suites, then keep the results as product evidence.
-          </p>
         </div>
 
-        <div class="grid gap-4 grid-cols-[2fr_1fr] mt-6">
-          <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
-            <div class="flex flex-col gap-3 mb-6">
-              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-                Quick presets
-              </p>
-              <p class="text-[var(--ck-muted)] text-sm mb-2 max-w-[42rem] leading-relaxed">
-                One-click subject and suite configurations. Pick one to populate the form below.
-              </p>
+        <a
+          href={~p"/api/v1/benchmarks/runs/#{@run.id}/export?format=csv"}
+          class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] border border-neutral-400 rounded-xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] px-3 py-2 text-neutral-400 hover:text-neutral-200 hover:border-neutral-400"
+        >
+          <.icon name="hero-document-text" class="w-3 h-3" /> Export CSV
+        </a>
+      </div>
 
-              <div class="flex flex-wrap gap-2">
-                <button
-                  :for={{preset_id, preset_value, preset_label} <- preset_chips()}
-                  type="button"
-                  id={preset_id}
-                  phx-click="preset_benchmark"
-                  phx-value-preset={preset_value}
-                  aria-pressed={to_string(preset_value == @active_preset)}
-                  class={[
-                    "group inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition-all duration-150 active:scale-[0.98]",
-                    if(preset_value == @active_preset,
-                      do: "border-[var(--ck-lime)] bg-[rgba(196,240,66,0.16)] text-[var(--ck-lime)]",
-                      else:
-                        "border-[var(--ck-stroke)] bg-white/5 text-[var(--ck-text)] hover:-translate-y-px hover:border-[var(--ck-lime)] hover:bg-[rgba(196,240,66,0.08)] hover:text-[var(--ck-lime)]"
-                    )
-                  ]}
-                >
-                  {preset_label}
-                </button>
-              </div>
-            </div>
-            <.form
-              for={@form}
-              id="benchmark-runner"
-              phx-submit="run"
-              phx-change="benchmark_form_change"
-            >
-              <div class="flex flex-col gap-4">
-                <.input
-                  field={@form[:suite]}
-                  type="select"
-                  label="Suite"
-                  options={Enum.map(@suites, &{"#{&1.name} (#{&1.slug})", &1.slug})}
-                />
-                <.subject_multi_select
-                  field={@form[:subjects]}
-                  label="Subjects"
-                  options={subject_options(@available_subjects)}
-                  selected={@form[:subjects].value}
-                  open={@subjects_dropdown_open}
-                  id="benchmark-subjects-input"
-                />
-                <.input
-                  field={@form[:baseline_subject]}
-                  type="select"
-                  label="Baseline subject"
-                  options={subject_options(@available_subjects)}
-                  id="benchmark-baseline-input"
-                />
-                <.input
-                  field={@form[:domain_pack]}
-                  type="select"
-                  label="Run only this domain"
-                  prompt="All suite scenarios"
-                  options={@domain_pack_options}
-                />
-              </div>
-              <div class="flex items-center justify-between gap-4 mt-4 max-[900px]:flex-col max-[900px]:items-start">
-                <button
-                  type="submit"
-                  class="inline-flex items-center justify-center gap-[0.4rem] px-4 py-2 rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-transform transition-shadow duration-150 hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
-                >
-                  Run benchmark
-                </button>
-              </div>
-            </.form>
-            <p class="text-[var(--ck-muted)] text-sm mt-4">
-              For a reproducible external comparison, start with `controlkeel_validate,opencode_manual`
-              and import the OpenCode output after the awaiting-import run finishes.
-            </p>
+      <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold mb-4">
+          Performance metrics
+        </p>
+
+        <div class="grid gap-4 grid-cols-2 max-[900px]:grid-cols-1">
+          <div>
+            <h3>Catch rate</h3>
+            <p class="text-[var(--ck-muted)]">{@run.catch_rate}%</p>
           </div>
 
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 h-fit">
-            <div class="space-y-2 border-b border-[var(--ck-stroke)] pb-4 mb-4">
-              <p>
-                Suites: <span class="text-[var(--ck-lime)]">{@summary.total_suites}</span>
-              </p>
+          <div>
+            <h3>Block rate</h3>
+            <p class="text-[var(--ck-muted)]">{@detail_metrics.block_rate}%</p>
+          </div>
 
-              <p>
-                Runs: <span class="text-[var(--ck-lime)]">{@summary.total_runs}</span>
-              </p>
+          <div>
+            <h3>Expected rule hit rate</h3>
+            <p class="text-[var(--ck-muted)]">{@detail_metrics.expected_rule_hit_rate}%</p>
+          </div>
 
-              <p>
-                Average catch rate:
-                <span class="text-[var(--ck-lime)]">
-                  {format_percent(@summary.average_catch_rate)}
-                </span>
-              </p>
-
-              <p>
-                Average overhead:
-                <span class="text-[var(--ck-lime)]">
-                  {format_percent(@summary.average_overhead_percent)}
-                </span>
-              </p>
-            </div>
-
-            <p class="uppercase tracking-[0.14em] text-[var(--ck-lime)] font-semibold mt-4">
-              Blessed external path
-            </p>
-            <h3 class="my-2">OpenCode vs ControlKeel</h3>
-            <p class="text-[var(--ck-muted)] text-sm">
-              The recommended first external comparison path is OpenCode. Start with a manual import
-              subject for the quickest reproducible run, then swap to a shell-based wrapper if you
-              want fully scripted replay.
-            </p>
-            <ul class="grid gap-2 mt-4 list-none text-sm">
-              <li>
-                Create or review `controlkeel/benchmark_subjects.json` with the OpenCode subject you want to import.
-              </li>
-              <li>
-                Run the suite once with `opencode_manual` to create awaiting-import records.
-              </li>
-              <li>
-                Import captured OpenCode output or replace the subject with a scripted shell command later.
-              </li>
-            </ul>
+          <div>
+            <h3>Average overhead</h3>
+            <p class="text-[var(--ck-muted)]">{format_percent(@run.average_overhead_percent)}</p>
           </div>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
-          <div class="flex items-center justify-between gap-4">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-              Recent runs
-            </p>
-            <span :if={@recent_runs != []} class="text-xs text-[var(--ck-muted)]">
-              {length(@recent_runs)} {if length(@recent_runs) == 1, do: "run", else: "runs"}
-            </span>
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold mt-8 mb-4">
+          Run metadata
+        </p>
+        <div class="grid gap-4 grid-cols-2 max-[900px]:grid-cols-1">
+          <div>
+            <h3>Status</h3>
+            <p class="text-[var(--ck-muted)]">{run_status_label(@run.status)}</p>
           </div>
-          <%= if @recent_runs == [] do %>
-            <div class="mt-4 rounded-[1rem] border border-dashed border-[var(--ck-stroke)] p-8 text-center">
-              <p class="text-[var(--ck-text)] text-sm font-medium">
-                No benchmark runs yet
-              </p>
-              <p class="text-[var(--ck-muted)] text-sm mt-1">
-                Pick a preset above and run your first suite to see results here.
-              </p>
-            </div>
-          <% else %>
-            <div class="overflow-x-auto mt-4">
-              <table id="benchmark-runs" class="min-w-full text-sm">
-                <thead>
-                  <tr class="text-left text-xs text-[var(--ck-muted)] uppercase tracking-wider">
-                    <th class="py-2 pr-4">Run</th>
-                    <th class="py-2 pr-4">Suite</th>
-                    <th class="py-2 pr-4">Status</th>
-                    <th class="py-2 pr-4">Catch rate</th>
-                    <th class="py-2 pr-4">Baseline</th>
-                    <th class="py-2 pr-4">Domains</th>
-                    <th class="py-2 pr-4 text-right">Overhead</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-[var(--ck-stroke)]">
-                  <%= for run <- @recent_runs do %>
-                    <tr id={"run-#{run.id}"} class="align-top">
-                      <td class="py-3 pr-4">
-                        <.link
-                          navigate={~p"/benchmarks/runs/#{run.id}"}
-                          class="font-semibold text-[var(--ck-lime)]"
-                        >
-                          ##{run.id}
-                        </.link>
-                      </td>
-                      <td class="py-3 pr-4 text-[var(--ck-muted)] truncate">
-                        {run.suite.name || run.suite.slug}
-                      </td>
-                      <td class="py-3 pr-4">
-                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs bg-white/5 border border-[var(--ck-stroke)]">
-                          {run_status_label(run.status)}
-                        </span>
-                      </td>
-                      <td class="py-3 pr-4"><strong>{format_percent(run.catch_rate)}</strong></td>
-                      <td class="py-3 pr-4 text-[var(--ck-muted)]">
-                        {subject_label_by_id(@subjects_by_id, run.baseline_subject)}
-                      </td>
-                      <td class="py-3 pr-4">
-                        <div class="flex flex-wrap gap-2">
-                          <%= for pack <- Benchmark.domain_packs_for_run(run) do %>
-                            <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-2 py-0.5 text-[0.75rem]">
-                              {format_domain_pack(pack)}
-                            </span>
-                          <% end %>
-                        </div>
-                      </td>
-                      <td class="py-3 pr-4 text-right text-[var(--ck-muted)]">
-                        {format_percent(run.average_overhead_percent)}
-                      </td>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
-            </div>
+          <div>
+            <h3>Baseline subject</h3>
+            <p class="text-[var(--ck-muted)]">
+              {subject_label_by_id(@subjects_by_id, @run.baseline_subject)}
+            </p>
+          </div>
+          <div>
+            <h3>Subjects</h3>
+            <p class="text-[var(--ck-muted)]">
+              {Enum.map_join(@run.subjects, ", ", &subject_label_by_id(@subjects_by_id, &1))}
+            </p>
+          </div>
+          <div>
+            <h3>Median latency</h3>
+            <p class="text-[var(--ck-muted)]">{format_latency(@run.median_latency_ms)}</p>
+          </div>
+          <div>
+            <h3>Domain packs</h3>
+            <p class="text-[var(--ck-muted)]">
+              {Enum.map_join(Benchmark.domain_packs_for_run(@run), ", ", &format_domain_pack/1)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-[var(--ck-stroke)] my-6 rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          Promotion integrity
+        </p>
+        <% integrity = get_in(@eval_profile, ["promotion_integrity"]) || %{} %>
+        <div class="flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start">
+          <h3>{integrity["status"] || "unknown"}</h3>
+          <span class="border border-[var(--ck-stroke)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+            {Enum.join(integrity["evidence_channels"] || [], ", ")}
+          </span>
+        </div>
+        <p class="text-[var(--ck-muted)]">
+          <%= case integrity["warnings"] || [] do %>
+            <% [] -> %>
+              Held-out, diversity, and classification evidence are present for this run.
+            <% warnings -> %>
+              Warnings: {Enum.join(warnings, ", ")}
           <% end %>
+        </p>
+      </div>
+
+      <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+        <div class="flex items-center justify-between gap-4">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Scenario matrix
+          </p>
+          <span class="text-xs text-[var(--ck-muted)]">
+            {length(@matrix.scenarios)} {if length(@matrix.scenarios) == 1,
+              do: "scenario",
+              else: "scenarios"}
+          </span>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
-            Built-in suites
-          </p>
-          <p class="text-[var(--ck-muted)] text-xs mt-1">
-            Built-ins are always present. External subjects appear when the current project has a
-            `controlkeel/benchmark_subjects.json` file.
-          </p>
-
-          <div class="grid gap-4 m-0 p-0 list-none mt-4 max-h-[28rem] overflow-y-auto pr-1">
-            <%= for suite <- @suites do %>
+        <%= if @matrix.scenarios == [] do %>
+          <div class="mt-4 rounded-[1rem] border border-dashed border-[var(--ck-stroke)] p-8 text-center">
+            <p class="text-[var(--ck-text)] text-sm font-medium">No scenarios recorded</p>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">This run has no scenario results yet.</p>
+          </div>
+        <% else %>
+          <div class="grid gap-4 mt-4 grid-cols-2 max-[900px]:grid-cols-1">
+            <%= for row <- @matrix.scenarios do %>
               <article
-                class="border border-white/[0.07] rounded-[1.1rem] p-4 bg-white/[0.03] grid gap-[0.55rem]"
-                id={"suite-#{suite.slug}"}
+                id={"scenario-#{row.scenario.slug}"}
+                class="border border-white/[0.07] rounded-[1.1rem] bg-white/[0.03] p-4 grid gap-3"
               >
-                <div class="flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start">
-                  <h3>{suite.name}</h3>
-                  <span class="border border-[var(--ck-stroke)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
-                    v{suite.version}
-                  </span>
-                </div>
-                <p class="text-[var(--ck-muted)]">{suite.description}</p>
-                <div class="flex items-center justify-between gap-4">
-                  <span>{length(suite.scenarios)} scenarios</span>
-                  <span>{suite.status}</span>
-                </div>
-                <div class="flex flex-wrap gap-2 mt-2">
-                  <%= for pack <- Benchmark.domain_packs_for_suite(suite) do %>
-                    <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]">
-                      {format_domain_pack(pack)}
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0 space-y-1">
+                    <strong class="block leading-snug">{row.scenario.name}</strong>
+                    <p class="text-[var(--ck-muted)] text-sm">{row.scenario.incident_label}</p>
+                  </div>
+                  <div class="flex flex-col items-end gap-1 shrink-0">
+                    <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-2 py-0.5 text-[0.7rem]">
+                      {format_domain_pack(get_in(row.scenario.metadata || %{}, ["domain_pack"]))}
                     </span>
+                    <span class="text-[0.7rem] text-[var(--ck-muted)] uppercase tracking-wider">
+                      {get_in(row.scenario.metadata || %{}, ["risk_tier"]) || "n/a"}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="grid gap-2">
+                  <%= for {result, subject_id} <- Enum.zip(row.results, @matrix.subjects) do %>
+                    <.scenario_result
+                      result={result}
+                      subject_label={subject_label_by_id(@subjects_by_id, subject_id)}
+                    />
                   <% end %>
                 </div>
               </article>
             <% end %>
           </div>
+        <% end %>
+      </div>
+    </section>
+    """
+  end
+
+  def render(assigns) do
+    ~H"""
+    <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-8 pb-16 max-[900px]:w-[min(calc(100%-1.25rem),1180px)] max-[900px]:pt-6">
+      <div class="space-y-1">
+        <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+          Benchmark engine
+        </h2>
+        <p class="text-[var(--ck-muted)]">
+          Compare governed subjects and external agents on the same scenario suites, then keep the results as product evidence.
+        </p>
+      </div>
+
+      <div class="grid gap-4 grid-cols-[2fr_1fr] mt-6">
+        <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
+          <div class="flex flex-col gap-3 mb-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Quick presets
+            </p>
+            <p class="text-[var(--ck-muted)] text-sm mb-2 max-w-[42rem] leading-relaxed">
+              One-click subject and suite configurations. Pick one to populate the form below.
+            </p>
+
+            <div class="flex flex-wrap gap-2">
+              <button
+                :for={{preset_id, preset_value, preset_label} <- preset_chips()}
+                type="button"
+                id={preset_id}
+                phx-click="preset_benchmark"
+                phx-value-preset={preset_value}
+                aria-pressed={to_string(preset_value == @active_preset)}
+                class={[
+                  "group inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition-all duration-150 active:scale-[0.98]",
+                  if(preset_value == @active_preset,
+                    do: "border-[var(--ck-lime)] bg-[rgba(196,240,66,0.16)] text-[var(--ck-lime)]",
+                    else:
+                      "border-[var(--ck-stroke)] bg-white/5 text-[var(--ck-text)] hover:-translate-y-px hover:border-[var(--ck-lime)] hover:bg-[rgba(196,240,66,0.08)] hover:text-[var(--ck-lime)]"
+                  )
+                ]}
+              >
+                {preset_label}
+              </button>
+            </div>
+          </div>
+          <.form
+            for={@form}
+            id="benchmark-runner"
+            phx-submit="run"
+            phx-change="benchmark_form_change"
+          >
+            <div class="flex flex-col gap-4">
+              <.input
+                field={@form[:suite]}
+                type="select"
+                label="Suite"
+                options={Enum.map(@suites, &{"#{&1.name} (#{&1.slug})", &1.slug})}
+              />
+              <.subject_multi_select
+                field={@form[:subjects]}
+                label="Subjects"
+                options={subject_options(@available_subjects)}
+                selected={@form[:subjects].value}
+                open={@subjects_dropdown_open}
+                id="benchmark-subjects-input"
+              />
+              <.input
+                field={@form[:baseline_subject]}
+                type="select"
+                label="Baseline subject"
+                options={subject_options(@available_subjects)}
+                id="benchmark-baseline-input"
+              />
+              <.input
+                field={@form[:domain_pack]}
+                type="select"
+                label="Run only this domain"
+                prompt="All suite scenarios"
+                options={@domain_pack_options}
+              />
+            </div>
+            <div class="flex items-center justify-between gap-4 mt-4 max-[900px]:flex-col max-[900px]:items-start">
+              <button
+                type="submit"
+                class="inline-flex items-center justify-center gap-[0.4rem] px-4 py-2 rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-transform transition-shadow duration-150 hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
+              >
+                Run benchmark
+              </button>
+            </div>
+          </.form>
+          <p class="text-[var(--ck-muted)] text-sm mt-4">
+            For a reproducible external comparison, start with `controlkeel_validate,opencode_manual`
+            and import the OpenCode output after the awaiting-import run finishes.
+          </p>
         </div>
-      </section>
-    </DashboardLayout.dashboard>
+
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 h-fit">
+          <div class="space-y-2 border-b border-[var(--ck-stroke)] pb-4 mb-4">
+            <p>
+              Suites: <span class="text-[var(--ck-lime)]">{@summary.total_suites}</span>
+            </p>
+
+            <p>
+              Runs: <span class="text-[var(--ck-lime)]">{@summary.total_runs}</span>
+            </p>
+
+            <p>
+              Average catch rate:
+              <span class="text-[var(--ck-lime)]">
+                {format_percent(@summary.average_catch_rate)}
+              </span>
+            </p>
+
+            <p>
+              Average overhead:
+              <span class="text-[var(--ck-lime)]">
+                {format_percent(@summary.average_overhead_percent)}
+              </span>
+            </p>
+          </div>
+
+          <p class="uppercase tracking-[0.14em] text-[var(--ck-lime)] font-semibold mt-4">
+            Blessed external path
+          </p>
+          <h3 class="my-2">OpenCode vs ControlKeel</h3>
+          <p class="text-[var(--ck-muted)] text-sm">
+            The recommended first external comparison path is OpenCode. Start with a manual import
+            subject for the quickest reproducible run, then swap to a shell-based wrapper if you
+            want fully scripted replay.
+          </p>
+          <ul class="grid gap-2 mt-4 list-none text-sm">
+            <li>
+              Create or review `controlkeel/benchmark_subjects.json` with the OpenCode subject you want to import.
+            </li>
+            <li>
+              Run the suite once with `opencode_manual` to create awaiting-import records.
+            </li>
+            <li>
+              Import captured OpenCode output or replace the subject with a scripted shell command later.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+        <div class="flex items-center justify-between gap-4">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Recent runs
+          </p>
+          <span :if={@recent_runs != []} class="text-xs text-[var(--ck-muted)]">
+            {length(@recent_runs)} {if length(@recent_runs) == 1, do: "run", else: "runs"}
+          </span>
+        </div>
+        <%= if @recent_runs == [] do %>
+          <div class="mt-4 rounded-[1rem] border border-dashed border-[var(--ck-stroke)] p-8 text-center">
+            <p class="text-[var(--ck-text)] text-sm font-medium">
+              No benchmark runs yet
+            </p>
+            <p class="text-[var(--ck-muted)] text-sm mt-1">
+              Pick a preset above and run your first suite to see results here.
+            </p>
+          </div>
+        <% else %>
+          <div class="overflow-x-auto mt-4">
+            <table id="benchmark-runs" class="min-w-full text-sm">
+              <thead>
+                <tr class="text-left text-xs text-[var(--ck-muted)] uppercase tracking-wider">
+                  <th class="py-2 pr-4">Run</th>
+                  <th class="py-2 pr-4">Suite</th>
+                  <th class="py-2 pr-4">Status</th>
+                  <th class="py-2 pr-4">Catch rate</th>
+                  <th class="py-2 pr-4">Baseline</th>
+                  <th class="py-2 pr-4">Domains</th>
+                  <th class="py-2 pr-4 text-right">Overhead</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[var(--ck-stroke)]">
+                <%= for run <- @recent_runs do %>
+                  <tr id={"run-#{run.id}"} class="align-top">
+                    <td class="py-3 pr-4">
+                      <.link
+                        navigate={~p"/benchmarks/runs/#{run.id}"}
+                        class="font-semibold text-[var(--ck-lime)]"
+                      >
+                        ##{run.id}
+                      </.link>
+                    </td>
+                    <td class="py-3 pr-4 text-[var(--ck-muted)] truncate">
+                      {run.suite.name || run.suite.slug}
+                    </td>
+                    <td class="py-3 pr-4">
+                      <span class="inline-flex items-center rounded-full px-3 py-1 text-xs bg-white/5 border border-[var(--ck-stroke)]">
+                        {run_status_label(run.status)}
+                      </span>
+                    </td>
+                    <td class="py-3 pr-4"><strong>{format_percent(run.catch_rate)}</strong></td>
+                    <td class="py-3 pr-4 text-[var(--ck-muted)]">
+                      {subject_label_by_id(@subjects_by_id, run.baseline_subject)}
+                    </td>
+                    <td class="py-3 pr-4">
+                      <div class="flex flex-wrap gap-2">
+                        <%= for pack <- Benchmark.domain_packs_for_run(run) do %>
+                          <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-2 py-0.5 text-[0.75rem]">
+                            {format_domain_pack(pack)}
+                          </span>
+                        <% end %>
+                      </div>
+                    </td>
+                    <td class="py-3 pr-4 text-right text-[var(--ck-muted)]">
+                      {format_percent(run.average_overhead_percent)}
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          Built-in suites
+        </p>
+        <p class="text-[var(--ck-muted)] text-xs mt-1">
+          Built-ins are always present. External subjects appear when the current project has a
+          `controlkeel/benchmark_subjects.json` file.
+        </p>
+
+        <div class="grid gap-4 m-0 p-0 list-none mt-4 max-h-[28rem] overflow-y-auto pr-1">
+          <%= for suite <- @suites do %>
+            <article
+              class="border border-white/[0.07] rounded-[1.1rem] p-4 bg-white/[0.03] grid gap-[0.55rem]"
+              id={"suite-#{suite.slug}"}
+            >
+              <div class="flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start">
+                <h3>{suite.name}</h3>
+                <span class="border border-[var(--ck-stroke)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                  v{suite.version}
+                </span>
+              </div>
+              <p class="text-[var(--ck-muted)]">{suite.description}</p>
+              <div class="flex items-center justify-between gap-4">
+                <span>{length(suite.scenarios)} scenarios</span>
+                <span>{suite.status}</span>
+              </div>
+              <div class="flex flex-wrap gap-2 mt-2">
+                <%= for pack <- Benchmark.domain_packs_for_suite(suite) do %>
+                  <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]">
+                    {format_domain_pack(pack)}
+                  </span>
+                <% end %>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      </div>
+    </section>
     """
   end
 

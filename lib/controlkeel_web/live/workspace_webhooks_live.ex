@@ -103,117 +103,115 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <DashboardLayout.dashboard flash={@flash}>
-      <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
-        <div class="ck-section-header">
+    <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
+      <div class="ck-section-header">
+        <div>
+          <p class="ck-kicker">{@workspace.name}</p>
+          <h1 class="ck-section-title">Webhooks</h1>
+          <p class="ck-lead ck-lead-tight">
+            Subscribe external systems to ControlKeel events. Each webhook gets a server-generated secret used to sign payloads.
+          </p>
+        </div>
+      </div>
+
+      <%= if @new_secret do %>
+        <div
+          class="ck-card mt-6"
+          id="new-secret-banner"
+          style="border-color: rgba(190, 242, 100, 0.4);"
+        >
+          <p>
+            <strong>Signing secret for {@new_secret_for}.</strong>
+            Copy now — it will not be shown again.
+          </p>
+          <pre><code id="new-secret-value">{@new_secret}</code></pre>
+          <button type="button" phx-click="dismiss-secret" class="ck-btn ck-btn-secondary">
+            Dismiss
+          </button>
+        </div>
+      <% end %>
+
+      <div class="ck-card mt-6">
+        <h2 class="ck-section-subtitle">Create webhook</h2>
+        <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
           <div>
-            <p class="ck-kicker">{@workspace.name}</p>
-            <h1 class="ck-section-title">Webhooks</h1>
-            <p class="ck-lead ck-lead-tight">
-              Subscribe external systems to ControlKeel events. Each webhook gets a server-generated secret used to sign payloads.
-            </p>
+            <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
+            <input
+              type="text"
+              name="wh[name]"
+              value={@create_form[:name].value || ""}
+              required
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            />
           </div>
-        </div>
-
-        <%= if @new_secret do %>
-          <div
-            class="ck-card mt-6"
-            id="new-secret-banner"
-            style="border-color: rgba(190, 242, 100, 0.4);"
-          >
-            <p>
-              <strong>Signing secret for {@new_secret_for}.</strong>
-              Copy now — it will not be shown again.
-            </p>
-            <pre><code id="new-secret-value">{@new_secret}</code></pre>
-            <button type="button" phx-click="dismiss-secret" class="ck-btn ck-btn-secondary">
-              Dismiss
-            </button>
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-1">Delivery URL</label>
+            <input
+              type="url"
+              name="wh[url]"
+              value={@create_form[:url].value || ""}
+              required
+              placeholder="https://example.com/hooks/controlkeel"
+              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            />
           </div>
-        <% end %>
-
-        <div class="ck-card mt-6">
-          <h2 class="ck-section-subtitle">Create webhook</h2>
-          <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
-              <input
-                type="text"
-                name="wh[name]"
-                value={@create_form[:name].value || ""}
-                required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-              />
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-2">Events</label>
+            <div class="grid grid-cols-2 gap-2">
+              <%= for ev <- @available_events do %>
+                <label class="flex items-center gap-2 text-sm text-zinc-300">
+                  <input type="checkbox" name="events[]" value={ev} />
+                  <code>{ev}</code>
+                </label>
+              <% end %>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Delivery URL</label>
-              <input
-                type="url"
-                name="wh[url]"
-                value={@create_form[:url].value || ""}
-                required
-                placeholder="https://example.com/hooks/controlkeel"
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-2">Events</label>
-              <div class="grid grid-cols-2 gap-2">
-                <%= for ev <- @available_events do %>
-                  <label class="flex items-center gap-2 text-sm text-zinc-300">
-                    <input type="checkbox" name="events[]" value={ev} />
-                    <code>{ev}</code>
-                  </label>
-                <% end %>
-              </div>
-            </div>
-            <%= if @create_error do %>
-              <p class="ck-note ck-note-danger">{@create_error}</p>
-            <% end %>
-            <button type="submit" class="ck-btn ck-btn-primary self-start">Create webhook</button>
-          </.form>
-        </div>
-
-        <div class="ck-card mt-6">
-          <h2 class="ck-section-subtitle">Configured webhooks</h2>
-          <%= if @webhooks == [] do %>
-            <p class="ck-lead-tight">No webhooks configured yet.</p>
-          <% else %>
-            <table class="ck-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>URL</th>
-                  <th>Events</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <%= for w <- @webhooks do %>
-                  <tr id={"webhook-#{w.id}"}>
-                    <td>{w.name}</td>
-                    <td><code>{w.url}</code></td>
-                    <td><code>{IntegrationWebhook.event_list(w) |> Enum.join(", ")}</code></td>
-                    <td>{w.status}</td>
-                    <td>
-                      <button
-                        type="button"
-                        phx-click="replay"
-                        phx-value-id={w.id}
-                        class="ck-btn ck-btn-secondary"
-                      >
-                        Replay last
-                      </button>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
+          </div>
+          <%= if @create_error do %>
+            <p class="ck-note ck-note-danger">{@create_error}</p>
           <% end %>
-        </div>
-      </section>
-    </DashboardLayout.dashboard>
+          <button type="submit" class="ck-btn ck-btn-primary self-start">Create webhook</button>
+        </.form>
+      </div>
+
+      <div class="ck-card mt-6">
+        <h2 class="ck-section-subtitle">Configured webhooks</h2>
+        <%= if @webhooks == [] do %>
+          <p class="ck-lead-tight">No webhooks configured yet.</p>
+        <% else %>
+          <table class="ck-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>URL</th>
+                <th>Events</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for w <- @webhooks do %>
+                <tr id={"webhook-#{w.id}"}>
+                  <td>{w.name}</td>
+                  <td><code>{w.url}</code></td>
+                  <td><code>{IntegrationWebhook.event_list(w) |> Enum.join(", ")}</code></td>
+                  <td>{w.status}</td>
+                  <td>
+                    <button
+                      type="button"
+                      phx-click="replay"
+                      phx-value-id={w.id}
+                      class="ck-btn ck-btn-secondary"
+                    >
+                      Replay last
+                    </button>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% end %>
+      </div>
+    </section>
     """
   end
 
