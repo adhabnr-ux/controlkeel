@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.70 — 2026-07-14
+
+### What's changed
+
+- Merge pull request #35 from aryaminus/refactor/framework-layouts-cleanup
+- Add TODO comments for unprotected observability export route
+- refactor/framework-layouts-cleanup: remove planning document
+- Merge branch 'refactor/framework-layouts-core' of github.com:aryaminus/controlkeel into refactor/framework-layouts-cleanup
+- refactor/framework-layouts-cleanup: wire dashboard/observability framework layouts, drop LV wrappers, remove legacy modules
+- refactor/framework-layouts-core: add Layouts module and migrate public pages to framework layout
+
 ## v0.3.69 — 2026-07-14
 
 ### What's changed
