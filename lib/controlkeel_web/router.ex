@@ -152,6 +152,9 @@ defmodule ControlKeelWeb.Router do
       live "/observability/sessions/:id", ObservabilityLive, :show
     end
 
+    # TODO: Auth-gate this route when OAuth/session auth is implemented (refactor/web-auth).
+    # Currently unprotected — the LiveView equivalents are gated via LiveAuth.require_cloud_auth
+    # but this controller GET has no equivalent plug. See Copilot review 2026-07-13.
     get "/observability/sessions/:id/export.json", ObservabilityController, :export_session
   end
 
