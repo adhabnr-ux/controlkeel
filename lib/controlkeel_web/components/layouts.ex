@@ -5,7 +5,7 @@ defmodule ControlKeelWeb.Layouts do
   - `:root` — the HTML skeleton (doctype/head/body), set via `put_root_layout`
     in the browser pipeline.
   - `:public` — marketing chrome (header/footer) for public pages, set per
-    controller via `layout :public`.
+    controller via `plug :put_layout` (see `PageController`).
 
   Framework layouts share the page's render context, so assigns like
   `@current_user`, `@flash`, and `@inner_content` are available here without
