@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.69 — 2026-07-14
+
+### What's changed
+
+- Merge pull request #34 from aryaminus/refactor/framework-layouts-core
+- refactor/framework-layouts-cleanup: update layout documentation to specify plug :put_layout usage
+- refactor/framework-layouts-core: remove layout configuration from Phoenix controller macro
+- refactor/framework-layouts-core: implement core framework layouts and migrate public controllers to use them
+- refactor/framework-layouts-core: consolidate layout management by replacing public/root components with a unified layouts module and adding observability support
+
 ## v0.3.68 — 2026-07-12
 
 ### What's changed
