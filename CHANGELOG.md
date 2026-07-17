@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.71 — 2026-07-17
+
+### What's changed
+
+- feat: add governed agent harness controls (#33)
+
 ## v0.3.70 — 2026-07-14
 
 ### What's changed
