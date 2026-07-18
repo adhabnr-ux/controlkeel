@@ -51,6 +51,29 @@ defmodule ControlKeel.Accounts do
     Repo.get_by(User, email: String.downcase(String.trim(email)))
   end
 
+  @doc """
+  Find an existing user by email, or create a new one.
+
+  Returns `{:ok, user, created}` where `created` is `true` when a new row was
+  inserted and `false` when an existing user was returned. Used by the login
+  flow so the same form handles first-time sign-up and subsequent sign-in.
+  Name is only persisted when creating.
+  """
+  @spec find_or_create_user(String.t(), String.t() | nil) ::
+          {:ok, User.t(), boolean()} | {:error, Ecto.Changeset.t()}
+  def find_or_create_user(email, name \\ nil) when is_binary(email) do
+    case get_user_by_email(email) do
+      %User{} = user ->
+        {:ok, user, false}
+
+      nil ->
+        case create_user(%{email: email, name: name}) do
+          {:ok, %User{} = user} -> {:ok, user, true}
+          {:error, _} = err -> err
+        end
+    end
+  end
+
   @spec list_users(keyword()) :: [User.t()]
   def list_users(opts \\ []) do
     User
@@ -707,9 +730,9 @@ defmodule ControlKeel.Accounts do
   end
 
   defp find_or_create_sso_user(email, name) do
-    case get_user_by_email(email) do
-      %User{} = user -> {:ok, user}
-      nil -> create_user(%{email: email, name: name})
+    case find_or_create_user(email, name) do
+      {:ok, user, _created} -> {:ok, user}
+      {:error, _} = err -> err
     end
   end
 

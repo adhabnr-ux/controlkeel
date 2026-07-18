@@ -66,12 +66,17 @@ defmodule ControlKeelWeb.Router do
     # Public in all modes
     live "/auth/login", AuthLive, :index
 
-    live "/signup", SignupLive, :new
+    # Specific auth routes must precede parameterized OAuth routes
+    # to avoid conflicts (e.g. /auth/logout matching /auth/:provider).
     get "/auth/oidc/start", OidcController, :start
     get "/auth/oidc/callback", OidcController, :callback
     get "/auth/saml/start", SamlController, :start
     get "/auth/logout", AuthController, :logout
     get "/auth/complete/:token", AuthController, :complete
+
+    # OAuth provider sign-in (parameterized — catches /auth/google, /auth/github, etc.)
+    get "/auth/:provider/request", OAuthLoginController, :request
+    get "/auth/:provider/callback", OAuthLoginController, :callback
 
     # Public invitation-acceptance page. Uses the :dashboard framework layout
     # for chrome but is NOT auth-gated (it handles its own session and works
