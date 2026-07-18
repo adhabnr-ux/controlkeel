@@ -74,6 +74,7 @@ defmodule ControlKeel.MixProject do
        compile: false,
        depth: 1},
       {:req, "~> 0.5"},
+      {:assent, "~> 0.2"},
       {:chromic_pdf, "~> 1.17"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
