@@ -11,10 +11,6 @@
         <a href={~p"/getting-started"} class="text-zinc-400 transition hover:text-white">
           Docs
         </a>
-        <%!-- TODO: temporary until auth gating is added in a future PR --%>
-        <a href={~p"/dashboard"} class="text-zinc-400 transition hover:text-white">
-          Dashboard
-        </a>
         <a
           href="https://github.com/aryaminus/controlkeel"
           target="_blank"
@@ -23,12 +19,18 @@
         >
           GitHub
         </a>
-        <a
-          href={~p"/auth/login"}
-          class="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-semibold text-zinc-950 transition hover:bg-lime-200"
-        >
-          Sign in
+        <%!-- TODO: temporary until auth gating is added in a future PR --%>
+        <a href={~p"/dashboard"} class="text-zinc-400 transition hover:text-white">
+          Dashboard
         </a>
+        <%= if ControlKeel.Runtime.Mode.current() != :local do %>
+          <a
+            href={~p"/auth/login"}
+            class="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-semibold text-zinc-950 transition hover:bg-lime-200"
+          >
+            Sign in
+          </a>
+        <% end %>
       </nav>
     </div>
   </header>
