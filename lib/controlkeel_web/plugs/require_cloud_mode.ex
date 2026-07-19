@@ -23,15 +23,28 @@ defmodule ControlKeelWeb.Plugs.RequireCloudMode do
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    if Mode.current() == :local and auth_path?(conn.request_path) do
-      conn
-      |> put_flash(:info, "Sign-in is not available in local mode.")
-      |> redirect(to: "/dashboard")
-      |> halt()
-    else
-      conn
+    cond do
+      already_signed_in?(conn) and login_path?(conn.request_path) ->
+        conn
+        |> redirect(to: "/dashboard")
+        |> halt()
+
+      Mode.current() == :local and auth_path?(conn.request_path) ->
+        conn
+        |> put_flash(:info, "Sign-in is not available in local mode.")
+        |> redirect(to: "/dashboard")
+        |> halt()
+
+      true ->
+        conn
     end
   end
+
+  defp already_signed_in?(conn) do
+    get_session(conn, :current_user_id) != nil
+  end
+
+  defp login_path?(path), do: path == "/auth/login"
 
   defp auth_path?(path) do
     Enum.any?(@auth_prefixes, &String.starts_with?(path, &1)) and
