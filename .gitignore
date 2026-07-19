@@ -146,6 +146,7 @@ Thumbs.db
 # Environment files (keep .env.example)
 .env
 .env.local
+.env.docker.cloud
 .env.*.local
 
 # Governance development tooling and records (internal use only)
