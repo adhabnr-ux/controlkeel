@@ -33,7 +33,14 @@ defmodule ControlKeel.Accounts.OAuthProviders.DefaultAdapter do
 
     case strategy(provider).callback(config, params) do
       {:ok, %{user: user}} when is_map(user) ->
-        {:ok, %{email: user[:email] || user["email"], name: user[:name] || user["name"]}}
+        email = user[:email] || user["email"]
+        name = user[:name] || user["name"]
+
+        if is_binary(email) and String.trim(email) != "" do
+          {:ok, %{email: email, name: name}}
+        else
+          {:error, :missing_email}
+        end
 
       {:error, reason} ->
         {:error, reason}
