@@ -115,13 +115,7 @@ defmodule ControlKeel.Accounts.OAuthProviders do
   end
 
   defp default_redirect_uri(provider) do
-    base_url = ControlKeelWeb.Endpoint.config(:url)[:host] || "localhost"
-    scheme = ControlKeelWeb.Endpoint.config(:url)[:scheme] || "http"
-    port = ControlKeelWeb.Endpoint.config(:url)[:port] || 4000
-
-    port_fragment = if port in [80, 443], do: "", else: ":#{port}"
-
-    "#{scheme}://#{base_url}#{port_fragment}/auth/#{provider}/callback"
+    "#{ControlKeelWeb.Endpoint.url()}/auth/#{provider}/callback"
   end
 
   defp adapter do

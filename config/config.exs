@@ -21,8 +21,12 @@ config :controlkeel,
 # Configure the endpoint
 # Default `code_reloader` so releases match runtime MCP overrides (CK_MCP_MODE).
 # `config/dev.exs` enables reloading for local `mix phx.server` workflows.
+# `:url` is the advertised URL used for route generation, OAuth redirect URIs,
+# and any external link emission. Scheme/port must match the dev/test serving
+# ports so OAuth IdPs can call back to the right address. Production overrides
+# this in `config/runtime.exs` via `Runtime.Defaults.endpoint_url_config/0`.
 config :controlkeel, ControlKeelWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: "localhost", scheme: "http", port: 4000],
   adapter: Bandit.PhoenixAdapter,
   code_reloader: false,
   render_errors: [
