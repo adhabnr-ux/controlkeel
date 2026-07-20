@@ -6,16 +6,21 @@ defmodule ControlKeelWeb.AuthLive do
   email/password fallback. The actual OAuth dance lives in
   `ControlKeelWeb.OAuthLoginController` and `ControlKeel.Accounts.OAuthProviders`.
 
-  Both buttons are always rendered. If a provider is not configured the
-  OAuth dance will fail with an error flash, but the button is always
-  visible regardless of env vars.
+  Only providers whose client_id + client_secret are configured (read from
+  `OAuthProviders.configured/0`) are rendered. If neither is configured the
+  card shows a "no providers configured" message instead of dead buttons.
   """
 
   use ControlKeelWeb, :live_view
 
+  alias ControlKeel.Accounts.OAuthProviders
+
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, :page_title, "Sign in")}
+    {:ok,
+     socket
+     |> assign(:page_title, "Sign in")
+     |> assign(:configured_providers, OAuthProviders.configured())}
   end
 
   @impl true
@@ -59,6 +64,7 @@ defmodule ControlKeelWeb.AuthLive do
 
           <div class="grid gap-3">
             <.link
+              :if={:google in @configured_providers}
               href={~p"/auth/google/request"}
               id="auth-google-btn"
               class="group flex items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-3.5 text-sm font-semibold text-white transition duration-200 hover:-translate-y-1 hover:bg-white/15 hover:border-white/20"
@@ -87,6 +93,7 @@ defmodule ControlKeelWeb.AuthLive do
             </.link>
 
             <.link
+              :if={:github in @configured_providers}
               href={~p"/auth/github/request"}
               id="auth-github-btn"
               class="group flex items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-3.5 text-sm font-semibold text-white transition duration-200 hover:-translate-y-1 hover:bg-white/15 hover:border-white/20"
@@ -98,6 +105,10 @@ defmodule ControlKeelWeb.AuthLive do
               </span>
               Continue with GitHub
             </.link>
+
+            <p :if={@configured_providers == []} class="py-6 text-center text-sm text-slate-400">
+              No sign-in providers are configured. Contact your administrator.
+            </p>
           </div>
 
           <p class="mt-7 text-center text-xs text-slate-500 leading-6">
