@@ -86,12 +86,8 @@ defmodule ControlKeelWeb.OAuthLoginController do
 
   # ── Private ─────────────────────────────────────────────────────────
 
-  defp safe_to_atom(name) when is_binary(name) do
-    {:ok, String.to_existing_atom(name)}
-  rescue
-    ArgumentError -> {:error, :invalid_provider}
-  end
-
+  defp safe_to_atom("google"), do: {:ok, :google}
+  defp safe_to_atom("github"), do: {:ok, :github}
   defp safe_to_atom(_), do: {:error, :invalid_provider}
 
   defp clear_oauth_session(conn) do
