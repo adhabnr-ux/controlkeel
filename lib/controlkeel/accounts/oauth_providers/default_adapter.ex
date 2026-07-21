@@ -7,7 +7,7 @@ defmodule ControlKeel.Accounts.OAuthProviders.DefaultAdapter do
     * **Google** — `Assent.Strategy.Google` performs OIDC discovery, JWKS
       fetch, RS256 id_token signature verification, and issuer/audience
       claims validation.
-    * **GitHub** — `Assent.Strategy.GitHub` performs plain OAuth2 token
+    * **GitHub** — `Assent.Strategy.Github` performs plain OAuth2 token
       exchange plus `/user` (and `/user/emails` when needed) for claims.
 
   Tests inject a fake adapter via
