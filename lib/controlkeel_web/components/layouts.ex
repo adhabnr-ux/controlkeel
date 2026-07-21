@@ -56,6 +56,14 @@ defmodule ControlKeelWeb.Layouts do
           Missions
         </a>
         <a
+          href={~p"/organization"}
+          data-sidebar-link
+          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+        >
+          <.icon name="hero-building-office-2" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+          Organizations
+        </a>
+        <a
           href={~p"/skills"}
           data-sidebar-link
           class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"

@@ -107,6 +107,7 @@ defmodule ControlKeelWeb.Router do
       live "/org/:slug/members", OrgMembersLive, :index
       live "/org/:slug/settings/auth", OrgSettingsAuthLive, :edit
       live "/org/:slug/settings/general", OrgSettingsGeneralLive, :edit
+      live "/organization", OrganizationsLive, :index
       live "/workspaces/:id/repos", WorkspaceReposLive, :index
       live "/workspaces/:id/service-accounts", WorkspaceServiceAccountsLive, :index
       live "/workspaces/:id/webhooks", WorkspaceWebhooksLive, :index

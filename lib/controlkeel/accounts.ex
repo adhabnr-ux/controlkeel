@@ -12,6 +12,7 @@ defmodule ControlKeel.Accounts do
 
   import Ecto.Query, warn: false
 
+  alias Ecto.Multi
   alias ControlKeel.Accounts.Membership
   alias ControlKeel.Accounts.Org
   alias ControlKeel.Accounts.ReviewAuditEvent
@@ -112,6 +113,54 @@ defmodule ControlKeel.Accounts do
     Org
     |> filter_status(Keyword.get(opts, :status))
     |> order_by([o], asc: o.name)
+    |> Repo.all()
+  end
+
+  @doc """
+  Create an org and an active owner membership for `user_id` in one transaction.
+
+  Atomic: if either insert fails, both roll back. Used by the web
+  `/organization/new` flow so a signed-in user becomes the owner of the org
+  they create without going through the invite-token lifecycle.
+  """
+  @spec create_org_with_owner(integer(), map()) ::
+          {:ok, Org.t()} | {:error, Ecto.Changeset.t()}
+  def create_org_with_owner(user_id, attrs) when is_integer(user_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    Multi.new()
+    |> Multi.insert(:org, Org.changeset(%Org{}, attrs))
+    |> Multi.insert(:membership, fn %{org: org} ->
+      Membership.changeset(%Membership{}, %{
+        user_id: user_id,
+        org_id: org.id,
+        role: "owner",
+        status: "active",
+        accepted_at: now
+      })
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{org: org}} -> {:ok, org}
+      {:error, _step, changeset, _changes} -> {:error, changeset}
+    end
+  end
+
+  @doc """
+  List orgs where `user_id` has an active membership, with the user's role.
+
+  Returns `[%{org: Org.t(), role: String.t()}]` ordered by org name.
+  Used by the `/organization` index in cloud/self_hosted mode so the UI can
+  render a role badge per row. In local mode there is no user, so callers
+  wrap `list_orgs/1` results with `role: nil` instead.
+  """
+  @spec list_orgs_for_user(integer()) :: [%{org: Org.t(), role: String.t()}]
+  def list_orgs_for_user(user_id) when is_integer(user_id) do
+    Membership
+    |> join(:inner, [m], o in Org, on: o.id == m.org_id)
+    |> where([m], m.user_id == ^user_id and m.status == "active")
+    |> order_by([_, o], asc: o.name)
+    |> select([m, o], %{org: o, role: m.role})
     |> Repo.all()
   end
 

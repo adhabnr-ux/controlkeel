@@ -2,6 +2,8 @@ defmodule ControlKeel.AccountsTest do
   use ControlKeel.DataCase, async: false
 
   alias ControlKeel.Accounts
+  alias ControlKeel.Accounts.{Membership, Org}
+  alias ControlKeel.Repo
 
   describe "create_user/1" do
     test "creates a user with normalized email" do
@@ -41,6 +43,91 @@ defmodule ControlKeel.AccountsTest do
       {:ok, _} = Accounts.create_org(%{name: "One", slug: "shared-slug"})
       assert {:error, changeset} = Accounts.create_org(%{name: "Two", slug: "shared-slug"})
       assert "has already been taken" in errors_on(changeset).slug
+    end
+  end
+
+  describe "create_org_with_owner/2" do
+    setup do
+      {:ok, user} = Accounts.create_user(%{email: "owner@example.com", name: "Owner"})
+      {:ok, user: user}
+    end
+
+    test "creates an org and an active owner membership atomically", %{user: user} do
+      assert {:ok, org} = Accounts.create_org_with_owner(user.id, %{name: "Acme", slug: "acme"})
+
+      assert org.slug == "acme"
+      assert org.status == "active"
+
+      membership = Accounts.get_active_membership(user.id, org.id)
+      assert membership != nil
+      assert membership.role == "owner"
+      assert membership.status == "active"
+      assert membership.accepted_at != nil
+      assert membership.invitation_token_hash == nil
+    end
+
+    test "rolls back both rows when the org insert fails", %{user: user} do
+      {:ok, _} = Accounts.create_org(%{name: "Existing", slug: "taken"})
+
+      assert {:error, changeset} =
+               Accounts.create_org_with_owner(user.id, %{name: "Dup", slug: "taken"})
+
+      assert "has already been taken" in errors_on(changeset).slug
+
+      refute Repo.get_by(Org, slug: "taken") |> Map.get(:name) == "Dup"
+      assert Repo.aggregate(Membership, :count) == 0
+    end
+  end
+
+  describe "list_orgs_for_user/1" do
+    test "returns only orgs where the user has an active membership, with role" do
+      {:ok, user_a} = Accounts.create_user(%{email: "a@example.com"})
+      {:ok, user_b} = Accounts.create_user(%{email: "b@example.com"})
+
+      {:ok, org_a} = Accounts.create_org_with_owner(user_a.id, %{name: "Org A", slug: "org-a"})
+      {:ok, _org_b} = Accounts.create_org_with_owner(user_b.id, %{name: "Org B", slug: "org-b"})
+
+      # Unaffiliated org — should not appear for either user.
+      {:ok, _} = Accounts.create_org(%{name: "Lonely", slug: "lonely"})
+
+      [row_a] = Accounts.list_orgs_for_user(user_a.id)
+      assert row_a.org.id == org_a.id
+      assert row_a.role == "owner"
+    end
+
+    test "ignores pending memberships" do
+      {:ok, owner} = Accounts.create_user(%{email: "owner@example.com"})
+      {:ok, invitee} = Accounts.create_user(%{email: "invitee@example.com"})
+      {:ok, org} = Accounts.create_org_with_owner(owner.id, %{name: "Own", slug: "own"})
+
+      {:ok, _membership, _token} =
+        Accounts.invite_member(invitee.id, org.id, role: "member", invited_by_user_id: owner.id)
+
+      # Invitee has only a pending membership — they should not see the org.
+      assert Accounts.list_orgs_for_user(invitee.id) == []
+
+      [row] = Accounts.list_orgs_for_user(owner.id)
+      assert row.org.id == org.id
+      assert row.role == "owner"
+    end
+
+    test "preserves distinct roles when a user holds different roles across orgs" do
+      {:ok, owner} = Accounts.create_user(%{email: "owner@example.com"})
+      {:ok, other} = Accounts.create_user(%{email: "other@example.com"})
+
+      {:ok, owned} = Accounts.create_org_with_owner(owner.id, %{name: "Owned", slug: "owned"})
+      {:ok, _} = Accounts.create_org_with_owner(other.id, %{name: "Other Org", slug: "other-org"})
+
+      {:ok, _, _token} =
+        Accounts.invite_member(owner.id, other.id, role: "member", invited_by_user_id: other.id)
+
+      {:ok, _} = Accounts.accept_invitation(_token, owner.id)
+
+      rows = Accounts.list_orgs_for_user(owner.id)
+      role_by_slug = Map.new(rows, fn row -> {row.org.slug, row.role} end)
+
+      assert role_by_slug["owned"] == "owner"
+      assert role_by_slug["other-org"] == "member"
     end
   end
 
