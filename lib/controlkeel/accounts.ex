@@ -427,6 +427,13 @@ defmodule ControlKeel.Accounts do
     |> Repo.all()
   end
 
+  @spec count_memberships_for_org(integer()) :: non_neg_integer()
+  def count_memberships_for_org(org_id) do
+    Membership
+    |> where([m], m.org_id == ^org_id and m.status == "active")
+    |> Repo.aggregate(:count, :id)
+  end
+
   @spec list_memberships_for_user(integer(), keyword()) :: [Membership.t()]
   def list_memberships_for_user(user_id, opts \\ []) do
     Membership

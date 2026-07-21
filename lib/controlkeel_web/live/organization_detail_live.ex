@@ -80,12 +80,16 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
 
   defp mount_ok(socket, org) do
     local_mode = Mode.current() == :local
+    budget_cents = Accounts.org_budget_cents(org) || 0
+    member_count = Accounts.count_memberships_for_org(org.id)
 
     {:ok,
      socket
      |> assign(:page_title, "Members — #{org.name}")
      |> assign(:org, org)
      |> assign(:local_mode, local_mode)
+     |> assign(:budget_cents, budget_cents)
+     |> assign(:member_count, member_count)
      |> assign(:memberships, if(local_mode, do: [], else: load_memberships(org.id)))
      |> assign(:invite_form, to_form(%{"email" => "", "role" => "member"}, as: :invite))
      |> assign(:invite_token, nil)
@@ -126,6 +130,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
       {:noreply,
        socket
        |> assign(:memberships, load_memberships(socket.assigns.org.id))
+       |> assign(:member_count, Accounts.count_memberships_for_org(socket.assigns.org.id))
        |> assign(:invite_token, raw_token)
        |> assign(:invite_error, nil)
        |> assign(:show_invite_modal, false)
@@ -145,6 +150,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
       {:noreply,
        socket
        |> assign(:memberships, load_memberships(socket.assigns.org.id))
+       |> assign(:member_count, Accounts.count_memberships_for_org(socket.assigns.org.id))
        |> put_flash(:info, "Membership revoked.")}
     else
       {:error, :last_owner_protected} ->
@@ -199,12 +205,15 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
             {@org.name}
           </p>
-          <h1 class="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            Members
-          </h1>
-          <p class="mt-2 text-sm text-zinc-400">
-            Invite teammates and manage roles. Owners can promote and demote; the last owner is protected.
-          </p>
+          <%= if @local_mode do %>
+            <p class="mt-2 text-sm text-zinc-400">
+              View your organization details below. Member management is not available in local mode.
+            </p>
+          <% else %>
+            <p class="mt-2 text-sm text-zinc-400">
+              Invite teammates and manage roles. Owners can promote and demote; the last owner is protected.
+            </p>
+          <% end %>
         </div>
 
         <div class="flex items-center gap-3">
@@ -232,16 +241,61 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
             Invitation token issued. Send this link to the invitee — the token will not be shown again.
           </p>
           <pre class="mt-2 rounded-lg bg-black/30 px-4 py-2 font-mono text-xs text-zinc-300"><code id="invite-token-value">/cloud/invitations/{@invite_token}</code></pre>
-          <button type="button" phx-click="dismiss-token" class="mt-3 text-xs font-medium text-zinc-400 transition hover:text-white">
+          <button
+            type="button"
+            phx-click="dismiss-token"
+            class="mt-3 text-xs font-medium text-zinc-400 transition hover:text-white"
+          >
             Dismiss
           </button>
         </div>
       <% end %>
 
+      <section class="mb-6 rounded-3xl border border-white/10 bg-zinc-900/70 p-6 shadow-2xl shadow-black/20 backdrop-blur">
+        <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Name</dt>
+            <dd class="mt-1 text-sm text-white">{@org.name}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Slug</dt>
+            <dd class="mt-1 font-mono text-sm text-zinc-300">{@org.slug}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Status</dt>
+            <dd class="mt-1 text-sm capitalize text-white">{@org.status}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Members</dt>
+            <dd class="mt-1 text-sm text-white">{@member_count}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+              Monthly budget
+            </dt>
+            <dd class="mt-1 text-sm text-white">
+              <%= if @budget_cents > 0 do %>
+                {"$#{Float.round(@budget_cents / 100, 2)}"}
+              <% else %>
+                <span class="text-zinc-500">—</span>
+              <% end %>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Created</dt>
+            <dd class="mt-1 text-sm text-white">
+              {Calendar.strftime(@org.inserted_at, "%b %d, %Y")}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
       <%= if @local_mode do %>
         <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-12 text-center shadow-2xl shadow-black/20 backdrop-blur">
           <.icon name="hero-users" class="mx-auto size-10 text-zinc-600" />
-          <p class="mt-4 text-base font-medium text-white">Member management is not available in local mode.</p>
+          <p class="mt-4 text-base font-medium text-white">
+            Member management is not available in local mode.
+          </p>
           <p class="mt-1 text-sm text-zinc-500">
             Switch to cloud or self-hosted mode to invite teammates and manage roles.
           </p>
@@ -291,7 +345,8 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                       <td class="px-5 py-4">
                         <span class={[
                           "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
-                          m.status == "active" && "bg-emerald-300/10 text-emerald-200 ring-emerald-200/20",
+                          m.status == "active" &&
+                            "bg-emerald-300/10 text-emerald-200 ring-emerald-200/20",
                           m.status == "pending" && "bg-amber-300/10 text-amber-200 ring-amber-200/20",
                           m.status == "revoked" && "bg-zinc-400/10 text-zinc-400 ring-zinc-500/20"
                         ]}>
