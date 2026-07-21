@@ -10,13 +10,20 @@ defmodule ControlKeelWeb.OrgMembersLive do
     - Revoke a membership (last-owner protected)
     - Change a role (last-owner protected)
 
-  Cross-org access is rejected at mount.
+  ## Access
+
+  Resolved per-URL via `Accounts.get_active_membership(user.id, org.id)`
+  (NOT the session's pinned `current_membership`). Local mode has no
+  membership table and is unrestricted. Cloud/self_hosted requires the
+  signed-in user to hold an active admin+ membership for this specific
+  org; others are redirected to `/organization`.
   """
 
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Accounts
   alias ControlKeel.Repo
+  alias ControlKeel.Runtime.Mode
 
   @valid_roles ~w(owner admin member viewer)
 
@@ -24,42 +31,63 @@ defmodule ControlKeelWeb.OrgMembersLive do
   def mount(%{"slug" => slug}, _session, socket) do
     case Accounts.get_org_by_slug(slug) do
       nil ->
-        {:ok, redirect_with_flash(socket, :error, "Organization not found.", ~p"/cloud/projects")}
+        {:ok, redirect_with_flash(socket, :error, "Organization not found.", ~p"/organization")}
 
       org ->
-        membership = socket.assigns[:current_membership]
+        mode = Mode.current()
+        user = socket.assigns[:current_user]
 
         cond do
-          is_nil(membership) or membership.org_id != org.id ->
-            {:ok,
-             redirect_with_flash(
-               socket,
-               :error,
-               "You're not a member of that organization.",
-               ~p"/cloud/projects"
-             )}
+          mode == :local ->
+            mount_ok(socket, org)
 
-          not Accounts.role_at_least?(membership.role, "admin") ->
+          is_nil(user) ->
             {:ok,
              redirect_with_flash(
                socket,
                :error,
-               "Admin or owner role required.",
-               ~p"/cloud/projects"
+               "Sign in to view this organization.",
+               ~p"/auth/login"
              )}
 
           true ->
-            {:ok,
-             socket
-             |> assign(:page_title, "Members — #{org.name}")
-             |> assign(:org, org)
-             |> assign(:memberships, load_memberships(org.id))
-             |> assign(:invite_form, to_form(%{"email" => "", "role" => "member"}, as: :invite))
-             |> assign(:invite_token, nil)
-             |> assign(:invite_error, nil)
-             |> assign(:current_user, socket.assigns[:current_user])}
+            case Accounts.get_active_membership(user.id, org.id) do
+              nil ->
+                {:ok,
+                 redirect_with_flash(
+                   socket,
+                   :error,
+                   "You're not a member of that organization.",
+                   ~p"/organization"
+                 )}
+
+              membership ->
+                if Accounts.role_at_least?(membership.role, "admin") do
+                  mount_ok(socket, org)
+                else
+                  {:ok,
+                   redirect_with_flash(
+                     socket,
+                     :error,
+                     "Admin or owner role required.",
+                     ~p"/organization"
+                   )}
+                end
+            end
         end
     end
+  end
+
+  defp mount_ok(socket, org) do
+    {:ok,
+     socket
+     |> assign(:page_title, "Members — #{org.name}")
+     |> assign(:org, org)
+     |> assign(:memberships, load_memberships(org.id))
+     |> assign(:invite_form, to_form(%{"email" => "", "role" => "member"}, as: :invite))
+     |> assign(:invite_token, nil)
+     |> assign(:invite_error, nil)
+     |> assign(:current_user, socket.assigns[:current_user])}
   end
 
   @impl true

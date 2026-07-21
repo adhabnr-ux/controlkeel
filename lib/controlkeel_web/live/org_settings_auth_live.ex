@@ -8,13 +8,17 @@ defmodule ControlKeelWeb.OrgSettingsAuthLive do
 
   ## Access
 
-  Only members with role `admin` or higher can view or modify this page.
-  Other members are redirected to `/cloud/projects`.
+  Resolved per-URL via `Accounts.get_active_membership(user.id, org.id)`
+  (NOT the session's pinned `current_membership`). Local mode has no
+  membership table and is unrestricted. Cloud/self_hosted requires the
+  signed-in user to hold an active admin+ membership for this specific
+  org; others are redirected to `/organization`.
   """
 
   use ControlKeelWeb, :live_view
 
   alias ControlKeel.Accounts
+  alias ControlKeel.Runtime.Mode
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
@@ -23,38 +27,56 @@ defmodule ControlKeelWeb.OrgSettingsAuthLive do
         {:ok,
          socket
          |> put_flash(:error, "Organization not found.")
-         |> push_navigate(to: ~p"/cloud/projects")}
+         |> push_navigate(to: ~p"/organization")}
 
       org ->
-        membership = socket.assigns[:current_membership]
+        mode = Mode.current()
+        user = socket.assigns[:current_user]
 
         cond do
-          is_nil(membership) or membership.org_id != org.id ->
-            {:ok,
-             socket
-             |> put_flash(:error, "You're not a member of that organization.")
-             |> push_navigate(to: ~p"/cloud/projects")}
+          mode == :local ->
+            mount_ok(socket, org)
 
-          not Accounts.role_at_least?(membership.role, "admin") ->
+          is_nil(user) ->
             {:ok,
              socket
-             |> put_flash(:error, "Admin or owner role required.")
-             |> push_navigate(to: ~p"/cloud/projects")}
+             |> put_flash(:error, "Sign in to view this organization.")
+             |> push_navigate(to: ~p"/auth/login")}
 
           true ->
-            idp = Accounts.get_org_identity_provider(org) || %{}
+            case Accounts.get_active_membership(user.id, org.id) do
+              nil ->
+                {:ok,
+                 socket
+                 |> put_flash(:error, "You're not a member of that organization.")
+                 |> push_navigate(to: ~p"/organization")}
 
-            {:ok,
-             socket
-             |> assign(:page_title, "Authentication — #{org.name}")
-             |> assign(:org, org)
-             |> assign(:idp, idp)
-             |> assign(:idp_type, Map.get(idp, "type") || "oidc")
-             |> assign(:form, to_form(idp_to_form_params(idp), as: :idp))
-             |> assign(:error, nil)
-             |> assign(:saved, false)}
+              membership ->
+                if Accounts.role_at_least?(membership.role, "admin") do
+                  mount_ok(socket, org)
+                else
+                  {:ok,
+                   socket
+                   |> put_flash(:error, "Admin or owner role required.")
+                   |> push_navigate(to: ~p"/organization")}
+                end
+            end
         end
     end
+  end
+
+  defp mount_ok(socket, org) do
+    idp = Accounts.get_org_identity_provider(org) || %{}
+
+    {:ok,
+     socket
+     |> assign(:page_title, "Authentication — #{org.name}")
+     |> assign(:org, org)
+     |> assign(:idp, idp)
+     |> assign(:idp_type, Map.get(idp, "type") || "oidc")
+     |> assign(:form, to_form(idp_to_form_params(idp), as: :idp))
+     |> assign(:error, nil)
+     |> assign(:saved, false)}
   end
 
   @impl true
