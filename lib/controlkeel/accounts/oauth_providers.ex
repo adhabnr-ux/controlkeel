@@ -67,10 +67,19 @@ defmodule ControlKeel.Accounts.OAuthProviders do
         nil
 
       true ->
+        redirect_uri =
+          case Keyword.get(cfg, :redirect_uri) do
+            uri when is_binary(uri) ->
+              if String.trim(uri) != "", do: uri, else: default_redirect_uri(provider)
+
+            _ ->
+              default_redirect_uri(provider)
+          end
+
         %{
           client_id: client_id,
           client_secret: client_secret,
-          redirect_uri: Keyword.get(cfg, :redirect_uri) || default_redirect_uri(provider)
+          redirect_uri: redirect_uri
         }
     end
   end

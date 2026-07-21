@@ -1,15 +1,16 @@
 defmodule ControlKeelWeb.Plugs.RequireCloudMode do
   @moduledoc """
-  Redirects local-mode users away from auth routes.
+  Redirects users away from `/auth/*` routes when those routes are not useful.
 
-  In local mode there is no OAuth/SSO — the single user has implicit access
-  to all protected routes. Visiting `/auth/login` or `/auth/:provider/request`
-  would be a dead end, so this plug redirects to `/dashboard`.
+  Two cases:
+    * Already-signed-in users visiting `/auth/login` are redirected to
+      `/dashboard` to avoid re-login loops (any mode).
+    * In local mode (no OAuth/SSO), any `/auth/*` path is a dead end and
+      redirects to `/dashboard` with an informational flash.
 
-  Paths that are always allowed regardless of mode:
-    * `/auth/logout` — session teardown
-    * `/auth/complete/:token` — session-establishing completion links
-    * `/auth/saml/*` — external IdP callbacks
+  Note: `/auth/saml/acs` is exempt at the router level — it is mounted under
+  the `:saml_acs` pipeline, which does not include this plug, because SAML
+  IdPs POST assertions from outside the app in both modes.
   """
 
   import Plug.Conn
@@ -17,19 +18,19 @@ defmodule ControlKeelWeb.Plugs.RequireCloudMode do
 
   alias ControlKeel.Runtime.Mode
 
-  @auth_prefixes ["/auth/login", "/auth/google", "/auth/github"]
-  @always_allowed ["/auth/logout", "/auth/complete", "/auth/saml"]
+  @auth_prefix "/auth/"
+  @login_path "/auth/login"
 
   def init(opts), do: opts
 
   def call(conn, _opts) do
     cond do
-      already_signed_in?(conn) and login_path?(conn.request_path) ->
+      signed_in_visiting_login?(conn) ->
         conn
         |> redirect(to: "/dashboard")
         |> halt()
 
-      Mode.current() == :local and auth_path?(conn.request_path) ->
+      local_mode_auth_path?(conn) ->
         conn
         |> put_flash(:info, "Sign-in is not available in local mode.")
         |> redirect(to: "/dashboard")
@@ -40,14 +41,11 @@ defmodule ControlKeelWeb.Plugs.RequireCloudMode do
     end
   end
 
-  defp already_signed_in?(conn) do
-    get_session(conn, :current_user_id) != nil
+  defp signed_in_visiting_login?(conn) do
+    get_session(conn, :current_user_id) != nil and conn.request_path == @login_path
   end
 
-  defp login_path?(path), do: path == "/auth/login"
-
-  defp auth_path?(path) do
-    Enum.any?(@auth_prefixes, &String.starts_with?(path, &1)) and
-      not Enum.any?(@always_allowed, &String.starts_with?(path, &1))
+  defp local_mode_auth_path?(conn) do
+    Mode.current() == :local and String.starts_with?(conn.request_path, @auth_prefix)
   end
 end
