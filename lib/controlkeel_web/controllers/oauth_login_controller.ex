@@ -55,7 +55,7 @@ defmodule ControlKeelWeb.OAuthLoginController do
       |> delete_session(:oauth_provider)
       |> put_session(:current_user_id, user.id)
       |> put_session(:session_last_active, DateTime.utc_now() |> DateTime.to_iso8601())
-      |> put_flash(:info, "Signed in with #{String.capitalize(provider_name)}.")
+      |> put_flash(:info, "Signed in with #{provider_display_name(provider_name)}.")
       |> redirect(to: ~p"/dashboard")
     else
       {:error, :not_configured} ->
@@ -94,5 +94,13 @@ defmodule ControlKeelWeb.OAuthLoginController do
     conn
     |> delete_session(:oauth_session_params)
     |> delete_session(:oauth_provider)
+  end
+
+  defp provider_display_name(provider_name) when is_binary(provider_name) do
+    case provider_name do
+      "github" -> "GitHub"
+      "google" -> "Google"
+      _ -> String.capitalize(provider_name)
+    end
   end
 end
