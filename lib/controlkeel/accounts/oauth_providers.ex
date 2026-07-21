@@ -30,7 +30,7 @@ defmodule ControlKeel.Accounts.OAuthProviders do
 
   The default implementation uses `Assent` directly. Tests can inject a fake
   adapter via `Application.get_env(:controlkeel, :oauth_provider_adapter)`.
-  The adapter must export `authorize_url/2` and `callback/3` with the same
+  The adapter must export `authorize_url/3` and `callback/4` with the same
   signatures as the default.
   """
 
