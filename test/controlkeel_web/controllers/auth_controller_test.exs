@@ -1,6 +1,21 @@
 defmodule ControlKeelWeb.AuthControllerTest do
   use ControlKeelWeb.ConnCase, async: false
 
+  setup do
+    original_runtime_mode = Application.get_env(:controlkeel, :runtime_mode)
+    Application.put_env(:controlkeel, :runtime_mode, :cloud)
+
+    on_exit(fn ->
+      if is_nil(original_runtime_mode) do
+        Application.delete_env(:controlkeel, :runtime_mode)
+      else
+        Application.put_env(:controlkeel, :runtime_mode, original_runtime_mode)
+      end
+    end)
+
+    :ok
+  end
+
   test "GET /auth/logout clears SSO session keys", %{conn: conn} do
     conn =
       conn
