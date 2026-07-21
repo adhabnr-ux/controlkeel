@@ -178,39 +178,34 @@ defmodule ControlKeelWeb.OrgSettingsLive do
     end
   end
 
-  # ── Security events ────────────────────────────────────────────────
-
-  def handle_event("sign_out_everywhere", _params, socket) do
-    if socket.assigns[:current_user] do
-      Accounts.sign_out_everywhere(socket.assigns.current_user.id)
-      {:noreply, put_flash(socket, :info, "All other sessions have been signed out.")}
-    else
-      {:noreply, socket}
-    end
-  end
-
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="ck-shell" style="max-width: 720px; margin: 4rem auto;">
-      <div class="ck-section-header">
+    <section class="mx-auto max-w-7xl px-4 py-8 md:py-12">
+      <div class="mb-6 flex items-center justify-between gap-4">
         <div>
-          <p class="ck-kicker">{@org.name}</p>
-          <h1 class="ck-section-title">Settings</h1>
-          <p class="ck-lead ck-lead-tight">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+            {@org.name}
+          </p>
+          <h1 class="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            Settings
+          </h1>
+          <p class="mt-2 text-sm text-zinc-400">
             Slug <code>{@org.slug}</code> cannot be changed — it's bound to your sign-in URL.
           </p>
         </div>
-        <div>
-          <.link navigate={~p"/organizations/#{@org.slug}"} class="ck-btn ck-btn-secondary">
-            Back to members
-          </.link>
-        </div>
+
+        <.link
+          navigate={~p"/organizations/#{@org.slug}"}
+          class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
+        >
+          <.icon name="hero-arrow-left" class="size-4" /> Back to members
+        </.link>
       </div>
 
       <%!-- General settings --%>
-      <div class="ck-card mt-6">
-        <h2 class="text-lg font-semibold text-zinc-100 mb-4">General</h2>
+      <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-6 shadow-2xl shadow-black/20 backdrop-blur">
+        <h2 class="mb-4 text-lg font-semibold text-white">General</h2>
         <.form for={@form} phx-submit="submit_settings" class="flex flex-col gap-4">
           <div>
             <label class="block text-sm font-medium text-zinc-300 mb-1">Organization name</label>
@@ -219,7 +214,7 @@ defmodule ControlKeelWeb.OrgSettingsLive do
               name="settings[name]"
               value={@form[:name].value}
               required
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
             />
           </div>
 
@@ -228,7 +223,7 @@ defmodule ControlKeelWeb.OrgSettingsLive do
             <select
               name="settings[status]"
               disabled={not @is_owner}
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
             >
               <option value="active" selected={@form[:status].value == "active"}>active</option>
               <option value="disabled" selected={@form[:status].value == "disabled"}>disabled</option>
@@ -246,7 +241,7 @@ defmodule ControlKeelWeb.OrgSettingsLive do
               value={@form[:budget_cents].value || "0"}
               min="0"
               disabled={not @is_owner}
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
             />
             <%= unless @is_owner do %>
               <p class="mt-1 text-xs text-zinc-500">Only owners can change budget.</p>
@@ -254,20 +249,25 @@ defmodule ControlKeelWeb.OrgSettingsLive do
           </div>
 
           <%= if @error do %>
-            <p class="ck-note ck-note-danger">{@error}</p>
+            <p class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{@error}</p>
           <% end %>
           <%= if @saved do %>
-            <p class="ck-note ck-note-success">Saved.</p>
+            <p class="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">Saved.</p>
           <% end %>
 
-          <button type="submit" class="ck-btn ck-btn-primary self-start">Save</button>
+          <button
+            type="submit"
+            class="inline-flex items-center gap-2 self-start rounded-full bg-lime-300 px-5 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
+          >
+            Save
+          </button>
         </.form>
-      </div>
+      </section>
 
       <%!-- Authentication / IdP settings --%>
-      <div class="ck-card mt-8">
-        <h2 class="text-lg font-semibold text-zinc-100 mb-2">Authentication</h2>
-        <p class="text-sm text-zinc-400 mb-4">
+      <section class="mt-8 rounded-3xl border border-white/10 bg-zinc-900/70 p-6 shadow-2xl shadow-black/20 backdrop-blur">
+        <h2 class="mb-2 text-lg font-semibold text-white">Authentication</h2>
+        <p class="mb-4 text-sm text-zinc-400">
           Configure the identity provider members use to sign in via <code>/auth/login</code>.
         </p>
 
@@ -281,7 +281,7 @@ defmodule ControlKeelWeb.OrgSettingsLive do
             <label class="block text-sm font-medium text-zinc-300 mb-1">Provider type</label>
             <select
               name="idp[type]"
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
             >
               <option value="oidc" selected={@idp_type == "oidc"}>OIDC</option>
               <option value="saml" selected={@idp_type == "saml"}>SAML</option>
@@ -297,7 +297,7 @@ defmodule ControlKeelWeb.OrgSettingsLive do
                 value={Map.get(@idp, "issuer", "")}
                 placeholder="https://accounts.google.com"
                 required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
               />
             </div>
             <div>
@@ -307,7 +307,7 @@ defmodule ControlKeelWeb.OrgSettingsLive do
                 name="idp[client_id]"
                 value={Map.get(@idp, "client_id", "")}
                 required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
               />
             </div>
             <div>
@@ -316,7 +316,7 @@ defmodule ControlKeelWeb.OrgSettingsLive do
                 type="password"
                 name="idp[client_secret]"
                 value={Map.get(@idp, "client_secret", "")}
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
               />
               <p class="mt-1 text-xs text-zinc-500">Leave blank to keep the existing secret.</p>
             </div>
@@ -328,7 +328,7 @@ defmodule ControlKeelWeb.OrgSettingsLive do
                 name="idp[entity_id]"
                 value={Map.get(@idp, "entity_id", "")}
                 required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
               />
             </div>
             <div>
@@ -338,49 +338,40 @@ defmodule ControlKeelWeb.OrgSettingsLive do
                 name="idp[idp_metadata_url]"
                 value={Map.get(@idp, "idp_metadata_url", "")}
                 required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
               />
             </div>
           <% end %>
 
           <%= if @idp_error do %>
-            <p class="ck-note ck-note-danger">{@idp_error}</p>
+            <p class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{@idp_error}</p>
           <% end %>
           <%= if @idp_saved do %>
-            <p class="ck-note ck-note-success">
+            <p class="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
               Settings saved. Test sign-in at <code>/auth/login</code>
               with org slug <code>{@org.slug}</code>.
             </p>
           <% end %>
 
           <div class="flex gap-2">
-            <button type="submit" class="ck-btn ck-btn-primary">Save</button>
+            <button
+              type="submit"
+              class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-5 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
+            >
+              Save
+            </button>
             <%= if @idp != %{} do %>
-              <button type="button" phx-click="clear_idp" class="ck-btn ck-btn-secondary">
+              <button
+                type="button"
+                phx-click="clear_idp"
+                class="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
+              >
                 Clear
               </button>
             <% end %>
           </div>
         </.form>
-      </div>
-
-      <%!-- Security --%>
-      <%= if @is_owner do %>
-        <div class="ck-card mt-8">
-          <h2 class="text-lg font-semibold text-zinc-100 mb-2">Security</h2>
-          <p class="text-sm text-zinc-400 mb-4">
-            Sign out from all active browser sessions. You will stay signed in on this device.
-          </p>
-          <button
-            type="button"
-            phx-click="sign_out_everywhere"
-            data-confirm="This will sign out all other active sessions. Continue?"
-            class="ck-btn ck-btn-secondary"
-          >
-            Sign out everywhere
-          </button>
-        </div>
-      <% end %>
+      </section>
     </section>
     """
   end

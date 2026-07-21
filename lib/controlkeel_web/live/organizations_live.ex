@@ -128,7 +128,7 @@ defmodule ControlKeelWeb.OrganizationsLive do
         </button>
       </div>
 
-      <section class="rounded-3xl border border-white/10 bg-zinc-900/70 shadow-2xl shadow-black/20 backdrop-blur">
+      <section class="border border-white/10 bg-zinc-900/70 shadow-2xl shadow-black/20 backdrop-blur">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-white/10 text-left text-sm">
             <thead class="bg-white/[0.03] text-xs uppercase tracking-[0.14em] text-zinc-500">

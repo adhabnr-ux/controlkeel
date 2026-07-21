@@ -79,15 +79,32 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
   end
 
   defp mount_ok(socket, org) do
+    local_mode = Mode.current() == :local
+
     {:ok,
      socket
      |> assign(:page_title, "Members — #{org.name}")
      |> assign(:org, org)
-     |> assign(:memberships, load_memberships(org.id))
+     |> assign(:local_mode, local_mode)
+     |> assign(:memberships, if(local_mode, do: [], else: load_memberships(org.id)))
      |> assign(:invite_form, to_form(%{"email" => "", "role" => "member"}, as: :invite))
      |> assign(:invite_token, nil)
      |> assign(:invite_error, nil)
+     |> assign(:show_invite_modal, false)
      |> assign(:current_user, socket.assigns[:current_user])}
+  end
+
+  @impl true
+  def handle_event("open_invite", _params, socket) do
+    {:noreply, assign(socket, :show_invite_modal, true)}
+  end
+
+  def handle_event("close_invite", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_invite_modal, false)
+     |> assign(:invite_form, to_form(%{"email" => "", "role" => "member"}, as: :invite))
+     |> assign(:invite_error, nil)}
   end
 
   @impl true
@@ -111,6 +128,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
        |> assign(:memberships, load_memberships(socket.assigns.org.id))
        |> assign(:invite_token, raw_token)
        |> assign(:invite_error, nil)
+       |> assign(:show_invite_modal, false)
        |> assign(:invite_form, to_form(%{"email" => "", "role" => "member"}, as: :invite))}
     else
       {:error, reason} ->
@@ -175,122 +193,219 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
-      <div class="ck-section-header">
+    <section class="mx-auto max-w-7xl px-4 py-8 md:py-12">
+      <div class="mb-6 flex items-center justify-between gap-4">
         <div>
-          <p class="ck-kicker">{@org.name}</p>
-          <h1 class="ck-section-title">Members</h1>
-          <p class="ck-lead ck-lead-tight">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+            {@org.name}
+          </p>
+          <h1 class="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            Members
+          </h1>
+          <p class="mt-2 text-sm text-zinc-400">
             Invite teammates and manage roles. Owners can promote and demote; the last owner is protected.
           </p>
         </div>
-        <div>
-          <.link navigate={~p"/organizations/#{@org.slug}/settings"} class="ck-btn ck-btn-secondary">
-            Settings
+
+        <div class="flex items-center gap-3">
+          <.link
+            navigate={~p"/organizations/#{@org.slug}/settings"}
+            class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
           </.link>
+          <%= unless @local_mode do %>
+            <button
+              type="button"
+              phx-click="open_invite"
+              class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
+            >
+              <.icon name="hero-plus" class="size-4" /> Invite member
+            </button>
+          <% end %>
         </div>
       </div>
 
       <%= if @invite_token do %>
-        <div
-          class="ck-card mt-6"
-          id="invite-token-banner"
-          style="border-color: rgba(190, 242, 100, 0.4);"
-        >
-          <p>
-            <strong>Invitation token issued.</strong>
-            Send this link to the invitee — the token will not be shown again.
+        <div class="mb-6 rounded-2xl border border-lime-300/30 bg-lime-300/5 p-5">
+          <p class="text-sm font-medium text-lime-200">
+            Invitation token issued. Send this link to the invitee — the token will not be shown again.
           </p>
-          <pre><code id="invite-token-value">/cloud/invitations/{@invite_token}</code></pre>
-          <button type="button" phx-click="dismiss-token" class="ck-btn ck-btn-secondary">
+          <pre class="mt-2 rounded-lg bg-black/30 px-4 py-2 font-mono text-xs text-zinc-300"><code id="invite-token-value">/cloud/invitations/{@invite_token}</code></pre>
+          <button type="button" phx-click="dismiss-token" class="mt-3 text-xs font-medium text-zinc-400 transition hover:text-white">
             Dismiss
           </button>
         </div>
       <% end %>
 
-      <div class="ck-card mt-6">
-        <h2 class="ck-section-subtitle">Invite member</h2>
-        <.form for={@invite_form} phx-submit="invite" class="flex flex-col gap-3">
-          <div class="grid grid-cols-3 gap-3">
-            <div class="col-span-2">
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Email</label>
-              <input
-                type="email"
-                name="invite[email]"
-                value={@invite_form[:email].value || ""}
-                required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Role</label>
-              <select
-                name="invite[role]"
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
-              >
-                <option value="viewer">viewer</option>
-                <option value="member" selected>member</option>
-                <option value="admin">admin</option>
-                <option value="owner">owner</option>
-              </select>
-            </div>
-          </div>
-          <%= if @invite_error do %>
-            <p class="ck-note ck-note-danger">{@invite_error}</p>
-          <% end %>
-          <button type="submit" class="ck-btn ck-btn-primary self-start">Send invitation</button>
-        </.form>
-      </div>
-
-      <div class="ck-card mt-6">
-        <h2 class="ck-section-subtitle">Current members</h2>
-        <table class="ck-table">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <%= for m <- @memberships do %>
-              <tr id={"membership-#{m.id}"}>
-                <td>{(m.user && m.user.email) || "—"}</td>
-                <td>
-                  <form phx-change="change-role">
-                    <input type="hidden" name="membership-id" value={m.id} />
-                    <select
-                      name="role"
-                      class="rounded-md border border-white/10 bg-zinc-900 px-2 py-1 text-sm text-white"
-                    >
-                      <option value="owner" selected={m.role == "owner"}>owner</option>
-                      <option value="admin" selected={m.role == "admin"}>admin</option>
-                      <option value="member" selected={m.role == "member"}>member</option>
-                      <option value="viewer" selected={m.role == "viewer"}>viewer</option>
-                    </select>
-                  </form>
-                </td>
-                <td>{m.status}</td>
-                <td>
-                  <%= if m.status != "revoked" do %>
-                    <button
-                      type="button"
-                      phx-click="revoke"
-                      phx-value-membership-id={m.id}
-                      data-confirm={"Revoke membership for #{m.user && m.user.email}?"}
-                      class="ck-btn ck-btn-danger"
-                    >
-                      Revoke
-                    </button>
+      <%= if @local_mode do %>
+        <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-12 text-center shadow-2xl shadow-black/20 backdrop-blur">
+          <.icon name="hero-users" class="mx-auto size-10 text-zinc-600" />
+          <p class="mt-4 text-base font-medium text-white">Member management is not available in local mode.</p>
+          <p class="mt-1 text-sm text-zinc-500">
+            Switch to cloud or self-hosted mode to invite teammates and manage roles.
+          </p>
+        </section>
+      <% else %>
+        <section class="rounded-3xl border border-white/10 bg-zinc-900/70 shadow-2xl shadow-black/20 backdrop-blur">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-white/10 text-left text-sm">
+              <thead class="bg-white/[0.03] text-xs uppercase tracking-[0.14em] text-zinc-500">
+                <tr>
+                  <th class="px-5 py-3 font-semibold">Email</th>
+                  <th class="px-5 py-3 font-semibold">Role</th>
+                  <th class="px-5 py-3 font-semibold">Status</th>
+                  <th class="px-5 py-3 font-semibold"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/10">
+                <%= if @memberships == [] do %>
+                  <tr>
+                    <td colspan="4" class="px-5 py-12 text-center">
+                      <p class="text-base font-medium text-white">No members yet.</p>
+                      <p class="mt-1 text-sm text-zinc-500">
+                        Invite teammates to collaborate on this organization.
+                      </p>
+                    </td>
+                  </tr>
+                <% else %>
+                  <%= for m <- @memberships do %>
+                    <tr id={"membership-#{m.id}"} class="transition hover:bg-white/[0.03]">
+                      <td class="px-5 py-4 font-medium text-white">
+                        {(m.user && m.user.email) || "—"}
+                      </td>
+                      <td class="px-5 py-4">
+                        <form phx-change="change-role">
+                          <input type="hidden" name="membership-id" value={m.id} />
+                          <select
+                            name="role"
+                            class="rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1.5 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+                          >
+                            <option value="owner" selected={m.role == "owner"}>owner</option>
+                            <option value="admin" selected={m.role == "admin"}>admin</option>
+                            <option value="member" selected={m.role == "member"}>member</option>
+                            <option value="viewer" selected={m.role == "viewer"}>viewer</option>
+                          </select>
+                        </form>
+                      </td>
+                      <td class="px-5 py-4">
+                        <span class={[
+                          "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
+                          m.status == "active" && "bg-emerald-300/10 text-emerald-200 ring-emerald-200/20",
+                          m.status == "pending" && "bg-amber-300/10 text-amber-200 ring-amber-200/20",
+                          m.status == "revoked" && "bg-zinc-400/10 text-zinc-400 ring-zinc-500/20"
+                        ]}>
+                          {m.status}
+                        </span>
+                      </td>
+                      <td class="px-5 py-4 text-right">
+                        <%= if m.status != "revoked" do %>
+                          <button
+                            type="button"
+                            phx-click="revoke"
+                            phx-value-membership-id={m.id}
+                            data-confirm={"Revoke membership for #{m.user && m.user.email}?"}
+                            class="text-sm font-medium text-red-400 transition hover:text-red-300"
+                          >
+                            Revoke
+                          </button>
+                        <% end %>
+                      </td>
+                    </tr>
                   <% end %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      <% end %>
+
+      <.invite_modal
+        :if={@show_invite_modal}
+        form={@invite_form}
+        error={@invite_error}
+      />
     </section>
+    """
+  end
+
+  attr :form, :map, required: true
+  attr :error, :string, default: nil
+
+  defp invite_modal(assigns) do
+    ~H"""
+    <div
+      id="invite-member-modal"
+      class="relative z-50"
+      phx-mounted={Phoenix.LiveView.JS.show(to: "#invite-member-modal")}
+      phx-remove={Phoenix.LiveView.JS.hide(to: "#invite-member-modal")}
+    >
+      <div
+        class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+        phx-click="close_invite"
+        aria-label="Close modal"
+      />
+
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900/95 p-6 shadow-2xl shadow-black/50">
+          <div class="mb-5 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-white">Invite member</h2>
+            <button
+              type="button"
+              phx-click="close_invite"
+              class="rounded-md text-zinc-400 transition hover:text-white"
+              aria-label="Close"
+            >
+              <.icon name="hero-x-mark" class="size-5" />
+            </button>
+          </div>
+
+          <.form for={@form} phx-submit="invite" id="invite-form" class="space-y-4">
+            <.input
+              field={@form[:email]}
+              type="email"
+              label="Email"
+              placeholder="teammate@example.com"
+              required
+              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+            />
+
+            <.input
+              field={@form[:role]}
+              type="select"
+              label="Role"
+              options={[
+                {"viewer", "viewer"},
+                {"member", "member"},
+                {"admin", "admin"},
+                {"owner", "owner"}
+              ]}
+              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+            />
+
+            <%= if @error do %>
+              <p class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{@error}</p>
+            <% end %>
+
+            <div class="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
+              <button
+                type="button"
+                phx-click="close_invite"
+                class="rounded-full px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-5 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
+              >
+                Send invitation
+              </button>
+            </div>
+          </.form>
+        </div>
+      </div>
+    </div>
     """
   end
 
