@@ -104,10 +104,9 @@ defmodule ControlKeelWeb.Router do
       live "/cloud/telemetry", CloudTelemetryLive, :index
       live "/cloud/projects", CloudProjectsLive, :index
       live "/cloud/projects/:ws_id", CloudProjectsLive, :show
-      live "/org/:slug/members", OrgMembersLive, :index
-      live "/org/:slug/settings/auth", OrgSettingsAuthLive, :edit
-      live "/org/:slug/settings/general", OrgSettingsGeneralLive, :edit
-      live "/organization", OrganizationsLive, :index
+      live "/organizations/:slug/settings", OrgSettingsLive, :edit
+      live "/organizations", OrganizationsLive, :index
+      live "/organizations/:slug", OrganizationDetailLive, :index
       live "/workspaces/:id/repos", WorkspaceReposLive, :index
       live "/workspaces/:id/service-accounts", WorkspaceServiceAccountsLive, :index
       live "/workspaces/:id/webhooks", WorkspaceWebhooksLive, :index

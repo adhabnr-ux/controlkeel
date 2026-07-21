@@ -120,7 +120,7 @@ defmodule ControlKeel.Accounts do
   Create an org and an active owner membership for `user_id` in one transaction.
 
   Atomic: if either insert fails, both roll back. Used by the web
-  `/organization/new` flow so a signed-in user becomes the owner of the org
+  `/organizations/new` flow so a signed-in user becomes the owner of the org
   they create without going through the invite-token lifecycle.
   """
   @spec create_org_with_owner(integer(), map()) ::
@@ -150,7 +150,7 @@ defmodule ControlKeel.Accounts do
   List orgs where `user_id` has an active membership, with the user's role.
 
   Returns `[%{org: Org.t(), role: String.t()}]` ordered by org name.
-  Used by the `/organization` index in cloud/self_hosted mode so the UI can
+  Used by the `/organizations` index in cloud/self_hosted mode so the UI can
   render a role badge per row. In local mode there is no user, so callers
   wrap `list_orgs/1` results with `role: nil` instead.
   """

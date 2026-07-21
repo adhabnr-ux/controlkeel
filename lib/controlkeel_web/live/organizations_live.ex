@@ -1,6 +1,6 @@
 defmodule ControlKeelWeb.OrganizationsLive do
   @moduledoc """
-  `/organization` — list and create organizations.
+  `/organizations` — list and create organizations.
 
   Local mode (no user) shows every org in the DB and creates bare Org rows.
   Cloud/self_hosted mode shows only orgs where the signed-in user has an
@@ -137,13 +137,12 @@ defmodule ControlKeelWeb.OrganizationsLive do
                 <th class="px-5 py-3 font-semibold">Slug</th>
                 <th class="px-5 py-3 font-semibold">Status</th>
                 <th class="px-5 py-3 font-semibold">Role</th>
-                <th class="px-5 py-3 font-semibold"></th>
               </tr>
             </thead>
             <tbody class="divide-y divide-white/10">
               <%= if @orgs == [] do %>
                 <tr>
-                  <td colspan="5" class="px-5 py-12 text-center">
+                  <td colspan="4" class="px-5 py-12 text-center">
                     <p class="text-base font-medium text-white">No organizations yet.</p>
                     <p class="mt-1 text-sm text-zinc-500">
                       Create an organization to group workspaces, members, and budgets.
@@ -153,7 +152,14 @@ defmodule ControlKeelWeb.OrganizationsLive do
               <% else %>
                 <%= for row <- @orgs do %>
                   <tr class="transition hover:bg-white/[0.03]">
-                    <td class="px-5 py-4 font-medium text-white">{row.org.name}</td>
+                    <td class="px-5 py-4">
+                      <.link
+                        navigate={~p"/organizations/#{row.org.slug}"}
+                        class="font-medium text-white transition hover:text-lime-300"
+                      >
+                        {row.org.name}
+                      </.link>
+                    </td>
                     <td class="px-5 py-4 font-mono text-xs text-zinc-400">{row.org.slug}</td>
                     <td class="px-5 py-4">
                       <span class="inline-flex rounded-full bg-emerald-300/10 px-2.5 py-1 text-xs font-semibold capitalize text-emerald-200 ring-1 ring-emerald-200/20">
@@ -162,14 +168,6 @@ defmodule ControlKeelWeb.OrganizationsLive do
                     </td>
                     <td class="px-5 py-4">
                       <.role_badge role={row.role} />
-                    </td>
-                    <td class="px-5 py-4 text-right">
-                      <.link
-                        navigate={~p"/org/#{row.org.slug}/settings/general"}
-                        class="text-sm font-medium text-zinc-300 transition hover:text-lime-300"
-                      >
-                        Settings
-                      </.link>
                     </td>
                   </tr>
                 <% end %>

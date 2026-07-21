@@ -56,7 +56,7 @@ defmodule ControlKeelWeb.Layouts do
           Missions
         </a>
         <a
-          href={~p"/organization"}
+          href={~p"/organizations"}
           data-sidebar-link
           class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
         >

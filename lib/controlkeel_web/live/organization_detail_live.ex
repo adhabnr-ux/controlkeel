@@ -1,6 +1,6 @@
-defmodule ControlKeelWeb.OrgMembersLive do
+defmodule ControlKeelWeb.OrganizationDetailLive do
   @moduledoc """
-  Member management for an org at `/org/:slug/members`.
+  Member management for an org at `/organizations/:slug`.
 
   Admin+owner only. Allows:
     - List active and pending memberships (preloaded with the user)
@@ -16,7 +16,7 @@ defmodule ControlKeelWeb.OrgMembersLive do
   (NOT the session's pinned `current_membership`). Local mode has no
   membership table and is unrestricted. Cloud/self_hosted requires the
   signed-in user to hold an active admin+ membership for this specific
-  org; others are redirected to `/organization`.
+  org; others are redirected to `/organizations`.
   """
 
   use ControlKeelWeb, :live_view
@@ -31,7 +31,7 @@ defmodule ControlKeelWeb.OrgMembersLive do
   def mount(%{"slug" => slug}, _session, socket) do
     case Accounts.get_org_by_slug(slug) do
       nil ->
-        {:ok, redirect_with_flash(socket, :error, "Organization not found.", ~p"/organization")}
+        {:ok, redirect_with_flash(socket, :error, "Organization not found.", ~p"/organizations")}
 
       org ->
         mode = Mode.current()
@@ -58,7 +58,7 @@ defmodule ControlKeelWeb.OrgMembersLive do
                    socket,
                    :error,
                    "You're not a member of that organization.",
-                   ~p"/organization"
+                   ~p"/organizations"
                  )}
 
               membership ->
@@ -70,7 +70,7 @@ defmodule ControlKeelWeb.OrgMembersLive do
                      socket,
                      :error,
                      "Admin or owner role required.",
-                     ~p"/organization"
+                     ~p"/organizations"
                    )}
                 end
             end
@@ -185,8 +185,8 @@ defmodule ControlKeelWeb.OrgMembersLive do
           </p>
         </div>
         <div>
-          <.link navigate={~p"/org/#{@org.slug}/settings/auth"} class="ck-btn ck-btn-secondary">
-            Auth settings
+          <.link navigate={~p"/organizations/#{@org.slug}/settings"} class="ck-btn ck-btn-secondary">
+            Settings
           </.link>
         </div>
       </div>

@@ -7,13 +7,13 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
   alias ControlKeel.Accounts.Membership
   alias ControlKeel.Repo
 
-  describe "local mode /organization" do
+  describe "local mode /organizations" do
     test "index lists every active org" do
       {:ok, _} = Accounts.create_org(%{name: "Alpha", slug: "alpha"})
       {:ok, _} = Accounts.create_org(%{name: "Beta", slug: "beta"})
       {:ok, _} = Accounts.create_org(%{name: "Gamma", slug: "gamma", status: "disabled"})
 
-      {:ok, _view, html} = live(build_conn(), ~p"/organization")
+      {:ok, _view, html} = live(build_conn(), ~p"/organizations")
 
       assert html =~ "Your organizations"
       assert html =~ "Alpha"
@@ -22,7 +22,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
     end
 
     test "index renders empty state when there are no orgs" do
-      {:ok, _view, html} = live(build_conn(), ~p"/organization")
+      {:ok, _view, html} = live(build_conn(), ~p"/organizations")
 
       assert html =~ "No organizations yet."
     end
@@ -30,7 +30,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
     test "local mode renders Role column header but every row's role is nil (no badge)" do
       {:ok, _} = Accounts.create_org(%{name: "Local Co", slug: "local-co"})
 
-      {:ok, view, html} = live(build_conn(), ~p"/organization")
+      {:ok, view, html} = live(build_conn(), ~p"/organizations")
 
       # Header is present.
       assert html =~ ">Role<"
@@ -46,7 +46,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
     end
 
     test "new_org click opens the create modal" do
-      {:ok, view, _html} = live(build_conn(), ~p"/organization")
+      {:ok, view, _html} = live(build_conn(), ~p"/organizations")
 
       refute render(view) =~ "New organization"
       refute render(view) =~ ~s(id="organization-form")
@@ -59,7 +59,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
     end
 
     test "cancel_new click closes the create modal" do
-      {:ok, view, _html} = live(build_conn(), ~p"/organization")
+      {:ok, view, _html} = live(build_conn(), ~p"/organizations")
 
       render_click(view, "new_org")
       assert render(view) =~ ~s(id="organization-form")
@@ -69,7 +69,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
     end
 
     test "save inserts an org with no membership" do
-      {:ok, view, _html} = live(build_conn(), ~p"/organization")
+      {:ok, view, _html} = live(build_conn(), ~p"/organizations")
       render_click(view, "new_org")
 
       view
@@ -85,7 +85,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
     end
 
     test "save closes the modal and refreshes the list" do
-      {:ok, view, _html} = live(build_conn(), ~p"/organization")
+      {:ok, view, _html} = live(build_conn(), ~p"/organizations")
       render_click(view, "new_org")
 
       view
@@ -98,7 +98,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
     end
 
     test "save re-renders the form inside the modal on validation errors" do
-      {:ok, view, _html} = live(build_conn(), ~p"/organization")
+      {:ok, view, _html} = live(build_conn(), ~p"/organizations")
       render_click(view, "new_org")
 
       html =
@@ -111,7 +111,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
     end
   end
 
-  describe "cloud mode /organization" do
+  describe "cloud mode /organizations" do
     setup do
       original = Application.get_env(:controlkeel, :runtime_mode)
       Application.put_env(:controlkeel, :runtime_mode, :cloud)
@@ -136,17 +136,17 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
       {:ok, other} = Accounts.create_user(%{email: "other@example.com"})
       {:ok, _} = Accounts.create_org_with_owner(other.id, %{name: "Theirs", slug: "theirs"})
 
-      {:ok, _view, html} = live(conn, ~p"/organization")
+      {:ok, _view, html} = live(conn, ~p"/organizations")
 
       assert html =~ "Mine"
       refute html =~ "Theirs"
-      assert html =~ ~p"/org/#{org.slug}/settings/general"
+      assert html =~ ~p"/organizations/#{org.slug}"
     end
 
     test "cloud mode renders the user's role per org row", %{conn: conn, user: user} do
       {:ok, _} = Accounts.create_org_with_owner(user.id, %{name: "Owned", slug: "owned"})
 
-      {:ok, _view, html} = live(conn, ~p"/organization")
+      {:ok, _view, html} = live(conn, ~p"/organizations")
 
       # Header is present, and the owner role badge is rendered (not the muted placeholder).
       assert html =~ ">Role<"
@@ -159,7 +159,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
       conn: conn,
       user: user
     } do
-      {:ok, view, _html} = live(conn, ~p"/organization")
+      {:ok, view, _html} = live(conn, ~p"/organizations")
       render_click(view, "new_org")
 
       view
@@ -176,7 +176,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
     test "index redirects to login when there is no signed-in user" do
       conn = build_conn() |> Plug.Test.init_test_session(%{})
 
-      assert {:error, {:redirect, %{to: to}}} = live(conn, ~p"/organization")
+      assert {:error, {:redirect, %{to: to}}} = live(conn, ~p"/organizations")
       assert to == "/auth/login"
     end
   end
