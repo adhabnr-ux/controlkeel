@@ -299,7 +299,10 @@ defmodule ControlKeel.Cloud.Sync do
 
   defp update_append_only(existing, payload) do
     incoming_updated_at = parse_datetime(Map.get(payload, "updated_at"))
-    local_updated_at = existing.updated_at
+    # TaskCheckpoint and other immutable records use timestamps(updated_at: false),
+    # so :updated_at is absent from the struct.  Map.get/2 returns nil safely,
+    # and we fall back to :inserted_at so the staleness comparison still works.
+    local_updated_at = Map.get(existing, :updated_at) || Map.get(existing, :inserted_at)
 
     cond do
       incoming_updated_at == nil ->
@@ -410,12 +413,24 @@ defmodule ControlKeel.Cloud.Sync do
 
   # ── Schema registry ────────────────────────────────────────────────
 
-  defp append_only_schemas do
+  @doc """
+  Append-only syncable schemas (immutable historical records).
+
+  Public so the cloud-side pull endpoint (`CloudSyncController.collect_since/2`)
+  and `collect_unsynced/2` share a single source of truth — adding a new
+  append-only kind here automatically wires both push and pull.
+  """
+  def append_only_schemas do
     [
       {"finding", ControlKeel.Mission.Finding},
       {"review", ControlKeel.Mission.Review},
       {"session_digest", ControlKeel.Mission.SessionDigest},
-      {"memory_record", ControlKeel.Memory.Record}
+      {"memory_record", ControlKeel.Memory.Record},
+      {"invocation", ControlKeel.Mission.Invocation},
+      {"proof_bundle", ControlKeel.Mission.ProofBundle},
+      {"session_event", ControlKeel.Mission.SessionEvent},
+      {"task_checkpoint", ControlKeel.Mission.TaskCheckpoint},
+      {"rollback_snapshot", ControlKeel.Mission.RollbackSnapshot}
     ]
   end
 

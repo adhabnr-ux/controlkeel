@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.72 — 2026-07-21
+
+### What's changed
+
+- fix: harden schema FKs, wire cloud sync, drop unused tables (#37)
+
 ## v0.3.71 — 2026-07-17
 
 ### What's changed
