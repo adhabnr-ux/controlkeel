@@ -16,7 +16,16 @@ config :controlkeel,
   protocol_access_token_ttl_seconds: 3_600,
   acp_registry_url: "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json",
   acp_registry_ttl_seconds: 86_400,
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  # Governed autonomy scheduler — off by default so existing installs see no
+  # behavior change. Enable via CK_AUTONOMY_SCHEDULER env or `enabled: true`.
+  # See docs/autonomy-scheduler.md and lib/controlkeel/autonomy/scheduler.ex.
+  autonomy: [
+    enabled: false,
+    allow_shell: false,
+    workspace_id: nil,
+    jobs: []
+  ]
 
 # Configure the endpoint
 # Default `code_reloader` so releases match runtime MCP overrides (CK_MCP_MODE).
