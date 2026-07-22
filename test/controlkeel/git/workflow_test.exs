@@ -123,7 +123,46 @@ defmodule ControlKeel.Git.WorkflowTest do
       assert {:error, {:blocked_findings, message}} =
                Workflow.commit(tmp_dir, "should fail", session_id: session.id)
 
+      # The error is self-describing: it surfaces the actual blocking finding so
+      # the operator can see what to dismiss, not just a bare count.
       assert message =~ "blocked"
+      assert message =~ "security.critical_block"
+      assert message =~ "Critical blocked finding"
+      assert message =~ "controlkeel approve"
+    end
+
+    test "commit-gate error lists each blocking finding with id, rule, severity, and age",
+         %{tmp_dir: tmp_dir} do
+      File.write!(Path.join(tmp_dir, "x.txt"), "x\n")
+      assert {_, 0} = System.cmd("git", ["add", "."], cd: tmp_dir)
+
+      session = session_fixture()
+
+      f1 =
+        finding_fixture(%{
+          session: session,
+          status: "blocked",
+          severity: "high",
+          rule_id: "secret.high_entropy_token",
+          title: "High entropy token"
+        })
+
+      f2 =
+        finding_fixture(%{
+          session: session,
+          status: "blocked",
+          severity: "high",
+          rule_id: "secret.high_entropy_token",
+          title: "High entropy token"
+        })
+
+      assert {:error, {:blocked_findings, message}} =
+               Workflow.commit(tmp_dir, "blocked by two", session_id: session.id)
+
+      assert message =~ "##{f1.id} "
+      assert message =~ "##{f2.id} "
+      # An age label is appended (today / N days old / >N months old).
+      assert message =~ ~r/\((today|\d+ days? old|>\d+ months old)\)/
     end
 
     test "rejects empty commit messages", %{tmp_dir: tmp_dir} do

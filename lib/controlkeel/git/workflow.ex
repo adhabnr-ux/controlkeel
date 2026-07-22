@@ -167,14 +167,61 @@ defmodule ControlKeel.Git.Workflow do
         counts = Mission.session_finding_counts(session_id)
 
         if counts.blocked > 0 or counts.critical_active > 0 do
-          {:error,
-           {:blocked_findings,
-            "Cannot commit: session has #{counts.blocked} blocked and #{counts.critical_active} critical active findings"}}
+          blockers = Mission.blocking_findings_for_session(session_id)
+
+          {:error, {:blocked_findings, format_blocked_findings(counts, blockers)}}
         else
           :ok
         end
     end
   end
+
+  # Format the blocking findings into a self-describing error so the operator can
+  # see exactly what is gating the commit and how to resolve each one, instead of
+  # a bare count. Finding bodies/matched-text are intentionally excluded — only
+  # id, rule, severity, title, and age are surfaced.
+  defp format_blocked_findings(counts, blockers) do
+    lines =
+      Enum.map(blockers, fn f ->
+        age = age_label(f.inserted_at)
+        "  ##{f.id} [#{f.severity}/#{f.status}] #{f.rule_id} — #{f.title}#{age}"
+      end)
+
+    summary =
+      "Cannot commit: #{counts.blocked} blocked and #{counts.critical_active} critical active " <>
+        "findings gate this commit."
+
+    listing =
+      case lines do
+        [] ->
+          "\n\n(No individual findings resolved — they may have been cleared between count and fetch.)"
+
+        _ ->
+          "\n\nBlocking findings:\n" <> Enum.join(lines, "\n")
+      end
+
+    hint =
+      "\n\nResolve each with: controlkeel approve <finding_id>  " <>
+        "(or `ck_finding` resolve/dismiss by id)"
+
+    summary <> listing <> hint
+  end
+
+  defp age_label(nil), do: ""
+  defp age_label(%DateTime{} = at), do: age_label(DateTime.to_date(at))
+
+  defp age_label(%Date{} = date) do
+    days = Date.diff(Date.utc_today(), date)
+
+    cond do
+      days <= 0 -> " (today)"
+      days == 1 -> " (1 day old)"
+      days < 90 -> " (#{days} days old)"
+      true -> " (>#{div(days, 30)} months old)"
+    end
+  end
+
+  defp age_label(_), do: ""
 
   defp count_changed_files(diff_output) do
     diff_output

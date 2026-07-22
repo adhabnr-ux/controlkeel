@@ -794,6 +794,31 @@ defmodule ControlKeel.Mission do
     }
   end
 
+  @doc """
+  The findings that gate a commit for `session_id`: blocked findings plus
+  critical-severity active findings. Returned newest-first, critical before high.
+  Used by the commit gate so an operator can see exactly what is blocking.
+  """
+  @spec blocking_findings_for_session(integer()) :: [Finding.t()]
+  def blocking_findings_for_session(session_id) when is_integer(session_id) do
+    Repo.all(
+      from(f in Finding,
+        where:
+          f.session_id == ^session_id and
+            (f.status == "blocked" or
+               (f.status in ^["open", "blocked", "escalated"] and f.severity == "critical")),
+        order_by: [
+          desc:
+            fragment(
+              "CASE ? WHEN 'critical' THEN 4 WHEN 'high' THEN 3 WHEN 'medium' THEN 2 WHEN 'low' THEN 1 ELSE 0 END",
+              f.severity
+            ),
+          desc: f.inserted_at
+        ]
+      )
+    )
+  end
+
   def session_task_counts(session_id) when is_integer(session_id) do
     base_query = from(t in Task, where: t.session_id == ^session_id)
 
