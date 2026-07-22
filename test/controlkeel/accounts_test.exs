@@ -115,13 +115,13 @@ defmodule ControlKeel.AccountsTest do
       {:ok, owner} = Accounts.create_user(%{email: "owner@example.com"})
       {:ok, other} = Accounts.create_user(%{email: "other@example.com"})
 
-      {:ok, owned} = Accounts.create_org_with_owner(owner.id, %{name: "Owned", slug: "owned"})
-      {:ok, _} = Accounts.create_org_with_owner(other.id, %{name: "Other Org", slug: "other-org"})
+      {:ok, _owned} = Accounts.create_org_with_owner(owner.id, %{name: "Owned", slug: "owned"})
+      {:ok, other_org} = Accounts.create_org_with_owner(other.id, %{name: "Other Org", slug: "other-org"})
 
-      {:ok, _, _token} =
-        Accounts.invite_member(owner.id, other.id, role: "member", invited_by_user_id: other.id)
+      {:ok, _, token} =
+        Accounts.invite_member(owner.id, other_org.id, role: "member", invited_by_user_id: other.id)
 
-      {:ok, _} = Accounts.accept_invitation(_token, owner.id)
+      {:ok, _} = Accounts.accept_invitation(token, owner.id)
 
       rows = Accounts.list_orgs_for_user(owner.id)
       role_by_slug = Map.new(rows, fn row -> {row.org.slug, row.role} end)
