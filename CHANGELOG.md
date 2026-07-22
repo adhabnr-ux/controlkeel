@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.3.73 — 2026-07-22
+
+### What's changed
+
+- Merge pull request #38 from aryaminus/feat/web-oauth
+- Merge branch 'main' of github.com:aryaminus/controlkeel into feat/web-oauth
+- feat/web-oauth: mock runtime_mode as cloud in AuthController tests
+- feat/web-oauth: set and restore runtime_mode to :cloud in OIDC and SAML controller tests
+- feat/web-oauth: correct GitHub strategy module name in documentation
+- feat/web-oauth: add formatted OAuth provider names and comprehensive controller and plug tests
+- feat/web-oauth: sanitize redirect URIs and improve auth route redirection logic for local mode
+- feat/web-oauth: upgrade assent to 0.3 and update OAuth provider adapter signatures and documentation
+- feat/web-oauth: conditionally render OAuth provider buttons based on configuration status and display fallback message when none are enabled
+- feat/web-oauth: standardize endpoint URL configuration and simplify OAuth redirect URI generation
+- feat/web-oauth: add validation to ensure oauth providers return a non-empty email address
+- feat/web-oauth: replace dynamic atom conversion with explicit allowlist in OAuth provider lookup
+- feat/web-oauth: ignore .env.docker.cloud in .gitignore
+- feat/web-oauth: add sign-out link to sidebars and public layout and redesign auth login page
+- feat/web-oauth: add RequireCloudMode plug to gate auth routes and hide sign-in UI in local mode
+- feat/web-oauth: implement OAuth-based authentication flow and remove signup/org-slug login logic
+- feat/web-oauth: replace manual signup with extensible OAuth provider integration and unify authentication flow
+
 ## v0.3.72 — 2026-07-21
 
 ### What's changed
