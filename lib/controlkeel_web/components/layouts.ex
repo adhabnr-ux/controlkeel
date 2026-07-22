@@ -19,10 +19,14 @@ defmodule ControlKeelWeb.Layouts do
   @doc """
   The dashboard sidebar: logo, primary nav, and external links.
 
-  Purely static markup (no assigns), so it is called as `<.sidebar />` from the
-  dashboard / observability framework layouts.
+  Renders a sign-out button at the bottom when a user is signed in and
+  the app is running in cloud mode (not local).
   """
+  attr :current_user, :any, default: nil
+
   def sidebar(assigns) do
+    assigns = assign_new(assigns, :mode, fn -> ControlKeel.Runtime.Mode.current() end)
+
     ~H"""
     <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-white/10 bg-zinc-950/95 px-4 py-5 shadow-2xl shadow-black/30 lg:flex">
       <a href={~p"/dashboard"} class="flex items-center gap-3 rounded-2xl px-2 py-1.5">
@@ -131,6 +135,13 @@ defmodule ControlKeelWeb.Layouts do
           class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
         >
           <.icon name="hero-code-bracket" class="size-4 text-zinc-500" /> GitHub
+        </a>
+        <a
+          :if={@current_user != nil and @mode != :local}
+          href={~p"/auth/logout"}
+          class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-[var(--ck-danger)]"
+        >
+          <.icon name="hero-arrow-right-on-rectangle" class="size-4 text-zinc-500" /> Sign out
         </a>
       </div>
     </aside>

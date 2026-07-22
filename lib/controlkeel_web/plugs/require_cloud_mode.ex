@@ -1,0 +1,51 @@
+defmodule ControlKeelWeb.Plugs.RequireCloudMode do
+  @moduledoc """
+  Redirects users away from `/auth/*` routes when those routes are not useful.
+
+  Two cases:
+    * Already-signed-in users visiting `/auth/login` are redirected to
+      `/dashboard` to avoid re-login loops (any mode).
+    * In local mode (no OAuth/SSO), any `/auth/*` path is a dead end and
+      redirects to `/dashboard` with an informational flash.
+
+  Note: `/auth/saml/acs` is exempt at the router level — it is mounted under
+  the `:saml_acs` pipeline, which does not include this plug, because SAML
+  IdPs POST assertions from outside the app in both modes.
+  """
+
+  import Plug.Conn
+  import Phoenix.Controller, only: [put_flash: 3, redirect: 2]
+
+  alias ControlKeel.Runtime.Mode
+
+  @auth_prefix "/auth/"
+  @login_path "/auth/login"
+
+  def init(opts), do: opts
+
+  def call(conn, _opts) do
+    cond do
+      signed_in_visiting_login?(conn) ->
+        conn
+        |> redirect(to: "/dashboard")
+        |> halt()
+
+      local_mode_auth_path?(conn) ->
+        conn
+        |> put_flash(:info, "Sign-in is not available in local mode.")
+        |> redirect(to: "/dashboard")
+        |> halt()
+
+      true ->
+        conn
+    end
+  end
+
+  defp signed_in_visiting_login?(conn) do
+    get_session(conn, :current_user_id) != nil and conn.request_path == @login_path
+  end
+
+  defp local_mode_auth_path?(conn) do
+    Mode.current() == :local and String.starts_with?(conn.request_path, @auth_prefix)
+  end
+end

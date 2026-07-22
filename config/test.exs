@@ -37,6 +37,9 @@ end
 # you can enable the server option below.
 config :controlkeel, ControlKeelWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
+  # Advertised URL — must match the test serving port so OAuth redirect URIs
+  # and other external-facing links resolve correctly.
+  url: [host: "localhost", scheme: "http", port: 4002],
   secret_key_base: "WKdOFVNJM1GGdfNm6wGhIiG+egBfTkfk/noG5Z1HAD1fsvZWVphETtOWJquCQdwZ",
   server: false
 

@@ -5,21 +5,20 @@ defmodule ControlKeelWeb.AuthController do
   ## Signed completion tokens
 
   LiveViews cannot call `put_session/3` directly because the session lives
-  on the parent HTTP conn, not the live socket. Two flows need to establish
-  a session after a LiveView completes:
+  on the parent HTTP conn, not the live socket. The invitation acceptance
+  flow needs to establish a session after the LiveView finishes:
 
-    * **Signup completion** — `/signup` LiveView creates Org/User/Membership,
-      then redirects to `/auth/complete/:token` with a signed Phoenix.Token
-      carrying `%{user_id, org_id}`. This controller verifies the token
-      and sets the session keys.
-
-    * **Invitation auto-login** — `InvitationLive` accepts the invite, then
-      redirects to the same completion endpoint with a signed token. The
-      invite token itself is single-use and already consumed by accept;
-      the completion token is a separate short-lived signed payload.
+    * **Invitation acceptance** — `InvitationLive` accepts the invite, then
+      redirects to `/auth/complete/:token` with a signed Phoenix.Token
+      carrying `%{user_id, org_id}`. The invite token itself is single-use
+      and already consumed by accept; the completion token is a separate
+      short-lived signed payload.
 
   The signed token has a 60-second max-age so a stale completion link
   cannot be replayed.
+
+  Browser OAuth sign-in (Google + GitHub) does NOT use this path — it
+  sets session keys directly inside `OAuthLoginController`.
   """
 
   use ControlKeelWeb, :controller
@@ -31,16 +30,21 @@ defmodule ControlKeelWeb.AuthController do
     conn
     |> delete_session(:current_user_id)
     |> delete_session(:current_org_id)
+    |> delete_session(:oauth_state)
+    |> delete_session(:oauth_provider)
+    |> delete_session(:oauth_session_params)
     |> delete_session(:oidc_state)
     |> delete_session(:oidc_org_id)
+    |> delete_session(:saml_relay_state)
+    |> delete_session(:saml_org_id)
     |> delete_session(:session_last_active)
     |> put_flash(:info, "Signed out")
     |> redirect(to: ~p"/auth/login")
   end
 
   @doc """
-  Mint a signed completion token. Called by LiveViews that need to hand off
-  to a controller to put session keys.
+  Mint a signed completion token for the invitation flow. Called by
+  `InvitationLive` after the invite is accepted.
   """
   @spec sign_completion_token(integer(), integer()) :: String.t()
   def sign_completion_token(user_id, org_id) when is_integer(user_id) and is_integer(org_id) do
@@ -52,7 +56,7 @@ defmodule ControlKeelWeb.AuthController do
   end
 
   @doc """
-  Complete a signup or invitation by setting session keys from a signed token.
+  Complete an invitation by setting session keys from a signed token.
 
   Routes:
     GET /auth/complete/:token

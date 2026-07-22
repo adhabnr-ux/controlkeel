@@ -10,8 +10,7 @@ Public entry points:
 
 - `GET /` — home
 - `GET /getting-started` — first-run guidance
-- `GET /signup` — signup
-- `GET /auth/login` — login
+- `GET /auth/login` — sign-in via configured OAuth providers (Google/GitHub); creates an account on first sign-in
 - `GET /auth/logout` — logout
 - `GET /auth/complete/:token` — auth completion
 - `GET /auth/oidc/start`, `GET /auth/oidc/callback` — OIDC login

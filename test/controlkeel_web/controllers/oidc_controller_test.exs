@@ -5,13 +5,22 @@ defmodule ControlKeelWeb.OidcControllerTest do
 
   setup do
     original_adapter = Application.get_env(:controlkeel, :oidc_client_adapter)
+    original_runtime_mode = Application.get_env(:controlkeel, :runtime_mode)
+
     Application.put_env(:controlkeel, :oidc_client_adapter, ControlKeel.OidcTestAdapter)
+    Application.put_env(:controlkeel, :runtime_mode, :cloud)
 
     on_exit(fn ->
       if original_adapter do
         Application.put_env(:controlkeel, :oidc_client_adapter, original_adapter)
       else
         Application.delete_env(:controlkeel, :oidc_client_adapter)
+      end
+
+      if is_nil(original_runtime_mode) do
+        Application.delete_env(:controlkeel, :runtime_mode)
+      else
+        Application.put_env(:controlkeel, :runtime_mode, original_runtime_mode)
       end
     end)
 

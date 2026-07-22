@@ -6,13 +6,22 @@ defmodule ControlKeelWeb.SamlControllerTest do
 
   setup do
     previous = Application.get_env(:controlkeel, :saml_client_adapter)
+    original_runtime_mode = Application.get_env(:controlkeel, :runtime_mode)
+
     Application.put_env(:controlkeel, :saml_client_adapter, SamlTestAdapter)
+    Application.put_env(:controlkeel, :runtime_mode, :cloud)
 
     on_exit(fn ->
       if previous do
         Application.put_env(:controlkeel, :saml_client_adapter, previous)
       else
         Application.delete_env(:controlkeel, :saml_client_adapter)
+      end
+
+      if is_nil(original_runtime_mode) do
+        Application.delete_env(:controlkeel, :runtime_mode)
+      else
+        Application.put_env(:controlkeel, :runtime_mode, original_runtime_mode)
       end
     end)
 

@@ -82,6 +82,21 @@ runtime_mode =
 config :controlkeel,
   runtime_mode: runtime_mode
 
+# Identity providers for browser sign-in (`/auth/login`).
+# Set *_CLIENT_ID and *_CLIENT_SECRET env vars to enable each button.
+# Optional *_REDIRECT_URI overrides the derived /auth/<provider>/callback URL.
+config :controlkeel, :oauth_providers,
+  google: [
+    client_id: System.get_env("GOOGLE_OAUTH_CLIENT_ID"),
+    client_secret: System.get_env("GOOGLE_OAUTH_CLIENT_SECRET"),
+    redirect_uri: System.get_env("GOOGLE_OAUTH_REDIRECT_URI")
+  ],
+  github: [
+    client_id: System.get_env("GITHUB_OAUTH_CLIENT_ID"),
+    client_secret: System.get_env("GITHUB_OAUTH_CLIENT_SECRET"),
+    redirect_uri: System.get_env("GITHUB_OAUTH_REDIRECT_URI")
+  ]
+
 # Configure MCP tool groups for token optimization
 # Adaptive mode is now enabled by default and will automatically select tool groups
 # based on project type and usage patterns. This static config is only used as a fallback

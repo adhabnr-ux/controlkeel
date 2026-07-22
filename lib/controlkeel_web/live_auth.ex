@@ -1,12 +1,14 @@
 defmodule ControlKeelWeb.LiveAuth do
   @moduledoc """
-  LiveView on_mount hooks for cloud-mode authentication and org context loading.
+  LiveView on_mount hooks for authentication and org context loading.
 
   Two hooks:
 
-    * `:require_cloud_auth` — in cloud/self_hosted mode requires an active org
-      membership; redirects to `/auth/login` if none. In local mode this is a
-      passthrough so local single-user deployments are unaffected.
+    * `:require_cloud_auth` — in cloud/self_hosted mode requires a signed-in
+      user (`current_user`). Org membership is loaded opportunistically but is
+      NOT required; org onboarding is handled by a separate route. In local
+      mode this is a passthrough so local single-user deployments are
+      unaffected.
 
     * `:load_if_available` — loads user/membership from session without gating.
       Use for pages that are public in local mode but show org-scoped data when
@@ -37,7 +39,7 @@ defmodule ControlKeelWeb.LiveAuth do
     else
       socket = load_auth(socket, session)
 
-      if socket.assigns[:current_membership] do
+      if socket.assigns[:current_user] do
         {:cont, attach_membership_eviction(socket)}
       else
         {:halt, redirect(socket, to: "/auth/login")}
