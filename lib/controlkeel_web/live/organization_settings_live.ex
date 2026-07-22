@@ -1,4 +1,4 @@
-defmodule ControlKeelWeb.OrgSettingsLive do
+defmodule ControlKeelWeb.OrganizationSettingsLive do
   @moduledoc """
   Combined org settings at `/organizations/:slug/settings`.
 
