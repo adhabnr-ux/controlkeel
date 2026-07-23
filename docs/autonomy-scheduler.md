@@ -86,13 +86,19 @@ external process. Its trust boundary is intentionally narrow:
 - **Bounded.** Launches time out (five minutes by default; configurable globally
   or per launcher with `timeout_ms`) and timed dispatches run under a
   `Task.Supervisor`, so one slow agent does not block unrelated timers.
-- **Tree-safe timeout.** Each Unix launch uses a Python `os.setsid()+execv()`
+- **Managed-tree timeout.** Each Unix launch uses a Python `os.setsid()+execv()`
   wrapper so the tracked PID remains its OS process-group leader; timeout signals
-  terminate the entire group. Windows uses `taskkill /T`. Launching fails closed
+  terminate that managed group. Windows uses `taskkill /T`. Launching fails closed
   when process-tree isolation cannot be established. A timeout is returned only
   after Unix has no runnable process-group members, or Windows reports successful
   `taskkill /T /F` and the original PID disappears. Signal, `taskkill`, or
   confirmation failures return an explicit `launch_termination_failed` error.
+- **No daemonizing launchers.** Launcher commands are trusted operator
+  configuration and must remain attached to the managed process group/tree.
+  Calling `setsid`, double-forking, daemonizing, or otherwise deliberately escaping
+  that boundary is unsupported and forbidden. Work that requires daemonization
+  must run under a separately governed sandbox or service manager with its own
+  lifecycle guarantee; ControlKeel should launch only its bounded client/trigger.
 - **No overlap per job.** While a job is in flight, later ticks for that same job
   are skipped and re-armed rather than duplicating external side effects.
 

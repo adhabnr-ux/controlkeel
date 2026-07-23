@@ -24,10 +24,12 @@ defmodule ControlKeel.Autonomy.Launcher.Shell do
     records it in a governed session event for audit.
   * **Process-tree timeout.** Unix launches use a Python `os.setsid()+execv()`
     wrapper so the tracked PID remains the dedicated process-group leader;
-    Windows uses `taskkill /T`. Timeout termination targets the entire tree, not
-    only the BEAM port owner. A timeout is reported only after shutdown is
-    confirmed; otherwise the launcher returns an explicit termination failure.
-    Launching fails closed when isolation is unavailable.
+    Windows uses `taskkill /T`. Timeout termination targets the managed process
+    group/tree, not only the BEAM port owner. Launcher commands are trusted
+    configuration and must not deliberately escape that boundary by daemonizing,
+    double-forking, or creating another session. A timeout is reported only after
+    managed shutdown is confirmed; otherwise the launcher returns an explicit
+    termination failure. Launching fails closed when isolation is unavailable.
 
   ## Example
 
