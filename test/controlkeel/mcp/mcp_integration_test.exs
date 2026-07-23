@@ -16,8 +16,7 @@ defmodule ControlKeel.MCP.IntegrationTest do
   # ── Setup ──────────────────────────────────────────────────────────────
 
   setup do
-    {:ok, pid} = Server.start_link(start_reader: false)
-    on_exit(fn -> if Process.alive?(pid), do: GenServer.stop(pid, :normal, 1_000) end)
+    pid = start_supervised!({Server, start_reader: false})
     {:ok, server: pid}
   end
 

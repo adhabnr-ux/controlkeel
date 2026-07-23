@@ -1,0 +1,43 @@
+# Local ControlKeel compose file
+#
+# ControlKeel runs with local SQLite storage by default. The app stores
+# runtime data under /data, backed by the controlkeel-data volume below.
+#
+# For cloud-mode deployments that use Postgres, set CONTROLKEEL_RUNTIME_MODE=cloud
+# and provide DATABASE_URL via your deployment environment instead of using this
+# local-first compose file as-is.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: controlkeel
+      POSTGRES_PASSWORD: controlkeel
+      POSTGRES_DB: controlkeel
+    ports:
+      - "5433:5432"
+    volumes:
+      - controlkeel-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U controlkeel"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  app:
+    build: .
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env.docker.cloud
+    environment:
+      DATABASE_PATH: ${DATABASE_PATH:-/data/controlkeel.db}
+      DATABASE_URL: postgres://controlkeel:controlkeel@postgres:5432/controlkeel
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - controlkeel-data:/data
+    restart: unless-stopped
+volumes:
+  controlkeel-data:
+  controlkeel-pgdata:
+
