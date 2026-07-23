@@ -286,7 +286,10 @@ defmodule ControlKeel.Application do
 
   defp autonomy_scheduler_children do
     if ControlKeel.Autonomy.Scheduler.enabled?() and not mcp_stdio_mode?() do
-      [ControlKeel.Autonomy.Scheduler]
+      [
+        {Task.Supervisor, name: ControlKeel.Autonomy.TaskSupervisor},
+        ControlKeel.Autonomy.Scheduler
+      ]
     else
       []
     end

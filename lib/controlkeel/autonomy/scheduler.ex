@@ -33,6 +33,8 @@ defmodule ControlKeel.Autonomy.Scheduler do
   alias ControlKeel.Autonomy.Dispatcher
   alias ControlKeel.Autonomy.Job
 
+  @task_supervisor ControlKeel.Autonomy.TaskSupervisor
+
   def child_spec(opts) do
     %{
       id: __MODULE__,
@@ -74,8 +76,9 @@ defmodule ControlKeel.Autonomy.Scheduler do
 
   Options: `:dry_run`, `:workspace_id`.
   """
-  def run_once(name, opts \\ []) when is_atom(name) do
+  def run_once(name, opts \\ []) when is_atom(name) or is_binary(name) do
     opts = put_workspace_opt(opts)
+    name = to_string(name)
 
     case Enum.find(jobs(), &(&1.name == name)) do
       nil -> {:error, {:unknown_job, name}}
@@ -89,12 +92,13 @@ defmodule ControlKeel.Autonomy.Scheduler do
   def init(opts) do
     case Job.from_config_all(config_jobs()) do
       {:ok, jobs} ->
-        state = %{timers: arm_jobs(jobs), workspace_id: workspace_opt(opts)}
+        state = %{timers: arm_jobs(jobs), workspace_id: workspace_opt(opts), config_error: nil}
         {:ok, state}
 
       {:error, reason} ->
-        Logger.error("[autonomy] refusing to start — invalid job config: #{inspect(reason)}")
-        {:stop, {:invalid_jobs, reason}}
+        Logger.error("[autonomy] invalid job config; scheduler started inert: #{inspect(reason)}")
+
+        {:ok, %{timers: %{}, workspace_id: workspace_opt(opts), config_error: reason}}
     end
   end
 
@@ -102,6 +106,20 @@ defmodule ControlKeel.Autonomy.Scheduler do
   def handle_info({:fire, name}, state) do
     opts = workspace_opts(state)
 
+    case Task.Supervisor.start_child(@task_supervisor, fn -> dispatch_and_log(name, opts) end) do
+      {:ok, _pid} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning(
+          "[autonomy] could not start dispatch task for #{inspect(name)}: #{inspect(reason)}"
+        )
+    end
+
+    {:noreply, rearm(name, state)}
+  end
+
+  defp dispatch_and_log(name, opts) do
     case run_once(name, opts) do
       {:ok, %{session_id: sid}} ->
         Logger.debug("[autonomy] job #{inspect(name)} fired -> session ##{sid}")
@@ -109,8 +127,6 @@ defmodule ControlKeel.Autonomy.Scheduler do
       {:error, reason} ->
         Logger.warning("[autonomy] job #{inspect(name)} failed: #{inspect(reason)}")
     end
-
-    {:noreply, rearm(name, state)}
   end
 
   defp rearm(name, %{timers: timers} = state) do

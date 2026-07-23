@@ -89,7 +89,7 @@ defmodule Mix.Tasks.Ck.Autonomy do
   defp run_job(shell, name, dry?) do
     opts = if dry?, do: [dry_run: true], else: []
 
-    case Scheduler.run_once(String.to_atom(name), opts) do
+    case Scheduler.run_once(name, opts) do
       {:ok, %{dry_run: true} = result} ->
         shell.info("DRY RUN — nothing recorded, nothing launched.")
         shell.info("  job:           #{result.job}")

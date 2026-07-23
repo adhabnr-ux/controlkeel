@@ -33,13 +33,18 @@ defmodule ControlKeel.Autonomy.Job do
   @enforce_keys [:name, :interval_ms, :title, :task]
   defstruct [:name, :interval_ms, :title, :task, :agent, :launcher]
 
-  @type launcher :: %{adapter: :shell, command: binary(), args: [binary() | :task]}
+  @type launcher :: %{
+          adapter: :shell,
+          command: binary(),
+          args: [binary() | :task],
+          timeout_ms: pos_integer() | nil
+        }
   @type t :: %__MODULE__{
-          name: atom(),
+          name: String.t(),
           interval_ms: pos_integer(),
           title: String.t(),
           task: String.t(),
-          agent: atom() | nil,
+          agent: String.t() | nil,
           launcher: launcher() | nil
         }
 
@@ -62,7 +67,7 @@ defmodule ControlKeel.Autonomy.Job do
          interval_ms: interval_ms,
          title: title,
          task: task,
-         agent: to_atom(config[:agent]),
+         agent: normalize_optional_string(config[:agent]),
          launcher: launcher
        }}
     end
@@ -104,8 +109,12 @@ defmodule ControlKeel.Autonomy.Job do
   defp normalize(config) when is_map(config), do: Map.to_list(config)
 
   defp parse_name(nil), do: {:error, {:missing, :name}}
-  defp parse_name(name) when is_atom(name), do: {:ok, name}
-  defp parse_name(name) when is_binary(name), do: {:ok, String.to_atom(name)}
+  defp parse_name(name) when is_atom(name), do: {:ok, Atom.to_string(name)}
+
+  defp parse_name(name) when is_binary(name) and byte_size(name) > 0 do
+    {:ok, name}
+  end
+
   defp parse_name(other), do: {:error, {:invalid_name, other}}
 
   defp parse_interval(nil), do: {:error, {:missing, :interval_ms}}
@@ -129,6 +138,7 @@ defmodule ControlKeel.Autonomy.Job do
   defp parse_launcher(%{adapter: :shell} = launcher) do
     command = Map.get(launcher, :command) || Map.get(launcher, "command")
     args = Map.get(launcher, :args) || Map.get(launcher, "args")
+    timeout_ms = Map.get(launcher, :timeout_ms) || Map.get(launcher, "timeout_ms")
 
     cond do
       not is_binary(command) or byte_size(command) == 0 ->
@@ -140,8 +150,11 @@ defmodule ControlKeel.Autonomy.Job do
       not Enum.all?(args, &valid_arg?/1) ->
         {:error, {:invalid_launcher, :args_template}}
 
+      timeout_ms != nil and (not is_integer(timeout_ms) or timeout_ms <= 0) ->
+        {:error, {:invalid_launcher, :timeout_ms}}
+
       true ->
-        {:ok, %{adapter: :shell, command: command, args: args}}
+        {:ok, %{adapter: :shell, command: command, args: args, timeout_ms: timeout_ms}}
     end
   end
 
@@ -151,7 +164,7 @@ defmodule ControlKeel.Autonomy.Job do
   defp valid_arg?(arg) when is_binary(arg), do: true
   defp valid_arg?(_), do: false
 
-  defp to_atom(nil), do: nil
-  defp to_atom(value) when is_atom(value), do: value
-  defp to_atom(value) when is_binary(value), do: String.to_atom(value)
+  defp normalize_optional_string(nil), do: nil
+  defp normalize_optional_string(value) when is_atom(value), do: Atom.to_string(value)
+  defp normalize_optional_string(value) when is_binary(value), do: value
 end

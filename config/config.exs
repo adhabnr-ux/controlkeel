@@ -23,6 +23,7 @@ config :controlkeel,
   autonomy: [
     enabled: false,
     allow_shell: false,
+    launch_timeout_ms: 300_000,
     workspace_id: nil,
     jobs: []
   ]

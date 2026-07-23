@@ -15,7 +15,8 @@ defmodule ControlKeel.Autonomy.Launcher.ShellTest do
         launcher: %{
           adapter: :shell,
           command: Keyword.get(opts, :command, "echo"),
-          args: Keyword.get(opts, :args, [:task])
+          args: Keyword.get(opts, :args, [:task]),
+          timeout_ms: Keyword.get(opts, :timeout_ms)
         }
       })
 
@@ -81,6 +82,28 @@ defmodule ControlKeel.Autonomy.Launcher.ShellTest do
 
         assert {:ok, %{output: output}} = Shell.run(j)
         assert byte_size(output) <= 8_192
+      end)
+    end
+
+    test "returns valid UTF-8 when command output contains invalid bytes" do
+      with_shell_enabled(fn ->
+        assert {:ok, %{output: output}} =
+                 Shell.run(job("ignored", command: "sh", args: ["-c", "printf '\\377'"]))
+
+        assert String.valid?(output)
+      end)
+    end
+
+    test "terminates a launcher that exceeds its timeout" do
+      with_shell_enabled(fn ->
+        assert {:error, {:launch_timeout, 20}} =
+                 Shell.run(
+                   job("ignored",
+                     command: "sh",
+                     args: ["-c", "sleep 2"],
+                     timeout_ms: 20
+                   )
+                 )
       end)
     end
   end

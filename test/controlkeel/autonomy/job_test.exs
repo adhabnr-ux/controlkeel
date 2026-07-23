@@ -15,15 +15,15 @@ defmodule ControlKeel.Autonomy.JobTest do
                  launcher: %{adapter: :shell, command: "opencode", args: ["run", :task]}
                })
 
-      assert job.name == :daily_triage
+      assert job.name == "daily_triage"
       assert job.interval_ms == 21_600_000
-      assert job.agent == :opencode
+      assert job.agent == "opencode"
       assert job.launcher.command == "opencode"
       assert job.launcher.args == ["run", :task]
     end
 
     test "parses a keyword-list config and string name" do
-      assert {:ok, %Job{name: :nightly}} =
+      assert {:ok, %Job{name: "nightly"}} =
                Job.from_config(
                  name: "nightly",
                  interval_ms: 60_000,
@@ -132,7 +132,7 @@ defmodule ControlKeel.Autonomy.JobTest do
         %{name: :b, interval_ms: 2_000, title: "B", task: "tb"}
       ]
 
-      assert {:ok, [%Job{name: :a}, %Job{name: :b}]} = Job.from_config_all(configs)
+      assert {:ok, [%Job{name: "a"}, %Job{name: "b"}]} = Job.from_config_all(configs)
     end
 
     test "rejects duplicate names" do
@@ -141,7 +141,7 @@ defmodule ControlKeel.Autonomy.JobTest do
         %{name: :dup, interval_ms: 2_000, title: "B", task: "tb"}
       ]
 
-      assert {:error, {:duplicate_name, :dup}} = Job.from_config_all(configs)
+      assert {:error, {:duplicate_name, "dup"}} = Job.from_config_all(configs)
     end
 
     test "returns [] for empty list" do

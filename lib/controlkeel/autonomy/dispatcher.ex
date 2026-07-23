@@ -2,9 +2,9 @@ defmodule ControlKeel.Autonomy.Dispatcher do
   @moduledoc """
   Default dispatch for a fired autonomy job: produces a governed wake-up.
 
-  A wake-up is a session + task + `autonomy.wake` audit event. When the job has a
-  launcher configured AND shell launching is enabled, the dispatcher also invokes
-  the launcher and records its result in the same event.
+  A wake-up is a session + task + `autonomy.wake` audit event committed in one
+  database transaction. Only after that invariant exists may an external launcher
+  run; its result is recorded as a separate `autonomy.launch.result` event.
 
   The wake-up is what makes the autonomy heartbeat governed: the next agent run
   (whether launched here or picked up later) starts inside a real CK session with
@@ -13,13 +13,15 @@ defmodule ControlKeel.Autonomy.Dispatcher do
 
   require Logger
 
-  alias ControlKeel.Accounts
   alias ControlKeel.Autonomy.Job
   alias ControlKeel.Autonomy.Launcher.Shell
   alias ControlKeel.Mission
   alias ControlKeel.Mission.SessionTranscript
+  alias ControlKeel.Mission.Workspace
+  alias ControlKeel.Repo
 
   @wake_event_type "autonomy.wake"
+  @launch_result_event_type "autonomy.launch.result"
   @default_budget_cents 5_000
   @default_risk_tier "medium"
 
@@ -28,8 +30,7 @@ defmodule ControlKeel.Autonomy.Dispatcher do
 
   Options:
 
-  * `:workspace_id` — workspace to bind the wake-up session to. When omitted, the
-    first workspace of the first org is used (autonomous runs need a home).
+  * `:workspace_id` — required workspace to bind the wake-up session to.
   * `:dry_run` — when `true`, validates and returns the plan without recording
     anything or launching anything.
 
@@ -47,15 +48,37 @@ defmodule ControlKeel.Autonomy.Dispatcher do
     end
   end
 
-  defp fire(%Job{} = job, workspace_id, _opts) do
-    {:ok, session} = create_session(job, workspace_id)
-    {:ok, task} = create_task(job, session)
-    launched = maybe_launch(job)
+  defp fire(%Job{} = job, workspace_id, opts) do
+    with {:ok, %{session: session, task: task}} <- persist_wake_up(job, workspace_id),
+         launched <- maybe_launch(job, opts),
+         :ok <- record_launch_result(session, job, task, launched) do
+      {:ok,
+       %{
+         session_id: session.id,
+         task_id: task.id,
+         launched: launched,
+         workspace_id: workspace_id
+       }}
+    end
+  end
 
-    :ok = record_wake_event(session, job, task, launched)
-
-    {:ok,
-     %{session_id: session.id, task_id: task.id, launched: launched, workspace_id: workspace_id}}
+  defp persist_wake_up(job, workspace_id) do
+    case Repo.transaction(fn ->
+           with {:ok, session} <- create_session(job, workspace_id),
+                {:ok, task} <- create_task(job, session),
+                {:ok, _event} <- record_wake_event(session, job, task) do
+             %{session: session, task: task}
+           else
+             {:error, reason} -> Repo.rollback(reason)
+           end
+         end) do
+      {:ok, result} -> {:ok, result}
+      {:error, reason} -> {:error, {:wake_persistence_failed, reason}}
+    end
+  rescue
+    error -> {:error, {:wake_persistence_failed, Exception.message(error)}}
+  catch
+    kind, reason -> {:error, {:wake_persistence_failed, {kind, inspect(reason)}}}
   end
 
   defp create_session(%Job{} = job, workspace_id) do
@@ -86,10 +109,10 @@ defmodule ControlKeel.Autonomy.Dispatcher do
 
   # A job with a launcher launches when shell execution is enabled. Otherwise the
   # wake-up is recorded and an external launcher (or a later run) picks it up.
-  defp maybe_launch(%Job{launcher: nil}), do: nil
+  defp maybe_launch(%Job{launcher: nil}, _opts), do: nil
 
-  defp maybe_launch(%Job{} = job) do
-    case Shell.run(job, []) do
+  defp maybe_launch(%Job{} = job, opts) do
+    case Shell.run(job, opts) do
       {:ok, result} ->
         result
 
@@ -105,57 +128,69 @@ defmodule ControlKeel.Autonomy.Dispatcher do
           "[autonomy] launcher for job #{inspect(job.name)} failed: #{inspect(reason)}"
         )
 
-        %{error: reason}
+        %{error: inspect(reason)}
     end
   end
 
-  defp record_wake_event(session, job, task, launched) do
+  defp record_wake_event(session, job, task) do
     payload = %{
       job: to_string(job.name),
       task_id: task.id,
-      agent: to_string(job.agent),
+      agent: job.agent,
       launcher: job.launcher != nil,
-      launched: format_launched(launched)
+      phase: "prepared"
     }
 
-    {:ok, _event} =
-      SessionTranscript.record(%{
-        session_id: session.id,
-        event_type: @wake_event_type,
-        actor: "autonomy.scheduler",
-        summary: "Autonomy wake-up: " <> job.title,
-        payload: payload
-      })
-
-    :ok
+    SessionTranscript.record(%{
+      session_id: session.id,
+      task_id: task.id,
+      event_type: @wake_event_type,
+      actor: "autonomy.scheduler",
+      summary: "Autonomy wake-up prepared: " <> job.title,
+      payload: payload
+    })
   end
 
-  defp format_launched(nil), do: false
-  defp format_launched(%{error: _} = err), do: err
-  defp format_launched(result), do: Map.take(result, [:exit_status])
+  defp record_launch_result(_session, %Job{launcher: nil}, _task, nil), do: :ok
+
+  defp record_launch_result(session, job, task, launched) do
+    case SessionTranscript.record(%{
+           session_id: session.id,
+           task_id: task.id,
+           event_type: @launch_result_event_type,
+           actor: "autonomy.scheduler",
+           summary: "Autonomy launcher result: " <> job.title,
+           payload: format_launched(launched)
+         }) do
+      {:ok, _event} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error(
+          "[autonomy] launch completed but result audit failed for #{inspect(job.name)}: #{inspect(reason)}"
+        )
+
+        {:error, {:launch_result_audit_failed, reason}}
+    end
+  end
+
+  defp format_launched(nil), do: %{"status" => "skipped"}
+
+  defp format_launched(%{error: error}) do
+    %{"status" => "failed", "error" => to_string(error)}
+  end
+
+  defp format_launched(%{exit_status: status, output: output}) do
+    %{"status" => "completed", "exit_status" => status, "output" => output}
+  end
 
   defp resolve_workspace(opts) do
     case opts[:workspace_id] do
       id when is_integer(id) and id > 0 ->
-        {:ok, id}
+        if Repo.get(Workspace, id), do: {:ok, id}, else: {:error, :workspace_not_found}
 
       _ ->
-        default_workspace_id()
-    end
-  end
-
-  # Autonomous runs need a workspace. When none is configured, fall back to the
-  # first workspace of the first org so a freshly-enabled scheduler can run.
-  defp default_workspace_id do
-    case Accounts.list_orgs() do
-      [org | _] ->
-        case Accounts.list_workspaces_for_org(org.id) do
-          [ws | _] -> {:ok, ws.id}
-          [] -> {:error, :no_workspace_configured}
-        end
-
-      [] ->
-        {:error, :no_workspace_configured}
+        {:error, :workspace_id_required}
     end
   end
 end

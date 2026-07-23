@@ -30,6 +30,7 @@ config :controlkeel,
   autonomy: [
     enabled: true,
     allow_shell: false,
+    launch_timeout_ms: 300_000,
     workspace_id: 1,
     jobs: [
       %{
@@ -48,7 +49,8 @@ config :controlkeel,
 | -------------- | -------- | -------------------------------------------------------------------- |
 | `enabled`      | no       | Arm timers on boot. Also set via `CK_AUTONOMY_SCHEDULER=1`.          |
 | `allow_shell`  | no       | Permit launchers to execute. Also via `CK_AUTONOMY_ALLOW_SHELL=1`.   |
-| `workspace_id` | no       | Workspace wake-up sessions bind to. Falls back to the first org's.   |
+| `launch_timeout_ms` | no  | Default external-launch timeout (5 minutes).                         |
+| `workspace_id` | yes      | Workspace wake-up sessions bind to. No cross-tenant fallback.        |
 | `jobs`         | yes      | List of job maps (see below).                                        |
 
 ### Job fields
@@ -71,14 +73,19 @@ A launcher may legitimately omit `:task` (e.g. a fixed maintenance command).
 The shell launcher is the only module in the autonomy subsystem that executes an
 external process. Its trust boundary is intentionally narrow:
 
-- **argv, not a shell.** `System.cmd/3` with an explicit argument list. No shell,
-  no string interpolation — shell-injection surface is removed entirely.
+- **argv, not an implicit shell.** `System.cmd/3` receives an explicit argument
+  list. ControlKeel does not invoke a shell automatically. An operator who
+  explicitly configures `sh -c`, `bash -c`, or another interpreter can
+  reintroduce shell parsing and owns that trust boundary.
 - **Explicit opt-in.** Gated on `CK_AUTONOMY_ALLOW_SHELL` or `allow_shell: true`.
   Disabled → launchers are skipped, wake-ups still recorded.
 - **Trusted template.** `command` and `args` come from operator config (trusted).
   Only `:task` receives job text, and only as an argv element.
-- **Audited.** Every launch result (exit status + truncated output) is written to
-  the `autonomy.wake` session event.
+- **Audited.** Session + task + pre-launch wake event commit atomically before
+  execution. Launch results are written to a separate audit event.
+- **Bounded.** Launches time out (five minutes by default; configurable globally
+  or per launcher with `timeout_ms`) and timed dispatches run under a
+  `Task.Supervisor`, so one slow agent does not block unrelated timers.
 
 ## Mix task
 

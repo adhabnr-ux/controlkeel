@@ -7,10 +7,12 @@ defmodule ControlKeel.Autonomy.Launcher.Shell do
   This is the only module in the autonomy subsystem that executes an external
   process, so its trust boundary is intentionally narrow:
 
-  * **argv, not a shell string.** Execution uses `System.cmd/3` with an explicit
-    argument list. The job's task text is substituted as a *single discrete argv
-    element* via the `:task` placeholder — it is never interpolated into a shell
-    string, which removes the shell-injection surface entirely.
+  * **argv, not an implicit shell string.** Execution uses `System.cmd/3` with an
+    explicit argument list. The job's task text is substituted as a *single
+    discrete argv element* via the `:task` placeholder. ControlKeel does not
+    implicitly invoke a shell; an operator who explicitly configures `sh -c`,
+    `bash -c`, or another interpreter can reintroduce shell parsing and owns that
+    trust boundary.
   * **Explicit opt-in.** Gated on the `CK_AUTONOMY_ALLOW_SHELL` environment
     variable or `config :controlkeel, autonomy: [allow_shell: true]`. When neither
     is set, `run/1` returns `{:error, :shell_not_allowed}` and launches nothing.
@@ -35,6 +37,7 @@ defmodule ControlKeel.Autonomy.Launcher.Shell do
   alias ControlKeel.Autonomy.Job
 
   @max_output_bytes 8_192
+  @default_timeout_ms 300_000
 
   @type launch_result ::
           {:ok, %{exit_status: non_neg_integer(), output: binary()}} | {:error, term()}
@@ -54,14 +57,20 @@ defmodule ControlKeel.Autonomy.Launcher.Shell do
   @spec run(Job.t(), keyword()) :: launch_result()
   def run(job, opts \\ [])
 
-  def run(%Job{launcher: %{adapter: :shell}} = job, _opts) do
+  def run(%Job{launcher: %{adapter: :shell}} = job, opts) do
     unless enabled?(), do: throw(:shell_not_allowed)
 
     %{command: command, args: template} = job.launcher
     args = resolve_args(template, job)
+    timeout_ms = launch_timeout_ms(job, opts)
 
-    {output, status} = System.cmd(command, args, stderr_to_stdout: true)
-    {:ok, %{exit_status: status, output: truncate(output)}}
+    task = Task.async(fn -> execute(command, args) end)
+
+    case Task.yield(task, timeout_ms) || Task.shutdown(task, :brutal_kill) do
+      {:ok, result} -> result
+      {:exit, reason} -> {:error, {:launch_failed, inspect(reason)}}
+      nil -> {:error, {:launch_timeout, timeout_ms}}
+    end
   catch
     :shell_not_allowed ->
       {:error, :shell_not_allowed}
@@ -75,6 +84,14 @@ defmodule ControlKeel.Autonomy.Launcher.Shell do
 
   def run(_job, _opts), do: {:error, :no_shell_launcher}
 
+  defp execute(command, args) do
+    {output, status} = System.cmd(command, args, stderr_to_stdout: true)
+    {:ok, %{exit_status: status, output: truncate(output)}}
+  catch
+    :error, :enoent -> {:error, {:launch_failed, :enoent}}
+    kind, reason -> {:error, {:launch_failed, {kind, inspect(reason)}}}
+  end
+
   defp resolve_args(template, %Job{task: task}) when is_list(template) do
     Enum.map(template, fn
       :task -> task
@@ -83,7 +100,20 @@ defmodule ControlKeel.Autonomy.Launcher.Shell do
   end
 
   defp truncate(output) when is_binary(output) do
-    String.slice(output, 0, @max_output_bytes)
+    output =
+      if byte_size(output) > @max_output_bytes do
+        binary_part(output, 0, @max_output_bytes)
+      else
+        output
+      end
+
+    String.replace_invalid(output)
+  end
+
+  defp launch_timeout_ms(job, opts) do
+    Keyword.get(opts, :timeout_ms) || job.launcher.timeout_ms ||
+      Application.get_env(:controlkeel, :autonomy, [])
+      |> Keyword.get(:launch_timeout_ms, @default_timeout_ms)
   end
 
   defp env_enabled? do

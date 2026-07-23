@@ -48,7 +48,7 @@ defmodule ControlKeel.Autonomy.SchedulerTest do
       )
 
       names = Enum.map(Scheduler.jobs(), & &1.name)
-      assert names == [:a, :b]
+      assert names == ["a", "b"]
     end
 
     test "returns [] on invalid config (logged, not raised)" do
@@ -78,7 +78,7 @@ defmodule ControlKeel.Autonomy.SchedulerTest do
 
     test "returns {:error, {:unknown_job, name}} for an unknown job" do
       Application.put_env(:controlkeel, :autonomy, enabled: false, jobs: [])
-      assert {:error, {:unknown_job, :nope}} = Scheduler.run_once(:nope, [])
+      assert {:error, {:unknown_job, "nope"}} = Scheduler.run_once(:nope, [])
     end
 
     test "dry_run records nothing", %{workspace: ws} do
@@ -104,10 +104,10 @@ defmodule ControlKeel.Autonomy.SchedulerTest do
       # it reached a viable state with the timer armed.
       pid = start_supervised!(Scheduler)
       state = :sys.get_state(pid)
-      assert Map.has_key?(state.timers, :armed)
+      assert Map.has_key?(state.timers, "armed")
     end
 
-    test "refuses to start on invalid job config" do
+    test "starts inert on invalid job config instead of aborting the application" do
       Application.put_env(:controlkeel, :autonomy,
         enabled: true,
         jobs: [
@@ -116,17 +116,45 @@ defmodule ControlKeel.Autonomy.SchedulerTest do
         ]
       )
 
-      # init/1 returns {:stop, {:invalid_jobs, reason}}; with start_link the
-      # terminating child can signal its caller, so trap exits and drain.
-      Process.flag(:trap_exit, true)
+      pid = start_supervised!(Scheduler)
+      state = :sys.get_state(pid)
 
-      assert {:error, {:invalid_jobs, {:duplicate_name, :dup}}} = Scheduler.start_link([])
+      assert state.timers == %{}
+      assert state.config_error == {:duplicate_name, "dup"}
+    end
 
-      receive do
-        {:EXIT, _, _} -> :ok
-      after
-        0 -> :ok
-      end
+    test "slow launchers do not block the scheduler mailbox", %{workspace: ws} do
+      previous_shell = System.get_env("CK_AUTONOMY_ALLOW_SHELL")
+      System.put_env("CK_AUTONOMY_ALLOW_SHELL", "1")
+
+      on_exit(fn ->
+        if previous_shell,
+          do: System.put_env("CK_AUTONOMY_ALLOW_SHELL", previous_shell),
+          else: System.delete_env("CK_AUTONOMY_ALLOW_SHELL")
+      end)
+
+      Application.put_env(:controlkeel, :autonomy,
+        enabled: true,
+        workspace_id: ws.id,
+        jobs: [
+          %{
+            name: :slow,
+            interval_ms: 60_000,
+            title: "Slow",
+            task: "wait",
+            launcher: %{adapter: :shell, command: "sh", args: ["-c", "sleep 1"]}
+          }
+        ]
+      )
+
+      start_supervised!({Task.Supervisor, name: ControlKeel.Autonomy.TaskSupervisor})
+      pid = start_supervised!(Scheduler)
+
+      send(pid, {:fire, "slow"})
+
+      # If dispatch ran synchronously in handle_info, this 100ms call would time out.
+      state = :sys.get_state(pid, 100)
+      assert Map.has_key?(state.timers, "slow")
     end
   end
 
