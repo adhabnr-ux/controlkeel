@@ -26,6 +26,16 @@ config :controlkeel,
   # forever.
   commit_gate: [
     stale_block_days: 90
+  ],
+  # Governed autonomy scheduler — off by default so existing installs see no
+  # behavior change. Enable via CK_AUTONOMY_SCHEDULER env or `enabled: true`.
+  # See docs/autonomy-scheduler.md and lib/controlkeel/autonomy/scheduler.ex.
+  autonomy: [
+    enabled: false,
+    allow_shell: false,
+    launch_timeout_ms: 300_000,
+    workspace_id: nil,
+    jobs: []
   ]
 
 # Configure the endpoint

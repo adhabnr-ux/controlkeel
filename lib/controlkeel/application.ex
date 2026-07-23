@@ -80,6 +80,7 @@ defmodule ControlKeel.Application do
       mailer_test_inbox_children() ++
       retention_scheduler_children() ++
       db_maintenance_children() ++
+      autonomy_scheduler_children() ++
       [ControlKeel.Cloud.RateLimiter, ControlKeel.Cloud.Usage.Meter] ++
       [
         {DNSCluster, query: Application.get_env(:controlkeel, :dns_cluster_query) || :ignore},
@@ -278,6 +279,17 @@ defmodule ControlKeel.Application do
   defp db_maintenance_children do
     if ControlKeel.Ops.Database.enabled?() do
       [ControlKeel.Ops.Database]
+    else
+      []
+    end
+  end
+
+  defp autonomy_scheduler_children do
+    if ControlKeel.Autonomy.Scheduler.enabled?() and not mcp_stdio_mode?() do
+      [
+        {Task.Supervisor, name: ControlKeel.Autonomy.TaskSupervisor},
+        ControlKeel.Autonomy.Scheduler
+      ]
     else
       []
     end
