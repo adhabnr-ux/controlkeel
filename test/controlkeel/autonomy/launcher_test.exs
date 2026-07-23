@@ -129,8 +129,7 @@ defmodule ControlKeel.Autonomy.Launcher.ShellTest do
                  )
 
         child_pid = pid_file |> File.read!() |> String.trim()
-        {_output, status} = System.cmd("kill", ["-0", child_pid], stderr_to_stdout: true)
-        refute status == 0
+        refute process_running?(child_pid)
       end)
     end
   end
@@ -157,6 +156,21 @@ defmodule ControlKeel.Autonomy.Launcher.ShellTest do
       System.put_env("CK_AUTONOMY_ALLOW_SHELL", "1")
       fun.()
     end)
+  end
+
+  defp process_running?(pid) do
+    {_output, status} = System.cmd("kill", ["-0", pid], stderr_to_stdout: true)
+
+    status == 0 and proc_state(pid) not in ["Z", "X"]
+  end
+
+  defp proc_state(pid) do
+    with {:ok, stat} <- File.read("/proc/#{pid}/stat"),
+         [_, state] <- Regex.run(~r/^\d+ \(.*\) ([A-Z]) /, stat) do
+      state
+    else
+      _ -> nil
+    end
   end
 
   defp restore_env(fun) do
