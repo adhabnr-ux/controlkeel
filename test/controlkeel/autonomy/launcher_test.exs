@@ -106,6 +106,33 @@ defmodule ControlKeel.Autonomy.Launcher.ShellTest do
                  )
       end)
     end
+
+    test "timeout terminates descendant processes in the launch process group" do
+      with_shell_enabled(fn ->
+        pid_file =
+          Path.join(
+            System.tmp_dir!(),
+            "controlkeel-launch-child-#{System.unique_integer([:positive])}.pid"
+          )
+
+        on_exit(fn -> File.rm(pid_file) end)
+
+        script = "sleep 30 & echo $! > #{pid_file}; wait"
+
+        assert {:error, {:launch_timeout, 200}} =
+                 Shell.run(
+                   job("ignored",
+                     command: "sh",
+                     args: ["-c", script],
+                     timeout_ms: 200
+                   )
+                 )
+
+        child_pid = pid_file |> File.read!() |> String.trim()
+        {_output, status} = System.cmd("kill", ["-0", child_pid], stderr_to_stdout: true)
+        refute status == 0
+      end)
+    end
   end
 
   describe "run/1 missing program" do

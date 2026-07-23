@@ -155,6 +155,13 @@ defmodule ControlKeel.Autonomy.SchedulerTest do
       # If dispatch ran synchronously in handle_info, this 100ms call would time out.
       state = :sys.get_state(pid, 100)
       assert Map.has_key?(state.timers, "slow")
+      assert map_size(state.in_flight) == 1
+
+      send(pid, {:fire, "slow"})
+      state = :sys.get_state(pid, 100)
+
+      # The second tick is skipped while the first run remains in flight.
+      assert map_size(state.in_flight) == 1
     end
   end
 

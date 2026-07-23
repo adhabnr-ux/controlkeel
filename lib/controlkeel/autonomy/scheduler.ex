@@ -92,31 +92,64 @@ defmodule ControlKeel.Autonomy.Scheduler do
   def init(opts) do
     case Job.from_config_all(config_jobs()) do
       {:ok, jobs} ->
-        state = %{timers: arm_jobs(jobs), workspace_id: workspace_opt(opts), config_error: nil}
+        state = %{
+          timers: arm_jobs(jobs),
+          in_flight: %{},
+          workspace_id: workspace_opt(opts),
+          config_error: nil
+        }
+
         {:ok, state}
 
       {:error, reason} ->
         Logger.error("[autonomy] invalid job config; scheduler started inert: #{inspect(reason)}")
 
-        {:ok, %{timers: %{}, workspace_id: workspace_opt(opts), config_error: reason}}
+        {:ok,
+         %{timers: %{}, in_flight: %{}, workspace_id: workspace_opt(opts), config_error: reason}}
     end
   end
 
   @impl true
   def handle_info({:fire, name}, state) do
+    state =
+      if Map.has_key?(state.in_flight, name) do
+        Logger.warning(
+          "[autonomy] job #{inspect(name)} is already running; skipped overlapping tick"
+        )
+
+        state
+      else
+        start_dispatch(name, state)
+      end
+
+    {:noreply, rearm(name, state)}
+  end
+
+  @impl true
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
+    in_flight =
+      state.in_flight
+      |> Enum.reject(fn {_name, monitor_ref} -> monitor_ref == ref end)
+      |> Map.new()
+
+    {:noreply, %{state | in_flight: in_flight}}
+  end
+
+  defp start_dispatch(name, state) do
     opts = workspace_opts(state)
 
     case Task.Supervisor.start_child(@task_supervisor, fn -> dispatch_and_log(name, opts) end) do
-      {:ok, _pid} ->
-        :ok
+      {:ok, pid} ->
+        ref = Process.monitor(pid)
+        %{state | in_flight: Map.put(state.in_flight, name, ref)}
 
       {:error, reason} ->
         Logger.warning(
           "[autonomy] could not start dispatch task for #{inspect(name)}: #{inspect(reason)}"
         )
-    end
 
-    {:noreply, rearm(name, state)}
+        state
+    end
   end
 
   defp dispatch_and_log(name, opts) do

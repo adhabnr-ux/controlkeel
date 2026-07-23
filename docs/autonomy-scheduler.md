@@ -86,6 +86,12 @@ external process. Its trust boundary is intentionally narrow:
 - **Bounded.** Launches time out (five minutes by default; configurable globally
   or per launcher with `timeout_ms`) and timed dispatches run under a
   `Task.Supervisor`, so one slow agent does not block unrelated timers.
+- **Tree-safe timeout.** Each Unix launch runs in its own OS process group
+  (`setsid`, with Python `os.setsid` fallback); timeout signals terminate the
+  entire group. Windows uses `taskkill /T`. Launching fails closed when process
+  tree isolation cannot be established.
+- **No overlap per job.** While a job is in flight, later ticks for that same job
+  are skipped and re-armed rather than duplicating external side effects.
 
 ## Mix task
 
