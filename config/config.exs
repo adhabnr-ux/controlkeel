@@ -16,7 +16,17 @@ config :controlkeel,
   protocol_access_token_ttl_seconds: 3_600,
   acp_registry_url: "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json",
   acp_registry_ttl_seconds: 86_400,
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  # Commit gate: findings older than `stale_block_days` become dormant — they no
+  # longer hard-block commits but are still surfaced in the gate error and
+  # logged. 0 disables dormancy (all blockers gate, the original behavior).
+  # The common case (recent stale findings blocking unrelated work) is handled
+  # by visibility: inspection reads the governed DB and the gate lists every
+  # blocker. This threshold is a safety net against forgotten findings blocking
+  # forever.
+  commit_gate: [
+    stale_block_days: 90
+  ]
 
 # Configure the endpoint
 # Default `code_reloader` so releases match runtime MCP overrides (CK_MCP_MODE).

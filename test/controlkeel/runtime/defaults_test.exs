@@ -270,4 +270,75 @@ defmodule ControlKeel.Runtime.DefaultsTest do
       end)
     end
   end
+
+  describe "bind_inspection_database/0" do
+    setup do
+      prev_repo = Application.get_env(:controlkeel, ControlKeel.Repo, [])
+
+      on_exit(fn ->
+        Application.put_env(:controlkeel, ControlKeel.Repo, prev_repo)
+      end)
+    end
+
+    test "redirects Repo to the resolved project database when it exists" do
+      tmp =
+        Path.join(
+          System.tmp_dir!(),
+          "controlkeel-bind-inspection-#{System.unique_integer([:positive])}"
+        )
+
+      File.rm_rf!(tmp)
+      File.mkdir_p!(Path.join(tmp, "controlkeel"))
+
+      db_path = Path.join([tmp, "controlkeel", "controlkeel.db"])
+      # The redirect requires the resolved DB file to exist.
+      File.write!(db_path, "stub")
+
+      # Point DATABASE_PATH at our temp DB so database_path/0 resolves to it.
+      Application.put_env(:controlkeel, ControlKeel.Repo, database: "/dev/null/original.db")
+
+      try do
+        System.put_env("DATABASE_PATH", db_path)
+
+        result = Defaults.bind_inspection_database()
+
+        # Inside `mix test` the app is already started, so the pool can't be
+        # rebound — the function reports that. Either outcome means the config
+        # was updated to the governed path.
+        redirected_path =
+          case result do
+            {:redirected, p} -> p
+            {:unstarted_repo_redirected, p} -> p
+          end
+
+        assert redirected_path == db_path
+
+        redirected = Application.get_env(:controlkeel, ControlKeel.Repo, [])
+        assert Keyword.get(redirected, :database) == db_path
+      after
+        System.delete_env("DATABASE_PATH")
+        File.rm_rf!(tmp)
+      end
+    end
+
+    test "is a no-op when the resolved database does not exist yet" do
+      Application.put_env(:controlkeel, ControlKeel.Repo, database: "/dev/null/original.db")
+
+      with_envs(%{"DATABASE_PATH" => "/nonexistent/path/controlkeel.db"}, fn ->
+        assert :noop = Defaults.bind_inspection_database()
+
+        assert Keyword.get(Application.get_env(:controlkeel, ControlKeel.Repo, []), :database) ==
+                 "/dev/null/original.db"
+      end)
+    end
+
+    test "is a no-op when the resolved path already matches the configured one" do
+      db = "/dev/null/already-bound.db"
+      Application.put_env(:controlkeel, ControlKeel.Repo, database: db)
+
+      with_envs(%{"DATABASE_PATH" => db}, fn ->
+        assert :noop = Defaults.bind_inspection_database()
+      end)
+    end
+  end
 end

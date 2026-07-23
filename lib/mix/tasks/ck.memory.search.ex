@@ -6,6 +6,7 @@ defmodule Mix.Tasks.Ck.Memory.Search do
   @shortdoc "Search typed memory for the current governed session"
 
   def run([query | rest]) do
+    ControlKeel.Runtime.Defaults.bind_inspection_database()
     Mix.Task.run("app.start")
 
     with {:ok, parsed} <- CLI.parse(["memory", "search", query | rest]),

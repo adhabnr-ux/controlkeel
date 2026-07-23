@@ -3,6 +3,7 @@ defmodule ControlKeel.Git.WorkflowTest do
 
   alias ControlKeel.Git.Workflow
   alias ControlKeel.MCP.Tools.CkGitDiff
+  alias ControlKeel.Repo
 
   import ControlKeel.MissionFixtures
 
@@ -168,5 +169,148 @@ defmodule ControlKeel.Git.WorkflowTest do
     test "rejects empty commit messages", %{tmp_dir: tmp_dir} do
       assert {:error, _} = Workflow.commit(tmp_dir, "")
     end
+  end
+
+  describe "commit/3 stale-finding dormancy" do
+    setup do
+      prev = Application.get_env(:controlkeel, :commit_gate, [])
+      on_exit(fn -> Application.put_env(:controlkeel, :commit_gate, prev) end)
+      :ok
+    end
+
+    setup context do
+      tmp_dir =
+        Path.join(
+          System.tmp_dir!(),
+          "controlkeel-gate-dormancy-#{System.unique_integer([:positive])}"
+        )
+
+      File.rm_rf!(tmp_dir)
+      File.mkdir_p!(tmp_dir)
+      assert {_, 0} = System.cmd("git", ["init"], cd: tmp_dir)
+      assert {_, 0} = System.cmd("git", ["config", "user.email", "t@e.com"], cd: tmp_dir)
+      assert {_, 0} = System.cmd("git", ["config", "user.name", "T"], cd: tmp_dir)
+      File.write!(Path.join(tmp_dir, "a.txt"), "a\n")
+      assert {_, 0} = System.cmd("git", ["add", "."], cd: tmp_dir)
+      assert {_, 0} = System.cmd("git", ["commit", "-m", "init"], cd: tmp_dir)
+      File.write!(Path.join(tmp_dir, "b.txt"), "b\n")
+      assert {_, 0} = System.cmd("git", ["add", "."], cd: tmp_dir)
+
+      on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+      Map.merge(context, %{tmp_dir: tmp_dir})
+    end
+
+    @tag stale_days: 30
+    test "a stale blocked finding does NOT gate the commit", %{tmp_dir: tmp_dir} do
+      Application.put_env(:controlkeel, :commit_gate, stale_block_days: 30)
+
+      session = session_fixture()
+
+      finding =
+        finding_fixture(%{
+          session: session,
+          status: "blocked",
+          severity: "high",
+          rule_id: "secret.old_token",
+          title: "Old token"
+        })
+
+      # Backdate the finding so it is older than the 30-day threshold.
+      backdate(finding, 45)
+
+      assert {:ok, _result} =
+               Workflow.commit(tmp_dir, "stale does not block", session_id: session.id)
+    end
+
+    @tag stale_days: 30
+    test "a fresh blocked finding still gates the commit under a dormancy threshold", %{
+      tmp_dir: tmp_dir
+    } do
+      Application.put_env(:controlkeel, :commit_gate, stale_block_days: 30)
+
+      session = session_fixture()
+
+      finding_fixture(%{
+        session: session,
+        status: "blocked",
+        severity: "high",
+        rule_id: "secret.fresh_token",
+        title: "Fresh token"
+      })
+
+      # Leave inserted_at as today (fresh).
+      assert {:error, {:blocked_findings, message}} =
+               Workflow.commit(tmp_dir, "fresh blocks", session_id: session.id)
+
+      assert message =~ "secret.fresh_token"
+    end
+
+    test "stale_block_days 0 disables dormancy — stale findings still block", %{tmp_dir: tmp_dir} do
+      Application.put_env(:controlkeel, :commit_gate, stale_block_days: 0)
+
+      session = session_fixture()
+
+      finding =
+        finding_fixture(%{
+          session: session,
+          status: "blocked",
+          severity: "high",
+          rule_id: "secret.disabled_dormancy",
+          title: "Old but blocking"
+        })
+
+      backdate(finding, 200)
+
+      assert {:error, {:blocked_findings, message}} =
+               Workflow.commit(tmp_dir, "0 disables dormancy", session_id: session.id)
+
+      assert message =~ "secret.disabled_dormancy"
+    end
+
+    test "when fresh blockers exist, stale findings appear as dormant in the error", %{
+      tmp_dir: tmp_dir
+    } do
+      Application.put_env(:controlkeel, :commit_gate, stale_block_days: 30)
+
+      session = session_fixture()
+
+      fresh =
+        finding_fixture(%{
+          session: session,
+          status: "blocked",
+          severity: "high",
+          rule_id: "secret.fresh",
+          title: "Fresh"
+        })
+
+      stale =
+        finding_fixture(%{
+          session: session,
+          status: "blocked",
+          severity: "high",
+          rule_id: "secret.stale",
+          title: "Stale"
+        })
+
+      backdate(stale, 60)
+
+      assert {:error, {:blocked_findings, message}} =
+               Workflow.commit(tmp_dir, "mixed", session_id: session.id)
+
+      # Fresh finding is the blocker; stale is listed as dormant (not blocking).
+      assert message =~ "##{fresh.id} "
+      assert message =~ "Dormant"
+      assert message =~ "##{stale.id} "
+    end
+  end
+
+  defp backdate(finding, days_ago) do
+    ago = DateTime.utc_now() |> DateTime.add(-days_ago * 24 * 3600, :second)
+
+    Repo.update_all(
+      from(f in ControlKeel.Mission.Finding, where: f.id == ^finding.id),
+      set: [inserted_at: ago, updated_at: ago]
+    )
   end
 end

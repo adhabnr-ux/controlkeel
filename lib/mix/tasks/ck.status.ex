@@ -13,6 +13,7 @@ defmodule Mix.Tasks.Ck.Status do
     try do
       if quiet_json?, do: Logger.configure(level: :warning)
 
+      ControlKeel.Runtime.Defaults.bind_inspection_database()
       Mix.Task.run("app.start")
       if quiet_json?, do: Logger.configure(level: :warning)
 

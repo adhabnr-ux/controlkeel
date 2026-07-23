@@ -7,6 +7,14 @@ defmodule ControlKeel.Git.Workflow do
   alias ControlKeel.MCP.Tools.CkValidate
   alias ControlKeel.Mission
 
+  require Logger
+
+  # Blocked/critical findings older than this (in days) become dormant in the
+  # commit gate: they no longer hard-block but are still surfaced and logged.
+  # Configurable via `config :controlkeel, commit_gate: [stale_block_days: N]`;
+  # 0 disables dormancy (all blockers gate, the original behavior).
+  @default_stale_block_days 90
+
   def diff(project_root, base_ref, head_ref, opts \\ []) do
     diff_args = diff_args(base_ref, head_ref)
 
@@ -164,47 +172,93 @@ defmodule ControlKeel.Git.Workflow do
         :ok
 
       session_id ->
-        counts = Mission.session_finding_counts(session_id)
+        # Fetch the actual blockers (not just counts) so we can apply a staleness
+        # policy: findings older than `stale_block_days` become dormant — they no
+        # longer hard-block, but are surfaced in the error and logged so they stay
+        # visible instead of accumulating as permanent, invisible gates.
+        blockers = Mission.blocking_findings_for_session(session_id)
+        stale_days = stale_block_days()
+        {fresh, stale} = partition_by_age(blockers, stale_days)
 
-        if counts.blocked > 0 or counts.critical_active > 0 do
-          blockers = Mission.blocking_findings_for_session(session_id)
+        cond do
+          fresh != [] ->
+            {:error, {:blocked_findings, format_blocked_findings(fresh, stale, stale_days)}}
 
-          {:error, {:blocked_findings, format_blocked_findings(counts, blockers)}}
-        else
-          :ok
+          stale != [] ->
+            Logger.warning(
+              "[commit-gate] #{length(stale)} finding(s) older than #{stale_days} day(s) are " <>
+                "dormant and did not block this commit. Review and dismiss or re-confirm them."
+            )
+
+            :ok
+
+          true ->
+            :ok
         end
     end
+  end
+
+  # Partition findings into {fresh, stale} by age. A finding is stale when its
+  # age in days exceeds `stale_days`. `stale_days` of 0 means never expire (all
+  # blockers are fresh), preserving the original behavior.
+  defp partition_by_age(findings, stale_days) when is_integer(stale_days) and stale_days > 0 do
+    Enum.split_with(findings, fn f -> age_days(f.inserted_at) <= stale_days end)
+  end
+
+  defp partition_by_age(findings, _stale_days), do: {findings, []}
+
+  defp age_days(nil), do: 0
+
+  defp age_days(at) when is_struct(at, DateTime) do
+    Date.diff(Date.utc_today(), DateTime.to_date(at))
+  end
+
+  defp age_days(%Date{} = date), do: Date.diff(Date.utc_today(), date)
+
+  defp age_days(_), do: 0
+
+  defp stale_block_days do
+    Application.get_env(:controlkeel, :commit_gate, [])
+    |> Keyword.get(:stale_block_days, @default_stale_block_days)
   end
 
   # Format the blocking findings into a self-describing error so the operator can
   # see exactly what is gating the commit and how to resolve each one, instead of
   # a bare count. Finding bodies/matched-text are intentionally excluded — only
-  # id, rule, severity, title, and age are surfaced.
-  defp format_blocked_findings(counts, blockers) do
-    lines =
-      Enum.map(blockers, fn f ->
-        age = age_label(f.inserted_at)
-        "  ##{f.id} [#{f.severity}/#{f.status}] #{f.rule_id} — #{f.title}#{age}"
+  # id, rule, severity, title, and age are surfaced. Dormant (stale) findings are
+  # listed separately so the operator knows they were NOT counted as blockers.
+  defp format_blocked_findings(fresh, stale, stale_days) do
+    fresh_lines =
+      Enum.map(fresh, fn f ->
+        "  ##{f.id} [#{f.severity}/#{f.status}] #{f.rule_id} — #{f.title}#{age_label(f.inserted_at)}"
       end)
 
     summary =
-      "Cannot commit: #{counts.blocked} blocked and #{counts.critical_active} critical active " <>
-        "findings gate this commit."
+      "Cannot commit: #{length(fresh)} blocking finding(s) gate this commit " <>
+        "(staleness threshold: #{stale_days} days)."
 
     listing =
-      case lines do
-        [] ->
-          "\n\n(No individual findings resolved — they may have been cleared between count and fetch.)"
+      "\n\nBlocking findings:\n" <>
+        Enum.join(fresh_lines, "\n")
 
-        _ ->
-          "\n\nBlocking findings:\n" <> Enum.join(lines, "\n")
+    dormant =
+      if stale != [] do
+        stale_lines =
+          Enum.map(stale, fn f ->
+            "  ##{f.id} [#{f.severity}/#{f.status}] #{f.rule_id} — #{f.title}#{age_label(f.inserted_at)}"
+          end)
+
+        "\n\nDormant (older than #{stale_days} days, NOT blocking — review and dismiss or re-confirm):\n" <>
+          Enum.join(stale_lines, "\n")
+      else
+        ""
       end
 
     hint =
       "\n\nResolve each with: controlkeel approve <finding_id>  " <>
         "(or `ck_finding` resolve/dismiss by id)"
 
-    summary <> listing <> hint
+    summary <> listing <> dormant <> hint
   end
 
   defp age_label(nil), do: ""
