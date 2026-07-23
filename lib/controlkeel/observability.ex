@@ -11,7 +11,7 @@ defmodule ControlKeel.Observability do
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
   alias ControlKeel.MCP.Tools.CkTokenAudit
-  alias ControlKeel.Observability.{BenchmarkDraft, EvalCandidate, ImportedEnvelope}
+  alias ControlKeel.Observability.{BenchmarkDraft, EvalCandidate, ImportedEnvelope, Promotion}
   alias ControlKeel.Mission.{Finding, Invocation, Session, SessionEvent}
   alias ControlKeel.Repo
 
@@ -2719,6 +2719,7 @@ defmodule ControlKeel.Observability do
       session_id: candidate.session_id,
       finding_id: candidate.finding_id,
       metadata: candidate.metadata || %{},
+      promotion: Promotion.evaluate(candidate),
       inserted_at: format_datetime(candidate.inserted_at)
     }
   end
