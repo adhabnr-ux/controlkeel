@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.75 — 2026-07-23
+
+### What's changed
+
+- Merge pull request #42 from aryaminus/fix/git-commit-finding-count
+- Merge remote-tracking branch 'origin/main' into fix/git-commit-finding-count
+- fix(cli): redact proxy credentials from status
+- fix(governance): harden commit-gate findings output
+- fix(governance): inspect governed DB + dormancy for stale findings
+- fix(git): surface blocking findings in commit gate
+
 ## v0.3.74 — 2026-07-23
 
 ### What's changed
