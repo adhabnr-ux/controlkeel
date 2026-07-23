@@ -7,6 +7,7 @@ defmodule Mix.Tasks.Ck.Approve do
 
   @impl true
   def run([finding_id]) do
+    ControlKeel.Runtime.Defaults.bind_inspection_database()
     Mix.Task.run("app.start")
 
     parsed = parse!(["approve", finding_id])

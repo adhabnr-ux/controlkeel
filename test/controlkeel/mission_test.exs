@@ -1637,4 +1637,65 @@ defmodule ControlKeel.MissionTest do
       assert "review.weak_verification_confidence" in rule_ids
     end
   end
+
+  describe "blocking_findings_for_session/1" do
+    test "returns blocked findings plus critical active findings, critical first" do
+      session = session_fixture()
+
+      blocked_high =
+        finding_fixture(%{
+          session: session,
+          status: "blocked",
+          severity: "high",
+          rule_id: "secret.high_entropy_token",
+          title: "High entropy token"
+        })
+
+      critical_open =
+        finding_fixture(%{
+          session: session,
+          status: "open",
+          severity: "critical",
+          rule_id: "security.rce",
+          title: "Remote code execution"
+        })
+
+      # Not blocking: approved / rejected / low-open.
+      _approved =
+        finding_fixture(%{
+          session: session,
+          status: "approved",
+          severity: "high",
+          rule_id: "security.approved_ok",
+          title: "ok"
+        })
+
+      _low_open =
+        finding_fixture(%{
+          session: session,
+          status: "open",
+          severity: "low",
+          rule_id: "cost.budget_guard",
+          title: "budget"
+        })
+
+      result = Mission.blocking_findings_for_session(session.id)
+      ids = Enum.map(result, & &1.id)
+
+      # Both blockers are present; non-blocking statuses are excluded.
+      assert blocked_high.id in ids
+      assert critical_open.id in ids
+      refute Enum.any?(result, &(&1.severity == "low"))
+      refute Enum.any?(result, &(&1.status == "approved"))
+
+      # Critical sorts before high.
+      assert Enum.find_index(result, &(&1.id == critical_open.id)) <
+               Enum.find_index(result, &(&1.id == blocked_high.id))
+    end
+
+    test "returns [] when the session has no blocking findings" do
+      session = session_fixture()
+      assert Mission.blocking_findings_for_session(session.id) == []
+    end
+  end
 end

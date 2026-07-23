@@ -30,6 +30,61 @@ defmodule ControlKeel.Runtime.Defaults do
   end
 
   @doc """
+  Reconfigures `ControlKeel.Repo` to point at the resolved project/runtime
+  database, so inspection tooling (`mix ck.findings`, `ck.context`, …) reads the
+  SAME database the MCP server governs and the commit gate gates on.
+
+  Must be called BEFORE `Mix.Task.run("app.start")` so the Repo pool opens
+  against the governed database. No-op when the configured database already
+  matches, when no project database resolves, or when the resolved file does not
+  exist yet (e.g. a fresh project that has never been run by the MCP server).
+
+  Returns `{:redirected, path}`, `:noop`, or
+  `{:repo_already_started, path}`.
+  """
+  def bind_inspection_database do
+    resolved = database_path()
+
+    current = Application.get_env(:controlkeel, ControlKeel.Repo, [])
+    current_path = Keyword.get(current, :database)
+
+    cond do
+      resolved in [nil, ""] ->
+        :noop
+
+      resolved == current_path ->
+        :noop
+
+      not File.exists?(resolved) ->
+        # The governed database doesn't exist yet — inspection can't read it and
+        # must not create an empty file the MCP server would later have to adopt.
+        :noop
+
+      true ->
+        # Preserve the rest of the Repo config (pool_size, journal_mode, …) and
+        # only swap the database path.
+        Application.put_env(
+          :controlkeel,
+          ControlKeel.Repo,
+          Keyword.put(current, :database, resolved)
+        )
+
+        if app_started?() do
+          # Pool already connected to the dev database; the redirect won't take
+          # effect until restart. Surface it so the caller can warn.
+          {:repo_already_started, resolved}
+        else
+          {:redirected, resolved}
+        end
+    end
+  end
+
+  defp app_started? do
+    Application.started_applications()
+    |> Enum.any?(&match?({:controlkeel, _, _}, &1))
+  end
+
+  @doc """
   Path to the legacy global database under the OS app-data directory. This was
   the only database location before the project-local pivot, so it is the source
   we migrate from for upgrading users.

@@ -17,6 +17,16 @@ config :controlkeel,
   acp_registry_url: "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json",
   acp_registry_ttl_seconds: 86_400,
   generators: [timestamp_type: :utc_datetime],
+  # Commit gate: findings older than `stale_block_days` become dormant — they no
+  # longer hard-block commits but are still surfaced in the gate error and
+  # logged. 0 disables dormancy (all blockers gate, the original behavior).
+  # The common case (recent stale findings blocking unrelated work) is handled
+  # by visibility: inspection reads the governed DB and the gate lists every
+  # blocker. This threshold is a safety net against forgotten findings blocking
+  # forever.
+  commit_gate: [
+    stale_block_days: 90
+  ],
   # Governed autonomy scheduler — off by default so existing installs see no
   # behavior change. Enable via CK_AUTONOMY_SCHEDULER env or `enabled: true`.
   # See docs/autonomy-scheduler.md and lib/controlkeel/autonomy/scheduler.ex.

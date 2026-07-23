@@ -193,13 +193,13 @@ defmodule ControlKeel.CLI.Dispatch.Core do
           "execution_sandbox" => ExecutionSandbox.adapter_name([])
         },
         "proxy_urls" => %{
-          "openai_responses" => Proxy.url(session, :openai, "/v1/responses"),
-          "openai_chat" => Proxy.url(session, :openai, "/v1/chat/completions"),
-          "openai_completions" => Proxy.url(session, :openai, "/v1/completions"),
-          "openai_embeddings" => Proxy.url(session, :openai, "/v1/embeddings"),
-          "openai_models" => Proxy.url(session, :openai, "/v1/models"),
-          "openai_realtime" => Proxy.realtime_url(session, :openai, "/v1/realtime"),
-          "anthropic_messages" => Proxy.url(session, :anthropic, "/v1/messages")
+          "openai_responses" => Proxy.redacted_url(session, :openai, "/v1/responses"),
+          "openai_chat" => Proxy.redacted_url(session, :openai, "/v1/chat/completions"),
+          "openai_completions" => Proxy.redacted_url(session, :openai, "/v1/completions"),
+          "openai_embeddings" => Proxy.redacted_url(session, :openai, "/v1/embeddings"),
+          "openai_models" => Proxy.redacted_url(session, :openai, "/v1/models"),
+          "openai_realtime" => Proxy.redacted_realtime_url(session, :openai, "/v1/realtime"),
+          "anthropic_messages" => Proxy.redacted_url(session, :anthropic, "/v1/messages")
         },
         "attached_agents" => attached_agent_status_payload(binding),
         "suggested_next_steps" => help_lines_to_values(help_lines)
@@ -233,13 +233,13 @@ defmodule ControlKeel.CLI.Dispatch.Core do
              "Auth mode: #{provider_status["selected_auth_mode"]}",
              "Auth owner: #{provider_status["selected_auth_owner"]}",
              "Execution sandbox: #{ExecutionSandbox.adapter_name([])}",
-             "OpenAI responses: #{Proxy.url(session, :openai, "/v1/responses")}",
-             "OpenAI chat: #{Proxy.url(session, :openai, "/v1/chat/completions")}",
-             "OpenAI completions: #{Proxy.url(session, :openai, "/v1/completions")}",
-             "OpenAI embeddings: #{Proxy.url(session, :openai, "/v1/embeddings")}",
-             "OpenAI models: #{Proxy.url(session, :openai, "/v1/models")}",
-             "OpenAI realtime: #{Proxy.realtime_url(session, :openai, "/v1/realtime")}",
-             "Anthropic messages: #{Proxy.url(session, :anthropic, "/v1/messages")}"
+             "OpenAI responses: #{Proxy.redacted_url(session, :openai, "/v1/responses")}",
+             "OpenAI chat: #{Proxy.redacted_url(session, :openai, "/v1/chat/completions")}",
+             "OpenAI completions: #{Proxy.redacted_url(session, :openai, "/v1/completions")}",
+             "OpenAI embeddings: #{Proxy.redacted_url(session, :openai, "/v1/embeddings")}",
+             "OpenAI models: #{Proxy.redacted_url(session, :openai, "/v1/models")}",
+             "OpenAI realtime: #{Proxy.redacted_realtime_url(session, :openai, "/v1/realtime")}",
+             "Anthropic messages: #{Proxy.redacted_url(session, :anthropic, "/v1/messages")}"
            ] ++
              attached_agent_status_lines(binding) ++ help_lines}
       end

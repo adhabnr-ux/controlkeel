@@ -6,6 +6,7 @@ defmodule Mix.Tasks.Ck.Proof do
   @shortdoc "Show a proof bundle by proof id or task id"
 
   def run([id]) do
+    ControlKeel.Runtime.Defaults.bind_inspection_database()
     Mix.Task.run("app.start")
 
     with {:ok, parsed} <- CLI.parse(["proof", id]),

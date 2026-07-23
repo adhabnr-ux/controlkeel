@@ -7,6 +7,14 @@ defmodule ControlKeel.Git.Workflow do
   alias ControlKeel.MCP.Tools.CkValidate
   alias ControlKeel.Mission
 
+  require Logger
+
+  # Blocked/critical findings older than this (in days) become dormant in the
+  # commit gate: they no longer hard-block but are still surfaced and logged.
+  # Configurable via `config :controlkeel, commit_gate: [stale_block_days: N]`;
+  # 0 disables dormancy (all blockers gate, the original behavior).
+  @default_stale_block_days 90
+
   def diff(project_root, base_ref, head_ref, opts \\ []) do
     diff_args = diff_args(base_ref, head_ref)
 
@@ -41,20 +49,29 @@ defmodule ControlKeel.Git.Workflow do
       {:ok, _validation} ->
         # Check for blocked findings
         case check_blocked_findings(project_root, opts) do
-          :ok ->
+          {:ok, gate_warnings} ->
             commit_args = ["commit", "-m", message]
 
             case ControlKeel.Git.cmd(commit_args, cd: project_root, stderr_to_stdout: true) do
               {output, 0} ->
                 head_sha = get_current_sha(project_root)
 
-                {:ok,
-                 %{
-                   "message" => "Commit successful",
-                   "head_sha" => head_sha,
-                   "commit_message" => message,
-                   "git_output" => output
-                 }}
+                result =
+                  %{
+                    "message" => "Commit successful",
+                    "head_sha" => head_sha,
+                    "commit_message" => message,
+                    "git_output" => output
+                  }
+
+                result =
+                  if gate_warnings == [] do
+                    result
+                  else
+                    Map.put(result, "governance_warnings", gate_warnings)
+                  end
+
+                {:ok, result}
 
               {error_output, exit_code} ->
                 {:error,
@@ -161,20 +178,140 @@ defmodule ControlKeel.Git.Workflow do
   defp check_blocked_findings(_project_root, opts) do
     case Keyword.get(opts, :session_id) do
       nil ->
-        :ok
+        {:ok, []}
 
       session_id ->
-        counts = Mission.session_finding_counts(session_id)
+        # Fetch the actual blockers (not just counts) so we can apply a staleness
+        # policy: findings older than `stale_block_days` become dormant — they no
+        # longer hard-block, but are surfaced in the error and logged so they stay
+        # visible instead of accumulating as permanent, invisible gates.
+        blockers = Mission.blocking_findings_for_session(session_id)
+        stale_days = stale_block_days()
+        {fresh, stale} = partition_by_age(blockers, stale_days)
 
-        if counts.blocked > 0 or counts.critical_active > 0 do
-          {:error,
-           {:blocked_findings,
-            "Cannot commit: session has #{counts.blocked} blocked and #{counts.critical_active} critical active findings"}}
-        else
-          :ok
+        cond do
+          fresh != [] ->
+            {:error, {:blocked_findings, format_blocked_findings(fresh, stale, stale_days)}}
+
+          stale != [] ->
+            warning = format_dormant_warning(stale, stale_days)
+
+            Logger.warning("[commit-gate] " <> warning)
+
+            {:ok, [warning]}
+
+          true ->
+            {:ok, []}
         end
     end
   end
+
+  # Partition findings into {fresh, stale} by age. A finding is stale when its
+  # age in days exceeds `stale_days`. `stale_days` of 0 means never expire (all
+  # blockers are fresh), preserving the original behavior.
+  defp partition_by_age(findings, stale_days) when is_integer(stale_days) and stale_days > 0 do
+    Enum.split_with(findings, fn f -> age_days(f.inserted_at) <= stale_days end)
+  end
+
+  defp partition_by_age(findings, _stale_days), do: {findings, []}
+
+  defp age_days(nil), do: 0
+
+  defp age_days(at) when is_struct(at, DateTime) do
+    Date.diff(Date.utc_today(), DateTime.to_date(at))
+  end
+
+  defp age_days(%Date{} = date), do: Date.diff(Date.utc_today(), date)
+
+  defp age_days(_), do: 0
+
+  defp stale_block_days do
+    Application.get_env(:controlkeel, :commit_gate, [])
+    |> Keyword.get(:stale_block_days, @default_stale_block_days)
+  end
+
+  # Format the blocking findings into a self-describing error so the operator can
+  # see exactly what is gating the commit and how to resolve each one, instead of
+  # a bare count. Finding bodies/matched-text are intentionally excluded — only
+  # id, rule, severity, title, and age are surfaced. Dormant (stale) findings are
+  # listed separately so the operator knows they were NOT counted as blockers.
+  defp format_blocked_findings(fresh, stale, stale_days) do
+    fresh_lines =
+      Enum.map(fresh, fn f ->
+        format_finding_line(f)
+      end)
+
+    summary =
+      "Cannot commit: #{length(fresh)} blocking finding(s) gate this commit " <>
+        "(staleness threshold: #{stale_days} days)."
+
+    listing =
+      "\n\nBlocking findings:\n" <>
+        Enum.join(fresh_lines, "\n")
+
+    dormant =
+      if stale != [] do
+        stale_lines =
+          Enum.map(stale, fn f ->
+            format_finding_line(f)
+          end)
+
+        "\n\nDormant (older than #{stale_days} days, NOT blocking — review and dismiss or re-confirm):\n" <>
+          Enum.join(stale_lines, "\n")
+      else
+        ""
+      end
+
+    hint =
+      "\n\nResolve each with: controlkeel approve <finding_id>  " <>
+        "(or `ck_finding` resolve/dismiss by id)"
+
+    summary <> listing <> dormant <> hint
+  end
+
+  defp format_dormant_warning(stale, stale_days) do
+    lines = Enum.map_join(stale, "; ", &String.trim(format_finding_line(&1)))
+
+    "#{length(stale)} finding(s) older than #{stale_days} day(s) are dormant and did not " <>
+      "block this commit: #{lines}. Review and dismiss or re-confirm them."
+  end
+
+  defp format_finding_line(finding) do
+    severity = single_line(finding.severity, 24)
+    status = single_line(finding.status, 24)
+    rule_id = single_line(finding.rule_id, 120)
+    title = single_line(finding.title, 200)
+
+    "  ##{finding.id} [#{severity}/#{status}] #{rule_id} — #{title}#{age_label(finding.inserted_at)}"
+  end
+
+  # Finding metadata is persisted input and may contain newlines/control
+  # characters. Keep commit-gate output single-line so it cannot inject fake
+  # findings or instructions into the operator/model response.
+  defp single_line(value, max_length) do
+    value
+    |> to_string()
+    |> String.replace(~r/[[:cntrl:]]+/u, " ")
+    |> String.replace(~r/\s+/u, " ")
+    |> String.trim()
+    |> String.slice(0, max_length)
+  end
+
+  defp age_label(nil), do: ""
+  defp age_label(%DateTime{} = at), do: age_label(DateTime.to_date(at))
+
+  defp age_label(%Date{} = date) do
+    days = Date.diff(Date.utc_today(), date)
+
+    cond do
+      days <= 0 -> " (today)"
+      days == 1 -> " (1 day old)"
+      days < 90 -> " (#{days} days old)"
+      true -> " (>#{div(days, 30)} months old)"
+    end
+  end
+
+  defp age_label(_), do: ""
 
   defp count_changed_files(diff_output) do
     diff_output

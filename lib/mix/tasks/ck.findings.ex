@@ -7,6 +7,7 @@ defmodule Mix.Tasks.Ck.Findings do
 
   @impl true
   def run(args) do
+    ControlKeel.Runtime.Defaults.bind_inspection_database()
     Mix.Task.run("app.start")
 
     parsed = parse!(["findings" | args])

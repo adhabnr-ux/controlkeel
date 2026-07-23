@@ -6,6 +6,7 @@ defmodule Mix.Tasks.Ck.Proofs do
   @shortdoc "List proof bundles for the current governed session"
 
   def run(args) do
+    ControlKeel.Runtime.Defaults.bind_inspection_database()
     Mix.Task.run("app.start")
 
     with {:ok, parsed} <- CLI.parse(["proofs" | args]),
