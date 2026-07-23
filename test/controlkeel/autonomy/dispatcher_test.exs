@@ -157,6 +157,7 @@ defmodule ControlKeel.Autonomy.DispatcherTest do
   end
 
   describe "wake-up transaction" do
+    @tag :sqlite_only
     test "rolls back session and task when the required wake event cannot persist", %{
       job: job,
       workspace: ws
