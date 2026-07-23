@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.76 — 2026-07-23
+
+### What's changed
+
+- Internal maintenance release.
+
 ## v0.3.75 — 2026-07-23
 
 ### What's changed
