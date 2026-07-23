@@ -1,5 +1,5 @@
 defmodule ControlKeel.Autonomy.Launcher.ShellTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias ControlKeel.Autonomy.Job
   alias ControlKeel.Autonomy.Launcher.Shell
@@ -131,6 +131,66 @@ defmodule ControlKeel.Autonomy.Launcher.ShellTest do
         child_pid = pid_file |> File.read!() |> String.trim()
         refute process_running?(child_pid)
       end)
+    end
+
+    test "reports termination failure when the process group cannot be signaled" do
+      if match?({:unix, _}, :os.type()) do
+        with_shell_enabled(fn ->
+          original_path = System.fetch_env!("PATH")
+          python = System.find_executable("python3")
+          shell = System.find_executable("sh")
+          kill = System.find_executable("kill")
+
+          bin_dir =
+            Path.join(
+              System.tmp_dir!(),
+              "controlkeel-failing-kill-#{System.unique_integer([:positive])}"
+            )
+
+          pid_file = Path.join(bin_dir, "group.pid")
+          File.mkdir_p!(bin_dir)
+          File.ln_s!(python, Path.join(bin_dir, "python3"))
+          File.ln_s!(shell, Path.join(bin_dir, "sh"))
+          File.write!(Path.join(bin_dir, "kill"), "#!/bin/sh\nexit 1\n")
+          File.chmod!(Path.join(bin_dir, "kill"), 0o755)
+
+          on_exit(fn ->
+            case File.read(pid_file) do
+              {:ok, pid} ->
+                {_output, status} =
+                  System.cmd(
+                    kill,
+                    ["-KILL", "--", "-#{String.trim(pid)}"],
+                    stderr_to_stdout: true
+                  )
+
+                if status != 0 and process_running?(String.trim(pid)) do
+                  raise "failed to clean up test process group #{String.trim(pid)}"
+                end
+
+              _ ->
+                :ok
+            end
+
+            File.rm_rf!(bin_dir)
+          end)
+
+          try do
+            System.put_env("PATH", bin_dir)
+
+            assert {:error, {:launch_termination_failed, 100, _reason}} =
+                     Shell.run(
+                       job("ignored",
+                         command: "sh",
+                         args: ["-c", "echo $$ > #{pid_file}; /bin/sleep 2"],
+                         timeout_ms: 100
+                       )
+                     )
+          after
+            System.put_env("PATH", original_path)
+          end
+        end)
+      end
     end
   end
 

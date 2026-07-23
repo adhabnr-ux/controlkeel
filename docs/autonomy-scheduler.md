@@ -89,7 +89,10 @@ external process. Its trust boundary is intentionally narrow:
 - **Tree-safe timeout.** Each Unix launch uses a Python `os.setsid()+execv()`
   wrapper so the tracked PID remains its OS process-group leader; timeout signals
   terminate the entire group. Windows uses `taskkill /T`. Launching fails closed
-  when process-tree isolation cannot be established.
+  when process-tree isolation cannot be established. A timeout is returned only
+  after Unix has no runnable process-group members, or Windows reports successful
+  `taskkill /T /F` and the original PID disappears. Signal, `taskkill`, or
+  confirmation failures return an explicit `launch_termination_failed` error.
 - **No overlap per job.** While a job is in flight, later ticks for that same job
   are skipped and re-armed rather than duplicating external side effects.
 
