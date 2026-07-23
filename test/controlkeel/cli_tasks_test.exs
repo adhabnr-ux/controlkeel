@@ -191,7 +191,16 @@ defmodule ControlKeel.CLITasksTest do
   test "ck.status, ck.findings, and ck.approve operate on the bound local session", %{
     tmp_dir: tmp_dir
   } do
-    session = session_fixture(%{budget_cents: 2_000, daily_budget_cents: 800, spent_cents: 350})
+    proxy_token = "open" <> "ai"
+
+    session =
+      session_fixture(%{
+        budget_cents: 2_000,
+        daily_budget_cents: 800,
+        spent_cents: 350,
+        proxy_token: proxy_token
+      })
+
     open_finding = finding_fixture(%{session: session, status: "open", title: "Open finding"})
 
     _blocked_finding =
@@ -223,6 +232,9 @@ defmodule ControlKeel.CLITasksTest do
     assert status_output =~ "/v1/completions"
     assert status_output =~ "/v1/embeddings"
     assert status_output =~ "/v1/models"
+    assert status_output =~ "[REDACTED]"
+    refute status_output =~ "/proxy/openai/#{session.proxy_token}/"
+    refute status_output =~ "/proxy/anthropic/#{session.proxy_token}/"
     assert status_output =~ "Funnel stage:"
     assert status_output =~ "Total findings:"
     assert status_output =~ "Blocked findings:"
@@ -237,6 +249,9 @@ defmodule ControlKeel.CLITasksTest do
     status_json = Jason.decode!(status_json_output)
     assert get_in(status_json, ["session", "id"]) == session.id
     assert get_in(status_json, ["session", "title"]) == session.title
+    assert status_json_output =~ "[REDACTED]"
+    refute status_json_output =~ "/proxy/openai/#{session.proxy_token}/"
+    refute status_json_output =~ "/proxy/anthropic/#{session.proxy_token}/"
 
     findings_output =
       with_project(tmp_dir, fn ->

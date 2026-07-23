@@ -60,6 +60,18 @@ defmodule ControlKeel.Proxy do
     |> String.replace_prefix("https://", "wss://")
   end
 
+  def redacted_url(%Session{}, provider, suffix)
+      when provider in [:openai, :anthropic, :gemini] and is_binary(suffix) do
+    base_url() <> "/proxy/#{provider}/[REDACTED]" <> suffix
+  end
+
+  def redacted_realtime_url(%Session{} = session, provider, suffix) do
+    session
+    |> redacted_url(provider, suffix)
+    |> String.replace_prefix("http://", "ws://")
+    |> String.replace_prefix("https://", "wss://")
+  end
+
   def endpoint_urls(%Session{} = session) do
     %{
       openai_responses: url(session, :openai, "/v1/responses"),
