@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.3.74 — 2026-07-23
+
+### What's changed
+
+- Merge pull request #41 from aryaminus/feat/autonomy-scheduler
+- docs(autonomy): forbid daemonizing launchers
+- fix(autonomy): confirm timeout process-tree shutdown
+- fix(autonomy): delimit negative process group IDs
+- test(autonomy): treat reaping zombies as terminated
+- fix(autonomy): preserve Unix launcher process identity
+- fix(autonomy): prevent overlap and terminate launch trees
+- test(autonomy): scope SQLite fault injection to SQLite
+- fix(autonomy): enforce atomic audited bounded dispatch
+- feat(autonomy): governed scheduler + capability-gated shell launcher
+
 ## v0.3.73 — 2026-07-22
 
 ### What's changed
