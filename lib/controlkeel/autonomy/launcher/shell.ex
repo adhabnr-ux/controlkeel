@@ -22,9 +22,10 @@ defmodule ControlKeel.Autonomy.Launcher.Shell do
   * **Captured, never streamed.** Output is captured and truncated; every launch
     result (exit status + truncated output) is returned to the dispatcher, which
     records it in a governed session event for audit.
-  * **Process-tree timeout.** Unix launches run in a dedicated OS process group
-    (`setsid`, with Python `os.setsid` fallback); Windows uses `taskkill /T`.
-    Timeout termination targets the entire tree, not only the BEAM port owner.
+  * **Process-tree timeout.** Unix launches use a Python `os.setsid()+execv()`
+    wrapper so the tracked PID remains the dedicated process-group leader;
+    Windows uses `taskkill /T`. Timeout termination targets the entire tree, not
+    only the BEAM port owner. Launching fails closed when isolation is unavailable.
 
   ## Example
 
@@ -135,20 +136,20 @@ defmodule ControlKeel.Autonomy.Launcher.Shell do
   end
 
   # On Unix, run each launcher in a new session/process group so timeout signals
-  # target the whole tree. `setsid` is preferred; Python's os.setsid wrapper is a
-  # portable fallback on macOS installations without the setsid utility. If
-  # neither exists, fail closed rather than launch a process tree we cannot stop.
+  # target the whole tree. A Python os.setsid()+execv wrapper keeps the tracked
+  # port PID as the process-group leader (unlike the setsid utility, which may
+  # fork). Fail closed when the isolation helper is unavailable.
   defp isolated_command(command_path, args) do
     case :os.type() do
       {:win32, _} ->
         {:ok, command_path, args, :windows_tree}
 
       {:unix, _} ->
-        cond do
-          setsid = System.find_executable("setsid") ->
-            {:ok, setsid, [command_path | args], :unix_process_group}
+        case System.find_executable("python3") do
+          nil ->
+            {:error, :process_group_unavailable}
 
-          python = System.find_executable("python3") ->
+          python ->
             script =
               "import os,sys\n" <>
                 "try:\n os.setsid()\n" <>
@@ -157,9 +158,6 @@ defmodule ControlKeel.Autonomy.Launcher.Shell do
                 "os.execv(sys.argv[1], sys.argv[1:])"
 
             {:ok, python, ["-c", script, command_path | args], :unix_process_group}
-
-          true ->
-            {:error, :process_group_unavailable}
         end
     end
   end
