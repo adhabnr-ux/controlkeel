@@ -181,7 +181,7 @@ defmodule ControlKeel.Autonomy.Launcher.Shell do
         :ok
 
       kill ->
-        _ = System.cmd(kill, ["-#{signal}", "-#{os_pid}"], stderr_to_stdout: true)
+        _ = System.cmd(kill, ["-#{signal}", "--", "-#{os_pid}"], stderr_to_stdout: true)
         :ok
     end
   rescue
