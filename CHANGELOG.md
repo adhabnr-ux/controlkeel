@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.3.77 — 2026-07-23
+
+### What's changed
+
+- Merge pull request #39 from aryaminus/refactor/organization-enroll
+- refactor/organization-enroll: fix organization membership invitation logic in integration tests
+- refactor/organization-enroll: compress organization role span element to single line
+- refactor/organization-enroll: rename OrgSettingsLive to OrganizationSettingsLive for route consistency
+- refactor/organization-enroll: add OAuth configuration to env example and introduce docker-cloud-compose for cloud runtime support
+- refactor/organization-enroll: add organization detail summary dashboard with budget and member count stats
+- refactor/organization-enroll: implement invite member modal and redesign organization membership view with local mode support
+- refactor/organization-enroll: consolidate organization settings into a single LiveView and rename organization routes
+- refactor/organization-enroll: implement per-URL membership validation in organization live views to replace session-pinned checks
+- refactor/organization-enroll: implement organization management with support for local and cloud runtime modes
+
 ## v0.3.76 — 2026-07-23
 
 ### What's changed
