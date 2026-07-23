@@ -6,6 +6,22 @@ defmodule ControlKeel.Observability.Promotion do
   This module intentionally does not mutate candidates, run benchmarks, or
   invoke an agent. It turns existing candidate and benchmark evidence into a
   stable decision that callers can use to choose the next workflow step.
+
+  ## Lifecycle marker semantics
+
+  `Observability.close_eval_candidate_lifecycle_from_run!/1` overwrites the
+  candidate `status` on every benchmark run (`archived` on pass, `open` on a
+  miss) and appends a timestamped marker to `metadata`:
+
+    * `lifecycle_closed_by_run` — set with `all_matched: true` on a passing run.
+    * `lifecycle_reopened_by_run` — set with `all_matched: false` on a failing run.
+
+  Old markers are **never deleted**, so the *current* lifecycle state is derived
+  by comparing marker `closed_at` timestamps, not by key presence alone. This
+  means a candidate that fails once and later passes again correctly recovers
+  to `promote`, and a passing candidate whose approval was overwritten to
+  `archived` still counts as approved (only approved candidates are ever
+  materialized into benchmark scenarios).
   """
 
   @type decision :: %{
@@ -16,14 +32,14 @@ defmodule ControlKeel.Observability.Promotion do
           human_gate_required: boolean()
         }
 
-  @spec evaluate(map() | nil, map()) :: decision()
+  @spec evaluate(map() | nil, map() | nil) :: decision()
   def evaluate(candidate, evidence \\ %{}) do
     candidate = candidate || %{}
     evidence = evidence || %{}
     metadata = field(candidate, :metadata) || %{}
 
     cond do
-      failed_evidence?(evidence) or reopened?(metadata) ->
+      regressed?(metadata, evidence) ->
         decision(
           "reopen",
           "benchmark evidence failed or the candidate was reopened after a regression",
@@ -31,7 +47,7 @@ defmodule ControlKeel.Observability.Promotion do
           true
         )
 
-      passed_evidence?(evidence, metadata) and approved?(candidate, evidence, metadata) ->
+      passing?(evidence, metadata) and approved?(candidate, evidence, metadata) ->
         decision(
           "promote",
           "human approval and passing benchmark evidence are both recorded",
@@ -39,7 +55,7 @@ defmodule ControlKeel.Observability.Promotion do
           false
         )
 
-      passed_evidence?(evidence, metadata) ->
+      passing?(evidence, metadata) ->
         decision(
           "review",
           "benchmark evidence passes but human approval is not recorded",
@@ -83,29 +99,74 @@ defmodule ControlKeel.Observability.Promotion do
     }
   end
 
-  defp failed_evidence?(evidence) do
+  # A candidate is currently regressed when live evidence reports a failure or
+  # the latest retained lifecycle marker is a reopen. We compare `closed_at`
+  # timestamps because old markers are retained, not deleted.
+  defp regressed?(metadata, evidence) do
+    live_failure?(evidence) or latest_marker_is_reopen?(metadata)
+  end
+
+  defp live_failure?(evidence) do
     field(evidence, :outcome) in ["failed", "flaky"] or
       field(evidence, :all_matched) == false
   end
 
-  defp passed_evidence?(evidence, metadata) do
-    field(evidence, :outcome) == "passed" or
-      field(evidence, :all_matched) == true or
-      metadata_value(metadata, "lifecycle_closed_by_run", "all_matched") == true
+  defp latest_marker_is_reopen?(metadata) do
+    reopened = metadata["lifecycle_reopened_by_run"]
+    closed = metadata["lifecycle_closed_by_run"]
+
+    reopened != nil and compare_marker_timestamps(closed, reopened) != :gt
   end
 
-  defp reopened?(metadata), do: Map.has_key?(metadata, "lifecycle_reopened_by_run")
+  defp passing?(evidence, metadata) do
+    live_pass?(evidence) or closed_lifecycle_passes?(metadata)
+  end
+
+  defp live_pass?(evidence) do
+    field(evidence, :outcome) == "passed" or field(evidence, :all_matched) == true
+  end
+
+  # A current closed marker (not overridden by a later reopen) proves a passing
+  # benchmark run. `all_matched` is always true for closed markers in production,
+  # but we check it defensively.
+  defp closed_lifecycle_passes?(metadata) do
+    closed = metadata["lifecycle_closed_by_run"]
+    reopened = metadata["lifecycle_reopened_by_run"]
+
+    closed != nil and
+      closed["all_matched"] != false and
+      compare_marker_timestamps(closed, reopened) != :lt
+  end
 
   defp approved?(candidate, evidence, metadata) do
     field(candidate, :status) == "approved" or
       field(evidence, :human_approved) == true or
-      metadata_value(metadata, "human_approved") == true
+      metadata_value(metadata, "human_approved") == true or
+      approved_by_closed_lifecycle?(metadata)
   end
 
-  defp metadata_value(metadata, key, nested_key \\ nil) do
-    value = Map.get(metadata, key)
+  # Only approved candidates are materialized into benchmark scenarios, so a
+  # current closed marker also proves prior human approval even though the
+  # `status` field was overwritten to `archived` by the lifecycle transition.
+  defp approved_by_closed_lifecycle?(metadata) do
+    closed_lifecycle_passes?(metadata)
+  end
 
-    if nested_key && is_map(value), do: Map.get(value, nested_key), else: value
+  defp metadata_value(metadata, key), do: Map.get(metadata, key)
+
+  # Compares the `closed_at` timestamps of the closed vs reopened markers.
+  # Returns :gt when closed is newer, :lt when reopened is newer, :eq on ties
+  # or when either marker is missing/unparseable.
+  defp compare_marker_timestamps(nil, _reopened), do: :lt
+  defp compare_marker_timestamps(_closed, nil), do: :gt
+
+  defp compare_marker_timestamps(closed, reopened) do
+    with {:ok, closed_at, _} <- DateTime.from_iso8601(closed["closed_at"] || ""),
+         {:ok, reopened_at, _} <- DateTime.from_iso8601(reopened["closed_at"] || "") do
+      DateTime.compare(closed_at, reopened_at)
+    else
+      _ -> :eq
+    end
   end
 
   defp field(map, key) do
