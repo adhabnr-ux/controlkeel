@@ -49,20 +49,29 @@ defmodule ControlKeel.Git.Workflow do
       {:ok, _validation} ->
         # Check for blocked findings
         case check_blocked_findings(project_root, opts) do
-          :ok ->
+          {:ok, gate_warnings} ->
             commit_args = ["commit", "-m", message]
 
             case ControlKeel.Git.cmd(commit_args, cd: project_root, stderr_to_stdout: true) do
               {output, 0} ->
                 head_sha = get_current_sha(project_root)
 
-                {:ok,
-                 %{
-                   "message" => "Commit successful",
-                   "head_sha" => head_sha,
-                   "commit_message" => message,
-                   "git_output" => output
-                 }}
+                result =
+                  %{
+                    "message" => "Commit successful",
+                    "head_sha" => head_sha,
+                    "commit_message" => message,
+                    "git_output" => output
+                  }
+
+                result =
+                  if gate_warnings == [] do
+                    result
+                  else
+                    Map.put(result, "governance_warnings", gate_warnings)
+                  end
+
+                {:ok, result}
 
               {error_output, exit_code} ->
                 {:error,
@@ -169,7 +178,7 @@ defmodule ControlKeel.Git.Workflow do
   defp check_blocked_findings(_project_root, opts) do
     case Keyword.get(opts, :session_id) do
       nil ->
-        :ok
+        {:ok, []}
 
       session_id ->
         # Fetch the actual blockers (not just counts) so we can apply a staleness
@@ -185,15 +194,14 @@ defmodule ControlKeel.Git.Workflow do
             {:error, {:blocked_findings, format_blocked_findings(fresh, stale, stale_days)}}
 
           stale != [] ->
-            Logger.warning(
-              "[commit-gate] #{length(stale)} finding(s) older than #{stale_days} day(s) are " <>
-                "dormant and did not block this commit. Review and dismiss or re-confirm them."
-            )
+            warning = format_dormant_warning(stale, stale_days)
 
-            :ok
+            Logger.warning("[commit-gate] " <> warning)
+
+            {:ok, [warning]}
 
           true ->
-            :ok
+            {:ok, []}
         end
     end
   end
@@ -230,7 +238,7 @@ defmodule ControlKeel.Git.Workflow do
   defp format_blocked_findings(fresh, stale, stale_days) do
     fresh_lines =
       Enum.map(fresh, fn f ->
-        "  ##{f.id} [#{f.severity}/#{f.status}] #{f.rule_id} — #{f.title}#{age_label(f.inserted_at)}"
+        format_finding_line(f)
       end)
 
     summary =
@@ -245,7 +253,7 @@ defmodule ControlKeel.Git.Workflow do
       if stale != [] do
         stale_lines =
           Enum.map(stale, fn f ->
-            "  ##{f.id} [#{f.severity}/#{f.status}] #{f.rule_id} — #{f.title}#{age_label(f.inserted_at)}"
+            format_finding_line(f)
           end)
 
         "\n\nDormant (older than #{stale_days} days, NOT blocking — review and dismiss or re-confirm):\n" <>
@@ -259,6 +267,34 @@ defmodule ControlKeel.Git.Workflow do
         "(or `ck_finding` resolve/dismiss by id)"
 
     summary <> listing <> dormant <> hint
+  end
+
+  defp format_dormant_warning(stale, stale_days) do
+    lines = Enum.map_join(stale, "; ", &String.trim(format_finding_line(&1)))
+
+    "#{length(stale)} finding(s) older than #{stale_days} day(s) are dormant and did not " <>
+      "block this commit: #{lines}. Review and dismiss or re-confirm them."
+  end
+
+  defp format_finding_line(finding) do
+    severity = single_line(finding.severity, 24)
+    status = single_line(finding.status, 24)
+    rule_id = single_line(finding.rule_id, 120)
+    title = single_line(finding.title, 200)
+
+    "  ##{finding.id} [#{severity}/#{status}] #{rule_id} — #{title}#{age_label(finding.inserted_at)}"
+  end
+
+  # Finding metadata is persisted input and may contain newlines/control
+  # characters. Keep commit-gate output single-line so it cannot inject fake
+  # findings or instructions into the operator/model response.
+  defp single_line(value, max_length) do
+    value
+    |> to_string()
+    |> String.replace(~r/[[:cntrl:]]+/u, " ")
+    |> String.replace(~r/\s+/u, " ")
+    |> String.trim()
+    |> String.slice(0, max_length)
   end
 
   defp age_label(nil), do: ""

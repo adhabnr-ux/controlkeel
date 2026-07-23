@@ -289,6 +289,7 @@ defmodule ControlKeel.Runtime.DefaultsTest do
 
       File.rm_rf!(tmp)
       File.mkdir_p!(Path.join(tmp, "controlkeel"))
+      on_exit(fn -> File.rm_rf!(tmp) end)
 
       db_path = Path.join([tmp, "controlkeel", "controlkeel.db"])
       # The redirect requires the resolved DB file to exist.
@@ -297,9 +298,7 @@ defmodule ControlKeel.Runtime.DefaultsTest do
       # Point DATABASE_PATH at our temp DB so database_path/0 resolves to it.
       Application.put_env(:controlkeel, ControlKeel.Repo, database: "/dev/null/original.db")
 
-      try do
-        System.put_env("DATABASE_PATH", db_path)
-
+      with_envs(%{"DATABASE_PATH" => db_path}, fn ->
         result = Defaults.bind_inspection_database()
 
         # Inside `mix test` the app is already started, so the pool can't be
@@ -308,17 +307,14 @@ defmodule ControlKeel.Runtime.DefaultsTest do
         redirected_path =
           case result do
             {:redirected, p} -> p
-            {:unstarted_repo_redirected, p} -> p
+            {:repo_already_started, p} -> p
           end
 
         assert redirected_path == db_path
 
         redirected = Application.get_env(:controlkeel, ControlKeel.Repo, [])
         assert Keyword.get(redirected, :database) == db_path
-      after
-        System.delete_env("DATABASE_PATH")
-        File.rm_rf!(tmp)
-      end
+      end)
     end
 
     test "is a no-op when the resolved database does not exist yet" do

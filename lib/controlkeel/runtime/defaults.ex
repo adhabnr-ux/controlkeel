@@ -39,7 +39,8 @@ defmodule ControlKeel.Runtime.Defaults do
   matches, when no project database resolves, or when the resolved file does not
   exist yet (e.g. a fresh project that has never been run by the MCP server).
 
-  Returns `{:redirected, path}`, `:noop`, or `:unstarted_repo_redirected`.
+  Returns `{:redirected, path}`, `:noop`, or
+  `{:repo_already_started, path}`.
   """
   def bind_inspection_database do
     resolved = database_path()
@@ -71,7 +72,7 @@ defmodule ControlKeel.Runtime.Defaults do
         if app_started?() do
           # Pool already connected to the dev database; the redirect won't take
           # effect until restart. Surface it so the caller can warn.
-          {:unstarted_repo_redirected, resolved}
+          {:repo_already_started, resolved}
         else
           {:redirected, resolved}
         end
