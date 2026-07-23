@@ -247,10 +247,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Use npm Trusted Publishing
-        run: echo "Publishing npm packages with GitHub OIDC trusted publishing."
+          registry-url: https://registry.npmjs.org
       - name: Publish npm bootstrap package
         working-directory: packages/npm/controlkeel
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           PACKAGE_NAME=$(node -p "require('./package.json').name")
@@ -276,6 +277,8 @@ jobs:
           elixir-version: "1.19.5"
           otp-version: "27.3.4.3"
       - name: Publish OpenCode adapter package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           mix deps.get
@@ -296,6 +299,8 @@ jobs:
 
           npm publish controlkeel/dist/opencode-native --access public --provenance --registry=https://registry.npmjs.org
       - name: Publish Pi adapter package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           mix deps.get
