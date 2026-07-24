@@ -50,13 +50,23 @@ defmodule ControlKeelWeb.OAuthLoginController do
          {:ok, %{email: email, name: name}} <-
            OAuthProviders.callback(provider, params, session_params),
          {:ok, user, _created} <- Accounts.find_or_create_user(email, name) do
+      invitation_token = get_session(conn, :pending_invitation_token)
+
       conn
       |> delete_session(:oauth_session_params)
       |> delete_session(:oauth_provider)
+      |> delete_session(:pending_invitation_token)
       |> put_session(:current_user_id, user.id)
       |> put_session(:session_last_active, DateTime.utc_now() |> DateTime.to_iso8601())
       |> put_flash(:info, "Signed in with #{provider_display_name(provider_name)}.")
-      |> redirect(to: ~p"/dashboard")
+      |> redirect(
+        to:
+          if invitation_token do
+            ~p"/cloud/invitations/#{invitation_token}"
+          else
+            ~p"/dashboard"
+          end
+      )
     else
       {:error, :not_configured} ->
         conn

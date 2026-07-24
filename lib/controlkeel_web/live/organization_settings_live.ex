@@ -199,7 +199,7 @@ defmodule ControlKeelWeb.OrganizationSettingsLive do
           navigate={~p"/organizations/#{@org.slug}"}
           class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
         >
-          <.icon name="hero-arrow-left" class="size-4" />           Back to organization details
+          <.icon name="hero-arrow-left" class="size-4" /> Back to organization details
         </.link>
       </div>
 

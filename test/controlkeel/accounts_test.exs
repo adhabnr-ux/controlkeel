@@ -116,10 +116,15 @@ defmodule ControlKeel.AccountsTest do
       {:ok, other} = Accounts.create_user(%{email: "other@example.com"})
 
       {:ok, _owned} = Accounts.create_org_with_owner(owner.id, %{name: "Owned", slug: "owned"})
-      {:ok, other_org} = Accounts.create_org_with_owner(other.id, %{name: "Other Org", slug: "other-org"})
+
+      {:ok, other_org} =
+        Accounts.create_org_with_owner(other.id, %{name: "Other Org", slug: "other-org"})
 
       {:ok, _, token} =
-        Accounts.invite_member(owner.id, other_org.id, role: "member", invited_by_user_id: other.id)
+        Accounts.invite_member(owner.id, other_org.id,
+          role: "member",
+          invited_by_user_id: other.id
+        )
 
       {:ok, _} = Accounts.accept_invitation(token, owner.id)
 
@@ -226,9 +231,14 @@ defmodule ControlKeel.AccountsTest do
       org: org
     } do
       {:ok, _m, _t} = Accounts.invite_member(invitee.id, org.id, role: "member")
-      {:ok, membership} = Accounts.revoke_membership(
-        Accounts.list_memberships_for_org(org.id) |> hd() |> Map.get(:id)
-      )
+
+      {:ok, membership} =
+        Accounts.revoke_membership(
+          Accounts.list_memberships_for_org(org.id)
+          |> hd()
+          |> Map.get(:id)
+        )
+
       assert membership.status == "revoked"
 
       {:ok, revived, new_token} = Accounts.invite_member(invitee.id, org.id, role: "admin")

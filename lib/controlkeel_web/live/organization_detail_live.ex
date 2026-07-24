@@ -62,26 +62,17 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                  )}
 
               membership ->
-                if Accounts.role_at_least?(membership.role, "admin") do
-                  mount_ok(socket, org)
-                else
-                  {:ok,
-                   redirect_with_flash(
-                     socket,
-                     :error,
-                     "Admin or owner role required.",
-                     ~p"/organizations"
-                   )}
-                end
+                mount_ok(socket, org, membership)
             end
         end
     end
   end
 
-  defp mount_ok(socket, org) do
+  defp mount_ok(socket, org, membership \\ nil) do
     local_mode = Mode.current() == :local
     budget_cents = Accounts.org_budget_cents(org) || 0
     member_count = Accounts.count_memberships_for_org(org.id)
+    can_manage = membership && Accounts.role_at_least?(membership.role, "admin")
 
     {:ok,
      socket
@@ -90,6 +81,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
      |> assign(:local_mode, local_mode)
      |> assign(:budget_cents, budget_cents)
      |> assign(:member_count, member_count)
+     |> assign(:can_manage, can_manage)
      |> assign(:memberships, if(local_mode, do: [], else: load_memberships(org.id)))
      |> assign(:invite_form, to_form(%{"email" => "", "role" => "member"}, as: :invite))
      |> assign(:invite_token, nil)
@@ -224,13 +216,15 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
             <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
           </.link>
           <%= unless @local_mode do %>
-            <button
-              type="button"
-              phx-click="open_invite"
-              class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
-            >
-              <.icon name="hero-plus" class="size-4" /> Invite member
-            </button>
+            <%= if @can_manage do %>
+              <button
+                type="button"
+                phx-click="open_invite"
+                class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
+              >
+                <.icon name="hero-plus" class="size-4" /> Invite member
+              </button>
+            <% end %>
           <% end %>
         </div>
       </div>
@@ -329,18 +323,22 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                         {(m.user && m.user.email) || "—"}
                       </td>
                       <td class="px-5 py-4">
-                        <form phx-change="change-role">
-                          <input type="hidden" name="membership-id" value={m.id} />
-                          <select
-                            name="role"
-                            class="rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1.5 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
-                          >
-                            <option value="owner" selected={m.role == "owner"}>owner</option>
-                            <option value="admin" selected={m.role == "admin"}>admin</option>
-                            <option value="member" selected={m.role == "member"}>member</option>
-                            <option value="viewer" selected={m.role == "viewer"}>viewer</option>
-                          </select>
-                        </form>
+                        <%= if @can_manage do %>
+                          <form phx-change="change-role">
+                            <input type="hidden" name="membership-id" value={m.id} />
+                            <select
+                              name="role"
+                              class="rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1.5 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+                            >
+                              <option value="owner" selected={m.role == "owner"}>owner</option>
+                              <option value="admin" selected={m.role == "admin"}>admin</option>
+                              <option value="member" selected={m.role == "member"}>member</option>
+                              <option value="viewer" selected={m.role == "viewer"}>viewer</option>
+                            </select>
+                          </form>
+                        <% else %>
+                          <span class="text-sm text-zinc-400">{m.role}</span>
+                        <% end %>
                       </td>
                       <td class="px-5 py-4">
                         <span class={[
@@ -354,7 +352,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                         </span>
                       </td>
                       <td class="px-5 py-4 text-right">
-                        <%= if m.status != "revoked" do %>
+                        <%= if @can_manage and m.status != "revoked" do %>
                           <button
                             type="button"
                             phx-click="revoke"
@@ -442,7 +440,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
               <p class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{@error}</p>
             <% end %>
 
-            <div class="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
+            <div class="flex items-center justify-end gap-3 pt-4">
               <button
                 type="button"
                 phx-click="close_invite"
