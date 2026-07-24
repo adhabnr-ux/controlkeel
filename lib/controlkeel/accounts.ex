@@ -172,9 +172,17 @@ defmodule ControlKeel.Accounts do
   Returns `{:ok, membership, raw_token}` so the caller can deliver the token
   out of band (email, copy-link). The token is only available once — the row
   stores its hash.
+
+  If a revoked membership already exists for this `(user_id, org_id)` pair, it
+  is revived: status resets to `pending` with a fresh token, new role, and new
+  invitor. This allows re-inviting a previously removed member.
+
+  Returns `{:error, :already_member}` if an active or pending membership
+  already exists.
   """
   @spec invite_member(integer(), integer(), keyword()) ::
-          {:ok, Membership.t(), String.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, Membership.t(), String.t()}
+          | {:error, :already_member | Ecto.Changeset.t()}
   def invite_member(user_id, org_id, opts \\ []) do
     role = Keyword.get(opts, :role, "member")
     invited_by = Keyword.get(opts, :invited_by_user_id)
@@ -182,22 +190,44 @@ defmodule ControlKeel.Accounts do
     raw_token = generate_token()
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-    attrs = %{
-      user_id: user_id,
-      org_id: org_id,
-      role: role,
-      status: "pending",
-      invitation_token_hash: token_hash(raw_token),
-      invited_at: now,
-      invited_by_user_id: invited_by,
-      mission_workspace_id: mission_workspace_id
-    }
+    case Repo.get_by(Membership, user_id: user_id, org_id: org_id) do
+      nil ->
+        %Membership{}
+        |> Membership.changeset(%{
+          user_id: user_id,
+          org_id: org_id,
+          role: role,
+          status: "pending",
+          invitation_token_hash: token_hash(raw_token),
+          invited_at: now,
+          invited_by_user_id: invited_by,
+          mission_workspace_id: mission_workspace_id
+        })
+        |> Repo.insert()
+        |> case do
+          {:ok, membership} -> {:ok, membership, raw_token}
+          {:error, _} = err -> err
+        end
 
-    case %Membership{}
-         |> Membership.changeset(attrs)
-         |> Repo.insert() do
-      {:ok, membership} -> {:ok, membership, raw_token}
-      {:error, _} = err -> err
+      %Membership{status: "revoked"} = membership ->
+        membership
+        |> Membership.changeset(%{
+          role: role,
+          status: "pending",
+          invitation_token_hash: token_hash(raw_token),
+          invited_at: now,
+          invited_by_user_id: invited_by,
+          mission_workspace_id: mission_workspace_id,
+          accepted_at: nil
+        })
+        |> Repo.update()
+        |> case do
+          {:ok, membership} -> {:ok, membership, raw_token}
+          {:error, _} = err -> err
+        end
+
+      %Membership{} ->
+        {:error, :already_member}
     end
   end
 
@@ -294,14 +324,14 @@ defmodule ControlKeel.Accounts do
           {:error, :last_owner_protected}
         else
           membership
-          |> Membership.changeset(%{status: "revoked"})
+          |> Membership.changeset(%{status: "revoked", invitation_token_hash: nil})
           |> Repo.update()
           |> broadcast_on_ok()
         end
 
       membership ->
         membership
-        |> Membership.changeset(%{status: "revoked"})
+        |> Membership.changeset(%{status: "revoked", invitation_token_hash: nil})
         |> Repo.update()
         |> broadcast_on_ok()
     end

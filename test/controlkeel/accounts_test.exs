@@ -218,8 +218,27 @@ defmodule ControlKeel.AccountsTest do
       org: org
     } do
       {:ok, _m, _t} = Accounts.invite_member(invitee.id, org.id)
-      assert {:error, changeset} = Accounts.invite_member(invitee.id, org.id)
-      assert errors_on(changeset).user_id == ["has already been taken"]
+      assert {:error, :already_member} = Accounts.invite_member(invitee.id, org.id)
+    end
+
+    test "revives a revoked membership with a fresh token", %{
+      invitee: invitee,
+      org: org
+    } do
+      {:ok, _m, _t} = Accounts.invite_member(invitee.id, org.id, role: "member")
+      {:ok, membership} = Accounts.revoke_membership(
+        Accounts.list_memberships_for_org(org.id) |> hd() |> Map.get(:id)
+      )
+      assert membership.status == "revoked"
+
+      {:ok, revived, new_token} = Accounts.invite_member(invitee.id, org.id, role: "admin")
+      assert revived.status == "pending"
+      assert revived.role == "admin"
+      assert revived.accepted_at == nil
+      assert is_binary(new_token)
+
+      {:ok, accepted} = Accounts.accept_invitation(new_token, invitee.id)
+      assert accepted.status == "active"
     end
 
     test "rejects unknown role" do

@@ -467,7 +467,9 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
   # ── Private ─────────────────────────────────────────────────────────
 
   defp load_memberships(org_id) do
-    Accounts.list_memberships_for_org(org_id) |> Repo.preload(:user)
+    Accounts.list_memberships_for_org(org_id)
+    |> Enum.reject(&(&1.status == "revoked"))
+    |> Repo.preload(:user)
   end
 
   defp redirect_with_flash(socket, kind, msg, path) do
@@ -492,6 +494,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
   end
 
   defp format_error(reason) when is_binary(reason), do: reason
+  defp format_error(:already_member), do: "This user is already a member or has a pending invite."
   defp format_error(%Ecto.Changeset{}), do: "Could not invite member."
   defp format_error(reason), do: inspect(reason)
 end
