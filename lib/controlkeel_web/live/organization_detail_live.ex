@@ -234,7 +234,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
           <p class="text-sm font-medium text-lime-200">
             Invitation token issued. Send this link to the invitee — the token will not be shown again.
           </p>
-          <pre class="mt-2 rounded-lg bg-black/30 px-4 py-2 font-mono text-xs text-zinc-300"><code id="invite-token-value">/cloud/invitations/{@invite_token}</code></pre>
+          <pre class="mt-2 rounded-lg bg-black/30 px-4 py-2 font-mono text-xs text-zinc-300"><code id="invite-token-value">/invitations/{@invite_token}</code></pre>
           <button
             type="button"
             phx-click="dismiss-token"

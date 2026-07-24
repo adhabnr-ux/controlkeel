@@ -62,7 +62,7 @@ defmodule ControlKeelWeb.OAuthLoginController do
       |> redirect(
         to:
           if invitation_token do
-            ~p"/cloud/invitations/#{invitation_token}"
+            ~p"/invitations/#{invitation_token}"
           else
             ~p"/dashboard"
           end

@@ -83,7 +83,7 @@ defmodule ControlKeelWeb.Router do
     # OAuth but the page itself is viewable to preview the invite).
     live_session :invitations,
       layout: {ControlKeelWeb.Layouts, :invitation} do
-      live "/cloud/invitations/:token", InvitationLive, :show
+      live "/invitations/:token", InvitationLive, :show
     end
 
     # Cloud-auth gated: in cloud/self_hosted mode requires active membership.

@@ -1,12 +1,14 @@
 defmodule ControlKeelWeb.Plugs.RequireCloudMode do
   @moduledoc """
-  Redirects users away from `/auth/*` routes when those routes are not useful.
+  Redirects users away from routes that are not useful in the current mode.
 
-  Two cases:
+  Three cases:
     * Already-signed-in users visiting `/auth/login` are redirected to
       `/dashboard` to avoid re-login loops (any mode).
     * In local mode (no OAuth/SSO), any `/auth/*` path is a dead end and
       redirects to `/dashboard` with an informational flash.
+    * In local mode, `/invitations/*` paths are cloud-only features and
+      redirect to `/dashboard`.
 
   Note: `/auth/saml/acs` is exempt at the router level — it is mounted under
   the `:saml_acs` pipeline, which does not include this plug, because SAML
@@ -19,6 +21,7 @@ defmodule ControlKeelWeb.Plugs.RequireCloudMode do
   alias ControlKeel.Runtime.Mode
 
   @auth_prefix "/auth/"
+  @invitations_prefix "/invitations/"
   @login_path "/auth/login"
 
   def init(opts), do: opts
@@ -30,9 +33,9 @@ defmodule ControlKeelWeb.Plugs.RequireCloudMode do
         |> redirect(to: "/dashboard")
         |> halt()
 
-      local_mode_auth_path?(conn) ->
+      local_mode_blocked_path?(conn) ->
         conn
-        |> put_flash(:info, "Sign-in is not available in local mode.")
+        |> put_flash(:info, "This feature is not available in local mode.")
         |> redirect(to: "/dashboard")
         |> halt()
 
@@ -45,7 +48,9 @@ defmodule ControlKeelWeb.Plugs.RequireCloudMode do
     get_session(conn, :current_user_id) != nil and conn.request_path == @login_path
   end
 
-  defp local_mode_auth_path?(conn) do
-    Mode.current() == :local and String.starts_with?(conn.request_path, @auth_prefix)
+  defp local_mode_blocked_path?(conn) do
+    Mode.current() == :local and
+      (String.starts_with?(conn.request_path, @auth_prefix) or
+         String.starts_with?(conn.request_path, @invitations_prefix))
   end
 end

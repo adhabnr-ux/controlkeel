@@ -1,6 +1,6 @@
 defmodule ControlKeelWeb.InvitationLive do
   @moduledoc """
-  Invitation-acceptance page at `/cloud/invitations/:token`.
+  Invitation-acceptance page at `/invitations/:token`.
 
   Renders the org name and role for the invitee. Acceptance requires OAuth
   authentication — the invite token proves *what* the user gets access to
