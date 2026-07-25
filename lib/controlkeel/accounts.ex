@@ -179,10 +179,17 @@ defmodule ControlKeel.Accounts do
 
   Returns `{:error, :already_member}` if an active or pending membership
   already exists.
+
+  ## Authorization
+
+  When `invited_by_user_id` is supplied, the inviter's role is checked: only
+  owners may grant `owner` or `admin`. A `nil` inviter is the trusted operator
+  path (e.g. the CLI `org invite` command) and is unrestricted. Returns
+  `{:error, :unauthorized}` when a named inviter lacks the required role.
   """
   @spec invite_member(integer(), integer(), keyword()) ::
           {:ok, Membership.t(), String.t()}
-          | {:error, :already_member | Ecto.Changeset.t()}
+          | {:error, :already_member | :unauthorized | Ecto.Changeset.t()}
   def invite_member(user_id, org_id, opts \\ []) do
     role = Keyword.get(opts, :role, "member")
     invited_by = Keyword.get(opts, :invited_by_user_id)
@@ -190,44 +197,71 @@ defmodule ControlKeel.Accounts do
     raw_token = generate_token()
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-    case Repo.get_by(Membership, user_id: user_id, org_id: org_id) do
-      nil ->
-        %Membership{}
-        |> Membership.changeset(%{
-          user_id: user_id,
-          org_id: org_id,
-          role: role,
-          status: "pending",
-          invitation_token_hash: token_hash(raw_token),
-          invited_at: now,
-          invited_by_user_id: invited_by,
-          mission_workspace_id: mission_workspace_id
-        })
-        |> Repo.insert()
-        |> case do
-          {:ok, membership} -> {:ok, membership, raw_token}
-          {:error, _} = err -> err
-        end
+    with :ok <- authorize_invite_role(invited_by, org_id, role) do
+      case Repo.get_by(Membership, user_id: user_id, org_id: org_id) do
+        nil ->
+          %Membership{}
+          |> Membership.changeset(%{
+            user_id: user_id,
+            org_id: org_id,
+            role: role,
+            status: "pending",
+            invitation_token_hash: token_hash(raw_token),
+            invited_at: now,
+            invited_by_user_id: invited_by,
+            mission_workspace_id: mission_workspace_id
+          })
+          |> Repo.insert()
+          |> case do
+            {:ok, membership} -> {:ok, membership, raw_token}
+            {:error, _} = err -> err
+          end
 
-      %Membership{status: "revoked"} = membership ->
-        membership
-        |> Membership.changeset(%{
-          role: role,
-          status: "pending",
-          invitation_token_hash: token_hash(raw_token),
-          invited_at: now,
-          invited_by_user_id: invited_by,
-          mission_workspace_id: mission_workspace_id,
-          accepted_at: nil
-        })
-        |> Repo.update()
-        |> case do
-          {:ok, membership} -> {:ok, membership, raw_token}
-          {:error, _} = err -> err
-        end
+        %Membership{status: "revoked"} = membership ->
+          membership
+          |> Membership.changeset(%{
+            role: role,
+            status: "pending",
+            invitation_token_hash: token_hash(raw_token),
+            invited_at: now,
+            invited_by_user_id: invited_by,
+            mission_workspace_id: mission_workspace_id,
+            accepted_at: nil
+          })
+          |> Repo.update()
+          |> case do
+            {:ok, membership} -> {:ok, membership, raw_token}
+            {:error, _} = err -> err
+          end
 
-      %Membership{} ->
-        {:error, :already_member}
+        %Membership{} ->
+          {:error, :already_member}
+      end
+    end
+  end
+
+  # Invite role authorization. When an inviter is named
+  # (`invited_by_user_id`), enforce the same privilege boundary as role changes:
+  # only owners may grant owner/admin. A `nil` inviter is the trusted operator
+  # path (e.g. the CLI `org invite` command, which has no membership) and is
+  # left unrestricted.
+  defp authorize_invite_role(nil, _org_id, _role), do: :ok
+
+  defp authorize_invite_role(invited_by_user_id, org_id, role) do
+    inviter = get_active_membership(invited_by_user_id, org_id)
+
+    cond do
+      inviter == nil ->
+        {:error, :unauthorized}
+
+      inviter.role == "owner" ->
+        :ok
+
+      role in ["owner", "admin"] ->
+        {:error, :unauthorized}
+
+      true ->
+        :ok
     end
   end
 
@@ -409,6 +443,11 @@ defmodule ControlKeel.Accounts do
         cond do
           is_nil(revoker) || not role_at_least?(revoker.role, "admin") ->
             {:error, :unauthorized}
+
+          # No-op: once authorized, re-selecting the current role always
+          # succeeds regardless of other restrictions.
+          new_role == target.role ->
+            {:ok, target}
 
           (target.role in ["owner", "admin"] && revoker.role != "owner") and
               not (target.role == "admin" and revoker.user_id == target.user_id and

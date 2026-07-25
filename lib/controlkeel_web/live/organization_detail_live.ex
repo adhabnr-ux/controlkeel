@@ -489,6 +489,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
         :if={@show_invite_modal}
         form={@invite_form}
         error={@invite_error}
+        role_options={invite_role_options(@current_role)}
       />
 
       <%= if @show_revoke_modal and @revoke_target do %>
@@ -578,6 +579,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
 
   attr :form, :map, required: true
   attr :error, :string, default: nil
+  attr :role_options, :list, default: [{"viewer", "viewer"}, {"member", "member"}]
 
   defp invite_modal(assigns) do
     ~H"""
@@ -621,12 +623,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
               field={@form[:role]}
               type="select"
               label="Role"
-              options={[
-                {"viewer", "viewer"},
-                {"member", "member"},
-                {"admin", "admin"},
-                {"owner", "owner"}
-              ]}
+              options={@role_options}
               class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
             />
 
@@ -784,6 +781,14 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
 
   defp format_error(reason) when is_binary(reason), do: reason
   defp format_error(:already_member), do: "This user is already a member or has a pending invite."
+  defp format_error(:unauthorized), do: "You don't have permission to invite at that role."
   defp format_error(%Ecto.Changeset{}), do: "Could not invite member."
   defp format_error(reason), do: inspect(reason)
+
+  # Owners can invite at any role; admins only member/viewer (matches the
+  # role-change matrix and the server-side guard in `invite_member/3`).
+  defp invite_role_options("owner"),
+    do: [{"viewer", "viewer"}, {"member", "member"}, {"admin", "admin"}, {"owner", "owner"}]
+
+  defp invite_role_options(_), do: [{"viewer", "viewer"}, {"member", "member"}]
 end
