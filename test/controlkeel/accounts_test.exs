@@ -230,18 +230,19 @@ defmodule ControlKeel.AccountsTest do
       invitee: invitee,
       org: org
     } do
-      {:ok, _m, _t} = Accounts.invite_member(invitee.id, org.id, role: "member")
+      {:ok, owner} = Accounts.create_user(%{email: "reinvite-owner@example.com"})
+      {:ok, _} = Accounts.create_org_with_owner(owner.id, %{name: "Owner Org", slug: "owner-org"})
+      owner_org = Accounts.get_org_by_slug("owner-org")
 
-      {:ok, membership} =
-        Accounts.revoke_membership(
-          Accounts.list_memberships_for_org(org.id)
-          |> hd()
-          |> Map.get(:id)
-        )
+      {:ok, _m, _t} = Accounts.invite_member(invitee.id, owner_org.id, role: "member")
 
+      m =
+        Accounts.list_memberships_for_org(owner_org.id) |> Enum.find(&(&1.user_id == invitee.id))
+
+      {:ok, membership} = Accounts.revoke_membership(m.id, owner.id)
       assert membership.status == "revoked"
 
-      {:ok, revived, new_token} = Accounts.invite_member(invitee.id, org.id, role: "admin")
+      {:ok, revived, new_token} = Accounts.invite_member(invitee.id, owner_org.id, role: "admin")
       assert revived.status == "pending"
       assert revived.role == "admin"
       assert revived.accepted_at == nil
@@ -364,10 +365,23 @@ defmodule ControlKeel.AccountsTest do
       ws_a: ws_a,
       org_a: org_a
     } do
+      {:ok, owner} = Accounts.create_user(%{email: "owner@example.com"})
+
+      {:ok, _} =
+        %ControlKeel.Accounts.Membership{}
+        |> ControlKeel.Accounts.Membership.changeset(%{
+          user_id: owner.id,
+          org_id: org_a.id,
+          role: "owner",
+          status: "active",
+          accepted_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+        |> ControlKeel.Repo.insert()
+
       {:ok, _} = Accounts.assign_workspace_to_org(ws_a.id, org_a.id)
       {:ok, m, raw} = Accounts.invite_member(alice.id, org_a.id)
       {:ok, _} = Accounts.accept_invitation(raw, alice.id)
-      {:ok, _} = Accounts.revoke_membership(m.id)
+      {:ok, _} = Accounts.revoke_membership(m.id, owner.id)
 
       assert Accounts.list_workspaces_for_user(alice.id) == []
     end
@@ -385,18 +399,101 @@ defmodule ControlKeel.AccountsTest do
     end
   end
 
-  describe "revoke_membership/1" do
-    test "marks status as revoked" do
-      {:ok, user} = Accounts.create_user(%{email: "u@example.com"})
-      {:ok, org} = Accounts.create_org(%{name: "X", slug: "x"})
-      {:ok, m, _t} = Accounts.invite_member(user.id, org.id)
+  describe "revoke_membership/2" do
+    setup do
+      {:ok, owner} = Accounts.create_user(%{email: "owner@example.com"})
 
-      {:ok, revoked} = Accounts.revoke_membership(m.id)
+      {:ok, org} =
+        Accounts.create_org_with_owner(owner.id, %{
+          name: "O",
+          slug: "o-#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, member} = Accounts.create_user(%{email: "member@example.com"})
+      {:ok, m, raw} = Accounts.invite_member(member.id, org.id, role: "member")
+      {:ok, _} = Accounts.accept_invitation(raw, member.id)
+      {:ok, owner: owner, org: org, member: member, membership: m}
+    end
+
+    test "owner can revoke a member", %{owner: owner, membership: m} do
+      {:ok, revoked} = Accounts.revoke_membership(m.id, owner.id)
       assert revoked.status == "revoked"
     end
 
+    test "member cannot self-revoke (not admin+)", %{member: member, membership: m} do
+      assert {:error, :unauthorized} = Accounts.revoke_membership(m.id, member.id)
+    end
+
+    test "admin can revoke others but not self", %{owner: owner, org: org} do
+      {:ok, admin} = Accounts.create_user(%{email: "admin@example.com"})
+      {:ok, _, raw} = Accounts.invite_member(admin.id, org.id, role: "admin")
+      {:ok, _} = Accounts.accept_invitation(raw, admin.id)
+      admin_m = Accounts.list_memberships_for_org(org.id) |> Enum.find(&(&1.user_id == admin.id))
+
+      assert {:error, :cannot_self_revoke} = Accounts.revoke_membership(admin_m.id, admin.id)
+    end
+
+    test "non-admin cannot revoke", %{membership: m} do
+      {:ok, outsider} = Accounts.create_user(%{email: "out@example.com"})
+
+      {:ok, org2} =
+        Accounts.create_org_with_owner(outsider.id, %{
+          name: "O2",
+          slug: "o2-#{System.unique_integer([:positive])}"
+        })
+
+      assert {:error, :unauthorized} = Accounts.revoke_membership(m.id, outsider.id)
+    end
+
+    test "admin cannot revoke an owner", %{owner: owner, org: org} do
+      {:ok, admin} = Accounts.create_user(%{email: "admin@example.com"})
+      {:ok, _, raw} = Accounts.invite_member(admin.id, org.id, role: "admin")
+      {:ok, _} = Accounts.accept_invitation(raw, admin.id)
+      {:ok, owner2} = Accounts.create_user(%{email: "owner2@example.com"})
+      {:ok, _, raw2} = Accounts.invite_member(owner2.id, org.id, role: "owner")
+      {:ok, _} = Accounts.accept_invitation(raw2, owner2.id)
+
+      owner2_m =
+        Accounts.list_memberships_for_org(org.id) |> Enum.find(&(&1.user_id == owner2.id))
+
+      assert {:error, :cannot_revoke_owner} = Accounts.revoke_membership(owner2_m.id, admin.id)
+    end
+
+    test "admin cannot revoke another admin", %{owner: owner, org: org} do
+      {:ok, admin1} = Accounts.create_user(%{email: "admin1@example.com"})
+      {:ok, _, raw1} = Accounts.invite_member(admin1.id, org.id, role: "admin")
+      {:ok, _} = Accounts.accept_invitation(raw1, admin1.id)
+
+      {:ok, admin2} = Accounts.create_user(%{email: "admin2@example.com"})
+      {:ok, _, raw2} = Accounts.invite_member(admin2.id, org.id, role: "admin")
+      {:ok, _} = Accounts.accept_invitation(raw2, admin2.id)
+
+      admin2_m =
+        Accounts.list_memberships_for_org(org.id) |> Enum.find(&(&1.user_id == admin2.id))
+
+      assert {:error, :cannot_revoke_admin} = Accounts.revoke_membership(admin2_m.id, admin1.id)
+    end
+
+    test "owner can revoke another owner if not the last", %{owner: owner, org: org} do
+      {:ok, owner2} = Accounts.create_user(%{email: "owner2@example.com"})
+      {:ok, _, raw} = Accounts.invite_member(owner2.id, org.id, role: "owner")
+      {:ok, _} = Accounts.accept_invitation(raw, owner2.id)
+
+      owner2_m =
+        Accounts.list_memberships_for_org(org.id) |> Enum.find(&(&1.user_id == owner2.id))
+
+      {:ok, revoked} = Accounts.revoke_membership(owner2_m.id, owner.id)
+      assert revoked.status == "revoked"
+    end
+
+    test "owner cannot self-revoke if last owner", %{owner: owner, org: org} do
+      owner_m = Accounts.list_memberships_for_org(org.id) |> Enum.find(&(&1.user_id == owner.id))
+      assert {:error, :last_owner_protected} = Accounts.revoke_membership(owner_m.id, owner.id)
+    end
+
     test "returns :not_found for unknown id" do
-      assert {:error, :not_found} = Accounts.revoke_membership(999_999)
+      {:ok, owner} = Accounts.create_user(%{email: "o@example.com"})
+      assert {:error, :not_found} = Accounts.revoke_membership(999_999, owner.id)
     end
   end
 end

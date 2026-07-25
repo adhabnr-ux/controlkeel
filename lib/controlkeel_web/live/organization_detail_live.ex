@@ -82,11 +82,14 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
      |> assign(:budget_cents, budget_cents)
      |> assign(:member_count, member_count)
      |> assign(:can_manage, can_manage)
+     |> assign(:current_role, membership && membership.role)
      |> assign(:memberships, if(local_mode, do: [], else: load_memberships(org.id)))
      |> assign(:invite_form, to_form(%{"email" => "", "role" => "member"}, as: :invite))
      |> assign(:invite_token, nil)
      |> assign(:invite_error, nil)
      |> assign(:show_invite_modal, false)
+     |> assign(:show_revoke_modal, false)
+     |> assign(:revoke_target, nil)
      |> assign(:current_user, socket.assigns[:current_user])}
   end
 
@@ -136,25 +139,101 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
     end
   end
 
-  def handle_event("revoke", %{"membership-id" => id}, socket) do
+  def handle_event("confirm_revoke", %{"membership-id" => id}, socket) do
+    if Accounts.role_at_least?(socket.assigns[:current_role] || "", "admin") do
+      case Integer.parse(id) do
+        {membership_id, ""} ->
+          target = Enum.find(socket.assigns.memberships, &(&1.id == membership_id))
+
+          is_self =
+            target && socket.assigns.current_user &&
+              target.user_id == socket.assigns.current_user.id
+
+          active_owners =
+            Enum.count(
+              socket.assigns.memberships,
+              &(&1.role == "owner" and &1.status == "active")
+            )
+
+          is_last_owner = (is_self && target && target.role == "owner") and active_owners <= 1
+
+          {:noreply,
+           socket
+           |> assign(:show_revoke_modal, true)
+           |> assign(:revoke_target, target)
+           |> assign(:revoke_is_self, is_self)
+           |> assign(:revoke_is_last_owner, is_last_owner)}
+
+        _ ->
+          {:noreply, put_flash(socket, :error, "Invalid membership.")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "You don't have permission to revoke memberships.")}
+    end
+  end
+
+  def handle_event("execute_revoke", %{"membership-id" => id}, socket) do
     with {membership_id, ""} <- Integer.parse(id),
-         {:ok, _} <- Accounts.revoke_membership(membership_id) do
+         {:ok, _} <- Accounts.revoke_membership(membership_id, socket.assigns.current_user.id) do
       {:noreply,
        socket
        |> assign(:memberships, load_memberships(socket.assigns.org.id))
        |> assign(:member_count, Accounts.count_memberships_for_org(socket.assigns.org.id))
+       |> assign(:show_revoke_modal, false)
+       |> assign(:revoke_target, nil)
+       |> assign(:revoke_is_self, false)
+       |> assign(:revoke_is_last_owner, false)
        |> put_flash(:info, "Membership revoked.")}
     else
       {:error, :last_owner_protected} ->
         {:noreply,
-         put_flash(socket, :error, "Cannot revoke the last owner of this organization.")}
+         socket
+         |> assign(:show_revoke_modal, false)
+         |> put_flash(:error, "Cannot revoke the last owner of this organization.")}
+
+      {:error, :unauthorized} ->
+        {:noreply,
+         socket
+         |> assign(:show_revoke_modal, false)
+         |> put_flash(:error, "You don't have permission to revoke memberships.")}
+
+      {:error, :cannot_self_revoke} ->
+        {:noreply,
+         socket
+         |> assign(:show_revoke_modal, false)
+         |> put_flash(:error, "Only owners can revoke their own membership.")}
+
+      {:error, :cannot_revoke_owner} ->
+        {:noreply,
+         socket
+         |> assign(:show_revoke_modal, false)
+         |> put_flash(:error, "Only owners can revoke other owners.")}
+
+      {:error, :cannot_revoke_admin} ->
+        {:noreply,
+         socket
+         |> assign(:show_revoke_modal, false)
+         |> put_flash(:error, "Only owners can revoke admins.")}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Membership not found.")}
+        {:noreply,
+         socket
+         |> assign(:show_revoke_modal, false)
+         |> put_flash(:error, "Membership not found.")}
 
       _ ->
-        {:noreply, put_flash(socket, :error, "Could not revoke membership.")}
+        {:noreply,
+         socket
+         |> assign(:show_revoke_modal, false)
+         |> put_flash(:error, "Could not revoke membership.")}
     end
+  end
+
+  def handle_event("cancel_revoke", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_revoke_modal, false)
+     |> assign(:revoke_target, nil)}
   end
 
   def handle_event(
@@ -318,9 +397,20 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                   </tr>
                 <% else %>
                   <%= for m <- @memberships do %>
-                    <tr id={"membership-#{m.id}"} class="transition hover:bg-white/[0.03]">
+                    <tr
+                      id={"membership-#{m.id}"}
+                      class={[
+                        "transition hover:bg-white/[0.03]",
+                        @current_user && m.user_id == @current_user.id && "bg-lime-300/5"
+                      ]}
+                    >
                       <td class="px-5 py-4 font-medium text-white">
-                        {(m.user && m.user.email) || "—"}
+                        <div class="flex items-center gap-2">
+                          {(m.user && m.user.email) || "—"}
+                          <%= if @current_user && m.user_id == @current_user.id do %>
+                            <.icon name="hero-finger-print" class="size-4 text-lime-300" />
+                          <% end %>
+                        </div>
                       </td>
                       <td class="px-5 py-4">
                         <%= if @can_manage do %>
@@ -352,12 +442,11 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                         </span>
                       </td>
                       <td class="px-5 py-4 text-right">
-                        <%= if @can_manage and m.status != "revoked" do %>
+                        <%= if can_revoke?(@current_role, m, @current_user) do %>
                           <button
                             type="button"
-                            phx-click="revoke"
+                            phx-click="confirm_revoke"
                             phx-value-membership-id={m.id}
-                            data-confirm={"Revoke membership for #{m.user && m.user.email}?"}
                             class="text-sm font-medium text-red-400 transition hover:text-red-300"
                           >
                             Revoke
@@ -378,6 +467,88 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
         form={@invite_form}
         error={@invite_error}
       />
+
+      <%= if @show_revoke_modal and @revoke_target do %>
+        <div
+          id="revoke-member-modal"
+          class="relative z-50"
+          phx-mounted={Phoenix.LiveView.JS.show(to: "#revoke-member-modal")}
+          phx-remove={Phoenix.LiveView.JS.hide(to: "#revoke-member-modal")}
+        >
+          <div
+            class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+            phx-click="cancel_revoke"
+            aria-label="Close modal"
+          />
+
+          <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900/95 p-6 shadow-2xl shadow-black/50">
+              <div class="mb-5 flex items-center gap-3">
+                <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-500/15">
+                  <.icon name="hero-exclamation-triangle" class="size-5 text-red-400" />
+                </span>
+                <h2 class="text-lg font-semibold text-white">Revoke membership</h2>
+              </div>
+
+              <%= if @revoke_is_last_owner do %>
+                <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+                  <p class="text-sm text-amber-200">
+                    <strong>You are the only owner of this organization.</strong>
+                    You cannot revoke your own membership without transferring ownership to another member first.
+                  </p>
+                </div>
+                <div class="mt-5 flex justify-end">
+                  <button
+                    type="button"
+                    phx-click="cancel_revoke"
+                    class="rounded-full bg-white/5 px-5 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                  >
+                    Close
+                  </button>
+                </div>
+              <% else %>
+                <div class="space-y-3">
+                  <%= if @revoke_is_self do %>
+                    <p class="text-sm text-zinc-300">
+                      You are about to <strong class="text-white">revoke your own membership</strong>
+                      in <strong class="text-white">{@org.name}</strong>.
+                      You will lose access to this organization immediately.
+                    </p>
+                  <% else %>
+                    <p class="text-sm text-zinc-300">
+                      You are about to revoke membership for <strong class="text-white">{@revoke_target.user && @revoke_target.user.email}</strong>.
+                      They will lose access to <strong class="text-white">{@org.name}</strong>
+                      immediately.
+                    </p>
+                  <% end %>
+                  <p class="text-xs text-zinc-500">
+                    This action can be undone by re-inviting the member later.
+                  </p>
+                </div>
+
+                <div class="mt-6 flex items-center justify-end gap-3 border-t border-white/10 pt-4">
+                  <button
+                    type="button"
+                    phx-click="cancel_revoke"
+                    class="rounded-full px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    phx-click="execute_revoke"
+                    phx-value-membership-id={@revoke_target.id}
+                    class="inline-flex items-center gap-2 rounded-full bg-red-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-500/20 transition hover:-translate-y-0.5 hover:bg-red-400"
+                  >
+                    <.icon name="hero-trash" class="size-4" />
+                    {if @revoke_is_self, do: "Revoke my membership", else: "Revoke membership"}
+                  </button>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
     </section>
     """
   end
@@ -469,6 +640,15 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
     |> Enum.reject(&(&1.status == "revoked"))
     |> Repo.preload(:user)
   end
+
+  defp can_revoke?(nil, _target, _current_user), do: false
+  defp can_revoke?(_role, %{status: "revoked"}, _current_user), do: false
+  defp can_revoke?("owner", _target, _current_user), do: true
+
+  defp can_revoke?("admin", target, %{id: uid}),
+    do: target.role in ["member", "viewer"] and target.user_id != uid
+
+  defp can_revoke?(_, _, _), do: false
 
   defp redirect_with_flash(socket, kind, msg, path) do
     socket

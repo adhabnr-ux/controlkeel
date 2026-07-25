@@ -311,29 +311,57 @@ defmodule ControlKeel.Accounts do
     end
   end
 
-  @spec revoke_membership(integer()) ::
+  @doc """
+  Revoke a membership. Authorization rules:
+
+    * Revoker must be admin+ in the same org.
+    * Only owners can revoke their own membership.
+    * Owner self-revoke is blocked if they are the last active owner.
+    * Only owners can revoke other owners.
+    * Admins can revoke members and viewers but not owners or other admins.
+  """
+  @spec revoke_membership(integer(), integer()) ::
           {:ok, Membership.t()}
-          | {:error, :not_found | :last_owner_protected | Ecto.Changeset.t()}
-  def revoke_membership(membership_id) do
-    case Repo.get(Membership, membership_id) do
-      nil ->
+          | {:error,
+             :not_found
+             | :unauthorized
+             | :cannot_revoke_owner
+             | :cannot_revoke_admin
+             | :cannot_self_revoke
+             | :last_owner_protected
+             | Ecto.Changeset.t()}
+  def revoke_membership(membership_id, revoker_user_id) do
+    target = Repo.get(Membership, membership_id)
+
+    cond do
+      is_nil(target) ->
         {:error, :not_found}
 
-      %Membership{role: "owner"} = membership ->
-        if last_active_owner?(membership) do
-          {:error, :last_owner_protected}
-        else
-          membership
-          |> Membership.changeset(%{status: "revoked", invitation_token_hash: nil})
-          |> Repo.update()
-          |> broadcast_on_ok()
-        end
+      true ->
+        revoker = get_active_membership(revoker_user_id, target.org_id)
 
-      membership ->
-        membership
-        |> Membership.changeset(%{status: "revoked", invitation_token_hash: nil})
-        |> Repo.update()
-        |> broadcast_on_ok()
+        cond do
+          is_nil(revoker) || not role_at_least?(revoker.role, "admin") ->
+            {:error, :unauthorized}
+
+          target.user_id == revoker_user_id && revoker.role != "owner" ->
+            {:error, :cannot_self_revoke}
+
+          target.role == "owner" && revoker.role != "owner" ->
+            {:error, :cannot_revoke_owner}
+
+          target.role == "admin" && revoker.role != "owner" ->
+            {:error, :cannot_revoke_admin}
+
+          target.role == "owner" && last_active_owner?(target) ->
+            {:error, :last_owner_protected}
+
+          true ->
+            target
+            |> Membership.changeset(%{status: "revoked", invitation_token_hash: nil})
+            |> Repo.update()
+            |> broadcast_on_ok()
+        end
     end
   end
 
