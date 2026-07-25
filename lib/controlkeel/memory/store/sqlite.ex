@@ -18,7 +18,7 @@ defmodule ControlKeel.Memory.Store.Sqlite do
 
   defp check_fts_availability do
     case SQL.query(
-           Repo,
+           Repo.active(),
            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'memory_records_fts'",
            []
          ) do
@@ -102,7 +102,7 @@ defmodule ControlKeel.Memory.Store.Sqlite do
       LIMIT ?
       """
 
-      case SQL.query(Repo, sql, filter_params(match, opts) ++ [limit]) do
+      case SQL.query(Repo.active(), sql, filter_params(match, opts) ++ [limit]) do
         {:ok, %{rows: rows}} ->
           rows
           |> Enum.with_index(1)

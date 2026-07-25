@@ -72,7 +72,7 @@ defmodule ControlKeel.Application do
 
   defp late_children do
     [
-      ControlKeel.Repo
+      ControlKeel.Repo.Local
     ] ++
       cloud_repo_children() ++
       analytics_children() ++
@@ -106,7 +106,7 @@ defmodule ControlKeel.Application do
 
   defp mcp_stdio_rest_children do
     [
-      ControlKeel.Repo
+      ControlKeel.Repo.Local
     ] ++
       cloud_repo_children() ++
       analytics_children() ++
@@ -222,7 +222,20 @@ defmodule ControlKeel.Application do
   end
 
   defp run_migrations do
-    Application.fetch_env!(:controlkeel, :ecto_repos)
+    # Migrate the active repo for the current runtime mode. In :local mode that
+    # is `ControlKeel.Repo.Local` (SQLite). In :cloud / :self_hosted mode it is
+    # `ControlKeel.CloudRepo` (Postgres). Routing through the dispatcher's
+    # `active/0` guarantees the same repo serves queries and owns migrations,
+    # so a cloud deploy can no longer auto-migrate SQLite while serving reads
+    # from Postgres (the original issue #44 defect).
+    repos =
+      if ControlKeel.Runtime.cloud_repo_enabled?() do
+        [ControlKeel.CloudRepo]
+      else
+        [ControlKeel.Repo.Local]
+      end
+
+    repos
     |> Enum.reduce_while(:ok, fn repo, :ok ->
       case Ecto.Migrator.with_repo(
              repo,

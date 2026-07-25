@@ -9,7 +9,7 @@ defmodule ControlKeel.Ops.Release do
   ## Usage
 
       bin/controlkeel eval "ControlKeel.Ops.Release.migrate()"
-      bin/controlkeel eval "ControlKeel.Ops.Release.rollback(ControlKeel.Repo, 20260524004330)"
+      bin/controlkeel eval "ControlKeel.Ops.Release.rollback(ControlKeel.CloudRepo, 20260524004330)"
   """
 
   @app :controlkeel
@@ -32,7 +32,7 @@ defmodule ControlKeel.Ops.Release do
 
     case runtime_mode do
       :cloud -> [ControlKeel.CloudRepo]
-      _ -> [ControlKeel.Repo]
+      _ -> [ControlKeel.Repo.Local]
     end
   end
 

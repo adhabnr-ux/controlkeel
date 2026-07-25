@@ -9,7 +9,12 @@ import Config
 
 config :controlkeel,
   namespace: ControlKeel,
-  ecto_repos: [ControlKeel.Repo],
+  # `ControlKeel.Repo` is a runtime dispatcher (see lib/controlkeel/repo.ex);
+  # the underlying SQLite repo is `ControlKeel.Repo.Local`. Local-mode
+  # migrations and `mix ecto.migrate` target `:ecto_repos`. Cloud-mode
+  # migrations target `:cloud_ecto_repos` and run via `Release.migrate/0`
+  # and `ControlKeel.Application.run_migrations/0`.
+  ecto_repos: [ControlKeel.Repo.Local],
   cloud_ecto_repos: [ControlKeel.CloudRepo],
   runtime_mode: :local,
   pdf_renderer: :chromic,
@@ -37,6 +42,13 @@ config :controlkeel,
     workspace_id: nil,
     jobs: []
   ]
+
+# Pin the migration directory to the historical `priv/repo/migrations` path.
+# `ControlKeel.Repo.Local` is the renamed `ControlKeel.Repo`; without this
+# Ecto would derive `priv/local/migrations` from the module name and orphan
+# the 59 existing migrations.
+config :controlkeel, ControlKeel.Repo.Local, priv: "priv/repo"
+config :controlkeel, ControlKeel.CloudRepo, priv: "priv/repo"
 
 # Configure the endpoint
 # Default `code_reloader` so releases match runtime MCP overrides (CK_MCP_MODE).

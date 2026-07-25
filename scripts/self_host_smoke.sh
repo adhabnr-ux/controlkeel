@@ -53,8 +53,8 @@ trap cleanup EXIT
 echo "▶ Self-host smoke: PHX_HOST=$PHX_HOST RUNTIME_MODE=$CONTROLKEEL_RUNTIME_MODE PORT=$PORT"
 echo "▶ DB: $DATABASE_PATH"
 
-mix ecto.create -r ControlKeel.Repo >/dev/null
-mix ecto.migrate -r ControlKeel.Repo >/dev/null
+mix ecto.create -r ControlKeel.Repo.Local >/dev/null
+mix ecto.migrate -r ControlKeel.Repo.Local >/dev/null
 
 # ── 2. Boot the Phoenix endpoint ────────────────────────────────────
 

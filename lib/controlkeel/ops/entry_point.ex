@@ -68,11 +68,11 @@ defmodule ControlKeel.Ops.EntryPoint do
 
     # Repo SQL and Logger default to noisy stdout in dev; stdio MCP must keep
     # stdout JSON-only (see config/runtime.exs CK_MCP_MODE).
-    repo_cfg = Application.get_env(:controlkeel, ControlKeel.Repo) || []
+    repo_cfg = Application.get_env(:controlkeel, ControlKeel.Repo.Local) || []
 
     Application.put_env(
       :controlkeel,
-      ControlKeel.Repo,
+      ControlKeel.Repo.Local,
       Keyword.put(repo_cfg, :log, false)
     )
 
@@ -108,11 +108,11 @@ defmodule ControlKeel.Ops.EntryPoint do
         |> Keyword.put(:live_reload, web_console_logger: false, patterns: [])
       )
 
-      repo_cfg = Application.get_env(:controlkeel, ControlKeel.Repo) || []
+      repo_cfg = Application.get_env(:controlkeel, ControlKeel.Repo.Local) || []
 
       Application.put_env(
         :controlkeel,
-        ControlKeel.Repo,
+        ControlKeel.Repo.Local,
         Keyword.put(repo_cfg, :log, false)
       )
 

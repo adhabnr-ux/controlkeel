@@ -38,7 +38,7 @@ defmodule ControlKeel.Memory.Store.Pgvector do
         LIMIT $6
         """
 
-        case SQL.query(Repo, sql, [
+        case SQL.query(Repo.active(), sql, [
                vector,
                opts[:workspace_id],
                opts[:session_id],
@@ -79,7 +79,11 @@ defmodule ControlKeel.Memory.Store.Pgvector do
   end
 
   defp pgvector_enabled? do
-    case SQL.query(Repo, "SELECT 1 FROM pg_extension WHERE extname = 'vector' LIMIT 1", []) do
+    case SQL.query(
+           Repo.active(),
+           "SELECT 1 FROM pg_extension WHERE extname = 'vector' LIMIT 1",
+           []
+         ) do
       {:ok, %{rows: [[1]]}} -> true
       _ -> false
     end

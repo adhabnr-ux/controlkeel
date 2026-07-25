@@ -28,7 +28,10 @@ defmodule ControlKeel.BinWrapperTest do
     # Checkpoint the WAL into the main DB file so the copy is self-contained,
     # then copy the main file (schema is committed data, independent of any
     # open sandbox transaction).
-    Sandbox.unboxed_run(Repo, fn -> Repo.query!("PRAGMA wal_checkpoint(TRUNCATE)") end)
+    Sandbox.unboxed_run(ControlKeel.Repo.Local, fn ->
+      Repo.query!("PRAGMA wal_checkpoint(TRUNCATE)")
+    end)
+
     File.cp!(source_db, tmp_db)
 
     on_exit(fn ->

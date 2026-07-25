@@ -10,7 +10,7 @@ defmodule ControlKeel.BenchmarkTest do
   alias ControlKeel.Repo
 
   setup_all do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(ControlKeel.Repo, shared: true)
+    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(ControlKeel.Repo.Local, shared: true)
     on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
     :ok
   end

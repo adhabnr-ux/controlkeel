@@ -44,7 +44,7 @@ if System.get_env("CK_MCP_MODE") in ~w(1 true TRUE yes YES) or
   # Anything on stdout after Content-Length framing corrupts the stream; clients then
   # hang and abort (~10s). Repo SQL logs default to :debug in dev and were observed on stdout.
   # CLI commands should avoid debug SQL noise for cleaner output.
-  config :controlkeel, ControlKeel.Repo, log: false
+  config :controlkeel, ControlKeel.Repo.Local, log: false
   config :controlkeel, ControlKeel.CloudRepo, log: false
 
   # OTP :logger default handler uses type :standard_io (stdout). Cursor parses stdout as
@@ -182,28 +182,43 @@ if config_env() == :prod do
   # opens. No-op for already-migrated projects or explicit DATABASE_PATH.
   ControlKeel.Runtime.Defaults.maybe_seed_project_database()
 
-  config :controlkeel, ControlKeel.Repo,
-    database: database_path,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    journal_mode: :wal,
-    synchronous: :normal,
-    # Wait for a held SQLite lock instead of failing immediately. Multiple
-    # controlkeel processes (CLI exports, the MCP server, hooks) share one
-    # WAL database; without this, brief startup overlap surfaces as transient
-    # "database is locked" errors. Dev/test already set this; prod did not.
-    busy_timeout: String.to_integer(System.get_env("CONTROLKEEL_BUSY_TIMEOUT") || "15000"),
-    queue_target: 50,
-    queue_interval: 1_000
+  # Postgres is configured whenever a remote mode (`:cloud` or `:self_hosted`)
+  # is paired with a `DATABASE_URL`. In that case the local SQLite repo is
+  # intentionally NOT configured — the dispatcher (lib/controlkeel/repo.ex)
+  # must not be able to silently fall back to a laptop-local file when the
+  # Postgres connection is misconfigured. If anything tries to use the local
+  # repo directly it will fail loudly instead of writing to the wrong database.
+  #
+  # `:cloud` mode requires `DATABASE_URL` outright (raises). `:self_hosted`
+  # may run without it during the self-host smoke test and laptop dev-runner
+  # scenarios, in which case it falls through to the SQLite branch below.
+  database_url = System.get_env("DATABASE_URL")
 
-  if runtime_mode == :cloud do
-    database_url =
-      System.get_env("DATABASE_URL") ||
-        raise "DATABASE_URL is required when CONTROLKEEL_RUNTIME_MODE=cloud"
-
+  if runtime_mode in [:cloud, :self_hosted] and database_url != nil do
     config :controlkeel, ControlKeel.CloudRepo,
       url: database_url,
       pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
       ssl: System.get_env("ECTO_USE_SSL", "false") == "true"
+  else
+    if runtime_mode == :cloud do
+      raise "DATABASE_URL is required when CONTROLKEEL_RUNTIME_MODE=cloud"
+    end
+
+    # Local mode, or :self_hosted dev-runner without DATABASE_URL. SQLite is
+    # the source of truth; laptops sync to the hosted plane via
+    # `controlkeel cloud push/pull`.
+    config :controlkeel, ControlKeel.Repo.Local,
+      database: database_path,
+      pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+      journal_mode: :wal,
+      synchronous: :normal,
+      # Wait for a held SQLite lock instead of failing immediately. Multiple
+      # controlkeel processes (CLI exports, the MCP server, hooks) share one
+      # WAL database; without this, brief startup overlap surfaces as transient
+      # "database is locked" errors. Dev/test already set this; prod did not.
+      busy_timeout: String.to_integer(System.get_env("CONTROLKEEL_BUSY_TIMEOUT") || "15000"),
+      queue_target: 50,
+      queue_interval: 1_000
   end
 
   if endpoint = System.get_env("CONTROLKEEL_CLOUD_TELEMETRY_ENDPOINT") do

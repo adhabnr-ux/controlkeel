@@ -198,7 +198,7 @@ defmodule ControlKeel.Cloud.Telemetry.Sender.PeriodicTest do
   end
 
   defp allow_sandbox(pid) do
-    Ecto.Adapters.SQL.Sandbox.allow(ControlKeel.Repo, self(), pid)
+    Ecto.Adapters.SQL.Sandbox.allow(ControlKeel.Repo.Local, self(), pid)
   end
 
   defp wait_until(fun, timeout_ms) do
