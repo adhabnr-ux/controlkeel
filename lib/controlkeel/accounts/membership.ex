@@ -36,6 +36,7 @@ defmodule ControlKeel.Accounts.Membership do
     field :invitation_token_hash, :string
     field :invited_at, :utc_datetime
     field :accepted_at, :utc_datetime
+    field :revoked_at, :utc_datetime
 
     belongs_to :user, User
     belongs_to :org, Org
@@ -57,6 +58,7 @@ defmodule ControlKeel.Accounts.Membership do
       :invitation_token_hash,
       :invited_at,
       :accepted_at,
+      :revoked_at,
       :invited_by_user_id,
       :mission_workspace_id
     ])

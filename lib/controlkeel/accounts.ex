@@ -226,7 +226,8 @@ defmodule ControlKeel.Accounts do
             invited_at: now,
             invited_by_user_id: invited_by,
             mission_workspace_id: mission_workspace_id,
-            accepted_at: nil
+            accepted_at: nil,
+            revoked_at: nil
           })
           |> Repo.update()
           |> case do
@@ -366,6 +367,7 @@ defmodule ControlKeel.Accounts do
              | Ecto.Changeset.t()}
   def revoke_membership(membership_id, revoker_user_id) do
     target = Repo.get(Membership, membership_id)
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     cond do
       is_nil(target) ->
@@ -392,7 +394,11 @@ defmodule ControlKeel.Accounts do
 
           true ->
             target
-            |> Membership.changeset(%{status: "revoked", invitation_token_hash: nil})
+            |> Membership.changeset(%{
+              status: "revoked",
+              invitation_token_hash: nil,
+              revoked_at: now
+            })
             |> Repo.update()
             |> broadcast_on_ok()
         end
@@ -943,7 +949,8 @@ defmodule ControlKeel.Accounts do
           role: membership.role || role,
           status: "active",
           invitation_token_hash: nil,
-          accepted_at: membership.accepted_at || now
+          accepted_at: membership.accepted_at || now,
+          revoked_at: nil
         })
         |> Repo.update()
     end

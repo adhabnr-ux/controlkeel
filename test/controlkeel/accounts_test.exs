@@ -241,11 +241,13 @@ defmodule ControlKeel.AccountsTest do
 
       {:ok, membership} = Accounts.revoke_membership(m.id, owner.id)
       assert membership.status == "revoked"
+      assert membership.revoked_at != nil
 
       {:ok, revived, new_token} = Accounts.invite_member(invitee.id, owner_org.id, role: "admin")
       assert revived.status == "pending"
       assert revived.role == "admin"
       assert revived.accepted_at == nil
+      assert revived.revoked_at == nil
       assert is_binary(new_token)
 
       {:ok, accepted} = Accounts.accept_invitation(new_token, invitee.id)
@@ -543,6 +545,7 @@ defmodule ControlKeel.AccountsTest do
     test "owner can revoke a member", %{owner: owner, membership: m} do
       {:ok, revoked} = Accounts.revoke_membership(m.id, owner.id)
       assert revoked.status == "revoked"
+      assert revoked.revoked_at != nil
     end
 
     test "member cannot self-revoke (not admin+)", %{member: member, membership: m} do
