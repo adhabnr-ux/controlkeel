@@ -366,45 +366,67 @@ defmodule ControlKeel.Accounts do
   end
 
   @doc """
-  Change a membership's role. Refuses to demote the last remaining active owner.
+  Change a membership's role. Authorization rules:
+
+    * Revoker must be admin+ in the same org.
+    * Only owners can change roles of owners and admins (exception: an admin
+      may demote *themselves* from admin to member/viewer).
+    * Only owners can promote a member/viewer to owner.
+    * Only owners can promote a member to admin.
+    * Refuses to demote the last remaining active owner.
 
   Returns:
     - `{:ok, membership}` on success
     - `{:error, :not_found}` if the membership doesn't exist
+    - `{:error, :unauthorized}` if the revoker lacks permission
     - `{:error, :invalid_role}` if the new role is not one of owner|admin|member|viewer
     - `{:error, :last_owner_protected}` if demoting the only active owner of an org
   """
-  @spec update_membership_role(integer(), String.t()) ::
+  @spec update_membership_role(integer(), String.t(), integer()) ::
           {:ok, Membership.t()}
-          | {:error, :not_found | :invalid_role | :last_owner_protected | Ecto.Changeset.t()}
-  def update_membership_role(membership_id, new_role) do
+          | {:error,
+             :not_found
+             | :unauthorized
+             | :invalid_role
+             | :last_owner_protected
+             | Ecto.Changeset.t()}
+  def update_membership_role(membership_id, new_role, revoker_user_id) do
     if new_role in Map.keys(@role_rank) do
-      do_update_membership_role(membership_id, new_role)
+      do_update_membership_role(membership_id, new_role, revoker_user_id)
     else
       {:error, :invalid_role}
     end
   end
 
-  defp do_update_membership_role(membership_id, new_role) do
+  defp do_update_membership_role(membership_id, new_role, revoker_user_id) do
     case Repo.get(Membership, membership_id) do
       nil ->
         {:error, :not_found}
 
-      %Membership{role: "owner"} = m when new_role != "owner" ->
-        if last_active_owner?(m) do
-          {:error, :last_owner_protected}
-        else
-          m
-          |> Membership.changeset(%{role: new_role})
-          |> Repo.update()
-          |> broadcast_on_ok()
-        end
+      target ->
+        revoker = get_active_membership(revoker_user_id, target.org_id)
 
-      m ->
-        m
-        |> Membership.changeset(%{role: new_role})
-        |> Repo.update()
-        |> broadcast_on_ok()
+        cond do
+          is_nil(revoker) || not role_at_least?(revoker.role, "admin") ->
+            {:error, :unauthorized}
+
+          (target.role in ["owner", "admin"] && revoker.role != "owner") and
+              not (target.role == "admin" and revoker.user_id == target.user_id and
+                       new_role in ["member", "viewer"]) ->
+            {:error, :unauthorized}
+
+          new_role in ["owner", "admin"] && revoker.role != "owner" ->
+            {:error, :unauthorized}
+
+          target.role == "owner" && new_role != "owner" && last_active_owner?(target) ->
+            {:error, :last_owner_protected}
+
+          true ->
+            target
+            |> Membership.changeset(%{role: new_role})
+            |> Repo.update()
+            |> broadcast_on_ok()
+        end
     end
   end
 

@@ -51,7 +51,8 @@ defmodule ControlKeelWeb.InvitationLive do
 
   @impl true
   def handle_event("accept", _params, socket) do
-    if socket.assigns[:current_user] && socket.assigns[:email_matches] && socket.assigns.state == :ready do
+    if socket.assigns[:current_user] && socket.assigns[:email_matches] &&
+         socket.assigns.state == :ready do
       case Accounts.accept_invitation(socket.assigns.token, socket.assigns.current_user.id) do
         {:ok, _membership} ->
           {:noreply, redirect(socket, to: ~p"/organizations/#{socket.assigns.org.slug}")}

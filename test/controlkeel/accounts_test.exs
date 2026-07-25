@@ -496,4 +496,111 @@ defmodule ControlKeel.AccountsTest do
       assert {:error, :not_found} = Accounts.revoke_membership(999_999, owner.id)
     end
   end
+
+  describe "update_membership_role/3" do
+    setup do
+      {:ok, owner} = Accounts.create_user(%{email: "owner@example.com"})
+
+      {:ok, org} =
+        Accounts.create_org_with_owner(owner.id, %{
+          name: "O",
+          slug: "o-#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, member} = Accounts.create_user(%{email: "member@example.com"})
+      {:ok, m, raw} = Accounts.invite_member(member.id, org.id, role: "member")
+      {:ok, _} = Accounts.accept_invitation(raw, member.id)
+      {:ok, owner: owner, org: org, member: member, membership: m}
+    end
+
+    test "owner can promote member to admin", %{owner: owner, membership: m} do
+      {:ok, promoted} = Accounts.update_membership_role(m.id, "admin", owner.id)
+      assert promoted.role == "admin"
+    end
+
+    test "owner can demote admin to member", %{owner: owner, org: org} do
+      {:ok, admin} = Accounts.create_user(%{email: "admin@example.com"})
+      {:ok, _, raw} = Accounts.invite_member(admin.id, org.id, role: "admin")
+      {:ok, _} = Accounts.accept_invitation(raw, admin.id)
+      admin_m = Accounts.list_memberships_for_org(org.id) |> Enum.find(&(&1.user_id == admin.id))
+
+      {:ok, demoted} = Accounts.update_membership_role(admin_m.id, "member", owner.id)
+      assert demoted.role == "member"
+    end
+
+    test "admin cannot change roles", %{org: org, membership: m} do
+      {:ok, admin} = Accounts.create_user(%{email: "admin@example.com"})
+      {:ok, _, raw} = Accounts.invite_member(admin.id, org.id, role: "admin")
+      {:ok, _} = Accounts.accept_invitation(raw, admin.id)
+
+      assert {:error, :unauthorized} = Accounts.update_membership_role(m.id, "admin", admin.id)
+    end
+
+    test "admin can self-demit to member", %{org: org} do
+      {:ok, admin} = Accounts.create_user(%{email: "admin@example.com"})
+      {:ok, _, raw} = Accounts.invite_member(admin.id, org.id, role: "admin")
+      {:ok, _} = Accounts.accept_invitation(raw, admin.id)
+      admin_m = Accounts.list_memberships_for_org(org.id) |> Enum.find(&(&1.user_id == admin.id))
+
+      {:ok, demoted} = Accounts.update_membership_role(admin_m.id, "member", admin.id)
+      assert demoted.role == "member"
+    end
+
+    test "admin can self-demit to viewer", %{org: org} do
+      {:ok, admin} = Accounts.create_user(%{email: "admin2@example.com"})
+      {:ok, _, raw} = Accounts.invite_member(admin.id, org.id, role: "admin")
+      {:ok, _} = Accounts.accept_invitation(raw, admin.id)
+      admin_m = Accounts.list_memberships_for_org(org.id) |> Enum.find(&(&1.user_id == admin.id))
+
+      {:ok, demoted} = Accounts.update_membership_role(admin_m.id, "viewer", admin.id)
+      assert demoted.role == "viewer"
+    end
+
+    test "admin cannot self-promote to owner", %{org: org} do
+      {:ok, admin} = Accounts.create_user(%{email: "admin3@example.com"})
+      {:ok, _, raw} = Accounts.invite_member(admin.id, org.id, role: "admin")
+      {:ok, _} = Accounts.accept_invitation(raw, admin.id)
+      admin_m = Accounts.list_memberships_for_org(org.id) |> Enum.find(&(&1.user_id == admin.id))
+
+      assert {:error, :unauthorized} =
+               Accounts.update_membership_role(admin_m.id, "owner", admin.id)
+    end
+
+    test "admin cannot change another admin's role", %{org: org} do
+      {:ok, admin_a} = Accounts.create_user(%{email: "admin-a@example.com"})
+      {:ok, _, raw_a} = Accounts.invite_member(admin_a.id, org.id, role: "admin")
+      {:ok, _} = Accounts.accept_invitation(raw_a, admin_a.id)
+
+      {:ok, admin_b} = Accounts.create_user(%{email: "admin-b@example.com"})
+      {:ok, _, raw_b} = Accounts.invite_member(admin_b.id, org.id, role: "admin")
+      {:ok, _} = Accounts.accept_invitation(raw_b, admin_b.id)
+
+      admin_b_m =
+        Accounts.list_memberships_for_org(org.id) |> Enum.find(&(&1.user_id == admin_b.id))
+
+      assert {:error, :unauthorized} =
+               Accounts.update_membership_role(admin_b_m.id, "member", admin_a.id)
+    end
+
+    test "member cannot change roles", %{member: member, membership: m} do
+      assert {:error, :unauthorized} = Accounts.update_membership_role(m.id, "viewer", member.id)
+    end
+
+    test "outsider cannot change roles", %{membership: m} do
+      {:ok, outsider} = Accounts.create_user(%{email: "out@example.com"})
+
+      {:ok, org2} =
+        Accounts.create_org_with_owner(outsider.id, %{
+          name: "O2",
+          slug: "o2-#{System.unique_integer([:positive])}"
+        })
+
+      assert {:error, :unauthorized} =
+               Accounts.update_membership_role(m.id, "viewer", outsider.id)
+    end
+
+    test "returns :not_found for unknown id", %{owner: owner} do
+      assert {:error, :not_found} = Accounts.update_membership_role(999_999, "member", owner.id)
+    end
+  end
 end

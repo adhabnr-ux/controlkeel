@@ -73,6 +73,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
     budget_cents = Accounts.org_budget_cents(org) || 0
     member_count = Accounts.count_memberships_for_org(org.id)
     can_manage = membership && Accounts.role_at_least?(membership.role, "admin")
+    memberships = if(local_mode, do: [], else: load_memberships(org.id))
 
     {:ok,
      socket
@@ -83,7 +84,8 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
      |> assign(:member_count, member_count)
      |> assign(:can_manage, can_manage)
      |> assign(:current_role, membership && membership.role)
-     |> assign(:memberships, if(local_mode, do: [], else: load_memberships(org.id)))
+     |> assign(:memberships, memberships)
+     |> assign(:active_owner_count, count_active_owners(memberships))
      |> assign(:invite_form, to_form(%{"email" => "", "role" => "member"}, as: :invite))
      |> assign(:invite_token, nil)
      |> assign(:invite_error, nil)
@@ -124,8 +126,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
 
       {:noreply,
        socket
-       |> assign(:memberships, load_memberships(socket.assigns.org.id))
-       |> assign(:member_count, Accounts.count_memberships_for_org(socket.assigns.org.id))
+       |> refresh_memberships(socket.assigns.org.id)
        |> assign(:invite_token, raw_token)
        |> assign(:invite_error, nil)
        |> assign(:show_invite_modal, false)
@@ -177,8 +178,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
          {:ok, _} <- Accounts.revoke_membership(membership_id, socket.assigns.current_user.id) do
       {:noreply,
        socket
-       |> assign(:memberships, load_memberships(socket.assigns.org.id))
-       |> assign(:member_count, Accounts.count_memberships_for_org(socket.assigns.org.id))
+       |> refresh_memberships(socket.assigns.org.id)
        |> assign(:show_revoke_modal, false)
        |> assign(:revoke_target, nil)
        |> assign(:revoke_is_self, false)
@@ -242,15 +242,23 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
         socket
       ) do
     with {membership_id, ""} <- Integer.parse(id),
-         {:ok, _} <- Accounts.update_membership_role(membership_id, new_role) do
+         {:ok, _} <-
+           Accounts.update_membership_role(
+             membership_id,
+             new_role,
+             socket.assigns.current_user.id
+           ) do
       {:noreply,
        socket
-       |> assign(:memberships, load_memberships(socket.assigns.org.id))
+       |> refresh_memberships(socket.assigns.org.id)
        |> put_flash(:info, "Role updated.")}
     else
       {:error, :last_owner_protected} ->
         {:noreply,
          put_flash(socket, :error, "Cannot demote the last owner of this organization.")}
+
+      {:error, :unauthorized} ->
+        {:noreply, put_flash(socket, :error, "You don't have permission to change roles.")}
 
       {:error, :invalid_role} ->
         {:noreply, put_flash(socket, :error, "Invalid role.")}
@@ -408,22 +416,37 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                         <div class="flex items-center gap-2">
                           {(m.user && m.user.email) || "—"}
                           <%= if @current_user && m.user_id == @current_user.id do %>
-                            <.icon name="hero-finger-print" class="size-4 text-lime-300" />
+                            <span class="rounded-full bg-lime-300/10 px-2 py-0.5 text-xs font-medium text-lime-300">
+                              you
+                            </span>
                           <% end %>
                         </div>
                       </td>
                       <td class="px-5 py-4">
                         <%= if @can_manage do %>
-                          <form phx-change="change-role">
+                          <% is_self = @current_user && m.user_id == @current_user.id %>
+                          <% state =
+                            role_select_state(@current_role, m.role, is_self, @active_owner_count) %>
+                          <form id={"role-form-#{m.id}"} phx-change="change-role">
                             <input type="hidden" name="membership-id" value={m.id} />
                             <select
                               name="role"
-                              class="rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1.5 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+                              disabled={state.disabled}
+                              class={[
+                                "rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1",
+                                if(state.disabled,
+                                  do: "cursor-not-allowed text-zinc-500 opacity-60",
+                                  else: "text-white focus:border-lime-300 focus:ring-lime-300"
+                                )
+                              ]}
                             >
-                              <option value="owner" selected={m.role == "owner"}>owner</option>
-                              <option value="admin" selected={m.role == "admin"}>admin</option>
-                              <option value="member" selected={m.role == "member"}>member</option>
-                              <option value="viewer" selected={m.role == "viewer"}>viewer</option>
+                              <option
+                                :for={{value, label} <- state.options}
+                                value={value}
+                                selected={m.role == value}
+                              >
+                                {label}
+                              </option>
                             </select>
                           </form>
                         <% else %>
@@ -639,6 +662,94 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
     Accounts.list_memberships_for_org(org_id)
     |> Enum.reject(&(&1.status == "revoked"))
     |> Repo.preload(:user)
+  end
+
+  defp refresh_memberships(socket, org_id) do
+    memberships = load_memberships(org_id)
+
+    # The viewer's own role may have just changed (self-demotion) or their
+    # membership been revoked. Rebind the permission-derived assigns from the
+    # refreshed list so the table re-renders with the correct controls without
+    # a full reload.
+    viewer_role =
+      case socket.assigns[:current_user] do
+        %{id: uid} ->
+          case Enum.find(memberships, &(&1.user_id == uid)) do
+            nil -> nil
+            m -> m.role
+          end
+
+        _ ->
+          nil
+      end
+
+    socket
+    |> assign(:memberships, memberships)
+    |> assign(:member_count, Accounts.count_memberships_for_org(org_id))
+    |> assign(:active_owner_count, count_active_owners(memberships))
+    |> assign(:current_role, viewer_role)
+    |> assign(:can_manage, viewer_role && Accounts.role_at_least?(viewer_role, "admin"))
+  end
+
+  defp count_active_owners(memberships) do
+    Enum.count(memberships, &(&1.role == "owner" and &1.status == "active"))
+  end
+
+  # Decides, per row, whether the role <select> is locked and which options it
+  # offers. Mirrors the authorization rules in
+  # `Accounts.update_membership_role/3` so the UI never offers a choice the
+  # server would reject.
+  #
+  # admin viewer:
+  #   - owner target                       -> locked
+  #   - other admin target                 -> locked
+  #   - self (admin)                       -> self-demit to member/viewer only
+  #   - member/viewer targets              -> member/viewer only
+  # owner viewer:
+  #   - self + last owner                  -> locked (last-owner protection)
+  #   - everything else                    -> all four roles
+  defp role_select_state(current_role, target_role, is_self, active_owner_count) do
+    cond do
+      current_role == "admin" ->
+        cond do
+          target_role == "owner" ->
+            %{disabled: true, options: [{"owner", "owner"}]}
+
+          target_role == "admin" and is_self ->
+            # Keep current role visible; only allow stepping down.
+            %{
+              disabled: false,
+              options: [{"admin", "admin"}, {"member", "member"}, {"viewer", "viewer"}]
+            }
+
+          target_role == "admin" ->
+            %{disabled: true, options: [{"admin", "admin"}]}
+
+          true ->
+            %{disabled: false, options: [{"member", "member"}, {"viewer", "viewer"}]}
+        end
+
+      current_role == "owner" ->
+        is_last_owner = is_self and target_role == "owner" and active_owner_count <= 1
+
+        if is_last_owner do
+          %{disabled: true, options: [{"owner", "owner"}]}
+        else
+          %{
+            disabled: false,
+            options: [
+              {"owner", "owner"},
+              {"admin", "admin"},
+              {"member", "member"},
+              {"viewer", "viewer"}
+            ]
+          }
+        end
+
+      true ->
+        # member/viewer viewers don't manage roles; lock as a safety net.
+        %{disabled: true, options: [{target_role, target_role}]}
+    end
   end
 
   defp can_revoke?(nil, _target, _current_user), do: false
