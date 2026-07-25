@@ -657,7 +657,6 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
 
   defp load_memberships(org_id) do
     Accounts.list_memberships_for_org(org_id)
-    |> Enum.reject(&(&1.status == "revoked"))
     |> Repo.preload(:user)
   end
 

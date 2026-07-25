@@ -537,11 +537,22 @@ defmodule ControlKeel.Accounts do
   @spec get_membership(integer()) :: Membership.t() | nil
   def get_membership(id), do: Repo.get(Membership, id)
 
+  @doc """
+  List memberships for an org, excluding revoked rows by default.
+
+  Revoked memberships are hidden unless explicitly requested:
+    * pass `status: "revoked"` to see only revoked rows, or
+    * pass `include_revoked: true` to see every row regardless of status.
+
+  Any other explicit `status:` value (`"active"`, `"pending"`) is honored as
+  an exact match and bypasses the default revocation filter.
+  """
   @spec list_memberships_for_org(integer(), keyword()) :: [Membership.t()]
   def list_memberships_for_org(org_id, opts \\ []) do
     Membership
     |> where([m], m.org_id == ^org_id)
     |> filter_status(Keyword.get(opts, :status))
+    |> maybe_exclude_revoked(opts)
     |> order_by([m], asc: m.id)
     |> Repo.all()
   end
@@ -1213,6 +1224,17 @@ defmodule ControlKeel.Accounts do
 
   defp filter_status(query, nil), do: query
   defp filter_status(query, status), do: where(query, [x], x.status == ^status)
+
+  # Revoked rows are hidden by default. Skip the filter when an explicit
+  # `status:` is given (exact match wins) or the caller opts in via
+  # `include_revoked: true`.
+  defp maybe_exclude_revoked(query, opts) do
+    if Keyword.get(opts, :status) || Keyword.get(opts, :include_revoked, false) do
+      query
+    else
+      where(query, [m], m.status != "revoked")
+    end
+  end
 
   # ---------------------------------------------------------------------------
   # Workspace tool catalog policies

@@ -346,6 +346,61 @@ defmodule ControlKeel.AccountsTest do
       assert length(Accounts.list_memberships_for_user(alice.id)) == 2
       assert length(Accounts.list_memberships_for_user(bob.id)) == 1
     end
+
+    test "list_memberships_for_org/2 excludes revoked rows by default" do
+      {:ok, owner} = Accounts.create_user(%{email: "filter-owner@example.com"})
+
+      {:ok, _} =
+        Accounts.create_org_with_owner(owner.id, %{name: "Filter Org", slug: "filter-org"})
+
+      org = Accounts.get_org_by_slug("filter-org")
+
+      {:ok, invitee} = Accounts.create_user(%{email: "filter-invitee@example.com"})
+      {:ok, m, _token} = Accounts.invite_member(invitee.id, org.id, role: "member")
+
+      # owner (active) + invitee (pending): neither revoked, both visible.
+      assert length(Accounts.list_memberships_for_org(org.id)) == 2
+
+      {:ok, _} = Accounts.revoke_membership(m.id, owner.id)
+
+      rows = Accounts.list_memberships_for_org(org.id)
+      assert length(rows) == 1
+      assert Enum.all?(rows, &(&1.status != "revoked"))
+    end
+
+    test "list_memberships_for_org/2 include_revoked: true returns revoked rows" do
+      {:ok, owner} = Accounts.create_user(%{email: "filter-owner2@example.com"})
+
+      {:ok, _} =
+        Accounts.create_org_with_owner(owner.id, %{name: "Filter Org 2", slug: "filter-org-2"})
+
+      org = Accounts.get_org_by_slug("filter-org-2")
+
+      {:ok, invitee} = Accounts.create_user(%{email: "filter-invitee2@example.com"})
+      {:ok, m, _token} = Accounts.invite_member(invitee.id, org.id, role: "member")
+      {:ok, _} = Accounts.revoke_membership(m.id, owner.id)
+
+      rows = Accounts.list_memberships_for_org(org.id, include_revoked: true)
+      assert length(rows) == 2
+      assert Enum.any?(rows, &(&1.status == "revoked"))
+    end
+
+    test "list_memberships_for_org/2 status: \"revoked\" returns only revoked rows" do
+      {:ok, owner} = Accounts.create_user(%{email: "filter-owner3@example.com"})
+
+      {:ok, _} =
+        Accounts.create_org_with_owner(owner.id, %{name: "Filter Org 3", slug: "filter-org-3"})
+
+      org = Accounts.get_org_by_slug("filter-org-3")
+
+      {:ok, invitee} = Accounts.create_user(%{email: "filter-invitee3@example.com"})
+      {:ok, m, _token} = Accounts.invite_member(invitee.id, org.id, role: "member")
+      {:ok, _} = Accounts.revoke_membership(m.id, owner.id)
+
+      rows = Accounts.list_memberships_for_org(org.id, status: "revoked")
+      assert length(rows) == 1
+      assert hd(rows).status == "revoked"
+    end
   end
 
   describe "workspace ↔ org linkage" do
