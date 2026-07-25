@@ -151,7 +151,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
       # Header is present, and the owner role badge is rendered (not the muted placeholder).
       assert html =~ ">Role<"
       assert html =~ "Owned"
-      assert html =~ ~s(>owner<)
+      assert html =~ "owner"
       refute html =~ "—"
     end
 

@@ -16,7 +16,7 @@ defmodule ControlKeel.MailerTest do
       assert {:invitation, payload, %DateTime{}} = TestInbox.find_by_email("x@example.com")
       assert payload.to == "x@example.com"
       assert payload.token == "raw-token-abc"
-      assert payload.url == "/cloud/invitations/raw-token-abc"
+      assert payload.url == "/invitations/raw-token-abc"
     end
 
     test "all/0 returns deliveries newest first" do
