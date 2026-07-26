@@ -6,10 +6,10 @@ defmodule ControlKeel.Accounts.User do
   Per architectural decision D4, user accounts live in their own context and
   do not share a table with service accounts.
 
-  Auth in this slice is invite-only: users are created via
-  `ControlKeel.Accounts.invite_member/3` which produces a high-entropy
-  invitation token stored on the corresponding `Membership`. A future Phase 6
-  slice can layer SSO/password on top.
+  Users are created via `ControlKeel.Accounts.invite_member/3`, which produces
+  a high-entropy invitation token stored on the corresponding `Membership`.
+  Browser sign-in (Google/GitHub OAuth) is handled in `ControlKeelWeb`, not on
+  this schema.
   """
 
   use Ecto.Schema

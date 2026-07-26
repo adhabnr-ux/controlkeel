@@ -95,7 +95,6 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
      |> assign(:is_owner, local_mode || (membership && membership.role == "owner"))
      |> assign(:show_settings_modal, false)
      |> assign(:settings_form, settings_form(org, budget_cents))
-     |> assign(:settings_saved, false)
      |> assign(:settings_error, nil)
      |> assign(:current_user, socket.assigns[:current_user])}
   end
@@ -109,7 +108,6 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
     {:noreply,
      socket
      |> assign(:show_settings_modal, false)
-     |> assign(:settings_saved, false)
      |> assign(:settings_error, nil)}
   end
 
@@ -130,7 +128,6 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
        |> assign(:org, org)
        |> assign(:budget_cents, budget_cents)
        |> assign(:settings_form, settings_form(org, budget_cents))
-       |> assign(:settings_saved, true)
        |> assign(:settings_error, nil)
        |> assign(:show_settings_modal, false)
        |> put_flash(:info, "Settings saved.")}
@@ -140,11 +137,10 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
           cs.errors
           |> Enum.map_join(", ", fn {f, {m, _}} -> "#{f}: #{m}" end)
 
-        {:noreply, assign(socket, :settings_error, msg) |> assign(:settings_saved, false)}
+        {:noreply, assign(socket, :settings_error, msg)}
 
       {:error, reason} ->
-        {:noreply,
-         assign(socket, :settings_error, inspect(reason)) |> assign(:settings_saved, false)}
+        {:noreply, assign(socket, :settings_error, inspect(reason))}
     end
   end
 

@@ -2,7 +2,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   @moduledoc """
   Org-scoped list of enrolled workspaces and per-workspace event detail view.
 
-  Phase 7 (multi-tenant SaaS) acceptance gate: an SSO'd user can land on
+  Phase 7 (multi-tenant SaaS) acceptance gate: a signed-in user can land on
   `/cloud/projects`, see the workspaces enrolled under their org, click into
   one, and read the recent telemetry events that workspace has posted.
 
@@ -11,7 +11,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     - `:index` requires an active org membership; the org_id pins the list.
     - `:show` resolves the requested workspace_id through
       `KeyRegistry.fetch/1`, then enforces that `key.org_id` matches
-      the SSO'd org. Without a session this falls back to the local
+      the signed-in user's org. Without a session this falls back to the local
       `Identity` for single-node self-host (the unauthenticated
       page still surfaces the receiver's own workspace).
 

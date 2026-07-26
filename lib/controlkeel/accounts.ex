@@ -5,9 +5,10 @@ defmodule ControlKeel.Accounts do
   Per architectural decision D4, this is the human-identity surface. Machine
   identities continue to live under `ControlKeel.Platform.ServiceAccount`.
 
-  Auth in this first slice is invite-only via high-entropy tokens
+  Auth is invite-only via high-entropy tokens
   (`invite_member/3` produces the token; `accept_invitation/2` redeems it).
-  SSO/password flows are a Phase 6 concern.
+  Browser sign-in (Google/GitHub OAuth) is handled in `ControlKeelWeb`, not
+  here; this context is the identity + membership store.
   """
 
   import Ecto.Query, warn: false
