@@ -26,7 +26,7 @@ defmodule ControlKeelWeb.InvitationLive do
 
   @impl true
   def mount(%{"token" => token}, session, socket) do
-    socket = assign(socket, :page_title, "Cloud invitation")
+    socket = assign(socket, :page_title, "Invitation")
     current_user = current_user_from_session(session)
 
     case Accounts.lookup_invitation(token) do
