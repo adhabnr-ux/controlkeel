@@ -262,17 +262,6 @@ defmodule ControlKeel.CLI.Parser do
   @org_budget_show_switches [project_root: :string, json: :boolean]
   @org_invite_switches [project_root: :string, email: :string, role: :string, json: :boolean]
   @org_members_switches [project_root: :string, json: :boolean]
-  @org_idp_set_switches [
-    project_root: :string,
-    type: :string,
-    issuer: :string,
-    client_id: :string,
-    entity_id: :string,
-    idp_metadata_url: :string,
-    clear: :boolean,
-    json: :boolean
-  ]
-  @org_idp_show_switches [project_root: :string, json: :boolean]
   @run_cloud_agent_switches [
     project_root: :string,
     runtime: :string,
@@ -549,18 +538,6 @@ defmodule ControlKeel.CLI.Parser do
 
       ["org", "members", slug | rest] ->
         case parse_with_switches(:org_members, rest, @org_members_switches) do
-          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
-          err -> err
-        end
-
-      ["org", "idp", "set", slug | rest] ->
-        case parse_with_switches(:org_idp_set, rest, @org_idp_set_switches) do
-          {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
-          err -> err
-        end
-
-      ["org", "idp", "show", slug | rest] ->
-        case parse_with_switches(:org_idp_show, rest, @org_idp_show_switches) do
           {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
           err -> err
         end

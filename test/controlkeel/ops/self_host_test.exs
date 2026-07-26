@@ -5,7 +5,7 @@ defmodule ControlKeel.Ops.SelfHostTest do
 
   @env_vars ~w(DATABASE_URL SECRET_KEY_BASE PHX_HOST
               CK_AUDIT_SIGNING_KEY
-              CONTROLKEEL_OIDC_CLIENT_SECRET CONTROLKEEL_RUNTIME_MODE)
+              CONTROLKEEL_RUNTIME_MODE)
 
   setup do
     previous = Map.new(@env_vars, fn name -> {name, System.get_env(name)} end)

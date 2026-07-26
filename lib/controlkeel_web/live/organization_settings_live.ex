@@ -4,7 +4,6 @@ defmodule ControlKeelWeb.OrganizationSettingsLive do
 
   Sections:
     - General: name, status, budget (owner-only fields)
-    - Authentication: OIDC / SAML IdP configuration
     - Security: sign out everywhere (owner-only)
 
   ## Access
