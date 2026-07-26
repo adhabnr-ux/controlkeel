@@ -6,9 +6,17 @@ defmodule ControlKeelWeb.Plugs.BrowserAuthPlugsTest do
 
   setup %{conn: conn} do
     {:ok, org} = Accounts.create_org(%{name: "Acme", slug: "acme"})
+    {:ok, user, _created} = Accounts.find_or_create_user("user@example.com", "Test User")
 
-    {:ok, user, membership} =
-      Accounts.ensure_sso_membership(org.id, %{"email" => "user@example.com"}, role: "admin")
+    {:ok, membership} =
+      %ControlKeel.Accounts.Membership{}
+      |> ControlKeel.Accounts.Membership.changeset(%{
+        user_id: user.id,
+        org_id: org.id,
+        role: "admin",
+        status: "active"
+      })
+      |> ControlKeel.Repo.insert()
 
     conn = init_test_session(conn, %{current_user_id: user.id, current_org_id: org.id})
     {:ok, conn: conn, org: org, user: user, membership: membership}
