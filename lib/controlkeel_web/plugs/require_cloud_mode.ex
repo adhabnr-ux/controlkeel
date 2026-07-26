@@ -9,10 +9,6 @@ defmodule ControlKeelWeb.Plugs.RequireCloudMode do
       redirects to `/dashboard` with an informational flash.
     * In local mode, `/invitations/*` paths are cloud-only features and
       redirect to `/dashboard`.
-
-  Note: `/auth/saml/acs` is exempt at the router level — it is mounted under
-  the `:saml_acs` pipeline, which does not include this plug, because SAML
-  IdPs POST assertions from outside the app in both modes.
   """
 
   import Plug.Conn

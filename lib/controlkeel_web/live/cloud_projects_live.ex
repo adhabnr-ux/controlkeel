@@ -396,9 +396,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     ~H"""
     <div class="ck-card">
       <p>
-        Sign in via your org's SSO provider to see enrolled workspaces. <.link href={
-          ~p"/auth/oidc/start"
-        }>Start OIDC login</.link>.
+        Sign in to see enrolled workspaces. <.link href={~p"/auth/login"}>Sign in</.link>.
       </p>
     </div>
     """

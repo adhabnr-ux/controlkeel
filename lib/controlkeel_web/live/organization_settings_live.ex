@@ -73,7 +73,6 @@ defmodule ControlKeelWeb.OrganizationSettingsLive do
   end
 
   defp mount_ok(socket, org, is_owner) do
-    idp = Accounts.get_org_identity_provider(org) || %{}
     budget_cents = Accounts.org_budget_cents(org) || 0
 
     {:ok,
@@ -93,12 +92,7 @@ defmodule ControlKeelWeb.OrganizationSettingsLive do
        )
      )
      |> assign(:saved, false)
-     |> assign(:error, nil)
-     |> assign(:idp, idp)
-     |> assign(:idp_type, Map.get(idp, "type") || "oidc")
-     |> assign(:idp_form, to_form(idp_to_form_params(idp), as: :idp))
-     |> assign(:idp_error, nil)
-     |> assign(:idp_saved, false)}
+     |> assign(:error, nil)}
   end
 
   # ── General settings events ────────────────────────────────────────
@@ -130,51 +124,6 @@ defmodule ControlKeelWeb.OrganizationSettingsLive do
 
       {:error, reason} ->
         {:noreply, assign(socket, :error, inspect(reason)) |> assign(:saved, false)}
-    end
-  end
-
-  # ── Auth / IdP events ──────────────────────────────────────────────
-
-  def handle_event("change-type", %{"idp" => %{"type" => type}}, socket) do
-    {:noreply, assign(socket, :idp_type, type)}
-  end
-
-  def handle_event("submit_idp", %{"idp" => params}, socket) do
-    attrs = normalize_idp(params)
-
-    case Accounts.set_org_identity_provider(socket.assigns.org.id, attrs) do
-      {:ok, org} ->
-        idp = Accounts.get_org_identity_provider(org) || %{}
-
-        {:noreply,
-         socket
-         |> assign(:org, org)
-         |> assign(:idp, idp)
-         |> assign(:idp_saved, true)
-         |> assign(:idp_error, nil)
-         |> put_flash(:info, "Identity provider saved.")}
-
-      {:error, reason} ->
-        {:noreply,
-         socket
-         |> assign(:idp_error, format_idp_error(reason))
-         |> assign(:idp_saved, false)}
-    end
-  end
-
-  def handle_event("clear_idp", _params, socket) do
-    case Accounts.set_org_identity_provider(socket.assigns.org.id, nil) do
-      {:ok, org} ->
-        {:noreply,
-         socket
-         |> assign(:org, org)
-         |> assign(:idp, %{})
-         |> assign(:idp_form, to_form(%{}, as: :idp))
-         |> assign(:idp_saved, true)
-         |> put_flash(:info, "Identity provider cleared.")}
-
-      {:error, reason} ->
-        {:noreply, assign(socket, :idp_error, format_idp_error(reason))}
     end
   end
 
@@ -264,114 +213,6 @@ defmodule ControlKeelWeb.OrganizationSettingsLive do
         </.form>
       </section>
 
-      <%!-- Authentication / IdP settings --%>
-      <section class="mt-8 rounded-3xl border border-white/10 bg-zinc-900/70 p-6 shadow-2xl shadow-black/20 backdrop-blur">
-        <h2 class="mb-2 text-lg font-semibold text-white">Authentication</h2>
-        <p class="mb-4 text-sm text-zinc-400">
-          Configure the identity provider members use to sign in via <code>/auth/login</code>.
-        </p>
-
-        <.form
-          for={@idp_form}
-          phx-submit="submit_idp"
-          phx-change="change-type"
-          class="flex flex-col gap-4"
-        >
-          <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Provider type</label>
-            <select
-              name="idp[type]"
-              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
-            >
-              <option value="oidc" selected={@idp_type == "oidc"}>OIDC</option>
-              <option value="saml" selected={@idp_type == "saml"}>SAML</option>
-            </select>
-          </div>
-
-          <%= if @idp_type == "oidc" do %>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Issuer</label>
-              <input
-                type="text"
-                name="idp[issuer]"
-                value={Map.get(@idp, "issuer", "")}
-                placeholder="https://accounts.google.com"
-                required
-                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Client ID</label>
-              <input
-                type="text"
-                name="idp[client_id]"
-                value={Map.get(@idp, "client_id", "")}
-                required
-                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Client secret</label>
-              <input
-                type="password"
-                name="idp[client_secret]"
-                value={Map.get(@idp, "client_secret", "")}
-                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
-              />
-              <p class="mt-1 text-xs text-zinc-500">Leave blank to keep the existing secret.</p>
-            </div>
-          <% else %>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Entity ID</label>
-              <input
-                type="text"
-                name="idp[entity_id]"
-                value={Map.get(@idp, "entity_id", "")}
-                required
-                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">IdP metadata URL</label>
-              <input
-                type="text"
-                name="idp[idp_metadata_url]"
-                value={Map.get(@idp, "idp_metadata_url", "")}
-                required
-                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
-              />
-            </div>
-          <% end %>
-
-          <%= if @idp_error do %>
-            <p class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{@idp_error}</p>
-          <% end %>
-          <%= if @idp_saved do %>
-            <p class="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
-              Settings saved. Test sign-in at <code>/auth/login</code>
-              with org slug <code>{@org.slug}</code>.
-            </p>
-          <% end %>
-
-          <div class="flex gap-2">
-            <button
-              type="submit"
-              class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-5 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
-            >
-              Save
-            </button>
-            <%= if @idp != %{} do %>
-              <button
-                type="button"
-                phx-click="clear_idp"
-                class="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
-              >
-                Clear
-              </button>
-            <% end %>
-          </div>
-        </.form>
-      </section>
     </section>
     """
   end
@@ -399,44 +240,6 @@ defmodule ControlKeelWeb.OrganizationSettingsLive do
         {:error, "Budget must be a non-negative integer (in cents)."}
     end
   end
-
-  defp idp_to_form_params(idp) when is_map(idp) do
-    Map.drop(idp, ["client_secret"])
-  end
-
-  defp normalize_idp(params) do
-    type = params["type"] || "oidc"
-    base = %{"type" => type}
-
-    case type do
-      "oidc" ->
-        base
-        |> maybe_put("issuer", params["issuer"])
-        |> maybe_put("client_id", params["client_id"])
-        |> maybe_put("client_secret", params["client_secret"])
-
-      "saml" ->
-        base
-        |> maybe_put("entity_id", params["entity_id"])
-        |> maybe_put("idp_metadata_url", params["idp_metadata_url"])
-
-      _ ->
-        base
-    end
-  end
-
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, _key, ""), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
-
-  defp format_idp_error(:not_found), do: "Organization not found."
-  defp format_idp_error(:unsupported_provider_type), do: "Unsupported provider type."
-
-  defp format_idp_error({:missing_fields, fields}),
-    do: "Missing required fields: #{Enum.join(fields, ", ")}"
-
-  defp format_idp_error(%Ecto.Changeset{}), do: "Could not save settings."
-  defp format_idp_error(other), do: "Error: #{inspect(other)}"
 
   defp redirect_with_flash(socket, kind, msg, path) do
     socket
