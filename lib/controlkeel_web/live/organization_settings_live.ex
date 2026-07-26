@@ -211,7 +211,6 @@ defmodule ControlKeelWeb.OrganizationSettingsLive do
           </button>
         </.form>
       </section>
-
     </section>
     """
   end

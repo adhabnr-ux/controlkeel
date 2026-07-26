@@ -8,7 +8,7 @@
 #   - Same Phoenix release as controlkeel.com
 #   - Multi-tenant workspace_keys registry — your fly app verifies tokens from
 #     all your team's laptops, not just the receiver's own identity
-#   - SSO/OIDC + SAML, audit export, compliance templates, NHI lifecycle,
+#   - Audit export, compliance templates, NHI lifecycle,
 #     hosted MCP gateway, behavioral baselining — every Phase 1–6 surface
 #   - Org-scoped /cloud/projects dashboard for your team
 #
