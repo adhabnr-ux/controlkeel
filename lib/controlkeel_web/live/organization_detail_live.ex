@@ -146,24 +146,28 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
         {membership_id, ""} ->
           target = Enum.find(socket.assigns.memberships, &(&1.id == membership_id))
 
-          is_self =
-            target && socket.assigns.current_user &&
-              target.user_id == socket.assigns.current_user.id
+          if is_nil(target) do
+            {:noreply, put_flash(socket, :error, "Membership not found.")}
+          else
+            is_self =
+              socket.assigns.current_user &&
+                target.user_id == socket.assigns.current_user.id
 
-          active_owners =
-            Enum.count(
-              socket.assigns.memberships,
-              &(&1.role == "owner" and &1.status == "active")
-            )
+            active_owners =
+              Enum.count(
+                socket.assigns.memberships,
+                &(&1.role == "owner" and &1.status == "active")
+              )
 
-          is_last_owner = (is_self && target && target.role == "owner") and active_owners <= 1
+            is_last_owner = is_self and target.role == "owner" and active_owners <= 1
 
-          {:noreply,
-           socket
-           |> assign(:show_revoke_modal, true)
-           |> assign(:revoke_target, target)
-           |> assign(:revoke_is_self, is_self)
-           |> assign(:revoke_is_last_owner, is_last_owner)}
+            {:noreply,
+             socket
+             |> assign(:show_revoke_modal, true)
+             |> assign(:revoke_target, target)
+             |> assign(:revoke_is_self, is_self)
+             |> assign(:revoke_is_last_owner, is_last_owner)}
+          end
 
         _ ->
           {:noreply, put_flash(socket, :error, "Invalid membership.")}
