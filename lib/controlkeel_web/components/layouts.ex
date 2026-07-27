@@ -299,15 +299,16 @@ defmodule ControlKeelWeb.Layouts do
   }
 
   defp breadcrumb_trail(current_path) do
-    current_path
-    |> String.split("/", trim: true)
-    |> Enum.reduce([], fn segment, acc ->
-      path = "/" <> Enum.join(acc |> Enum.map(&elem(&1, 1)) ++ [segment], "/")
+    segments = String.split(current_path, "/", trim: true)
+
+    segments
+    |> Enum.with_index()
+    |> Enum.map(fn {segment, idx} ->
+      path = "/" <> Enum.join(Enum.take(segments, idx + 1), "/")
       label = Map.get(@label_map, segment, segment_name(segment))
-      [{label, path, false} | acc]
+      is_final = idx == length(segments) - 1
+      {label, path, is_final}
     end)
-    |> Enum.reverse()
-    |> List.update_at(-1, fn {label, path, _final} -> {label, path, true} end)
   end
 
   defp segment_name(segment) do
