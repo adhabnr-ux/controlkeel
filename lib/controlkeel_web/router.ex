@@ -75,7 +75,10 @@ defmodule ControlKeelWeb.Router do
     # In local mode the on_mount hook is a passthrough.
     live_session :cloud_auth,
       layout: {ControlKeelWeb.Layouts, :dashboard},
-      on_mount: [{ControlKeelWeb.LiveAuth, :require_cloud_auth}] do
+      on_mount: [
+        {ControlKeelWeb.LiveAuth, :require_cloud_auth},
+        ControlKeelWeb.NavHighlight
+      ] do
       live "/dashboard", DashboardLive, :index
       live "/missions", MissionsLive, :index
       live "/missions/start", OnboardingLive, :new

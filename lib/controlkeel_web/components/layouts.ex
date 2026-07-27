@@ -227,6 +227,95 @@ defmodule ControlKeelWeb.Layouts do
     """
   end
 
+  @doc """
+  Renders a breadcrumb trail derived from the current path.
+
+  Automatically maps URL segments to human-readable labels.
+  The root always shows a home icon linking to `/dashboard`.
+  Intermediate segments are clickable links; the final segment is plain text.
+
+  ## Examples
+
+      <.breadcrumb current_path={@current_path} />
+  """
+  attr :current_path, :string, default: nil
+
+  def breadcrumb(assigns) do
+    assigns = assign_new(assigns, :current_path, fn -> nil end)
+
+    ~H"""
+    <nav :if={@current_path && @current_path != "/"} aria-label="Breadcrumb" class="mb-4">
+      <ol class="flex items-center gap-1.5 text-sm">
+        <li>
+          <.link
+            navigate={~p"/dashboard"}
+            class="flex items-center gap-1 text-zinc-500 transition hover:text-zinc-300"
+          >
+            <.icon name="hero-home" class="size-3.5" />
+          </.link>
+        </li>
+        <%= for {label, path, final} <- breadcrumb_trail(@current_path) do %>
+          <li class="flex items-center gap-1.5">
+            <.icon name="hero-chevron-right" class="size-3 text-zinc-600" />
+            <%= if final do %>
+              <span class="font-medium text-zinc-300">{label}</span>
+            <% else %>
+              <.link
+                navigate={path}
+                class="text-zinc-500 transition hover:text-zinc-300"
+              >
+                {label}
+              </.link>
+            <% end %>
+          </li>
+        <% end %>
+      </ol>
+    </nav>
+    """
+  end
+
+  @label_map %{
+    "dashboard" => "Dashboard",
+    "missions" => "Missions",
+    "findings" => "Findings",
+    "benchmarks" => "Benchmarks",
+    "proofs" => "Proofs",
+    "reviews" => "Reviews",
+    "organizations" => "Organizations",
+    "workspaces" => "Workspaces",
+    "policies" => "Policy Studio",
+    "skills" => "Skills",
+    "deploy" => "Deploy",
+    "cloud" => "Cloud",
+    "observability" => "Observability",
+    "repos" => "Repos",
+    "service-accounts" => "Service Accounts",
+    "webhooks" => "Webhooks",
+    "tool-policy" => "Tool Policy",
+    "start" => "New Mission",
+    "runs" => "Runs",
+    "telemetry" => "Telemetry",
+    "projects" => "Projects"
+  }
+
+  defp breadcrumb_trail(current_path) do
+    current_path
+    |> String.split("/", trim: true)
+    |> Enum.reduce([], fn segment, acc ->
+      path = "/" <> Enum.join(acc |> Enum.map(&elem(&1, 1)) ++ [segment], "/")
+      label = Map.get(@label_map, segment, segment_name(segment))
+      [{label, path, false} | acc]
+    end)
+    |> Enum.reverse()
+    |> List.update_at(-1, fn {label, path, _final} -> {label, path, true} end)
+  end
+
+  defp segment_name(segment) do
+    segment
+    |> String.replace("-", " ")
+    |> String.capitalize()
+  end
+
   # Active-link class for the observability subnav. `path == current_path`
   # highlights the current page.
   defp nav_link_class(path, current_path) do
