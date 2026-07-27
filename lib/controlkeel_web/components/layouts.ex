@@ -144,13 +144,41 @@ defmodule ControlKeelWeb.Layouts do
         >
           <.icon name="hero-code-bracket" class="size-4 text-zinc-500" /> GitHub
         </a>
-        <a
+
+        <div
           :if={@current_user != nil and @mode != :local}
-          href={~p"/auth/logout"}
-          class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-[var(--ck-danger)]"
+          class="relative mt-1"
+          id="sidebar-user-menu"
         >
-          <.icon name="hero-arrow-right-on-rectangle" class="size-4 text-zinc-500" /> Sign out
-        </a>
+          <button
+            type="button"
+            phx-click={JS.toggle(to: "#sidebar-user-popover")}
+            class="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/10"
+          >
+            <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-lime-300/20 text-xs font-semibold text-lime-300 ring-1 ring-lime-300/30">
+              {String.at(@current_user.name || @current_user.email, 0) |> String.upcase()}
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-medium text-white">{@current_user.name}</span>
+            </span>
+            <.icon name="hero-chevron-down" class="size-4 shrink-0 text-zinc-500" />
+          </button>
+          <div
+            id="sidebar-user-popover"
+            phx-click-away={JS.hide(to: "#sidebar-user-popover")}
+            class="hidden absolute bottom-20 right-4 z-50 w-56 rounded-xl border border-white/10 bg-zinc-900 p-3 shadow-2xl shadow-black/50 backdrop-blur-md"
+          >
+            <p class="text-sm font-semibold text-white">{@current_user.name}</p>
+            <p class="mt-0.5 text-xs text-zinc-400">{@current_user.email}</p>
+            <div class="my-2 border-t border-white/10"></div>
+            <a
+              href={~p"/auth/logout"}
+              class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-[var(--ck-danger)]"
+            >
+              <.icon name="hero-arrow-right-on-rectangle" class="size-4" /> Sign out
+            </a>
+          </div>
+        </div>
       </div>
     </aside>
     """
