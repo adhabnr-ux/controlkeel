@@ -17,14 +17,28 @@ defmodule ControlKeel.Memory.Store.Sqlite do
   end
 
   defp check_fts_availability do
-    case SQL.query(
-           Repo.active(),
-           "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'memory_records_fts'",
-           []
-         ) do
-      {:ok, %{rows: [[_name]]}} -> true
-      _ -> false
+    # The FTS probe is SQLite-specific (queries sqlite_master). In cloud mode
+    # Repo.active()/0 is CloudRepo (Postgres), where this query would error and
+    # spam logs. Short-circuit when the active adapter is not SQLite3; the
+    # search path then degrades to fallback_records, which targets the active
+    # repo through Ecto and works on Postgres. Matches the adapter check in
+    # ControlKeel.Ops.Database.
+    if sqlite_active?() do
+      case SQL.query(
+             Repo.active(),
+             "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'memory_records_fts'",
+             []
+           ) do
+        {:ok, %{rows: [[_name]]}} -> true
+        _ -> false
+      end
+    else
+      false
     end
+  end
+
+  defp sqlite_active? do
+    to_string(Repo.__adapter__()) == "Elixir.Ecto.Adapters.SQLite3"
   end
 
   defp sqlite_fts_available? do

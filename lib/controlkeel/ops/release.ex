@@ -28,11 +28,15 @@ defmodule ControlKeel.Ops.Release do
   end
 
   defp repos do
-    runtime_mode = Application.get_env(@app, :runtime_mode, :local)
-
-    case runtime_mode do
-      :cloud -> [ControlKeel.CloudRepo]
-      _ -> [ControlKeel.Repo.Local]
+    # Match the boot-time migration path in ControlKeel.Application.run_migrations/0:
+    # migrate the repo the dispatcher will actually serve. A `:self_hosted`
+    # release with DATABASE_URL must migrate CloudRepo (Postgres), not the
+    # laptop-local SQLite file. Routing through cloud_repo_enabled?/0 keeps the
+    # release command consistent with query routing (issue #44).
+    if ControlKeel.Runtime.cloud_repo_enabled?() do
+      [ControlKeel.CloudRepo]
+    else
+      [ControlKeel.Repo.Local]
     end
   end
 

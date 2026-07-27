@@ -71,9 +71,7 @@ defmodule ControlKeel.Application do
   end
 
   defp late_children do
-    [
-      ControlKeel.Repo.Local
-    ] ++
+    local_repo_children() ++
       cloud_repo_children() ++
       analytics_children() ++
       cloud_emitter_children() ++
@@ -105,9 +103,7 @@ defmodule ControlKeel.Application do
   end
 
   defp mcp_stdio_rest_children do
-    [
-      ControlKeel.Repo.Local
-    ] ++
+    local_repo_children() ++
       cloud_repo_children() ++
       analytics_children() ++
       cloud_emitter_children() ++
@@ -263,6 +259,14 @@ defmodule ControlKeel.Application do
     else
       []
     end
+  end
+
+  # Only start the SQLite repo when it is actually configured. A prod
+  # cloud/self-hosted release intentionally leaves Repo.Local without a
+  # :database/:url, so starting it unconditionally would crash boot. See
+  # ControlKeel.Runtime.local_repo_configured?/0.
+  defp local_repo_children do
+    if ControlKeel.Runtime.local_repo_configured?(), do: [ControlKeel.Repo.Local], else: []
   end
 
   defp cloud_emitter_children do

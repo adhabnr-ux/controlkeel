@@ -75,6 +75,53 @@ defmodule ControlKeel.RepoTest do
       assert Runtime.cloud_repo_enabled?()
       assert Repo.active() == ControlKeel.CloudRepo
     end
+
+    test "resolves to SQLite for :self_hosted when CloudRepo has no :url (issue #44)" do
+      # config/config.exs always sets CloudRepo priv: "priv/repo", so a bare
+      # non-empty CloudRepo env must NOT count as "enabled". A self-hosted box
+      # without DATABASE_URL must keep using the SQLite database runtime.exs
+      # configured, rather than routing queries to an unconfigured Postgres repo.
+      System.delete_env("CONTROLKEEL_RUNTIME_MODE")
+      Application.put_env(:controlkeel, :runtime_mode, :self_hosted)
+      Application.put_env(:controlkeel, ControlKeel.CloudRepo, priv: "priv/repo")
+
+      assert Runtime.mode() == :self_hosted
+      refute Runtime.cloud_repo_enabled?()
+      assert Repo.active() == ControlKeel.Repo.Local
+    end
+  end
+
+  describe "Runtime.local_repo_configured?/0" do
+    # Gates whether Repo.Local is supervised. A prod cloud release leaves
+    # Repo.Local without :database/:url, so the predicate must report false to
+    # avoid booting an unconfigured SQLite repo (issue #44).
+    setup do
+      prev = Application.get_env(:controlkeel, ControlKeel.Repo.Local)
+
+      on_exit(fn ->
+        case prev do
+          nil -> Application.delete_env(:controlkeel, ControlKeel.Repo.Local)
+          config -> Application.put_env(:controlkeel, ControlKeel.Repo.Local, config, persistent: true)
+        end
+      end)
+
+      :ok
+    end
+
+    test "true when a :database is present" do
+      Application.put_env(:controlkeel, ControlKeel.Repo.Local, database: "/tmp/x.db")
+      assert Runtime.local_repo_configured?()
+    end
+
+    test "true when a :url is present" do
+      Application.put_env(:controlkeel, ControlKeel.Repo.Local, url: "postgresql://x")
+      assert Runtime.local_repo_configured?()
+    end
+
+    test "false with only non-connection config (mirrors prod cloud)" do
+      Application.put_env(:controlkeel, ControlKeel.Repo.Local, priv: "priv/repo")
+      refute Runtime.local_repo_configured?()
+    end
   end
 
   describe "forwarded queries (local mode)" do

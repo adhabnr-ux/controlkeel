@@ -10,9 +10,10 @@ defmodule ControlKeel.Repo do
     * `:cloud` / `:self_hosted` runtime mode → `ControlKeel.CloudRepo` (Postgres)
 
   Selection goes through `ControlKeel.Runtime.cloud_repo_enabled?/0`, which
-  requires a non-empty `ControlKeel.CloudRepo` config **and** a remote runtime
-  mode. This means a misconfigured cloud deployment fails closed against
-  Postgres instead of silently falling back to a local SQLite file.
+  requires a remote runtime mode **and** a configured `ControlKeel.CloudRepo`
+  `:url`. This means a misconfigured cloud deployment fails closed against
+  Postgres instead of silently falling back to a local SQLite file, and a
+  `:self_hosted` box without `DATABASE_URL` keeps using SQLite as intended.
 
   ## Why a dispatcher instead of a single Repo with a runtime adapter
 
