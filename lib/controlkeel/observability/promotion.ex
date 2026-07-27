@@ -115,7 +115,12 @@ defmodule ControlKeel.Observability.Promotion do
     reopened = metadata["lifecycle_reopened_by_run"]
     closed = metadata["lifecycle_closed_by_run"]
 
-    reopened != nil and compare_marker_timestamps(closed, reopened) != :gt
+    # Reopen wins only when strictly newer than the closed marker. A same-second
+    # tie (:eq) resolves in favor of recovery, because lifecycle timestamps are
+    # truncated to second precision (see
+    # Observability.close_eval_candidate_lifecycle_from_run!/1) and a genuine
+    # regression is captured by the next distinct-second reopen marker.
+    reopened != nil and compare_marker_timestamps(closed, reopened) == :lt
   end
 
   defp passing?(evidence, metadata) do

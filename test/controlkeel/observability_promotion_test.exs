@@ -83,6 +83,25 @@ defmodule ControlKeel.Observability.PromotionTest do
     assert result.state == "promote"
   end
 
+  test "recovers to promote when fail-then-pass lands in the same wall-clock second" do
+    # Lifecycle timestamps are truncated to second precision, so a fail followed
+    # by a pass within the same second produces equal closed_at values. The tie
+    # must resolve in favor of recovery instead of permanently blocking
+    # promotion (see Greptile P1 on PR #43).
+    tie = "2026-07-23T12:00:00Z"
+
+    result =
+      Promotion.evaluate(%{
+        status: "archived",
+        metadata: %{
+          "lifecycle_reopened_by_run" => %{"all_matched" => false, "closed_at" => tie},
+          "lifecycle_closed_by_run" => %{"all_matched" => true, "closed_at" => tie}
+        }
+      })
+
+    assert result.state == "promote"
+  end
+
   test "explicit human approval with passing evidence promotes without lifecycle markers" do
     result =
       Promotion.evaluate(%{status: "open"}, %{outcome: "passed", human_approved: true})
