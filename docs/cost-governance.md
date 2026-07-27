@@ -12,6 +12,24 @@ ControlKeel treats model usage as a governed resource, not an unlimited side eff
 - **Circuit breakers**: agent monitors can trip on API-call rate, file-modification rate, error rate, consecutive failures, and budget-burn rate.
 - **Provider trust/routing**: provider status distinguishes CK-owned providers, host-managed bridges, local Ollama, and heuristic fallback.
 
+## Deterministic promotion boundary
+
+Agents are for discovery, ambiguity, and exceptions. Once a behavior is
+understood, CK should stop paying an agent to rediscover it. The repeatable
+path is:
+
+1. Observe a recurring problem and save it as an eval candidate.
+2. Approve bounded benchmark coverage through the existing human gate.
+3. Require passing evidence before promotion.
+4. Run the deterministic check or workflow by default; send only misses and
+   genuinely novel cases back to an agent.
+
+`ControlKeel.Observability.Promotion` makes this boundary explicit with a pure,
+side-effect-free decision: `discover`, `review`, `promote`, or `reopen`.
+Failed or flaky evidence always reopens the candidate. A passing benchmark
+without recorded approval remains `review`; CK never silently promotes a
+high-impact behavior because a model suggested it.
+
 ## What providers and hosts still own
 
 CK cannot reliably know every user subscription quota for Claude Code, Codex, Cursor, Copilot, Cline, Roo, Continue, or other host-owned plans. These products often use rolling windows, weekly caps, premium-request pools, token multipliers, or auto-model fallbacks that are not exposed through a stable local API.
@@ -45,6 +63,10 @@ For overnight or AFK work, decide which loop you are actually running before lau
 
 - **Closed loop**: the answer is known enough that the agent should finish a bounded slice by morning.
 - **Open loop**: the answer is not known yet, so the agent should only optimize a named metric or shrink a search space by a bounded amount.
+
+For closed loops, prefer a deterministic command, API, test, or workflow after
+the promotion gate. Keep the agent in the loop only for exceptions, failures,
+and discovery of new cases.
 
 If you cannot state the finish condition or acceptable progress condition clearly, the loop is probably too open to run unattended without waste.
 

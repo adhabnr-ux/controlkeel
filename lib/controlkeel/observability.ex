@@ -11,7 +11,7 @@ defmodule ControlKeel.Observability do
   alias ControlKeel.Memory.Record, as: MemoryRecord
   alias ControlKeel.Mission
   alias ControlKeel.MCP.Tools.CkTokenAudit
-  alias ControlKeel.Observability.{BenchmarkDraft, EvalCandidate, ImportedEnvelope}
+  alias ControlKeel.Observability.{BenchmarkDraft, EvalCandidate, ImportedEnvelope, Promotion}
   alias ControlKeel.Mission.{Finding, Invocation, Session, SessionEvent}
   alias ControlKeel.Repo
 
@@ -322,15 +322,23 @@ defmodule ControlKeel.Observability do
         {new_status, lifecycle_key} = lifecycle_transition(all_matched)
         now = DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
 
+        # Monotonic per-candidate sequence so the promotion policy can order
+        # transitions that share a second-precision closed_at. Old rows without
+        # lifecycle_seq start at 0; the counter only moves forward.
+        prev_metadata = candidate.metadata || %{}
+        next_seq = (prev_metadata["lifecycle_seq"] || 0) + 1
+
         metadata =
-          (candidate.metadata || %{})
+          prev_metadata
+          |> Map.put("lifecycle_seq", next_seq)
           |> Map.put(lifecycle_key, %{
             "run_id" => run.id,
             "scenario_id" => scenario.id,
             "scenario_slug" => scenario.slug,
             "all_matched" => all_matched,
             "result_count" => length(results),
-            "closed_at" => now
+            "closed_at" => now,
+            "seq" => next_seq
           })
 
         candidate
@@ -2719,6 +2727,7 @@ defmodule ControlKeel.Observability do
       session_id: candidate.session_id,
       finding_id: candidate.finding_id,
       metadata: candidate.metadata || %{},
+      promotion: Promotion.evaluate(candidate),
       inserted_at: format_datetime(candidate.inserted_at)
     }
   end
