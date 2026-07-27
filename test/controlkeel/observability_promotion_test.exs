@@ -84,22 +84,37 @@ defmodule ControlKeel.Observability.PromotionTest do
   end
 
   test "recovers to promote when fail-then-pass lands in the same wall-clock second" do
-    # Lifecycle timestamps are truncated to second precision, so a fail followed
-    # by a pass within the same second produces equal closed_at values. The tie
-    # must resolve in favor of recovery instead of permanently blocking
-    # promotion (see Greptile P1 on PR #43).
+    # Lifecycle closed_at is truncated to second precision, so a fail followed
+    # by a pass within the same second produces equal timestamps. The monotonic
+    # `seq` counter disambiguates the ordering (see PR #43 Greptile P1).
     tie = "2026-07-23T12:00:00Z"
 
     result =
       Promotion.evaluate(%{
         status: "archived",
         metadata: %{
-          "lifecycle_reopened_by_run" => %{"all_matched" => false, "closed_at" => tie},
-          "lifecycle_closed_by_run" => %{"all_matched" => true, "closed_at" => tie}
+          "lifecycle_reopened_by_run" => %{"all_matched" => false, "closed_at" => tie, "seq" => 1},
+          "lifecycle_closed_by_run" => %{"all_matched" => true, "closed_at" => tie, "seq" => 2}
         }
       })
 
     assert result.state == "promote"
+  end
+
+  test "reopens when pass-then-fail lands in the same wall-clock second" do
+    # Symmetric to the recovery case: the later failing transition must win.
+    tie = "2026-07-23T12:00:00Z"
+
+    result =
+      Promotion.evaluate(%{
+        status: "open",
+        metadata: %{
+          "lifecycle_closed_by_run" => %{"all_matched" => true, "closed_at" => tie, "seq" => 1},
+          "lifecycle_reopened_by_run" => %{"all_matched" => false, "closed_at" => tie, "seq" => 2}
+        }
+      })
+
+    assert result.state == "reopen"
   end
 
   test "explicit human approval with passing evidence promotes without lifecycle markers" do

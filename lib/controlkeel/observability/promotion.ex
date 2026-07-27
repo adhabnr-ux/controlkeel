@@ -115,12 +115,13 @@ defmodule ControlKeel.Observability.Promotion do
     reopened = metadata["lifecycle_reopened_by_run"]
     closed = metadata["lifecycle_closed_by_run"]
 
-    # Reopen wins only when strictly newer than the closed marker. A same-second
-    # tie (:eq) resolves in favor of recovery, because lifecycle timestamps are
-    # truncated to second precision (see
-    # Observability.close_eval_candidate_lifecycle_from_run!/1) and a genuine
-    # regression is captured by the next distinct-second reopen marker.
-    reopened != nil and compare_marker_timestamps(closed, reopened) == :lt
+    # Reopen wins when it is at least as recent as the closed marker. Real
+    # transitions never tie because each marker carries a monotonic `seq`
+    # (see compare_marker_timestamps/2 and Observability.close_eval_candidate_lifecycle_from_run!/1),
+    # so this branch is only reached on :lt (reopened is newer). Hand-built
+    # markers without seq fall back to :eq, which we conservatively treat as
+    # regressed so the policy never silently promotes on ambiguous ordering.
+    reopened != nil and compare_marker_timestamps(closed, reopened) != :gt
   end
 
   defp passing?(evidence, metadata) do
@@ -159,18 +160,32 @@ defmodule ControlKeel.Observability.Promotion do
 
   defp metadata_value(metadata, key), do: Map.get(metadata, key)
 
-  # Compares the `closed_at` timestamps of the closed vs reopened markers.
-  # Returns :gt when closed is newer, :lt when reopened is newer, :eq on ties
-  # or when either marker is missing/unparseable.
+  # Compares the (closed_at, seq) ordering of the closed vs reopened markers.
+  # Returns :gt when closed is newer, :lt when reopened is newer, :eq only when
+  # both markers are missing/unparseable or genuinely identical (impossible for
+  # markers written after lifecycle_seq was introduced). `seq` is a monotonic
+  # per-candidate counter recorded by Observability.close_eval_candidate_lifecycle_from_run!/1
+  # so same-second transitions never tie; it falls back to 0 for legacy rows.
   defp compare_marker_timestamps(nil, _reopened), do: :lt
   defp compare_marker_timestamps(_closed, nil), do: :gt
 
   defp compare_marker_timestamps(closed, reopened) do
-    with {:ok, closed_at, _} <- DateTime.from_iso8601(closed["closed_at"] || ""),
-         {:ok, reopened_at, _} <- DateTime.from_iso8601(reopened["closed_at"] || "") do
-      DateTime.compare(closed_at, reopened_at)
-    else
-      _ -> :eq
+    closed_order = {parse_closed_at(closed["closed_at"]), closed["seq"] || 0}
+    reopened_order = {parse_closed_at(reopened["closed_at"]), reopened["seq"] || 0}
+
+    cond do
+      closed_order > reopened_order -> :gt
+      closed_order < reopened_order -> :lt
+      true -> :eq
+    end
+  end
+
+  defp parse_closed_at(nil), do: nil
+
+  defp parse_closed_at(iso8601) do
+    case DateTime.from_iso8601(iso8601) do
+      {:ok, datetime, _} -> datetime
+      _ -> nil
     end
   end
 
