@@ -21,6 +21,11 @@ If you're using an AI agent today, you probably have an `*.md` telling it how to
 4. **Persist evidence** — findings, reviews, proofs, memory, cost, and task outcomes survive host switches.
 5. **Improve with evals** — traces and recurring failures become bounded regression evidence for specific suites and subjects.
 
+The operating rule is simple: spend tokens on discovery, not rediscovery.
+Recurring behavior moves through a human-gated deterministic promotion path;
+once its regression evidence passes, checks, APIs, CLIs, or workflows handle
+the known case and agents handle only exceptions and genuinely new uncertainty.
+
 ControlKeel transforms your domain knowledge from "raw" intent and "shelfware" documentation into a living system that remembers, enforces, and evolves.
 
 ## Quick start

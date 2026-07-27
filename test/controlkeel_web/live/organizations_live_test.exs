@@ -149,9 +149,12 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
       {:ok, _view, html} = live(conn, ~p"/organizations")
 
       # Header is present, and the owner role badge is rendered (not the muted placeholder).
+      # The role text is rendered on its own line by HEEx, so assert on the
+      # owner-specific lime styling and role text rather than a literal `>owner<`.
       assert html =~ ">Role<"
       assert html =~ "Owned"
-      assert html =~ ~s(>owner<)
+      assert html =~ "ring-lime-300/20"
+      assert html =~ "owner"
       refute html =~ "—"
     end
 

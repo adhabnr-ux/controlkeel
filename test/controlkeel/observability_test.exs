@@ -1564,6 +1564,63 @@ defmodule ControlKeel.ObservabilityTest do
       assert updated.metadata["lifecycle_reopened_by_run"]
     end
 
+    test "records a monotonic lifecycle_seq so same-second transitions never tie", %{
+      candidate: _candidate,
+      scenario: scenario,
+      run: run
+    } do
+      insert_result = fn r, matched ->
+        %ControlKeel.Benchmark.Result{}
+        |> ControlKeel.Benchmark.Result.changeset(%{
+          run_id: r.id,
+          scenario_id: scenario.id,
+          subject: "controlkeel_validate",
+          subject_type: "controlkeel",
+          status: "completed",
+          decision: if(matched, do: "block", else: "allow"),
+          findings_count: if(matched, do: 1, else: 0),
+          matched_expected: matched,
+          payload: %{},
+          metadata: %{}
+        })
+        |> Repo.insert()
+      end
+
+      # First transition: passing run archives the candidate with seq 1.
+      {:ok, _} = insert_result.(run, true)
+      [first] = Observability.close_eval_candidate_lifecycle_from_run!(run)
+
+      assert first.status == "archived"
+      assert first.metadata["lifecycle_seq"] == 1
+      assert first.metadata["lifecycle_closed_by_run"]["seq"] == 1
+
+      # Second transition: a failing run on a new run reopens with seq 2.
+      {:ok, run2} =
+        %Run{}
+        |> Run.changeset(%{
+          suite_id: run.suite_id,
+          status: "completed",
+          baseline_subject: "controlkeel_validate",
+          subjects: ["controlkeel_validate"],
+          started_at: DateTime.utc_now(),
+          total_scenarios: 1,
+          caught_count: 0,
+          blocked_count: 0,
+          catch_rate: 0.0,
+          metadata: %{}
+        })
+        |> Repo.insert()
+
+      {:ok, _} = insert_result.(run2, false)
+      [second] = Observability.close_eval_candidate_lifecycle_from_run!(run2)
+
+      assert second.status == "open"
+      assert second.metadata["lifecycle_seq"] == 2
+      assert second.metadata["lifecycle_reopened_by_run"]["seq"] == 2
+      # The earlier closed marker is retained and still carries its own seq.
+      assert second.metadata["lifecycle_closed_by_run"]["seq"] == 1
+    end
+
     test "ignores runs with no eval-candidate-linked scenarios" do
       _session = session_fixture()
       suite = benchmark_suite_fixture()

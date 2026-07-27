@@ -272,7 +272,9 @@ defmodule ControlKeelWeb.OrganizationsLive do
         @role == "admin" && "bg-sky-400/10 text-sky-200 ring-sky-300/20",
         @role == "member" && "bg-zinc-400/10 text-zinc-200 ring-zinc-300/20",
         @role == "viewer" && "bg-zinc-400/10 text-zinc-400 ring-zinc-500/20"
-      ]}>{@role}</span>
+      ]}>
+        {@role}
+      </span>
     <% else %>
       <span class="text-xs text-zinc-600">—</span>
     <% end %>
