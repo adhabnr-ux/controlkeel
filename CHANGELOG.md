@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.78 — 2026-07-27
+
+### What's changed
+
+- Merge pull request #43 from aryaminus/feat/deterministic-promotion
+- fix(observability): eliminate same-second lifecycle ties via monotonic seq
+- fix(observability): resolve same-second lifecycle timestamp tie in promotion
+- fix(observability): preserve approval and use latest lifecycle marker in promotion
+- fix(organizations): align role badge test with reformatted template
+- feat(observability): deterministic promotion path for recurring agent behavior
+
 ## v0.3.77 — 2026-07-23
 
 ### What's changed
