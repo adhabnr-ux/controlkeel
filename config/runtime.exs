@@ -72,12 +72,13 @@ config :controlkeel, ControlKeel.Proxy,
   semgrep_bin: System.get_env("CONTROLKEEL_SEMGREP_BIN") || "semgrep",
   timeout_ms: String.to_integer(System.get_env("CONTROLKEEL_PROXY_TIMEOUT_MS", "15000"))
 
+# Parse the runtime mode through ControlKeel.Runtime.Mode.parse/1 so this stays
+# in sync with Mode.current/0. A previous inline `case` only mapped "cloud" and
+# sent "self_hosted" to :local, which made a self_hosted + DATABASE_URL release
+# enter the SQLite branch and silently use SQLite instead of Postgres.
 runtime_mode =
-  case System.get_env("CONTROLKEEL_RUNTIME_MODE", "local") do
-    "cloud" -> :cloud
-    :cloud -> :cloud
-    _ -> :local
-  end
+  System.get_env("CONTROLKEEL_RUNTIME_MODE", "local")
+  |> ControlKeel.Runtime.Mode.parse()
 
 config :controlkeel,
   runtime_mode: runtime_mode
