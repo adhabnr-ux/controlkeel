@@ -92,7 +92,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
      |> assign(:show_invite_modal, false)
      |> assign(:show_revoke_modal, false)
      |> assign(:revoke_target, nil)
-     |> assign(:is_owner, local_mode || (membership && membership.role == "owner"))
+     |> assign(:is_owner, !!(local_mode || (membership && membership.role == "owner")))
      |> assign(:show_settings_modal, false)
      |> assign(:settings_form, settings_form(org, budget_cents))
      |> assign(:settings_error, nil)
