@@ -2,6 +2,7 @@ defmodule ControlKeel.Observability do
   @moduledoc false
 
   import Ecto.Query, warn: false
+  require Logger
 
   alias ControlKeel.Benchmark
   alias ControlKeel.Benchmark.{Result, Scenario, Suite}
@@ -328,10 +329,17 @@ defmodule ControlKeel.Observability do
     apply_lifecycle_transition(candidate_id, scenario, results, run, @lifecycle_max_retries)
   end
 
-  defp apply_lifecycle_transition(_candidate_id, _scenario, _results, _run, 0) do
+  defp apply_lifecycle_transition(candidate_id, _scenario, _results, _run, 0) do
     # Exhausted retries under sustained contention. Return nil — the caller
     # already treats a nil update as "nothing to broadcast" and the next run
-    # will re-evaluate the candidate from its persisted state.
+    # will re-evaluate the candidate from its persisted state. Log so the
+    # drop is observable rather than silent (Greptile on PR #51).
+    Logger.warning(
+      "[EvalCandidate ##{candidate_id}] lifecycle transition abandoned after " <>
+        "#{@lifecycle_max_retries} optimistic-lock retries; the next " <>
+        "benchmark run will re-evaluate it from persisted state."
+    )
+
     nil
   end
 

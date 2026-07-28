@@ -10,9 +10,10 @@ defmodule ControlKeel.Repo.Migrations.AddLockVersionToEvalCandidates do
   same snapshot and the last write silently drops the other transition's
   marker, which can mislead the `Observability.Promotion` policy (issue #50).
 
-  Wrapping that write in `Ecto.Changeset.optimistic_lock(:lock_version)` makes
-  a stale-snapshot update return `{:error, :stale}`, which the caller retries
-  against a fresh read.
+  Wrapping that write in `Ecto.Changeset.optimistic_lock(:lock_version)` with
+  `Repo.update(stale_error_field: :lock_version)` makes a stale-snapshot
+  update return an error changeset tagged with `stale: true`, which the caller
+  retries against a fresh read.
 
   ## SQLite + Postgres
 
