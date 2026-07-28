@@ -1621,6 +1621,58 @@ defmodule ControlKeel.ObservabilityTest do
       assert second.metadata["lifecycle_closed_by_run"]["seq"] == 1
     end
 
+    test "advances lock_version through the lifecycle transition (issue #50)", %{
+      candidate: candidate,
+      scenario: scenario,
+      run: run
+    } do
+      {:ok, _result} =
+        %ControlKeel.Benchmark.Result{}
+        |> ControlKeel.Benchmark.Result.changeset(%{
+          run_id: run.id,
+          scenario_id: scenario.id,
+          subject: "controlkeel_validate",
+          subject_type: "controlkeel",
+          status: "completed",
+          decision: "block",
+          findings_count: 1,
+          matched_expected: true,
+          payload: %{},
+          metadata: %{}
+        })
+        |> Repo.insert()
+
+      [updated] = Observability.close_eval_candidate_lifecycle_from_run!(run)
+
+      # optimistic_lock increments lock_version; the fixture starts at default 1.
+      assert updated.lock_version == candidate.lock_version + 1
+    end
+
+    test "optimistic_lock rejects a stale candidate write (issue #50)", %{candidate: candidate} do
+      # Simulate a concurrent writer committing first: bump lock_version in the
+      # DB so the in-memory `candidate` snapshot is now stale.
+      {1, _} =
+        Repo.update_all(
+          from(EvalCandidate, where: [id: ^candidate.id]),
+          inc: [lock_version: 1]
+        )
+
+      # An optimistic_lock changeset built from the stale snapshot must be
+      # rejected (reported as a tagged changeset error via stale_error_field)
+      # instead of silently overwriting the concurrent write.
+      stale_result =
+        candidate
+        |> EvalCandidate.changeset(%{metadata: Map.put(candidate.metadata || %{}, "stale", true)})
+        |> optimistic_lock(:lock_version)
+        |> Repo.update(stale_error_field: :lock_version)
+
+      assert match?({:error, %Ecto.Changeset{}}, stale_result)
+
+      # The persisted row was not overwritten by the stale snapshot.
+      reloaded = Repo.get!(EvalCandidate, candidate.id)
+      refute reloaded.metadata["stale"]
+    end
+
     test "ignores runs with no eval-candidate-linked scenarios" do
       _session = session_fixture()
       suite = benchmark_suite_fixture()

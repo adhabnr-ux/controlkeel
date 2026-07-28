@@ -18,6 +18,10 @@ defmodule ControlKeel.Observability.EvalCandidate do
     field :status, :string, default: "open"
     field :human_gate_required, :boolean, default: true
     field :metadata, :map, default: %{}
+    # Optimistic concurrency token. Incremented on every lifecycle write so
+    # two concurrent benchmark runs for the same candidate cannot silently
+    # clobber each other's metadata (see Observability.update_eval_candidate_from_results/4).
+    field :lock_version, :integer, default: 1
 
     belongs_to :workspace, Workspace
     belongs_to :session, Session
