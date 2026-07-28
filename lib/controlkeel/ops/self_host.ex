@@ -22,7 +22,6 @@ defmodule ControlKeel.Ops.SelfHost do
   @required_env_vars ~w(DATABASE_URL SECRET_KEY_BASE PHX_HOST)
   @recommended_env_vars ~w(
     CK_AUDIT_SIGNING_KEY
-    CONTROLKEEL_OIDC_CLIENT_SECRET
     CONTROLKEEL_RUNTIME_MODE
   )
 

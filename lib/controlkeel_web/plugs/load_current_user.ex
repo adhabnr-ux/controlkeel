@@ -1,5 +1,5 @@
 defmodule ControlKeelWeb.Plugs.LoadCurrentUser do
-  @moduledoc "Loads the SSO user and org membership from the browser session."
+  @moduledoc "Loads the signed-in user and org membership from the browser session."
 
   import Plug.Conn
 

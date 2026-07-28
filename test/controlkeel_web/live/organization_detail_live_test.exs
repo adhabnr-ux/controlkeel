@@ -222,4 +222,76 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
       assert Accounts.get_active_membership(owner_m.user_id, owner_m.org_id).role == "member"
     end
   end
+
+  describe "org settings modal" do
+    setup do
+      owner = create_user!("owner-set@example.com")
+      {:ok, org} = Accounts.create_org_with_owner(owner.id, %{name: "Setco", slug: "setco"})
+
+      admin = create_user!("admin-set@example.com")
+      add_active_membership(admin.id, org.id, "admin")
+
+      member = create_user!("member-set@example.com")
+      add_active_membership(member.id, org.id, "member")
+
+      {:ok, org: org, owner: owner, admin: admin, member: member}
+    end
+
+    test "owner opens the modal and saves the org name", %{org: org, owner: owner} do
+      {:ok, view, html} = live(conn_for(owner), ~p"/organizations/setco")
+
+      # Modal is absent until opened.
+      refute html =~ "org-settings-modal"
+
+      view |> render_click("open_settings")
+      assert render(view) =~ "org-settings-modal"
+      assert render(view) =~ "Organization name"
+
+      view
+      |> element("#org-settings-form")
+      |> render_submit(%{
+        "settings" => %{"name" => "Setco Renamed", "status" => "active", "budget_cents" => "0"}
+      })
+
+      assert render(view) =~ "Settings saved."
+      assert Accounts.get_org(org.id).name == "Setco Renamed"
+    end
+
+    test "admin can open the modal but status and budget are owner-locked", %{admin: admin} do
+      {:ok, view, _html} = live(conn_for(admin), ~p"/organizations/setco")
+
+      view |> render_click("open_settings")
+      html = render(view)
+
+      assert html =~ "org-settings-modal"
+      assert html =~ "Only owners can change status."
+      assert html =~ "Only owners can change budget."
+    end
+
+    test "non-admin members do not see the settings button", %{member: member} do
+      {:ok, _view, html} = live(conn_for(member), ~p"/organizations/setco")
+
+      refute html =~ "open_settings"
+    end
+
+    test "non-admin member cannot save settings via a forged event", %{
+      org: org,
+      member: member
+    } do
+      # Members can mount the org detail LiveView; the button is hidden, but the
+      # server must still reject a forged `save_settings` event so they cannot
+      # rename the org or touch owner-only fields.
+      {:ok, view, _html} = live(conn_for(member), ~p"/organizations/setco")
+
+      view
+      |> render_click("save_settings", %{
+        "settings" => %{"name" => "Hacked", "status" => "disabled", "budget_cents" => "999"}
+      })
+
+      refute render(view) =~ "Settings saved."
+      reloaded = Accounts.get_org(org.id)
+      assert reloaded.name == "Setco"
+      assert reloaded.status == "active"
+    end
+  end
 end

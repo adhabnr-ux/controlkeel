@@ -572,8 +572,6 @@ defmodule ControlKeel.CLI.Catalog do
           :org_budget_show,
           :org_invite,
           :org_members,
-          :org_idp_set,
-          :org_idp_show,
           :service_account_create,
           :service_account_list,
           :service_account_revoke,

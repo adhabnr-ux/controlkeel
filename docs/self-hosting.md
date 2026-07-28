@@ -3,7 +3,7 @@
 ControlKeel ships as one Phoenix release. Local mode uses SQLite on a developer
 machine; cloud/self-host mode uses Postgres and hosted HTTP endpoints for teams.
 
-Self-host when proof, finding, memory, telemetry, SSO, or audit data must stay
+Self-host when proof, finding, memory, telemetry, or audit data must stay
 inside your own infrastructure. For local-only setup, use
 [`docs/getting-started.md`](getting-started.md) instead.
 
@@ -12,7 +12,7 @@ inside your own infrastructure. For local-only setup, use
 - Hosted dashboard for missions, findings, reviews, proofs, benchmarks, cloud projects, and observability.
 - `/cloud/v1/*` endpoints for workspace registration, telemetry ingest, runtime callbacks, and bidirectional sync.
 - Hosted MCP/A2A protocol surfaces.
-- OIDC/SAML login, org membership, service accounts, webhooks, and workspace tool policy.
+- Org membership, service accounts, webhooks, and workspace tool policy.
 - The same local governance loop on laptops, pointed at your own host for cloud sync.
 
 ## Fly.io quickstart

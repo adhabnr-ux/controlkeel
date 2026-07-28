@@ -92,10 +92,70 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
      |> assign(:show_invite_modal, false)
      |> assign(:show_revoke_modal, false)
      |> assign(:revoke_target, nil)
+     |> assign(:is_owner, !!(local_mode || (membership && membership.role == "owner")))
+     |> assign(:show_settings_modal, false)
+     |> assign(:settings_form, settings_form(org, budget_cents))
+     |> assign(:settings_error, nil)
      |> assign(:current_user, socket.assigns[:current_user])}
   end
 
   @impl true
+  def handle_event("open_settings", _params, socket) do
+    {:noreply, assign(socket, :show_settings_modal, true)}
+  end
+
+  def handle_event("close_settings", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_settings_modal, false)
+     |> assign(:settings_error, nil)}
+  end
+
+  def handle_event("save_settings", %{"settings" => params}, socket) do
+    org = socket.assigns.org
+    is_owner = socket.assigns.is_owner
+
+    # The Settings button is only rendered for can_manage/local_mode, but
+    # re-check server-side. Members/viewers can mount this LiveView, so without
+    # this guard they could forge a `save_settings` event and rename the org
+    # (the name field has no other server-side authz; Accounts.update_org/2
+    # does not check the actor). Status/budget stay owner-locked via is_owner.
+    if socket.assigns.can_manage || socket.assigns.local_mode do
+      org_attrs =
+        %{name: params["name"]}
+        |> maybe_add_owner_field("status", params["status"], is_owner)
+
+      with {:ok, org} <- Accounts.update_org(org, org_attrs),
+           {:ok, org} <- maybe_set_budget(org, params["budget_cents"], is_owner) do
+        budget_cents = Accounts.org_budget_cents(org) || 0
+
+        {:noreply,
+         socket
+         |> assign(:org, org)
+         |> assign(:budget_cents, budget_cents)
+         |> assign(:settings_form, settings_form(org, budget_cents))
+         |> assign(:settings_error, nil)
+         |> assign(:show_settings_modal, false)
+         |> put_flash(:info, "Settings saved.")}
+      else
+        {:error, %Ecto.Changeset{} = cs} ->
+          msg =
+            cs.errors
+            |> Enum.map_join(", ", fn {f, {m, _}} -> "#{f}: #{m}" end)
+
+          {:noreply, assign(socket, :settings_error, msg)}
+
+        {:error, reason} ->
+          {:noreply, assign(socket, :settings_error, inspect(reason))}
+      end
+    else
+      {:noreply,
+       socket
+       |> assign(:show_settings_modal, false)
+       |> put_flash(:error, "You don't have permission to change organization settings.")}
+    end
+  end
+
   def handle_event("open_invite", _params, socket) do
     {:noreply, assign(socket, :show_invite_modal, true)}
   end
@@ -300,12 +360,15 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
         </div>
 
         <div class="flex items-center gap-3">
-          <.link
-            navigate={~p"/organizations/#{@org.slug}/settings"}
-            class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
-          >
-            <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
-          </.link>
+          <%= if @can_manage || @local_mode do %>
+            <button
+              type="button"
+              phx-click="open_settings"
+              class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
+            >
+              <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+            </button>
+          <% end %>
           <%= unless @local_mode do %>
             <%= if @can_manage do %>
               <button
@@ -496,6 +559,14 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
         role_options={invite_role_options(@current_role)}
       />
 
+      <.settings_modal
+        :if={@show_settings_modal}
+        form={@settings_form}
+        org={@org}
+        is_owner={@is_owner}
+        error={@settings_error}
+      />
+
       <%= if @show_revoke_modal and @revoke_target do %>
         <div
           id="revoke-member-modal"
@@ -657,7 +728,139 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
     """
   end
 
+  attr :form, :map, required: true
+  attr :org, :map, required: true
+  attr :is_owner, :boolean, default: false
+  attr :error, :string, default: nil
+
+  defp settings_modal(assigns) do
+    ~H"""
+    <div
+      id="org-settings-modal"
+      class="relative z-50"
+      phx-mounted={Phoenix.LiveView.JS.show(to: "#org-settings-modal")}
+      phx-remove={Phoenix.LiveView.JS.hide(to: "#org-settings-modal")}
+    >
+      <div
+        class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+        phx-click="close_settings"
+        aria-label="Close modal"
+      />
+
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900/95 p-6 shadow-2xl shadow-black/50">
+          <div class="mb-5 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-white">Settings</h2>
+            <button
+              type="button"
+              phx-click="close_settings"
+              class="rounded-md text-zinc-400 transition hover:text-white"
+              aria-label="Close"
+            >
+              <.icon name="hero-x-mark" class="size-5" />
+            </button>
+          </div>
+
+          <.form for={@form} phx-submit="save_settings" id="org-settings-form" class="space-y-4">
+            <.input
+              field={@form[:name]}
+              type="text"
+              label="Organization name"
+              required
+              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+            />
+
+            <div>
+              <.input
+                field={@form[:status]}
+                type="select"
+                label="Status"
+                options={[{"active", "active"}, {"disabled", "disabled"}]}
+                disabled={!@is_owner}
+                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+              />
+              <%= unless @is_owner do %>
+                <p class="mt-1 text-xs text-zinc-500">Only owners can change status.</p>
+              <% end %>
+            </div>
+
+            <div>
+              <.input
+                field={@form[:budget_cents]}
+                type="number"
+                label="Monthly budget (cents)"
+                disabled={!@is_owner}
+                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+              />
+              <%= unless @is_owner do %>
+                <p class="mt-1 text-xs text-zinc-500">Only owners can change budget.</p>
+              <% end %>
+            </div>
+
+            <p class="text-xs text-zinc-500">
+              Slug <code class="text-zinc-400">{@org.slug}</code> cannot be changed.
+            </p>
+
+            <%= if @error do %>
+              <p class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{@error}</p>
+            <% end %>
+
+            <div class="flex items-center justify-end gap-3 pt-4">
+              <button
+                type="button"
+                phx-click="close_settings"
+                class="rounded-full px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-5 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
+              >
+                Save
+              </button>
+            </div>
+          </.form>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   # ── Private ─────────────────────────────────────────────────────────
+
+  defp settings_form(org, budget_cents) do
+    to_form(
+      %{
+        "name" => org.name,
+        "status" => org.status,
+        "budget_cents" => Integer.to_string(budget_cents)
+      },
+      as: :settings
+    )
+  end
+
+  defp maybe_add_owner_field(attrs, _key, _value, false), do: attrs
+  defp maybe_add_owner_field(attrs, _key, nil, _is_owner), do: attrs
+
+  defp maybe_add_owner_field(attrs, key, value, true),
+    do: Map.put(attrs, String.to_existing_atom(key), value)
+
+  defp maybe_set_budget(org, _value, false), do: {:ok, org}
+  defp maybe_set_budget(org, nil, _), do: {:ok, org}
+
+  defp maybe_set_budget(org, value, true) when is_binary(value) do
+    case Integer.parse(value) do
+      {cents, ""} when cents >= 0 ->
+        case Accounts.set_org_budget_cents(org.id, cents) do
+          {:ok, updated} -> {:ok, updated}
+          {:error, _} = err -> err
+        end
+
+      _ ->
+        {:error, "Budget must be a non-negative integer (in cents)."}
+    end
+  end
 
   defp load_memberships(org_id) do
     Accounts.list_memberships_for_org(org_id)

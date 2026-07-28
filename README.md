@@ -89,7 +89,7 @@ Read the numbers precisely: deterministic scanner evidence is not the same as mo
 
 - **Local governance:** CLI, the full local stdio MCP tool set, project binding, host attach/export bundles, scanner validation, findings, reviews, proof bundles, budgets, and typed memory.
 - **Host and runtime support:** native attach for supported hosts, runtime exports for headless/outer-loop systems, a narrower OAuth-scoped hosted MCP set, minimal A2A, and fallback validation/proxy paths.
-- **Team/project operations:** org membership, invitations, OIDC/SAML auth surfaces, workspace GitHub repo bindings, service accounts, webhooks, workspace tool policy, and policy-set APIs.
+- **Team/project operations:** org membership, invitations, workspace GitHub repo bindings, service accounts, webhooks, workspace tool policy, and policy-set APIs.
 - **Cloud evidence paths:** opt-in cloud telemetry, workspace keys, cloud run packages, runtime callbacks, and dormant-until-configured bidirectional sync for findings, reviews, digests, and memory records.
 - **Observability loop:** timelines, memory quality, costs, trends, problem clusters, eval candidates, benchmark drafts/history, and promotion advisories.
 

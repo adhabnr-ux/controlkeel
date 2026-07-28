@@ -13,8 +13,6 @@ Public entry points:
 - `GET /auth/login` — sign-in via configured OAuth providers (Google/GitHub); creates an account on first sign-in
 - `GET /auth/logout` — logout
 - `GET /auth/complete/:token` — auth completion
-- `GET /auth/oidc/start`, `GET /auth/oidc/callback` — OIDC login
-- `GET /auth/saml/start`, `POST /auth/saml/acs` — SAML login
 - `GET /cloud/invitations/:token` — invitation acceptance
 
 Cloud-auth gated dashboard routes:
