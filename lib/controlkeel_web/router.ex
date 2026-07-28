@@ -73,18 +73,17 @@ defmodule ControlKeelWeb.Router do
     get "/auth/oidc/callback", OidcController, :callback
     get "/auth/saml/start", SamlController, :start
     get "/auth/logout", AuthController, :logout
-    get "/auth/complete/:token", AuthController, :complete
+    get "/auth/invitation/:token", AuthController, :start_invitation
 
     # OAuth provider sign-in (parameterized — catches /auth/google, /auth/github, etc.)
     get "/auth/:provider/request", OAuthLoginController, :request
     get "/auth/:provider/callback", OAuthLoginController, :callback
 
-    # Public invitation-acceptance page. Uses the :dashboard framework layout
-    # for chrome but is NOT auth-gated (it handles its own session and works
-    # signed-out).
+    # Public invitation-acceptance page. NOT auth-gated (acceptance requires
+    # OAuth but the page itself is viewable to preview the invite).
     live_session :invitations,
-      layout: {ControlKeelWeb.Layouts, :dashboard} do
-      live "/cloud/invitations/:token", InvitationLive, :show
+      layout: {ControlKeelWeb.Layouts, :invitation} do
+      live "/invitations/:token", InvitationLive, :show
     end
 
     # Cloud-auth gated: in cloud/self_hosted mode requires active membership.

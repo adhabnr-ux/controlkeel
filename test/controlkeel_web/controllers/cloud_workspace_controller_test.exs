@@ -33,6 +33,24 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
     org
   end
 
+  # invite_member/3 now requires a named inviter to hold an active membership
+  # in the org (authorize_invite_role/3). These enrollment tests model an
+  # inviter who belongs to the org, so seed an active owner membership.
+  defp make_owner(org, user) do
+    {:ok, _} =
+      %Accounts.Membership{}
+      |> Accounts.Membership.changeset(%{
+        org_id: org.id,
+        user_id: user.id,
+        role: "owner",
+        status: "active",
+        accepted_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+      |> Repo.insert()
+
+    :ok
+  end
+
   setup %{conn: conn} do
     conn = put_req_header(conn, "content-type", "application/json")
     {:ok, conn: conn}
@@ -75,6 +93,8 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
         %Accounts.User{}
         |> Accounts.User.changeset(%{email: "inviter@example.com", status: "active"})
         |> Repo.insert()
+
+      :ok = make_owner(org, inviter_user)
 
       {:ok, invitee_user} =
         %Accounts.User{}
@@ -137,6 +157,8 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
         })
         |> Repo.insert()
 
+      :ok = make_owner(org, inviter)
+
       {:ok, invitee} =
         %Accounts.User{}
         |> Accounts.User.changeset(%{
@@ -177,6 +199,8 @@ defmodule ControlKeelWeb.CloudWorkspaceControllerTest do
           status: "active"
         })
         |> Repo.insert()
+
+      :ok = make_owner(org, inviter)
 
       {:ok, invitee} =
         %Accounts.User{}

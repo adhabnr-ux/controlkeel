@@ -77,6 +77,8 @@ defmodule ControlKeelWeb.Plugs.BrowserAuthPlugsTest do
 
     assert redirected_to(conn, 302) == "/dashboard"
     assert conn.halted
-    assert get_session(conn, "phoenix_flash")["info"] == "Sign-in is not available in local mode."
+
+    assert get_session(conn, "phoenix_flash")["info"] ==
+             "This feature is not available in local mode."
   end
 end

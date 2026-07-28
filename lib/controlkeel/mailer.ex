@@ -38,7 +38,7 @@ defmodule ControlKeel.Mailer do
     payload = %{
       to: email,
       token: raw_token,
-      url: "/cloud/invitations/" <> raw_token
+      url: "/invitations/" <> raw_token
     }
 
     deliver(adapter(), :invitation, payload)

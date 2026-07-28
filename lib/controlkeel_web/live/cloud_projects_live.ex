@@ -409,7 +409,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     <div class="ck-card">
       <p>
         Your account is signed in but has no active org membership. Ask an org
-        owner to invite you, then accept the invitation from <code>/cloud/invitations/&lt;token&gt;</code>.
+        owner to invite you, then accept the invitation from <code>/invitations/&lt;token&gt;</code>.
       </p>
     </div>
     """

@@ -172,9 +172,24 @@ defmodule ControlKeel.Accounts do
   Returns `{:ok, membership, raw_token}` so the caller can deliver the token
   out of band (email, copy-link). The token is only available once — the row
   stores its hash.
+
+  If a revoked membership already exists for this `(user_id, org_id)` pair, it
+  is revived: status resets to `pending` with a fresh token, new role, and new
+  invitor. This allows re-inviting a previously removed member.
+
+  Returns `{:error, :already_member}` if an active or pending membership
+  already exists.
+
+  ## Authorization
+
+  When `invited_by_user_id` is supplied, the inviter's role is checked: only
+  owners may grant `owner` or `admin`. A `nil` inviter is the trusted operator
+  path (e.g. the CLI `org invite` command) and is unrestricted. Returns
+  `{:error, :unauthorized}` when a named inviter lacks the required role.
   """
   @spec invite_member(integer(), integer(), keyword()) ::
-          {:ok, Membership.t(), String.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, Membership.t(), String.t()}
+          | {:error, :already_member | :unauthorized | Ecto.Changeset.t()}
   def invite_member(user_id, org_id, opts \\ []) do
     role = Keyword.get(opts, :role, "member")
     invited_by = Keyword.get(opts, :invited_by_user_id)
@@ -182,22 +197,72 @@ defmodule ControlKeel.Accounts do
     raw_token = generate_token()
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-    attrs = %{
-      user_id: user_id,
-      org_id: org_id,
-      role: role,
-      status: "pending",
-      invitation_token_hash: token_hash(raw_token),
-      invited_at: now,
-      invited_by_user_id: invited_by,
-      mission_workspace_id: mission_workspace_id
-    }
+    with :ok <- authorize_invite_role(invited_by, org_id, role) do
+      case Repo.get_by(Membership, user_id: user_id, org_id: org_id) do
+        nil ->
+          %Membership{}
+          |> Membership.changeset(%{
+            user_id: user_id,
+            org_id: org_id,
+            role: role,
+            status: "pending",
+            invitation_token_hash: token_hash(raw_token),
+            invited_at: now,
+            invited_by_user_id: invited_by,
+            mission_workspace_id: mission_workspace_id
+          })
+          |> Repo.insert()
+          |> case do
+            {:ok, membership} -> {:ok, membership, raw_token}
+            {:error, _} = err -> err
+          end
 
-    case %Membership{}
-         |> Membership.changeset(attrs)
-         |> Repo.insert() do
-      {:ok, membership} -> {:ok, membership, raw_token}
-      {:error, _} = err -> err
+        %Membership{status: "revoked"} = membership ->
+          membership
+          |> Membership.changeset(%{
+            role: role,
+            status: "pending",
+            invitation_token_hash: token_hash(raw_token),
+            invited_at: now,
+            invited_by_user_id: invited_by,
+            mission_workspace_id: mission_workspace_id,
+            accepted_at: nil,
+            revoked_at: nil
+          })
+          |> Repo.update()
+          |> case do
+            {:ok, membership} -> {:ok, membership, raw_token}
+            {:error, _} = err -> err
+          end
+
+        %Membership{} ->
+          {:error, :already_member}
+      end
+    end
+  end
+
+  # Invite role authorization. When an inviter is named
+  # (`invited_by_user_id`), enforce the same privilege boundary as role changes:
+  # only owners may grant owner/admin. A `nil` inviter is the trusted operator
+  # path (e.g. the CLI `org invite` command, which has no membership) and is
+  # left unrestricted.
+  defp authorize_invite_role(nil, _org_id, _role), do: :ok
+
+  defp authorize_invite_role(invited_by_user_id, org_id, role) do
+    inviter = get_active_membership(invited_by_user_id, org_id)
+
+    cond do
+      inviter == nil ->
+        {:error, :unauthorized}
+
+      inviter.role == "owner" ->
+        :ok
+
+      role in ["owner", "admin"] ->
+        {:error, :unauthorized}
+
+      true ->
+        :ok
     end
   end
 
@@ -281,72 +346,132 @@ defmodule ControlKeel.Accounts do
     end
   end
 
-  @spec revoke_membership(integer()) ::
+  @doc """
+  Revoke a membership. Authorization rules:
+
+    * Revoker must be admin+ in the same org.
+    * Only owners can revoke their own membership.
+    * Owner self-revoke is blocked if they are the last active owner.
+    * Only owners can revoke other owners.
+    * Admins can revoke members and viewers but not owners or other admins.
+  """
+  @spec revoke_membership(integer(), integer()) ::
           {:ok, Membership.t()}
-          | {:error, :not_found | :last_owner_protected | Ecto.Changeset.t()}
-  def revoke_membership(membership_id) do
-    case Repo.get(Membership, membership_id) do
-      nil ->
+          | {:error,
+             :not_found
+             | :unauthorized
+             | :cannot_revoke_owner
+             | :cannot_revoke_admin
+             | :cannot_self_revoke
+             | :last_owner_protected
+             | Ecto.Changeset.t()}
+  def revoke_membership(membership_id, revoker_user_id) do
+    target = Repo.get(Membership, membership_id)
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    cond do
+      is_nil(target) ->
         {:error, :not_found}
 
-      %Membership{role: "owner"} = membership ->
-        if last_active_owner?(membership) do
-          {:error, :last_owner_protected}
-        else
-          membership
-          |> Membership.changeset(%{status: "revoked"})
-          |> Repo.update()
-          |> broadcast_on_ok()
-        end
+      true ->
+        revoker = get_active_membership(revoker_user_id, target.org_id)
 
-      membership ->
-        membership
-        |> Membership.changeset(%{status: "revoked"})
-        |> Repo.update()
-        |> broadcast_on_ok()
+        cond do
+          is_nil(revoker) || not role_at_least?(revoker.role, "admin") ->
+            {:error, :unauthorized}
+
+          target.user_id == revoker_user_id && revoker.role != "owner" ->
+            {:error, :cannot_self_revoke}
+
+          target.role == "owner" && revoker.role != "owner" ->
+            {:error, :cannot_revoke_owner}
+
+          target.role == "admin" && revoker.role != "owner" ->
+            {:error, :cannot_revoke_admin}
+
+          target.role == "owner" && last_active_owner?(target) ->
+            {:error, :last_owner_protected}
+
+          true ->
+            target
+            |> Membership.changeset(%{
+              status: "revoked",
+              invitation_token_hash: nil,
+              revoked_at: now
+            })
+            |> Repo.update()
+            |> broadcast_on_ok()
+        end
     end
   end
 
   @doc """
-  Change a membership's role. Refuses to demote the last remaining active owner.
+  Change a membership's role. Authorization rules:
+
+    * Revoker must be admin+ in the same org.
+    * Only owners can change roles of owners and admins (exception: an admin
+      may demote *themselves* from admin to member/viewer).
+    * Only owners can promote a member/viewer to owner.
+    * Only owners can promote a member to admin.
+    * Refuses to demote the last remaining active owner.
 
   Returns:
     - `{:ok, membership}` on success
     - `{:error, :not_found}` if the membership doesn't exist
+    - `{:error, :unauthorized}` if the revoker lacks permission
     - `{:error, :invalid_role}` if the new role is not one of owner|admin|member|viewer
     - `{:error, :last_owner_protected}` if demoting the only active owner of an org
   """
-  @spec update_membership_role(integer(), String.t()) ::
+  @spec update_membership_role(integer(), String.t(), integer()) ::
           {:ok, Membership.t()}
-          | {:error, :not_found | :invalid_role | :last_owner_protected | Ecto.Changeset.t()}
-  def update_membership_role(membership_id, new_role) do
+          | {:error,
+             :not_found
+             | :unauthorized
+             | :invalid_role
+             | :last_owner_protected
+             | Ecto.Changeset.t()}
+  def update_membership_role(membership_id, new_role, revoker_user_id) do
     if new_role in Map.keys(@role_rank) do
-      do_update_membership_role(membership_id, new_role)
+      do_update_membership_role(membership_id, new_role, revoker_user_id)
     else
       {:error, :invalid_role}
     end
   end
 
-  defp do_update_membership_role(membership_id, new_role) do
+  defp do_update_membership_role(membership_id, new_role, revoker_user_id) do
     case Repo.get(Membership, membership_id) do
       nil ->
         {:error, :not_found}
 
-      %Membership{role: "owner"} = m when new_role != "owner" ->
-        if last_active_owner?(m) do
-          {:error, :last_owner_protected}
-        else
-          m
-          |> Membership.changeset(%{role: new_role})
-          |> Repo.update()
-          |> broadcast_on_ok()
-        end
+      target ->
+        revoker = get_active_membership(revoker_user_id, target.org_id)
 
-      m ->
-        m
-        |> Membership.changeset(%{role: new_role})
-        |> Repo.update()
-        |> broadcast_on_ok()
+        cond do
+          is_nil(revoker) || not role_at_least?(revoker.role, "admin") ->
+            {:error, :unauthorized}
+
+          # No-op: once authorized, re-selecting the current role always
+          # succeeds regardless of other restrictions.
+          new_role == target.role ->
+            {:ok, target}
+
+          (target.role in ["owner", "admin"] && revoker.role != "owner") and
+              not (target.role == "admin" and revoker.user_id == target.user_id and
+                       new_role in ["member", "viewer"]) ->
+            {:error, :unauthorized}
+
+          new_role in ["owner", "admin"] && revoker.role != "owner" ->
+            {:error, :unauthorized}
+
+          target.role == "owner" && new_role != "owner" && last_active_owner?(target) ->
+            {:error, :last_owner_protected}
+
+          true ->
+            target
+            |> Membership.changeset(%{role: new_role})
+            |> Repo.update()
+            |> broadcast_on_ok()
+        end
     end
   end
 
@@ -418,11 +543,22 @@ defmodule ControlKeel.Accounts do
   @spec get_membership(integer()) :: Membership.t() | nil
   def get_membership(id), do: Repo.get(Membership, id)
 
+  @doc """
+  List memberships for an org, excluding revoked rows by default.
+
+  Revoked memberships are hidden unless explicitly requested:
+    * pass `status: "revoked"` to see only revoked rows, or
+    * pass `include_revoked: true` to see every row regardless of status.
+
+  Any other explicit `status:` value (`"active"`, `"pending"`) is honored as
+  an exact match and bypasses the default revocation filter.
+  """
   @spec list_memberships_for_org(integer(), keyword()) :: [Membership.t()]
   def list_memberships_for_org(org_id, opts \\ []) do
     Membership
     |> where([m], m.org_id == ^org_id)
     |> filter_status(Keyword.get(opts, :status))
+    |> maybe_exclude_revoked(opts)
     |> order_by([m], asc: m.id)
     |> Repo.all()
   end
@@ -813,7 +949,8 @@ defmodule ControlKeel.Accounts do
           role: membership.role || role,
           status: "active",
           invitation_token_hash: nil,
-          accepted_at: membership.accepted_at || now
+          accepted_at: membership.accepted_at || now,
+          revoked_at: nil
         })
         |> Repo.update()
     end
@@ -1094,6 +1231,17 @@ defmodule ControlKeel.Accounts do
 
   defp filter_status(query, nil), do: query
   defp filter_status(query, status), do: where(query, [x], x.status == ^status)
+
+  # Revoked rows are hidden by default. Skip the filter when an explicit
+  # `status:` is given (exact match wins) or the caller opts in via
+  # `include_revoked: true`.
+  defp maybe_exclude_revoked(query, opts) do
+    if Keyword.get(opts, :status) || Keyword.get(opts, :include_revoked, false) do
+      query
+    else
+      where(query, [m], m.status != "revoked")
+    end
+  end
 
   # ---------------------------------------------------------------------------
   # Workspace tool catalog policies

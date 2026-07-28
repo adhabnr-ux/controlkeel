@@ -41,6 +41,7 @@ defmodule ControlKeel.BinWrapperTest do
       {"CK_PROJECT_ROOT", File.cwd!()},
       {"CK_CLI_MODE", "1"},
       {"LOGGER_LEVEL", "error"},
+      {"DATABASE_PATH", tmp_db},
       {"CK_TEST_DB", tmp_db}
     ]
 
