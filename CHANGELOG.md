@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.81 — 2026-07-28
+
+### What's changed
+
+- Merge pull request #46 from aryaminus/fix/cloud-mode-postgres-routing
+- fix(cloud): parse self_hosted in runtime.exs via Mode.parse (P1)
+- fix(cloud): gate repo supervision/migration on real config, not bare env
+- Merge remote-tracking branch 'origin/main' into fix/cloud-mode-postgres-routing
+- fix(cloud): route cloud-mode queries to Postgres via a runtime dispatcher
+
 ## v0.3.80 — 2026-07-28
 
 ### What's changed
