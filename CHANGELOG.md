@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.80 — 2026-07-28
+
+### What's changed
+
+- Merge pull request #47 from aryaminus/refactor/odic-saml
+- refactor/odic-saml: ensure is_owner assignment evaluates to a strict boolean
+- fix(org-settings): re-check can_manage before saving org settings
+- refactor/odic-saml: remove redundant settings_saved state and update documentation terminology
+- refactor/odic-saml: remove organization settings page and decommission SSO/IdP support logic
+- refactor/org-membership: begin removal of SSO, OIDC, and SAML support across documentation, configuration, and settings UI
+- refactor/org-membership: remove OIDC and SAML SSO support and associated tests
+- refactor/org-membership: remove all SSO, OIDC, and SAML identity provider functionality and CLI commands
+- refactor/org-membership: remove SSO, OIDC, and SAML identity provider functionality from organization settings
+- refactor/org-membership: remove all OIDC and SAML identity provider functionality and database configuration
+- refactor/org-membership: remove SSO, OIDC, and SAML authentication modules and associated routes, controllers, and UI components
+
 ## v0.3.79 — 2026-07-28
 
 ### What's changed
