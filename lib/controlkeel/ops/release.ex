@@ -9,7 +9,7 @@ defmodule ControlKeel.Ops.Release do
   ## Usage
 
       bin/controlkeel eval "ControlKeel.Ops.Release.migrate()"
-      bin/controlkeel eval "ControlKeel.Ops.Release.rollback(ControlKeel.Repo, 20260524004330)"
+      bin/controlkeel eval "ControlKeel.Ops.Release.rollback(ControlKeel.CloudRepo, 20260524004330)"
   """
 
   @app :controlkeel
@@ -28,11 +28,15 @@ defmodule ControlKeel.Ops.Release do
   end
 
   defp repos do
-    runtime_mode = Application.get_env(@app, :runtime_mode, :local)
-
-    case runtime_mode do
-      :cloud -> [ControlKeel.CloudRepo]
-      _ -> [ControlKeel.Repo]
+    # Match the boot-time migration path in ControlKeel.Application.run_migrations/0:
+    # migrate the repo the dispatcher will actually serve. A `:self_hosted`
+    # release with DATABASE_URL must migrate CloudRepo (Postgres), not the
+    # laptop-local SQLite file. Routing through cloud_repo_enabled?/0 keeps the
+    # release command consistent with query routing (issue #44).
+    if ControlKeel.Runtime.cloud_repo_enabled?() do
+      [ControlKeel.CloudRepo]
+    else
+      [ControlKeel.Repo.Local]
     end
   end
 

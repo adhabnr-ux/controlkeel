@@ -1,7 +1,7 @@
 import Config
 
 # Configure your database
-config :controlkeel, ControlKeel.Repo,
+config :controlkeel, ControlKeel.Repo.Local,
   database: Path.expand("../priv/repo/controlkeel_dev.db", __DIR__),
   pool_size: 10,
   # Avoid long waits when another process (e.g. phx.server + MCP) holds SQLite.

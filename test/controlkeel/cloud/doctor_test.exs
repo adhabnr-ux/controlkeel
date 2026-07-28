@@ -119,15 +119,20 @@ defmodule ControlKeel.Cloud.DoctorTest do
       assert cloud_repo.status == :ok
     end
 
-    test "service-account check returns ok when none are configured" do
+    test "service-account check reports unavailable when CloudRepo is not reachable" do
+      # CloudRepo is configured with a placeholder URL but never started in the
+      # test sandbox. Before the issue #44 fix, Platform.list_all_service_accounts/0
+      # silently routed to the local SQLite sandbox and reported "none configured"
+      # — masking the fact that the doctor could not actually reach Postgres.
+      # The routing fix surfaces this honestly as :info / unavailable.
       Application.put_env(:controlkeel, ControlKeel.CloudRepo, url: "postgres://placeholder")
       System.put_env("DATABASE_URL", "postgres://example/db")
 
       report = Doctor.report()
       sa = find_check(report, :service_accounts)
 
-      assert sa.status in [:ok, :info]
-      assert sa.detail =~ "none configured" or sa.detail =~ "configured"
+      assert sa.status == :info
+      assert sa.detail =~ "unavailable"
     end
   end
 

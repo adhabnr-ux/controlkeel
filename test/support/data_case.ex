@@ -34,16 +34,40 @@ defmodule ControlKeel.DataCase do
 
   @doc """
   Sets up the sandbox based on the test tags.
+
+  Targets `ControlKeel.Repo.Local` because the sandbox API needs a real
+  Ecto.Repo (the dispatcher at `ControlKeel.Repo` is not one). Tests run in
+  `:local` runtime mode, so the dispatcher routes every query to `.Local`
+  anyway — the sandbox owns the same pool that production code uses.
+
+  Also restores any `ControlKeel.CloudRepo` config captured at setup start so a
+  test that deliberately exercises cloud-mode behavior can save/restore its own
+  state without this case clobbering it (issue #44). Tests that opt into cloud
+  mode must start a CloudRepo sandbox in their own setup; the dispatcher routes
+  accordingly.
   """
   def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(ControlKeel.Repo, shared: not tags[:async])
+    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(ControlKeel.Repo.Local, shared: not tags[:async])
+    # Capture the CloudRepo config as of setup start. on_exit handlers run LIFO
+    # and this case registers before a test's own setup, so this on_exit runs
+    # AFTER the test's. Restoring (rather than unconditionally deleting) preserves
+    # the test's intended state instead of wiping a restore it just performed.
+    prior_cloud_repo_config = Application.get_env(:controlkeel, ControlKeel.CloudRepo)
 
     on_exit(fn ->
       # Check in the connection gracefully before stopping the owner.
       # This prevents "client exited" error logs when LiveView processes
       # that shared the sandbox are still alive during cleanup.
-      Ecto.Adapters.SQL.Sandbox.checkin(ControlKeel.Repo, sandbox: pid)
+      Ecto.Adapters.SQL.Sandbox.checkin(ControlKeel.Repo.Local, sandbox: pid)
       Ecto.Adapters.SQL.Sandbox.stop_owner(pid)
+
+      case prior_cloud_repo_config do
+        nil ->
+          Application.delete_env(:controlkeel, ControlKeel.CloudRepo)
+
+        config ->
+          Application.put_env(:controlkeel, ControlKeel.CloudRepo, config, persistent: true)
+      end
     end)
   end
 

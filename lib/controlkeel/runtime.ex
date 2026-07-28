@@ -22,8 +22,35 @@ defmodule ControlKeel.Runtime do
   end
 
   def cloud_repo_enabled? do
-    remote?() and Application.get_env(:controlkeel, ControlKeel.CloudRepo, []) != []
+    remote?() and cloud_repo_url_configured?()
   end
+
+  @doc """
+  Whether the local SQLite repo has enough config to be started safely.
+
+  Used to gate `ControlKeel.Repo.Local` supervision: a prod cloud/self-hosted
+  release intentionally leaves `Repo.Local` without a `:database`/`:url` (see
+  `config/runtime.exs`), so starting it would crash boot before the app can
+  serve traffic. Local mode and the test suite always configure it.
+  """
+  def local_repo_configured? do
+    env = Application.get_env(:controlkeel, ControlKeel.Repo.Local, [])
+    Keyword.has_key?(env, :database) or Keyword.has_key?(env, :url)
+  end
+
+  # CloudRepo counts as enabled only when it has a real connection string.
+  # A bare `priv` entry (always present from config/config.exs) must NOT count,
+  # otherwise a self-hosted box without DATABASE_URL would route queries to an
+  # unconfigured Postgres repo instead of the SQLite database runtime.exs set up.
+  defp cloud_repo_url_configured? do
+    Application.get_env(:controlkeel, ControlKeel.CloudRepo, [])
+    |> Keyword.get(:url)
+    |> cloud_repo_url_present?()
+  end
+
+  defp cloud_repo_url_present?(nil), do: false
+  defp cloud_repo_url_present?(""), do: false
+  defp cloud_repo_url_present?(_url), do: true
 
   def memory_store_mode do
     if cloud_repo_enabled?(), do: :pgvector, else: :sqlite

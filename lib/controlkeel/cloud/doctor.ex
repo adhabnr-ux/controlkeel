@@ -109,12 +109,26 @@ defmodule ControlKeel.Cloud.Doctor do
           detail: "Runtime.mode is :cloud but DATABASE_URL is not set"
         }
 
+      ControlKeel.Repo.active() != CloudRepo ->
+        # The dispatcher (lib/controlkeel/repo.ex) decides where every query
+        # goes. If it does not resolve to CloudRepo in cloud mode, context
+        # modules will silently route to the local SQLite — the original
+        # issue #44 defect. Surface this as an error, not just a config check.
+        %{
+          id: :cloud_repo,
+          label: "Cloud repo",
+          status: :error,
+          detail:
+            "CloudRepo is configured but ControlKeel.Repo.active/0 resolves to " <>
+              "#{inspect(ControlKeel.Repo.active())} — queries will not reach Postgres"
+        }
+
       true ->
         %{
           id: :cloud_repo,
           label: "Cloud repo",
           status: :ok,
-          detail: "configured (DATABASE_URL set)"
+          detail: "configured and active (DATABASE_URL set; dispatcher routes to Postgres)"
         }
     end
   end

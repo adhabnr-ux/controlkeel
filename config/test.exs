@@ -14,16 +14,16 @@ if System.get_env("CK_DB_ADAPTER") == "postgres" do
     System.get_env("DATABASE_URL") ||
       raise "DATABASE_URL is required when CK_DB_ADAPTER=postgres"
 
-  config :controlkeel, ControlKeel.Repo,
+  config :controlkeel, ControlKeel.Repo.Local,
     url: database_url,
     pool: Ecto.Adapters.SQL.Sandbox,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 else
   test_database =
     System.get_env("CK_TEST_DB") ||
       Path.expand("../priv/repo/controlkeel_test.db", __DIR__)
 
-  config :controlkeel, ControlKeel.Repo,
+  config :controlkeel, ControlKeel.Repo.Local,
     database: test_database,
     busy_timeout: 15_000,
     # SQLite-backed tests are more stable with a single pooled connection because

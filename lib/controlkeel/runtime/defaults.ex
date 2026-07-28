@@ -30,14 +30,17 @@ defmodule ControlKeel.Runtime.Defaults do
   end
 
   @doc """
-  Reconfigures `ControlKeel.Repo` to point at the resolved project/runtime
+  Reconfigures `ControlKeel.Repo.Local` to point at the resolved project/runtime
   database, so inspection tooling (`mix ck.findings`, `ck.context`, …) reads the
   SAME database the MCP server governs and the commit gate gates on.
 
+  Local-mode only. In cloud mode the dispatcher routes reads to
+  `ControlKeel.CloudRepo` and there is no local SQLite file to bind.
+
   Must be called BEFORE `Mix.Task.run("app.start")` so the Repo pool opens
   against the governed database. No-op when the configured database already
-  matches, when no project database resolves, or when the resolved file does not
-  exist yet (e.g. a fresh project that has never been run by the MCP server).
+  matches, when no project database resolves, or when the resolved file does
+  not exist yet (e.g. a fresh project that has never been run by the MCP server).
 
   Returns `{:redirected, path}`, `:noop`, or
   `{:repo_already_started, path}`.
@@ -45,7 +48,7 @@ defmodule ControlKeel.Runtime.Defaults do
   def bind_inspection_database do
     resolved = database_path()
 
-    current = Application.get_env(:controlkeel, ControlKeel.Repo, [])
+    current = Application.get_env(:controlkeel, ControlKeel.Repo.Local, [])
     current_path = Keyword.get(current, :database)
 
     cond do
@@ -65,7 +68,7 @@ defmodule ControlKeel.Runtime.Defaults do
         # only swap the database path.
         Application.put_env(
           :controlkeel,
-          ControlKeel.Repo,
+          ControlKeel.Repo.Local,
           Keyword.put(current, :database, resolved)
         )
 

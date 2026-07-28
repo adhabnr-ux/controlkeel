@@ -71,9 +71,7 @@ defmodule ControlKeel.Application do
   end
 
   defp late_children do
-    [
-      ControlKeel.Repo
-    ] ++
+    local_repo_children() ++
       cloud_repo_children() ++
       analytics_children() ++
       cloud_emitter_children() ++
@@ -105,9 +103,7 @@ defmodule ControlKeel.Application do
   end
 
   defp mcp_stdio_rest_children do
-    [
-      ControlKeel.Repo
-    ] ++
+    local_repo_children() ++
       cloud_repo_children() ++
       analytics_children() ++
       cloud_emitter_children() ++
@@ -222,7 +218,20 @@ defmodule ControlKeel.Application do
   end
 
   defp run_migrations do
-    Application.fetch_env!(:controlkeel, :ecto_repos)
+    # Migrate the active repo for the current runtime mode. In :local mode that
+    # is `ControlKeel.Repo.Local` (SQLite). In :cloud / :self_hosted mode it is
+    # `ControlKeel.CloudRepo` (Postgres). Routing through the dispatcher's
+    # `active/0` guarantees the same repo serves queries and owns migrations,
+    # so a cloud deploy can no longer auto-migrate SQLite while serving reads
+    # from Postgres (the original issue #44 defect).
+    repos =
+      if ControlKeel.Runtime.cloud_repo_enabled?() do
+        [ControlKeel.CloudRepo]
+      else
+        [ControlKeel.Repo.Local]
+      end
+
+    repos
     |> Enum.reduce_while(:ok, fn repo, :ok ->
       case Ecto.Migrator.with_repo(
              repo,
@@ -250,6 +259,14 @@ defmodule ControlKeel.Application do
     else
       []
     end
+  end
+
+  # Only start the SQLite repo when it is actually configured. A prod
+  # cloud/self-hosted release intentionally leaves Repo.Local without a
+  # :database/:url, so starting it unconditionally would crash boot. See
+  # ControlKeel.Runtime.local_repo_configured?/0.
+  defp local_repo_children do
+    if ControlKeel.Runtime.local_repo_configured?(), do: [ControlKeel.Repo.Local], else: []
   end
 
   defp cloud_emitter_children do

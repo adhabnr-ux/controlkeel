@@ -7,4 +7,4 @@ excludes =
 
 ExUnit.start(max_cases: 1, exclude: excludes)
 ControlKeel.Benchmark.list_suites()
-Ecto.Adapters.SQL.Sandbox.mode(ControlKeel.Repo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(ControlKeel.Repo.Local, :manual)
