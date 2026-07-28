@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.3.79 — 2026-07-28
+
+### What's changed
+
+- Merge pull request #45 from aryaminus/refactor/org-membership
+- Merge remote-tracking branch 'origin/main' into refactor/org-membership
+- refactor/org-membership: add membership existence check to prevent errors when opening revocation modal
+- refactor/org-membership: update page title in InvitationLive mount
+- refactor/org-membership: update invitation routes, enforce membership checks in controller tests, and adjust environment configurations
+- refactor/org-membership: add revoked_at timestamp to memberships and update revocation logic
+- refactor/org-membership: add configurable status filtering to list_memberships_for_org and hide revoked memberships by default
+- refactor/org-membership: implement role-based authorization for organization invitations and restrict invite UI options by role
+- refactor/org-membership: implement role-based access control for organization membership invitations and role updates
+- refactor/org-membership: implement role-based authorization for organization membership revocation
+- refactor/org-membership: simplify invitation routes by removing /cloud prefix and restrict access in local mode
+- refactor/org-membership: replace completion token auth flow with session-based pending invitation persistence
+- refactor/org-membership: invitation layout and routes
+- refactor/org-membership: enable re-invitation of previously revoked members by reviving memberships instead of failing
+
 ## v0.3.78 — 2026-07-27
 
 ### What's changed
