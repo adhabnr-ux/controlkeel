@@ -273,5 +273,25 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
 
       refute html =~ "open_settings"
     end
+
+    test "non-admin member cannot save settings via a forged event", %{
+      org: org,
+      member: member
+    } do
+      # Members can mount the org detail LiveView; the button is hidden, but the
+      # server must still reject a forged `save_settings` event so they cannot
+      # rename the org or touch owner-only fields.
+      {:ok, view, _html} = live(conn_for(member), ~p"/organizations/setco")
+
+      view
+      |> render_click("save_settings", %{
+        "settings" => %{"name" => "Hacked", "status" => "disabled", "budget_cents" => "999"}
+      })
+
+      refute render(view) =~ "Settings saved."
+      reloaded = Accounts.get_org(org.id)
+      assert reloaded.name == "Setco"
+      assert reloaded.status == "active"
+    end
   end
 end

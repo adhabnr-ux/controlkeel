@@ -115,32 +115,44 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
     org = socket.assigns.org
     is_owner = socket.assigns.is_owner
 
-    org_attrs =
-      %{name: params["name"]}
-      |> maybe_add_owner_field("status", params["status"], is_owner)
+    # The Settings button is only rendered for can_manage/local_mode, but
+    # re-check server-side. Members/viewers can mount this LiveView, so without
+    # this guard they could forge a `save_settings` event and rename the org
+    # (the name field has no other server-side authz; Accounts.update_org/2
+    # does not check the actor). Status/budget stay owner-locked via is_owner.
+    if socket.assigns.can_manage || socket.assigns.local_mode do
+      org_attrs =
+        %{name: params["name"]}
+        |> maybe_add_owner_field("status", params["status"], is_owner)
 
-    with {:ok, org} <- Accounts.update_org(org, org_attrs),
-         {:ok, org} <- maybe_set_budget(org, params["budget_cents"], is_owner) do
-      budget_cents = Accounts.org_budget_cents(org) || 0
+      with {:ok, org} <- Accounts.update_org(org, org_attrs),
+           {:ok, org} <- maybe_set_budget(org, params["budget_cents"], is_owner) do
+        budget_cents = Accounts.org_budget_cents(org) || 0
 
+        {:noreply,
+         socket
+         |> assign(:org, org)
+         |> assign(:budget_cents, budget_cents)
+         |> assign(:settings_form, settings_form(org, budget_cents))
+         |> assign(:settings_error, nil)
+         |> assign(:show_settings_modal, false)
+         |> put_flash(:info, "Settings saved.")}
+      else
+        {:error, %Ecto.Changeset{} = cs} ->
+          msg =
+            cs.errors
+            |> Enum.map_join(", ", fn {f, {m, _}} -> "#{f}: #{m}" end)
+
+          {:noreply, assign(socket, :settings_error, msg)}
+
+        {:error, reason} ->
+          {:noreply, assign(socket, :settings_error, inspect(reason))}
+      end
+    else
       {:noreply,
        socket
-       |> assign(:org, org)
-       |> assign(:budget_cents, budget_cents)
-       |> assign(:settings_form, settings_form(org, budget_cents))
-       |> assign(:settings_error, nil)
        |> assign(:show_settings_modal, false)
-       |> put_flash(:info, "Settings saved.")}
-    else
-      {:error, %Ecto.Changeset{} = cs} ->
-        msg =
-          cs.errors
-          |> Enum.map_join(", ", fn {f, {m, _}} -> "#{f}: #{m}" end)
-
-        {:noreply, assign(socket, :settings_error, msg)}
-
-      {:error, reason} ->
-        {:noreply, assign(socket, :settings_error, inspect(reason))}
+       |> put_flash(:error, "You don't have permission to change organization settings.")}
     end
   end
 
