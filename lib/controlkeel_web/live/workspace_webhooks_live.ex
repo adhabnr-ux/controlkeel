@@ -140,31 +140,31 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
         <h2>Create webhook</h2>
         <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
+            <label class="block text-sm font-medium text-muted-foreground mb-1">Name</label>
             <input
               type="text"
               name="wh[name]"
               value={@create_form[:name].value || ""}
               required
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Delivery URL</label>
+            <label class="block text-sm font-medium text-muted-foreground mb-1">Delivery URL</label>
             <input
               type="url"
               name="wh[url]"
               value={@create_form[:url].value || ""}
               required
               placeholder="https://example.com/hooks/controlkeel"
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-2">Events</label>
+            <label class="block text-sm font-medium text-muted-foreground mb-2">Events</label>
             <div class="grid grid-cols-2 gap-2">
               <%= for ev <- @available_events do %>
-                <label class="flex items-center gap-2 text-sm text-zinc-300">
+                <label class="flex items-center gap-2 text-sm text-muted-foreground">
                   <input type="checkbox" name="events[]" value={ev} />
                   <code>{ev}</code>
                 </label>

@@ -81,7 +81,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
               Policy packs
             </p>
             <p class="text-muted-foreground text-sm mt-4 mb-4">
-              <span class="rounded-full p-2 text-xs bg-red-500/15 text-red-300 border border-red-500/15 mr-1 font-bold uppercase">
+              <span class="rounded-full p-2 text-xs bg-destructive/15 text-destructive border border-destructive/15 mr-1 font-bold uppercase">
                 {@block_count} rules
               </span>
               block agent actions when violated. Other rules only generate warnings.
@@ -304,6 +304,8 @@ defmodule ControlKeelWeb.PolicyStudioLive do
     id |> String.split(".") |> List.last() |> String.replace("_", " ")
   end
 
-  defp rule_tag_class("block"), do: "bg-red-500/15 text-red-300 border-red-500/15"
-  defp rule_tag_class("warn"), do: "bg-yellow-500/15 text-yellow-300 border-yellow-500/15"
+  defp rule_tag_class("block"), do: "bg-destructive/15 text-destructive border-destructive/15"
+
+  defp rule_tag_class("warn"),
+    do: "bg-[var(--ck-warning)]/15 text-[var(--ck-warning)] border-[var(--ck-warning)]/15"
 end

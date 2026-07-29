@@ -112,31 +112,31 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
         <.form for={@bind_form} phx-submit="bind" class="flex flex-col gap-3">
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Owner</label>
+              <label class="block text-sm font-medium text-muted-foreground mb-1">Owner</label>
               <input
                 type="text"
                 name="bind[owner]"
                 value={@bind_form[:owner].value || ""}
                 placeholder="acme"
                 required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Repo</label>
+              <label class="block text-sm font-medium text-muted-foreground mb-1">Repo</label>
               <input
                 type="text"
                 name="bind[repo]"
                 value={@bind_form[:repo].value || ""}
                 placeholder="payments"
                 required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
               />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">
+              <label class="block text-sm font-medium text-muted-foreground mb-1">
                 Default branch (optional)
               </label>
               <input
@@ -144,18 +144,18 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
                 name="bind[default_branch]"
                 value={@bind_form[:default_branch].value || ""}
                 placeholder="main"
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">
+              <label class="block text-sm font-medium text-muted-foreground mb-1">
                 Installation ID (optional)
               </label>
               <input
                 type="number"
                 name="bind[installation_id]"
                 value={@bind_form[:installation_id].value || ""}
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
               />
             </div>
           </div>

@@ -486,49 +486,49 @@ defmodule ControlKeelWeb.CloudProjectsLive do
           <h3>New workspace</h3>
           <.form for={@create_form} phx-submit="create-workspace" class="flex flex-col gap-3">
             <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
+              <label class="block text-sm font-medium text-muted-foreground mb-1">Name</label>
               <input
                 type="text"
                 name="workspace[name]"
                 value={@create_form[:name].value || ""}
                 required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Slug</label>
+              <label class="block text-sm font-medium text-muted-foreground mb-1">Slug</label>
               <input
                 type="text"
                 name="workspace[slug]"
                 value={@create_form[:slug].value || ""}
                 required
                 pattern="[a-z0-9][a-z0-9\-]*"
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground"
               />
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">Industry</label>
+                <label class="block text-sm font-medium text-muted-foreground mb-1">Industry</label>
                 <input
                   type="text"
                   name="workspace[industry]"
                   value={@create_form[:industry].value || "software"}
-                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                  class="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">Agent</label>
+                <label class="block text-sm font-medium text-muted-foreground mb-1">Agent</label>
                 <input
                   type="text"
                   name="workspace[agent]"
                   value={@create_form[:agent].value || "claude-code"}
-                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                  class="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground"
                 />
               </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">
+                <label class="block text-sm font-medium text-muted-foreground mb-1">
                   Monthly budget (cents)
                 </label>
                 <input
@@ -536,16 +536,18 @@ defmodule ControlKeelWeb.CloudProjectsLive do
                   name="workspace[budget_cents]"
                   value={@create_form[:budget_cents].value || "10000"}
                   min="0"
-                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                  class="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-zinc-300 mb-1">Compliance profile</label>
+                <label class="block text-sm font-medium text-muted-foreground mb-1">
+                  Compliance profile
+                </label>
                 <input
                   type="text"
                   name="workspace[compliance_profile]"
                   value={@create_form[:compliance_profile].value || "baseline"}
-                  class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                  class="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground"
                 />
               </div>
             </div>

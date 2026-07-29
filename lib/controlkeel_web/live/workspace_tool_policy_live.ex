@@ -102,10 +102,10 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
         class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6 flex flex-col gap-4"
       >
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-1">Mode</label>
+          <label class="block text-sm font-medium text-muted-foreground mb-1">Mode</label>
           <select
             name="policy[mode]"
-            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
           >
             <%= for m <- @modes do %>
               <option value={m} selected={@form[:mode].value == m}>{m}</option>
@@ -114,16 +114,16 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-1">
+          <label class="block text-sm font-medium text-muted-foreground mb-1">
             Tool names (one per line)
           </label>
           <textarea
             name="policy[tools]"
             rows="8"
             placeholder="ck_validate&#10;ck_finding&#10;ck_context"
-            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white font-mono"
+            class="w-full rounded-lg border bg-card px-4 py-2 text-foreground font-mono"
           >{@form[:tools].value || ""}</textarea>
-          <p class="mt-1 text-xs text-zinc-500">
+          <p class="mt-1 text-xs text-muted-foreground">
             Used by <code>allowlist</code>
             and <code>denylist</code>
             modes. Ignored under <code>inherit</code>.

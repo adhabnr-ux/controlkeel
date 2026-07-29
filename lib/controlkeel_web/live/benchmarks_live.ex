@@ -124,7 +124,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
     <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-4 pb-16 max-[900px]:w-[min(calc(100%-1.25rem),1180px)] max-[900px]:pt-6">
       <.link
         navigate={~p"/benchmarks"}
-        class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 hover:text-neutral-200"
+        class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
       >
         <.icon name="hero-arrow-left" class="w-3 h-3" /> Back to benchmarks
       </.link>
@@ -138,7 +138,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
         <a
           href={~p"/api/v1/benchmarks/runs/#{@run.id}/export?format=csv"}
-          class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] border border-neutral-400 rounded-xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] px-3 py-2 text-neutral-400 hover:text-neutral-200 hover:border-neutral-400"
+          class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] border rounded-xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] px-3 py-2 text-muted-foreground hover:text-foreground hover:border-primary"
         >
           <.icon name="hero-document-text" class="w-3 h-3" /> Export CSV
         </a>
@@ -251,7 +251,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
             <%= for row <- @matrix.scenarios do %>
               <article
                 id={"scenario-#{row.scenario.slug}"}
-                class="border border-white/[0.07] rounded-[1.1rem] bg-white/[0.03] p-4 grid gap-3"
+                class="border/[0.07] rounded-[1.1rem] bg-muted/[0.03] p-4 grid gap-3"
               >
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0 space-y-1">
@@ -261,7 +261,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
                     </p>
                   </div>
                   <div class="flex flex-col items-end gap-1 shrink-0">
-                    <span class="border bg-white/5 rounded-full px-2 py-0.5 text-[0.7rem]">
+                    <span class="border bg-muted rounded-full px-2 py-0.5 text-[0.7rem]">
                       {format_domain_pack(get_in(row.scenario.metadata || %{}, ["domain_pack"]))}
                     </span>
                     <span class="text-[0.7rem] text-muted-foreground uppercase tracking-wider">
@@ -322,7 +322,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
                   if(preset_value == @active_preset,
                     do: "border-primary bg-[rgba(196,240,66,0.16)] text-primary",
                     else:
-                      " bg-white/5 hover:-translate-y-px hover:border-primary hover:bg-[rgba(196,240,66,0.08)] hover:text-primary"
+                      " bg-muted hover:-translate-y-px hover:border-primary hover:bg-[rgba(196,240,66,0.08)] hover:text-primary"
                   )
                 ]}
               >
@@ -476,7 +476,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
                       {run.suite.name || run.suite.slug}
                     </td>
                     <td class="py-3 pr-4">
-                      <span class="inline-flex items-center rounded-full px-3 py-1 text-xs bg-white/5 border">
+                      <span class="inline-flex items-center rounded-full px-3 py-1 text-xs bg-muted border">
                         {run_status_label(run.status)}
                       </span>
                     </td>
@@ -487,7 +487,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
                     <td class="py-3 pr-4">
                       <div class="flex flex-wrap gap-2">
                         <%= for pack <- Benchmark.domain_packs_for_run(run) do %>
-                          <span class="border bg-white/5 rounded-full px-2 py-0.5 text-[0.75rem]">
+                          <span class="border bg-muted rounded-full px-2 py-0.5 text-[0.75rem]">
                             {format_domain_pack(pack)}
                           </span>
                         <% end %>
@@ -516,7 +516,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
         <div class="grid gap-4 m-0 p-0 list-none mt-4 max-h-[28rem] overflow-y-auto pr-1">
           <%= for suite <- @suites do %>
             <article
-              class="border border-white/[0.07] rounded-[1.1rem] p-4 bg-white/[0.03] grid gap-[0.55rem]"
+              class="border/[0.07] rounded-[1.1rem] p-4 bg-muted/[0.03] grid gap-[0.55rem]"
               id={"suite-#{suite.slug}"}
             >
               <div class="flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start">
@@ -532,7 +532,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
               </div>
               <div class="flex flex-wrap gap-2 mt-2">
                 <%= for pack <- Benchmark.domain_packs_for_suite(suite) do %>
-                  <span class="border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]">
+                  <span class="border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]">
                     {format_domain_pack(pack)}
                   </span>
                 <% end %>
@@ -614,7 +614,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
   defp format_percent(value), do: "#{Float.round(value, 1)}%"
 
   defp decision_badge_class(nil),
-    do: " bg-white/5 text-muted-foreground"
+    do: " bg-muted text-muted-foreground"
 
   defp decision_badge_class("block"),
     do: "border-[rgba(255,143,107,0.35)] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
@@ -626,7 +626,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
     do: "border-[rgba(125,226,174,0.35)] bg-[rgba(125,226,174,0.12)] text-[#d2ffe7]"
 
   defp decision_badge_class(_),
-    do: " bg-white/5 text-muted-foreground"
+    do: " bg-muted text-muted-foreground"
 
   defp decision_label(nil), do: "no ruling"
   defp decision_label("block"), do: "blocked"
@@ -651,7 +651,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
   end
 
   defp status_badge_class(_),
-    do: " bg-white/5 text-muted-foreground"
+    do: " bg-muted text-muted-foreground"
 
   defp subject_options(subjects) do
     Enum.map(subjects, fn subject ->
@@ -661,7 +661,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
   defp scenario_result(assigns) do
     ~H"""
-    <div class="rounded-[0.8rem] bg-white/[0.02] px-3 py-2.5 grid gap-2">
+    <div class="rounded-[0.8rem] bg-muted/[0.02] px-3 py-2.5 grid gap-2">
       <%= if @result do %>
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-1.5 min-w-0">
@@ -771,7 +771,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
             "w-full flex items-center gap-2 px-3 py-2 rounded-[0.6rem] text-left text-sm transition-colors cursor-pointer",
             if(option_value in @selected,
               do: "bg-[rgba(196,240,66,0.14)] text-[#d2ffe7]",
-              else: " hover:bg-white/5"
+              else: " hover:bg-muted"
             )
           ]}
         >

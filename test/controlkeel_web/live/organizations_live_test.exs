@@ -153,7 +153,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
       # owner-specific lime styling and role text rather than a literal `>owner<`.
       assert html =~ ">Role<"
       assert html =~ "Owned"
-      assert html =~ "ring-lime-300/20"
+      assert html =~ "ring-primary/20"
       assert html =~ "owner"
       refute html =~ "—"
     end

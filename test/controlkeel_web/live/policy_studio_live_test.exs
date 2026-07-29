@@ -59,18 +59,18 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
     assert html =~ "bash"
   end
 
-  test "block count badge shows bg-red-500/15 class", %{conn: conn} do
+  test "block count badge shows destructive class", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/policies")
 
-    assert html =~ "bg-red-500/15"
+    assert html =~ "bg-destructive/15"
   end
 
-  test "warn rules show yellow class when pack is expanded", %{conn: conn} do
+  test "warn rules show warning class when pack is expanded", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/policies")
 
     render_click(element(view, "button[phx-value-name=\"software\"]"))
 
-    assert render(view) =~ "yellow-300"
+    assert render(view) =~ "var(--ck-warning)"
   end
 
   test "renders pack labels for known domain packs", %{conn: conn} do

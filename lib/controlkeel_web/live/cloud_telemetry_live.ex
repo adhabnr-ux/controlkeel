@@ -159,10 +159,10 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
           <span class={telemetry_pill_class(@telemetry_state.level)}>
             {@telemetry_state.level}
           </span>
-          <span class="border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {@metrics.total} received
           </span>
-          <span class="border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {@queue_depth} pending
           </span>
         </div>
@@ -690,10 +690,10 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
   defp telemetry_pill_class(:disabled),
     do:
-      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp telemetry_pill_class(_other),
-    do: "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]"
+    do: "border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]"
 
   defp format_cap(nil), do: "uncapped"
   defp format_cap(n) when is_integer(n), do: Integer.to_string(n)

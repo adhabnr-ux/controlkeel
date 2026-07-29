@@ -19,23 +19,23 @@
     <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">Install</p>
     <%= for channel <- @install_channels do %>
       <article
-        class="rounded-3xl border border-white/10 bg-zinc-950/70 p-5 transition hover:border-lime-300/40 hover:bg-zinc-950/90"
+        class="rounded-3xl border bg-background/70 p-5 transition hover:border-primary/40 hover:bg-background/90"
         id={"install-channel-#{channel.id}"}
       >
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div class="space-y-3">
             <div class="flex flex-wrap items-center gap-3">
-              <h3 class="text-lg font-semibold text-white">{channel.label}</h3>
-              <span class="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-300">
+              <h3 class="text-lg font-semibold text-foreground">{channel.label}</h3>
+              <span class="rounded-full bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 {Enum.join(channel.platforms, ", ")}
               </span>
             </div>
-            <p class="text-sm leading-6 text-zinc-400">{channel.description}</p>
+            <p class="text-sm leading-6 text-muted-foreground">{channel.description}</p>
           </div>
         </div>
 
-        <div class="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/10">
-          <pre class="whitespace-pre-wrap px-4 py-3 text-sm leading-6 text-zinc-100"><code>{channel.command}</code></pre>
+        <div class="mt-4 overflow-hidden rounded-2xl border bg-overlay/10">
+          <pre class="whitespace-pre-wrap px-4 py-3 text-sm leading-6 text-foreground"><code>{channel.command}</code></pre>
         </div>
       </article>
     <% end %>
@@ -54,27 +54,27 @@
         Packaged binary
       </p>
       <ol class="grid gap-4 m-0 p-0 list-none mt-4">
-        <li class="text-sm text-zinc-400">
-          1. Run <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">controlkeel</code>
+        <li class="text-sm text-muted-foreground">
+          1. Run <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">controlkeel</code>
           to boot the local web app.
         </li>
-        <li class="text-sm text-zinc-400">
-          2. In your project, run <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">controlkeel setup</code>, then <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">controlkeel attach opencode</code>.
+        <li class="text-sm text-muted-foreground">
+          2. In your project, run <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">controlkeel setup</code>, then <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">controlkeel attach opencode</code>.
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           3. Binding auto-bootstraps on first use; use
-          <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">
+          <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">
             controlkeel bootstrap
           </code>
-          or <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">controlkeel init</code>
+          or <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">controlkeel init</code>
           to do it explicitly.
         </li>
-        <li class="text-sm text-zinc-400">
-          4. Run <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">controlkeel attach doctor</code>, <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">controlkeel provider doctor</code>, and <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">controlkeel status</code>.
+        <li class="text-sm text-muted-foreground">
+          4. Run <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">controlkeel attach doctor</code>, <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">controlkeel provider doctor</code>, and <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">controlkeel status</code>.
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           5. Trigger a controlled validation, then open Mission Control or run
-          <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">
+          <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">
             controlkeel findings
           </code>
           to verify the block.
@@ -87,27 +87,27 @@
         Source setup
       </p>
       <ol class="grid gap-4 m-0 p-0 list-none mt-4">
-        <li class="text-sm text-zinc-400">
-          1. Run <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">mix setup</code>
+        <li class="text-sm text-muted-foreground">
+          1. Run <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">mix setup</code>
           once.
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           2. Run
-          <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">mix phx.server</code>
+          <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">mix phx.server</code>
           in the ControlKeel repo.
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           3. In your project, run
-          <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">
+          <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">
             mix ck.attach opencode
           </code>
           from the same source environment.
         </li>
-        <li class="text-sm text-zinc-400">
-          4. <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">mix ck.init</code>
+        <li class="text-sm text-muted-foreground">
+          4. <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">mix ck.init</code>
           is available for explicit setup.
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           5. Run a built-in smoke benchmark or validate a pending change to trigger the first finding.
         </li>
       </ol>
@@ -128,14 +128,14 @@
         Governed delivery lifecycle
       </p>
       <ul class="grid gap-4 m-0 p-0 list-none mt-3">
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           Intent intake and execution briefs at
-          <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">/missions/start</code>
+          <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">/missions/start</code>
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           Task graph, validation, and findings during execution
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           Proof bundles, Ship Dashboard, and benchmarks as evidence
         </li>
       </ul>
@@ -146,16 +146,16 @@
         Proof console loop
       </p>
       <ul class="grid gap-4 m-0 p-0 list-none mt-3">
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           Mission Control for active task state, risk, and approvals
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           Findings turn policy violations into reviewable work
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           Proof Browser for immutable evidence and rollback guidance
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           Ship Dashboard and benchmarks for outcome evidence
         </li>
       </ul>
@@ -166,7 +166,7 @@
         Autonomy and findings
       </p>
       <p class="text-muted-foreground mt-3 text-sm">
-        Severity maps to expected human gates; findings stay readable in plain language. LLM advisory is optional and needs a provider. See <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">docs/autonomy-and-findings.md</code>.
+        Severity maps to expected human gates; findings stay readable in plain language. LLM advisory is optional and needs a provider. See <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">docs/autonomy-and-findings.md</code>.
       </p>
     </div>
 
@@ -175,13 +175,13 @@
         Operating modes
       </p>
       <ul class="grid gap-4 m-0 p-0 list-none mt-3">
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           Local mode ships with SQLite, Ollama, or heuristic fallback.
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           Cloud mode connects orgs, projects, users, webhooks, and service accounts as shared governance evidence.
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           Use benchmarks to collect bounded evidence before claiming a workflow is safer, cheaper, or faster.
         </li>
       </ul>
@@ -201,8 +201,8 @@
         Project rescue
       </p>
       <p class="text-muted-foreground mt-3 text-sm">
-        If another tool already touched the repo, bootstrap it, run <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">controlkeel watch</code>, and use findings, proofs, and
-        <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">ck_validate</code>
+        If another tool already touched the repo, bootstrap it, run <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">controlkeel watch</code>, and use findings, proofs, and
+        <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">ck_validate</code>
         to recover. Add governed proxy only when the tool points at compatible OpenAI or Anthropic endpoints.
       </p>
     </div>
@@ -216,23 +216,23 @@
         Other supported agents
       </p>
       <ul class="grid gap-4 m-0 p-0 list-none mt-3">
-        <li class="text-sm text-zinc-400">
-          <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">
+        <li class="text-sm text-muted-foreground">
+          <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">
             controlkeel attach codex-cli
           </code>
           installs native Codex skills and the CK operator agent.
         </li>
-        <li class="text-sm text-zinc-400">
-          <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">
+        <li class="text-sm text-muted-foreground">
+          <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">
             controlkeel attach vscode
           </code>
           and
-          <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">
+          <code class="rounded bg-muted px-1.5 py-0.5 text-foreground">
             controlkeel attach copilot
           </code>
           prepare repo-native skills plus MCP config.
         </li>
-        <li class="text-sm text-zinc-400">
+        <li class="text-sm text-muted-foreground">
           OpenCode is the recommended quick start; Cursor, Windsurf, Kiro, Amp, Gemini CLI, Continue, and Aider use the same portable bundle path.
         </li>
       </ul>
@@ -249,9 +249,13 @@
         What it is not
       </p>
       <ul class="grid gap-4 m-0 p-0 list-none mt-3">
-        <li class="text-sm text-zinc-400">Not another IDE or coding model</li>
-        <li class="text-sm text-zinc-400">Not a prompt marketplace or generic memory API</li>
-        <li class="text-sm text-zinc-400">Not passive monitoring or post-hoc review only</li>
+        <li class="text-sm text-muted-foreground">Not another IDE or coding model</li>
+        <li class="text-sm text-muted-foreground">
+          Not a prompt marketplace or generic memory API
+        </li>
+        <li class="text-sm text-muted-foreground">
+          Not passive monitoring or post-hoc review only
+        </li>
       </ul>
     </div>
   </div>

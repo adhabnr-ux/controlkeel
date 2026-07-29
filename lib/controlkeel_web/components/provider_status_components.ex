@@ -5,71 +5,71 @@ defmodule ControlKeelWeb.ProviderStatusComponents do
 
   def current_status(assigns) do
     ~H"""
-    <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
-      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+    <section class="rounded-3xl border bg-card/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
         Provider and Autonomy Status
       </p>
 
-      <div class="mt-5 grid gap-4 border-t border-white/10 pt-4 sm:grid-cols-2">
+      <div class="mt-5 grid gap-4 border-t pt-4 sm:grid-cols-2">
         <div>
-          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Current mode
           </h3>
-          <p class="mt-1 text-sm font-medium text-zinc-200">
+          <p class="mt-1 text-sm font-medium text-foreground">
             {provider_mode_label(@provider_status)}
           </p>
         </div>
         <div>
-          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Current provider
           </h3>
-          <p class="mt-1 text-sm font-medium text-zinc-200">
+          <p class="mt-1 text-sm font-medium text-foreground">
             {provider_name(@provider_status)}
           </p>
         </div>
         <div>
-          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Setup scope
           </h3>
-          <p class="mt-1 text-sm leading-6 text-zinc-300">
+          <p class="mt-1 text-sm leading-6 text-muted-foreground">
             {setup_scope_copy(@provider_status)}
           </p>
         </div>
         <div>
-          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Attached agents
           </h3>
-          <p class="mt-1 text-sm leading-6 text-zinc-300">
+          <p class="mt-1 text-sm leading-6 text-muted-foreground">
             {attached_agents_copy(@provider_status)}
           </p>
         </div>
       </div>
 
-      <div class="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <p class="text-sm leading-6 text-zinc-300">{provider_guidance(@provider_status)}</p>
-        <p class="mt-3 text-xs italic leading-5 text-zinc-500">
+      <div class="mt-5 rounded-2xl border bg-muted/[0.03] p-4">
+        <p class="text-sm leading-6 text-muted-foreground">{provider_guidance(@provider_status)}</p>
+        <p class="mt-3 text-xs italic leading-5 text-muted-foreground">
           Autonomy and findings map to human review severity. LLM advisory requires a provider, while validate responses still report advisory status.
-          See <code class="font-mono text-[11px] text-zinc-400">docs/autonomy-and-findings.md</code>.
+          See <code class="font-mono text-[11px] text-muted-foreground">docs/autonomy-and-findings.md</code>.
         </p>
       </div>
 
       <div class="mt-5 grid gap-4 lg:grid-cols-2">
-        <div class="rounded-2xl bg-white/[0.04] p-4">
-          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <div class="rounded-2xl bg-muted/[0.04] p-4">
+          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Always available
           </h3>
-          <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+          <ul class="mt-3 space-y-2 text-sm text-muted-foreground">
             <%= for item <- always_available_capabilities() do %>
               <li>{item}</li>
             <% end %>
           </ul>
         </div>
 
-        <div class="rounded-2xl bg-white/[0.04] p-4">
-          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <div class="rounded-2xl bg-muted/[0.04] p-4">
+          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Model-backed features
           </h3>
-          <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+          <ul class="mt-3 space-y-2 text-sm text-muted-foreground">
             <%= for item <- model_backed_capabilities(@provider_status) do %>
               <li>{item}</li>
             <% end %>
@@ -78,22 +78,22 @@ defmodule ControlKeelWeb.ProviderStatusComponents do
       </div>
 
       <div class="mt-5 grid gap-4 lg:grid-cols-2">
-        <div class="rounded-2xl bg-white/[0.04] p-4">
-          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <div class="rounded-2xl bg-muted/[0.04] p-4">
+          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Resolution order
           </h3>
-          <ol class="mt-3 space-y-2 text-sm text-zinc-300">
+          <ol class="mt-3 space-y-2 text-sm text-muted-foreground">
             <%= for item <- provider_resolution_steps() do %>
               <li>{item}</li>
             <% end %>
           </ol>
         </div>
 
-        <div class="rounded-2xl bg-white/[0.04] p-4">
-          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <div class="rounded-2xl bg-muted/[0.04] p-4">
+          <h3 class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Autonomy defaults
           </h3>
-          <ul class="mt-3 space-y-2 text-sm text-zinc-300">
+          <ul class="mt-3 space-y-2 text-sm text-muted-foreground">
             <%= for item <- autonomy_defaults() do %>
               <li>{item}</li>
             <% end %>
@@ -235,33 +235,33 @@ defmodule ControlKeelWeb.ProviderStatusComponents do
     ~H"""
     <section
       id="skills-provider-status"
-      class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur"
+      class="rounded-3xl border bg-card/70 p-5 shadow-2xl shadow-black/20 backdrop-blur"
     >
-      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
         Provider and bootstrap status
       </p>
-      <div class="mt-5 grid gap-4 border-t border-white/10 pt-4">
-        <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 grid gap-[0.55rem]">
+      <div class="mt-5 grid gap-4 border-t pt-4">
+        <article class="rounded-2xl border bg-muted/[0.03] p-4 grid gap-[0.55rem]">
           <div class="flex items-center justify-between gap-4">
-            <h3 class="text-sm font-semibold text-zinc-200">Active provider</h3>
-            <span class="rounded-full border border-white/10 bg-white/[0.06] px-3 py-[0.45rem] text-xs text-lime-300">
+            <h3 class="text-sm font-semibold text-foreground">Active provider</h3>
+            <span class="rounded-full border bg-muted/[0.06] px-3 py-[0.45rem] text-xs text-primary">
               {@provider_status["selected_source"]}
             </span>
           </div>
-          <p class="text-sm text-zinc-400">
+          <p class="text-sm text-muted-foreground">
             Provider: {@provider_status["selected_provider"]} / {@provider_status["selected_model"] ||
               "default"}
           </p>
-          <p class="text-sm text-zinc-400">
+          <p class="text-sm text-muted-foreground">
             Base URL: {selected_base_url(@provider_status)}
           </p>
-          <p class="text-sm text-zinc-400">
+          <p class="text-sm text-muted-foreground">
             Auth: {@provider_status["selected_auth_mode"]} / {@provider_status["selected_auth_owner"]}
           </p>
-          <p class="text-sm text-zinc-400">
+          <p class="text-sm text-muted-foreground">
             Bootstrap mode: {get_in(@provider_status, ["bootstrap", "mode"]) || "unknown"}
           </p>
-          <p class="text-sm text-zinc-400">
+          <p class="text-sm text-muted-foreground">
             Fallback chain: {Enum.join(@provider_status["fallback_chain"] || [], ", ")}
           </p>
         </article>
@@ -274,31 +274,32 @@ defmodule ControlKeelWeb.ProviderStatusComponents do
 
   def registry_cache(assigns) do
     ~H"""
-    <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
-      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+    <section class="rounded-3xl border bg-card/70 p-5 shadow-2xl shadow-black/20 backdrop-blur">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
         ACP registry cache
       </p>
-      <div class="mt-5 grid gap-4 border-t border-white/10 pt-4">
+      <div class="mt-5 grid gap-4 border-t pt-4">
         <article
-          class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 grid gap-[0.55rem]"
+          class="rounded-2xl border bg-muted/[0.03] p-4 grid gap-[0.55rem]"
           id="skills-registry-status"
         >
           <div class="flex items-center justify-between gap-4">
-            <h3 class="text-sm font-semibold text-zinc-200">Cache status</h3>
+            <h3 class="text-sm font-semibold text-foreground">Cache status</h3>
             <span class={[
               "rounded-full border px-3 py-[0.45rem] text-xs",
-              (@registry_status["stale"] && "border-amber-200/20 bg-amber-300/10 text-amber-100") ||
-                "border-white/10 bg-white/[0.06] text-lime-300"
+              (@registry_status["stale"] &&
+                 "border-[var(--ck-warning)]/20 bg-[var(--ck-warning)]/10 text-[var(--ck-warning)]") ||
+                "border-border bg-muted/[0.06] text-primary"
             ]}>
               {if @registry_status["stale"], do: "stale", else: "fresh"}
             </span>
           </div>
-          <p class="text-sm text-zinc-400">
+          <p class="text-sm text-muted-foreground">
             Entries: {@registry_status["entry_count"]} / matched integrations: {@registry_status[
               "matched_integrations"
             ]}
           </p>
-          <p class="text-sm text-zinc-400">
+          <p class="text-sm text-muted-foreground">
             Fetched at: {@registry_status["fetched_at"] || "never"}
           </p>
         </article>

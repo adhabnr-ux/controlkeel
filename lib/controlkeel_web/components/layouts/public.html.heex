@@ -1,26 +1,29 @@
 <div class="flex min-h-screen flex-col">
-  <header class="sticky top-0 z-50 border-b border-white/10 bg-background/90 backdrop-blur">
-    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+  <header class="sticky top-0 z-50 border-b bg-background/90 backdrop-blur">
+    <div class="mx-auto flex items-center justify-between px-4 py-3 sm:px-6 lg:px-16">
       <a href={~p"/"} class="flex items-center gap-3">
-        <span class="flex size-9 items-center justify-center rounded-xl bg-lime-300 text-zinc-950 shadow-lg shadow-lime-300/20">
+        <span class="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
           <.icon name="hero-bolt-solid" class="size-4" />
         </span>
-        <span class="text-sm font-semibold tracking-wide text-white">ControlKeel</span>
+        <span class="text-sm font-semibold tracking-wide">ControlKeel</span>
       </a>
       <nav class="flex items-center gap-4 text-sm">
-        <a href={~p"/getting-started"} class="text-zinc-400 transition hover:text-white">
+        <a
+          href={~p"/getting-started"}
+          class="text-muted-foreground transition hover:text-foreground"
+        >
           Docs
         </a>
         <a
           href="https://github.com/aryaminus/controlkeel"
           target="_blank"
           rel="noopener"
-          class="text-zinc-400 transition hover:text-white"
+          class="text-muted-foreground transition hover:text-foreground"
         >
           GitHub
         </a>
         <%= if ControlKeel.Runtime.Mode.current() == :local do %>
-          <a href={~p"/dashboard"} class="text-zinc-400 transition hover:text-white">
+          <a href={~p"/dashboard"} class="text-muted-foreground transition hover:text-foreground">
             Dashboard
           </a>
         <% end %>
@@ -30,7 +33,7 @@
           <% else %>
             <a
               href={~p"/auth/login"}
-              class="rounded-full bg-lime-300 px-4 py-1.5 text-sm font-semibold text-zinc-950 transition hover:bg-lime-200"
+              class="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
             >
               Sign in
             </a>
@@ -44,18 +47,18 @@
     {@inner_content}
   </main>
 
-  <footer class="border-t border-white/10">
-    <div class="mx-auto flex max-w-7xl flex-col items-center gap-2 px-4 py-8 text-center sm:px-6 lg:px-8">
+  <footer class="border-t">
+    <div class="mx-auto flex flex-col items-center gap-2 px-4 py-8 text-center sm:px-6 lg:px-16">
       <span class="flex items-center gap-2">
-        <span class="flex size-7 items-center justify-center rounded-lg bg-lime-300/20">
-          <.icon name="hero-bolt-solid" class="size-3 text-lime-300" />
+        <span class="flex size-7 items-center justify-center rounded-lg bg-primary/20">
+          <.icon name="hero-bolt-solid" class="size-3 text-primary" />
         </span>
-        <span class="text-sm font-semibold text-white">ControlKeel</span>
+        <span class="text-sm font-semibold">ControlKeel</span>
       </span>
-      <p class="text-xs text-zinc-500">
+      <p class="text-xs text-muted-foreground">
         Agent control plane for governed AI engineering.
       </p>
-      <p class="text-xs text-zinc-600">
+      <p class="text-xs text-muted-foreground">
         &copy; {Date.utc_today().year} ControlKeel
       </p>
     </div>

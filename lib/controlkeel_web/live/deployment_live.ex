@@ -158,7 +158,7 @@ defmodule ControlKeelWeb.DeploymentLive do
                   <div>
                     <strong>{est.name}</strong>
                     <%= if est.fits_stack do %>
-                      <span class="inline-block ml-2 px-1.5 py-0.5 text-xs rounded bg-green-100 text-green-800">
+                      <span class="inline-block ml-2 px-1.5 py-0.5 text-xs rounded bg-[var(--ck-success)] text-[var(--ck-success)]">
                         Best fit
                       </span>
                     <% end %>
@@ -201,7 +201,7 @@ defmodule ControlKeelWeb.DeploymentLive do
                   <% end %>
                 </:col>
                 <:col :let={p} label="Notes">
-                  <span class="text-sm text-gray-600">{p.notes}</span>
+                  <span class="text-sm text-muted-foreground">{p.notes}</span>
                 </:col>
               </.table>
             </div>
@@ -222,32 +222,32 @@ defmodule ControlKeelWeb.DeploymentLive do
             <div class="space-y-4">
               <%= for {:ok, name, path, content, status} <- @generated_files do %>
                 <div class="border rounded-lg overflow-hidden">
-                  <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b">
+                  <div class="flex items-center justify-between px-4 py-2 bg-muted border-b">
                     <div>
                       <strong class="text-sm">{name}</strong>
-                      <span class="ml-2 text-xs text-gray-500">{path}</span>
+                      <span class="ml-2 text-xs text-muted-foreground">{path}</span>
                     </div>
                     <span class={[
                       "text-xs px-2 py-0.5 rounded",
-                      status == :written && "bg-green-100 text-green-800",
-                      status == :skipped && "bg-yellow-100 text-yellow-800"
+                      status == :written && "bg-[var(--ck-success)] text-[var(--ck-success)]",
+                      status == :skipped && "bg-[var(--ck-warning)] text-[var(--ck-warning)]"
                     ]}>
                       {String.capitalize(to_string(status))}
                     </span>
                   </div>
-                  <pre class="p-4 text-xs overflow-x-auto bg-gray-900 text-green-400 max-h-64"><code phx-no-curly-interpolation>{content}</code></pre>
+                  <pre class="p-4 text-xs overflow-x-auto bg-card text-[var(--ck-success)] max-h-64"><code phx-no-curly-interpolation>{content}</code></pre>
                 </div>
               <% end %>
             </div>
           <% else %>
-            <p class="text-gray-500 text-sm">
+            <p class="text-muted-foreground text-sm">
               Click "Preview Files" to see what will be generated for your {@analysis.stack} project.
             </p>
           <% end %>
         </div>
       <% else %>
         <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-          <p class="text-gray-500">
+          <p class="text-muted-foreground">
             Click "Analyze Project" to detect your project stack and get deployment recommendations.
           </p>
         </div>

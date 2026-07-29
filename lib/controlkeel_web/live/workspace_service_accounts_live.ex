@@ -145,17 +145,17 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
         <h2>Create service account</h2>
         <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
+            <label class="block text-sm font-medium text-muted-foreground mb-1">Name</label>
             <input
               type="text"
               name="sa[name]"
               value={@create_form[:name].value || ""}
               required
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">
+            <label class="block text-sm font-medium text-muted-foreground mb-1">
               Scopes (space or comma separated)
             </label>
             <input
@@ -163,9 +163,9 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
               name="sa[scopes]"
               value={@create_form[:scopes].value || ""}
               placeholder="mcp:access context:read findings:write"
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
             />
-            <p class="mt-1 text-xs text-zinc-500">
+            <p class="mt-1 text-xs text-muted-foreground">
               Use <code>admin</code> for full access, or scope strings like <code>mcp:access</code>.
             </p>
           </div>

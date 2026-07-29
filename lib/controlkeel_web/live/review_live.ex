@@ -141,7 +141,7 @@ defmodule ControlKeelWeb.ReviewLive do
               <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                 Submission
               </p>
-              <pre class="m-0 p-4 border rounded-xl bg-white/[0.03] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{@review.submission_body}</pre>
+              <pre class="m-0 p-4 border rounded-xl bg-muted/[0.03] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{@review.submission_body}</pre>
             </article>
 
             <article
@@ -165,7 +165,7 @@ defmodule ControlKeelWeb.ReviewLive do
                   <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                     Context that shaped the plan
                   </p>
-                  <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700">
+                  <ul class="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
                     <li :for={entry <- plan_context(@review, "alignment_context")}>{entry}</li>
                   </ul>
                 </div>
@@ -176,7 +176,7 @@ defmodule ControlKeelWeb.ReviewLive do
                   <div class="flex flex-wrap gap-2">
                     <span
                       :for={role <- plan_context(@review, "consulted_roles")}
-                      class="border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+                      class="border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
                     >
                       {role}
                     </span>
@@ -203,7 +203,7 @@ defmodule ControlKeelWeb.ReviewLive do
                   <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                     {boundary.label}
                   </p>
-                  <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700">
+                  <ul class="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
                     <li :for={entry <- boundary.entries}>{entry}</li>
                   </ul>
                 </div>
@@ -222,7 +222,7 @@ defmodule ControlKeelWeb.ReviewLive do
                   </p>
                   <h2>Compared with review #{@review.previous_review_id}</h2>
                 </div>
-                <span class="border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                <span class="border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
                   Previous: {String.capitalize(@review.previous_review.status)}
                 </span>
               </div>
@@ -232,7 +232,7 @@ defmodule ControlKeelWeb.ReviewLive do
                     <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                       {diff_chunk_label(chunk.kind)}
                     </p>
-                    <pre class="m-0 p-4 border rounded-xl bg-white/[0.03] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{chunk.text}</pre>
+                    <pre class="m-0 p-4 border rounded-xl bg-muted/[0.03] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{chunk.text}</pre>
                   </div>
                 <% end %>
               </div>
@@ -298,10 +298,10 @@ defmodule ControlKeelWeb.ReviewLive do
                 Audit trail
               </p>
               <div class="grid gap-4 m-0 p-0 list-none">
-                <article class="grid gap-[0.55rem] border border-white/[0.07] rounded-[1.1rem] p-4 bg-white/[0.03]">
+                <article class="grid gap-[0.55rem] border/[0.07] rounded-[1.1rem] p-4 bg-muted/[0.03]">
                   <div class="flex items-center justify-between gap-4">
                     <h3>Submitted</h3>
-                    <span class="border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                    <span class="border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
                       {format_dt(@review.inserted_at)}
                     </span>
                   </div>
@@ -309,7 +309,7 @@ defmodule ControlKeelWeb.ReviewLive do
                 </article>
                 <article
                   :if={@review.responded_at}
-                  class="grid gap-[0.55rem] border border-white/[0.07] rounded-[1.1rem] p-4 bg-white/[0.03]"
+                  class="grid gap-[0.55rem] border/[0.07] rounded-[1.1rem] p-4 bg-muted/[0.03]"
                 >
                   <div class="flex items-center justify-between gap-4">
                     <h3>Responded</h3>
@@ -394,13 +394,13 @@ defmodule ControlKeelWeb.ReviewLive do
   end
 
   defp diff_chunk_class(:added),
-    do: "rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4"
+    do: "rounded-2xl border border-[var(--ck-success)] bg-[var(--ck-success)]/80 p-4"
 
   defp diff_chunk_class(:removed),
-    do: "rounded-2xl border border-rose-200 bg-rose-50/80 p-4"
+    do: "rounded-2xl border border-destructive bg-destructive/80 p-4"
 
   defp diff_chunk_class(:unchanged),
-    do: "rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
+    do: "rounded-2xl border bg-muted/80 p-4"
 
   defp diff_chunk_label(:added), do: "Added"
   defp diff_chunk_label(:removed), do: "Removed"
@@ -408,19 +408,19 @@ defmodule ControlKeelWeb.ReviewLive do
 
   defp review_status_pill_class("approved"),
     do:
-      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp review_status_pill_class("denied"),
     do:
-      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+      "border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
 
   defp review_status_pill_class("superseded"),
     do:
-      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+      "border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
 
   defp review_status_pill_class(_status),
     do:
-      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp review_phase(review) do
     review

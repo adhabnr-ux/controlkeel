@@ -397,7 +397,7 @@ defmodule ControlKeelWeb.SkillsLive do
                 value={@skill_search}
                 placeholder="Filter skills by name or description..."
                 phx-debounce="150"
-                class="mt-3 mb-4 p-3 w-full bg-[rgba(255,255,255,0.04)] border rounded-xl outline-none focus:border-primary transition-colors duration-150"
+                class="mt-3 mb-4 p-3 w-full border border-input bg-background rounded-xl outline-none focus:border-primary transition-colors duration-150"
               />
             </form>
 
@@ -450,7 +450,7 @@ defmodule ControlKeelWeb.SkillsLive do
               value={@target_search}
               placeholder="Filter targets by name or description..."
               phx-debounce="150"
-              class="mt-3 mb-4 p-3 w-full bg-[rgba(255,255,255,0.04)] border rounded-xl outline-none focus:border-primary transition-colors duration-150"
+              class="mt-3 mb-4 p-3 w-full border border-input bg-background rounded-xl outline-none focus:border-primary transition-colors duration-150"
             />
           </form>
 
@@ -461,7 +461,7 @@ defmodule ControlKeelWeb.SkillsLive do
           >
             <table class="min-w-full text-sm" id="skills-target-matrix">
               <thead>
-                <tr class="sticky top-0 bg-neutral-900 text-white">
+                <tr class="sticky top-0 bg-card text-foreground">
                   <th class="text-left py-2 pr-4">Target</th>
                   <th class="text-left py-2 pr-4">Default scope</th>
                   <th class="text-left py-2 pr-4">Native</th>

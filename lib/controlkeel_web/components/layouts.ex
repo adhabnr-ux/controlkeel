@@ -28,14 +28,14 @@ defmodule ControlKeelWeb.Layouts do
     assigns = assign_new(assigns, :mode, fn -> ControlKeel.Runtime.Mode.current() end)
 
     ~H"""
-    <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-white/10 bg-zinc-950/95 px-4 py-5 shadow-2xl shadow-black/30 lg:flex">
+    <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r bg-background/95 px-4 py-5 shadow-2xl shadow-black/30 lg:flex">
       <a href={~p"/dashboard"} class="flex items-center gap-3 rounded-2xl px-2 py-1.5">
-        <span class="flex size-10 items-center justify-center rounded-xl bg-lime-300 text-zinc-950 shadow-lg shadow-lime-300/20">
+        <span class="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
           <.icon name="hero-bolt-solid" class="size-5" />
         </span>
         <span>
-          <span class="block text-sm font-semibold tracking-wide text-white">ControlKeel</span>
-          <span class="block text-xs text-zinc-500">Governance memory</span>
+          <span class="block text-sm font-semibold tracking-wide text-foreground">ControlKeel</span>
+          <span class="block text-xs text-muted-foreground">Governance memory</span>
         </span>
       </a>
 
@@ -43,86 +43,96 @@ defmodule ControlKeelWeb.Layouts do
         <a
           href={~p"/dashboard"}
           data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5 font-medium text-white shadow-sm ring-1 ring-white/10 transition hover:bg-white/15"
+          class="group flex items-center gap-3 rounded-xl bg-muted px-3 py-2.5 font-medium text-foreground shadow-sm ring-1 ring-border transition hover:bg-muted"
         >
-          <.icon name="hero-squares-2x2" class="size-4 text-lime-300" /> Dashboard
+          <.icon name="hero-squares-2x2" class="size-4 text-primary" /> Dashboard
         </a>
         <a
           href={~p"/missions"}
           data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
-          <.icon name="hero-rocket-launch" class="size-4 text-zinc-500 group-hover:text-lime-300" />
-          Missions
+          <.icon
+            name="hero-rocket-launch"
+            class="size-4 text-muted-foreground group-hover:text-primary"
+          /> Missions
         </a>
         <a
           href={~p"/organizations"}
           data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
-          <.icon name="hero-building-office-2" class="size-4 text-zinc-500 group-hover:text-lime-300" />
-          Organizations
+          <.icon
+            name="hero-building-office-2"
+            class="size-4 text-muted-foreground group-hover:text-primary"
+          /> Organizations
         </a>
         <a
           href={~p"/skills"}
           data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
-          <.icon name="hero-puzzle-piece" class="size-4 text-zinc-500 group-hover:text-lime-300" />
-          Skills
+          <.icon
+            name="hero-puzzle-piece"
+            class="size-4 text-muted-foreground group-hover:text-primary"
+          /> Skills
         </a>
         <a
           href={~p"/proofs"}
           data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
-          <.icon name="hero-shield-check" class="size-4 text-zinc-500 group-hover:text-lime-300" />
-          Proofs
+          <.icon
+            name="hero-shield-check"
+            class="size-4 text-muted-foreground group-hover:text-primary"
+          /> Proofs
         </a>
         <a
           href={~p"/policies"}
           data-sidebar-link
-          class="group flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="group flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
           <.icon
             name="hero-adjustments-horizontal"
-            class="size-4 text-zinc-500 group-hover:text-lime-300"
+            class="size-4 text-muted-foreground group-hover:text-primary"
           /> Policy Studio
         </a>
         <a
           href={~p"/deploy"}
           data-sidebar-link
-          class="group flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="group flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
-          <.icon name="hero-cloud-arrow-up" class="size-4 text-zinc-500 group-hover:text-lime-300" />
-          Deploy
+          <.icon
+            name="hero-cloud-arrow-up"
+            class="size-4 text-muted-foreground group-hover:text-primary"
+          /> Deploy
         </a>
         <a
           href={~p"/benchmarks"}
           data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
           <.icon
             name="hero-chart-bar-square"
-            class="size-4 text-zinc-500 group-hover:text-lime-300"
+            class="size-4 text-muted-foreground group-hover:text-primary"
           /> Benchmarks
         </a>
         <a
           href={~p"/findings"}
           data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
           <.icon
             name="hero-exclamation-triangle"
-            class="size-4 text-zinc-500 group-hover:text-lime-300"
+            class="size-4 text-muted-foreground group-hover:text-primary"
           /> Findings
         </a>
         <a
           href={~p"/observability"}
           data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
-          <.icon name="hero-signal" class="size-4 text-zinc-500 group-hover:text-lime-300" />
+          <.icon name="hero-signal" class="size-4 text-muted-foreground group-hover:text-primary" />
           Observability
         </a>
       </nav>
@@ -131,7 +141,7 @@ defmodule ControlKeelWeb.Layouts do
         :if={@current_user != nil and @mode != :local}
         id="sidebar-user-menu"
         current_user={@current_user}
-        class="mt-3 border-t border-white/10 pt-3"
+        class="mt-3 border-t pt-3"
         popover_class="bottom-20 right-4"
       />
     </aside>
@@ -153,42 +163,44 @@ defmodule ControlKeelWeb.Layouts do
         type="button"
         phx-click={JS.toggle(to: "##{@id}-popover")}
         class={[
-          "transition hover:bg-white/10",
+          "transition hover:bg-muted",
           if(@compact,
             do:
-              "flex items-center gap-2 rounded-full px-1 py-1 text-sm font-semibold text-zinc-300 hover:text-white",
+              "flex items-center gap-2 rounded-full px-1 py-1 text-sm font-semibold text-muted-foreground hover:text-foreground",
             else: "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left"
           )
         ]}
       >
         <span class={[
-          "flex shrink-0 items-center justify-center rounded-full bg-lime-300/20 font-semibold text-lime-300",
-          if(@compact, do: "size-8", else: "size-8 text-sm ring-1 ring-lime-300/30")
+          "flex shrink-0 items-center justify-center rounded-full bg-primary/20 font-semibold text-primary",
+          if(@compact, do: "size-8", else: "size-8 text-sm ring-1 ring-primary/30")
         ]}>
           {String.at(@current_user.name || @current_user.email, 0) |> String.upcase()}
         </span>
         <%= unless @compact do %>
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-sm font-medium text-white">
+            <span class="block truncate text-sm font-medium text-foreground">
               {@current_user.name || @current_user.email}
             </span>
           </span>
-          <.icon name="hero-chevron-down" class="size-4 shrink-0 text-zinc-500" />
+          <.icon name="hero-chevron-down" class="size-4 shrink-0 text-muted-foreground" />
         <% end %>
       </button>
       <div
         id={"#{@id}-popover"}
         phx-click-away={JS.hide(to: "##{@id}-popover")}
-        class={"hidden absolute #{@popover_class} z-50 w-56 rounded-xl border border-white/10 bg-zinc-900 p-3 shadow-2xl shadow-black/50 backdrop-blur-md"}
+        class={"hidden absolute #{@popover_class} z-50 w-56 rounded-xl border bg-card p-3 shadow-2xl shadow-black/50 backdrop-blur-md"}
       >
-        <p class="text-sm font-semibold text-white">{@current_user.name || @current_user.email}</p>
-        <p class="mt-0.5 text-xs text-zinc-400">{@current_user.email}</p>
-        <div class="my-2 border-t border-white/10"></div>
+        <p class="text-sm font-semibold text-foreground">
+          {@current_user.name || @current_user.email}
+        </p>
+        <p class="mt-0.5 text-xs text-muted-foreground">{@current_user.email}</p>
+        <div class="my-2 border-t"></div>
         <%= if @show_dashboard do %>
           <a
             href={~p"/dashboard"}
             phx-click={JS.hide(to: "##{@id}-popover")}
-            class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
+            class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
             <.icon name="hero-squares-2x2" class="size-4" /> Dashboard
           </a>
@@ -197,14 +209,14 @@ defmodule ControlKeelWeb.Layouts do
         <button
           type="button"
           phx-click={JS.hide(to: "##{@id}-popover")}
-          class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
           <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
         </button>
-        <hr class="my-2 border-t border-white/10" />
+        <hr class="my-2 border-t" />
         <a
           href={~p"/auth/logout"}
-          class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-[var(--ck-danger)]"
+          class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-[var(--ck-danger)]"
         >
           <.icon name="hero-arrow-right-on-rectangle" class="size-4" /> Sign out
         </a>
@@ -273,26 +285,26 @@ defmodule ControlKeelWeb.Layouts do
     assigns = assign_new(assigns, :current_path, fn -> nil end)
 
     ~H"""
-    <div class="mb-4 flex w-full items-center justify-between border-b border-white/10 pb-2">
+    <div class="mb-4 flex w-full items-center justify-between border-b pb-2">
       <nav :if={@current_path && @current_path != "/"} aria-label="Breadcrumb">
         <ol class="flex items-center gap-1.5 text-sm">
           <li>
             <.link
               navigate={~p"/dashboard"}
-              class="flex items-center gap-1 text-zinc-500 transition hover:text-zinc-300"
+              class="flex items-center gap-1 text-muted-foreground transition hover:text-muted-foreground"
             >
               <.icon name="hero-home" class="size-3.5" />
             </.link>
           </li>
           <%= for {label, path, final} <- breadcrumb_trail(@current_path) do %>
             <li class="flex items-center gap-1.5">
-              <.icon name="hero-chevron-right" class="size-3 text-zinc-600" />
+              <.icon name="hero-chevron-right" class="size-3 text-muted-foreground" />
               <%= if final do %>
-                <span class="font-medium text-zinc-300">{label}</span>
+                <span class="font-medium text-muted-foreground">{label}</span>
               <% else %>
                 <.link
                   navigate={path}
-                  class="text-zinc-500 transition hover:text-zinc-300"
+                  class="text-muted-foreground transition hover:text-muted-foreground"
                 >
                   {label}
                 </.link>
@@ -306,17 +318,17 @@ defmodule ControlKeelWeb.Layouts do
           href={~p"/getting-started"}
           target="_blank"
           rel="noopener"
-          class="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
-          <.icon name="hero-book-open" class="size-4 text-zinc-500" /> Docs
+          <.icon name="hero-book-open" class="size-4 text-muted-foreground" /> Docs
         </a>
         <a
           href="https://github.com/aryaminus/controlkeel"
           target="_blank"
           rel="noopener"
-          class="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          class="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
-          <.icon name="hero-code-bracket" class="size-4 text-zinc-500" /> GitHub
+          <.icon name="hero-code-bracket" class="size-4 text-muted-foreground" /> GitHub
         </a>
       </div>
     </div>
