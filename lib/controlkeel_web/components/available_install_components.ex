@@ -5,7 +5,7 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
 
   def available_where(assigns) do
     ~H"""
-    <div class="border border-border rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-10">
+    <div class="border rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-10">
       <p class="text-lg font-semibold text-primary tracking-[0.14em] uppercase">
         Available where
       </p>
@@ -33,7 +33,7 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
             </summary>
 
             <div class="flex justify-end">
-              <span class="border border-border rounded-full px-3 py-[0.45rem] text-[0.8rem] w-fit">
+              <span class="border rounded-full px-3 py-[0.45rem] text-[0.8rem] w-fit">
                 {human_support_class(integration.support_class)}
               </span>
             </div>
@@ -58,13 +58,13 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
                 </p>
 
                 <%= if integration.attach_command do %>
-                  <div class="flex items-stretch gap-0 overflow-hidden rounded-xl border border-border bg-[rgba(0,0,0,0.25)] mt-4">
-                    <code class="flex-1 px-3 py-2 text-sm leading-relaxed font-mono text-foreground truncate">
+                  <div class="flex items-stretch gap-0 overflow-hidden rounded-xl border bg-[rgba(0,0,0,0.25)] mt-4">
+                    <code class="flex-1 px-3 py-2 text-sm leading-relaxed font-mono truncate">
                       {integration.attach_command}
                     </code>
                     <button
                       type="button"
-                      class="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-primary bg-[rgba(196,240,66,0.08)] hover:bg-[rgba(196,240,66,0.16)] transition-colors duration-150 border-l border-border whitespace-nowrap"
+                      class="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-primary bg-[rgba(196,240,66,0.08)] hover:bg-[rgba(196,240,66,0.16)] transition-colors duration-150 border-l whitespace-nowrap"
                       id={"copy-agent-#{integration.id}"}
                       phx-click="copy_command"
                       phx-value-command={integration.attach_command}

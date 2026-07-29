@@ -33,7 +33,7 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
     ~H"""
     <section
       id="observability-costs"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -47,36 +47,36 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
       <CommandPill.command_pill command="controlkeel obs costs" />
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Invocations
           </p>
-          <p class="text-2xl font-semibold text-foreground">{@costs.totals.invocations}</p>
+          <p class="text-2xl font-semibold">{@costs.totals.invocations}</p>
           <p class="text-muted-foreground text-xs">{@costs.totals.sessions} session(s)</p>
         </div>
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Estimated spend
           </p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {format_currency(@costs.totals.estimated_cost_cents)}
           </p>
           <p class="text-muted-foreground text-xs">Local invocation estimate</p>
         </div>
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Input tokens
           </p>
-          <p class="text-2xl font-semibold text-foreground">{@costs.totals.input_tokens}</p>
+          <p class="text-2xl font-semibold">{@costs.totals.input_tokens}</p>
           <p class="text-muted-foreground text-xs">
             {@costs.totals.cached_input_tokens} cached
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Output tokens
           </p>
-          <p class="text-2xl font-semibold text-foreground">{@costs.totals.output_tokens}</p>
+          <p class="text-2xl font-semibold">{@costs.totals.output_tokens}</p>
           <p class="text-muted-foreground text-xs">Across recorded calls</p>
         </div>
       </div>
@@ -100,7 +100,7 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
         </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <%= for {grouping, costs} <- @grouped_costs do %>
-            <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-3">
+            <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-3">
               <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                 Grouped by {grouping}
                 <span class="ml-2 text-primary">{length(costs.groups)} group(s)</span>
@@ -113,9 +113,9 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
               <% else %>
                 <div class="space-y-2">
                   <%= for group <- costs.groups do %>
-                    <div class="flex items-center justify-between gap-2 p-2 rounded-lg border border-border bg-[rgba(255,255,255,0.02)]">
+                    <div class="flex items-center justify-between gap-2 p-2 rounded-lg border bg-[rgba(255,255,255,0.02)]">
                       <div>
-                        <p class="text-sm font-medium text-foreground">{group.name}</p>
+                        <p class="text-sm font-medium">{group.name}</p>
                         <p class="text-muted-foreground text-xs">
                           {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.input_tokens} input · {group.output_tokens} output
                         </p>

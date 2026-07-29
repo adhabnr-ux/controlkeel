@@ -54,19 +54,19 @@ defmodule ControlKeelWeb.PolicyStudioLive do
       </div>
 
       <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
-        <div class="border border-border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+        <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
           <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Active packs
           </p>
           <strong>{@pack_count}</strong>
         </div>
-        <div class="border border-border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+        <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
           <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Total rules
           </p>
           <strong>{@rule_count}</strong>
         </div>
-        <div class="border border-border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+        <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
           <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Blocking rules
           </p>
@@ -76,7 +76,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
       <div class="grid gap-6 mt-6 max-[900px]:grid-cols-1 min-[901px]:grid-cols-[1.35fr_0.75fr]">
         <div>
-          <div class="border border-border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+          <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
             <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Policy packs
             </p>
@@ -131,7 +131,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                         <%= for rule <- rules do %>
                           <span
                             title={rule.action <> ", " <> rule.category}
-                            class={"border border-border rounded-full px-3 py-[0.45rem] text-[0.8rem] #{rule_tag_class(rule.action)}"}
+                            class={"border rounded-full px-3 py-[0.45rem] text-[0.8rem] #{rule_tag_class(rule.action)}"}
                           >
                             {rule_name(rule.id)}
                           </span>
@@ -146,7 +146,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
         </div>
 
         <div>
-          <div class="border border-border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+          <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
             <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Workspace tool policies
             </p>
@@ -160,7 +160,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                   <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
                     <div class="flex items-center justify-between gap-4">
                       <h3>{ws.name}</h3>
-                      <span class={"border border-border rounded-full px-3 py-[0.45rem] text-[0.8rem] #{tool_policy_pill_class(policy.mode)}"}>
+                      <span class={"border rounded-full px-3 py-[0.45rem] text-[0.8rem] #{tool_policy_pill_class(policy.mode)}"}>
                         {policy.mode}
                       </span>
                     </div>

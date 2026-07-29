@@ -24,7 +24,7 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
     ~H"""
     <section
       id="observability-regressions"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -45,24 +45,24 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div
           id="observability-regressions-runs"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Benchmark runs
           </p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {@regressions.benchmark_runs.count}
           </p>
           <p class="text-muted-foreground text-xs">Window: {@regressions.days} day(s)</p>
         </div>
         <div
           id="observability-regressions-catch-rate"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Average catch rate
           </p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {format_rate(@regressions.benchmark_runs.average_catch_rate)}
           </p>
           <p class="text-muted-foreground text-xs">
@@ -71,12 +71,12 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
         </div>
         <div
           id="observability-regressions-draft-coverage"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Draft coverage
           </p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {@regressions.draft_coverage.benchmark_drafts} draft(s)
           </p>
           <p class="text-muted-foreground text-xs">
@@ -110,14 +110,14 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
           <%= for run <- @regressions.benchmark_runs.recent do %>
             <div
               id={"observability-regression-run-#{run.id}"}
-              class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] space-y-2"
+              class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-2"
             >
               <div class="flex items-center justify-between gap-4">
                 <div>
                   <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                     {run.suite}
                   </p>
-                  <p class="text-sm font-semibold text-foreground">Run #{run.id}</p>
+                  <p class="text-sm font-semibold">Run #{run.id}</p>
                 </div>
                 <span class={health_pill_class(run.status)}>{run.status}</span>
               </div>
@@ -156,13 +156,13 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
 
   defp health_pill_class("red"),
     do:
-      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
 
   defp health_pill_class("yellow"),
     do:
-      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
 
   defp health_pill_class(_status),
     do:
-      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 end

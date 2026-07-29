@@ -383,7 +383,7 @@ defmodule ControlKeelWeb.Layouts do
     if active do
       "#{base} text-primary bg-[rgba(190,242,100,0.1)] border-primary"
     else
-      "#{base} text-foreground hover:text-primary bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.06)] border-border"
+      "#{base} hover:text-primary bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.06)]"
     end
   end
 
@@ -398,7 +398,7 @@ defmodule ControlKeelWeb.Layouts do
   end
 
   defp tab_inactive_class do
-    "#{tab_base_class()} text-foreground hover:text-primary bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.06)] border-border"
+    "#{tab_base_class()} hover:text-primary bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.06)]"
   end
 
   defp tab_base_class do

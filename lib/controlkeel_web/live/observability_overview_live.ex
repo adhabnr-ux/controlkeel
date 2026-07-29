@@ -25,7 +25,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
     ~H"""
     <section
       id="observability-overview-page"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -41,10 +41,10 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
       <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
         <div
           id="observability-overview-runs"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Runs</p>
-          <p class="text-xl font-semibold text-foreground">{@overview.runs.count} recent</p>
+          <p class="text-xl font-semibold">{@overview.runs.count} recent</p>
           <p class="text-muted-foreground text-xs">
             {@overview.health.red_runs} red · {@overview.health.yellow_runs} yellow · {@overview.health.green_runs} green
           </p>
@@ -52,12 +52,12 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
 
         <div
           id="observability-overview-problems"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Problems
           </p>
-          <p class="text-xl font-semibold text-foreground">
+          <p class="text-xl font-semibold">
             {@overview.problems.count} groups
           </p>
           <p class="text-muted-foreground text-xs">
@@ -73,10 +73,10 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
 
         <div
           id="observability-overview-costs"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Costs</p>
-          <p class="text-xl font-semibold text-foreground">
+          <p class="text-xl font-semibold">
             {format_currency(@overview.costs.spent_cents)} / {format_currency(
               @overview.costs.budget_cents
             )}
@@ -96,12 +96,12 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
 
         <div
           id="observability-overview-telemetry"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Trace export
           </p>
-          <p class="text-xl font-semibold text-foreground">
+          <p class="text-xl font-semibold">
             {@overview.telemetry.import_mode}
           </p>
           <p class="text-muted-foreground text-xs">
@@ -149,8 +149,8 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
         <% else %>
           <div class="space-y-2">
             <%= for problem <- @overview.problems.top do %>
-              <div class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)]">
-                <p class="text-sm font-medium text-foreground">{problem.rule_id}</p>
+              <div class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)]">
+                <p class="text-sm font-medium">{problem.rule_id}</p>
                 <p class="text-muted-foreground text-xs mt-1">
                   {problem.health} · {problem.count} finding(s) · {problem.affected_session_count} session(s)
                 </p>

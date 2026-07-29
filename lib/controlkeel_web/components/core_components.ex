@@ -200,7 +200,7 @@ defmodule ControlKeelWeb.CoreComponents do
           name={@name}
           class={[
             @class ||
-              "w-full rounded-xl border border-border bg-white/[0.04] text-foreground",
+              "w-full rounded-xl border bg-white/[0.04]",
             @errors != [] && (@error_class || "select-error")
           ]}
           multiple={@multiple}
@@ -225,7 +225,7 @@ defmodule ControlKeelWeb.CoreComponents do
           name={@name}
           class={[
             @class ||
-              "w-full rounded-xl border border-border bg-white/[0.04] text-foreground",
+              "w-full rounded-xl border bg-white/[0.04]",
             @errors != [] && (@error_class || "textarea-error")
           ]}
           {@rest}
@@ -249,7 +249,7 @@ defmodule ControlKeelWeb.CoreComponents do
           value={Phoenix.HTML.Form.normalize_value(@type, @value)}
           class={[
             @class ||
-              "w-full rounded-xl border border-border bg-white/[0.04] text-foreground",
+              "w-full rounded-xl border bg-white/[0.04]",
             @errors != [] && (@error_class || "input-error")
           ]}
           {@rest}

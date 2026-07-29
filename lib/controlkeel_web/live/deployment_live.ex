@@ -96,13 +96,13 @@ defmodule ControlKeelWeb.DeploymentLive do
 
       <%= if @analysis do %>
         <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
-          <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
             <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Detected Stack
             </p>
             <strong class="text-lg">{String.capitalize(to_string(@analysis.stack))}</strong>
           </div>
-          <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
             <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Monthly Cost Range
             </p>
@@ -110,13 +110,13 @@ defmodule ControlKeelWeb.DeploymentLive do
               ${@analysis.monthly_cost_range.low} - ${@analysis.monthly_cost_range.high}
             </strong>
           </div>
-          <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
             <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Compatible Platforms
             </p>
             <strong>{length(@analysis.platforms)}</strong>
           </div>
-          <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
             <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Files to Generate
             </p>
@@ -124,7 +124,7 @@ defmodule ControlKeelWeb.DeploymentLive do
           </div>
         </div>
 
-        <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+        <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
           <div class="flex items-center justify-between mb-4">
             <h2>Recommended Platforms</h2>
             <div class="flex gap-2 items-center">
@@ -208,7 +208,7 @@ defmodule ControlKeelWeb.DeploymentLive do
           <% end %>
         </div>
 
-        <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+        <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
           <div class="flex items-center justify-between mb-4">
             <h2>Generated Files (Preview)</h2>
             <div class="flex gap-2">
@@ -246,7 +246,7 @@ defmodule ControlKeelWeb.DeploymentLive do
           <% end %>
         </div>
       <% else %>
-        <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+        <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
           <p class="text-gray-500">
             Click "Analyze Project" to detect your project stack and get deployment recommendations.
           </p>

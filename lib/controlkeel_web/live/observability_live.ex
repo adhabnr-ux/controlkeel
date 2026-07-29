@@ -50,7 +50,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
     ~H"""
     <section
       id="observability-run-page"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -70,10 +70,10 @@ defmodule ControlKeelWeb.ObservabilityLive do
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div
           id="observability-health-card"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-2"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-2"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Health</p>
-          <p class="text-2xl font-semibold text-foreground">{@run.health.label}</p>
+          <p class="text-2xl font-semibold">{@run.health.label}</p>
           <ul class="list-disc pl-5">
             <%= for reason <- @run.health.reasons do %>
               <li class="text-muted-foreground text-xs leading-relaxed">{reason}</li>
@@ -83,10 +83,10 @@ defmodule ControlKeelWeb.ObservabilityLive do
 
         <div
           id="observability-costs"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Budget</p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {@run.budget["decision"] || "unknown"}
           </p>
           <p class="text-muted-foreground text-xs">
@@ -103,12 +103,12 @@ defmodule ControlKeelWeb.ObservabilityLive do
 
         <div
           id="observability-findings"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Findings
           </p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {@run.findings.active} active / {@run.findings.total} total
           </p>
           <p class="text-muted-foreground text-xs">
@@ -124,10 +124,10 @@ defmodule ControlKeelWeb.ObservabilityLive do
 
         <div
           id="observability-gates"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Gates</p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {@run.gates.pending_reviews} pending
           </p>
           <p class="text-muted-foreground text-xs">
@@ -139,7 +139,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div
           id="observability-timeline"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-3"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-3"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Timeline
@@ -149,9 +149,9 @@ defmodule ControlKeelWeb.ObservabilityLive do
           <% else %>
             <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
               <%= for event <- @run.timeline.recent do %>
-                <div class="rounded-lg px-3 py-2 border border-border bg-[rgba(255,255,255,0.02)]">
+                <div class="rounded-lg px-3 py-2 border bg-[rgba(255,255,255,0.02)]">
                   <div class="flex items-start justify-between gap-3">
-                    <p class="text-sm font-medium text-foreground">
+                    <p class="text-sm font-medium">
                       {event.event_type || "event"}
                     </p>
                     <time class="text-[10px] font-mono text-muted-foreground whitespace-nowrap shrink-0">
@@ -176,7 +176,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
         <div class="space-y-4">
           <div
             id="observability-tools"
-            class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-3"
+            class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-3"
           >
             <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
               Hosts, models, and tools
@@ -186,7 +186,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
                 <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                   Invocations
                 </p>
-                <p class="text-base font-semibold text-foreground">
+                <p class="text-base font-semibold">
                   {@run.hosts_models_tools.invocations}
                 </p>
               </div>
@@ -194,7 +194,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
                 <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                   Estimated cost
                 </p>
-                <p class="text-base font-semibold text-foreground">
+                <p class="text-base font-semibold">
                   {format_currency(@run.hosts_models_tools.estimated_cost_cents)}
                 </p>
               </div>
@@ -202,7 +202,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
                 <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                   Sources
                 </p>
-                <p class="text-foreground text-xs">
+                <p class=" text-xs">
                   {format_frequency(@run.hosts_models_tools.by_source)}
                 </p>
               </div>
@@ -210,7 +210,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
                 <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                   Models
                 </p>
-                <p class="text-foreground text-xs">
+                <p class=" text-xs">
                   {format_frequency(@run.hosts_models_tools.by_model)}
                 </p>
               </div>
@@ -218,7 +218,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
                 <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                   Tools
                 </p>
-                <p class="text-foreground text-xs">
+                <p class=" text-xs">
                   {format_frequency(@run.hosts_models_tools.by_tool)}
                 </p>
               </div>
@@ -227,7 +227,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
 
           <div
             id="observability-memory-proof"
-            class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-3"
+            class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-3"
           >
             <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
               Context, memory, and proof
@@ -237,7 +237,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
                 <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                   Memory
                 </p>
-                <p class="text-base font-semibold text-foreground">{@run.memory.records}</p>
+                <p class="text-base font-semibold">{@run.memory.records}</p>
                 <.link
                   navigate={~p"/observability/sessions/#{@run.session.id}/memory"}
                   class="text-xs text-primary font-semibold hover:opacity-80 transition-opacity"
@@ -249,7 +249,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
                 <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                   Proofs
                 </p>
-                <p class="text-base font-semibold text-foreground">{@run.proofs.count}</p>
+                <p class="text-base font-semibold">{@run.proofs.count}</p>
                 <.link
                   navigate={~p"/proofs"}
                   class="text-xs text-primary font-semibold hover:opacity-80 transition-opacity"
@@ -261,7 +261,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
                 <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                   Tasks
                 </p>
-                <p class="text-base font-semibold text-foreground">
+                <p class="text-base font-semibold">
                   {@run.tasks.active}/{@run.tasks.total}
                 </p>
               </div>
@@ -285,7 +285,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
 
       <div
         id="observability-telemetry-export"
-        class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] space-y-2"
+        class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-2"
       >
         <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
           Trace/proof export
@@ -304,7 +304,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-2">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-2">
           <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Recent findings
           </p>
@@ -313,8 +313,8 @@ defmodule ControlKeelWeb.ObservabilityLive do
           <% else %>
             <div class="space-y-2">
               <%= for finding <- @run.findings.recent do %>
-                <div class="rounded-lg px-3 py-2 border border-border bg-[rgba(255,255,255,0.02)]">
-                  <p class="text-sm font-medium text-foreground">{finding.title}</p>
+                <div class="rounded-lg px-3 py-2 border bg-[rgba(255,255,255,0.02)]">
+                  <p class="text-sm font-medium">{finding.title}</p>
                   <p class="text-muted-foreground text-xs">
                     {finding.severity} / {finding.status} · {finding.rule_id}
                   </p>
@@ -324,7 +324,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
           <% end %>
         </div>
 
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-2">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-2">
           <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Recent review gates
           </p>
@@ -333,7 +333,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
           <% else %>
             <div class="space-y-2">
               <%= for review <- @run.gates.latest do %>
-                <div class="rounded-lg px-3 py-2 border border-border bg-[rgba(255,255,255,0.02)]">
+                <div class="rounded-lg px-3 py-2 border bg-[rgba(255,255,255,0.02)]">
                   <.link
                     navigate={~p"/reviews/#{review.id}"}
                     class="text-sm font-medium text-primary hover:opacity-80 transition-opacity"
@@ -355,15 +355,15 @@ defmodule ControlKeelWeb.ObservabilityLive do
 
   defp obs_health_pill_class("red"),
     do:
-      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
 
   defp obs_health_pill_class("yellow"),
     do:
-      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
 
   defp obs_health_pill_class(_status),
     do:
-      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp format_currency(cents) when is_integer(cents), do: (cents / 100) |> Float.round(2)
   defp format_currency(_cents), do: 0.0

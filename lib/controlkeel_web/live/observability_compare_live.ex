@@ -33,7 +33,7 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
     ~H"""
     <section
       id="observability-compare"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -43,7 +43,7 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
           </p>
         </div>
         <div class="flex items-center gap-3 shrink-0">
-          <span class="inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {@comparison.totals.invocations} invocation(s)
           </span>
         </div>
@@ -52,29 +52,29 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
       <CommandPill.command_pill command="controlkeel obs compare" />
 
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Invocations
           </p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {@comparison.totals.invocations}
           </p>
           <p class="text-muted-foreground text-xs">
             {@comparison.totals.sessions} session(s)
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Estimated spend
           </p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {format_currency(@comparison.totals.estimated_cost_cents)}
           </p>
           <p class="text-muted-foreground text-xs">Across compared calls</p>
         </div>
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Tokens</p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {@comparison.totals.input_tokens + @comparison.totals.cached_input_tokens +
               @comparison.totals.output_tokens}
           </p>
@@ -99,16 +99,16 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
         <%= for {grouping, comparison} <- @comparisons do %>
           <div
             id={"observability-compare-by-#{grouping}"}
-            class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-3"
+            class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-3"
           >
             <div class="flex items-center justify-between gap-2">
               <div>
                 <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                   Compared by
                 </p>
-                <p class="text-base font-semibold text-foreground capitalize">{grouping}</p>
+                <p class="text-base font-semibold capitalize">{grouping}</p>
               </div>
-              <span class="inline-flex items-center border border-border rounded-full px-2.5 py-1 text-xs bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+              <span class="inline-flex items-center border rounded-full px-2.5 py-1 text-xs bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
                 {length(comparison.groups)} group(s)
               </span>
             </div>
@@ -120,8 +120,8 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
             <% else %>
               <div class="space-y-2">
                 <%= for group <- comparison.groups do %>
-                  <div class="border-t border-border pt-2 space-y-1">
-                    <p class="text-sm font-semibold text-foreground">{group.name}</p>
+                  <div class="border-t pt-2 space-y-1">
+                    <p class="text-sm font-semibold">{group.name}</p>
                     <p class="text-muted-foreground text-xs">
                       {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.cost_per_call_cents} cent(s)/call · {group.tokens_per_call} token(s)/call
                     </p>

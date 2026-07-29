@@ -8,7 +8,7 @@ defmodule ControlKeelWeb.FindingComponents do
 
   def autofix_panel(assigns) do
     ~H"""
-    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
+    <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
       <div class="flex items-center justify-between gap-4">
         <div>
           <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
@@ -17,7 +17,7 @@ defmodule ControlKeelWeb.FindingComponents do
           <h3>{@finding.title}</h3>
         </div>
         <span class={[
-          "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]",
+          "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]",
           @fix["supported"] && "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]",
           !@fix["supported"] && "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
         ]}>
@@ -51,12 +51,12 @@ defmodule ControlKeelWeb.FindingComponents do
 
       <div :if={@fix["example"]}>
         <h3>Example</h3>
-        <pre class="m-0 p-4 border border-border rounded-xl bg-white/[0.03] text-foreground whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]"><code>{@fix["example"]}</code></pre>
+        <pre class="m-0 p-4 border rounded-xl bg-white/[0.03] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]"><code>{@fix["example"]}</code></pre>
       </div>
 
       <div :if={@fix["agent_prompt"]}>
         <h3>Agent prompt</h3>
-        <pre class="m-0 p-4 border border-border rounded-xl bg-white/[0.03] text-foreground whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]"><code>{@fix["agent_prompt"]}</code></pre>
+        <pre class="m-0 p-4 border rounded-xl bg-white/[0.03] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]"><code>{@fix["agent_prompt"]}</code></pre>
       </div>
 
       <div class="flex items-center justify-between gap-4">

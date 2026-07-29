@@ -127,7 +127,7 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
 
       <%= if @new_token do %>
         <div
-          class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6"
+          class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6"
           id="new-token-banner"
           style="border-color: rgba(190, 242, 100, 0.4);"
         >
@@ -141,7 +141,7 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
         </div>
       <% end %>
 
-      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+      <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
         <h2>Create service account</h2>
         <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
           <div>
@@ -176,7 +176,7 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
         </.form>
       </div>
 
-      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+      <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
         <h2>Active service accounts</h2>
         <%= if @accounts == [] do %>
           <p class="max-w-[48rem]">No service accounts yet.</p>

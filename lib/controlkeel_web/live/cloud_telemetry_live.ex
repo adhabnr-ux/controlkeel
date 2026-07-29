@@ -159,10 +159,10 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
           <span class={telemetry_pill_class(@telemetry_state.level)}>
             {@telemetry_state.level}
           </span>
-          <span class="border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {@metrics.total} received
           </span>
-          <span class="border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {@queue_depth} pending
           </span>
         </div>
@@ -171,7 +171,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
       <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
         <div
           id="cloud-telemetry-identity"
-          class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+          class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
         >
           <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Workspace identity
@@ -181,7 +181,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
         <div
           id="cloud-telemetry-endpoint"
-          class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+          class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
         >
           <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Endpoint
@@ -196,7 +196,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
         <div
           id="cloud-telemetry-queue"
-          class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+          class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
         >
           <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Outbound queue
@@ -207,7 +207,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
         <div
           id="cloud-telemetry-received"
-          class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+          class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
         >
           <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Received total
@@ -221,7 +221,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-telemetry-funnel"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Install → attach → first finding funnel</h2>
         <table>
@@ -254,7 +254,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-telemetry-by-kind"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>All event kinds</h2>
         <%= if @metrics.by_kind == [] do %>
@@ -281,7 +281,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-agent-runs"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Cloud-agent run packages</h2>
         <p class="text-muted-foreground">
@@ -323,7 +323,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-org-budgets"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Org budget rollup</h2>
         <%= if @org_budgets == [] do %>
@@ -358,7 +358,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-amplification-ratio"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Token amplification ratio (last 24 h)</h2>
         <p class="text-muted-foreground">
@@ -394,7 +394,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-behavioral-baselines"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Behavioral baselines</h2>
         <p class="text-muted-foreground">
@@ -438,7 +438,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-mcp-guardrails"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Content guardrails</h2>
         <p class="text-muted-foreground">
@@ -467,7 +467,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-mcp-registry"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Downstream MCP server registry</h2>
         <p class="text-muted-foreground">
@@ -512,7 +512,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-fallback-chain"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Provider fallback chain</h2>
         <%= if @fallback_chain == [] do %>
@@ -533,7 +533,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-nhi-summary"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Non-human identity (NHI) lifecycle</h2>
         <%= if @nhi_summaries == [] do %>
@@ -566,7 +566,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-mcp-audit-summary"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Hosted MCP / A2A audit</h2>
         <p class="text-muted-foreground">
@@ -598,7 +598,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-mcp-audit-recent"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Recent tool dispatches</h2>
         <%= if @mcp_audit_recent == [] do %>
@@ -631,7 +631,7 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
       <div
         id="cloud-telemetry-recent"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
       >
         <h2>Recent received events</h2>
         <%= if @recent_events == [] do %>
@@ -690,11 +690,10 @@ defmodule ControlKeelWeb.CloudTelemetryLive do
 
   defp telemetry_pill_class(:disabled),
     do:
-      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp telemetry_pill_class(_other),
-    do:
-      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]"
+    do: "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]"
 
   defp format_cap(nil), do: "uncapped"
   defp format_cap(n) when is_integer(n), do: Integer.to_string(n)

@@ -27,7 +27,7 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
     ~H"""
     <section
       id="observability-trends"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -41,7 +41,7 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
           <form id="trends-days" phx-change="select_days">
             <select
               name="days"
-              class="border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7] outline-none cursor-pointer appearance-none"
+              class="border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7] outline-none cursor-pointer appearance-none"
               style="padding-right: 1.75rem; background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23d2ffe7%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 14px;"
             >
               <option value="1" selected={@selected_days == 1}>Today</option>
@@ -62,22 +62,22 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div
           id="observability-trends-runs"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Runs</p>
-          <p class="text-2xl font-semibold text-foreground">{@trends.totals.runs}</p>
+          <p class="text-2xl font-semibold">{@trends.totals.runs}</p>
           <p class="text-muted-foreground text-xs">
             {@trends.totals.red_runs} red · {@trends.totals.yellow_runs} yellow · {@trends.totals.green_runs} green
           </p>
         </div>
         <div
           id="observability-trends-findings"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Findings
           </p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {@trends.totals.active_findings}
           </p>
           <p class="text-muted-foreground text-xs">
@@ -86,21 +86,21 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
         </div>
         <div
           id="observability-trends-costs"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Estimated spend
           </p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {format_currency(@trends.totals.estimated_cost_cents)}
           </p>
         </div>
         <div
           id="observability-trends-imports"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Imports</p>
-          <p class="text-2xl font-semibold text-foreground">{@trends.totals.imports}</p>
+          <p class="text-2xl font-semibold">{@trends.totals.imports}</p>
           <p class="text-muted-foreground text-xs">
             {@trends.totals.verified_imports} verified · {@trends.totals.non_verified_imports} non-verified
           </p>
@@ -128,9 +128,9 @@ defmodule ControlKeelWeb.ObservabilityTrendsLive do
           <%= for day <- @trends.series do %>
             <div
               id={"observability-trend-#{day.date}"}
-              class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] space-y-2"
+              class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-2"
             >
-              <p class="text-sm font-semibold text-foreground">{day.date}</p>
+              <p class="text-sm font-semibold">{day.date}</p>
               <p class="text-muted-foreground text-xs">
                 Runs {day.runs} · red {day.health.red} · yellow {day.health.yellow} · green {day.health.green}
               </p>

@@ -1,8 +1,8 @@
-<div class="min-h-screen bg-zinc-950 text-zinc-100">
+<div>
   <.sidebar current_user={@current_user} />
 
   <div class="lg:pl-64">
-    <main class="min-h-[calc(100vh-4rem)] bg-zinc-950 px-4 py-6 sm:px-6 lg:px-8">
+    <main class="min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 lg:px-8">
       <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
         <div class="space-y-1 mb-4">
           <.link
@@ -11,7 +11,7 @@
           >
             ← Observability
           </.link>
-          <h2 class="text-xl font-semibold text-foreground leading-6 mt-4">
+          <h2 class="text-xl font-semibold leading-6 mt-4">
             {@session_title}
           </h2>
           <p class="text-muted-foreground text-sm">Session run observability</p>

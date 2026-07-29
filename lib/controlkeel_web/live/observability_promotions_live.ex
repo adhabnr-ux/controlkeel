@@ -24,7 +24,7 @@ defmodule ControlKeelWeb.ObservabilityPromotionsLive do
     ~H"""
     <section
       id="observability-promotions"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -35,7 +35,7 @@ defmodule ControlKeelWeb.ObservabilityPromotionsLive do
         </div>
 
         <div class="flex items-center gap-3 shrink-0">
-          <span class="inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {@promotions.count} candidate(s)
           </span>
         </div>
@@ -43,11 +43,11 @@ defmodule ControlKeelWeb.ObservabilityPromotionsLive do
 
       <CommandPill.command_pill command="controlkeel obs promotions" />
 
-      <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+      <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
         <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
           Execution boundary
         </p>
-        <p class="text-sm font-semibold text-foreground">
+        <p class="text-sm font-semibold">
           Promotion execution: {@promotions.promotion_execution}
         </p>
         <p class="text-muted-foreground text-xs">
@@ -55,7 +55,7 @@ defmodule ControlKeelWeb.ObservabilityPromotionsLive do
         </p>
       </div>
 
-      <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+      <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
         <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
           Recommendations
         </p>
@@ -65,7 +65,7 @@ defmodule ControlKeelWeb.ObservabilityPromotionsLive do
         <% else %>
           <ul class="space-y-2 list-disc pl-4">
             <%= for recommendation <- @promotions.recommendations do %>
-              <li class="text-foreground text-sm leading-relaxed">{recommendation}</li>
+              <li class=" text-sm leading-relaxed">{recommendation}</li>
             <% end %>
           </ul>
         <% end %>
@@ -82,10 +82,10 @@ defmodule ControlKeelWeb.ObservabilityPromotionsLive do
           <%= for candidate <- @promotions.candidates do %>
             <div
               id={"observability-promotion-candidate-#{candidate.id}"}
-              class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+              class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-1"
             >
               <div class="flex items-center justify-between gap-4">
-                <p class="text-sm font-semibold text-foreground">{candidate.rule_id}</p>
+                <p class="text-sm font-semibold">{candidate.rule_id}</p>
                 <span class={readiness_pill_class(candidate.readiness)}>{candidate.readiness}</span>
               </div>
               <p class="text-muted-foreground text-xs">{candidate.suggested_action}</p>
@@ -99,13 +99,13 @@ defmodule ControlKeelWeb.ObservabilityPromotionsLive do
 
   defp readiness_pill_class("ready"),
     do:
-      "inline-flex items-center border border-border rounded-full px-2.5 py-1 text-xs bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "inline-flex items-center border rounded-full px-2.5 py-1 text-xs bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp readiness_pill_class("needs_draft"),
     do:
-      "inline-flex items-center border border-border rounded-full px-2.5 py-1 text-xs bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center border rounded-full px-2.5 py-1 text-xs bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
 
   defp readiness_pill_class(_),
     do:
-      "inline-flex items-center border border-border rounded-full px-2.5 py-1 text-xs bg-[rgba(255,255,255,0.06)] text-muted-foreground"
+      "inline-flex items-center border rounded-full px-2.5 py-1 text-xs bg-[rgba(255,255,255,0.06)] text-muted-foreground"
 end

@@ -24,7 +24,7 @@ defmodule ControlKeelWeb.ObservabilityPersistedEvalsLive do
     ~H"""
     <section
       id="observability-persisted-evals-page"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -45,21 +45,21 @@ defmodule ControlKeelWeb.ObservabilityPersistedEvalsLive do
       <div class="grid grid-cols-2 gap-4">
         <div
           id="observability-persisted-evals-status"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Status</p>
-          <p class="text-lg font-semibold text-foreground">
+          <p class="text-lg font-semibold">
             {format_frequency(@saved.by_status)}
           </p>
         </div>
         <div
           id="observability-persisted-evals-priority"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Priority
           </p>
-          <p class="text-lg font-semibold text-foreground">
+          <p class="text-lg font-semibold">
             {format_frequency(@saved.by_priority)}
           </p>
         </div>
@@ -88,21 +88,21 @@ defmodule ControlKeelWeb.ObservabilityPersistedEvalsLive do
           <%= for candidate <- @saved.candidates do %>
             <div
               id={"observability-persisted-eval-#{candidate.id}"}
-              class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] space-y-2"
+              class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-2"
             >
               <div class="flex items-center justify-between gap-4">
                 <div>
                   <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                     {candidate.category || "uncategorized"}
                   </p>
-                  <p class="text-sm font-semibold text-foreground">{candidate.title}</p>
+                  <p class="text-sm font-semibold">{candidate.title}</p>
                 </div>
                 <span class={neutral_pill_class()}>{candidate.status}</span>
               </div>
               <p class="text-muted-foreground text-xs">
                 {candidate.rule_id} · {candidate.priority} · human gate {candidate.human_gate_required}
               </p>
-              <p class="text-sm text-foreground leading-relaxed">
+              <p class="text-sm leading-relaxed">
                 {candidate.evidence_summary}
               </p>
               <p class="text-muted-foreground text-xs">Next: {candidate.suggested_action}</p>

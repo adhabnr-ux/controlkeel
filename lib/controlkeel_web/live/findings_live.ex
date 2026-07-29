@@ -186,7 +186,7 @@ defmodule ControlKeelWeb.FindingsLive do
         </p>
       </div>
 
-      <div class="rounded-lg border border-border bg-neutral-900">
+      <div class="rounded-lg border bg-neutral-900">
         <div class="space-y-4 p-4">
           <.form for={@form} phx-change="filter">
             <div class="grid gap-4 xl:grid-cols-5">
@@ -571,14 +571,14 @@ defmodule ControlKeelWeb.FindingsLive do
             <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
               Example
             </h4>
-            <pre class="mt-1 rounded-lg border border-border bg-black/40 p-4 font-mono text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words"><code>{@selected_fix["example"]}</code></pre>
+            <pre class="mt-1 rounded-lg border bg-black/40 p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words"><code>{@selected_fix["example"]}</code></pre>
           </div>
 
           <div :if={@selected_fix["agent_prompt"]}>
             <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
               Agent prompt
             </h4>
-            <pre class="mt-1 rounded-lg border border-border bg-black/40 p-4 font-mono text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words max-h-60 overflow-y-auto"><code>{@selected_fix["agent_prompt"]}</code></pre>
+            <pre class="mt-1 rounded-lg border bg-black/40 p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words max-h-60 overflow-y-auto"><code>{@selected_fix["agent_prompt"]}</code></pre>
           </div>
 
           <div class="flex items-center justify-between pt-2">
@@ -610,7 +610,7 @@ defmodule ControlKeelWeb.FindingsLive do
   end
 
   defp pill_base do
-    "inline-flex items-center px-3 py-1.5 text-sm rounded-full border border-border"
+    "inline-flex items-center px-3 py-1.5 text-sm rounded-full border"
   end
 
   defp severity_colors("critical"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"

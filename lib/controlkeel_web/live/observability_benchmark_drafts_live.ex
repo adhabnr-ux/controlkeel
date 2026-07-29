@@ -54,7 +54,7 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
     ~H"""
     <section
       id="observability-benchmark-drafts-page"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -75,19 +75,19 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
       <div class="grid grid-cols-2 gap-4">
         <div
           id="observability-benchmark-drafts-status"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Status</p>
-          <p class="text-lg font-semibold text-foreground">
+          <p class="text-lg font-semibold">
             {format_frequency(@drafts.by_status)}
           </p>
         </div>
         <div
           id="observability-benchmark-drafts-suites"
-          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Suites</p>
-          <p class="text-lg font-semibold text-foreground">
+          <p class="text-lg font-semibold">
             {format_frequency(@drafts.by_suite)}
           </p>
         </div>
@@ -116,18 +116,18 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
           <%= for draft <- @drafts.drafts do %>
             <div
               id={"observability-benchmark-draft-#{draft.id}"}
-              class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] space-y-2"
+              class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-2"
             >
               <div class="flex items-center justify-between gap-4">
                 <div>
                   <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                     {draft.suite_slug}
                   </p>
-                  <p class="text-sm font-semibold text-foreground">{draft.title}</p>
+                  <p class="text-sm font-semibold">{draft.title}</p>
                 </div>
                 <span class={neutral_pill_class()}>{draft.status}</span>
               </div>
-              <p class="text-sm text-foreground leading-relaxed">{draft.scenario_prompt}</p>
+              <p class="text-sm leading-relaxed">{draft.scenario_prompt}</p>
               <p class="text-muted-foreground text-xs">
                 Expected: {draft.expected_behavior}
               </p>
@@ -150,7 +150,7 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
                 <button
                   id={"observability-benchmark-draft-reject-#{draft.id}"}
                   type="button"
-                  class="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-semibold border border-border bg-[rgba(255,255,255,0.03)] text-foreground hover:opacity-80 transition-opacity"
+                  class="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-semibold border bg-[rgba(255,255,255,0.03)] hover:opacity-80 transition-opacity"
                   phx-click="reject-draft"
                   phx-value-id={draft.id}
                 >

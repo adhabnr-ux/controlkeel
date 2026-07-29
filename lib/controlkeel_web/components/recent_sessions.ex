@@ -21,11 +21,11 @@ defmodule ControlKeelWeb.RecentSessions do
         <% else %>
           <div class="grid gap-2">
             <%= for run <- @runs do %>
-              <div class="flex items-center justify-between gap-4 rounded-xl px-4 py-2 border border-border bg-[rgba(255,255,255,0.015)] hover:bg-[rgba(255,255,255,0.03)] transition-colors">
+              <div class="flex items-center justify-between gap-4 rounded-xl px-4 py-2 border bg-[rgba(255,255,255,0.015)] hover:bg-[rgba(255,255,255,0.03)] transition-colors">
                 <div class="min-w-0 flex-1">
                   <.link
                     navigate={~p"/observability/sessions/#{run.id}"}
-                    class="text-sm font-medium text-foreground hover:text-primary transition-colors no-underline block truncate"
+                    class="text-sm font-medium hover:text-primary transition-colors no-underline block truncate"
                   >
                     {run.title}
                   </.link>

@@ -23,7 +23,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
     ~H"""
     <section
       id="observability-problem-list"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -35,7 +35,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
 
         <div class="flex items-center gap-3 shrink-0">
           <span class={health_pill_class(@problems.health)}>{@problems.health}</span>
-          <span class="inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {@problems.count} {if @problems.count == 1, do: "group", else: "groups"}
           </span>
         </div>
@@ -50,7 +50,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
               Recommendations
             </p>
             <%= for recommendation <- @problems.recommendations do %>
-              <p class="text-foreground text-sm leading-relaxed">
+              <p class=" text-sm leading-relaxed">
                 {recommendation}
               </p>
             <% end %>
@@ -63,11 +63,11 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
           <%= for {problem, idx} <- Enum.with_index(@problems.problems) do %>
             <div
               id={"observability-problem-#{problem_key_id(problem.key)}"}
-              class={["space-y-8", if(idx > 0, do: "pt-8 border-t border-border")]}
+              class={["space-y-8", if(idx > 0, do: "pt-8 border-t")]}
             >
               <div class="flex items-start justify-between gap-4">
                 <div class="space-y-1 min-w-0">
-                  <p class="text-xl font-semibold text-foreground">
+                  <p class="text-xl font-semibold">
                     {problem.title}
                   </p>
                 </div>
@@ -80,31 +80,31 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
                     <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Category
                     </p>
-                    <p class="text-foreground mt-1 font-medium">{problem.category}</p>
+                    <p class=" mt-1 font-medium">{problem.category}</p>
                   </div>
                   <div>
                     <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Rule ID
                     </p>
-                    <p class="text-foreground mt-1 font-medium">{problem.rule_id}</p>
+                    <p class=" mt-1 font-medium">{problem.rule_id}</p>
                   </div>
                   <div>
                     <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Severity
                     </p>
-                    <p class="text-foreground mt-1 font-medium">{problem.severity}</p>
+                    <p class=" mt-1 font-medium">{problem.severity}</p>
                   </div>
                   <div>
                     <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Count
                     </p>
-                    <p class="text-foreground mt-1 font-medium">{problem.count}</p>
+                    <p class=" mt-1 font-medium">{problem.count}</p>
                   </div>
                   <div>
                     <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Sessions
                     </p>
-                    <p class="text-foreground mt-1 font-medium">
+                    <p class=" mt-1 font-medium">
                       {problem.affected_session_count}
                     </p>
                   </div>
@@ -112,7 +112,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
                     <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Last seen
                     </p>
-                    <p class="text-foreground mt-1 font-medium">
+                    <p class=" mt-1 font-medium">
                       {format_datetime(problem.last_seen)}
                     </p>
                   </div>
@@ -120,7 +120,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
                     <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Recommendation
                     </p>
-                    <p class="text-foreground mt-1.5 leading-relaxed">
+                    <p class=" mt-1.5 leading-relaxed">
                       {problem.recommendation}
                     </p>
                   </div>
@@ -137,7 +137,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
                       <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                         Eval
                       </p>
-                      <p class="text-foreground mt-1 font-medium">
+                      <p class=" mt-1 font-medium">
                         {problem.feedback_loop.eval_candidate_title}
                       </p>
                     </div>
@@ -145,7 +145,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
                       <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                         Action
                       </p>
-                      <p class="text-foreground mt-1 font-medium">
+                      <p class=" mt-1 font-medium">
                         {problem.feedback_loop.evidence_summary}
                       </p>
                     </div>
@@ -153,7 +153,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
                       <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                         Benchmark
                       </p>
-                      <p class="text-foreground mt-1 font-medium">
+                      <p class=" mt-1 font-medium">
                         {problem.feedback_loop.benchmark_hint}
                       </p>
                     </div>
@@ -165,7 +165,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
                         "mt-1 font-medium",
                         if(problem.feedback_loop.human_gate_required,
                           do: "text-[#ffcf6b]",
-                          else: "text-foreground"
+                          else: ""
                         )
                       ]}>
                         {if problem.feedback_loop.human_gate_required do
@@ -180,7 +180,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
                     <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Suggested Action
                     </p>
-                    <p class="text-foreground text-sm mt-1.5">
+                    <p class=" text-sm mt-1.5">
                       {problem.feedback_loop.suggested_action}
                     </p>
                   </div>
@@ -194,9 +194,9 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
                   </p>
                   <div class="grid gap-2">
                     <%= for example <- problem.examples do %>
-                      <div class="flex items-center justify-between gap-4 rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] hover:bg-[rgba(255,255,255,0.03)] transition-colors">
+                      <div class="flex items-center justify-between gap-4 rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] hover:bg-[rgba(255,255,255,0.03)] transition-colors">
                         <div class="min-w-0">
-                          <p class="text-sm font-medium text-foreground truncate">
+                          <p class="text-sm font-medium truncate">
                             {example.title}
                           </p>
                           <p class="text-xs text-muted-foreground mt-1">
@@ -225,15 +225,15 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
 
   defp health_pill_class("red"),
     do:
-      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
 
   defp health_pill_class("yellow"),
     do:
-      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
 
   defp health_pill_class(_),
     do:
-      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp problem_key_id(key) do
     key

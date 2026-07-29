@@ -270,7 +270,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
         </div>
       </div>
 
-      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
         <h2>Event counts</h2>
         <ul class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
           <%= for {kind, n} <- Enum.sort_by(@counts, fn {_k, v} -> -v end) do %>
@@ -279,7 +279,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
         </ul>
       </div>
 
-      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
         <h2>Cloud run packages</h2>
         <%= cond do %>
           <% is_nil(@key.mission_workspace_id) -> %>
@@ -322,7 +322,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
         <% end %>
       </div>
 
-      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
         <h2>Recent events</h2>
         <%= if @events == [] do %>
           <p class="text-muted-foreground">No events received yet for this workspace.</p>
@@ -402,7 +402,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   defp render_body(%{state: :signed_out} = assigns) do
     ~H"""
-    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+    <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
       <p>
         Sign in to see enrolled workspaces. <.link href={~p"/auth/login"}>Sign in</.link>.
       </p>
@@ -412,7 +412,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   defp render_body(%{state: :no_membership} = assigns) do
     ~H"""
-    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+    <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
       <p>
         Your account is signed in but has no active org membership. Ask an org
         owner to invite you, then accept the invitation from <code>/invitations/&lt;token&gt;</code>.
@@ -423,7 +423,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   defp render_body(%{state: :empty} = assigns) do
     ~H"""
-    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+    <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
       <p>
         No workspaces have enrolled with this org yet. Create one below, or from any project run:
       </p>
@@ -436,7 +436,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   defp render_body(%{state: :ready} = assigns) do
     ~H"""
     {render_create_workspace(assigns)}
-    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+    <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
       <table>
         <thead>
           <tr>
@@ -479,7 +479,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     ~H"""
     <%= if @can_create do %>
       <div
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
         id="create-workspace-section"
       >
         <%= if @show_create_form do %>

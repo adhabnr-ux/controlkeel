@@ -99,7 +99,7 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
       <.form
         for={@form}
         phx-submit="submit"
-        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6 flex flex-col gap-4"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6 flex flex-col gap-4"
       >
         <div>
           <label class="block text-sm font-medium text-zinc-300 mb-1">Mode</label>

@@ -96,7 +96,7 @@ defmodule ControlKeelWeb.ReviewLive do
 
         <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
           <div
-            class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+            class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
             id="review-status-card"
           >
             <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
@@ -104,19 +104,19 @@ defmodule ControlKeelWeb.ReviewLive do
             </p>
             <strong>{String.capitalize(@review.status)}</strong>
           </div>
-          <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
             <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Phase
             </p>
             <strong>{review_phase(@review)}</strong>
           </div>
-          <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
             <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Submitted by
             </p>
             <strong>{@review.submitted_by || "agent"}</strong>
           </div>
-          <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
             <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Shareable URL
             </p>
@@ -135,13 +135,13 @@ defmodule ControlKeelWeb.ReviewLive do
         >
           <div class="space-y-4">
             <article
-              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-submission-body"
             >
               <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                 Submission
               </p>
-              <pre class="m-0 p-4 border border-border rounded-xl bg-white/[0.03] text-foreground whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{@review.submission_body}</pre>
+              <pre class="m-0 p-4 border rounded-xl bg-white/[0.03] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{@review.submission_body}</pre>
             </article>
 
             <article
@@ -149,7 +149,7 @@ defmodule ControlKeelWeb.ReviewLive do
                 present_plan_context?(@review, "alignment_context") or
                   present_plan_context?(@review, "consulted_roles")
               }
-              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-alignment-card"
             >
               <div class="flex items-center justify-between gap-4">
@@ -176,7 +176,7 @@ defmodule ControlKeelWeb.ReviewLive do
                   <div class="flex flex-wrap gap-2">
                     <span
                       :for={role <- plan_context(@review, "consulted_roles")}
-                      class="border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+                      class="border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
                     >
                       {role}
                     </span>
@@ -187,7 +187,7 @@ defmodule ControlKeelWeb.ReviewLive do
 
             <article
               :if={present_semantic_boundaries?(@review)}
-              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-semantic-boundaries-card"
             >
               <div class="flex items-center justify-between gap-4">
@@ -212,7 +212,7 @@ defmodule ControlKeelWeb.ReviewLive do
 
             <article
               :if={@review.previous_review}
-              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-diff-card"
             >
               <div class="flex items-center justify-between gap-4">
@@ -222,7 +222,7 @@ defmodule ControlKeelWeb.ReviewLive do
                   </p>
                   <h2>Compared with review #{@review.previous_review_id}</h2>
                 </div>
-                <span class="border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                <span class="border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
                   Previous: {String.capitalize(@review.previous_review.status)}
                 </span>
               </div>
@@ -232,7 +232,7 @@ defmodule ControlKeelWeb.ReviewLive do
                     <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                       {diff_chunk_label(chunk.kind)}
                     </p>
-                    <pre class="m-0 p-4 border border-border rounded-xl bg-white/[0.03] text-foreground whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{chunk.text}</pre>
+                    <pre class="m-0 p-4 border rounded-xl bg-white/[0.03] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{chunk.text}</pre>
                   </div>
                 <% end %>
               </div>
@@ -241,7 +241,7 @@ defmodule ControlKeelWeb.ReviewLive do
 
           <div class="space-y-4">
             <article
-              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-response-card"
             >
               <div class="flex items-center justify-between gap-4">
@@ -291,7 +291,7 @@ defmodule ControlKeelWeb.ReviewLive do
             </article>
 
             <article
-              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-audit-card"
             >
               <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
@@ -301,7 +301,7 @@ defmodule ControlKeelWeb.ReviewLive do
                 <article class="grid gap-[0.55rem] border border-white/[0.07] rounded-[1.1rem] p-4 bg-white/[0.03]">
                   <div class="flex items-center justify-between gap-4">
                     <h3>Submitted</h3>
-                    <span class="border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                    <span class="border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
                       {format_dt(@review.inserted_at)}
                     </span>
                   </div>
@@ -329,7 +329,7 @@ defmodule ControlKeelWeb.ReviewLive do
         </div>
       <% else %>
         <div
-          class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+          class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
           id="review-missing"
         >
           <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
@@ -408,19 +408,19 @@ defmodule ControlKeelWeb.ReviewLive do
 
   defp review_status_pill_class("approved"),
     do:
-      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp review_status_pill_class("denied"),
     do:
-      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
 
   defp review_status_pill_class("superseded"),
     do:
-      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
 
   defp review_status_pill_class(_status),
     do:
-      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp review_phase(review) do
     review

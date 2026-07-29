@@ -32,7 +32,7 @@ defmodule ControlKeelWeb.ObservabilityMemoryLive do
     ~H"""
     <section
       id="observability-memory-page"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -51,36 +51,36 @@ defmodule ControlKeelWeb.ObservabilityMemoryLive do
       <CommandPill.command_pill command={"controlkeel obs memory #{@memory_context.session.id}"} />
 
       <div id="observability-memory-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Memory</p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {@memory_context.memory.active} active
           </p>
           <p class="text-muted-foreground text-xs">
             {@memory_context.memory.archived} archived / {@memory_context.memory.count} recent
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Context</p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {@memory_context.context.tasks} task(s)
           </p>
           <p class="text-muted-foreground text-xs">
             {@memory_context.context.findings} finding(s), {@memory_context.context.reviews} review(s)
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Types</p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {map_size(@memory_context.memory.by_type)}
           </p>
           <p class="text-muted-foreground text-xs">
             {format_frequency(@memory_context.memory.by_type)}
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Sources</p>
-          <p class="text-2xl font-semibold text-foreground">
+          <p class="text-2xl font-semibold">
             {map_size(@memory_context.memory.by_source)}
           </p>
           <p class="text-muted-foreground text-xs">
@@ -123,20 +123,20 @@ defmodule ControlKeelWeb.ObservabilityMemoryLive do
             <%= for record <- @memory_context.memory.recent do %>
               <div
                 id={"observability-memory-record-#{record.id}"}
-                class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
+                class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-1"
               >
                 <div class="flex items-center justify-between gap-4">
                   <div>
                     <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       {record.record_type}
                     </p>
-                    <p class="text-sm font-semibold text-foreground">{record.title}</p>
+                    <p class="text-sm font-semibold">{record.title}</p>
                   </div>
                   <span class={neutral_pill_class()}>
                     {if record.archived, do: "archived", else: "active"}
                   </span>
                 </div>
-                <p class="text-sm text-foreground leading-relaxed">{record.summary}</p>
+                <p class="text-sm leading-relaxed">{record.summary}</p>
                 <p class="text-muted-foreground text-xs">
                   Source: {record.source_type || "unknown"} · Tags: {Enum.join(record.tags, ", ")}
                 </p>

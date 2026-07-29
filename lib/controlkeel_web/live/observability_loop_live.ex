@@ -24,7 +24,7 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
     ~H"""
     <section
       id="observability-loop"
-      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -36,7 +36,7 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
 
         <div class="flex items-center gap-3 shrink-0">
           <span class={health_pill_class(@loop.health)}>{@loop.health}</span>
-          <span class="inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {@loop.learning_loop.mode}
           </span>
         </div>
@@ -44,11 +44,11 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
 
       <CommandPill.command_pill command="controlkeel obs loop" />
 
-      <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+      <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
         <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
           Safety boundary
         </p>
-        <p class="text-sm font-semibold text-foreground">
+        <p class="text-sm font-semibold">
           Read-only: {@loop.read_only} · Mutation: {@loop.mutation}
         </p>
         <p class="text-muted-foreground text-xs">
@@ -60,42 +60,42 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
       </div>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Problems
           </p>
-          <p class="text-lg font-semibold text-foreground">
+          <p class="text-lg font-semibold">
             {@loop.active_problems.count} group(s)
           </p>
           <p class="text-muted-foreground text-xs">
             {@loop.active_problems.total_findings} active finding(s)
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Evals</p>
-          <p class="text-lg font-semibold text-foreground">
+          <p class="text-lg font-semibold">
             {@loop.evals.derived} derived / {@loop.evals.saved} saved
           </p>
           <p class="text-muted-foreground text-xs">
             Saved status: {format_frequency(@loop.evals.saved_by_status)}
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Benchmarks
           </p>
-          <p class="text-lg font-semibold text-foreground">
+          <p class="text-lg font-semibold">
             {@loop.benchmarks.scenarios} scenario(s)
           </p>
           <p class="text-muted-foreground text-xs">
             {@loop.benchmarks.drafts} draft(s), readiness {@loop.benchmarks.history_readiness.status}
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
           <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Promotions
           </p>
-          <p class="text-lg font-semibold text-foreground">
+          <p class="text-lg font-semibold">
             {@loop.promotions.count} candidate(s)
           </p>
           <p class="text-muted-foreground text-xs">
@@ -113,8 +113,8 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
         <% else %>
           <div class="space-y-2">
             <%= for blocker <- @loop.blockers do %>
-              <div class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)]">
-                <p class="text-sm font-semibold text-foreground">{blocker.id}</p>
+              <div class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)]">
+                <p class="text-sm font-semibold">{blocker.id}</p>
                 <p class="text-muted-foreground text-xs">{blocker.reason}</p>
               </div>
             <% end %>
@@ -131,8 +131,8 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
         <% else %>
           <div class="space-y-2">
             <%= for action <- @loop.next_actions do %>
-              <div class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
-                <p class="text-sm font-semibold text-foreground">
+              <div class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-1">
+                <p class="text-sm font-semibold">
                   [{action.priority}] {action.title}
                 </p>
                 <p class="text-muted-foreground text-xs">{action.suggested_action}</p>
@@ -149,7 +149,7 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
           </p>
           <ul class="space-y-2 list-disc pl-5">
             <%= for recommendation <- @loop.recommendations do %>
-              <li class="text-foreground text-sm leading-relaxed">{recommendation}</li>
+              <li class=" text-sm leading-relaxed">{recommendation}</li>
             <% end %>
           </ul>
         </div>
@@ -160,15 +160,15 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
 
   defp health_pill_class("red"),
     do:
-      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
 
   defp health_pill_class("yellow"),
     do:
-      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
 
   defp health_pill_class(_),
     do:
-      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp format_frequency(map) when map == %{}, do: "none"
 

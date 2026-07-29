@@ -119,7 +119,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
 
       <div :if={!@proof} class="flex flex-col mt-28 items-center gap-4 text-center">
         <div>
-          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-tight font-sans font-semibold">
+          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-tight font-semibold">
             Proof not found
           </h1>
         </div>
@@ -136,25 +136,25 @@ defmodule ControlKeelWeb.ProofBrowserLive do
       </div>
 
       <div :if={@proof} class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
-        <div class="rounded-2xl border border-border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+        <div class="rounded-2xl border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
           <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Task
           </p>
           <strong>{@proof.task.title}</strong>
         </div>
-        <div class="rounded-2xl border border-border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+        <div class="rounded-2xl border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
           <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Version
           </p>
           <strong>v{@proof.version}</strong>
         </div>
-        <div class="rounded-2xl border border-border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+        <div class="rounded-2xl border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
           <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Risk score
           </p>
           <strong>{@proof.risk_score}</strong>
         </div>
-        <div class="rounded-2xl border border-border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+        <div class="rounded-2xl border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
           <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Deploy ready
           </p>
@@ -166,7 +166,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
         :if={@proof}
         class="mt-6"
       >
-        <div class="rounded-2xl border border-border p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+        <div class="rounded-2xl border p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
           <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary mb-2">
             Snapshot
           </p>
@@ -215,7 +215,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               Rollback instructions
             </p>
 
-            <pre class="m-0 rounded-2xl border border-border bg-[rgba(255,255,255,0.03)] w-fit p-4 font-mono text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words">{@proof.bundle["rollback_instructions"]}</pre>
+            <pre class="m-0 rounded-2xl border bg-[rgba(255,255,255,0.03)] w-fit p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words">{@proof.bundle["rollback_instructions"]}</pre>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-2 mt-6 gap-4">
@@ -224,7 +224,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 Related memory
               </p>
 
-              <div class="rounded-2xl border border-border p-4">
+              <div class="rounded-2xl border p-4">
                 <%= if @memory_hits == [] do %>
                   <p class="text-muted-foreground">
                     No related memory hits for this task yet.
@@ -247,7 +247,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 Finding resolution summary
               </p>
 
-              <div class="rounded-2xl border border-border p-6 grid grid-cols-2 gap-4">
+              <div class="rounded-2xl border p-6 grid grid-cols-2 gap-4">
                 <div>
                   <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                     Approved
@@ -288,7 +288,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
             Assessment summary
           </p>
           <div class="mt-4 grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-            <div class="rounded-xl border border-border p-5">
+            <div class="rounded-xl border p-5">
               <div class="flex items-center justify-between mb-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em]">
                   Surface verification
@@ -343,7 +343,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               </div>
             </div>
 
-            <div class="rounded-xl border border-border p-5">
+            <div class="rounded-xl border p-5">
               <p class="text-xs font-semibold uppercase tracking-[0.14em] mb-4">
                 Task check counts
               </p>
@@ -393,7 +393,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               </div>
             </div>
 
-            <div class="rounded-xl border border-border p-5">
+            <div class="rounded-xl border p-5">
               <div class="flex items-center justify-between mb-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em]">
                   Context integrity
@@ -437,7 +437,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               </div>
             </div>
 
-            <div class="rounded-xl border border-border p-5">
+            <div class="rounded-xl border p-5">
               <div class="flex items-center justify-between mb-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em]">
                   Deploy readiness
@@ -513,7 +513,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 class="w-3.5 h-3.5 group-open:rotate-90 transition-transform"
               /> Raw proof payload
             </summary>
-            <pre class="m-0 mt-3 rounded-2xl border border-border p-4 font-mono text-xs leading-relaxed text-foreground whitespace-pre-wrap break-words overflow-auto h-100">{Jason.encode!(@proof.bundle, pretty: true)}</pre>
+            <pre class="m-0 mt-3 rounded-2xl border p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words overflow-auto h-100">{Jason.encode!(@proof.bundle, pretty: true)}</pre>
           </details>
         </div>
       </div>
@@ -533,7 +533,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
         </p>
       </div>
 
-      <div class="rounded-lg border border-border bg-neutral-900">
+      <div class="rounded-lg border bg-neutral-900">
         <div class="space-y-4 p-4">
           <form id="proof-filters" phx-change="filter" class="grid gap-4 xl:grid-cols-5">
             <div class="space-y-4">
@@ -637,8 +637,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
 
           <div class="flex items-center justify-between">
             <p class="text-neutral-400 tracking-tight">
-              <span class="text-primary mr-1">{@browser.total_count}</span>
-              total proof bundles found
+              <span class="text-primary mr-1">{@browser.total_count}</span> total proof bundles found
             </p>
 
             <.link
