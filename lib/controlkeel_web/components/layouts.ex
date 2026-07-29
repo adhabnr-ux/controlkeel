@@ -23,12 +23,13 @@ defmodule ControlKeelWeb.Layouts do
   the app is running in cloud mode (not local).
   """
   attr :current_user, :any, default: nil
+  attr :current_path, :string, default: nil
 
   def sidebar(assigns) do
     assigns = assign_new(assigns, :mode, fn -> ControlKeel.Runtime.Mode.current() end)
 
     ~H"""
-    <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r bg-background/95 px-4 py-5 shadow-2xl shadow-black/30 lg:flex">
+    <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r bg-sidebar px-4 py-5 shadow-2xl shadow-black/30 lg:flex">
       <a href={~p"/dashboard"} class="flex items-center gap-3 rounded-2xl px-2 py-1.5">
         <span class="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
           <.icon name="hero-bolt-solid" class="size-5" />
@@ -40,101 +41,12 @@ defmodule ControlKeelWeb.Layouts do
       </a>
 
       <nav data-sidebar class="mt-8 flex flex-1 flex-col gap-1 text-sm">
-        <a
-          href={~p"/dashboard"}
-          data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl bg-muted px-3 py-2.5 font-medium text-foreground shadow-sm ring-1 ring-border transition hover:bg-muted"
-        >
-          <.icon name="hero-squares-2x2" class="size-4 text-primary" /> Dashboard
-        </a>
-        <a
-          href={~p"/missions"}
-          data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <.icon
-            name="hero-rocket-launch"
-            class="size-4 text-muted-foreground group-hover:text-primary"
-          /> Missions
-        </a>
-        <a
-          href={~p"/organizations"}
-          data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <.icon
-            name="hero-building-office-2"
-            class="size-4 text-muted-foreground group-hover:text-primary"
-          /> Organizations
-        </a>
-        <a
-          href={~p"/skills"}
-          data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <.icon
-            name="hero-puzzle-piece"
-            class="size-4 text-muted-foreground group-hover:text-primary"
-          /> Skills
-        </a>
-        <a
-          href={~p"/proofs"}
-          data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <.icon
-            name="hero-shield-check"
-            class="size-4 text-muted-foreground group-hover:text-primary"
-          /> Proofs
-        </a>
-        <a
-          href={~p"/policies"}
-          data-sidebar-link
-          class="group flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <.icon
-            name="hero-adjustments-horizontal"
-            class="size-4 text-muted-foreground group-hover:text-primary"
-          /> Policy Studio
-        </a>
-        <a
-          href={~p"/deploy"}
-          data-sidebar-link
-          class="group flex items-center gap-2 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <.icon
-            name="hero-cloud-arrow-up"
-            class="size-4 text-muted-foreground group-hover:text-primary"
-          /> Deploy
-        </a>
-        <a
-          href={~p"/benchmarks"}
-          data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <.icon
-            name="hero-chart-bar-square"
-            class="size-4 text-muted-foreground group-hover:text-primary"
-          /> Benchmarks
-        </a>
-        <a
-          href={~p"/findings"}
-          data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <.icon
-            name="hero-exclamation-triangle"
-            class="size-4 text-muted-foreground group-hover:text-primary"
-          /> Findings
-        </a>
-        <a
-          href={~p"/observability"}
-          data-sidebar-link
-          class="group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <.icon name="hero-signal" class="size-4 text-muted-foreground group-hover:text-primary" />
-          Observability
-        </a>
+        <%= for {path, icon, label} <- nav_items() do %>
+          <% active = sidebar_active?(@current_path, path) %>
+          <a href={path} data-sidebar-link class={sidebar_link_class(active)}>
+            <.icon name={icon} class={sidebar_icon_class(active)} /> {label}
+          </a>
+        <% end %>
       </nav>
 
       <.user_menu
@@ -147,6 +59,38 @@ defmodule ControlKeelWeb.Layouts do
     </aside>
     """
   end
+
+  defp nav_items do
+    [
+      {~p"/dashboard", "hero-squares-2x2", "Dashboard"},
+      {~p"/missions", "hero-rocket-launch", "Missions"},
+      {~p"/organizations", "hero-building-office-2", "Organizations"},
+      {~p"/skills", "hero-puzzle-piece", "Skills"},
+      {~p"/proofs", "hero-shield-check", "Proofs"},
+      {~p"/policies", "hero-adjustments-horizontal", "Policy Studio"},
+      {~p"/deploy", "hero-cloud-arrow-up", "Deploy"},
+      {~p"/benchmarks", "hero-chart-bar-square", "Benchmarks"},
+      {~p"/findings", "hero-exclamation-triangle", "Findings"},
+      {~p"/observability", "hero-signal", "Observability"}
+    ]
+  end
+
+  defp sidebar_active?(current_path, path) when is_binary(current_path) and is_binary(path) do
+    current_path == path or String.starts_with?(current_path, path <> "/")
+  end
+
+  defp sidebar_active?(_current_path, _path), do: false
+
+  defp sidebar_link_class(true) do
+    "group flex items-center gap-3 rounded-xl bg-muted px-3 py-2.5 font-medium text-foreground shadow-sm ring-1 ring-border transition hover:bg-muted"
+  end
+
+  defp sidebar_link_class(false) do
+    "group flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+  end
+
+  defp sidebar_icon_class(true), do: "size-4 text-primary"
+  defp sidebar_icon_class(false), do: "size-4 text-muted-foreground group-hover:text-primary"
 
   attr :id, :string, required: true
   attr :current_user, :any, required: true
