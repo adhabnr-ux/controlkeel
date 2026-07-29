@@ -25,10 +25,7 @@
 }
 
 html {
-  background:
-    radial-gradient(circle at top left, rgba(196, 240, 66, 0.16), transparent 32%),
-    radial-gradient(circle at top right, rgba(89, 167, 255, 0.12), transparent 24%),
-    linear-gradient(180deg, #0a0d10 0%, #0d1216 48%, #11191f 100%);
+  background: var(--ck-bg);
   color: var(--ck-text);
 }
 
@@ -81,7 +78,7 @@ body.ck-body {
 }
 
 .ck-card-contrast {
-  background: linear-gradient(160deg, rgba(196, 240, 66, 0.14), rgba(255, 255, 255, 0.04));
+  background: var(--ck-panel-strong);
 }
 
 .ck-display {
