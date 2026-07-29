@@ -24,12 +24,12 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
     ~H"""
     <section
       id="observability-evals-page"
-      class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border border-[var(--border)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Eval candidates</h1>
-          <p class="text-[var(--ck-muted)] text-sm mt-1">
+          <h1 class="text-xl font-semibold text-[var(--primary)]">Eval candidates</h1>
+          <p class="text-[var(--muted-foreground)] text-sm mt-1">
             Advisory regression candidates derived from grouped problems and feedback evidence.
           </p>
         </div>
@@ -45,48 +45,50 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
 
       <%= if @eval_candidates.recommendations != [] do %>
         <div class="space-y-2">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
             Recommended next actions
           </p>
           <ul class="list-disc pl-5">
             <%= for recommendation <- @eval_candidates.recommendations do %>
-              <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+              <li class="text-[var(--muted-foreground)] text-sm leading-relaxed">{recommendation}</li>
             <% end %>
           </ul>
         </div>
       <% end %>
 
       <div id="observability-evals-list" class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
           Active candidates
         </p>
         <%= if @eval_candidates.candidates == [] do %>
-          <p class="text-[var(--ck-muted)] text-sm">No eval candidates are currently active.</p>
+          <p class="text-[var(--muted-foreground)] text-sm">
+            No eval candidates are currently active.
+          </p>
         <% else %>
           <%= for candidate <- @eval_candidates.candidates do %>
             <div
               id={"observability-eval-#{candidate.id}"}
-              class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-2"
+              class="rounded-xl px-4 py-3 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-2"
             >
               <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                  <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
                     {candidate.category}
                   </p>
-                  <p class="text-sm font-semibold text-[var(--ck-text)]">{candidate.title}</p>
+                  <p class="text-sm font-semibold text-[var(--foreground)]">{candidate.title}</p>
                 </div>
                 <span class={priority_pill_class(candidate.priority)}>{candidate.priority}</span>
               </div>
-              <p class="text-[var(--ck-muted)] text-xs">
+              <p class="text-[var(--muted-foreground)] text-xs">
                 {candidate.rule_id} · {candidate.finding_count} finding(s) · {candidate.affected_session_count} session(s)
               </p>
-              <p class="text-sm text-[var(--ck-text)] leading-relaxed">
+              <p class="text-sm text-[var(--foreground)] leading-relaxed">
                 {candidate.evidence_summary}
               </p>
-              <p class="text-[var(--ck-muted)] text-xs">
+              <p class="text-[var(--muted-foreground)] text-xs">
                 Benchmark hint: {candidate.benchmark_hint}
               </p>
-              <p class="text-[var(--ck-muted)] text-xs">
+              <p class="text-[var(--muted-foreground)] text-xs">
                 Human gate required: {candidate.human_gate_required}
               </p>
             </div>
@@ -99,25 +101,25 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
 
   defp health_pill_class("red"),
     do:
-      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+      "inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
 
   defp health_pill_class("yellow"),
     do:
-      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
 
   defp health_pill_class(_),
     do:
-      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp priority_pill_class("critical"),
     do:
-      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+      "inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
 
   defp priority_pill_class("high"),
     do:
-      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
 
   defp priority_pill_class(_),
     do:
-      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,255,255,0.04)] text-[var(--ck-text)]"
+      "inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,255,255,0.04)] text-[var(--foreground)]"
 end

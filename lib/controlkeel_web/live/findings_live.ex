@@ -178,15 +178,15 @@ defmodule ControlKeelWeb.FindingsLive do
     ~H"""
     <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
       <div class="space-y-1 mb-12">
-        <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+        <h2 class="text-2xl font-semibold text-[var(--primary)] leading-6 tracking-wide uppercase">
           Findings browser
         </h2>
-        <p class="text-[var(--ck-muted)]">
+        <p class="text-[var(--muted-foreground)]">
           Filter, approve, reject, and inspect guided fixes without leaving the governed ControlKeel workflow.
         </p>
       </div>
 
-      <div class="rounded-lg border border-[var(--ck-stroke)] bg-neutral-900">
+      <div class="rounded-lg border border-[var(--border)] bg-neutral-900">
         <div class="space-y-4 p-4">
           <.form for={@form} phx-change="filter">
             <div class="grid gap-4 xl:grid-cols-5">
@@ -199,7 +199,7 @@ defmodule ControlKeelWeb.FindingsLive do
                   value={@form[:q].value}
                   placeholder="Rule, title, session..."
                   phx-debounce="300"
-                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
                 />
               </div>
               <div class="space-y-2">
@@ -209,7 +209,7 @@ defmodule ControlKeelWeb.FindingsLive do
                 <select
                   id="filters-severity"
                   name="filters[severity]"
-                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
                 >
                   <option value="">All severities</option>
                   <%= for s <- @severities do %>
@@ -226,7 +226,7 @@ defmodule ControlKeelWeb.FindingsLive do
                 <select
                   id="filters-status"
                   name="filters[status]"
-                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
                 >
                   <option value="">All statuses</option>
                   <%= for s <- @statuses do %>
@@ -243,7 +243,7 @@ defmodule ControlKeelWeb.FindingsLive do
                 <select
                   id="filters-category"
                   name="filters[category]"
-                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
                 >
                   <option value="">All categories</option>
                   <%= for c <- @categories do %>
@@ -260,7 +260,7 @@ defmodule ControlKeelWeb.FindingsLive do
                 <select
                   id="filters-session_id"
                   name="filters[session_id]"
-                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                  class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
                 >
                   <option value="">All missions</option>
                   <%= for {label, id} <- session_filter_options(@session_options) do %>
@@ -278,7 +278,7 @@ defmodule ControlKeelWeb.FindingsLive do
 
           <div class="flex items-center justify-between">
             <p class="text-neutral-400 tracking-tight">
-              <span class="text-[var(--ck-lime)] mr-1">{@browser.total_count}</span> total findings
+              <span class="text-[var(--primary)] mr-1">{@browser.total_count}</span> total findings
             </p>
 
             <.link
@@ -334,7 +334,7 @@ defmodule ControlKeelWeb.FindingsLive do
                   <td class="px-8 py-6 align-top">
                     <.link
                       navigate={~p"/missions/#{finding.session_id}"}
-                      class="text-xs font-semibold tracking-[0.14em] text-[var(--ck-lime)] hover:underline"
+                      class="text-xs font-semibold tracking-[0.14em] text-[var(--primary)] hover:underline"
                     >
                       {finding.session.title}
                     </.link>
@@ -479,7 +479,7 @@ defmodule ControlKeelWeb.FindingsLive do
             Rule: {rejected_finding_title(@browser.entries, @reject_id)}
           </p>
           <textarea
-            class="mt-4 w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+            class="mt-4 w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
             placeholder="Reason for rejection..."
             value={@reject_reason}
             phx-keyup="set_reject_reason"
@@ -523,7 +523,7 @@ defmodule ControlKeelWeb.FindingsLive do
           </button>
           <div class="flex items-center justify-between gap-4">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
                 Guided fix
               </p>
               <h3 class="text-lg font-semibold text-white mt-1">{@selected_finding.title}</h3>
@@ -541,13 +541,13 @@ defmodule ControlKeelWeb.FindingsLive do
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
                 Why
               </h4>
               <p class="mt-1 text-sm text-zinc-400">{@selected_fix["why"]}</p>
             </div>
             <div>
-              <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
                 Requires human
               </h4>
               <p class="mt-1 text-sm text-zinc-400">
@@ -557,7 +557,7 @@ defmodule ControlKeelWeb.FindingsLive do
           </div>
 
           <div>
-            <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+            <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
               Steps
             </h4>
             <ul class="mt-1 space-y-1 list-none p-0">
@@ -568,24 +568,24 @@ defmodule ControlKeelWeb.FindingsLive do
           </div>
 
           <div :if={@selected_fix["example"]}>
-            <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+            <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
               Example
             </h4>
-            <pre class="mt-1 rounded-lg border border-[var(--ck-stroke)] bg-black/40 p-4 font-mono text-sm leading-relaxed text-[var(--ck-sand)] whitespace-pre-wrap break-words"><code>{@selected_fix["example"]}</code></pre>
+            <pre class="mt-1 rounded-lg border border-[var(--border)] bg-black/40 p-4 font-mono text-sm leading-relaxed text-[var(--foreground)] whitespace-pre-wrap break-words"><code>{@selected_fix["example"]}</code></pre>
           </div>
 
           <div :if={@selected_fix["agent_prompt"]}>
-            <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+            <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
               Agent prompt
             </h4>
-            <pre class="mt-1 rounded-lg border border-[var(--ck-stroke)] bg-black/40 p-4 font-mono text-sm leading-relaxed text-[var(--ck-sand)] whitespace-pre-wrap break-words max-h-60 overflow-y-auto"><code>{@selected_fix["agent_prompt"]}</code></pre>
+            <pre class="mt-1 rounded-lg border border-[var(--border)] bg-black/40 p-4 font-mono text-sm leading-relaxed text-[var(--foreground)] whitespace-pre-wrap break-words max-h-60 overflow-y-auto"><code>{@selected_fix["agent_prompt"]}</code></pre>
           </div>
 
           <div class="flex items-center justify-between pt-2">
             <button
               :if={@selected_fix["agent_prompt"]}
               type="button"
-              class="rounded-md border border-[var(--ck-lime)] bg-[var(--ck-lime)] px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-black transition hover:brightness-110"
+              class="rounded-md border border-[var(--primary)] bg-[var(--primary)] px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-black transition hover:brightness-110"
               phx-click="copy_fix_prompt"
               phx-value-id={@selected_finding.id}
             >
@@ -610,7 +610,7 @@ defmodule ControlKeelWeb.FindingsLive do
   end
 
   defp pill_base do
-    "inline-flex items-center px-3 py-1.5 text-sm rounded-full border border-[var(--ck-stroke)]"
+    "inline-flex items-center px-3 py-1.5 text-sm rounded-full border border-[var(--border)]"
   end
 
   defp severity_colors("critical"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"

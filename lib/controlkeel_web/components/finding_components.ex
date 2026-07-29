@@ -8,16 +8,16 @@ defmodule ControlKeelWeb.FindingComponents do
 
   def autofix_panel(assigns) do
     ~H"""
-    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
+    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
       <div class="flex items-center justify-between gap-4">
         <div>
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
             Guided fix
           </p>
           <h3>{@finding.title}</h3>
         </div>
         <span class={[
-          "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]",
+          "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]",
           @fix["supported"] && "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]",
           !@fix["supported"] && "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
         ]}>
@@ -25,16 +25,16 @@ defmodule ControlKeelWeb.FindingComponents do
         </span>
       </div>
 
-      <p class="text-[var(--ck-muted)]">{@fix["summary"]}</p>
+      <p class="text-[var(--muted-foreground)]">{@fix["summary"]}</p>
 
       <div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
         <div>
           <h3>Why</h3>
-          <p class="text-[var(--ck-muted)]">{@fix["why"]}</p>
+          <p class="text-[var(--muted-foreground)]">{@fix["why"]}</p>
         </div>
         <div>
           <h3>Requires human</h3>
-          <p class="text-[var(--ck-muted)]">
+          <p class="text-[var(--muted-foreground)]">
             {if @fix["requires_human"], do: "Yes", else: "No"}
           </p>
         </div>
@@ -51,19 +51,19 @@ defmodule ControlKeelWeb.FindingComponents do
 
       <div :if={@fix["example"]}>
         <h3>Example</h3>
-        <pre class="m-0 p-4 border border-[var(--ck-stroke)] rounded-xl bg-white/[0.03] text-[var(--ck-sand)] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]"><code>{@fix["example"]}</code></pre>
+        <pre class="m-0 p-4 border border-[var(--border)] rounded-xl bg-white/[0.03] text-[var(--foreground)] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]"><code>{@fix["example"]}</code></pre>
       </div>
 
       <div :if={@fix["agent_prompt"]}>
         <h3>Agent prompt</h3>
-        <pre class="m-0 p-4 border border-[var(--ck-stroke)] rounded-xl bg-white/[0.03] text-[var(--ck-sand)] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]"><code>{@fix["agent_prompt"]}</code></pre>
+        <pre class="m-0 p-4 border border-[var(--border)] rounded-xl bg-white/[0.03] text-[var(--foreground)] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]"><code>{@fix["agent_prompt"]}</code></pre>
       </div>
 
       <div class="flex items-center justify-between gap-4">
         <button
           :if={@copy_event && @fix["agent_prompt"]}
           type="button"
-          class="inline-flex items-center justify-center gap-[0.4rem] px-[1.25rem] py-[0.95rem] rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-[transform,box-shadow] duration-[160ms] ease-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
+          class="inline-flex items-center justify-center gap-[0.4rem] px-[1.25rem] py-[0.95rem] rounded-full bg-[var(--primary)] text-[#11170d] font-bold transition-[transform,box-shadow] duration-[160ms] ease-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
           phx-click={@copy_event}
           phx-value-id={@finding.id}
         >
@@ -72,7 +72,7 @@ defmodule ControlKeelWeb.FindingComponents do
         <button
           :if={@close_event}
           type="button"
-          class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+          class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold"
           phx-click={@close_event}
         >
           Close

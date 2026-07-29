@@ -73,11 +73,11 @@ defmodule ControlKeelWeb.DeploymentLive do
     <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6">
       <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
             Deployment
           </p>
           <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Deployment Advisor</h1>
-          <p class="text-[var(--ck-muted)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
+          <p class="text-[var(--muted-foreground)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
             Analyze your project stack, preview deployment files, and estimate hosting costs across major platforms.
           </p>
         </div>
@@ -87,7 +87,7 @@ defmodule ControlKeelWeb.DeploymentLive do
           </button>
           <a
             href={~p"/"}
-            class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+            class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold"
           >
             Back home
           </a>
@@ -96,39 +96,39 @@ defmodule ControlKeelWeb.DeploymentLive do
 
       <%= if @analysis do %>
         <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
               Detected Stack
             </p>
             <strong class="text-lg">{String.capitalize(to_string(@analysis.stack))}</strong>
           </div>
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
               Monthly Cost Range
             </p>
             <strong>
               ${@analysis.monthly_cost_range.low} - ${@analysis.monthly_cost_range.high}
             </strong>
           </div>
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
               Compatible Platforms
             </p>
             <strong>{length(@analysis.platforms)}</strong>
           </div>
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
               Files to Generate
             </p>
             <strong>{length(@analysis.generators)}</strong>
           </div>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+        <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
           <div class="flex items-center justify-between mb-4">
             <h2>Recommended Platforms</h2>
             <div class="flex gap-2 items-center">
-              <label class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              <label class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
                 Tier:
               </label>
               <select phx-change="select_tier" class="text-sm" style="width:auto">
@@ -185,7 +185,7 @@ defmodule ControlKeelWeb.DeploymentLive do
                   <a
                     href={p.url}
                     target="_blank"
-                    class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+                    class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold"
                   >
                     {p.name}
                   </a>
@@ -208,7 +208,7 @@ defmodule ControlKeelWeb.DeploymentLive do
           <% end %>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+        <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
           <div class="flex items-center justify-between mb-4">
             <h2>Generated Files (Preview)</h2>
             <div class="flex gap-2">
@@ -246,7 +246,7 @@ defmodule ControlKeelWeb.DeploymentLive do
           <% end %>
         </div>
       <% else %>
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+        <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
           <p class="text-gray-500">
             Click "Analyze Project" to detect your project stack and get deployment recommendations.
           </p>

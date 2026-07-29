@@ -5,8 +5,8 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
 
   def available_where(assigns) do
     ~H"""
-    <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-10">
-      <p class="text-lg font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+    <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-10">
+      <p class="text-lg font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
         Available where
       </p>
 
@@ -27,44 +27,44 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
           >
             <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 select-none [&::-webkit-details-marker]:hidden">
               <p class="text-lg font-semibold">{integration.label}</p>
-              <span class="text-xs text-[var(--ck-muted)] transition-transform duration-200 group-open:rotate-180">
+              <span class="text-xs text-[var(--muted-foreground)] transition-transform duration-200 group-open:rotate-180">
                 ▼
               </span>
             </summary>
 
             <div class="flex justify-end">
-              <span class="border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] w-fit">
+              <span class="border border-[var(--border)] rounded-full px-3 py-[0.45rem] text-[0.8rem] w-fit">
                 {human_support_class(integration.support_class)}
               </span>
             </div>
 
             <div class="space-y-8 px-5 pb-5">
               <div class="space-y-1.5">
-                <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+                <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
                   How agent uses CK
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Uses CK via: {format_targets(integration.agent_uses_ck_via)}
                 </p>
 
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Scope: {format_targets(integration.supported_scopes)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Install: {human_install_experience(integration.install_experience)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Auto-bootstrap: {if integration.auto_bootstrap, do: "yes", else: "no"}
                 </p>
 
                 <%= if integration.attach_command do %>
-                  <div class="flex items-stretch gap-0 overflow-hidden rounded-xl border border-[var(--ck-stroke)] bg-[rgba(0,0,0,0.25)] mt-4">
-                    <code class="flex-1 px-3 py-2 text-sm leading-relaxed font-mono text-[var(--ck-text)] truncate">
+                  <div class="flex items-stretch gap-0 overflow-hidden rounded-xl border border-[var(--border)] bg-[rgba(0,0,0,0.25)] mt-4">
+                    <code class="flex-1 px-3 py-2 text-sm leading-relaxed font-mono text-[var(--foreground)] truncate">
                       {integration.attach_command}
                     </code>
                     <button
                       type="button"
-                      class="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-[var(--ck-lime)] bg-[rgba(196,240,66,0.08)] hover:bg-[rgba(196,240,66,0.16)] transition-colors duration-150 border-l border-[var(--ck-stroke)] whitespace-nowrap"
+                      class="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-[var(--primary)] bg-[rgba(196,240,66,0.08)] hover:bg-[rgba(196,240,66,0.16)] transition-colors duration-150 border-l border-[var(--border)] whitespace-nowrap"
                       id={"copy-agent-#{integration.id}"}
                       phx-click="copy_command"
                       phx-value-command={integration.attach_command}
@@ -80,92 +80,92 @@ defmodule ControlKeelWeb.AvailableInstallComponents do
               </div>
 
               <div class="space-y-1.5">
-                <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+                <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
                   How CK runs the agent
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   CK runs via: {integration.ck_runs_agent_via || "none"}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Execution: {integration.execution_support || "inbound_only"}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Review: {human_review_experience(integration.review_experience)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Submit / feedback: {integration.submission_mode} / {integration.feedback_mode}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Phase / embed: {human_phase_model(integration.phase_model)} / {human_browser_embed(
                     integration.browser_embed
                   )}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Runtime / review transport: {integration.runtime_transport || "artifact_only"} / {integration.runtime_review_transport ||
                     "artifact_only"}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Subagent visibility: {human_subagent_visibility(integration.subagent_visibility)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Autonomy: {integration.autonomy_mode || "policy_gated"}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">{integration.config_location}</p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">{integration.config_location}</p>
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Required CK tools: {format_targets(integration.required_mcp_tools)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Auth: {integration.auth_mode} / {auth_owner(integration)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Provider bridge: {format_provider_bridge(integration.provider_bridge)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Runtime auth owner: {integration.runtime_auth_owner || "none"}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   MCP / skills: {integration.mcp_mode} / {integration.skills_mode}
                 </p>
               </div>
 
               <div class="space-y-1.5">
-                <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+                <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
                   Companion and policy
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">{integration.companion_delivery}</p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">{integration.companion_delivery}</p>
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Export targets: {format_targets(integration.export_targets)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Plan phases: {format_targets(integration.plan_phase_support)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Runtime sessions: {format_runtime_session_support(
                     integration.runtime_session_support
                   )}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Files written: {format_paths(integration.artifact_surfaces)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Package outputs: {format_package_outputs(integration.package_outputs)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Direct install: {format_direct_install_methods(integration.direct_install_methods)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Human intervention: {human_intervention_copy(integration)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Confidence: {human_confidence_level(integration.confidence_level)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Upstream: {integration.upstream_slug || "n/a"}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   ACP registry: {registry_label(integration)}
                 </p>
-                <p class="text-[var(--ck-muted)] text-sm">
+                <p class="text-[var(--muted-foreground)] text-sm">
                   Get CK: {format_install_channels(integration.install_channels)}
                 </p>
               </div>

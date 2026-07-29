@@ -33,17 +33,17 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
     ~H"""
     <section
       id="observability-compare"
-      class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border border-[var(--border)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Compare invocations</h1>
-          <p class="text-[var(--ck-muted)] text-sm mt-1">
+          <h1 class="text-xl font-semibold text-[var(--primary)]">Compare invocations</h1>
+          <p class="text-[var(--muted-foreground)] text-sm mt-1">
             Local host, model, provider, and tool comparison from recorded invocation metrics.
           </p>
         </div>
         <div class="flex items-center gap-3 shrink-0">
-          <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {@comparison.totals.invocations} invocation(s)
           </span>
         </div>
@@ -52,40 +52,44 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
       <CommandPill.command_pill command="controlkeel obs compare" />
 
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Invocations</p>
-          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+        <div class="rounded-xl p-4 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+            Invocations
+          </p>
+          <p class="text-2xl font-semibold text-[var(--foreground)]">
             {@comparison.totals.invocations}
           </p>
-          <p class="text-[var(--ck-muted)] text-xs">{@comparison.totals.sessions} session(s)</p>
+          <p class="text-[var(--muted-foreground)] text-xs">
+            {@comparison.totals.sessions} session(s)
+          </p>
         </div>
-        <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+        <div class="rounded-xl p-4 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
             Estimated spend
           </p>
-          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+          <p class="text-2xl font-semibold text-[var(--foreground)]">
             {format_currency(@comparison.totals.estimated_cost_cents)}
           </p>
-          <p class="text-[var(--ck-muted)] text-xs">Across compared calls</p>
+          <p class="text-[var(--muted-foreground)] text-xs">Across compared calls</p>
         </div>
-        <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Tokens</p>
-          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+        <div class="rounded-xl p-4 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">Tokens</p>
+          <p class="text-2xl font-semibold text-[var(--foreground)]">
             {@comparison.totals.input_tokens + @comparison.totals.cached_input_tokens +
               @comparison.totals.output_tokens}
           </p>
-          <p class="text-[var(--ck-muted)] text-xs">Input, cached, and output</p>
+          <p class="text-[var(--muted-foreground)] text-xs">Input, cached, and output</p>
         </div>
       </div>
 
       <%= if @comparison.recommendations != [] do %>
         <div class="space-y-2">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
             Recommendations
           </p>
           <ul class="list-disc pl-5">
             <%= for recommendation <- @comparison.recommendations do %>
-              <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+              <li class="text-[var(--muted-foreground)] text-sm leading-relaxed">{recommendation}</li>
             <% end %>
           </ul>
         </div>
@@ -95,34 +99,34 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
         <%= for {grouping, comparison} <- @comparisons do %>
           <div
             id={"observability-compare-by-#{grouping}"}
-            class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-3"
+            class="rounded-xl p-4 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-3"
           >
             <div class="flex items-center justify-between gap-2">
               <div>
-                <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
                   Compared by
                 </p>
-                <p class="text-base font-semibold text-[var(--ck-text)] capitalize">{grouping}</p>
+                <p class="text-base font-semibold text-[var(--foreground)] capitalize">{grouping}</p>
               </div>
-              <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-2.5 py-1 text-xs bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+              <span class="inline-flex items-center border border-[var(--border)] rounded-full px-2.5 py-1 text-xs bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
                 {length(comparison.groups)} group(s)
               </span>
             </div>
 
             <%= if comparison.groups == [] do %>
-              <p class="text-[var(--ck-muted)] text-sm">
+              <p class="text-[var(--muted-foreground)] text-sm">
                 No invocation data is available for comparison yet.
               </p>
             <% else %>
               <div class="space-y-2">
                 <%= for group <- comparison.groups do %>
-                  <div class="border-t border-[var(--ck-stroke)] pt-2 space-y-1">
-                    <p class="text-sm font-semibold text-[var(--ck-text)]">{group.name}</p>
-                    <p class="text-[var(--ck-muted)] text-xs">
+                  <div class="border-t border-[var(--border)] pt-2 space-y-1">
+                    <p class="text-sm font-semibold text-[var(--foreground)]">{group.name}</p>
+                    <p class="text-[var(--muted-foreground)] text-xs">
                       {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.cost_per_call_cents} cent(s)/call · {group.tokens_per_call} token(s)/call
                     </p>
                     <%= if group.decisions && group.decisions != %{} do %>
-                      <p class="text-[var(--ck-muted)] text-xs">
+                      <p class="text-[var(--muted-foreground)] text-xs">
                         Decisions: {format_frequency(group.decisions)}
                       </p>
                     <% end %>

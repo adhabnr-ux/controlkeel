@@ -131,7 +131,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
       <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div class="space-y-1">
-          <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+          <h2 class="text-2xl font-semibold text-[var(--primary)] leading-6 tracking-wide uppercase">
             Run ##{@run.id} — {@run.suite.name}
           </h2>
         </div>
@@ -144,78 +144,80 @@ defmodule ControlKeelWeb.BenchmarksLive do
         </a>
       </div>
 
-      <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold mb-4">
+      <div class="border border-[var(--border)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold mb-4">
           Performance metrics
         </p>
 
         <div class="grid gap-4 grid-cols-2 max-[900px]:grid-cols-1">
           <div>
             <h3>Catch rate</h3>
-            <p class="text-[var(--ck-muted)]">{@run.catch_rate}%</p>
+            <p class="text-[var(--muted-foreground)]">{@run.catch_rate}%</p>
           </div>
 
           <div>
             <h3>Block rate</h3>
-            <p class="text-[var(--ck-muted)]">{@detail_metrics.block_rate}%</p>
+            <p class="text-[var(--muted-foreground)]">{@detail_metrics.block_rate}%</p>
           </div>
 
           <div>
             <h3>Expected rule hit rate</h3>
-            <p class="text-[var(--ck-muted)]">{@detail_metrics.expected_rule_hit_rate}%</p>
+            <p class="text-[var(--muted-foreground)]">{@detail_metrics.expected_rule_hit_rate}%</p>
           </div>
 
           <div>
             <h3>Average overhead</h3>
-            <p class="text-[var(--ck-muted)]">{format_percent(@run.average_overhead_percent)}</p>
+            <p class="text-[var(--muted-foreground)]">
+              {format_percent(@run.average_overhead_percent)}
+            </p>
           </div>
         </div>
 
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold mt-8 mb-4">
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold mt-8 mb-4">
           Run metadata
         </p>
         <div class="grid gap-4 grid-cols-2 max-[900px]:grid-cols-1">
           <div>
             <h3>Status</h3>
-            <p class="text-[var(--ck-muted)]">{run_status_label(@run.status)}</p>
+            <p class="text-[var(--muted-foreground)]">{run_status_label(@run.status)}</p>
           </div>
           <div>
             <h3>Baseline subject</h3>
-            <p class="text-[var(--ck-muted)]">
+            <p class="text-[var(--muted-foreground)]">
               {subject_label_by_id(@subjects_by_id, @run.baseline_subject)}
             </p>
           </div>
           <div>
             <h3>Subjects</h3>
-            <p class="text-[var(--ck-muted)]">
+            <p class="text-[var(--muted-foreground)]">
               {Enum.map_join(@run.subjects, ", ", &subject_label_by_id(@subjects_by_id, &1))}
             </p>
           </div>
           <div>
             <h3>Median latency</h3>
-            <p class="text-[var(--ck-muted)]">{format_latency(@run.median_latency_ms)}</p>
+            <p class="text-[var(--muted-foreground)]">{format_latency(@run.median_latency_ms)}</p>
           </div>
           <div>
             <h3>Domain packs</h3>
-            <p class="text-[var(--ck-muted)]">
+            <p class="text-[var(--muted-foreground)]">
               {Enum.map_join(Benchmark.domain_packs_for_run(@run), ", ", &format_domain_pack/1)}
             </p>
           </div>
         </div>
       </div>
 
-      <div class="border border-[var(--ck-stroke)] my-6 rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+      <div class="border border-[var(--border)] my-6 rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
           Promotion integrity
         </p>
         <% integrity = get_in(@eval_profile, ["promotion_integrity"]) || %{} %>
         <div class="flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start">
           <h3>{integrity["status"] || "unknown"}</h3>
-          <span class="border border-[var(--ck-stroke)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="border border-[var(--border)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {Enum.join(integrity["evidence_channels"] || [], ", ")}
           </span>
         </div>
-        <p class="text-[var(--ck-muted)]">
+        <p class="text-[var(--muted-foreground)]">
           <%= case integrity["warnings"] || [] do %>
             <% [] -> %>
               Held-out, diversity, and classification evidence are present for this run.
@@ -225,12 +227,12 @@ defmodule ControlKeelWeb.BenchmarksLive do
         </p>
       </div>
 
-      <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+      <div class="border border-[var(--border)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
         <div class="flex items-center justify-between gap-4">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
             Scenario matrix
           </p>
-          <span class="text-xs text-[var(--ck-muted)]">
+          <span class="text-xs text-[var(--muted-foreground)]">
             {length(@matrix.scenarios)} {if length(@matrix.scenarios) == 1,
               do: "scenario",
               else: "scenarios"}
@@ -238,9 +240,11 @@ defmodule ControlKeelWeb.BenchmarksLive do
         </div>
 
         <%= if @matrix.scenarios == [] do %>
-          <div class="mt-4 rounded-[1rem] border border-dashed border-[var(--ck-stroke)] p-8 text-center">
-            <p class="text-[var(--ck-text)] text-sm font-medium">No scenarios recorded</p>
-            <p class="text-[var(--ck-muted)] text-sm mt-1">This run has no scenario results yet.</p>
+          <div class="mt-4 rounded-[1rem] border border-dashed border-[var(--border)] p-8 text-center">
+            <p class="text-[var(--foreground)] text-sm font-medium">No scenarios recorded</p>
+            <p class="text-[var(--muted-foreground)] text-sm mt-1">
+              This run has no scenario results yet.
+            </p>
           </div>
         <% else %>
           <div class="grid gap-4 mt-4 grid-cols-2 max-[900px]:grid-cols-1">
@@ -252,13 +256,15 @@ defmodule ControlKeelWeb.BenchmarksLive do
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0 space-y-1">
                     <strong class="block leading-snug">{row.scenario.name}</strong>
-                    <p class="text-[var(--ck-muted)] text-sm">{row.scenario.incident_label}</p>
+                    <p class="text-[var(--muted-foreground)] text-sm">
+                      {row.scenario.incident_label}
+                    </p>
                   </div>
                   <div class="flex flex-col items-end gap-1 shrink-0">
-                    <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-2 py-0.5 text-[0.7rem]">
+                    <span class="border border-[var(--border)] bg-white/5 rounded-full px-2 py-0.5 text-[0.7rem]">
                       {format_domain_pack(get_in(row.scenario.metadata || %{}, ["domain_pack"]))}
                     </span>
-                    <span class="text-[0.7rem] text-[var(--ck-muted)] uppercase tracking-wider">
+                    <span class="text-[0.7rem] text-[var(--muted-foreground)] uppercase tracking-wider">
                       {get_in(row.scenario.metadata || %{}, ["risk_tier"]) || "n/a"}
                     </span>
                   </div>
@@ -285,21 +291,21 @@ defmodule ControlKeelWeb.BenchmarksLive do
     ~H"""
     <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-8 pb-16 max-[900px]:w-[min(calc(100%-1.25rem),1180px)] max-[900px]:pt-6">
       <div class="space-y-1">
-        <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+        <h2 class="text-2xl font-semibold text-[var(--primary)] leading-6 tracking-wide uppercase">
           Benchmark engine
         </h2>
-        <p class="text-[var(--ck-muted)]">
+        <p class="text-[var(--muted-foreground)]">
           Compare governed subjects and external agents on the same scenario suites, then keep the results as product evidence.
         </p>
       </div>
 
       <div class="grid gap-4 grid-cols-[2fr_1fr] mt-6">
-        <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
+        <div class="border border-[var(--border)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
           <div class="flex flex-col gap-3 mb-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
               Quick presets
             </p>
-            <p class="text-[var(--ck-muted)] text-sm mb-2 max-w-[42rem] leading-relaxed">
+            <p class="text-[var(--muted-foreground)] text-sm mb-2 max-w-[42rem] leading-relaxed">
               One-click subject and suite configurations. Pick one to populate the form below.
             </p>
 
@@ -314,9 +320,9 @@ defmodule ControlKeelWeb.BenchmarksLive do
                 class={[
                   "group inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition-all duration-150 active:scale-[0.98]",
                   if(preset_value == @active_preset,
-                    do: "border-[var(--ck-lime)] bg-[rgba(196,240,66,0.16)] text-[var(--ck-lime)]",
+                    do: "border-[var(--primary)] bg-[rgba(196,240,66,0.16)] text-[var(--primary)]",
                     else:
-                      "border-[var(--ck-stroke)] bg-white/5 text-[var(--ck-text)] hover:-translate-y-px hover:border-[var(--ck-lime)] hover:bg-[rgba(196,240,66,0.08)] hover:text-[var(--ck-lime)]"
+                      "border-[var(--border)] bg-white/5 text-[var(--foreground)] hover:-translate-y-px hover:border-[var(--primary)] hover:bg-[rgba(196,240,66,0.08)] hover:text-[var(--primary)]"
                   )
                 ]}
               >
@@ -363,48 +369,48 @@ defmodule ControlKeelWeb.BenchmarksLive do
             <div class="flex items-center justify-between gap-4 mt-4 max-[900px]:flex-col max-[900px]:items-start">
               <button
                 type="submit"
-                class="inline-flex items-center justify-center gap-[0.4rem] px-4 py-2 rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-transform transition-shadow duration-150 hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
+                class="inline-flex items-center justify-center gap-[0.4rem] px-4 py-2 rounded-full bg-[var(--primary)] text-[#11170d] font-bold transition-transform transition-shadow duration-150 hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
               >
                 Run benchmark
               </button>
             </div>
           </.form>
-          <p class="text-[var(--ck-muted)] text-sm mt-4">
+          <p class="text-[var(--muted-foreground)] text-sm mt-4">
             For a reproducible external comparison, start with `controlkeel_validate,opencode_manual`
             and import the OpenCode output after the awaiting-import run finishes.
           </p>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 h-fit">
-          <div class="space-y-2 border-b border-[var(--ck-stroke)] pb-4 mb-4">
+        <div class="border border-[var(--border)] bg-[var(--card)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 h-fit">
+          <div class="space-y-2 border-b border-[var(--border)] pb-4 mb-4">
             <p>
-              Suites: <span class="text-[var(--ck-lime)]">{@summary.total_suites}</span>
+              Suites: <span class="text-[var(--primary)]">{@summary.total_suites}</span>
             </p>
 
             <p>
-              Runs: <span class="text-[var(--ck-lime)]">{@summary.total_runs}</span>
+              Runs: <span class="text-[var(--primary)]">{@summary.total_runs}</span>
             </p>
 
             <p>
               Average catch rate:
-              <span class="text-[var(--ck-lime)]">
+              <span class="text-[var(--primary)]">
                 {format_percent(@summary.average_catch_rate)}
               </span>
             </p>
 
             <p>
               Average overhead:
-              <span class="text-[var(--ck-lime)]">
+              <span class="text-[var(--primary)]">
                 {format_percent(@summary.average_overhead_percent)}
               </span>
             </p>
           </div>
 
-          <p class="uppercase tracking-[0.14em] text-[var(--ck-lime)] font-semibold mt-4">
+          <p class="uppercase tracking-[0.14em] text-[var(--primary)] font-semibold mt-4">
             Blessed external path
           </p>
           <h3 class="my-2">OpenCode vs ControlKeel</h3>
-          <p class="text-[var(--ck-muted)] text-sm">
+          <p class="text-[var(--muted-foreground)] text-sm">
             The recommended first external comparison path is OpenCode. Start with a manual import
             subject for the quickest reproducible run, then swap to a shell-based wrapper if you
             want fully scripted replay.
@@ -423,21 +429,21 @@ defmodule ControlKeelWeb.BenchmarksLive do
         </div>
       </div>
 
-      <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+      <div class="border border-[var(--border)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
         <div class="flex items-center justify-between gap-4">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
             Recent runs
           </p>
-          <span :if={@recent_runs != []} class="text-xs text-[var(--ck-muted)]">
+          <span :if={@recent_runs != []} class="text-xs text-[var(--muted-foreground)]">
             {length(@recent_runs)} {if length(@recent_runs) == 1, do: "run", else: "runs"}
           </span>
         </div>
         <%= if @recent_runs == [] do %>
-          <div class="mt-4 rounded-[1rem] border border-dashed border-[var(--ck-stroke)] p-8 text-center">
-            <p class="text-[var(--ck-text)] text-sm font-medium">
+          <div class="mt-4 rounded-[1rem] border border-dashed border-[var(--border)] p-8 text-center">
+            <p class="text-[var(--foreground)] text-sm font-medium">
               No benchmark runs yet
             </p>
-            <p class="text-[var(--ck-muted)] text-sm mt-1">
+            <p class="text-[var(--muted-foreground)] text-sm mt-1">
               Pick a preset above and run your first suite to see results here.
             </p>
           </div>
@@ -445,7 +451,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
           <div class="overflow-x-auto mt-4">
             <table id="benchmark-runs" class="min-w-full text-sm">
               <thead>
-                <tr class="text-left text-xs text-[var(--ck-muted)] uppercase tracking-wider">
+                <tr class="text-left text-xs text-[var(--muted-foreground)] uppercase tracking-wider">
                   <th class="py-2 pr-4">Run</th>
                   <th class="py-2 pr-4">Suite</th>
                   <th class="py-2 pr-4">Status</th>
@@ -455,39 +461,39 @@ defmodule ControlKeelWeb.BenchmarksLive do
                   <th class="py-2 pr-4 text-right">Overhead</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-[var(--ck-stroke)]">
+              <tbody class="divide-y divide-[var(--border)]">
                 <%= for run <- @recent_runs do %>
                   <tr id={"run-#{run.id}"} class="align-top">
                     <td class="py-3 pr-4">
                       <.link
                         navigate={~p"/benchmarks/runs/#{run.id}"}
-                        class="font-semibold text-[var(--ck-lime)]"
+                        class="font-semibold text-[var(--primary)]"
                       >
                         ##{run.id}
                       </.link>
                     </td>
-                    <td class="py-3 pr-4 text-[var(--ck-muted)] truncate">
+                    <td class="py-3 pr-4 text-[var(--muted-foreground)] truncate">
                       {run.suite.name || run.suite.slug}
                     </td>
                     <td class="py-3 pr-4">
-                      <span class="inline-flex items-center rounded-full px-3 py-1 text-xs bg-white/5 border border-[var(--ck-stroke)]">
+                      <span class="inline-flex items-center rounded-full px-3 py-1 text-xs bg-white/5 border border-[var(--border)]">
                         {run_status_label(run.status)}
                       </span>
                     </td>
                     <td class="py-3 pr-4"><strong>{format_percent(run.catch_rate)}</strong></td>
-                    <td class="py-3 pr-4 text-[var(--ck-muted)]">
+                    <td class="py-3 pr-4 text-[var(--muted-foreground)]">
                       {subject_label_by_id(@subjects_by_id, run.baseline_subject)}
                     </td>
                     <td class="py-3 pr-4">
                       <div class="flex flex-wrap gap-2">
                         <%= for pack <- Benchmark.domain_packs_for_run(run) do %>
-                          <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-2 py-0.5 text-[0.75rem]">
+                          <span class="border border-[var(--border)] bg-white/5 rounded-full px-2 py-0.5 text-[0.75rem]">
                             {format_domain_pack(pack)}
                           </span>
                         <% end %>
                       </div>
                     </td>
-                    <td class="py-3 pr-4 text-right text-[var(--ck-muted)]">
+                    <td class="py-3 pr-4 text-right text-[var(--muted-foreground)]">
                       {format_percent(run.average_overhead_percent)}
                     </td>
                   </tr>
@@ -498,11 +504,11 @@ defmodule ControlKeelWeb.BenchmarksLive do
         <% end %>
       </div>
 
-      <div class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+      <div class="border border-[var(--border)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+        <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
           Built-in suites
         </p>
-        <p class="text-[var(--ck-muted)] text-xs mt-1">
+        <p class="text-[var(--muted-foreground)] text-xs mt-1">
           Built-ins are always present. External subjects appear when the current project has a
           `controlkeel/benchmark_subjects.json` file.
         </p>
@@ -515,18 +521,18 @@ defmodule ControlKeelWeb.BenchmarksLive do
             >
               <div class="flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start">
                 <h3>{suite.name}</h3>
-                <span class="border border-[var(--ck-stroke)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                <span class="border border-[var(--border)] rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
                   v{suite.version}
                 </span>
               </div>
-              <p class="text-[var(--ck-muted)]">{suite.description}</p>
+              <p class="text-[var(--muted-foreground)]">{suite.description}</p>
               <div class="flex items-center justify-between gap-4">
                 <span>{length(suite.scenarios)} scenarios</span>
                 <span>{suite.status}</span>
               </div>
               <div class="flex flex-wrap gap-2 mt-2">
                 <%= for pack <- Benchmark.domain_packs_for_suite(suite) do %>
-                  <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]">
+                  <span class="border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]">
                     {format_domain_pack(pack)}
                   </span>
                 <% end %>
@@ -608,7 +614,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
   defp format_percent(value), do: "#{Float.round(value, 1)}%"
 
   defp decision_badge_class(nil),
-    do: "border-[var(--ck-stroke)] bg-white/5 text-[var(--ck-muted)]"
+    do: "border-[var(--border)] bg-white/5 text-[var(--muted-foreground)]"
 
   defp decision_badge_class("block"),
     do: "border-[rgba(255,143,107,0.35)] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
@@ -619,7 +625,8 @@ defmodule ControlKeelWeb.BenchmarksLive do
   defp decision_badge_class("allow"),
     do: "border-[rgba(125,226,174,0.35)] bg-[rgba(125,226,174,0.12)] text-[#d2ffe7]"
 
-  defp decision_badge_class(_), do: "border-[var(--ck-stroke)] bg-white/5 text-[var(--ck-muted)]"
+  defp decision_badge_class(_),
+    do: "border-[var(--border)] bg-white/5 text-[var(--muted-foreground)]"
 
   defp decision_label(nil), do: "no ruling"
   defp decision_label("block"), do: "blocked"
@@ -643,7 +650,8 @@ defmodule ControlKeelWeb.BenchmarksLive do
     "border-[rgba(255,207,107,0.35)] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
   end
 
-  defp status_badge_class(_), do: "border-[var(--ck-stroke)] bg-white/5 text-[var(--ck-muted)]"
+  defp status_badge_class(_),
+    do: "border-[var(--border)] bg-white/5 text-[var(--muted-foreground)]"
 
   defp subject_options(subjects) do
     Enum.map(subjects, fn subject ->
@@ -659,7 +667,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
           <div class="flex items-center gap-1.5 min-w-0">
             <span class="text-sm font-semibold truncate">{@subject_label}</span>
             <%= if @result.matched_expected do %>
-              <.icon name="hero-check-badge" class="w-4 h-4 text-[var(--ck-lime)] shrink-0" />
+              <.icon name="hero-check-badge" class="w-4 h-4 text-[var(--primary)] shrink-0" />
             <% end %>
           </div>
           <div class="flex flex-wrap gap-1.5 justify-end shrink-0">
@@ -677,15 +685,15 @@ defmodule ControlKeelWeb.BenchmarksLive do
             </span>
           </div>
         </div>
-        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--ck-muted)]">
+        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted-foreground)]">
           <span>{@result.findings_count} findings</span>
           <span>latency {format_latency(@result.latency_ms)}</span>
           <span>overhead {format_percent(@result.overhead_percent)}</span>
         </div>
       <% else %>
         <div class="flex items-center justify-between gap-2">
-          <span class="text-sm text-[var(--ck-muted)] truncate">{@subject_label}</span>
-          <span class="text-[0.7rem] text-[var(--ck-muted)] uppercase tracking-wider">
+          <span class="text-sm text-[var(--muted-foreground)] truncate">{@subject_label}</span>
+          <span class="text-[0.7rem] text-[var(--muted-foreground)] uppercase tracking-wider">
             no result
           </span>
         </div>
@@ -714,7 +722,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
       <div :if={@selected != []} class="flex flex-wrap gap-2 mb-2">
         <span
           :for={selected_value <- @selected}
-          class="inline-flex items-center gap-1 rounded-full border border-[var(--ck-stroke)] text-[var(--ck-muted)] pl-3 pr-1.5 py-1 text-xs"
+          class="inline-flex items-center gap-1 rounded-full border border-[var(--border)] text-[var(--muted-foreground)] pl-3 pr-1.5 py-1 text-xs"
         >
           {Map.get(@labels_by_value, selected_value, selected_value)}
           <button
@@ -722,7 +730,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
             phx-click="toggle_subject"
             phx-value-id={selected_value}
             aria-label={"Remove #{Map.get(@labels_by_value, selected_value, selected_value)}"}
-            class="inline-flex items-center justify-center rounded-full p-0.5 hover:text-[var(--ck-lime)] transition-colors"
+            class="inline-flex items-center justify-center rounded-full p-0.5 hover:text-[var(--primary)] transition-colors"
           >
             <.icon name="hero-x-mark" class="w-3 h-3" />
           </button>
@@ -735,10 +743,10 @@ defmodule ControlKeelWeb.BenchmarksLive do
         aria-expanded={to_string(@open)}
         class={[
           "select w-full flex items-center justify-between gap-2 px-3 py-2 text-left",
-          "focus:outline-none focus:border-[var(--ck-lime)]"
+          "focus:outline-none focus:border-[var(--primary)]"
         ]}
       >
-        <span class="text-[var(--ck-muted)]">Select subjects</span>
+        <span class="text-[var(--muted-foreground)]">Select subjects</span>
         <.icon
           name="hero-chevron-down"
           class={["w-4 h-4 shrink-0 transition-transform", @open && "rotate-180"]}
@@ -746,7 +754,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
       </button>
       <div
         :if={@open}
-        class="absolute z-30 mt-1 w-full max-h-72 overflow-y-auto rounded-[1rem] border border-[var(--ck-stroke)] bg-[#0d1216] shadow-[0_24px_80px_rgba(0,0,0,0.45)] p-1"
+        class="absolute z-30 mt-1 w-full max-h-72 overflow-y-auto rounded-[1rem] border border-[var(--border)] bg-[#0d1216] shadow-[0_24px_80px_rgba(0,0,0,0.45)] p-1"
         role="listbox"
         aria-label={@label}
         aria-multiselectable="true"
@@ -763,7 +771,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
             "w-full flex items-center gap-2 px-3 py-2 rounded-[0.6rem] text-left text-sm transition-colors cursor-pointer",
             if(option_value in @selected,
               do: "bg-[rgba(196,240,66,0.14)] text-[#d2ffe7]",
-              else: "text-[var(--ck-text)] hover:bg-white/5"
+              else: "text-[var(--foreground)] hover:bg-white/5"
             )
           ]}
         >
@@ -771,7 +779,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
             name="hero-check"
             class={[
               "w-4 h-4 shrink-0",
-              if(option_value in @selected, do: "text-[var(--ck-lime)]", else: "opacity-0")
+              if(option_value in @selected, do: "text-[var(--primary)]", else: "opacity-0")
             ]}
           />
           <span class="truncate">{option_label}</span>

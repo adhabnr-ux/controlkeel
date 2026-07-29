@@ -152,21 +152,21 @@ defmodule ControlKeelWeb.SkillsLive do
     ~H"""
     <section class="w-[min(1180px,calc(100%-2rem))] mx-auto">
       <div class="space-y-1">
-        <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+        <h2 class="text-2xl font-semibold text-[var(--primary)] leading-6 tracking-wide uppercase">
           Skills Studio
         </h2>
-        <p class="text-[var(--ck-muted)]">
+        <p class="text-[var(--muted-foreground)]">
           Native skills and plugin operator console
         </p>
       </div>
 
       <div class="mt-12 space-y-10">
         <div class="grid grid-cols-2 gap-4">
-          <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-lg font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mb-3">
+          <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-lg font-semibold text-[var(--primary)] tracking-[0.14em] uppercase mb-3">
               How this works
             </p>
-            <ul class="text-[var(--ck-muted)] text-sm leading-[1.7] list-disc px-4 grid gap-1">
+            <ul class="text-[var(--muted-foreground)] text-sm leading-[1.7] list-disc px-4 grid gap-1">
               <li>Skills live in `priv/skills/`, validated and cataloged at startup.</li>
               <li>`ck_skill_list` / `ck_skill_load` are the universal MCP fallback.</li>
               <li>Native targets generated from the catalog — no hand-maintained lists.</li>
@@ -177,7 +177,7 @@ defmodule ControlKeelWeb.SkillsLive do
             </ul>
           </div>
 
-          <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
             <.form
               for={@project_form}
               id="skills-project-form"
@@ -190,13 +190,13 @@ defmodule ControlKeelWeb.SkillsLive do
                   type="text"
                   label="Project root"
                   placeholder="/absolute/path/to/project"
-                  class="p-3 w-full focus:outline-[var(--ck-stroke)] border-r-2 border-[var(--ck-stroke)]"
+                  class="p-3 w-full focus:outline-[var(--border)] border-r-2 border-[var(--border)]"
                 />
               </div>
               <div class="flex items-end">
                 <button
                   type="submit"
-                  class="inline-flex items-center justify-center gap-[0.4rem] px-5 py-[0.95rem] rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-[transform,box-shadow] duration-150 ease-in-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)] cursor-pointer"
+                  class="inline-flex items-center justify-center gap-[0.4rem] px-5 py-[0.95rem] rounded-full bg-[var(--primary)] text-[#11170d] font-bold transition-[transform,box-shadow] duration-150 ease-in-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)] cursor-pointer"
                   id="skills-project-submit"
                 >
                   Refresh catalog
@@ -207,40 +207,40 @@ defmodule ControlKeelWeb.SkillsLive do
         </div>
 
         <div class="grid grid-cols-3 gap-4">
-          <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+          <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
               Total skills
             </p>
             <strong>{length(@skills)}</strong>
           </div>
-          <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+          <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
               Skill warnings
             </p>
             <strong>{Enum.count(@diagnostics, &(&1.level == "warn"))}</strong>
           </div>
-          <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+          <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
               Skill errors
             </p>
             <strong>{Enum.count(@diagnostics, &(&1.level == "error"))}</strong>
           </div>
-          <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+          <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
               Local skills
             </p>
             <strong>{if @trusted_project?, do: "allowed", else: "gated"}</strong>
           </div>
 
-          <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+          <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
               Bootstrap
             </p>
             <strong>{@bootstrap_mode}</strong>
           </div>
 
-          <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+          <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
               Duplicate copies
             </p>
             <strong class={if @duplicate_copy_count > 0, do: "text-[#ffd6cb]", else: ""}>
@@ -250,8 +250,8 @@ defmodule ControlKeelWeb.SkillsLive do
         </div>
 
         <%= if @export_manifests != [] do %>
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 my-4">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+          <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 my-4">
+            <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
               Export manifests ({length(@export_manifests)})
             </p>
             <div class="grid gap-3 mt-3">
@@ -259,14 +259,14 @@ defmodule ControlKeelWeb.SkillsLive do
                 <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)] grid gap-[0.35rem]">
                   <div class="flex items-center justify-between gap-4">
                     <h3>{manifest["target"]}</h3>
-                    <span class="border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem]">
+                    <span class="border border-[var(--border)] rounded-full px-3 py-[0.45rem] text-[0.8rem]">
                       {manifest["scope"]}
                     </span>
                   </div>
-                  <p class="text-[var(--ck-muted)] text-xs">
+                  <p class="text-[var(--muted-foreground)] text-xs">
                     ck={manifest["controlkeel_version"]} &middot; {manifest["installed_at"]}
                   </p>
-                  <p class="text-[var(--ck-muted)] text-xs font-mono">
+                  <p class="text-[var(--muted-foreground)] text-xs font-mono">
                     {Path.relative_to(path, @project_root)}
                   </p>
                 </article>
@@ -278,8 +278,8 @@ defmodule ControlKeelWeb.SkillsLive do
           </div>
         <% end %>
 
-        <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-          <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+        <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
             Export and install
           </p>
           <.form for={@action_form} id="skills-action-form" phx-change="update_action_form">
@@ -290,7 +290,7 @@ defmodule ControlKeelWeb.SkillsLive do
                   type="select"
                   label="Target:"
                   options={@target_options}
-                  class="p-2 border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)]"
+                  class="p-2 border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)]"
                 />
               </div>
               <div>
@@ -299,13 +299,13 @@ defmodule ControlKeelWeb.SkillsLive do
                   type="select"
                   label="Scope:"
                   options={@scope_options}
-                  class="p-2 border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] min-w-[250px]"
+                  class="p-2 border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] min-w-[250px]"
                 />
               </div>
             </div>
 
             <%= if @last_result do %>
-              <p class="text-[var(--ck-muted)] mt-[0.85rem]">
+              <p class="text-[var(--muted-foreground)] mt-[0.85rem]">
                 Last action: {elem(@last_result, 1)}
               </p>
             <% end %>
@@ -313,7 +313,7 @@ defmodule ControlKeelWeb.SkillsLive do
             <div class="flex items-center justify-end gap-4 mt-4">
               <button
                 type="button"
-                class="inline-flex items-center justify-center gap-[0.4rem] px-5 py-[0.95rem] rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-[transform,box-shadow] duration-150 ease-in-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)] cursor-pointer"
+                class="inline-flex items-center justify-center gap-[0.4rem] px-5 py-[0.95rem] rounded-full bg-[var(--primary)] text-[#11170d] font-bold transition-[transform,box-shadow] duration-150 ease-in-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)] cursor-pointer"
                 id="skills-export-button"
                 phx-click="export"
                 phx-value-target={@action_form.params["target"]}
@@ -323,7 +323,7 @@ defmodule ControlKeelWeb.SkillsLive do
               </button>
               <button
                 type="button"
-                class="inline-flex items-center justify-center gap-[0.4rem] px-5 py-[0.95rem] rounded-full border border-[var(--ck-stroke)] bg-transparent text-[var(--ck-text)] font-semibold transition-[transform,background] duration-150 ease-in-out hover:bg-[var(--ck-panel)] hover:-translate-y-px cursor-pointer"
+                class="inline-flex items-center justify-center gap-[0.4rem] px-5 py-[0.95rem] rounded-full border border-[var(--border)] bg-transparent text-[var(--foreground)] font-semibold transition-[transform,background] duration-150 ease-in-out hover:bg-[var(--card)] hover:-translate-y-px cursor-pointer"
                 id="skills-install-button"
                 phx-click="install"
                 phx-value-target={@action_form.params["target"]}
@@ -336,29 +336,29 @@ defmodule ControlKeelWeb.SkillsLive do
         </div>
 
         <%= if @selected do %>
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+          <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
               {@selected.name}
             </p>
-            <p class="text-[var(--ck-muted)] mb-3">{@selected.description}</p>
+            <p class="text-[var(--muted-foreground)] mb-3">{@selected.description}</p>
             <div class="flex flex-wrap gap-2 mb-3">
               <%= for target <- @selected.compatibility_targets do %>
-                <span class="border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-[0.45rem] text-[0.8rem]">
+                <span class="border border-[var(--border)] bg-[rgba(255,255,255,0.05)] rounded-full px-3 py-[0.45rem] text-[0.8rem]">
                   {target}
                 </span>
               <% end %>
             </div>
-            <p class="text-[var(--ck-muted)] mb-2">
+            <p class="text-[var(--muted-foreground)] mb-2">
               Required CK MCP tools: {format_targets(@selected.required_mcp_tools)}
             </p>
-            <p class="text-[var(--ck-muted)] mb-2">
+            <p class="text-[var(--muted-foreground)] mb-2">
               Native locations: {format_paths(get_in(@selected.install_state, ["native_locations"]))}
             </p>
-            <p class="text-[var(--ck-muted)] mb-2">
+            <p class="text-[var(--muted-foreground)] mb-2">
               Exported targets: {format_targets(get_in(@selected.install_state, ["exported_targets"]))}
             </p>
             <%= if @selected.resources != [] do %>
-              <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mt-4">
+              <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase mt-4">
                 Resources
               </p>
               <ul class="grid gap-4 m-0 p-0 list-none">
@@ -368,7 +368,7 @@ defmodule ControlKeelWeb.SkillsLive do
               </ul>
             <% end %>
             <%= if @selected.diagnostics != [] do %>
-              <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mt-4">
+              <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase mt-4">
                 Skill diagnostics
               </p>
               <ul class="grid gap-4 m-0 p-0 list-none">
@@ -377,7 +377,7 @@ defmodule ControlKeelWeb.SkillsLive do
                 <% end %>
               </ul>
             <% end %>
-            <p class="text-xs font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mt-4">
+            <p class="text-xs font-semibold text-[var(--primary)] tracking-[0.14em] uppercase mt-4">
               Instructions preview
             </p>
             <pre class="text-[0.72rem] leading-[1.5] whitespace-pre-wrap break-words max-h-[420px] overflow-y-auto mt-2">{@selected.body}</pre>
@@ -385,8 +385,8 @@ defmodule ControlKeelWeb.SkillsLive do
         <% end %>
 
         <div class="space-y-4">
-          <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="text-lg font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+          <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="text-lg font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
               Available skills
             </p>
 
@@ -397,7 +397,7 @@ defmodule ControlKeelWeb.SkillsLive do
                 value={@skill_search}
                 placeholder="Filter skills by name or description..."
                 phx-debounce="150"
-                class="mt-3 mb-4 p-3 w-full bg-[rgba(255,255,255,0.04)] border border-[var(--ck-stroke)] rounded-xl text-[var(--ck-text)] outline-none focus:border-[var(--ck-lime)] transition-colors duration-150"
+                class="mt-3 mb-4 p-3 w-full bg-[rgba(255,255,255,0.04)] border border-[var(--border)] rounded-xl text-[var(--foreground)] outline-none focus:border-[var(--primary)] transition-colors duration-150"
               />
             </form>
 
@@ -411,19 +411,19 @@ defmodule ControlKeelWeb.SkillsLive do
                   id={"skill-#{skill.name}"}
                   class={[
                     "border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)] grid gap-[0.55rem] cursor-pointer",
-                    @selected && @selected.name == skill.name && "border-[var(--ck-lime)]"
+                    @selected && @selected.name == skill.name && "border-[var(--primary)]"
                   ]}
                   phx-click="select_skill"
                   phx-value-name={skill.name}
                 >
                   <div class="flex items-center justify-between gap-4">
                     <h3>{skill.name}</h3>
-                    <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{scope_pill_class(skill.scope)}"}>
+                    <span class={"border border-[var(--border)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{scope_pill_class(skill.scope)}"}>
                       {skill.scope}
                     </span>
                   </div>
-                  <p class="text-[var(--ck-muted)]">{skill.description}</p>
-                  <p class="text-[var(--ck-muted)] mt-[0.35rem]">
+                  <p class="text-[var(--muted-foreground)]">{skill.description}</p>
+                  <p class="text-[var(--muted-foreground)] mt-[0.35rem]">
                     Targets: {format_targets(skill.compatibility_targets)}
                   </p>
                 </article>
@@ -438,8 +438,8 @@ defmodule ControlKeelWeb.SkillsLive do
           </div>
         </div>
 
-        <div class="border border-[var(--ck-stroke)]  rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-          <p class="text-lg font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase">
+        <div class="border border-[var(--border)]  rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <p class="text-lg font-semibold text-[var(--primary)] tracking-[0.14em] uppercase">
             Target availability
           </p>
 
@@ -450,7 +450,7 @@ defmodule ControlKeelWeb.SkillsLive do
               value={@target_search}
               placeholder="Filter targets by name or description..."
               phx-debounce="150"
-              class="mt-3 mb-4 p-3 w-full bg-[rgba(255,255,255,0.04)] border border-[var(--ck-stroke)] rounded-xl text-[var(--ck-text)] outline-none focus:border-[var(--ck-lime)] transition-colors duration-150"
+              class="mt-3 mb-4 p-3 w-full bg-[rgba(255,255,255,0.04)] border border-[var(--border)] rounded-xl text-[var(--foreground)] outline-none focus:border-[var(--primary)] transition-colors duration-150"
             />
           </form>
 
@@ -473,7 +473,7 @@ defmodule ControlKeelWeb.SkillsLive do
                   <tr id={"skill-target-#{target.id}"}>
                     <td class="py-2 pr-4">
                       <strong>{target.label}</strong>
-                      <p class="text-[var(--ck-muted)]">{target.description}</p>
+                      <p class="text-[var(--muted-foreground)]">{target.description}</p>
                     </td>
                     <td class="py-2 pr-4">{target.default_scope}</td>
                     <td class="py-2 pr-4">{if target.native, do: "yes", else: "fallback"}</td>
@@ -493,11 +493,11 @@ defmodule ControlKeelWeb.SkillsLive do
           </style>
         </div>
 
-        <div class="border border-[var(--ck-stroke)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-          <p class="text-lg font-semibold text-[var(--ck-lime)] tracking-[0.14em] uppercase mb-4">
+        <div class="border border-[var(--border)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+          <p class="text-lg font-semibold text-[var(--primary)] tracking-[0.14em] uppercase mb-4">
             Skill diagnostics
           </p>
-          <div :if={@diagnostics == []} class="text-[var(--ck-muted)]">
+          <div :if={@diagnostics == []} class="text-[var(--muted-foreground)]">
             No skill diagnostics were recorded.
           </div>
           <div
@@ -509,12 +509,12 @@ defmodule ControlKeelWeb.SkillsLive do
               <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)] grid gap-[0.55rem]">
                 <div class="flex items-center justify-between gap-4">
                   <h3>{diagnostic.code}</h3>
-                  <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-xs #{diagnostic_pill_class(diagnostic.level)}"}>
+                  <span class={"border border-[var(--border)] rounded-full px-3 py-[0.45rem] text-xs #{diagnostic_pill_class(diagnostic.level)}"}>
                     {diagnostic.level}
                   </span>
                 </div>
-                <p class="text-[var(--ck-muted)] text-xs">{diagnostic.message}</p>
-                <p class="text-[var(--ck-muted)] font-mono text-xs">
+                <p class="text-[var(--muted-foreground)] text-xs">{diagnostic.message}</p>
+                <p class="text-[var(--muted-foreground)] font-mono text-xs">
                   {diagnostic.path}
                 </p>
               </article>

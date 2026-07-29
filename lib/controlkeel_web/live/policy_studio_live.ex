@@ -45,29 +45,29 @@ defmodule ControlKeelWeb.PolicyStudioLive do
     ~H"""
     <section class="mx-auto max-w-[1180px] px-4 py-12 pb-16 pt-8">
       <div class="space-y-1 mb-12">
-        <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+        <h2 class="text-2xl font-semibold text-[var(--primary)] leading-6 tracking-wide uppercase">
           Policy Studio
         </h2>
-        <p class="text-[var(--ck-muted)]">
+        <p class="text-[var(--muted-foreground)]">
           Every agent action passes through these policy packs before it executes. Rules that block are enforced automatically — no action required from you.
         </p>
       </div>
 
       <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        <div class="border border-[var(--border)] bg-[var(--card)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
             Active packs
           </p>
           <strong>{@pack_count}</strong>
         </div>
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        <div class="border border-[var(--border)] bg-[var(--card)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
             Total rules
           </p>
           <strong>{@rule_count}</strong>
         </div>
-        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        <div class="border border-[var(--border)] bg-[var(--card)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
             Blocking rules
           </p>
           <strong>{@block_count}</strong>
@@ -76,11 +76,11 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
       <div class="grid gap-6 mt-6 max-[900px]:grid-cols-1 min-[901px]:grid-cols-[1.35fr_0.75fr]">
         <div>
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <div class="border border-[var(--border)] bg-[var(--card)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
               Policy packs
             </p>
-            <p class="text-[var(--ck-muted)] text-sm mt-4 mb-4">
+            <p class="text-[var(--muted-foreground)] text-sm mt-4 mb-4">
               <span class="rounded-full p-2 text-xs bg-red-500/15 text-red-300 border border-red-500/15 mr-1 font-bold uppercase">
                 {@block_count} rules
               </span>
@@ -104,10 +104,12 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                     >
                       <span id={label_id}>{pack_label(name)}</span>
                       <span class="flex items-center gap-2">
-                        <span class="text-xs text-[var(--ck-muted)]">{length(rules)} rules</span>
+                        <span class="text-xs text-[var(--muted-foreground)]">
+                          {length(rules)} rules
+                        </span>
                         <svg
                           aria-hidden="true"
-                          class={"w-4 h-4 text-[var(--ck-muted)] transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
+                          class={"w-4 h-4 text-[var(--muted-foreground)] transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -124,12 +126,12 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                   </h3>
                   <%= if open? do %>
                     <div id={panel_id} role="region" aria-labelledby={label_id} class="px-4 pb-4">
-                      <p class="text-[var(--ck-muted)] text-sm">{pack_description(name)}</p>
+                      <p class="text-[var(--muted-foreground)] text-sm">{pack_description(name)}</p>
                       <div class="flex flex-wrap gap-2 mt-3">
                         <%= for rule <- rules do %>
                           <span
                             title={rule.action <> ", " <> rule.category}
-                            class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{rule_tag_class(rule.action)}"}
+                            class={"border border-[var(--border)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{rule_tag_class(rule.action)}"}
                           >
                             {rule_name(rule.id)}
                           </span>
@@ -144,12 +146,12 @@ defmodule ControlKeelWeb.PolicyStudioLive do
         </div>
 
         <div>
-          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <div class="border border-[var(--border)] bg-[var(--card)] rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
               Workspace tool policies
             </p>
             <%= if @tool_policies == [] do %>
-              <p class="text-[var(--ck-muted)]">
+              <p class="text-[var(--muted-foreground)]">
                 All workspaces inherit global tool access. Set a workspace policy with <code>controlkeel workspace tool-policy set</code>.
               </p>
             <% else %>
@@ -158,13 +160,13 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                   <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
                     <div class="flex items-center justify-between gap-4">
                       <h3>{ws.name}</h3>
-                      <span class={"border border-[var(--ck-stroke)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{tool_policy_pill_class(policy.mode)}"}>
+                      <span class={"border border-[var(--border)] rounded-full px-3 py-[0.45rem] text-[0.8rem] #{tool_policy_pill_class(policy.mode)}"}>
                         {policy.mode}
                       </span>
                     </div>
                     <% tools = WorkspaceToolPolicy.decode_tools(policy) %>
                     <%= if tools != [] do %>
-                      <p class="text-[var(--ck-muted)] mt-1">
+                      <p class="text-[var(--muted-foreground)] mt-1">
                         Tools: {Enum.join(tools, ", ")}
                       </p>
                     <% end %>

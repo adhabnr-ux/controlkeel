@@ -109,11 +109,11 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
     >
       <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
             {@workspace.name}
           </p>
           <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Webhooks</h1>
-          <p class="text-[var(--ck-muted)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
+          <p class="text-[var(--muted-foreground)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
             Subscribe external systems to ControlKeel events. Each webhook gets a server-generated secret used to sign payloads.
           </p>
         </div>
@@ -121,7 +121,7 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
 
       <%= if @new_secret do %>
         <div
-          class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6"
+          class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6"
           id="new-secret-banner"
           style="border-color: rgba(190, 242, 100, 0.4);"
         >
@@ -136,7 +136,7 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
         </div>
       <% end %>
 
-      <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+      <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
         <h2>Create webhook</h2>
         <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
           <div>
@@ -172,13 +172,13 @@ defmodule ControlKeelWeb.WorkspaceWebhooksLive do
             </div>
           </div>
           <%= if @create_error do %>
-            <p class="text-[var(--ck-muted)]">{@create_error}</p>
+            <p class="text-[var(--muted-foreground)]">{@create_error}</p>
           <% end %>
           <button type="submit" class="self-start">Create webhook</button>
         </.form>
       </div>
 
-      <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+      <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
         <h2>Configured webhooks</h2>
         <%= if @webhooks == [] do %>
           <p class="max-w-[48rem]">No webhooks configured yet.</p>

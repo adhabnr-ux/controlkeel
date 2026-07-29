@@ -214,10 +214,10 @@ defmodule ControlKeelWeb.MissionControlLive do
         </div>
       <% end %>
       <div class="space-y-1 mb-12">
-        <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+        <h2 class="text-2xl font-semibold text-[var(--primary)] leading-6 tracking-wide uppercase">
           {@session.title}
         </h2>
-        <p class="text-[var(--ck-muted)]">
+        <p class="text-[var(--muted-foreground)]">
           {@session.objective}
         </p>
       </div>
@@ -797,7 +797,7 @@ defmodule ControlKeelWeb.MissionControlLive do
 
       <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6">
         <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/5">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
             Recent transcript
           </p>
           <div class="flex flex-wrap gap-2">
@@ -1210,27 +1210,27 @@ defmodule ControlKeelWeb.MissionControlLive do
 
   defp task_status_pill_class("verified"),
     do:
-      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp task_status_pill_class("done"),
     do:
-      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
 
   defp task_status_pill_class(_status),
     do:
-      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp obs_health_pill_class("red"),
     do:
-      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
 
   defp obs_health_pill_class("yellow"),
     do:
-      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
 
   defp obs_health_pill_class(_status),
     do:
-      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp done_unverified?(%{status: "done"}), do: true
   defp done_unverified?(_task), do: false
