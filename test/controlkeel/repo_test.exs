@@ -100,8 +100,11 @@ defmodule ControlKeel.RepoTest do
 
       on_exit(fn ->
         case prev do
-          nil -> Application.delete_env(:controlkeel, ControlKeel.Repo.Local)
-          config -> Application.put_env(:controlkeel, ControlKeel.Repo.Local, config, persistent: true)
+          nil ->
+            Application.delete_env(:controlkeel, ControlKeel.Repo.Local)
+
+          config ->
+            Application.put_env(:controlkeel, ControlKeel.Repo.Local, config, persistent: true)
         end
       end)
 

@@ -72,45 +72,76 @@ defmodule ControlKeelWeb.ReviewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="ck-shell ck-shell-tight">
+    <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6">
       <%= if @review do %>
-        <div class="ck-section-header">
+        <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
           <div>
-            <p class="ck-kicker">Browser Review</p>
-            <h1 class="ck-section-title">{@review.title}</h1>
-            <p class="ck-lead ck-lead-tight">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Browser Review
+            </p>
+            <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">{@review.title}</h1>
+            <p class="text-[var(--ck-muted)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
               Review type: {String.capitalize(@review.review_type)}. Task: {if @review.task,
                 do: @review.task.title,
                 else: "session-level submission"}.
             </p>
           </div>
-          <a class="ck-link" href={~p"/missions/#{@review.session_id}"}>Open mission</a>
+          <a
+            class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+            href={~p"/missions/#{@review.session_id}"}
+          >
+            Open mission
+          </a>
         </div>
 
-        <div class="ck-stat-grid">
-          <div class="ck-card ck-stat-card" id="review-status-card">
-            <p class="ck-mini-label">Status</p>
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
+          <div
+            class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+            id="review-status-card"
+          >
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Status
+            </p>
             <strong>{String.capitalize(@review.status)}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Phase</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Phase
+            </p>
             <strong>{review_phase(@review)}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Submitted by</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Submitted by
+            </p>
             <strong>{@review.submitted_by || "agent"}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Shareable URL</p>
-            <a class="ck-link" href={@review_url}>{@review_url}</a>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Shareable URL
+            </p>
+            <a
+              class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+              href={@review_url}
+            >
+              {@review_url}
+            </a>
           </div>
         </div>
 
-        <div class="ck-grid ck-grid-dashboard" style="margin-top: 1rem;">
+        <div
+          class="grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)] gap-6 max-[900px]:grid-cols-1 mt-6"
+          style="margin-top: 1rem;"
+        >
           <div class="space-y-4">
-            <article class="ck-card" id="review-submission-body">
-              <p class="ck-mini-label">Submission</p>
-              <pre class="ck-code-block whitespace-pre-wrap">{@review.submission_body}</pre>
+            <article
+              class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              id="review-submission-body"
+            >
+              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                Submission
+              </p>
+              <pre class="m-0 p-4 border border-[var(--ck-stroke)] rounded-xl bg-white/[0.03] text-[var(--ck-sand)] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{@review.submission_body}</pre>
             </article>
 
             <article
@@ -118,28 +149,34 @@ defmodule ControlKeelWeb.ReviewLive do
                 present_plan_context?(@review, "alignment_context") or
                   present_plan_context?(@review, "consulted_roles")
               }
-              class="ck-card"
+              class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-alignment-card"
             >
-              <div class="ck-finding-head">
+              <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="ck-mini-label">Alignment context</p>
+                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                    Alignment context
+                  </p>
                   <h2>Human context gathered before execution</h2>
                 </div>
               </div>
               <div class="mt-4 space-y-4">
                 <div :if={present_plan_context?(@review, "alignment_context")}>
-                  <p class="ck-mini-label">Context that shaped the plan</p>
+                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                    Context that shaped the plan
+                  </p>
                   <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700">
                     <li :for={entry <- plan_context(@review, "alignment_context")}>{entry}</li>
                   </ul>
                 </div>
                 <div :if={present_plan_context?(@review, "consulted_roles")}>
-                  <p class="ck-mini-label">Roles consulted</p>
+                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                    Roles consulted
+                  </p>
                   <div class="flex flex-wrap gap-2">
                     <span
                       :for={role <- plan_context(@review, "consulted_roles")}
-                      class="ck-pill ck-pill-neutral"
+                      class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
                     >
                       {role}
                     </span>
@@ -150,18 +187,22 @@ defmodule ControlKeelWeb.ReviewLive do
 
             <article
               :if={present_semantic_boundaries?(@review)}
-              class="ck-card"
+              class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-semantic-boundaries-card"
             >
-              <div class="ck-finding-head">
+              <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="ck-mini-label">Semantic boundaries</p>
+                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                    Semantic boundaries
+                  </p>
                   <h2>Agent execution guardrails</h2>
                 </div>
               </div>
               <div class="mt-4 space-y-4">
                 <div :for={boundary <- semantic_boundary_sections(@review)}>
-                  <p class="ck-mini-label">{boundary.label}</p>
+                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                    {boundary.label}
+                  </p>
                   <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700">
                     <li :for={entry <- boundary.entries}>{entry}</li>
                   </ul>
@@ -169,21 +210,29 @@ defmodule ControlKeelWeb.ReviewLive do
               </div>
             </article>
 
-            <article :if={@review.previous_review} class="ck-card" id="review-diff-card">
-              <div class="ck-finding-head">
+            <article
+              :if={@review.previous_review}
+              class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              id="review-diff-card"
+            >
+              <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="ck-mini-label">Revision diff</p>
+                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                    Revision diff
+                  </p>
                   <h2>Compared with review #{@review.previous_review_id}</h2>
                 </div>
-                <span class="ck-pill ck-pill-neutral">
+                <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
                   Previous: {String.capitalize(@review.previous_review.status)}
                 </span>
               </div>
               <div class="mt-4 space-y-3">
                 <%= for chunk <- @diff_chunks do %>
                   <div class={diff_chunk_class(chunk.kind)}>
-                    <p class="ck-mini-label">{diff_chunk_label(chunk.kind)}</p>
-                    <pre class="ck-code-block whitespace-pre-wrap">{chunk.text}</pre>
+                    <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                      {diff_chunk_label(chunk.kind)}
+                    </p>
+                    <pre class="m-0 p-4 border border-[var(--ck-stroke)] rounded-xl bg-white/[0.03] text-[var(--ck-sand)] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{chunk.text}</pre>
                   </div>
                 <% end %>
               </div>
@@ -191,10 +240,15 @@ defmodule ControlKeelWeb.ReviewLive do
           </div>
 
           <div class="space-y-4">
-            <article class="ck-card" id="review-response-card">
-              <div class="ck-finding-head">
+            <article
+              class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              id="review-response-card"
+            >
+              <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="ck-mini-label">Respond</p>
+                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                    Respond
+                  </p>
                   <h2>Approve, deny, or annotate</h2>
                 </div>
                 <span class={review_status_pill_class(@review.status)}>
@@ -226,7 +280,7 @@ defmodule ControlKeelWeb.ReviewLive do
                   />
 
                   <button
-                    class="ck-button ck-button-primary"
+                    class="inline-flex items-center justify-center gap-[0.4rem] px-[1.25rem] py-[0.95rem] rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-[transform,box-shadow] duration-[160ms] ease-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
                     id="review-response-submit"
                     type="submit"
                   >
@@ -236,26 +290,36 @@ defmodule ControlKeelWeb.ReviewLive do
               </.form>
             </article>
 
-            <article class="ck-card" id="review-audit-card">
-              <p class="ck-mini-label">Audit trail</p>
-              <div class="ck-finding-list">
-                <article class="ck-finding-item">
-                  <div class="ck-finding-head">
+            <article
+              class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              id="review-audit-card"
+            >
+              <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                Audit trail
+              </p>
+              <div class="grid gap-4 m-0 p-0 list-none">
+                <article class="grid gap-[0.55rem] border border-white/[0.07] rounded-[1.1rem] p-4 bg-white/[0.03]">
+                  <div class="flex items-center justify-between gap-4">
                     <h3>Submitted</h3>
-                    <span class="ck-pill ck-pill-neutral">{format_dt(@review.inserted_at)}</span>
+                    <span class="border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                      {format_dt(@review.inserted_at)}
+                    </span>
                   </div>
-                  <p class="ck-note">By {@review.submitted_by || "agent"}</p>
+                  <p class="text-[var(--ck-muted)]">By {@review.submitted_by || "agent"}</p>
                 </article>
-                <article :if={@review.responded_at} class="ck-finding-item">
-                  <div class="ck-finding-head">
+                <article
+                  :if={@review.responded_at}
+                  class="grid gap-[0.55rem] border border-white/[0.07] rounded-[1.1rem] p-4 bg-white/[0.03]"
+                >
+                  <div class="flex items-center justify-between gap-4">
                     <h3>Responded</h3>
                     <span class={review_status_pill_class(@review.status)}>
                       {String.capitalize(@review.status)}
                     </span>
                   </div>
-                  <p class="ck-note">At {format_dt(@review.responded_at)}</p>
-                  <p class="ck-note">By {@review.reviewed_by || "human"}</p>
-                  <p :if={present?(@review.feedback_notes)} class="ck-note">
+                  <p class="text-[var(--ck-muted)]">At {format_dt(@review.responded_at)}</p>
+                  <p class="text-[var(--ck-muted)]">By {@review.reviewed_by || "human"}</p>
+                  <p :if={present?(@review.feedback_notes)} class="text-[var(--ck-muted)]">
                     {@review.feedback_notes}
                   </p>
                 </article>
@@ -264,9 +328,14 @@ defmodule ControlKeelWeb.ReviewLive do
           </div>
         </div>
       <% else %>
-        <div class="ck-card" id="review-missing">
-          <p class="ck-mini-label">Browser Review</p>
-          <h1 class="ck-section-title">Review not found</h1>
+        <div
+          class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+          id="review-missing"
+        >
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Browser Review
+          </p>
+          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Review not found</h1>
         </div>
       <% end %>
     </section>
@@ -337,10 +406,21 @@ defmodule ControlKeelWeb.ReviewLive do
   defp diff_chunk_label(:removed), do: "Removed"
   defp diff_chunk_label(:unchanged), do: "Unchanged"
 
-  defp review_status_pill_class("approved"), do: "ck-pill ck-pill-low"
-  defp review_status_pill_class("denied"), do: "ck-pill ck-pill-high"
-  defp review_status_pill_class("superseded"), do: "ck-pill ck-pill-medium"
-  defp review_status_pill_class(_status), do: "ck-pill ck-pill-neutral"
+  defp review_status_pill_class("approved"),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+
+  defp review_status_pill_class("denied"),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+
+  defp review_status_pill_class("superseded"),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+
+  defp review_status_pill_class(_status),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp review_phase(review) do
     review

@@ -223,9 +223,17 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
     """
   end
 
-  defp health_pill_class("red"), do: "ck-pill ck-pill-critical"
-  defp health_pill_class("yellow"), do: "ck-pill ck-pill-warning"
-  defp health_pill_class(_), do: "ck-pill ck-pill-low"
+  defp health_pill_class("red"),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+
+  defp health_pill_class("yellow"),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+
+  defp health_pill_class(_),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp problem_key_id(key) do
     key

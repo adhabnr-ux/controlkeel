@@ -1208,13 +1208,29 @@ defmodule ControlKeelWeb.MissionControlLive do
 
   defp task_status_label(_task), do: "unknown"
 
-  defp task_status_pill_class("verified"), do: "ck-pill ck-pill-low"
-  defp task_status_pill_class("done"), do: "ck-pill ck-pill-warning"
-  defp task_status_pill_class(_status), do: "ck-pill ck-pill-neutral"
+  defp task_status_pill_class("verified"),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
-  defp obs_health_pill_class("red"), do: "ck-pill ck-pill-critical"
-  defp obs_health_pill_class("yellow"), do: "ck-pill ck-pill-warning"
-  defp obs_health_pill_class(_status), do: "ck-pill ck-pill-low"
+  defp task_status_pill_class("done"),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+
+  defp task_status_pill_class(_status),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+
+  defp obs_health_pill_class("red"),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+
+  defp obs_health_pill_class("yellow"),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+
+  defp obs_health_pill_class(_status),
+    do:
+      "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp done_unverified?(%{status: "done"}), do: true
   defp done_unverified?(_task), do: false

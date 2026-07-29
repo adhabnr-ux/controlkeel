@@ -1,18 +1,22 @@
-<section class="ck-shell ck-shell-tight">
-  <div class="ck-section-header">
+<section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6">
+  <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
     <div>
-      <p class="ck-kicker">Getting started</p>
-      <h1 class="ck-section-title">Install to first finding in five minutes</h1>
-      <p class="ck-lead ck-lead-tight">
+      <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        Getting started
+      </p>
+      <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">
+        Install to first finding in five minutes
+      </h1>
+      <p class="text-[var(--ck-muted)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
         ControlKeel turns project rules, domain knowledge, and security boundaries into findings, proofs, approval gates, budgets, evals, and durable context across supported hosts. Agent output is cheap; reviewability, release safety, and cost control are not. ControlKeel governs that loop from the first attach.
       </p>
     </div>
   </div>
 </section>
 
-<section class="ck-shell ck-shell-tight" style="padding-top:0">
+<section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-0 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-0">
   <div class="space-y-4">
-    <p class="ck-mini-label">Install</p>
+    <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">Install</p>
     <%= for channel <- @install_channels do %>
       <article
         class="rounded-3xl border border-white/10 bg-zinc-950/70 p-5 transition hover:border-lime-300/40 hover:bg-zinc-950/90"
@@ -40,12 +44,16 @@
   <.available_where agent_integrations={@agent_integrations} />
 </section>
 
-<section class="ck-shell ck-shell-tight" style="padding-top:0">
-  <p class="ck-mini-label">Quick start</p>
-  <div class="ck-grid mt-4">
-    <div class="ck-card">
-      <p class="ck-mini-label">Packaged binary</p>
-      <ol class="ck-mini-list mt-4">
+<section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-0 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-0">
+  <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+    Quick start
+  </p>
+  <div class="grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)] gap-6 max-[900px]:grid-cols-1 mt-4">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        Packaged binary
+      </p>
+      <ol class="grid gap-4 m-0 p-0 list-none mt-4">
         <li class="text-sm text-zinc-400">
           1. Run <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">controlkeel</code>
           to boot the local web app.
@@ -74,9 +82,11 @@
       </ol>
     </div>
 
-    <div class="ck-card">
-      <p class="ck-mini-label">Source setup</p>
-      <ol class="ck-mini-list mt-4">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        Source setup
+      </p>
+      <ol class="grid gap-4 m-0 p-0 list-none mt-4">
         <li class="text-sm text-zinc-400">
           1. Run <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">mix setup</code>
           once.
@@ -103,17 +113,21 @@
       </ol>
     </div>
   </div>
-  <p class="ck-note mt-4 text-sm">
+  <p class="text-[var(--ck-muted)] mt-4 text-sm">
     Attach defaults to project scope and writes inside the governed repository. User scope is available only for hosts that advertise it. Local stdio MCP exposes the full local tool set; hosted MCP is a separate, narrower OAuth-scoped surface.
   </p>
 </section>
 
-<section class="ck-shell ck-shell-tight" style="padding-top:0">
-  <p class="ck-mini-label">How it governs</p>
+<section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-0 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-0">
+  <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+    How it governs
+  </p>
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
-    <div class="ck-card">
-      <p class="ck-mini-label">Governed delivery lifecycle</p>
-      <ul class="ck-mini-list mt-3">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        Governed delivery lifecycle
+      </p>
+      <ul class="grid gap-4 m-0 p-0 list-none mt-3">
         <li class="text-sm text-zinc-400">
           Intent intake and execution briefs at
           <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">/missions/start</code>
@@ -127,9 +141,11 @@
       </ul>
     </div>
 
-    <div class="ck-card">
-      <p class="ck-mini-label">Proof console loop</p>
-      <ul class="ck-mini-list mt-3">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        Proof console loop
+      </p>
+      <ul class="grid gap-4 m-0 p-0 list-none mt-3">
         <li class="text-sm text-zinc-400">
           Mission Control for active task state, risk, and approvals
         </li>
@@ -145,16 +161,20 @@
       </ul>
     </div>
 
-    <div class="ck-card">
-      <p class="ck-mini-label">Autonomy and findings</p>
-      <p class="ck-note mt-3 text-sm">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        Autonomy and findings
+      </p>
+      <p class="text-[var(--ck-muted)] mt-3 text-sm">
         Severity maps to expected human gates; findings stay readable in plain language. LLM advisory is optional and needs a provider. See <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">docs/autonomy-and-findings.md</code>.
       </p>
     </div>
 
-    <div class="ck-card">
-      <p class="ck-mini-label">Operating modes</p>
-      <ul class="ck-mini-list mt-3">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        Operating modes
+      </p>
+      <ul class="grid gap-4 m-0 p-0 list-none mt-3">
         <li class="text-sm text-zinc-400">
           Local mode ships with SQLite, Ollama, or heuristic fallback.
         </li>
@@ -167,16 +187,20 @@
       </ul>
     </div>
 
-    <div class="ck-card">
-      <p class="ck-mini-label">Occupation-first onboarding</p>
-      <p class="ck-note mt-3 text-sm">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        Occupation-first onboarding
+      </p>
+      <p class="text-[var(--ck-muted)] mt-3 text-sm">
         Start from what best describes your work. ControlKeel picks the domain pack, interview language, and governance posture behind the scenes, so non-experts don't need to choose a framework first.
       </p>
     </div>
 
-    <div class="ck-card">
-      <p class="ck-mini-label">Project rescue</p>
-      <p class="ck-note mt-3 text-sm">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        Project rescue
+      </p>
+      <p class="text-[var(--ck-muted)] mt-3 text-sm">
         If another tool already touched the repo, bootstrap it, run <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">controlkeel watch</code>, and use findings, proofs, and
         <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">ck_validate</code>
         to recover. Add governed proxy only when the tool points at compatible OpenAI or Anthropic endpoints.
@@ -185,11 +209,13 @@
   </div>
 </section>
 
-<section class="ck-shell ck-shell-tight" style="padding-top:0">
-  <div class="ck-grid">
-    <div class="ck-card">
-      <p class="ck-mini-label">Other supported agents</p>
-      <ul class="ck-mini-list mt-3">
+<section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-0 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-0">
+  <div class="grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)] gap-6 max-[900px]:grid-cols-1">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        Other supported agents
+      </p>
+      <ul class="grid gap-4 m-0 p-0 list-none mt-3">
         <li class="text-sm text-zinc-400">
           <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">
             controlkeel attach codex-cli
@@ -210,14 +236,19 @@
           OpenCode is the recommended quick start; Cursor, Windsurf, Kiro, Amp, Gemini CLI, Continue, and Aider use the same portable bundle path.
         </li>
       </ul>
-      <a href="https://github.com/aryaminus/controlkeel" class="ck-link mt-4 inline-block">
+      <a
+        href="https://github.com/aryaminus/controlkeel"
+        class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold mt-4 inline-block"
+      >
         Learn more on GitHub
       </a>
     </div>
 
-    <div class="ck-card">
-      <p class="ck-mini-label">What it is not</p>
-      <ul class="ck-mini-list mt-3">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        What it is not
+      </p>
+      <ul class="grid gap-4 m-0 p-0 list-none mt-3">
         <li class="text-sm text-zinc-400">Not another IDE or coding model</li>
         <li class="text-sm text-zinc-400">Not a prompt marketplace or generic memory API</li>
         <li class="text-sm text-zinc-400">Not passive monitoring or post-hoc review only</li>

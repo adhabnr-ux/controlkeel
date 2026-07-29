@@ -244,15 +244,20 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   @impl true
   def render(%{live_action: :show, state: :show} = assigns) do
     ~H"""
-    <section id="cloud-project-page" class="ck-shell ck-shell-tight">
-      <div class="ck-section-header">
+    <section
+      id="cloud-project-page"
+      class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6"
+    >
+      <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="ck-kicker">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
             <.link navigate={~p"/cloud/projects"}>Cloud projects</.link>
             / <code>{@key.workspace_id}</code>
           </p>
-          <h1 class="ck-section-title">{@key.name || @key.workspace_id}</h1>
-          <p class="ck-lead ck-lead-tight">
+          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">
+            {@key.name || @key.workspace_id}
+          </h1>
+          <p class="text-[var(--ck-muted)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
             <span :if={@key.mission_workspace}>
               Project: <strong>{@key.mission_workspace.slug}</strong> ·
             </span>
@@ -265,26 +270,26 @@ defmodule ControlKeelWeb.CloudProjectsLive do
         </div>
       </div>
 
-      <div class="ck-card">
+      <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
         <h2>Event counts</h2>
-        <ul class="ck-stat-grid">
+        <ul class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
           <%= for {kind, n} <- Enum.sort_by(@counts, fn {_k, v} -> -v end) do %>
             <li><strong>{n}</strong> <span>{kind}</span></li>
           <% end %>
         </ul>
       </div>
 
-      <div class="ck-card">
+      <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
         <h2>Cloud run packages</h2>
         <%= cond do %>
           <% is_nil(@key.mission_workspace_id) -> %>
-            <p class="ck-note">
+            <p class="text-[var(--ck-muted)]">
               This enrolled workspace is not yet linked to a project. Issue a scoped invite from the org to link it.
             </p>
           <% @packages == [] -> %>
-            <p class="ck-note">No cloud runs handed off yet.</p>
+            <p class="text-[var(--ck-muted)]">No cloud runs handed off yet.</p>
           <% true -> %>
-            <table class="ck-table">
+            <table>
               <thead>
                 <tr>
                   <th>Package</th>
@@ -302,7 +307,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
                     <td><code>{pkg.external_id}</code></td>
                     <td><code>{pkg.runtime_target}</code></td>
                     <td>
-                      <span class={"ck-badge ck-badge-#{package_status_class(pkg.status)}"}>
+                      <span>
                         {pkg.status}
                       </span>
                     </td>
@@ -317,12 +322,12 @@ defmodule ControlKeelWeb.CloudProjectsLive do
         <% end %>
       </div>
 
-      <div class="ck-card">
+      <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
         <h2>Recent events</h2>
         <%= if @events == [] do %>
-          <p class="ck-note">No events received yet for this workspace.</p>
+          <p class="text-[var(--ck-muted)]">No events received yet for this workspace.</p>
         <% else %>
-          <table class="ck-table">
+          <table>
             <thead>
               <tr>
                 <th>Received</th>
@@ -350,9 +355,9 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   def render(%{live_action: :show, state: :forbidden} = assigns) do
     ~H"""
-    <section class="ck-shell ck-shell-tight">
-      <h1 class="ck-section-title">Not visible</h1>
-      <p class="ck-lead">
+    <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6">
+      <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Not visible</h1>
+      <p class="text-[var(--ck-muted)] max-w-[56rem] text-[1.05rem] leading-[1.7]">
         This workspace is enrolled under a different org. Sign in to that org's
         control plane to view its telemetry.
       </p>
@@ -362,9 +367,9 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   def render(%{live_action: :show, state: :not_found} = assigns) do
     ~H"""
-    <section class="ck-shell ck-shell-tight">
-      <h1 class="ck-section-title">Workspace not found</h1>
-      <p class="ck-lead">
+    <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6">
+      <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Workspace not found</h1>
+      <p class="text-[var(--ck-muted)] max-w-[56rem] text-[1.05rem] leading-[1.7]">
         No registration matches that workspace ID. The workspace may have been
         revoked, or it never enrolled with this control plane.
       </p>
@@ -374,12 +379,15 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   def render(assigns) do
     ~H"""
-    <section id="cloud-projects-page" class="ck-shell ck-shell-tight">
-      <div class="ck-section-header">
+    <section
+      id="cloud-projects-page"
+      class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6"
+    >
+      <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="ck-kicker">Cloud</p>
-          <h1 class="ck-section-title">Projects</h1>
-          <p class="ck-lead ck-lead-tight">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">Cloud</p>
+          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Projects</h1>
+          <p class="text-[var(--ck-muted)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
             Enrolled workspaces visible to your org. Each row is a laptop or
             project that ran <code>controlkeel cloud connect --enroll</code>
             against this control plane.
@@ -394,7 +402,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   defp render_body(%{state: :signed_out} = assigns) do
     ~H"""
-    <div class="ck-card">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
       <p>
         Sign in to see enrolled workspaces. <.link href={~p"/auth/login"}>Sign in</.link>.
       </p>
@@ -404,7 +412,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   defp render_body(%{state: :no_membership} = assigns) do
     ~H"""
-    <div class="ck-card">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
       <p>
         Your account is signed in but has no active org membership. Ask an org
         owner to invite you, then accept the invitation from <code>/invitations/&lt;token&gt;</code>.
@@ -415,7 +423,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   defp render_body(%{state: :empty} = assigns) do
     ~H"""
-    <div class="ck-card">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
       <p>
         No workspaces have enrolled with this org yet. Create one below, or from any project run:
       </p>
@@ -428,8 +436,8 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   defp render_body(%{state: :ready} = assigns) do
     ~H"""
     {render_create_workspace(assigns)}
-    <div class="ck-card">
-      <table class="ck-table">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <table>
         <thead>
           <tr>
             <th>Name</th>
@@ -470,9 +478,12 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
     ~H"""
     <%= if @can_create do %>
-      <div class="ck-card" id="create-workspace-section">
+      <div
+        class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        id="create-workspace-section"
+      >
         <%= if @show_create_form do %>
-          <h3 class="ck-section-subtitle">New workspace</h3>
+          <h3>New workspace</h3>
           <.form for={@create_form} phx-submit="create-workspace" class="flex flex-col gap-3">
             <div>
               <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
@@ -539,21 +550,20 @@ defmodule ControlKeelWeb.CloudProjectsLive do
               </div>
             </div>
             <%= if @create_error do %>
-              <p class="ck-note ck-note-danger">{@create_error}</p>
+              <p class="text-[var(--ck-muted)]">{@create_error}</p>
             <% end %>
             <div class="flex gap-2">
-              <button type="submit" class="ck-btn ck-btn-primary">Create workspace</button>
+              <button type="submit">Create workspace</button>
               <button
                 type="button"
                 phx-click="toggle-create-workspace"
-                class="ck-btn ck-btn-secondary"
               >
                 Cancel
               </button>
             </div>
           </.form>
         <% else %>
-          <button type="button" phx-click="toggle-create-workspace" class="ck-btn ck-btn-primary">
+          <button type="button" phx-click="toggle-create-workspace">
             + Create workspace
           </button>
         <% end %>
@@ -569,13 +579,6 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     do: slug
 
   defp project_label(_), do: "—"
-
-  defp package_status_class("completed"), do: "ok"
-  defp package_status_class("failed"), do: "error"
-  defp package_status_class("cancelled"), do: "muted"
-  defp package_status_class("in_progress"), do: "active"
-  defp package_status_class("dispatched"), do: "active"
-  defp package_status_class(_), do: "neutral"
 
   defp format_revision(%{branch: nil, commit_sha: nil}), do: "—"
 

@@ -70,51 +70,68 @@ defmodule ControlKeelWeb.DeploymentLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="ck-shell ck-shell-tight">
-      <div class="ck-section-header">
+    <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6">
+      <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="ck-kicker">Deployment</p>
-          <h1 class="ck-section-title">Deployment Advisor</h1>
-          <p class="ck-lead ck-lead-tight">
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Deployment
+          </p>
+          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Deployment Advisor</h1>
+          <p class="text-[var(--ck-muted)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
             Analyze your project stack, preview deployment files, and estimate hosting costs across major platforms.
           </p>
         </div>
-        <div class="ck-action-row">
-          <button phx-click="analyze" class="ck-btn ck-btn-primary">
+        <div class="flex items-center justify-between gap-4">
+          <button phx-click="analyze">
             Analyze Project
           </button>
-          <a href={~p"/"} class="ck-link">Back home</a>
+          <a
+            href={~p"/"}
+            class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+          >
+            Back home
+          </a>
         </div>
       </div>
 
       <%= if @analysis do %>
-        <div class="ck-stat-grid">
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Detected Stack</p>
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Detected Stack
+            </p>
             <strong class="text-lg">{String.capitalize(to_string(@analysis.stack))}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Monthly Cost Range</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Monthly Cost Range
+            </p>
             <strong>
               ${@analysis.monthly_cost_range.low} - ${@analysis.monthly_cost_range.high}
             </strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Compatible Platforms</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Compatible Platforms
+            </p>
             <strong>{length(@analysis.platforms)}</strong>
           </div>
-          <div class="ck-card ck-stat-card">
-            <p class="ck-mini-label">Files to Generate</p>
+          <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+              Files to Generate
+            </p>
             <strong>{length(@analysis.generators)}</strong>
           </div>
         </div>
 
-        <div class="ck-card">
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="ck-card-title">Recommended Platforms</h2>
+            <h2>Recommended Platforms</h2>
             <div class="flex gap-2 items-center">
-              <label class="ck-mini-label">Tier:</label>
-              <select phx-change="select_tier" class="ck-input text-sm" style="width:auto">
+              <label class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+                Tier:
+              </label>
+              <select phx-change="select_tier" class="text-sm" style="width:auto">
                 <option value="free" selected={@selected_tier == "free"}>Free</option>
                 <option value="hobby" selected={@selected_tier == "hobby"}>Hobby ($5-10/mo)</option>
                 <option value="standard_1x" selected={@selected_tier == "standard_1x"}>
@@ -128,14 +145,14 @@ defmodule ControlKeelWeb.DeploymentLive do
                 <input type="checkbox" checked={@needs_db} phx-click="toggle_db" class="rounded" />
                 Database
               </label>
-              <button phx-click="estimate_costs" class="ck-btn ck-btn-sm">
+              <button phx-click="estimate_costs">
                 Estimate Costs
               </button>
             </div>
           </div>
 
           <%= if @show_costs and @cost_estimates do %>
-            <div class="ck-table-wrap">
+            <div class="overflow-x-auto">
               <.table id="cost-estimates" rows={@cost_estimates}>
                 <:col :let={est} label="Platform">
                   <div>
@@ -162,10 +179,16 @@ defmodule ControlKeelWeb.DeploymentLive do
               </.table>
             </div>
           <% else %>
-            <div class="ck-table-wrap">
+            <div class="overflow-x-auto">
               <.table id="platform-list" rows={@analysis.platforms}>
                 <:col :let={p} label="Platform">
-                  <a href={p.url} target="_blank" class="ck-link">{p.name}</a>
+                  <a
+                    href={p.url}
+                    target="_blank"
+                    class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+                  >
+                    {p.name}
+                  </a>
                 </:col>
                 <:col :let={p} label="Tier">
                   {p.tier.name}
@@ -185,11 +208,11 @@ defmodule ControlKeelWeb.DeploymentLive do
           <% end %>
         </div>
 
-        <div class="ck-card">
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="ck-card-title">Generated Files (Preview)</h2>
+            <h2>Generated Files (Preview)</h2>
             <div class="flex gap-2">
-              <button phx-click="generate_files" class="ck-btn ck-btn-sm">
+              <button phx-click="generate_files">
                 Preview Files
               </button>
             </div>
@@ -223,7 +246,7 @@ defmodule ControlKeelWeb.DeploymentLive do
           <% end %>
         </div>
       <% else %>
-        <div class="ck-card">
+        <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
           <p class="text-gray-500">
             Click "Analyze Project" to detect your project stack and get deployment recommendations.
           </p>

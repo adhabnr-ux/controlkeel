@@ -8,31 +8,33 @@ defmodule ControlKeelWeb.FindingComponents do
 
   def autofix_panel(assigns) do
     ~H"""
-    <div class="ck-card ck-fix-panel">
-      <div class="ck-finding-head">
+    <div class="border border-[var(--ck-stroke)] bg-[var(--ck-panel)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
+      <div class="flex items-center justify-between gap-4">
         <div>
-          <p class="ck-mini-label">Guided fix</p>
+          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+            Guided fix
+          </p>
           <h3>{@finding.title}</h3>
         </div>
         <span class={[
-          "ck-pill",
-          @fix["supported"] && "ck-pill-low",
-          !@fix["supported"] && "ck-pill-medium"
+          "border border-[var(--ck-stroke)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem]",
+          @fix["supported"] && "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]",
+          !@fix["supported"] && "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
         ]}>
           {if @fix["supported"], do: "supported", else: "manual review"}
         </span>
       </div>
 
-      <p class="ck-note">{@fix["summary"]}</p>
+      <p class="text-[var(--ck-muted)]">{@fix["summary"]}</p>
 
-      <div class="ck-brief-grid">
+      <div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
         <div>
           <h3>Why</h3>
-          <p class="ck-note">{@fix["why"]}</p>
+          <p class="text-[var(--ck-muted)]">{@fix["why"]}</p>
         </div>
         <div>
           <h3>Requires human</h3>
-          <p class="ck-note">
+          <p class="text-[var(--ck-muted)]">
             {if @fix["requires_human"], do: "Yes", else: "No"}
           </p>
         </div>
@@ -40,7 +42,7 @@ defmodule ControlKeelWeb.FindingComponents do
 
       <div>
         <h3>Steps</h3>
-        <ul class="ck-mini-list">
+        <ul class="grid gap-4 m-0 p-0 list-none">
           <%= for step <- @fix["steps"] || [] do %>
             <li>{step}</li>
           <% end %>
@@ -49,25 +51,30 @@ defmodule ControlKeelWeb.FindingComponents do
 
       <div :if={@fix["example"]}>
         <h3>Example</h3>
-        <pre class="ck-code-block"><code>{@fix["example"]}</code></pre>
+        <pre class="m-0 p-4 border border-[var(--ck-stroke)] rounded-xl bg-white/[0.03] text-[var(--ck-sand)] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]"><code>{@fix["example"]}</code></pre>
       </div>
 
       <div :if={@fix["agent_prompt"]}>
         <h3>Agent prompt</h3>
-        <pre class="ck-code-block"><code>{@fix["agent_prompt"]}</code></pre>
+        <pre class="m-0 p-4 border border-[var(--ck-stroke)] rounded-xl bg-white/[0.03] text-[var(--ck-sand)] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]"><code>{@fix["agent_prompt"]}</code></pre>
       </div>
 
-      <div class="ck-action-row">
+      <div class="flex items-center justify-between gap-4">
         <button
           :if={@copy_event && @fix["agent_prompt"]}
           type="button"
-          class="ck-button-primary"
+          class="inline-flex items-center justify-center gap-[0.4rem] px-[1.25rem] py-[0.95rem] rounded-full bg-[var(--ck-lime)] text-[#11170d] font-bold transition-[transform,box-shadow] duration-[160ms] ease-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
           phx-click={@copy_event}
           phx-value-id={@finding.id}
         >
           Copy fix prompt
         </button>
-        <button :if={@close_event} type="button" class="ck-link" phx-click={@close_event}>
+        <button
+          :if={@close_event}
+          type="button"
+          class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold"
+          phx-click={@close_event}
+        >
           Close
         </button>
       </div>
