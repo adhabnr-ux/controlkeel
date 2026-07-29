@@ -250,14 +250,14 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     >
       <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             <.link navigate={~p"/cloud/projects"}>Cloud projects</.link>
             / <code>{@key.workspace_id}</code>
           </p>
           <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">
             {@key.name || @key.workspace_id}
           </h1>
-          <p class="text-[var(--muted-foreground)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
+          <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
             <span :if={@key.mission_workspace}>
               Project: <strong>{@key.mission_workspace.slug}</strong> ·
             </span>
@@ -270,7 +270,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
         </div>
       </div>
 
-      <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
         <h2>Event counts</h2>
         <ul class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
           <%= for {kind, n} <- Enum.sort_by(@counts, fn {_k, v} -> -v end) do %>
@@ -279,15 +279,15 @@ defmodule ControlKeelWeb.CloudProjectsLive do
         </ul>
       </div>
 
-      <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
         <h2>Cloud run packages</h2>
         <%= cond do %>
           <% is_nil(@key.mission_workspace_id) -> %>
-            <p class="text-[var(--muted-foreground)]">
+            <p class="text-muted-foreground">
               This enrolled workspace is not yet linked to a project. Issue a scoped invite from the org to link it.
             </p>
           <% @packages == [] -> %>
-            <p class="text-[var(--muted-foreground)]">No cloud runs handed off yet.</p>
+            <p class="text-muted-foreground">No cloud runs handed off yet.</p>
           <% true -> %>
             <table>
               <thead>
@@ -322,10 +322,10 @@ defmodule ControlKeelWeb.CloudProjectsLive do
         <% end %>
       </div>
 
-      <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
         <h2>Recent events</h2>
         <%= if @events == [] do %>
-          <p class="text-[var(--muted-foreground)]">No events received yet for this workspace.</p>
+          <p class="text-muted-foreground">No events received yet for this workspace.</p>
         <% else %>
           <table>
             <thead>
@@ -357,7 +357,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     ~H"""
     <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6">
       <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Not visible</h1>
-      <p class="text-[var(--muted-foreground)] max-w-[56rem] text-[1.05rem] leading-[1.7]">
+      <p class="text-muted-foreground max-w-[56rem] text-[1.05rem] leading-[1.7]">
         This workspace is enrolled under a different org. Sign in to that org's
         control plane to view its telemetry.
       </p>
@@ -369,7 +369,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     ~H"""
     <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6">
       <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Workspace not found</h1>
-      <p class="text-[var(--muted-foreground)] max-w-[56rem] text-[1.05rem] leading-[1.7]">
+      <p class="text-muted-foreground max-w-[56rem] text-[1.05rem] leading-[1.7]">
         No registration matches that workspace ID. The workspace may have been
         revoked, or it never enrolled with this control plane.
       </p>
@@ -385,9 +385,9 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     >
       <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">Cloud</p>
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">Cloud</p>
           <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Projects</h1>
-          <p class="text-[var(--muted-foreground)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
+          <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
             Enrolled workspaces visible to your org. Each row is a laptop or
             project that ran <code>controlkeel cloud connect --enroll</code>
             against this control plane.
@@ -402,7 +402,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   defp render_body(%{state: :signed_out} = assigns) do
     ~H"""
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
       <p>
         Sign in to see enrolled workspaces. <.link href={~p"/auth/login"}>Sign in</.link>.
       </p>
@@ -412,7 +412,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   defp render_body(%{state: :no_membership} = assigns) do
     ~H"""
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
       <p>
         Your account is signed in but has no active org membership. Ask an org
         owner to invite you, then accept the invitation from <code>/invitations/&lt;token&gt;</code>.
@@ -423,7 +423,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
 
   defp render_body(%{state: :empty} = assigns) do
     ~H"""
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
       <p>
         No workspaces have enrolled with this org yet. Create one below, or from any project run:
       </p>
@@ -436,7 +436,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
   defp render_body(%{state: :ready} = assigns) do
     ~H"""
     {render_create_workspace(assigns)}
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
       <table>
         <thead>
           <tr>
@@ -479,7 +479,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
     ~H"""
     <%= if @can_create do %>
       <div
-        class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
         id="create-workspace-section"
       >
         <%= if @show_create_form do %>
@@ -550,7 +550,7 @@ defmodule ControlKeelWeb.CloudProjectsLive do
               </div>
             </div>
             <%= if @create_error do %>
-              <p class="text-[var(--muted-foreground)]">{@create_error}</p>
+              <p class="text-muted-foreground">{@create_error}</p>
             <% end %>
             <div class="flex gap-2">
               <button type="submit">Create workspace</button>

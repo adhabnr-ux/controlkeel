@@ -23,19 +23,19 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
     ~H"""
     <section
       id="observability-problem-list"
-      class="border border-[var(--border)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-xl font-semibold text-[var(--primary)]">Problems</h1>
-          <p class="text-[var(--muted-foreground)] text-sm mt-1">
+          <h1 class="text-xl font-semibold text-primary">Problems</h1>
+          <p class="text-muted-foreground text-sm mt-1">
             Recurring problem patterns across sessions, grouped by category and rule ID with health indicators and remediation guidance.
           </p>
         </div>
 
         <div class="flex items-center gap-3 shrink-0">
           <span class={health_pill_class(@problems.health)}>{@problems.health}</span>
-          <span class="inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {@problems.count} {if @problems.count == 1, do: "group", else: "groups"}
           </span>
         </div>
@@ -46,11 +46,11 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
       <div class="space-y-8">
         <%= if @problems.recommendations != [] do %>
           <div class="space-y-2">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Recommendations
             </p>
             <%= for recommendation <- @problems.recommendations do %>
-              <p class="text-[var(--foreground)] text-sm leading-relaxed">
+              <p class="text-foreground text-sm leading-relaxed">
                 {recommendation}
               </p>
             <% end %>
@@ -58,16 +58,16 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
         <% end %>
 
         <%= if @problems.problems == [] do %>
-          <p class="text-[var(--muted-foreground)] text-sm">No active problems detected.</p>
+          <p class="text-muted-foreground text-sm">No active problems detected.</p>
         <% else %>
           <%= for {problem, idx} <- Enum.with_index(@problems.problems) do %>
             <div
               id={"observability-problem-#{problem_key_id(problem.key)}"}
-              class={["space-y-8", if(idx > 0, do: "pt-8 border-t border-[var(--border)]")]}
+              class={["space-y-8", if(idx > 0, do: "pt-8 border-t border-border")]}
             >
               <div class="flex items-start justify-between gap-4">
                 <div class="space-y-1 min-w-0">
-                  <p class="text-xl font-semibold text-[var(--foreground)]">
+                  <p class="text-xl font-semibold text-foreground">
                     {problem.title}
                   </p>
                 </div>
@@ -77,50 +77,50 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
               <div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Category
                     </p>
-                    <p class="text-[var(--foreground)] mt-1 font-medium">{problem.category}</p>
+                    <p class="text-foreground mt-1 font-medium">{problem.category}</p>
                   </div>
                   <div>
-                    <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Rule ID
                     </p>
-                    <p class="text-[var(--foreground)] mt-1 font-medium">{problem.rule_id}</p>
+                    <p class="text-foreground mt-1 font-medium">{problem.rule_id}</p>
                   </div>
                   <div>
-                    <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Severity
                     </p>
-                    <p class="text-[var(--foreground)] mt-1 font-medium">{problem.severity}</p>
+                    <p class="text-foreground mt-1 font-medium">{problem.severity}</p>
                   </div>
                   <div>
-                    <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Count
                     </p>
-                    <p class="text-[var(--foreground)] mt-1 font-medium">{problem.count}</p>
+                    <p class="text-foreground mt-1 font-medium">{problem.count}</p>
                   </div>
                   <div>
-                    <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Sessions
                     </p>
-                    <p class="text-[var(--foreground)] mt-1 font-medium">
+                    <p class="text-foreground mt-1 font-medium">
                       {problem.affected_session_count}
                     </p>
                   </div>
                   <div class="col-span-2 md:col-span-3">
-                    <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Last seen
                     </p>
-                    <p class="text-[var(--foreground)] mt-1 font-medium">
+                    <p class="text-foreground mt-1 font-medium">
                       {format_datetime(problem.last_seen)}
                     </p>
                   </div>
                   <div class="col-span-2 md:col-span-4 mt-2">
-                    <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Recommendation
                     </p>
-                    <p class="text-[var(--foreground)] mt-1.5 leading-relaxed">
+                    <p class="text-foreground mt-1.5 leading-relaxed">
                       {problem.recommendation}
                     </p>
                   </div>
@@ -128,44 +128,44 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
               </div>
 
               <div class="space-y-3">
-                <p class="uppercase tracking-[0.14em] text-xs text-[var(--muted-foreground)] font-semibold">
+                <p class="uppercase tracking-[0.14em] text-xs text-muted-foreground font-semibold">
                   Feedback loop
                 </p>
                 <div class="space-y-4">
                   <div class="flex flex-wrap gap-x-8 gap-y-4 text-sm">
                     <div>
-                      <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                      <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                         Eval
                       </p>
-                      <p class="text-[var(--foreground)] mt-1 font-medium">
+                      <p class="text-foreground mt-1 font-medium">
                         {problem.feedback_loop.eval_candidate_title}
                       </p>
                     </div>
                     <div>
-                      <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                      <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                         Action
                       </p>
-                      <p class="text-[var(--foreground)] mt-1 font-medium">
+                      <p class="text-foreground mt-1 font-medium">
                         {problem.feedback_loop.evidence_summary}
                       </p>
                     </div>
                     <div>
-                      <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                      <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                         Benchmark
                       </p>
-                      <p class="text-[var(--foreground)] mt-1 font-medium">
+                      <p class="text-foreground mt-1 font-medium">
                         {problem.feedback_loop.benchmark_hint}
                       </p>
                     </div>
                     <div>
-                      <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                      <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                         Human Gate
                       </p>
                       <p class={[
                         "mt-1 font-medium",
                         if(problem.feedback_loop.human_gate_required,
                           do: "text-[#ffcf6b]",
-                          else: "text-[var(--foreground)]"
+                          else: "text-foreground"
                         )
                       ]}>
                         {if problem.feedback_loop.human_gate_required do
@@ -177,10 +177,10 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
                     </div>
                   </div>
                   <div>
-                    <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       Suggested Action
                     </p>
-                    <p class="text-[var(--foreground)] text-sm mt-1.5">
+                    <p class="text-foreground text-sm mt-1.5">
                       {problem.feedback_loop.suggested_action}
                     </p>
                   </div>
@@ -189,24 +189,24 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
 
               <%= if problem.examples && problem.examples != [] do %>
                 <div class="space-y-3">
-                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--muted-foreground)] font-semibold">
+                  <p class="uppercase tracking-[0.14em] text-xs text-muted-foreground font-semibold">
                     Examples
                   </p>
                   <div class="grid gap-2">
                     <%= for example <- problem.examples do %>
-                      <div class="flex items-center justify-between gap-4 rounded-xl px-4 py-3 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] hover:bg-[rgba(255,255,255,0.03)] transition-colors">
+                      <div class="flex items-center justify-between gap-4 rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] hover:bg-[rgba(255,255,255,0.03)] transition-colors">
                         <div class="min-w-0">
-                          <p class="text-sm font-medium text-[var(--foreground)] truncate">
+                          <p class="text-sm font-medium text-foreground truncate">
                             {example.title}
                           </p>
-                          <p class="text-xs text-[var(--muted-foreground)] mt-1">
+                          <p class="text-xs text-muted-foreground mt-1">
                             {example.severity} / {example.status}
                             <span class="mx-1.5 opacity-50">•</span> session {example.session_id}
                           </p>
                         </div>
                         <.link
                           navigate={~p"/observability/sessions/#{example.session_id}"}
-                          class="shrink-0 text-sm text-[var(--primary)] font-semibold hover:opacity-80 transition-opacity"
+                          class="shrink-0 text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
                         >
                           Open run →
                         </.link>
@@ -225,15 +225,15 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
 
   defp health_pill_class("red"),
     do:
-      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
 
   defp health_pill_class("yellow"),
     do:
-      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
 
   defp health_pill_class(_),
     do:
-      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp problem_key_id(key) do
     key

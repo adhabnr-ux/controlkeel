@@ -25,12 +25,12 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
     ~H"""
     <section
       id="observability-overview-page"
-      class="border border-[var(--border)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-xl font-semibold text-[var(--primary)]">Observability</h1>
-          <p class="text-[var(--muted-foreground)] text-sm mt-1">
+          <h1 class="text-xl font-semibold text-primary">Observability</h1>
+          <p class="text-muted-foreground text-sm mt-1">
             Session runs, problems, costs, and trace export at a glance.
           </p>
         </div>
@@ -41,31 +41,31 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
       <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
         <div
           id="observability-overview-runs"
-          class="rounded-xl p-4 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
-          <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">Runs</p>
-          <p class="text-xl font-semibold text-[var(--foreground)]">{@overview.runs.count} recent</p>
-          <p class="text-[var(--muted-foreground)] text-xs">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Runs</p>
+          <p class="text-xl font-semibold text-foreground">{@overview.runs.count} recent</p>
+          <p class="text-muted-foreground text-xs">
             {@overview.health.red_runs} red · {@overview.health.yellow_runs} yellow · {@overview.health.green_runs} green
           </p>
         </div>
 
         <div
           id="observability-overview-problems"
-          class="rounded-xl p-4 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
-          <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Problems
           </p>
-          <p class="text-xl font-semibold text-[var(--foreground)]">
+          <p class="text-xl font-semibold text-foreground">
             {@overview.problems.count} groups
           </p>
-          <p class="text-[var(--muted-foreground)] text-xs">
+          <p class="text-muted-foreground text-xs">
             {@overview.problems.total_findings} active finding(s)
           </p>
           <.link
             navigate={~p"/observability/problems"}
-            class="text-sm text-[var(--primary)] font-semibold hover:opacity-80 transition-opacity"
+            class="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
           >
             Review groups
           </.link>
@@ -73,22 +73,22 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
 
         <div
           id="observability-overview-costs"
-          class="rounded-xl p-4 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
-          <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">Costs</p>
-          <p class="text-xl font-semibold text-[var(--foreground)]">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Costs</p>
+          <p class="text-xl font-semibold text-foreground">
             {format_currency(@overview.costs.spent_cents)} / {format_currency(
               @overview.costs.budget_cents
             )}
           </p>
-          <p class="text-[var(--muted-foreground)] text-xs">
+          <p class="text-muted-foreground text-xs">
             {@overview.costs.invocations} invocation(s), {format_currency(
               @overview.costs.estimated_invocation_cents
             )} estimated
           </p>
           <.link
             navigate={~p"/observability/costs"}
-            class="text-sm text-[var(--primary)] font-semibold hover:opacity-80 transition-opacity"
+            class="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
           >
             Review costs
           </.link>
@@ -96,23 +96,23 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
 
         <div
           id="observability-overview-telemetry"
-          class="rounded-xl p-4 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
-          <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Trace export
           </p>
-          <p class="text-xl font-semibold text-[var(--foreground)]">
+          <p class="text-xl font-semibold text-foreground">
             {@overview.telemetry.import_mode}
           </p>
-          <p class="text-[var(--muted-foreground)] text-xs">
+          <p class="text-muted-foreground text-xs">
             {@overview.telemetry.export_schema_version} · {@overview.telemetry.integrity}
           </p>
-          <p class="text-[var(--muted-foreground)] text-xs">
+          <p class="text-muted-foreground text-xs">
             {@overview.telemetry.persisted_imports} persisted import(s)
           </p>
           <.link
             navigate={~p"/observability/imports"}
-            class="text-sm text-[var(--primary)] font-semibold hover:opacity-80 transition-opacity"
+            class="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
           >
             Review imports
           </.link>
@@ -120,38 +120,38 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
       </div>
 
       <div class="space-y-2">
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
           Recommended next actions
         </p>
         <%= if @overview.recommendations == [] do %>
-          <p class="text-[var(--muted-foreground)] text-sm">No recommendations available.</p>
+          <p class="text-muted-foreground text-sm">No recommendations available.</p>
         <% else %>
           <ul class="space-y-1 list-disc pl-5">
             <%= for recommendation <- @overview.recommendations do %>
-              <li class="text-[var(--muted-foreground)] text-sm leading-relaxed">{recommendation}</li>
+              <li class="text-muted-foreground text-sm leading-relaxed">{recommendation}</li>
             <% end %>
           </ul>
         <% end %>
         <.link
           navigate={~p"/observability/recommendations"}
-          class="text-sm text-[var(--primary)] font-semibold hover:opacity-80 transition-opacity"
+          class="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
         >
           Open recommendations →
         </.link>
       </div>
 
       <div class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
           Top problems
         </p>
         <%= if @overview.problems.top == [] do %>
-          <p class="text-[var(--muted-foreground)] text-sm">No active problems detected.</p>
+          <p class="text-muted-foreground text-sm">No active problems detected.</p>
         <% else %>
           <div class="space-y-2">
             <%= for problem <- @overview.problems.top do %>
-              <div class="rounded-xl px-4 py-3 border border-[var(--border)] bg-[rgba(255,255,255,0.015)]">
-                <p class="text-sm font-medium text-[var(--foreground)]">{problem.rule_id}</p>
-                <p class="text-[var(--muted-foreground)] text-xs mt-1">
+              <div class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)]">
+                <p class="text-sm font-medium text-foreground">{problem.rule_id}</p>
+                <p class="text-muted-foreground text-xs mt-1">
                   {problem.health} · {problem.count} finding(s) · {problem.affected_session_count} session(s)
                 </p>
               </div>

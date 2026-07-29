@@ -96,18 +96,18 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
     >
       <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             {@workspace.name}
           </p>
           <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">GitHub repositories</h1>
-          <p class="text-[var(--muted-foreground)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
+          <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
             Bind GitHub repos so missions, findings, and proofs can reference them.
             For governance via the GitHub App, set <code>installation_id</code>.
           </p>
         </div>
       </div>
 
-      <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
         <h2>Bind a repository</h2>
         <.form for={@bind_form} phx-submit="bind" class="flex flex-col gap-3">
           <div class="grid grid-cols-2 gap-3">
@@ -160,13 +160,13 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
             </div>
           </div>
           <%= if @bind_error do %>
-            <p class="text-[var(--muted-foreground)]">{@bind_error}</p>
+            <p class="text-muted-foreground">{@bind_error}</p>
           <% end %>
           <button type="submit" class="self-start">Bind repository</button>
         </.form>
       </div>
 
-      <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
         <h2>Bound repositories</h2>
         <%= if @repos == [] do %>
           <p class="max-w-[48rem]">No repositories bound yet.</p>

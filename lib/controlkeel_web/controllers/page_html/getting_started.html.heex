@@ -1,13 +1,13 @@
 <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6">
   <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
     <div>
-      <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+      <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
         Getting started
       </p>
       <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">
         Install to first finding in five minutes
       </h1>
-      <p class="text-[var(--muted-foreground)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
+      <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
         ControlKeel turns project rules, domain knowledge, and security boundaries into findings, proofs, approval gates, budgets, evals, and durable context across supported hosts. Agent output is cheap; reviewability, release safety, and cost control are not. ControlKeel governs that loop from the first attach.
       </p>
     </div>
@@ -16,7 +16,7 @@
 
 <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-0 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-0">
   <div class="space-y-4">
-    <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">Install</p>
+    <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">Install</p>
     <%= for channel <- @install_channels do %>
       <article
         class="rounded-3xl border border-white/10 bg-zinc-950/70 p-5 transition hover:border-lime-300/40 hover:bg-zinc-950/90"
@@ -45,12 +45,12 @@
 </section>
 
 <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-0 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-0">
-  <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+  <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
     Quick start
   </p>
   <div class="grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)] gap-6 max-[900px]:grid-cols-1 mt-4">
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-      <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
         Packaged binary
       </p>
       <ol class="grid gap-4 m-0 p-0 list-none mt-4">
@@ -82,8 +82,8 @@
       </ol>
     </div>
 
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-      <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
         Source setup
       </p>
       <ol class="grid gap-4 m-0 p-0 list-none mt-4">
@@ -113,18 +113,18 @@
       </ol>
     </div>
   </div>
-  <p class="text-[var(--muted-foreground)] mt-4 text-sm">
+  <p class="text-muted-foreground mt-4 text-sm">
     Attach defaults to project scope and writes inside the governed repository. User scope is available only for hosts that advertise it. Local stdio MCP exposes the full local tool set; hosted MCP is a separate, narrower OAuth-scoped surface.
   </p>
 </section>
 
 <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-0 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-0">
-  <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+  <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
     How it governs
   </p>
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-      <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
         Governed delivery lifecycle
       </p>
       <ul class="grid gap-4 m-0 p-0 list-none mt-3">
@@ -141,8 +141,8 @@
       </ul>
     </div>
 
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-      <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
         Proof console loop
       </p>
       <ul class="grid gap-4 m-0 p-0 list-none mt-3">
@@ -161,17 +161,17 @@
       </ul>
     </div>
 
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-      <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
         Autonomy and findings
       </p>
-      <p class="text-[var(--muted-foreground)] mt-3 text-sm">
+      <p class="text-muted-foreground mt-3 text-sm">
         Severity maps to expected human gates; findings stay readable in plain language. LLM advisory is optional and needs a provider. See <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">docs/autonomy-and-findings.md</code>.
       </p>
     </div>
 
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-      <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
         Operating modes
       </p>
       <ul class="grid gap-4 m-0 p-0 list-none mt-3">
@@ -187,20 +187,20 @@
       </ul>
     </div>
 
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-      <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
         Occupation-first onboarding
       </p>
-      <p class="text-[var(--muted-foreground)] mt-3 text-sm">
+      <p class="text-muted-foreground mt-3 text-sm">
         Start from what best describes your work. ControlKeel picks the domain pack, interview language, and governance posture behind the scenes, so non-experts don't need to choose a framework first.
       </p>
     </div>
 
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-      <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
         Project rescue
       </p>
-      <p class="text-[var(--muted-foreground)] mt-3 text-sm">
+      <p class="text-muted-foreground mt-3 text-sm">
         If another tool already touched the repo, bootstrap it, run <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">controlkeel watch</code>, and use findings, proofs, and
         <code class="rounded bg-white/10 px-1.5 py-0.5 text-zinc-200">ck_validate</code>
         to recover. Add governed proxy only when the tool points at compatible OpenAI or Anthropic endpoints.
@@ -211,8 +211,8 @@
 
 <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-0 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-0">
   <div class="grid grid-cols-[minmax(0,1.35fr)_minmax(280px,0.75fr)] gap-6 max-[900px]:grid-cols-1">
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-      <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
         Other supported agents
       </p>
       <ul class="grid gap-4 m-0 p-0 list-none mt-3">
@@ -238,14 +238,14 @@
       </ul>
       <a
         href="https://github.com/aryaminus/controlkeel"
-        class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold mt-4 inline-block"
+        class="uppercase tracking-[0.14em] text-xs text-primary font-semibold mt-4 inline-block"
       >
         Learn more on GitHub
       </a>
     </div>
 
-    <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-      <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+    <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+      <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
         What it is not
       </p>
       <ul class="grid gap-4 m-0 p-0 list-none mt-3">

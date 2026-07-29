@@ -16,7 +16,7 @@ defmodule ControlKeelWeb.ShipReadiness do
     ~H"""
     <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6">
       <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/5">
-        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
           Ship readiness
         </p>
         <span class={[

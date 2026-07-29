@@ -381,9 +381,9 @@ defmodule ControlKeelWeb.Layouts do
     base = "text-sm font-medium transition-colors px-3 py-1.5 rounded-lg border"
 
     if active do
-      "#{base} text-[var(--primary)] bg-[rgba(190,242,100,0.1)] border-[var(--primary)]"
+      "#{base} text-primary bg-[rgba(190,242,100,0.1)] border-primary"
     else
-      "#{base} text-[var(--foreground)] hover:text-[var(--primary)] bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.06)] border-[var(--border)]"
+      "#{base} text-foreground hover:text-primary bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.06)] border-border"
     end
   end
 
@@ -391,14 +391,14 @@ defmodule ControlKeelWeb.Layouts do
   # Memory / Export JSON).
   defp tab_class(path, current_path) do
     if path == current_path do
-      "#{tab_base_class()} text-[var(--primary)] bg-[rgba(190,242,100,0.1)] border-[var(--primary)]"
+      "#{tab_base_class()} text-primary bg-[rgba(190,242,100,0.1)] border-primary"
     else
       tab_inactive_class()
     end
   end
 
   defp tab_inactive_class do
-    "#{tab_base_class()} text-[var(--foreground)] hover:text-[var(--primary)] bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.06)] border-[var(--border)]"
+    "#{tab_base_class()} text-foreground hover:text-primary bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.06)] border-border"
   end
 
   defp tab_base_class do

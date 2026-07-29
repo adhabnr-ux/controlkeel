@@ -7,13 +7,13 @@ defmodule ControlKeelWeb.CommandPill do
 
   def command_pill(assigns) do
     ~H"""
-    <div class="flex items-center justify-between gap-2 text-[var(--muted-foreground)] text-xs font-mono border border-[var(--border)] rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
+    <div class="flex items-center justify-between gap-2 text-muted-foreground text-xs font-mono border border-border rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.015)]">
       <span>{@command}</span>
       <button
         type="button"
         phx-click="copy_command"
         phx-value-command={@command}
-        class="cursor-pointer hover:text-[var(--primary)] transition-colors"
+        class="cursor-pointer hover:text-primary transition-colors"
       >
         <.icon name="hero-clipboard" class="w-4 h-4" />
       </button>

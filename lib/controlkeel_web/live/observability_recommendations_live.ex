@@ -24,12 +24,12 @@ defmodule ControlKeelWeb.ObservabilityRecommendationsLive do
     ~H"""
     <section
       id="observability-recommendations"
-      class="border border-[var(--border)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-xl font-semibold text-[var(--primary)]">Recommendations</h1>
-          <p class="text-[var(--muted-foreground)] text-sm mt-1">
+          <h1 class="text-xl font-semibold text-primary">Recommendations</h1>
+          <p class="text-muted-foreground text-sm mt-1">
             Actionable next steps derived from the current workspace’s runs, problems, and evidence.
           </p>
         </div>
@@ -37,7 +37,7 @@ defmodule ControlKeelWeb.ObservabilityRecommendationsLive do
           <span class={health_pill_class(@recommendations.health)}>
             {@recommendations.health}
           </span>
-          <span class="inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             {@recommendations.count} action(s)
           </span>
         </div>
@@ -46,61 +46,61 @@ defmodule ControlKeelWeb.ObservabilityRecommendationsLive do
       <CommandPill.command_pill command="controlkeel obs recommend" />
 
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div class="rounded-xl p-4 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">Actions</p>
-          <p class="text-2xl font-semibold text-[var(--foreground)]">{@recommendations.count}</p>
-          <p class="text-[var(--muted-foreground)] text-xs">Prioritized by current local evidence</p>
+        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Actions</p>
+          <p class="text-2xl font-semibold text-foreground">{@recommendations.count}</p>
+          <p class="text-muted-foreground text-xs">Prioritized by current local evidence</p>
         </div>
-        <div class="rounded-xl p-4 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Categories
           </p>
-          <p class="text-2xl font-semibold text-[var(--foreground)]">
+          <p class="text-2xl font-semibold text-foreground">
             {length(@recommendations.categories)}
           </p>
-          <p class="text-[var(--muted-foreground)] text-xs">
+          <p class="text-muted-foreground text-xs">
             {Enum.join(@recommendations.categories, ", ")}
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+        <div class="rounded-xl p-4 border border-border bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Workspace
           </p>
-          <p class="text-lg font-semibold text-[var(--foreground)] truncate">
+          <p class="text-lg font-semibold text-foreground truncate">
             {@recommendations.workspace.name}
           </p>
-          <p class="text-[var(--muted-foreground)] text-xs">Local-first summary</p>
+          <p class="text-muted-foreground text-xs">Local-first summary</p>
         </div>
       </div>
 
       <div class="space-y-3">
         <%= if @recommendations.actions == [] do %>
-          <p class="text-[var(--muted-foreground)] text-sm">
+          <p class="text-muted-foreground text-sm">
             No recommendations are currently active.
           </p>
         <% else %>
           <%= for action <- @recommendations.actions do %>
             <div
               id={"observability-recommendation-#{action.id}"}
-              class="rounded-xl px-4 py-3 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-2"
+              class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] space-y-2"
             >
               <div class="flex items-start justify-between gap-4">
                 <div class="space-y-1 min-w-0">
-                  <p class="text-[var(--muted-foreground)] uppercase tracking-[0.1em] text-[10px]">
+                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                     {action.category}
                   </p>
-                  <p class="text-sm font-semibold text-[var(--foreground)]">{action.title}</p>
+                  <p class="text-sm font-semibold text-foreground">{action.title}</p>
                 </div>
                 <span class={priority_pill_class(action.priority)}>{action.priority}</span>
               </div>
-              <p class="text-[var(--muted-foreground)] text-xs">{action.evidence}</p>
-              <p class="text-[var(--foreground)] text-sm">{action.suggested_action}</p>
-              <div class="flex items-center gap-4 text-xs text-[var(--muted-foreground)]">
+              <p class="text-muted-foreground text-xs">{action.evidence}</p>
+              <p class="text-foreground text-sm">{action.suggested_action}</p>
+              <div class="flex items-center gap-4 text-xs text-muted-foreground">
                 <span>Source: {action.source}</span>
                 <span>Human gate: {action.human_gate_required}</span>
                 <.link
                   navigate={action.link}
-                  class="text-sm text-[var(--primary)] font-semibold hover:opacity-80 transition-opacity"
+                  class="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
                 >
                   Open related view →
                 </.link>
@@ -115,25 +115,25 @@ defmodule ControlKeelWeb.ObservabilityRecommendationsLive do
 
   defp health_pill_class("red"),
     do:
-      "inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
 
   defp health_pill_class("yellow"),
     do:
-      "inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
 
   defp health_pill_class(_),
     do:
-      "inline-flex items-center border border-[var(--border)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "inline-flex items-center border border-border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp priority_pill_class("critical"),
     do:
-      "inline-flex items-center border border-[var(--border)] rounded-full px-2.5 py-1 text-xs bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+      "inline-flex items-center border border-border rounded-full px-2.5 py-1 text-xs bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
 
   defp priority_pill_class("high"),
     do:
-      "inline-flex items-center border border-[var(--border)] rounded-full px-2.5 py-1 text-xs bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center border border-border rounded-full px-2.5 py-1 text-xs bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
 
   defp priority_pill_class(_),
     do:
-      "inline-flex items-center border border-[var(--border)] rounded-full px-2.5 py-1 text-xs bg-[rgba(255,255,255,0.06)] text-[var(--muted-foreground)]"
+      "inline-flex items-center border border-border rounded-full px-2.5 py-1 text-xs bg-[rgba(255,255,255,0.06)] text-muted-foreground"
 end

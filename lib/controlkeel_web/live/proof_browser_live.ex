@@ -100,17 +100,17 @@ defmodule ControlKeelWeb.ProofBrowserLive do
 
         <div class="flex items-center justify-between gap-4">
           <div class="space-y-1">
-            <h2 class="text-2xl font-semibold text-[var(--primary)] leading-6 tracking-wide uppercase">
+            <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
               Immutable proof snapshot
             </h2>
-            <p class="text-[var(--muted-foreground)]">
+            <p class="text-muted-foreground">
               Every proof bundle is a frozen audit artifact for a single task version.
             </p>
           </div>
 
           <.link
             navigate={~p"/missions/#{@proof.session_id}"}
-            class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)] border-[var(--muted-foreground)] border rounded-md px-3 py-2 hover:bg-[var(--primary)]/10"
+            class="text-xs font-semibold uppercase tracking-[0.14em] text-primary border-muted-foreground border rounded-md px-3 py-2 hover:bg-primary/10"
           >
             Open mission
           </.link>
@@ -136,26 +136,26 @@ defmodule ControlKeelWeb.ProofBrowserLive do
       </div>
 
       <div :if={@proof} class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
-        <div class="rounded-2xl border border-[var(--border)]  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+        <div class="rounded-2xl border border-border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Task
           </p>
           <strong>{@proof.task.title}</strong>
         </div>
-        <div class="rounded-2xl border border-[var(--border)]  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+        <div class="rounded-2xl border border-border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Version
           </p>
           <strong>v{@proof.version}</strong>
         </div>
-        <div class="rounded-2xl border border-[var(--border)]  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+        <div class="rounded-2xl border border-border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Risk score
           </p>
           <strong>{@proof.risk_score}</strong>
         </div>
-        <div class="rounded-2xl border border-[var(--border)]  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+        <div class="rounded-2xl border border-border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Deploy ready
           </p>
           <strong>{if @proof.deploy_ready, do: "Yes", else: "No"}</strong>
@@ -166,38 +166,38 @@ defmodule ControlKeelWeb.ProofBrowserLive do
         :if={@proof}
         class="mt-6"
       >
-        <div class="rounded-2xl border border-[var(--border)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)] mb-2">
+        <div class="rounded-2xl border border-border p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary mb-2">
             Snapshot
           </p>
           <div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
             <div>
               <h3>Mission</h3>
-              <p class="text-[var(--muted-foreground)]">{@proof.session.title}</p>
+              <p class="text-muted-foreground">{@proof.session.title}</p>
             </div>
             <div>
               <h3>Generated</h3>
-              <p class="text-[var(--muted-foreground)]">
+              <p class="text-muted-foreground">
                 {format_datetime(@proof.generated_at, "Not recorded")}
               </p>
             </div>
             <div>
               <h3>Open findings</h3>
-              <p class="text-[var(--muted-foreground)]">{@proof.open_findings_count}</p>
+              <p class="text-muted-foreground">{@proof.open_findings_count}</p>
             </div>
             <div>
               <h3>Blocked findings</h3>
-              <p class="text-[var(--muted-foreground)]">{@proof.blocked_findings_count}</p>
+              <p class="text-muted-foreground">{@proof.blocked_findings_count}</p>
             </div>
             <div>
               <h3>Domain pack</h3>
-              <p class="text-[var(--muted-foreground)]">
+              <p class="text-muted-foreground">
                 {format_domain_pack(get_in(@proof.session.execution_brief || %{}, ["domain_pack"]))}
               </p>
             </div>
           </div>
 
-          <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+          <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Compliance attestations
           </p>
           <ul class="m-0 grid gap-4 p-0 list-none">
@@ -211,22 +211,22 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           </ul>
 
           <div class="mt-6 space-y-2">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
               Rollback instructions
             </p>
 
-            <pre class="m-0 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.03)] w-fit p-4 font-mono text-sm leading-relaxed text-[var(--foreground)] whitespace-pre-wrap break-words">{@proof.bundle["rollback_instructions"]}</pre>
+            <pre class="m-0 rounded-2xl border border-border bg-[rgba(255,255,255,0.03)] w-fit p-4 font-mono text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words">{@proof.bundle["rollback_instructions"]}</pre>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-2 mt-6 gap-4">
             <div class="space-y-2">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                 Related memory
               </p>
 
-              <div class="rounded-2xl border border-[var(--border)] p-4">
+              <div class="rounded-2xl border border-border p-4">
                 <%= if @memory_hits == [] do %>
-                  <p class="text-[var(--muted-foreground)]">
+                  <p class="text-muted-foreground">
                     No related memory hits for this task yet.
                   </p>
                 <% else %>
@@ -234,7 +234,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                     <%= for hit <- @memory_hits do %>
                       <li>
                         <strong>{hit.title}</strong>
-                        <p class="text-[var(--muted-foreground)]">{hit.summary}</p>
+                        <p class="text-muted-foreground">{hit.summary}</p>
                       </li>
                     <% end %>
                   </ul>
@@ -243,13 +243,13 @@ defmodule ControlKeelWeb.ProofBrowserLive do
             </div>
 
             <div class="space-y-2">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                 Finding resolution summary
               </p>
 
-              <div class="rounded-2xl border border-[var(--border)] p-6 grid grid-cols-2 gap-4">
+              <div class="rounded-2xl border border-border p-6 grid grid-cols-2 gap-4">
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                     Approved
                   </p>
                   <strong>
@@ -257,7 +257,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                   </strong>
                 </div>
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                     Resolved
                   </p>
                   <strong>
@@ -265,7 +265,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                   </strong>
                 </div>
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                     Open
                   </p>
                   <strong>
@@ -273,7 +273,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                   </strong>
                 </div>
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                     Blocked
                   </p>
                   <strong>
@@ -284,11 +284,11 @@ defmodule ControlKeelWeb.ProofBrowserLive do
             </div>
           </div>
 
-          <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
+          <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Assessment summary
           </p>
           <div class="mt-4 grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-            <div class="rounded-xl border border-[var(--border)] p-5">
+            <div class="rounded-xl border border-border p-5">
               <div class="flex items-center justify-between mb-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em]">
                   Surface verification
@@ -343,7 +343,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               </div>
             </div>
 
-            <div class="rounded-xl border border-[var(--border)] p-5">
+            <div class="rounded-xl border border-border p-5">
               <p class="text-xs font-semibold uppercase tracking-[0.14em] mb-4">
                 Task check counts
               </p>
@@ -393,7 +393,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               </div>
             </div>
 
-            <div class="rounded-xl border border-[var(--border)] p-5">
+            <div class="rounded-xl border border-border p-5">
               <div class="flex items-center justify-between mb-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em]">
                   Context integrity
@@ -437,7 +437,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               </div>
             </div>
 
-            <div class="rounded-xl border border-[var(--border)] p-5">
+            <div class="rounded-xl border border-border p-5">
               <div class="flex items-center justify-between mb-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em]">
                   Deploy readiness
@@ -507,13 +507,13 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           </div>
 
           <details class="mt-6 group">
-            <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--primary)] cursor-pointer hover:text-lime-300 transition-colors list-none flex items-center gap-2">
+            <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-primary cursor-pointer hover:text-lime-300 transition-colors list-none flex items-center gap-2">
               <.icon
                 name="hero-chevron-right"
                 class="w-3.5 h-3.5 group-open:rotate-90 transition-transform"
               /> Raw proof payload
             </summary>
-            <pre class="m-0 mt-3 rounded-2xl border border-[var(--border)] p-4 font-mono text-xs leading-relaxed text-[var(--foreground)] whitespace-pre-wrap break-words overflow-auto h-100">{Jason.encode!(@proof.bundle, pretty: true)}</pre>
+            <pre class="m-0 mt-3 rounded-2xl border border-border p-4 font-mono text-xs leading-relaxed text-foreground whitespace-pre-wrap break-words overflow-auto h-100">{Jason.encode!(@proof.bundle, pretty: true)}</pre>
           </details>
         </div>
       </div>
@@ -525,15 +525,15 @@ defmodule ControlKeelWeb.ProofBrowserLive do
     ~H"""
     <section class="mx-auto w-[min(1180px,calc(100%-2rem))]">
       <div class="space-y-1 mb-12">
-        <h2 class="text-2xl font-semibold text-[var(--primary)] leading-6 tracking-wide uppercase">
+        <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
           Proof browser
         </h2>
-        <p class="text-[var(--muted-foreground)]">
+        <p class="text-muted-foreground">
           Review immutable task evidence, filter by readiness and risk, and jump back to the mission that generated each bundle.
         </p>
       </div>
 
-      <div class="rounded-lg border border-[var(--border)] bg-neutral-900">
+      <div class="rounded-lg border border-border bg-neutral-900">
         <div class="space-y-4 p-4">
           <form id="proof-filters" phx-change="filter" class="grid gap-4 xl:grid-cols-5">
             <div class="space-y-4">
@@ -550,7 +550,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 value={@form[:q].value}
                 placeholder="Mission or task..."
                 phx-debounce="300"
-                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-primary focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
               />
             </div>
 
@@ -564,7 +564,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               <select
                 id="filters-session_id"
                 name="filters[session_id]"
-                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-primary focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
               >
                 <option value="">All missions</option>
                 <%= for session_option <- @session_options do %>
@@ -591,7 +591,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 type="text"
                 value={@form[:task_id].value}
                 placeholder="Task id"
-                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-primary focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
               />
             </div>
 
@@ -605,7 +605,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               <select
                 id="filters-deploy_ready"
                 name="filters[deploy_ready]"
-                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-primary focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
               >
                 <option value="">All</option>
                 <option value="true" selected={@form[:deploy_ready].value == "true"}>Yes</option>
@@ -623,7 +623,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               <select
                 id="filters-risk_tier"
                 name="filters[risk_tier]"
-                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--primary)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-primary focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
               >
                 <option value="">All tiers</option>
                 <%= for tier <- @risk_tiers do %>
@@ -637,7 +637,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
 
           <div class="flex items-center justify-between">
             <p class="text-neutral-400 tracking-tight">
-              <span class="text-[var(--primary)] mr-1">{@browser.total_count}</span>
+              <span class="text-primary mr-1">{@browser.total_count}</span>
               total proof bundles found
             </p>
 

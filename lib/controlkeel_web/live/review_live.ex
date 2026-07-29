@@ -76,18 +76,18 @@ defmodule ControlKeelWeb.ReviewLive do
       <%= if @review do %>
         <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
           <div>
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Browser Review
             </p>
             <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">{@review.title}</h1>
-            <p class="text-[var(--muted-foreground)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
+            <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
               Review type: {String.capitalize(@review.review_type)}. Task: {if @review.task,
                 do: @review.task.title,
                 else: "session-level submission"}.
             </p>
           </div>
           <a
-            class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold"
+            class="uppercase tracking-[0.14em] text-xs text-primary font-semibold"
             href={~p"/missions/#{@review.session_id}"}
           >
             Open mission
@@ -96,32 +96,32 @@ defmodule ControlKeelWeb.ReviewLive do
 
         <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
           <div
-            class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+            class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
             id="review-status-card"
           >
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Status
             </p>
             <strong>{String.capitalize(@review.status)}</strong>
           </div>
-          <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+          <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Phase
             </p>
             <strong>{review_phase(@review)}</strong>
           </div>
-          <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+          <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Submitted by
             </p>
             <strong>{@review.submitted_by || "agent"}</strong>
           </div>
-          <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+          <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
+            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
               Shareable URL
             </p>
             <a
-              class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold"
+              class="uppercase tracking-[0.14em] text-xs text-primary font-semibold"
               href={@review_url}
             >
               {@review_url}
@@ -135,13 +135,13 @@ defmodule ControlKeelWeb.ReviewLive do
         >
           <div class="space-y-4">
             <article
-              class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-submission-body"
             >
-              <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+              <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                 Submission
               </p>
-              <pre class="m-0 p-4 border border-[var(--border)] rounded-xl bg-white/[0.03] text-[var(--foreground)] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{@review.submission_body}</pre>
+              <pre class="m-0 p-4 border border-border rounded-xl bg-white/[0.03] text-foreground whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{@review.submission_body}</pre>
             </article>
 
             <article
@@ -149,12 +149,12 @@ defmodule ControlKeelWeb.ReviewLive do
                 present_plan_context?(@review, "alignment_context") or
                   present_plan_context?(@review, "consulted_roles")
               }
-              class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-alignment-card"
             >
               <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+                  <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                     Alignment context
                   </p>
                   <h2>Human context gathered before execution</h2>
@@ -162,7 +162,7 @@ defmodule ControlKeelWeb.ReviewLive do
               </div>
               <div class="mt-4 space-y-4">
                 <div :if={present_plan_context?(@review, "alignment_context")}>
-                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+                  <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                     Context that shaped the plan
                   </p>
                   <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700">
@@ -170,13 +170,13 @@ defmodule ControlKeelWeb.ReviewLive do
                   </ul>
                 </div>
                 <div :if={present_plan_context?(@review, "consulted_roles")}>
-                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+                  <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                     Roles consulted
                   </p>
                   <div class="flex flex-wrap gap-2">
                     <span
                       :for={role <- plan_context(@review, "consulted_roles")}
-                      class="border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+                      class="border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
                     >
                       {role}
                     </span>
@@ -187,12 +187,12 @@ defmodule ControlKeelWeb.ReviewLive do
 
             <article
               :if={present_semantic_boundaries?(@review)}
-              class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-semantic-boundaries-card"
             >
               <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+                  <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                     Semantic boundaries
                   </p>
                   <h2>Agent execution guardrails</h2>
@@ -200,7 +200,7 @@ defmodule ControlKeelWeb.ReviewLive do
               </div>
               <div class="mt-4 space-y-4">
                 <div :for={boundary <- semantic_boundary_sections(@review)}>
-                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+                  <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                     {boundary.label}
                   </p>
                   <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700">
@@ -212,27 +212,27 @@ defmodule ControlKeelWeb.ReviewLive do
 
             <article
               :if={@review.previous_review}
-              class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-diff-card"
             >
               <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+                  <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                     Revision diff
                   </p>
                   <h2>Compared with review #{@review.previous_review_id}</h2>
                 </div>
-                <span class="border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                <span class="border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
                   Previous: {String.capitalize(@review.previous_review.status)}
                 </span>
               </div>
               <div class="mt-4 space-y-3">
                 <%= for chunk <- @diff_chunks do %>
                   <div class={diff_chunk_class(chunk.kind)}>
-                    <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+                    <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                       {diff_chunk_label(chunk.kind)}
                     </p>
-                    <pre class="m-0 p-4 border border-[var(--border)] rounded-xl bg-white/[0.03] text-[var(--foreground)] whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{chunk.text}</pre>
+                    <pre class="m-0 p-4 border border-border rounded-xl bg-white/[0.03] text-foreground whitespace-pre-wrap break-words font-mono text-[0.9rem] leading-[1.6]">{chunk.text}</pre>
                   </div>
                 <% end %>
               </div>
@@ -241,12 +241,12 @@ defmodule ControlKeelWeb.ReviewLive do
 
           <div class="space-y-4">
             <article
-              class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-response-card"
             >
               <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+                  <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                     Respond
                   </p>
                   <h2>Approve, deny, or annotate</h2>
@@ -280,7 +280,7 @@ defmodule ControlKeelWeb.ReviewLive do
                   />
 
                   <button
-                    class="inline-flex items-center justify-center gap-[0.4rem] px-[1.25rem] py-[0.95rem] rounded-full bg-[var(--primary)] text-[#11170d] font-bold transition-[transform,box-shadow] duration-[160ms] ease-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
+                    class="inline-flex items-center justify-center gap-[0.4rem] px-[1.25rem] py-[0.95rem] rounded-full bg-primary text-[#11170d] font-bold transition-[transform,box-shadow] duration-[160ms] ease-out hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
                     id="review-response-submit"
                     type="submit"
                   >
@@ -291,21 +291,21 @@ defmodule ControlKeelWeb.ReviewLive do
             </article>
 
             <article
-              class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+              class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
               id="review-audit-card"
             >
-              <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+              <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
                 Audit trail
               </p>
               <div class="grid gap-4 m-0 p-0 list-none">
                 <article class="grid gap-[0.55rem] border border-white/[0.07] rounded-[1.1rem] p-4 bg-white/[0.03]">
                   <div class="flex items-center justify-between gap-4">
                     <h3>Submitted</h3>
-                    <span class="border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+                    <span class="border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
                       {format_dt(@review.inserted_at)}
                     </span>
                   </div>
-                  <p class="text-[var(--muted-foreground)]">By {@review.submitted_by || "agent"}</p>
+                  <p class="text-muted-foreground">By {@review.submitted_by || "agent"}</p>
                 </article>
                 <article
                   :if={@review.responded_at}
@@ -317,9 +317,9 @@ defmodule ControlKeelWeb.ReviewLive do
                       {String.capitalize(@review.status)}
                     </span>
                   </div>
-                  <p class="text-[var(--muted-foreground)]">At {format_dt(@review.responded_at)}</p>
-                  <p class="text-[var(--muted-foreground)]">By {@review.reviewed_by || "human"}</p>
-                  <p :if={present?(@review.feedback_notes)} class="text-[var(--muted-foreground)]">
+                  <p class="text-muted-foreground">At {format_dt(@review.responded_at)}</p>
+                  <p class="text-muted-foreground">By {@review.reviewed_by || "human"}</p>
+                  <p :if={present?(@review.feedback_notes)} class="text-muted-foreground">
                     {@review.feedback_notes}
                   </p>
                 </article>
@@ -329,10 +329,10 @@ defmodule ControlKeelWeb.ReviewLive do
         </div>
       <% else %>
         <div
-          class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+          class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
           id="review-missing"
         >
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Browser Review
           </p>
           <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Review not found</h1>
@@ -408,19 +408,19 @@ defmodule ControlKeelWeb.ReviewLive do
 
   defp review_status_pill_class("approved"),
     do:
-      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp review_status_pill_class("denied"),
     do:
-      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
 
   defp review_status_pill_class("superseded"),
     do:
-      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
 
   defp review_status_pill_class(_status),
     do:
-      "border border-[var(--border)] bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "border border-border bg-white/5 rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
 
   defp review_phase(review) do
     review

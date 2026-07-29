@@ -26,14 +26,14 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkScenariosLive do
     ~H"""
     <section
       id="observability-benchmark-scenarios-page"
-      class="border border-[var(--border)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border border-border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-xl font-semibold text-[var(--primary)]">
+          <h1 class="text-xl font-semibold text-primary">
             Materialized benchmark scenarios
           </h1>
-          <p class="text-[var(--muted-foreground)] text-sm mt-1">
+          <p class="text-muted-foreground text-sm mt-1">
             Local Benchmark.Scenario records generated from approved observability drafts.
           </p>
         </div>
@@ -48,12 +48,12 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkScenariosLive do
 
       <%= if @scenarios.recommendations != [] do %>
         <div id="observability-benchmark-scenarios-summary" class="space-y-2">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Recommendations
           </p>
           <ul class="list-disc pl-5">
             <%= for recommendation <- @scenarios.recommendations do %>
-              <li class="text-[var(--muted-foreground)] text-sm leading-relaxed">{recommendation}</li>
+              <li class="text-muted-foreground text-sm leading-relaxed">{recommendation}</li>
             <% end %>
           </ul>
         </div>
@@ -63,43 +63,43 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkScenariosLive do
         id="observability-benchmark-run-guidance"
         class="space-y-3"
       >
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
           Human-gated execution
         </p>
-        <p class="text-[var(--muted-foreground)] text-sm leading-relaxed">
+        <p class="text-muted-foreground text-sm leading-relaxed">
           Benchmark execution is CLI-only. Review generated scenarios first, then run an explicit command.
         </p>
-        <code class="block rounded-lg border border-[var(--border)] bg-[rgba(0,0,0,0.3)] px-3 py-2 text-xs text-[var(--muted-foreground)] overflow-x-auto">
+        <code class="block rounded-lg border border-border bg-[rgba(0,0,0,0.3)] px-3 py-2 text-xs text-muted-foreground overflow-x-auto">
           {@run_preview.command || "controlkeel obs benchmarks run --dry-run"}
         </code>
         <%= if @run_preview.recommendations != [] do %>
           <ul class="list-disc pl-5">
             <%= for recommendation <- @run_preview.recommendations do %>
-              <li class="text-[var(--muted-foreground)] text-sm leading-relaxed">{recommendation}</li>
+              <li class="text-muted-foreground text-sm leading-relaxed">{recommendation}</li>
             <% end %>
           </ul>
         <% end %>
       </div>
 
       <div id="observability-benchmark-scenarios-list" class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
           Scenarios
         </p>
         <%= if @scenarios.scenarios == [] do %>
-          <p class="text-[var(--muted-foreground)] text-sm">
+          <p class="text-muted-foreground text-sm">
             No materialized observability scenarios yet.
           </p>
         <% else %>
           <%= for scenario <- @scenarios.scenarios do %>
             <div
               id={"observability-benchmark-scenario-#{scenario.id}"}
-              class="rounded-xl px-4 py-3 border border-[var(--border)] bg-[rgba(255,255,255,0.015)] space-y-1"
+              class="rounded-xl px-4 py-3 border border-border bg-[rgba(255,255,255,0.015)] space-y-1"
             >
-              <p class="text-sm font-semibold text-[var(--foreground)]">{scenario.name}</p>
-              <p class="text-[var(--muted-foreground)] text-xs">
+              <p class="text-sm font-semibold text-foreground">{scenario.name}</p>
+              <p class="text-muted-foreground text-xs">
                 {scenario.suite_slug} · {scenario.slug} · {scenario.split}
               </p>
-              <p class="text-[var(--muted-foreground)] text-xs">
+              <p class="text-muted-foreground text-xs">
                 Expected rules: {Enum.join(scenario.expected_rules, ", ")}
               </p>
             </div>

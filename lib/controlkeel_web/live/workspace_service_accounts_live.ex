@@ -115,11 +115,11 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
     >
       <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             {@workspace.name}
           </p>
           <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Service accounts</h1>
-          <p class="text-[var(--muted-foreground)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
+          <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
             Machine identities for CI, MCP, and external integrations. Tokens are shown once at creation or rotation; store them securely.
           </p>
         </div>
@@ -127,7 +127,7 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
 
       <%= if @new_token do %>
         <div
-          class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6"
+          class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6"
           id="new-token-banner"
           style="border-color: rgba(190, 242, 100, 0.4);"
         >
@@ -141,7 +141,7 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
         </div>
       <% end %>
 
-      <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
         <h2>Create service account</h2>
         <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
           <div>
@@ -170,13 +170,13 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
             </p>
           </div>
           <%= if @create_error do %>
-            <p class="text-[var(--muted-foreground)]">{@create_error}</p>
+            <p class="text-muted-foreground">{@create_error}</p>
           <% end %>
           <button type="submit" class="self-start">Create</button>
         </.form>
       </div>
 
-      <div class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+      <div class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
         <h2>Active service accounts</h2>
         <%= if @accounts == [] do %>
           <p class="max-w-[48rem]">No service accounts yet.</p>

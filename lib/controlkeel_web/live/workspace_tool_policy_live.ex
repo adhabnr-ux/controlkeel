@@ -83,11 +83,11 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
     >
       <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--primary)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             {@workspace.name}
           </p>
           <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Tool policy</h1>
-          <p class="text-[var(--muted-foreground)] text-[1.05rem] leading-[1.7] max-w-[48rem]">
+          <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
             Restrict which MCP tools agents in this workspace may invoke. <code>inherit</code>
             falls back to the global allowlist; <code>allowlist</code>
             and <code>denylist</code>
@@ -99,7 +99,7 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
       <.form
         for={@form}
         phx-submit="submit"
-        class="border border-[var(--border)] bg-[var(--card)] rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6 flex flex-col gap-4"
+        class="border border-border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6 flex flex-col gap-4"
       >
         <div>
           <label class="block text-sm font-medium text-zinc-300 mb-1">Mode</label>
@@ -131,11 +131,11 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
         </div>
 
         <%= if @error do %>
-          <p class="text-[var(--muted-foreground)]">{@error}</p>
+          <p class="text-muted-foreground">{@error}</p>
         <% end %>
 
         <%= if @saved do %>
-          <p class="text-[var(--muted-foreground)]">Saved.</p>
+          <p class="text-muted-foreground">Saved.</p>
         <% end %>
 
         <button type="submit" class="self-start">Save policy</button>
