@@ -127,57 +127,38 @@ defmodule ControlKeelWeb.Layouts do
         </a>
       </nav>
 
-      <div class="mt-auto border-t border-white/10 pt-3">
-        <a
-          href={~p"/getting-started"}
-          target="_blank"
-          rel="noopener"
-          class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
+      <div
+        :if={@current_user != nil and @mode != :local}
+        class="relative mt-3 border-t border-white/10 pt-3"
+        id="sidebar-user-menu"
+      >
+        <button
+          type="button"
+          phx-click={JS.toggle(to: "#sidebar-user-popover")}
+          class="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/10"
         >
-          <.icon name="hero-book-open" class="size-4 text-zinc-500" /> Docs
-        </a>
-        <a
-          href="https://github.com/aryaminus/controlkeel"
-          target="_blank"
-          rel="noopener"
-          class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
-        >
-          <.icon name="hero-code-bracket" class="size-4 text-zinc-500" /> GitHub
-        </a>
-
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-lime-300/20 text-xs font-semibold text-lime-300 ring-1 ring-lime-300/30">
+            {String.at(@current_user.name || @current_user.email, 0) |> String.upcase()}
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-sm font-medium text-white">{@current_user.name}</span>
+          </span>
+          <.icon name="hero-chevron-down" class="size-4 shrink-0 text-zinc-500" />
+        </button>
         <div
-          :if={@current_user != nil and @mode != :local}
-          class="relative mt-1"
-          id="sidebar-user-menu"
+          id="sidebar-user-popover"
+          phx-click-away={JS.hide(to: "#sidebar-user-popover")}
+          class="hidden absolute bottom-20 right-4 z-50 w-56 rounded-xl border border-white/10 bg-zinc-900 p-3 shadow-2xl shadow-black/50 backdrop-blur-md"
         >
-          <button
-            type="button"
-            phx-click={JS.toggle(to: "#sidebar-user-popover")}
-            class="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/10"
+          <p class="text-sm font-semibold text-white">{@current_user.name}</p>
+          <p class="mt-0.5 text-xs text-zinc-400">{@current_user.email}</p>
+          <div class="my-2 border-t border-white/10"></div>
+          <a
+            href={~p"/auth/logout"}
+            class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-[var(--ck-danger)]"
           >
-            <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-lime-300/20 text-xs font-semibold text-lime-300 ring-1 ring-lime-300/30">
-              {String.at(@current_user.name || @current_user.email, 0) |> String.upcase()}
-            </span>
-            <span class="min-w-0 flex-1">
-              <span class="block truncate text-sm font-medium text-white">{@current_user.name}</span>
-            </span>
-            <.icon name="hero-chevron-down" class="size-4 shrink-0 text-zinc-500" />
-          </button>
-          <div
-            id="sidebar-user-popover"
-            phx-click-away={JS.hide(to: "#sidebar-user-popover")}
-            class="hidden absolute bottom-20 right-4 z-50 w-56 rounded-xl border border-white/10 bg-zinc-900 p-3 shadow-2xl shadow-black/50 backdrop-blur-md"
-          >
-            <p class="text-sm font-semibold text-white">{@current_user.name}</p>
-            <p class="mt-0.5 text-xs text-zinc-400">{@current_user.email}</p>
-            <div class="my-2 border-t border-white/10"></div>
-            <a
-              href={~p"/auth/logout"}
-              class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-[var(--ck-danger)]"
-            >
-              <.icon name="hero-arrow-right-on-rectangle" class="size-4" /> Sign out
-            </a>
-          </div>
+            <.icon name="hero-arrow-right-on-rectangle" class="size-4" /> Sign out
+          </a>
         </div>
       </div>
     </aside>
@@ -236,41 +217,61 @@ defmodule ControlKeelWeb.Layouts do
 
   ## Examples
 
-      <.breadcrumb current_path={@current_path} />
+      <.dashboard_header current_path={@current_path} />
   """
   attr :current_path, :string, default: nil
 
-  def breadcrumb(assigns) do
+  def dashboard_header(assigns) do
     assigns = assign_new(assigns, :current_path, fn -> nil end)
 
     ~H"""
-    <nav :if={@current_path && @current_path != "/"} aria-label="Breadcrumb" class="mb-4">
-      <ol class="flex items-center gap-1.5 text-sm">
-        <li>
-          <.link
-            navigate={~p"/dashboard"}
-            class="flex items-center gap-1 text-zinc-500 transition hover:text-zinc-300"
-          >
-            <.icon name="hero-home" class="size-3.5" />
-          </.link>
-        </li>
-        <%= for {label, path, final} <- breadcrumb_trail(@current_path) do %>
-          <li class="flex items-center gap-1.5">
-            <.icon name="hero-chevron-right" class="size-3 text-zinc-600" />
-            <%= if final do %>
-              <span class="font-medium text-zinc-300">{label}</span>
-            <% else %>
-              <.link
-                navigate={path}
-                class="text-zinc-500 transition hover:text-zinc-300"
-              >
-                {label}
-              </.link>
-            <% end %>
+    <div class="flex w-full items-center justify-between">
+      <nav :if={@current_path && @current_path != "/"} aria-label="Breadcrumb">
+        <ol class="flex items-center gap-1.5 text-sm">
+          <li>
+            <.link
+              navigate={~p"/dashboard"}
+              class="flex items-center gap-1 text-zinc-500 transition hover:text-zinc-300"
+            >
+              <.icon name="hero-home" class="size-3.5" />
+            </.link>
           </li>
-        <% end %>
-      </ol>
-    </nav>
+          <%= for {label, path, final} <- breadcrumb_trail(@current_path) do %>
+            <li class="flex items-center gap-1.5">
+              <.icon name="hero-chevron-right" class="size-3 text-zinc-600" />
+              <%= if final do %>
+                <span class="font-medium text-zinc-300">{label}</span>
+              <% else %>
+                <.link
+                  navigate={path}
+                  class="text-zinc-500 transition hover:text-zinc-300"
+                >
+                  {label}
+                </.link>
+              <% end %>
+            </li>
+          <% end %>
+        </ol>
+      </nav>
+      <div class="flex items-center gap-2">
+        <a
+          href={~p"/getting-started"}
+          target="_blank"
+          rel="noopener"
+          class="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
+        >
+          <.icon name="hero-book-open" class="size-4 text-zinc-500" /> Docs
+        </a>
+        <a
+          href="https://github.com/aryaminus/controlkeel"
+          target="_blank"
+          rel="noopener"
+          class="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
+        >
+          <.icon name="hero-code-bracket" class="size-4 text-zinc-500" /> GitHub
+        </a>
+      </div>
+    </div>
     """
   end
 
