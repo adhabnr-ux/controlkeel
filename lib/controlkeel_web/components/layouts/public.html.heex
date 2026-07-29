@@ -19,18 +19,14 @@
         >
           GitHub
         </a>
-        <%!-- TODO: temporary until auth gating is added in a future PR --%>
-        <a href={~p"/dashboard"} class="text-zinc-400 transition hover:text-white">
-          Dashboard
-        </a>
+        <%= if ControlKeel.Runtime.Mode.current() == :local do %>
+          <a href={~p"/dashboard"} class="text-zinc-400 transition hover:text-white">
+            Dashboard
+          </a>
+        <% end %>
         <%= if ControlKeel.Runtime.Mode.current() != :local do %>
           <%= if @current_user do %>
-            <a
-              href={~p"/auth/logout"}
-              class="rounded-full border border-white/15 px-4 py-1.5 text-sm font-semibold text-zinc-300 transition hover:bg-white/10 hover:text-white"
-            >
-              Sign out
-            </a>
+            <.user_menu id="public-user-menu" current_user={@current_user} compact show_dashboard />
           <% else %>
             <a
               href={~p"/auth/login"}

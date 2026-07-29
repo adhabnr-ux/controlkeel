@@ -127,41 +127,89 @@ defmodule ControlKeelWeb.Layouts do
         </a>
       </nav>
 
-      <div
+      <.user_menu
         :if={@current_user != nil and @mode != :local}
-        class="relative mt-3 border-t border-white/10 pt-3"
         id="sidebar-user-menu"
+        current_user={@current_user}
+        class="mt-3 border-t border-white/10 pt-3"
+        popover_class="bottom-20 right-4"
+      />
+    </aside>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :current_user, :any, required: true
+  attr :compact, :boolean, default: false
+  attr :show_dashboard, :boolean, default: false
+  attr :class, :string, default: ""
+  attr :popover_class, :string, default: "right-0 top-full mt-2"
+  attr :rest, :global
+
+  def user_menu(assigns) do
+    ~H"""
+    <div {@rest} class={"relative #{@class}"} id={@id}>
+      <button
+        type="button"
+        phx-click={JS.toggle(to: "##{@id}-popover")}
+        class={[
+          "transition hover:bg-white/10",
+          if(@compact,
+            do:
+              "flex items-center gap-2 rounded-full px-1 py-1 text-sm font-semibold text-zinc-300 hover:text-white",
+            else: "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left"
+          )
+        ]}
       >
-        <button
-          type="button"
-          phx-click={JS.toggle(to: "#sidebar-user-popover")}
-          class="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/10"
-        >
-          <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-lime-300/20 text-xs font-semibold text-lime-300 ring-1 ring-lime-300/30">
-            {String.at(@current_user.name || @current_user.email, 0) |> String.upcase()}
-          </span>
+        <span class={[
+          "flex shrink-0 items-center justify-center rounded-full bg-lime-300/20 font-semibold text-lime-300",
+          if(@compact, do: "size-8", else: "size-8 text-sm ring-1 ring-lime-300/30")
+        ]}>
+          {String.at(@current_user.name || @current_user.email, 0) |> String.upcase()}
+        </span>
+        <%= unless @compact do %>
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-sm font-medium text-white">{@current_user.name}</span>
+            <span class="block truncate text-sm font-medium text-white">
+              {@current_user.name || @current_user.email}
+            </span>
           </span>
           <.icon name="hero-chevron-down" class="size-4 shrink-0 text-zinc-500" />
-        </button>
-        <div
-          id="sidebar-user-popover"
-          phx-click-away={JS.hide(to: "#sidebar-user-popover")}
-          class="hidden absolute bottom-20 right-4 z-50 w-56 rounded-xl border border-white/10 bg-zinc-900 p-3 shadow-2xl shadow-black/50 backdrop-blur-md"
-        >
-          <p class="text-sm font-semibold text-white">{@current_user.name}</p>
-          <p class="mt-0.5 text-xs text-zinc-400">{@current_user.email}</p>
-          <div class="my-2 border-t border-white/10"></div>
+        <% end %>
+      </button>
+      <div
+        id={"#{@id}-popover"}
+        phx-click-away={JS.hide(to: "##{@id}-popover")}
+        class={"hidden absolute #{@popover_class} z-50 w-56 rounded-xl border border-white/10 bg-zinc-900 p-3 shadow-2xl shadow-black/50 backdrop-blur-md"}
+      >
+        <p class="text-sm font-semibold text-white">{@current_user.name || @current_user.email}</p>
+        <p class="mt-0.5 text-xs text-zinc-400">{@current_user.email}</p>
+        <div class="my-2 border-t border-white/10"></div>
+        <%= if @show_dashboard do %>
           <a
-            href={~p"/auth/logout"}
-            class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-[var(--ck-danger)]"
+            href={~p"/dashboard"}
+            phx-click={JS.hide(to: "##{@id}-popover")}
+            class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
           >
-            <.icon name="hero-arrow-right-on-rectangle" class="size-4" /> Sign out
+            <.icon name="hero-squares-2x2" class="size-4" /> Dashboard
           </a>
-        </div>
+        <% end %>
+        <%!-- TODO: wire up to user settings modal/dialog --%>
+        <button
+          type="button"
+          phx-click={JS.hide(to: "##{@id}-popover")}
+          class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white"
+        >
+          <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+        </button>
+        <hr class="my-2 border-t border-white/10" />
+        <a
+          href={~p"/auth/logout"}
+          class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-zinc-400 transition hover:bg-white/10 hover:text-[var(--ck-danger)]"
+        >
+          <.icon name="hero-arrow-right-on-rectangle" class="size-4" /> Sign out
+        </a>
       </div>
-    </aside>
+    </div>
     """
   end
 
@@ -225,7 +273,7 @@ defmodule ControlKeelWeb.Layouts do
     assigns = assign_new(assigns, :current_path, fn -> nil end)
 
     ~H"""
-    <div class="flex w-full items-center justify-between">
+    <div class="mb-4 flex w-full items-center justify-between border-b border-white/10 pb-2">
       <nav :if={@current_path && @current_path != "/"} aria-label="Breadcrumb">
         <ol class="flex items-center gap-1.5 text-sm">
           <li>
@@ -315,7 +363,14 @@ defmodule ControlKeelWeb.Layouts do
   defp segment_name(segment) do
     segment
     |> String.replace("-", " ")
-    |> String.capitalize()
+    |> title_case()
+  end
+
+  defp title_case(string) do
+    string
+    |> String.split(" ")
+    |> Enum.map(&String.capitalize/1)
+    |> Enum.join(" ")
   end
 
   # Active-link class for the observability subnav. `path == current_path`
