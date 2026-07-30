@@ -168,7 +168,8 @@ defmodule ControlKeelWeb.Layouts do
             <.icon name="hero-squares-2x2" class="size-4" /> Dashboard
           </a>
         <% end %>
-        <%!-- TODO: wire up to user settings modal/dialog --%>
+        <%!-- TODO: Settings button disabled — it was a no-op that only closed the
+             popover. Re-enable and wire to a user settings modal/dialog when functional.
         <button
           type="button"
           phx-click={JS.hide(to: "##{@id}-popover")}
@@ -176,7 +177,8 @@ defmodule ControlKeelWeb.Layouts do
         >
           <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
         </button>
-        <hr class="my-2 border-t" />
+         <hr class="my-2 border-t" />
+        --%>
         <a
           href={~p"/auth/logout"}
           class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-[var(--ck-danger)]"
