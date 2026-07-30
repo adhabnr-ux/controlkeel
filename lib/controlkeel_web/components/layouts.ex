@@ -29,7 +29,7 @@ defmodule ControlKeelWeb.Layouts do
     assigns = assign_new(assigns, :mode, fn -> ControlKeel.Runtime.Mode.current() end)
 
     ~H"""
-    <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r bg-sidebar px-4 py-5 shadow-2xl shadow-black/30 lg:flex">
+    <aside class="hidden h-screen w-64 flex-col border-r bg-sidebar px-4 py-5 shadow-2xl shadow-black/30 lg:flex">
       <a href={~p"/dashboard"} class="flex items-center gap-3 rounded-2xl px-2 py-1.5">
         <span class="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
           <.icon name="hero-bolt-solid" class="size-5" />
@@ -48,6 +48,25 @@ defmodule ControlKeelWeb.Layouts do
           </a>
         <% end %>
       </nav>
+
+      <div class="mt-3 flex flex-col gap-1 border-t pt-3">
+        <a
+          href={~p"/getting-started"}
+          target="_blank"
+          rel="noopener"
+          class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+        >
+          <.icon name="hero-book-open" class="size-4" /> Docs
+        </a>
+        <a
+          href="https://github.com/aryaminus/controlkeel"
+          target="_blank"
+          rel="noopener"
+          class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+        >
+          <.icon name="hero-code-bracket" class="size-4" /> GitHub
+        </a>
+      </div>
 
       <.user_menu
         :if={@current_user != nil and @mode != :local}
@@ -229,7 +248,7 @@ defmodule ControlKeelWeb.Layouts do
     assigns = assign_new(assigns, :current_path, fn -> nil end)
 
     ~H"""
-    <div class="mb-4 flex w-full items-center justify-between border-b pb-2">
+    <div class="w-full border-b p-4">
       <nav :if={@current_path && @current_path != "/"} aria-label="Breadcrumb">
         <ol class="flex items-center gap-1.5 text-sm">
           <li>
@@ -257,24 +276,6 @@ defmodule ControlKeelWeb.Layouts do
           <% end %>
         </ol>
       </nav>
-      <div class="flex items-center gap-2">
-        <a
-          href={~p"/getting-started"}
-          target="_blank"
-          rel="noopener"
-          class="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <.icon name="hero-book-open" class="size-4 text-muted-foreground" /> Docs
-        </a>
-        <a
-          href="https://github.com/aryaminus/controlkeel"
-          target="_blank"
-          rel="noopener"
-          class="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <.icon name="hero-code-bracket" class="size-4 text-muted-foreground" /> GitHub
-        </a>
-      </div>
     </div>
     """
   end

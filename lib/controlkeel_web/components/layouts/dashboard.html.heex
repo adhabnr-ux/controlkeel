@@ -1,10 +1,13 @@
-<div>
+<div class="h-screen flex overflow-hidden">
   <.sidebar current_user={@current_user} current_path={@current_path} />
 
-  <div class="lg:pl-64">
-    <main class="min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 lg:px-8">
-      <.dashboard_header current_path={@current_path} />
-      {@inner_content}
+  <div class="flex flex-1 flex-col overflow-hidden">
+    <.dashboard_header current_path={@current_path} />
+
+    <main class="flex-1 overflow-y-auto">
+      <div class="px-4 py-6 sm:px-6 lg:px-8">
+        {@inner_content}
+      </div>
     </main>
   </div>
 </div>
