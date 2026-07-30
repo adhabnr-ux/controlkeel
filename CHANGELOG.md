@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.83 — 2026-07-30
+
+### What's changed
+
+- Merge pull request #52 from aryaminus/refactor/layout-and-style
+- refactor/layout-and-style: update Tailwind @apply guidelines and disable non-functional settings button in navigation layout
+- refactor/layout-and-style: update observability layouts to use a flexbox shell with a dashboard header and scrollable content area
+- refactor/layout-and-style: migrate sidebar and header layout to persistent dashboard structure with added status color variables
+- refactor/layout-and-style: dynamic sidebar navigation with active path highlighting
+- refactor/layout-and-style: standardize UI components and Tailwind classes by migrating to theme-based semantic colors
+- refactor/layout-and-style: remove redundant border color classes from UI components across the codebase
+- refactor/layout-and-style: migrate tailwind utility classes from raw CSS variables to semantic theme aliases
+- refactor/layout-and-style: migrate UI to standard CSS variables for theme consistency across all live views and components
+- refactor/layout-and-style: replace custom component classes with inline Tailwind utility classes across LiveView templates
+- refactor/layout-and-style: simplify UI theme by replacing complex radial gradients with static variables and colors
+
 ## v0.3.82 — 2026-07-30
 
 ### What's changed
