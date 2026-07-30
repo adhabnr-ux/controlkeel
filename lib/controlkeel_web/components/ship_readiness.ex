@@ -14,9 +14,9 @@ defmodule ControlKeelWeb.ShipReadiness do
 
   def ship_readiness(assigns) do
     ~H"""
-    <div class="p-6 rounded-3xl border border-white/10 bg-zinc-900/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6">
-      <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/5">
-        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+    <div class="p-6 rounded-3xl border bg-card/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
           Ship readiness
         </p>
         <span class={[
@@ -27,56 +27,56 @@ defmodule ControlKeelWeb.ShipReadiness do
         </span>
       </div>
 
-      <p class="text-sm text-zinc-400 mt-4">
+      <p class="text-sm text-muted-foreground mt-4">
         {get_in(@improvement_loop || %{}, ["bottleneck_summary", "recommendation"])}
       </p>
-      <p class="text-xs text-zinc-500 mt-1">
+      <p class="text-xs text-muted-foreground mt-1">
         Next: {get_in(@improvement_loop || %{}, ["recommended_next_step"]) || "—"}
       </p>
 
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-5">
-        <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <div class="p-4 rounded-2xl border bg-card">
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Proof-backed tasks
           </p>
           <strong class="block mt-1">
             {format_percent(@outcome_metrics.proof_backed_task_coverage_percent)}
           </strong>
         </div>
-        <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <div class="p-4 rounded-2xl border bg-card">
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Deploy-ready rate
           </p>
           <strong class="block mt-1">
             {format_percent(@outcome_metrics.deploy_ready_task_rate_percent)}
           </strong>
         </div>
-        <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <div class="p-4 rounded-2xl border bg-card">
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Cost / deploy-ready
           </p>
           <strong class="block mt-1">
             {format_cost(@outcome_metrics.cost_per_deploy_ready_task_cents)}
           </strong>
         </div>
-        <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <div class="p-4 rounded-2xl border bg-card">
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             First deploy-ready proof
           </p>
           <strong class="block mt-1">
             {format_duration(@outcome_metrics.average_time_to_first_deploy_ready_proof_seconds)}
           </strong>
         </div>
-        <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <div class="p-4 rounded-2xl border bg-card">
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Risky interventions
           </p>
           <strong class="block mt-1">
             {format_percent(@outcome_metrics.risky_intervention_rate_percent)}
           </strong>
         </div>
-        <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <div class="p-4 rounded-2xl border bg-card">
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Resume success
           </p>
           <strong class="block mt-1">
@@ -86,36 +86,36 @@ defmodule ControlKeelWeb.ShipReadiness do
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-        <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-zinc-500 mb-2">
+        <div class="p-4 rounded-2xl border bg-card">
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
             Autonomy posture
           </p>
-          <p class="text-sm text-zinc-200">{@autonomy_profile["label"]}</p>
-          <p class="text-xs text-zinc-500 mt-1">
+          <p class="text-sm text-foreground">{@autonomy_profile["label"]}</p>
+          <p class="text-xs text-muted-foreground mt-1">
             {@autonomy_profile["human_role"]} · {@autonomy_profile["operator_posture"]}
           </p>
         </div>
-        <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-zinc-500 mb-2">
+        <div class="p-4 rounded-2xl border bg-card">
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
             Outcome alignment
           </p>
-          <p class="text-sm text-zinc-200">
+          <p class="text-sm text-foreground">
             {@outcome_profile["label"]} · {@outcome_profile["status"]}
           </p>
-          <p class="text-xs text-zinc-500 mt-1 truncate">{@outcome_profile["target"]}</p>
+          <p class="text-xs text-muted-foreground mt-1 truncate">{@outcome_profile["target"]}</p>
         </div>
       </div>
 
       <%= if @agent_outcomes != [] do %>
         <div class="mt-5">
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-zinc-500 mb-2">
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
             Task completion by agent
           </p>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <%= for row <- @agent_outcomes do %>
-              <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
-                <p class="text-sm font-semibold text-zinc-200">{row.agent}</p>
-                <p class="text-xs text-zinc-500 mt-1">
+              <div class="p-4 rounded-2xl border bg-card">
+                <p class="text-sm font-semibold text-foreground">{row.agent}</p>
+                <p class="text-xs text-muted-foreground mt-1">
                   {row.completed_tasks}/{row.total_tasks} done · {format_percent(
                     row.completion_rate_percent
                   )} · {row.deploy_ready_tasks} deploy-ready
@@ -130,15 +130,17 @@ defmodule ControlKeelWeb.ShipReadiness do
   end
 
   defp verdict_badge_class("ready"),
-    do: "bg-emerald-400/15 text-emerald-300 border-emerald-400/30"
+    do: "bg-[var(--ck-success)]/15 text-[var(--ck-success)] border-[var(--ck-success)]/30"
 
   defp verdict_badge_class("blocked"),
-    do: "bg-red-400/15 text-red-300 border-red-400/30"
+    do: "bg-destructive/15 text-destructive border-destructive/30"
 
+  # No design token for the in-progress/info state; kept blue pending an info token.
   defp verdict_badge_class("progress"),
-    do: "bg-blue-400/15 text-blue-300 border-blue-400/30"
+    do: "bg-info/15 text-info border-info/30"
 
-  defp verdict_badge_class(_), do: "bg-amber-400/15 text-amber-300 border-amber-400/30"
+  defp verdict_badge_class(_),
+    do: "bg-[var(--ck-warning)]/15 text-[var(--ck-warning)] border-[var(--ck-warning)]/30"
 
   defp format_percent(nil), do: "Not enough data"
   defp format_percent(value), do: "#{value}%"

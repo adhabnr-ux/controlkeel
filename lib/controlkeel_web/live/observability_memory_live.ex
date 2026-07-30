@@ -32,12 +32,12 @@ defmodule ControlKeelWeb.ObservabilityMemoryLive do
     ~H"""
     <section
       id="observability-memory-page"
-      class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Context and memory</h1>
-          <p class="text-[var(--ck-muted)] text-sm mt-1">
+          <h1 class="text-xl font-semibold text-primary">Context and memory</h1>
+          <p class="text-muted-foreground text-sm mt-1">
             Summary-only memory and context posture for {@memory_context.session.title}.
           </p>
         </div>
@@ -51,39 +51,39 @@ defmodule ControlKeelWeb.ObservabilityMemoryLive do
       <CommandPill.command_pill command={"controlkeel obs memory #{@memory_context.session.id}"} />
 
       <div id="observability-memory-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Memory</p>
-          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Memory</p>
+          <p class="text-2xl font-semibold">
             {@memory_context.memory.active} active
           </p>
-          <p class="text-[var(--ck-muted)] text-xs">
+          <p class="text-muted-foreground text-xs">
             {@memory_context.memory.archived} archived / {@memory_context.memory.count} recent
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Context</p>
-          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Context</p>
+          <p class="text-2xl font-semibold">
             {@memory_context.context.tasks} task(s)
           </p>
-          <p class="text-[var(--ck-muted)] text-xs">
+          <p class="text-muted-foreground text-xs">
             {@memory_context.context.findings} finding(s), {@memory_context.context.reviews} review(s)
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Types</p>
-          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Types</p>
+          <p class="text-2xl font-semibold">
             {map_size(@memory_context.memory.by_type)}
           </p>
-          <p class="text-[var(--ck-muted)] text-xs">
+          <p class="text-muted-foreground text-xs">
             {format_frequency(@memory_context.memory.by_type)}
           </p>
         </div>
-        <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Sources</p>
-          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Sources</p>
+          <p class="text-2xl font-semibold">
             {map_size(@memory_context.memory.by_source)}
           </p>
-          <p class="text-[var(--ck-muted)] text-xs">
+          <p class="text-muted-foreground text-xs">
             {format_frequency(@memory_context.memory.by_source)}
           </p>
         </div>
@@ -91,12 +91,12 @@ defmodule ControlKeelWeb.ObservabilityMemoryLive do
 
       <%= if @memory_context.recommendations != [] do %>
         <div id="observability-memory-recommendations" class="space-y-2">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Recommended next actions
           </p>
           <ul class="list-disc pl-5">
             <%= for recommendation <- @memory_context.recommendations do %>
-              <li class="text-[var(--ck-muted)] text-sm leading-relaxed">{recommendation}</li>
+              <li class="text-muted-foreground text-sm leading-relaxed">{recommendation}</li>
             <% end %>
           </ul>
         </div>
@@ -104,40 +104,40 @@ defmodule ControlKeelWeb.ObservabilityMemoryLive do
 
       <div id="observability-memory-records" class="space-y-3">
         <div class="flex items-center justify-between gap-4">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Recent memory records
           </p>
           <.link
             navigate={~p"/observability/memory-quality"}
-            class="text-sm text-[var(--ck-lime)] font-semibold hover:opacity-80 transition-opacity"
+            class="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
           >
             Memory quality →
           </.link>
         </div>
         <div class="space-y-3 max-h-[550px] overflow-y-auto pr-1">
           <%= if @memory_context.memory.recent == [] do %>
-            <p class="text-[var(--ck-muted)] text-sm">
+            <p class="text-muted-foreground text-sm">
               No memory records are available for this session.
             </p>
           <% else %>
             <%= for record <- @memory_context.memory.recent do %>
               <div
                 id={"observability-memory-record-#{record.id}"}
-                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+                class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-1"
               >
                 <div class="flex items-center justify-between gap-4">
                   <div>
-                    <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
                       {record.record_type}
                     </p>
-                    <p class="text-sm font-semibold text-[var(--ck-text)]">{record.title}</p>
+                    <p class="text-sm font-semibold">{record.title}</p>
                   </div>
                   <span class={neutral_pill_class()}>
                     {if record.archived, do: "archived", else: "active"}
                   </span>
                 </div>
-                <p class="text-sm text-[var(--ck-text)] leading-relaxed">{record.summary}</p>
-                <p class="text-[var(--ck-muted)] text-xs">
+                <p class="text-sm leading-relaxed">{record.summary}</p>
+                <p class="text-muted-foreground text-xs">
                   Source: {record.source_type || "unknown"} · Tags: {Enum.join(record.tags, ", ")}
                 </p>
               </div>

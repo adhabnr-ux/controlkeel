@@ -345,15 +345,15 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
     <section class="mx-auto max-w-7xl px-4 py-8 md:py-12">
       <div class="mb-6 flex items-center justify-between gap-4">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             {@org.name}
           </p>
           <%= if @local_mode do %>
-            <p class="mt-2 text-sm text-zinc-400">
+            <p class="mt-2 text-sm text-muted-foreground">
               View your organization details below. Member management is not available in local mode.
             </p>
           <% else %>
-            <p class="mt-2 text-sm text-zinc-400">
+            <p class="mt-2 text-sm text-muted-foreground">
               Invite teammates and manage roles. Owners can promote and demote; the last owner is protected.
             </p>
           <% end %>
@@ -364,7 +364,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
             <button
               type="button"
               phx-click="open_settings"
-              class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
+              class="inline-flex items-center gap-2 rounded-full border border-input bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted/[0.08] hover:text-foreground"
             >
               <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
             </button>
@@ -374,7 +374,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
               <button
                 type="button"
                 phx-click="open_invite"
-                class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
+                class="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary"
               >
                 <.icon name="hero-plus" class="size-4" /> Invite member
               </button>
@@ -384,54 +384,64 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
       </div>
 
       <%= if @invite_token do %>
-        <div class="mb-6 rounded-2xl border border-lime-300/30 bg-lime-300/5 p-5">
-          <p class="text-sm font-medium text-lime-200">
+        <div class="mb-6 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+          <p class="text-sm font-medium text-primary">
             Invitation token issued. Send this link to the invitee — the token will not be shown again.
           </p>
-          <pre class="mt-2 rounded-lg bg-black/30 px-4 py-2 font-mono text-xs text-zinc-300"><code id="invite-token-value">/invitations/{@invite_token}</code></pre>
+          <pre class="mt-2 rounded-lg bg-overlay/30 px-4 py-2 font-mono text-xs text-muted-foreground"><code id="invite-token-value">/invitations/{@invite_token}</code></pre>
           <button
             type="button"
             phx-click="dismiss-token"
-            class="mt-3 text-xs font-medium text-zinc-400 transition hover:text-white"
+            class="mt-3 text-xs font-medium text-muted-foreground transition hover:text-foreground"
           >
             Dismiss
           </button>
         </div>
       <% end %>
 
-      <section class="mb-6 rounded-3xl border border-white/10 bg-zinc-900/70 p-6 shadow-2xl shadow-black/20 backdrop-blur">
+      <section class="mb-6 rounded-3xl border bg-card/70 p-6 shadow-2xl shadow-black/20 backdrop-blur">
         <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Name</dt>
-            <dd class="mt-1 text-sm text-white">{@org.name}</dd>
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Name
+            </dt>
+            <dd class="mt-1 text-sm text-foreground">{@org.name}</dd>
           </div>
           <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Slug</dt>
-            <dd class="mt-1 font-mono text-sm text-zinc-300">{@org.slug}</dd>
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Slug
+            </dt>
+            <dd class="mt-1 font-mono text-sm text-muted-foreground">{@org.slug}</dd>
           </div>
           <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Status</dt>
-            <dd class="mt-1 text-sm capitalize text-white">{@org.status}</dd>
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Status
+            </dt>
+            <dd class="mt-1 text-sm capitalize text-foreground">{@org.status}</dd>
           </div>
           <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Members</dt>
-            <dd class="mt-1 text-sm text-white">{@member_count}</dd>
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Members
+            </dt>
+            <dd class="mt-1 text-sm text-foreground">{@member_count}</dd>
           </div>
           <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Monthly budget
             </dt>
-            <dd class="mt-1 text-sm text-white">
+            <dd class="mt-1 text-sm text-foreground">
               <%= if @budget_cents > 0 do %>
                 {"$#{Float.round(@budget_cents / 100, 2)}"}
               <% else %>
-                <span class="text-zinc-500">—</span>
+                <span class="text-muted-foreground">—</span>
               <% end %>
             </dd>
           </div>
           <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Created</dt>
-            <dd class="mt-1 text-sm text-white">
+            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Created
+            </dt>
+            <dd class="mt-1 text-sm text-foreground">
               {Calendar.strftime(@org.inserted_at, "%b %d, %Y")}
             </dd>
           </div>
@@ -439,20 +449,20 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
       </section>
 
       <%= if @local_mode do %>
-        <section class="rounded-3xl border border-white/10 bg-zinc-900/70 p-12 text-center shadow-2xl shadow-black/20 backdrop-blur">
-          <.icon name="hero-users" class="mx-auto size-10 text-zinc-600" />
-          <p class="mt-4 text-base font-medium text-white">
+        <section class="rounded-3xl border bg-card/70 p-12 text-center shadow-2xl shadow-black/20 backdrop-blur">
+          <.icon name="hero-users" class="mx-auto size-10 text-muted-foreground" />
+          <p class="mt-4 text-base font-medium text-foreground">
             Member management is not available in local mode.
           </p>
-          <p class="mt-1 text-sm text-zinc-500">
+          <p class="mt-1 text-sm text-muted-foreground">
             Switch to cloud or self-hosted mode to invite teammates and manage roles.
           </p>
         </section>
       <% else %>
-        <section class="rounded-3xl border border-white/10 bg-zinc-900/70 shadow-2xl shadow-black/20 backdrop-blur">
+        <section class="rounded-3xl border bg-card/70 shadow-2xl shadow-black/20 backdrop-blur">
           <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-white/10 text-left text-sm">
-              <thead class="bg-white/[0.03] text-xs uppercase tracking-[0.14em] text-zinc-500">
+            <table class="min-w-full divide-y divide-border text-left text-sm">
+              <thead class="bg-muted/[0.03] text-xs uppercase tracking-[0.14em] text-muted-foreground">
                 <tr>
                   <th class="px-5 py-3 font-semibold">Email</th>
                   <th class="px-5 py-3 font-semibold">Role</th>
@@ -460,12 +470,12 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                   <th class="px-5 py-3 font-semibold"></th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-white/10">
+              <tbody class="divide-y divide-border">
                 <%= if @memberships == [] do %>
                   <tr>
                     <td colspan="4" class="px-5 py-12 text-center">
-                      <p class="text-base font-medium text-white">No members yet.</p>
-                      <p class="mt-1 text-sm text-zinc-500">
+                      <p class="text-base font-medium text-foreground">No members yet.</p>
+                      <p class="mt-1 text-sm text-muted-foreground">
                         Invite teammates to collaborate on this organization.
                       </p>
                     </td>
@@ -475,15 +485,15 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                     <tr
                       id={"membership-#{m.id}"}
                       class={[
-                        "transition hover:bg-white/[0.03]",
-                        @current_user && m.user_id == @current_user.id && "bg-lime-300/5"
+                        "transition hover:bg-muted/[0.03]",
+                        @current_user && m.user_id == @current_user.id && "bg-primary/5"
                       ]}
                     >
-                      <td class="px-5 py-4 font-medium text-white">
+                      <td class="px-5 py-4 font-medium text-foreground">
                         <div class="flex items-center gap-2">
                           {(m.user && m.user.email) || "—"}
                           <%= if @current_user && m.user_id == @current_user.id do %>
-                            <span class="rounded-full bg-lime-300/10 px-2 py-0.5 text-xs font-medium text-lime-300">
+                            <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                               you
                             </span>
                           <% end %>
@@ -500,10 +510,10 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                               name="role"
                               disabled={state.disabled}
                               class={[
-                                "rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1",
+                                "rounded-lg border bg-card px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1",
                                 if(state.disabled,
-                                  do: "cursor-not-allowed text-zinc-500 opacity-60",
-                                  else: "text-white focus:border-lime-300 focus:ring-lime-300"
+                                  do: "cursor-not-allowed text-muted-foreground opacity-60",
+                                  else: "text-foreground focus:border-primary focus:ring-primary"
                                 )
                               ]}
                             >
@@ -517,16 +527,17 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                             </select>
                           </form>
                         <% else %>
-                          <span class="text-sm text-zinc-400">{m.role}</span>
+                          <span class="text-sm text-muted-foreground">{m.role}</span>
                         <% end %>
                       </td>
                       <td class="px-5 py-4">
                         <span class={[
                           "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
                           m.status == "active" &&
-                            "bg-emerald-300/10 text-emerald-200 ring-emerald-200/20",
-                          m.status == "pending" && "bg-amber-300/10 text-amber-200 ring-amber-200/20",
-                          m.status == "revoked" && "bg-zinc-400/10 text-zinc-400 ring-zinc-500/20"
+                            "bg-[var(--ck-success)]/10 text-[var(--ck-success)] ring-[var(--ck-success)]/20",
+                          m.status == "pending" &&
+                            "bg-[var(--ck-warning)]/10 text-[var(--ck-warning)] ring-[var(--ck-warning)]/20",
+                          m.status == "revoked" && "bg-muted/10 text-muted-foreground ring-border"
                         ]}>
                           {m.status}
                         </span>
@@ -537,7 +548,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                             type="button"
                             phx-click="confirm_revoke"
                             phx-value-membership-id={m.id}
-                            class="text-sm font-medium text-red-400 transition hover:text-red-300"
+                            class="text-sm font-medium text-destructive transition hover:text-destructive"
                           >
                             Revoke
                           </button>
@@ -575,23 +586,23 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
           phx-remove={Phoenix.LiveView.JS.hide(to: "#revoke-member-modal")}
         >
           <div
-            class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+            class="fixed inset-0 bg-overlay/70 backdrop-blur-sm transition-opacity"
             phx-click="cancel_revoke"
             aria-label="Close modal"
           />
 
           <div class="fixed inset-0 flex items-center justify-center p-4">
-            <div class="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900/95 p-6 shadow-2xl shadow-black/50">
+            <div class="w-full max-w-md rounded-2xl border bg-card/95 p-6 shadow-2xl shadow-black/50">
               <div class="mb-5 flex items-center gap-3">
-                <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-500/15">
-                  <.icon name="hero-exclamation-triangle" class="size-5 text-red-400" />
+                <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/15">
+                  <.icon name="hero-exclamation-triangle" class="size-5 text-destructive" />
                 </span>
-                <h2 class="text-lg font-semibold text-white">Revoke membership</h2>
+                <h2 class="text-lg font-semibold text-foreground">Revoke membership</h2>
               </div>
 
               <%= if @revoke_is_last_owner do %>
-                <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                  <p class="text-sm text-amber-200">
+                <div class="rounded-xl border border-[var(--ck-warning)]/30 bg-[var(--ck-warning)]/5 p-4">
+                  <p class="text-sm text-[var(--ck-warning)]">
                     <strong>You are the only owner of this organization.</strong>
                     You cannot revoke your own membership without transferring ownership to another member first.
                   </p>
@@ -600,7 +611,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                   <button
                     type="button"
                     phx-click="cancel_revoke"
-                    class="rounded-full bg-white/5 px-5 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                    class="rounded-full bg-muted px-5 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
                   >
                     Close
                   </button>
@@ -608,28 +619,29 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
               <% else %>
                 <div class="space-y-3">
                   <%= if @revoke_is_self do %>
-                    <p class="text-sm text-zinc-300">
-                      You are about to <strong class="text-white">revoke your own membership</strong>
-                      in <strong class="text-white">{@org.name}</strong>.
+                    <p class="text-sm text-muted-foreground">
+                      You are about to
+                      <strong class="text-foreground">revoke your own membership</strong>
+                      in <strong class="text-foreground">{@org.name}</strong>.
                       You will lose access to this organization immediately.
                     </p>
                   <% else %>
-                    <p class="text-sm text-zinc-300">
-                      You are about to revoke membership for <strong class="text-white">{@revoke_target.user && @revoke_target.user.email}</strong>.
-                      They will lose access to <strong class="text-white">{@org.name}</strong>
+                    <p class="text-sm text-muted-foreground">
+                      You are about to revoke membership for <strong class="text-foreground">{@revoke_target.user && @revoke_target.user.email}</strong>.
+                      They will lose access to <strong class="text-foreground">{@org.name}</strong>
                       immediately.
                     </p>
                   <% end %>
-                  <p class="text-xs text-zinc-500">
+                  <p class="text-xs text-muted-foreground">
                     This action can be undone by re-inviting the member later.
                   </p>
                 </div>
 
-                <div class="mt-6 flex items-center justify-end gap-3 border-t border-white/10 pt-4">
+                <div class="mt-6 flex items-center justify-end gap-3 border-t pt-4">
                   <button
                     type="button"
                     phx-click="cancel_revoke"
-                    class="rounded-full px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-white"
+                    class="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
                   >
                     Cancel
                   </button>
@@ -637,7 +649,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                     type="button"
                     phx-click="execute_revoke"
                     phx-value-membership-id={@revoke_target.id}
-                    class="inline-flex items-center gap-2 rounded-full bg-red-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-500/20 transition hover:-translate-y-0.5 hover:bg-red-400"
+                    class="inline-flex items-center gap-2 rounded-full bg-destructive px-5 py-2 text-sm font-semibold text-foreground shadow-lg shadow-destructive/20 transition hover:-translate-y-0.5 hover:bg-destructive"
                   >
                     <.icon name="hero-trash" class="size-4" />
                     {if @revoke_is_self, do: "Revoke my membership", else: "Revoke membership"}
@@ -665,19 +677,19 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
       phx-remove={Phoenix.LiveView.JS.hide(to: "#invite-member-modal")}
     >
       <div
-        class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+        class="fixed inset-0 bg-overlay/70 backdrop-blur-sm transition-opacity"
         phx-click="close_invite"
         aria-label="Close modal"
       />
 
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900/95 p-6 shadow-2xl shadow-black/50">
+        <div class="w-full max-w-md rounded-2xl border bg-card/95 p-6 shadow-2xl shadow-black/50">
           <div class="mb-5 flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-white">Invite member</h2>
+            <h2 class="text-lg font-semibold text-foreground">Invite member</h2>
             <button
               type="button"
               phx-click="close_invite"
-              class="rounded-md text-zinc-400 transition hover:text-white"
+              class="rounded-md text-muted-foreground transition hover:text-foreground"
               aria-label="Close"
             >
               <.icon name="hero-x-mark" class="size-5" />
@@ -691,7 +703,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
               label="Email"
               placeholder="teammate@example.com"
               required
-              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+              class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
 
             <.input
@@ -699,24 +711,24 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
               type="select"
               label="Role"
               options={@role_options}
-              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+              class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
 
             <%= if @error do %>
-              <p class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{@error}</p>
+              <p class="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{@error}</p>
             <% end %>
 
             <div class="flex items-center justify-end gap-3 pt-4">
               <button
                 type="button"
                 phx-click="close_invite"
-                class="rounded-full px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-white"
+                class="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-5 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
+                class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary"
               >
                 Send invitation
               </button>
@@ -742,19 +754,19 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
       phx-remove={Phoenix.LiveView.JS.hide(to: "#org-settings-modal")}
     >
       <div
-        class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+        class="fixed inset-0 bg-overlay/70 backdrop-blur-sm transition-opacity"
         phx-click="close_settings"
         aria-label="Close modal"
       />
 
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900/95 p-6 shadow-2xl shadow-black/50">
+        <div class="w-full max-w-md rounded-2xl border bg-card/95 p-6 shadow-2xl shadow-black/50">
           <div class="mb-5 flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-white">Settings</h2>
+            <h2 class="text-lg font-semibold text-foreground">Settings</h2>
             <button
               type="button"
               phx-click="close_settings"
-              class="rounded-md text-zinc-400 transition hover:text-white"
+              class="rounded-md text-muted-foreground transition hover:text-foreground"
               aria-label="Close"
             >
               <.icon name="hero-x-mark" class="size-5" />
@@ -767,7 +779,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
               type="text"
               label="Organization name"
               required
-              class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+              class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
 
             <div>
@@ -777,10 +789,10 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                 label="Status"
                 options={[{"active", "active"}, {"disabled", "disabled"}]}
                 disabled={!@is_owner}
-                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+                class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
               <%= unless @is_owner do %>
-                <p class="mt-1 text-xs text-zinc-500">Only owners can change status.</p>
+                <p class="mt-1 text-xs text-muted-foreground">Only owners can change status.</p>
               <% end %>
             </div>
 
@@ -790,32 +802,32 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                 type="number"
                 label="Monthly budget (cents)"
                 disabled={!@is_owner}
-                class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-lime-300 focus:outline-none focus:ring-1 focus:ring-lime-300"
+                class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
               <%= unless @is_owner do %>
-                <p class="mt-1 text-xs text-zinc-500">Only owners can change budget.</p>
+                <p class="mt-1 text-xs text-muted-foreground">Only owners can change budget.</p>
               <% end %>
             </div>
 
-            <p class="text-xs text-zinc-500">
-              Slug <code class="text-zinc-400">{@org.slug}</code> cannot be changed.
+            <p class="text-xs text-muted-foreground">
+              Slug <code class="text-muted-foreground">{@org.slug}</code> cannot be changed.
             </p>
 
             <%= if @error do %>
-              <p class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">{@error}</p>
+              <p class="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{@error}</p>
             <% end %>
 
             <div class="flex items-center justify-end gap-3 pt-4">
               <button
                 type="button"
                 phx-click="close_settings"
-                class="rounded-full px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-white"
+                class="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-5 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
+                class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary"
               >
                 Save
               </button>

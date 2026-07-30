@@ -77,12 +77,17 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="ck-shell" style="max-width: 720px; margin: 4rem auto;">
-      <div class="ck-section-header">
+    <section
+      class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-12 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6"
+      style="max-width: 720px; margin: 4rem auto;"
+    >
+      <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="ck-kicker">{@workspace.name}</p>
-          <h1 class="ck-section-title">Tool policy</h1>
-          <p class="ck-lead ck-lead-tight">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
+            {@workspace.name}
+          </p>
+          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Tool policy</h1>
+          <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
             Restrict which MCP tools agents in this workspace may invoke. <code>inherit</code>
             falls back to the global allowlist; <code>allowlist</code>
             and <code>denylist</code>
@@ -91,12 +96,16 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
         </div>
       </div>
 
-      <.form for={@form} phx-submit="submit" class="ck-card mt-6 flex flex-col gap-4">
+      <.form
+        for={@form}
+        phx-submit="submit"
+        class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6 flex flex-col gap-4"
+      >
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-1">Mode</label>
+          <label class="block text-sm font-medium text-muted-foreground mb-1">Mode</label>
           <select
             name="policy[mode]"
-            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+            class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
           >
             <%= for m <- @modes do %>
               <option value={m} selected={@form[:mode].value == m}>{m}</option>
@@ -105,16 +114,16 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-zinc-300 mb-1">
+          <label class="block text-sm font-medium text-muted-foreground mb-1">
             Tool names (one per line)
           </label>
           <textarea
             name="policy[tools]"
             rows="8"
             placeholder="ck_validate&#10;ck_finding&#10;ck_context"
-            class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white font-mono"
+            class="w-full rounded-lg border bg-card px-4 py-2 text-foreground font-mono"
           >{@form[:tools].value || ""}</textarea>
-          <p class="mt-1 text-xs text-zinc-500">
+          <p class="mt-1 text-xs text-muted-foreground">
             Used by <code>allowlist</code>
             and <code>denylist</code>
             modes. Ignored under <code>inherit</code>.
@@ -122,14 +131,14 @@ defmodule ControlKeelWeb.WorkspaceToolPolicyLive do
         </div>
 
         <%= if @error do %>
-          <p class="ck-note ck-note-danger">{@error}</p>
+          <p class="text-muted-foreground">{@error}</p>
         <% end %>
 
         <%= if @saved do %>
-          <p class="ck-note ck-note-success">Saved.</p>
+          <p class="text-muted-foreground">Saved.</p>
         <% end %>
 
-        <button type="submit" class="ck-btn ck-btn-primary self-start">Save policy</button>
+        <button type="submit" class="self-start">Save policy</button>
       </.form>
     </section>
     """

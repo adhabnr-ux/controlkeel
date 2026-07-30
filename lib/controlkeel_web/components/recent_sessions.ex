@@ -11,21 +11,21 @@ defmodule ControlKeelWeb.RecentSessions do
   def session_observability_section(assigns) do
     ~H"""
     <div id="observability-overview-run-list">
-      <p class="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--ck-lime)] mb-4">
+      <p class="text-xs font-semibold tracking-[0.14em] uppercase text-primary mb-4">
         Recent session runs
       </p>
 
       <div class="space-y-8">
         <%= if @runs == [] do %>
-          <p class="text-[var(--ck-muted)] text-sm">No sessions available yet.</p>
+          <p class="text-muted-foreground text-sm">No sessions available yet.</p>
         <% else %>
           <div class="grid gap-2">
             <%= for run <- @runs do %>
-              <div class="flex items-center justify-between gap-4 rounded-xl px-4 py-2 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] hover:bg-[rgba(255,255,255,0.03)] transition-colors">
+              <div class="flex items-center justify-between gap-4 rounded-xl px-4 py-2 border bg-[rgba(255,255,255,0.015)] hover:bg-[rgba(255,255,255,0.03)] transition-colors">
                 <div class="min-w-0 flex-1">
                   <.link
                     navigate={~p"/observability/sessions/#{run.id}"}
-                    class="text-sm font-medium text-[var(--ck-text)] hover:text-[var(--ck-lime)] transition-colors no-underline block truncate"
+                    class="text-sm font-medium hover:text-primary transition-colors no-underline block truncate"
                   >
                     {run.title}
                   </.link>

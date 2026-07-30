@@ -90,48 +90,53 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
-      <div class="ck-section-header">
+    <section
+      class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-12 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6"
+      style="max-width: 920px; margin: 4rem auto;"
+    >
+      <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="ck-kicker">{@workspace.name}</p>
-          <h1 class="ck-section-title">GitHub repositories</h1>
-          <p class="ck-lead ck-lead-tight">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
+            {@workspace.name}
+          </p>
+          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">GitHub repositories</h1>
+          <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
             Bind GitHub repos so missions, findings, and proofs can reference them.
             For governance via the GitHub App, set <code>installation_id</code>.
           </p>
         </div>
       </div>
 
-      <div class="ck-card mt-6">
-        <h2 class="ck-section-subtitle">Bind a repository</h2>
+      <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+        <h2>Bind a repository</h2>
         <.form for={@bind_form} phx-submit="bind" class="flex flex-col gap-3">
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Owner</label>
+              <label class="block text-sm font-medium text-muted-foreground mb-1">Owner</label>
               <input
                 type="text"
                 name="bind[owner]"
                 value={@bind_form[:owner].value || ""}
                 placeholder="acme"
                 required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">Repo</label>
+              <label class="block text-sm font-medium text-muted-foreground mb-1">Repo</label>
               <input
                 type="text"
                 name="bind[repo]"
                 value={@bind_form[:repo].value || ""}
                 placeholder="payments"
                 required
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
               />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">
+              <label class="block text-sm font-medium text-muted-foreground mb-1">
                 Default branch (optional)
               </label>
               <input
@@ -139,34 +144,34 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
                 name="bind[default_branch]"
                 value={@bind_form[:default_branch].value || ""}
                 placeholder="main"
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-zinc-300 mb-1">
+              <label class="block text-sm font-medium text-muted-foreground mb-1">
                 Installation ID (optional)
               </label>
               <input
                 type="number"
                 name="bind[installation_id]"
                 value={@bind_form[:installation_id].value || ""}
-                class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+                class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
               />
             </div>
           </div>
           <%= if @bind_error do %>
-            <p class="ck-note ck-note-danger">{@bind_error}</p>
+            <p class="text-muted-foreground">{@bind_error}</p>
           <% end %>
-          <button type="submit" class="ck-btn ck-btn-primary self-start">Bind repository</button>
+          <button type="submit" class="self-start">Bind repository</button>
         </.form>
       </div>
 
-      <div class="ck-card mt-6">
-        <h2 class="ck-section-subtitle">Bound repositories</h2>
+      <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+        <h2>Bound repositories</h2>
         <%= if @repos == [] do %>
-          <p class="ck-lead-tight">No repositories bound yet.</p>
+          <p class="max-w-[48rem]">No repositories bound yet.</p>
         <% else %>
-          <table class="ck-table">
+          <table>
             <thead>
               <tr>
                 <th>Owner / Repo</th>
@@ -190,7 +195,6 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
                       phx-value-owner={r.owner}
                       phx-value-repo={r.repo}
                       data-confirm={"Unbind #{r.owner}/#{r.repo}?"}
-                      class="ck-btn ck-btn-danger"
                     >
                       Unbind
                     </button>

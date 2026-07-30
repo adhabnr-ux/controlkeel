@@ -109,12 +109,17 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="ck-shell" style="max-width: 920px; margin: 4rem auto;">
-      <div class="ck-section-header">
+    <section
+      class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-12 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6"
+      style="max-width: 920px; margin: 4rem auto;"
+    >
+      <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
         <div>
-          <p class="ck-kicker">{@workspace.name}</p>
-          <h1 class="ck-section-title">Service accounts</h1>
-          <p class="ck-lead ck-lead-tight">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
+            {@workspace.name}
+          </p>
+          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Service accounts</h1>
+          <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
             Machine identities for CI, MCP, and external integrations. Tokens are shown once at creation or rotation; store them securely.
           </p>
         </div>
@@ -122,7 +127,7 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
 
       <%= if @new_token do %>
         <div
-          class="ck-card mt-6"
+          class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6"
           id="new-token-banner"
           style="border-color: rgba(190, 242, 100, 0.4);"
         >
@@ -130,27 +135,27 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
             <strong>Token for {@new_token_for}.</strong> Copy it now — it will not be shown again.
           </p>
           <pre><code id="new-token-value">{@new_token}</code></pre>
-          <button type="button" phx-click="dismiss-token" class="ck-btn ck-btn-secondary">
+          <button type="button" phx-click="dismiss-token">
             Dismiss
           </button>
         </div>
       <% end %>
 
-      <div class="ck-card mt-6">
-        <h2 class="ck-section-subtitle">Create service account</h2>
+      <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+        <h2>Create service account</h2>
         <.form for={@create_form} phx-submit="create" class="flex flex-col gap-3">
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">Name</label>
+            <label class="block text-sm font-medium text-muted-foreground mb-1">Name</label>
             <input
               type="text"
               name="sa[name]"
               value={@create_form[:name].value || ""}
               required
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-zinc-300 mb-1">
+            <label class="block text-sm font-medium text-muted-foreground mb-1">
               Scopes (space or comma separated)
             </label>
             <input
@@ -158,25 +163,25 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
               name="sa[scopes]"
               value={@create_form[:scopes].value || ""}
               placeholder="mcp:access context:read findings:write"
-              class="w-full rounded-lg border border-white/10 bg-zinc-900 px-4 py-2 text-white"
+              class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
             />
-            <p class="mt-1 text-xs text-zinc-500">
+            <p class="mt-1 text-xs text-muted-foreground">
               Use <code>admin</code> for full access, or scope strings like <code>mcp:access</code>.
             </p>
           </div>
           <%= if @create_error do %>
-            <p class="ck-note ck-note-danger">{@create_error}</p>
+            <p class="text-muted-foreground">{@create_error}</p>
           <% end %>
-          <button type="submit" class="ck-btn ck-btn-primary self-start">Create</button>
+          <button type="submit" class="self-start">Create</button>
         </.form>
       </div>
 
-      <div class="ck-card mt-6">
-        <h2 class="ck-section-subtitle">Active service accounts</h2>
+      <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
+        <h2>Active service accounts</h2>
         <%= if @accounts == [] do %>
-          <p class="ck-lead-tight">No service accounts yet.</p>
+          <p class="max-w-[48rem]">No service accounts yet.</p>
         <% else %>
-          <table class="ck-table">
+          <table>
             <thead>
               <tr>
                 <th>Name</th>
@@ -199,7 +204,6 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
                         type="button"
                         phx-click="rotate"
                         phx-value-id={sa.id}
-                        class="ck-btn ck-btn-secondary"
                       >
                         Rotate
                       </button>
@@ -208,7 +212,6 @@ defmodule ControlKeelWeb.WorkspaceServiceAccountsLive do
                         phx-click="revoke"
                         phx-value-id={sa.id}
                         data-confirm={"Revoke #{sa.name}?"}
-                        class="ck-btn ck-btn-danger"
                       >
                         Revoke
                       </button>

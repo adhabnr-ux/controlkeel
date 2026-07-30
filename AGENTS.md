@@ -109,7 +109,7 @@ Keep this root file lean: only project-specific governance, commands, and critic
       @source "../js";
       @source "../../lib/my_app_web";
 
-- Do not use `@apply` in raw CSS.
+- Do not use `@apply` in raw CSS. The only exception is `@layer base` element resets on bare selectors (`*`, `html`, `body`) for theme tokens (e.g. `border-border`, `bg-background`, `font-sans`) — the documented Tailwind idiom. Never use `@apply` to hand-roll component or utility classes; build those as real Tailwind components instead.
 - Build custom Tailwind components; do not add daisyUI.
 - Only `app.js` and `app.css` bundles are supported. Import vendor deps there; do not reference external scripts/styles from layouts.
 - Keep UI polished, responsive, accessible, and restrained. Use subtle transitions, clean spacing, and balanced typography.

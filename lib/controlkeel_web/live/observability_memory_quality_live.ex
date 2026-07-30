@@ -30,17 +30,17 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
     ~H"""
     <section
       id="observability-memory-quality"
-      class="border border-[var(--ck-stroke)] rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
+      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-xl font-semibold text-[var(--ck-lime)]">Memory quality</h1>
-          <p class="text-[var(--ck-muted)] text-sm mt-1">
+          <h1 class="text-xl font-semibold text-primary">Memory quality</h1>
+          <p class="text-muted-foreground text-sm mt-1">
             Summary-only signals for stale, duplicate, superseded, and missed workspace memory.
           </p>
         </div>
         <div class="flex items-center gap-3 shrink-0">
-          <span class="inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
             stale ≥ {@quality.stale_days} days
           </span>
         </div>
@@ -51,90 +51,92 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div
           id="observability-memory-quality-total"
-          class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
-          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Memory records
           </p>
-          <p class="text-2xl font-semibold text-[var(--ck-text)]">{@quality.totals.records}</p>
-          <p class="text-[var(--ck-muted)] text-xs">
+          <p class="text-2xl font-semibold">{@quality.totals.records}</p>
+          <p class="text-muted-foreground text-xs">
             {@quality.totals.active} active · {@quality.totals.archived} archived
           </p>
         </div>
         <div
           id="observability-memory-quality-stale"
-          class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
-          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Stale candidates
           </p>
-          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+          <p class="text-2xl font-semibold">
             {@quality.totals.stale_candidates}
           </p>
         </div>
         <div
           id="observability-memory-quality-duplicates"
-          class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
-          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Duplicate clusters
           </p>
-          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+          <p class="text-2xl font-semibold">
             {@quality.totals.duplicate_clusters}
           </p>
         </div>
         <div
           id="observability-memory-quality-missed"
-          class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
         >
-          <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">
+          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
             Missed-memory sessions
           </p>
-          <p class="text-2xl font-semibold text-[var(--ck-text)]">
+          <p class="text-2xl font-semibold">
             {@quality.totals.missed_memory_sessions}
           </p>
         </div>
       </div>
 
-      <div class="rounded-xl p-4 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1">
-        <p class="text-[var(--ck-muted)] uppercase tracking-[0.1em] text-[10px]">Distribution</p>
-        <p class="text-[var(--ck-muted)] text-xs">
+      <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
+        <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
+          Distribution
+        </p>
+        <p class="text-muted-foreground text-xs">
           Types: {format_frequency(@quality.distributions.by_type)}
         </p>
-        <p class="text-[var(--ck-muted)] text-xs">
+        <p class="text-muted-foreground text-xs">
           Sources: {format_frequency(@quality.distributions.by_source)}
         </p>
       </div>
 
       <%= if @quality.recommendations != [] do %>
         <div class="space-y-2">
-          <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
             Recommendations
           </p>
           <%= for recommendation <- @quality.recommendations do %>
-            <p class="text-[var(--ck-text)] text-sm leading-relaxed">{recommendation}</p>
+            <p class=" text-sm leading-relaxed">{recommendation}</p>
           <% end %>
         </div>
       <% end %>
 
       <div class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
           Stale memory
         </p>
         <%= if @quality.stale_candidates == [] do %>
-          <p class="text-[var(--ck-muted)] text-sm">No stale memory candidates detected.</p>
+          <p class="text-muted-foreground text-sm">No stale memory candidates detected.</p>
         <% else %>
           <div class="space-y-2">
             <%= for record <- @quality.stale_candidates do %>
               <div
                 id={"observability-memory-quality-stale-#{record.id}"}
-                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+                class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-1"
               >
-                <p class="text-sm font-semibold text-[var(--ck-text)]">{record.title}</p>
-                <p class="text-[var(--ck-muted)] text-xs">
+                <p class="text-sm font-semibold">{record.title}</p>
+                <p class="text-muted-foreground text-xs">
                   {record.record_type} · {record.age_days} day(s) old · {record.source_type}
                 </p>
-                <p class="text-[var(--ck-text)] text-xs">{record.summary}</p>
+                <p class=" text-xs">{record.summary}</p>
               </div>
             <% end %>
           </div>
@@ -142,17 +144,19 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
       </div>
 
       <div class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
           Duplicate clusters
         </p>
         <%= if @quality.duplicate_clusters == [] do %>
-          <p class="text-[var(--ck-muted)] text-sm">No duplicate clusters detected.</p>
+          <p class="text-muted-foreground text-sm">No duplicate clusters detected.</p>
         <% else %>
           <div class="space-y-2">
             <%= for cluster <- @quality.duplicate_clusters do %>
-              <div class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)]">
-                <p class="text-sm font-semibold text-[var(--ck-text)]">{cluster.key}</p>
-                <p class="text-[var(--ck-muted)] text-xs">{cluster.count} matching record(s)</p>
+              <div class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)]">
+                <p class="text-sm font-semibold">{cluster.key}</p>
+                <p class="text-muted-foreground text-xs">
+                  {cluster.count} matching record(s)
+                </p>
               </div>
             <% end %>
           </div>
@@ -160,11 +164,11 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
       </div>
 
       <div class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
           Contradiction or superseded candidates
         </p>
         <%= if @quality.contradiction_candidates == [] do %>
-          <p class="text-[var(--ck-muted)] text-sm">
+          <p class="text-muted-foreground text-sm">
             No contradiction or superseded markers detected.
           </p>
         <% else %>
@@ -172,10 +176,10 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
             <%= for record <- @quality.contradiction_candidates do %>
               <div
                 id={"observability-memory-quality-contradiction-#{record.id}"}
-                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+                class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-1"
               >
-                <p class="text-sm font-semibold text-[var(--ck-text)]">{record.title}</p>
-                <p class="text-[var(--ck-text)] text-xs">{record.summary}</p>
+                <p class="text-sm font-semibold">{record.title}</p>
+                <p class=" text-xs">{record.summary}</p>
               </div>
             <% end %>
           </div>
@@ -183,11 +187,11 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
       </div>
 
       <div class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-[var(--ck-lime)] font-semibold">
+        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
           Missed-memory sessions
         </p>
         <%= if @quality.missed_memory_sessions == [] do %>
-          <p class="text-[var(--ck-muted)] text-sm">
+          <p class="text-muted-foreground text-sm">
             No sessions with evidence but missing memory detected.
           </p>
         <% else %>
@@ -195,13 +199,13 @@ defmodule ControlKeelWeb.ObservabilityMemoryQualityLive do
             <%= for session <- @quality.missed_memory_sessions do %>
               <div
                 id={"observability-memory-quality-missed-#{session.id}"}
-                class="rounded-xl px-4 py-3 border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.015)] space-y-1"
+                class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-1"
               >
-                <p class="text-sm font-semibold text-[var(--ck-text)]">{session.title}</p>
-                <p class="text-[var(--ck-muted)] text-xs">
+                <p class="text-sm font-semibold">{session.title}</p>
+                <p class="text-muted-foreground text-xs">
                   {session.findings} finding(s) · {session.reviews} review(s) · {session.invocations} invocation(s)
                 </p>
-                <p class="text-[var(--ck-text)] text-xs">{session.recommendation}</p>
+                <p class=" text-xs">{session.recommendation}</p>
               </div>
             <% end %>
           </div>

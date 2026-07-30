@@ -49,5 +49,5 @@ defmodule ControlKeelWeb.FormatHelpers do
   """
   def neutral_pill_class,
     do:
-      "inline-flex items-center border border-[var(--ck-stroke)] rounded-full px-3 py-1.5 text-sm bg-[rgba(255,255,255,0.04)] text-[var(--ck-text)]"
+      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,255,255,0.04)]"
 end

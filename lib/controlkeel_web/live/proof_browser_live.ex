@@ -93,24 +93,24 @@ defmodule ControlKeelWeb.ProofBrowserLive do
       <div :if={@proof} class="space-y-8 mb-12">
         <.link
           navigate={~p"/proofs"}
-          class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 hover:text-neutral-200"
+          class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
         >
           <.icon name="hero-arrow-left" class="w-3 h-3" /> Back to proofs
         </.link>
 
         <div class="flex items-center justify-between gap-4">
           <div class="space-y-1">
-            <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+            <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
               Immutable proof snapshot
             </h2>
-            <p class="text-[var(--ck-muted)]">
+            <p class="text-muted-foreground">
               Every proof bundle is a frozen audit artifact for a single task version.
             </p>
           </div>
 
           <.link
             navigate={~p"/missions/#{@proof.session_id}"}
-            class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)] border-[var(--ck-muted)] border rounded-md px-3 py-2 hover:bg-[var(--ck-lime)]/10"
+            class="text-xs font-semibold uppercase tracking-[0.14em] text-primary border-muted-foreground border rounded-md px-3 py-2 hover:bg-primary/10"
           >
             Open mission
           </.link>
@@ -119,43 +119,43 @@ defmodule ControlKeelWeb.ProofBrowserLive do
 
       <div :if={!@proof} class="flex flex-col mt-28 items-center gap-4 text-center">
         <div>
-          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-tight font-sans font-semibold">
+          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-tight font-semibold">
             Proof not found
           </h1>
         </div>
 
-        <p class="text-lg text-zinc-400">
+        <p class="text-lg text-muted-foreground">
           No proof bundle exists with this identifier.
         </p>
         <.link
           navigate={~p"/proofs"}
-          class="rounded-md border border-white/10 bg-black/40 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400 inline-flex items-center gap-2"
+          class="rounded-md border border-input bg-background px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary transition hover:border-primary inline-flex items-center gap-2"
         >
           <.icon name="hero-arrow-left" class="w-4 h-4" /> Browse proofs
         </.link>
       </div>
 
       <div :if={@proof} class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
-        <div class="rounded-2xl border border-[var(--ck-stroke)]  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+        <div class="rounded-2xl border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Task
           </p>
           <strong>{@proof.task.title}</strong>
         </div>
-        <div class="rounded-2xl border border-[var(--ck-stroke)]  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+        <div class="rounded-2xl border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Version
           </p>
           <strong>v{@proof.version}</strong>
         </div>
-        <div class="rounded-2xl border border-[var(--ck-stroke)]  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+        <div class="rounded-2xl border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Risk score
           </p>
           <strong>{@proof.risk_score}</strong>
         </div>
-        <div class="rounded-2xl border border-[var(--ck-stroke)]  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+        <div class="rounded-2xl border  p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Deploy ready
           </p>
           <strong>{if @proof.deploy_ready, do: "Yes", else: "No"}</strong>
@@ -166,38 +166,38 @@ defmodule ControlKeelWeb.ProofBrowserLive do
         :if={@proof}
         class="mt-6"
       >
-        <div class="rounded-2xl border border-[var(--ck-stroke)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)] mb-2">
+        <div class="rounded-2xl border p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-[18px]">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary mb-2">
             Snapshot
           </p>
           <div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
             <div>
               <h3>Mission</h3>
-              <p class="text-[var(--ck-muted)]">{@proof.session.title}</p>
+              <p class="text-muted-foreground">{@proof.session.title}</p>
             </div>
             <div>
               <h3>Generated</h3>
-              <p class="text-[var(--ck-muted)]">
+              <p class="text-muted-foreground">
                 {format_datetime(@proof.generated_at, "Not recorded")}
               </p>
             </div>
             <div>
               <h3>Open findings</h3>
-              <p class="text-[var(--ck-muted)]">{@proof.open_findings_count}</p>
+              <p class="text-muted-foreground">{@proof.open_findings_count}</p>
             </div>
             <div>
               <h3>Blocked findings</h3>
-              <p class="text-[var(--ck-muted)]">{@proof.blocked_findings_count}</p>
+              <p class="text-muted-foreground">{@proof.blocked_findings_count}</p>
             </div>
             <div>
               <h3>Domain pack</h3>
-              <p class="text-[var(--ck-muted)]">
+              <p class="text-muted-foreground">
                 {format_domain_pack(get_in(@proof.session.execution_brief || %{}, ["domain_pack"]))}
               </p>
             </div>
           </div>
 
-          <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+          <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Compliance attestations
           </p>
           <ul class="m-0 grid gap-4 p-0 list-none">
@@ -211,28 +211,30 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           </ul>
 
           <div class="mt-6 space-y-2">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
               Rollback instructions
             </p>
 
-            <pre class="m-0 rounded-2xl border border-[var(--ck-stroke)] bg-[rgba(255,255,255,0.03)] w-fit p-4 font-mono text-sm leading-relaxed text-[var(--ck-sand)] whitespace-pre-wrap break-words">{@proof.bundle["rollback_instructions"]}</pre>
+            <pre class="m-0 rounded-2xl border bg-[rgba(255,255,255,0.03)] w-fit p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words">{@proof.bundle["rollback_instructions"]}</pre>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-2 mt-6 gap-4">
             <div class="space-y-2">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                 Related memory
               </p>
 
-              <div class="rounded-2xl border border-[var(--ck-stroke)] p-4">
+              <div class="rounded-2xl border p-4">
                 <%= if @memory_hits == [] do %>
-                  <p class="text-[var(--ck-muted)]">No related memory hits for this task yet.</p>
+                  <p class="text-muted-foreground">
+                    No related memory hits for this task yet.
+                  </p>
                 <% else %>
                   <ul class="m-0 grid gap-4 p-0 list-none">
                     <%= for hit <- @memory_hits do %>
                       <li>
                         <strong>{hit.title}</strong>
-                        <p class="text-[var(--ck-muted)]">{hit.summary}</p>
+                        <p class="text-muted-foreground">{hit.summary}</p>
                       </li>
                     <% end %>
                   </ul>
@@ -241,13 +243,13 @@ defmodule ControlKeelWeb.ProofBrowserLive do
             </div>
 
             <div class="space-y-2">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                 Finding resolution summary
               </p>
 
-              <div class="rounded-2xl border border-[var(--ck-stroke)] p-6 grid grid-cols-2 gap-4">
+              <div class="rounded-2xl border p-6 grid grid-cols-2 gap-4">
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                     Approved
                   </p>
                   <strong>
@@ -255,7 +257,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                   </strong>
                 </div>
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                     Resolved
                   </p>
                   <strong>
@@ -263,7 +265,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                   </strong>
                 </div>
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                     Open
                   </p>
                   <strong>
@@ -271,7 +273,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                   </strong>
                 </div>
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+                  <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                     Blocked
                   </p>
                   <strong>
@@ -282,11 +284,11 @@ defmodule ControlKeelWeb.ProofBrowserLive do
             </div>
           </div>
 
-          <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)]">
+          <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Assessment summary
           </p>
           <div class="mt-4 grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-            <div class="rounded-xl border border-[var(--ck-stroke)] p-5">
+            <div class="rounded-xl border p-5">
               <div class="flex items-center justify-between mb-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em]">
                   Surface verification
@@ -310,38 +312,38 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 ]}>
                   {ver_score || "—"}
                 </span>
-                <span :if={ver_score} class="text-sm text-zinc-500">/ 100</span>
+                <span :if={ver_score} class="text-sm text-muted-foreground">/ 100</span>
                 <span
                   :if={bundle_get(@proof, ["verification_assessment", "verification_ready"]) == true}
-                  class="ml-auto inline-flex items-center gap-1 rounded-full border border-lime-500/40 bg-lime-500/10 px-2.5 py-0.5 text-xs font-semibold text-lime-400"
+                  class="ml-auto inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary"
                 >
                   <.icon name="hero-check-circle" class="w-3.5 h-3.5" /> Ready
                 </span>
               </div>
               <% ver_evidence = bundle_get(@proof, ["verification_assessment", "evidence"], %{}) %>
               <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                <span class="text-zinc-400">Passed checks</span>
-                <span class="text-right font-medium tabular-nums text-white">
+                <span class="text-muted-foreground">Passed checks</span>
+                <span class="text-right font-medium tabular-nums text-foreground">
                   {ver_evidence["passed_checks"] || 0}
                 </span>
-                <span class="text-zinc-400">Task checks (strong)</span>
-                <span class="text-right font-medium tabular-nums text-white">
+                <span class="text-muted-foreground">Task checks (strong)</span>
+                <span class="text-right font-medium tabular-nums text-foreground">
                   {ver_evidence["passed_task_checks"] || 0} / {ver_evidence[
                     "passed_strong_task_checks"
                   ] || 0}
                 </span>
-                <span class="text-zinc-400">Failed checks</span>
-                <span class="text-right font-medium tabular-nums text-red-400">
+                <span class="text-muted-foreground">Failed checks</span>
+                <span class="text-right font-medium tabular-nums text-destructive">
                   {ver_evidence["failed_task_checks"] || 0}
                 </span>
-                <span class="text-zinc-400">External regressions</span>
-                <span class="text-right font-medium tabular-nums text-white">
+                <span class="text-muted-foreground">External regressions</span>
+                <span class="text-right font-medium tabular-nums text-foreground">
                   {ver_evidence["external_regressions"] || 0}
                 </span>
               </div>
             </div>
 
-            <div class="rounded-xl border border-[var(--ck-stroke)] p-5">
+            <div class="rounded-xl border p-5">
               <p class="text-xs font-semibold uppercase tracking-[0.14em] mb-4">
                 Task check counts
               </p>
@@ -351,47 +353,47 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               <% ch_failed = task_checks["failed"] || 0 %>
               <% ch_warn = task_checks["warn"] || 0 %>
               <div class="flex items-baseline gap-2 mb-4">
-                <span class="text-3xl font-bold tabular-nums text-white">{ch_total}</span>
-                <span class="text-sm text-zinc-500">total</span>
+                <span class="text-3xl font-bold tabular-nums text-foreground">{ch_total}</span>
+                <span class="text-sm text-muted-foreground">total</span>
                 <span class="ml-auto flex gap-3 text-sm tabular-nums">
-                  <span class="text-lime-400">{ch_passed} passed</span>
-                  <span class="text-red-400">{ch_failed} failed</span>
-                  <span class="text-amber-400">{ch_warn} warn</span>
+                  <span class="text-primary">{ch_passed} passed</span>
+                  <span class="text-destructive">{ch_failed} failed</span>
+                  <span class="text-[var(--ck-warning)]">{ch_warn} warn</span>
                 </span>
               </div>
               <% passed_pct = if ch_total > 0, do: round(ch_passed / ch_total * 100), else: 0 %>
               <% failed_pct = if ch_total > 0, do: round(ch_failed / ch_total * 100), else: 0 %>
-              <div class="h-2 rounded-full bg-zinc-800 overflow-hidden mb-4">
+              <div class="h-2 rounded-full bg-card overflow-hidden mb-4">
                 <div class="h-full flex">
                   <div
                     style={"width: #{passed_pct}%"}
-                    class="bg-lime-500 transition-all rounded-l-full"
+                    class="bg-primary transition-all rounded-l-full"
                   >
                   </div>
-                  <div style={"width: #{failed_pct}%"} class="bg-red-500 transition-all"></div>
+                  <div style={"width: #{failed_pct}%"} class="bg-destructive transition-all"></div>
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                <span class="text-zinc-400">Passed strong</span>
-                <span class="text-right font-medium tabular-nums text-white">
+                <span class="text-muted-foreground">Passed strong</span>
+                <span class="text-right font-medium tabular-nums text-foreground">
                   {task_checks["passed_strong"] || 0}
                 </span>
-                <span class="text-zinc-400">Strongest proof</span>
-                <span class="text-right font-medium tabular-nums text-white">
+                <span class="text-muted-foreground">Strongest proof</span>
+                <span class="text-right font-medium tabular-nums text-foreground">
                   {task_checks["strongest_proof_strength"] || "—"}
                 </span>
-                <span class="text-zinc-400">Hashed outputs</span>
-                <span class="text-right font-medium tabular-nums text-white">
+                <span class="text-muted-foreground">Hashed outputs</span>
+                <span class="text-right font-medium tabular-nums text-foreground">
                   {task_checks["hashed_outputs"] || 0}
                 </span>
-                <span class="text-zinc-400">Git refs</span>
-                <span class="text-right font-medium tabular-nums text-white">
+                <span class="text-muted-foreground">Git refs</span>
+                <span class="text-right font-medium tabular-nums text-foreground">
                   {length(task_checks["git_shas"] || [])}
                 </span>
               </div>
             </div>
 
-            <div class="rounded-xl border border-[var(--ck-stroke)] p-5">
+            <div class="rounded-xl border p-5">
               <div class="flex items-center justify-between mb-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em]">
                   Context integrity
@@ -413,29 +415,31 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 </span>
               </div>
               <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                <span class="text-zinc-400">Partial reads</span>
-                <span class="text-right font-medium tabular-nums text-white">
+                <span class="text-muted-foreground">Partial reads</span>
+                <span class="text-right font-medium tabular-nums text-foreground">
                   {ctx["partial_read_count"] || 0}
                 </span>
-                <span class="text-zinc-400">Compactions</span>
-                <span class="text-right font-medium tabular-nums text-white">
+                <span class="text-muted-foreground">Compactions</span>
+                <span class="text-right font-medium tabular-nums text-foreground">
                   {ctx["compaction_count"] || 0}
                 </span>
-                <span :if={ctx["compaction_source"]} class="text-zinc-400">Compaction source</span>
+                <span :if={ctx["compaction_source"]} class="text-muted-foreground">
+                  Compaction source
+                </span>
                 <span
                   :if={ctx["compaction_source"]}
-                  class="text-right font-medium tabular-nums text-white"
+                  class="text-right font-medium tabular-nums text-foreground"
                 >
                   {ctx["compaction_source"]}
                 </span>
               </div>
-              <div :if={ctx["latest_compaction_reason"]} class="mt-3 rounded-lg bg-zinc-900/50 p-3">
-                <p class="text-xs text-zinc-400 mb-1">Latest compaction</p>
-                <p class="text-sm text-zinc-300">{ctx["latest_compaction_reason"]}</p>
+              <div :if={ctx["latest_compaction_reason"]} class="mt-3 rounded-lg bg-card/50 p-3">
+                <p class="text-xs text-muted-foreground mb-1">Latest compaction</p>
+                <p class="text-sm text-muted-foreground">{ctx["latest_compaction_reason"]}</p>
               </div>
             </div>
 
-            <div class="rounded-xl border border-[var(--ck-stroke)] p-5">
+            <div class="rounded-xl border p-5">
               <div class="flex items-center justify-between mb-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em]">
                   Deploy readiness
@@ -454,17 +458,18 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               <div class="flex items-center gap-3 mb-4">
                 <div class="flex-1">
                   <div class="flex justify-between text-sm mb-1">
-                    <span class="text-zinc-400">Risk score</span>
+                    <span class="text-muted-foreground">Risk score</span>
                     <span class="font-medium tabular-nums">{@proof.risk_score}</span>
                   </div>
-                  <div class="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                  <div class="h-2 rounded-full bg-card overflow-hidden">
                     <div
                       style={"width: #{risk_bar_width(@proof.risk_score)}%"}
                       class={[
                         "h-full rounded-full transition-all",
-                        @proof.risk_score <= 0.3 && "bg-lime-500",
-                        @proof.risk_score > 0.3 && @proof.risk_score <= 0.6 && "bg-amber-500",
-                        @proof.risk_score > 0.6 && "bg-red-500"
+                        @proof.risk_score <= 0.3 && "bg-primary",
+                        @proof.risk_score > 0.3 && @proof.risk_score <= 0.6 &&
+                          "bg-[var(--ck-warning)]",
+                        @proof.risk_score > 0.6 && "bg-destructive"
                       ]}
                     >
                     </div>
@@ -472,20 +477,20 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                <span class="text-zinc-400">Validation gate</span>
-                <span class="text-right font-medium tabular-nums text-white">
+                <span class="text-muted-foreground">Validation gate</span>
+                <span class="text-right font-medium tabular-nums text-foreground">
                   {@proof.bundle["validation_gate"] || "—"}
                 </span>
-                <span class="text-zinc-400">Open findings</span>
-                <span class="text-right font-medium tabular-nums text-amber-400">
+                <span class="text-muted-foreground">Open findings</span>
+                <span class="text-right font-medium tabular-nums text-[var(--ck-warning)]">
                   {@proof.open_findings_count}
                 </span>
-                <span class="text-zinc-400">Blocked findings</span>
-                <span class="text-right font-medium tabular-nums text-red-400">
+                <span class="text-muted-foreground">Blocked findings</span>
+                <span class="text-right font-medium tabular-nums text-destructive">
                   {@proof.blocked_findings_count}
                 </span>
-                <span class="text-zinc-400">Compliance packs</span>
-                <span class="text-right font-medium tabular-nums text-white">
+                <span class="text-muted-foreground">Compliance packs</span>
+                <span class="text-right font-medium tabular-nums text-foreground">
                   {length(List.wrap(@proof.bundle["compliance_attestations"]))}
                 </span>
               </div>
@@ -495,8 +500,8 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               >
                 <span class={[
                   "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider",
-                  gate == "ready" && "border-lime-500/40 bg-lime-500/10 text-lime-400",
-                  gate == "blocked" && "border-red-500/40 bg-red-500/10 text-red-400"
+                  gate == "ready" && "border-primary/40 bg-primary/10 text-primary",
+                  gate == "blocked" && "border-destructive/40 bg-destructive/10 text-destructive"
                 ]}>
                   Release gate: {gate}
                 </span>
@@ -505,13 +510,13 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           </div>
 
           <details class="mt-6 group">
-            <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ck-lime)] cursor-pointer hover:text-lime-300 transition-colors list-none flex items-center gap-2">
+            <summary class="text-xs font-semibold uppercase tracking-[0.14em] text-primary cursor-pointer hover:text-primary transition-colors list-none flex items-center gap-2">
               <.icon
                 name="hero-chevron-right"
                 class="w-3.5 h-3.5 group-open:rotate-90 transition-transform"
               /> Raw proof payload
             </summary>
-            <pre class="m-0 mt-3 rounded-2xl border border-[var(--ck-stroke)] p-4 font-mono text-xs leading-relaxed text-[var(--ck-sand)] whitespace-pre-wrap break-words overflow-auto h-100">{Jason.encode!(@proof.bundle, pretty: true)}</pre>
+            <pre class="m-0 mt-3 rounded-2xl border p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words overflow-auto h-100">{Jason.encode!(@proof.bundle, pretty: true)}</pre>
           </details>
         </div>
       </div>
@@ -523,15 +528,15 @@ defmodule ControlKeelWeb.ProofBrowserLive do
     ~H"""
     <section class="mx-auto w-[min(1180px,calc(100%-2rem))]">
       <div class="space-y-1 mb-12">
-        <h2 class="text-2xl font-semibold text-[var(--ck-lime)] leading-6 tracking-wide uppercase">
+        <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
           Proof browser
         </h2>
-        <p class="text-[var(--ck-muted)]">
+        <p class="text-muted-foreground">
           Review immutable task evidence, filter by readiness and risk, and jump back to the mission that generated each bundle.
         </p>
       </div>
 
-      <div class="rounded-lg border border-[var(--ck-stroke)] bg-neutral-900">
+      <div class="rounded-lg border bg-card">
         <div class="space-y-4 p-4">
           <form id="proof-filters" phx-change="filter" class="grid gap-4 xl:grid-cols-5">
             <div class="space-y-4">
@@ -548,7 +553,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 value={@form[:q].value}
                 placeholder="Mission or task..."
                 phx-debounce="300"
-                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
               />
             </div>
 
@@ -562,7 +567,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               <select
                 id="filters-session_id"
                 name="filters[session_id]"
-                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
               >
                 <option value="">All missions</option>
                 <%= for session_option <- @session_options do %>
@@ -589,7 +594,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 type="text"
                 value={@form[:task_id].value}
                 placeholder="Task id"
-                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
               />
             </div>
 
@@ -603,7 +608,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               <select
                 id="filters-deploy_ready"
                 name="filters[deploy_ready]"
-                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
               >
                 <option value="">All</option>
                 <option value="true" selected={@form[:deploy_ready].value == "true"}>Yes</option>
@@ -621,7 +626,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               <select
                 id="filters-risk_tier"
                 name="filters[risk_tier]"
-                class="w-full rounded-md border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-[var(--ck-lime)] focus:ring-2 focus:ring-[rgba(196,240,66,0.15)] focus:outline-none"
+                class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
               >
                 <option value="">All tiers</option>
                 <%= for tier <- @risk_tiers do %>
@@ -634,14 +639,13 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           </form>
 
           <div class="flex items-center justify-between">
-            <p class="text-neutral-400 tracking-tight">
-              <span class="text-[var(--ck-lime)] mr-1">{@browser.total_count}</span>
-              total proof bundles found
+            <p class="text-muted-foreground tracking-tight">
+              <span class="text-primary mr-1">{@browser.total_count}</span> total proof bundles found
             </p>
 
             <.link
               patch={~p"/proofs"}
-              class="self-end rounded-md border border-white/10 bg-black/40 px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-400 transition hover:border-red-500/40 hover:text-red-400 text-center"
+              class="self-end rounded-md border border-input bg-background px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground transition hover:border-destructive/40 hover:text-destructive text-center"
             >
               Reset all
             </.link>
@@ -649,50 +653,50 @@ defmodule ControlKeelWeb.ProofBrowserLive do
         </div>
 
         <div class="overflow-x-auto w-full">
-          <div class="overflow-hidden border border-white/10 bg-black/30">
+          <div class="overflow-hidden border bg-overlay/30">
             <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-white/10">
-                <thead class="bg-white/5">
+              <table class="min-w-full divide-y divide-border">
+                <thead class="bg-muted">
                   <tr>
-                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                       Task
                     </th>
 
-                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                       Version
                     </th>
 
-                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                       Risk
                     </th>
 
-                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                    <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                       Readiness
                     </th>
 
-                    <th class="px-8 py-6 text-right text-xs font-semibold uppercase tracking-[0.15em] text-zinc-300">
+                    <th class="px-8 py-6 text-right text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                       Actions
                     </th>
                   </tr>
                 </thead>
 
-                <tbody class="divide-y divide-white/5">
+                <tbody class="divide-y divide-border">
                   <tr :if={@browser.entries == []}>
-                    <td colspan="5" class="px-8 py-12 text-center text-sm text-zinc-500">
+                    <td colspan="5" class="px-8 py-12 text-center text-sm text-muted-foreground">
                       No proof bundles match the current filters.
                     </td>
                   </tr>
                   <tr
                     :for={proof <- @browser.entries}
-                    class="transition hover:bg-white/[0.02]"
+                    class="transition hover:bg-muted/[0.02]"
                   >
                     <td class="px-8 py-6 align-top">
                       <div>
-                        <p class="font-bold text-white">
+                        <p class="font-bold text-foreground">
                           {proof.task.title}
                         </p>
 
-                        <p class="mt-2 max-w-md text-sm text-zinc-400">
+                        <p class="mt-2 max-w-md text-sm text-muted-foreground">
                           {proof.session.title}
                         </p>
                       </div>
@@ -700,11 +704,11 @@ defmodule ControlKeelWeb.ProofBrowserLive do
 
                     <td class="px-8 py-6 align-top">
                       <div>
-                        <p class="font-semibold text-white">
+                        <p class="font-semibold text-foreground">
                           v{proof.version}
                         </p>
 
-                        <p class="mt-2 text-xs uppercase tracking-wider text-lime-400">
+                        <p class="mt-2 text-xs uppercase tracking-wider text-primary">
                           {proof.status}
                         </p>
                       </div>
@@ -715,16 +719,16 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                         <span class={[
                           "inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider",
                           proof.session.risk_tier == "low" &&
-                            "border-lime-500/40 bg-lime-500/10 text-lime-400",
+                            "border-primary/40 bg-primary/10 text-primary",
                           proof.session.risk_tier == "moderate" &&
-                            "border-cyan-500/40 bg-cyan-500/10 text-cyan-400",
+                            "border-info/40 bg-info/10 text-info",
                           proof.session.risk_tier == "high" &&
-                            "border-red-500/40 bg-red-500/10 text-red-400"
+                            "border-destructive/40 bg-destructive/10 text-destructive"
                         ]}>
                           {proof.session.risk_tier}
                         </span>
 
-                        <span class="inline-flex rounded-full border border-white/10 px-4 py-2 text-sm text-zinc-300">
+                        <span class="inline-flex rounded-full border px-4 py-2 text-sm text-muted-foreground">
                           {proof.risk_score}
                         </span>
                       </div>
@@ -750,9 +754,9 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                         <span class={[
                           "inline-flex h-8 w-8 items-center justify-center rounded-full border text-xs",
                           proof.deploy_ready &&
-                            "border-lime-500/40 text-lime-400",
+                            "border-primary/40 text-primary",
                           !proof.deploy_ready &&
-                            "border-yellow-500/40 text-yellow-400"
+                            "border-[var(--ck-warning)]/40 text-[var(--ck-warning)]"
                         ]}>
                           {proof.risk_score}
                         </span>
@@ -760,9 +764,9 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                         <span class={[
                           "text-sm",
                           proof.deploy_ready &&
-                            "text-white",
+                            "text-foreground",
                           !proof.deploy_ready &&
-                            "text-zinc-300"
+                            "text-muted-foreground"
                         ]}>
                           {if proof.deploy_ready,
                             do: "Certified ready",
@@ -773,14 +777,14 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                       <% t_total = tc["total"] || 0 %>
                       <% t_passed = tc["passed"] || 0 %>
                       <div :if={t_total > 0} class="mt-2">
-                        <div class="flex items-center justify-between text-[11px] text-zinc-500 mb-1">
+                        <div class="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
                           <span>Checks</span>
                           <span>{t_passed}/{t_total} passed</span>
                         </div>
-                        <div class="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                        <div class="h-1.5 rounded-full bg-card overflow-hidden">
                           <div
                             style={"width: #{if t_total > 0, do: round(t_passed / t_total * 100), else: 0}%"}
-                            class="bg-lime-500 h-full rounded-full transition-all"
+                            class="bg-primary h-full rounded-full transition-all"
                           >
                           </div>
                         </div>
@@ -791,14 +795,14 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                       <div class="flex justify-end gap-2 font-semibold text-sm">
                         <.link
                           navigate={~p"/missions/#{proof.session_id}"}
-                          class="text-zinc-400 transition hover:text-white border px-2 py-1 rounded-md"
+                          class="text-muted-foreground transition hover:text-foreground border px-2 py-1 rounded-md"
                         >
                           Mission
                         </.link>
 
                         <.link
                           navigate={~p"/proofs/#{proof.id}"}
-                          class="text-lime-400 transition hover:text-lime-300 border px-2 py-1 rounded-md"
+                          class="text-primary transition hover:text-primary border px-2 py-1 rounded-md"
                         >
                           View
                         </.link>
@@ -809,9 +813,9 @@ defmodule ControlKeelWeb.ProofBrowserLive do
               </table>
             </div>
 
-            <div class="border-t border-white/10 bg-black/40 px-6 py-4">
+            <div class="border-t bg-overlay/40 px-6 py-4">
               <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="text-xs uppercase tracking-[0.15em] text-zinc-400">
+                <div class="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                   Page {@browser.page} of {@browser.total_pages}
                 </div>
 
@@ -821,12 +825,12 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                       patch={
                         ~p"/proofs?#{Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page - 1})}"
                       }
-                      class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
+                      class="rounded-md border bg-overlay px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary transition hover:border-primary"
                     >
                       Previous
                     </.link>
                   <% else %>
-                    <span class="cursor-not-allowed rounded-md border border-white/10 bg-white/5 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-600">
+                    <span class="cursor-not-allowed rounded-md border bg-muted px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                       Previous
                     </span>
                   <% end %>
@@ -836,12 +840,12 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                       patch={
                         ~p"/proofs?#{Map.merge(browser_form_params(@browser.filters), %{"page" => @browser.page + 1})}"
                       }
-                      class="rounded-md border border-white/10 bg-black px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-lime-400 transition hover:border-lime-400"
+                      class="rounded-md border bg-overlay px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary transition hover:border-primary"
                     >
                       Next
                     </.link>
                   <% else %>
-                    <span class="cursor-not-allowed rounded-md border border-white/10 bg-white/5 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-600">
+                    <span class="cursor-not-allowed rounded-md border bg-muted px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                       Next
                     </span>
                   <% end %>
@@ -910,28 +914,35 @@ defmodule ControlKeelWeb.ProofBrowserLive do
 
   defp verification_score_color(score) when is_integer(score) do
     cond do
-      score >= 80 -> "text-lime-400"
-      score >= 50 -> "text-amber-400"
-      true -> "text-red-400"
+      score >= 80 -> "text-primary"
+      score >= 50 -> "text-[var(--ck-warning)]"
+      true -> "text-destructive"
     end
   end
 
-  defp verification_score_color(_), do: "text-zinc-400"
+  defp verification_score_color(_), do: "text-muted-foreground"
 
-  defp verification_status_color("strong"), do: "border-lime-500/40 bg-lime-500/10 text-lime-400"
+  defp verification_status_color("strong"), do: "border-primary/40 bg-primary/10 text-primary"
 
   defp verification_status_color("moderate"),
-    do: "border-amber-500/40 bg-amber-500/10 text-amber-400"
+    do: "border-[var(--ck-warning)]/40 bg-[var(--ck-warning)]/10 text-[var(--ck-warning)]"
 
-  defp verification_status_color("weak"), do: "border-red-500/40 bg-red-500/10 text-red-400"
-  defp verification_status_color(_), do: "border-zinc-500/40 bg-zinc-500/10 text-zinc-400"
+  defp verification_status_color("weak"),
+    do: "border-destructive/40 bg-destructive/10 text-destructive"
 
-  defp context_status_color("clean"), do: "border-lime-500/40 bg-lime-500/10 text-lime-400"
-  defp context_status_color("degraded"), do: "border-red-500/40 bg-red-500/10 text-red-400"
-  defp context_status_color(_), do: "border-zinc-500/40 bg-zinc-500/10 text-zinc-400"
+  defp verification_status_color(_), do: "border-border/40 bg-muted/10 text-muted-foreground"
 
-  defp deploy_badge_class(true), do: "border-lime-500/40 bg-lime-500/10 text-lime-400"
-  defp deploy_badge_class(_), do: "border-yellow-500/40 bg-yellow-500/10 text-yellow-400"
+  defp context_status_color("clean"), do: "border-primary/40 bg-primary/10 text-primary"
+
+  defp context_status_color("degraded"),
+    do: "border-destructive/40 bg-destructive/10 text-destructive"
+
+  defp context_status_color(_), do: "border-border/40 bg-muted/10 text-muted-foreground"
+
+  defp deploy_badge_class(true), do: "border-primary/40 bg-primary/10 text-primary"
+
+  defp deploy_badge_class(_),
+    do: "border-[var(--ck-warning)]/40 bg-[var(--ck-warning)]/10 text-[var(--ck-warning)]"
 
   defp risk_bar_width(nil), do: 0
   defp risk_bar_width(score) when is_float(score), do: min(round(score * 100), 100)

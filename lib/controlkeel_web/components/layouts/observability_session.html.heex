@@ -1,20 +1,16 @@
-<div class="min-h-screen bg-zinc-950 text-zinc-100">
-  <.sidebar current_user={@current_user} />
+<div class="h-screen flex overflow-hidden">
+  <.sidebar current_user={@current_user} current_path={@current_path} />
 
-  <div class="lg:pl-64">
-    <main class="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,rgba(190,242,100,0.12),transparent_28rem),linear-gradient(180deg,#0a0a0a_0%,#111113_48%,#18181b_100%)] px-4 py-6 sm:px-6 lg:px-8">
-      <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
+  <div class="flex flex-1 flex-col overflow-hidden">
+    <.dashboard_header current_path={@current_path} />
+
+    <main class="flex-1 overflow-y-auto py-6 space-y-6">
+      <div class="px-4 sm:px-6 lg:px-8">
         <div class="space-y-1 mb-4">
-          <.link
-            navigate={~p"/observability"}
-            class="text-sm text-[var(--ck-muted)] hover:text-[var(--ck-lime)] transition-colors"
-          >
-            ← Observability
-          </.link>
-          <h2 class="text-xl font-semibold text-[var(--ck-text)] leading-6 mt-4">
+          <h2 class="text-xl font-semibold leading-6">
             {@session_title}
           </h2>
-          <p class="text-[var(--ck-muted)] text-sm">Session run observability</p>
+          <p class="text-muted-foreground text-sm">Session run observability</p>
         </div>
 
         <div class="flex gap-3 flex-wrap mb-8">
@@ -46,9 +42,11 @@
             Export JSON
           </.link>
         </div>
+      </div>
 
+      <div class="px-4 sm:px-6 lg:px-8">
         {@inner_content}
-      </section>
+      </div>
     </main>
   </div>
 </div>

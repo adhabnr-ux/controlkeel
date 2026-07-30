@@ -164,33 +164,33 @@ defmodule ControlKeelWeb.OnboardingLive do
     ~H"""
     <section class="max-w-7xl mx-auto px-4 py-6">
       <div class="mb-8">
-        <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
+        <p class="text-xs font-semibold tracking-wider text-primary uppercase font-mono">
           Mission onboarding
         </p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        <div class="lg:col-span-2 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6 md:p-8 backdrop-blur-xl">
+        <div class="lg:col-span-2 rounded-2xl border bg-card/30 p-6 md:p-8 backdrop-blur-xl">
           <.form for={@form} phx-change="validate" phx-submit="next">
             <%= case @step do %>
               <% 1 -> %>
                 <div class="space-y-6">
                   <div>
-                    <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
+                    <p class="text-xs font-semibold tracking-wider text-primary uppercase font-mono">
                       Step 1 of 4
                     </p>
-                    <h2 class="text-2xl font-serif text-zinc-100 mt-1">
+                    <h2 class="text-2xl font-serif text-foreground mt-1">
                       Choose the domain and primary agent
                     </h2>
                   </div>
 
                   <div class="space-y-1.5">
-                    <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                    <label class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                       Domain profile
                     </label>
                     <select
                       name="launch[occupation]"
-                      class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                      class="w-full border border-input bg-background hover:border-primary rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
                     >
                       <%= for profile <- @occupation_profiles do %>
                         <option value={profile.id} selected={@attrs["occupation"] == profile.id}>
@@ -199,30 +199,30 @@ defmodule ControlKeelWeb.OnboardingLive do
                       <% end %>
                     </select>
                     <%= if error = field_error(@errors, "occupation") do %>
-                      <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                      <p class="text-xs text-destructive font-medium mt-1">{error}</p>
                     <% end %>
                   </div>
 
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-zinc-800/60">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t">
                     <div class="space-y-1.5">
-                      <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                      <label class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                         Primary agent
                       </label>
                       <select
                         name="launch[agent]"
-                        class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                        class="w-full border border-input bg-background hover:border-primary rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
                       >
                         <%= for {id, label} <- @agent_options do %>
                           <option value={id} selected={@attrs["agent"] == id}>{label}</option>
                         <% end %>
                       </select>
                       <%= if error = field_error(@errors, "agent") do %>
-                        <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                        <p class="text-xs text-destructive font-medium mt-1">{error}</p>
                       <% end %>
                     </div>
 
                     <div class="space-y-1.5">
-                      <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                      <label class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                         Daily budget (USD)
                       </label>
                       <input
@@ -233,10 +233,10 @@ defmodule ControlKeelWeb.OnboardingLive do
                         max="500"
                         step="5"
                         placeholder="30"
-                        class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                        class="w-full border border-input bg-background hover:border-primary rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
                       />
                       <%= if error = field_error(@errors, "budget") do %>
-                        <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                        <p class="text-xs text-destructive font-medium mt-1">{error}</p>
                       <% end %>
                     </div>
                   </div>
@@ -244,17 +244,17 @@ defmodule ControlKeelWeb.OnboardingLive do
               <% 2 -> %>
                 <div class="space-y-6">
                   <div>
-                    <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
+                    <p class="text-xs font-semibold tracking-wider text-primary uppercase font-mono">
                       Step 2 of 4
                     </p>
-                    <h2 class="text-2xl font-serif text-zinc-100 mt-1">
+                    <h2 class="text-2xl font-serif text-foreground mt-1">
                       Describe the product
                     </h2>
                   </div>
 
                   <div class="space-y-4">
                     <div class="space-y-1.5">
-                      <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                      <label class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                         Project name
                       </label>
                       <input
@@ -262,38 +262,38 @@ defmodule ControlKeelWeb.OnboardingLive do
                         name="launch[project_name]"
                         value={@attrs["project_name"]}
                         placeholder="e.g., Clinic Intake Portal"
-                        class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                        class="w-full border border-input bg-background hover:border-primary rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
                       />
                       <%= if error = field_error(@errors, "project_name") do %>
-                        <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                        <p class="text-xs text-destructive font-medium mt-1">{error}</p>
                       <% end %>
                     </div>
 
                     <div class="space-y-1.5">
-                      <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                      <label class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                         Core product prompt
                       </label>
                       <textarea
                         name="launch[idea]"
                         rows="8"
                         placeholder="Describe what you want built in plain language."
-                        class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                        class="w-full border border-input bg-background hover:border-primary rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
                       ><%= @attrs["idea"] %></textarea>
                       <%= if error = field_error(@errors, "idea") do %>
-                        <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                        <p class="text-xs text-destructive font-medium mt-1">{error}</p>
                       <% end %>
                     </div>
                   </div>
 
                   <%= if @recent_sessions != [] do %>
-                    <div class="border-t border-zinc-800/60 pt-6">
+                    <div class="border-t pt-6">
                       <div class="space-y-1.5">
-                        <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                        <label class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                           Or continue from an existing mission
                         </label>
                         <select
                           name="recent_mission_id"
-                          class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                          class="w-full border border-input bg-background hover:border-primary rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
                           phx-change="select_mission"
                         >
                           <option value="">Select a recent mission...</option>
@@ -308,10 +308,10 @@ defmodule ControlKeelWeb.OnboardingLive do
               <% 3 -> %>
                 <div class="space-y-6">
                   <div>
-                    <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
+                    <p class="text-xs font-semibold tracking-wider text-primary uppercase font-mono">
                       Step 3 of 4
                     </p>
-                    <h2 class="text-2xl font-serif text-zinc-100 mt-1">
+                    <h2 class="text-2xl font-serif text-foreground mt-1">
                       Answer the guided interview
                     </h2>
                   </div>
@@ -319,23 +319,23 @@ defmodule ControlKeelWeb.OnboardingLive do
                   <div class="space-y-6">
                     <%= for question <- @interview_questions do %>
                       <div class="space-y-1.5">
-                        <label class="text-xs font-semibold text-zinc-300 uppercase tracking-wider font-mono">
+                        <label class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                           {question.label}
                         </label>
-                        <p class="text-xs text-zinc-400 leading-relaxed">{question.prompt}</p>
+                        <p class="text-xs text-muted-foreground leading-relaxed">{question.prompt}</p>
                         <textarea
                           name={"launch[interview_answers][#{question.id}]"}
                           rows="4"
                           placeholder={question.placeholder}
-                          class="w-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400 focus:border-lime-400 transition"
+                          class="w-full border border-input bg-background hover:border-primary rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
                         ><%= Map.get(@attrs["interview_answers"], question.id, "") %></textarea>
                         <%= if error = field_error(@errors, "interview_answers.#{question.id}") do %>
-                          <p class="text-xs text-red-400 font-medium mt-1">{error}</p>
+                          <p class="text-xs text-destructive font-medium mt-1">{error}</p>
                         <% end %>
                       </div>
                     <% end %>
                     <%= if @compile_error do %>
-                      <p class="text-sm text-yellow-450 font-medium bg-yellow-400/5 border border-yellow-400/20 rounded-xl p-4 mt-2">
+                      <p class="text-sm text-[var(--ck-warning)] font-medium bg-[var(--ck-warning)]/5 border border-[var(--ck-warning)]/20 rounded-xl p-4 mt-2">
                         {@compile_error}
                       </p>
                     <% end %>
@@ -344,10 +344,10 @@ defmodule ControlKeelWeb.OnboardingLive do
               <% 4 -> %>
                 <div class="space-y-6">
                   <div>
-                    <p class="text-xs font-semibold tracking-wider text-lime-400 uppercase font-mono">
+                    <p class="text-xs font-semibold tracking-wider text-primary uppercase font-mono">
                       Step 4 of 4
                     </p>
-                    <h2 class="text-2xl font-serif text-zinc-100 mt-1">
+                    <h2 class="text-2xl font-serif text-foreground mt-1">
                       Review the compiled brief
                     </h2>
                   </div>
@@ -356,106 +356,106 @@ defmodule ControlKeelWeb.OnboardingLive do
                     <% brief = Intent.to_brief_map(@compiled_brief) %>
                     <% compiler = brief["compiler"] || %{} %>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-zinc-805 pb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-b pb-6">
                       <div>
-                        <h4 class="text-xs font-semibold text-zinc-350 uppercase tracking-wider font-mono">
+                        <h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                           Objective
                         </h4>
-                        <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
+                        <p class="text-muted-foreground text-sm mt-1 leading-relaxed">
                           {brief["objective"]}
                         </p>
                       </div>
                       <div>
-                        <h4 class="text-xs font-semibold text-zinc-350 uppercase tracking-wider font-mono">
+                        <h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                           Project Name
                         </h4>
-                        <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
+                        <p class="text-muted-foreground text-sm mt-1 leading-relaxed">
                           {@attrs["project_name"]}
                         </p>
                       </div>
                       <div class="md:col-span-2">
-                        <h4 class="text-xs font-semibold text-zinc-350 uppercase tracking-wider font-mono">
+                        <h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                           Core Product Prompt
                         </h4>
-                        <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
+                        <p class="text-muted-foreground text-sm mt-1 leading-relaxed">
                           {@attrs["idea"]}
                         </p>
                       </div>
                       <div>
-                        <h4 class="text-xs font-semibold text-zinc-350 uppercase tracking-wider font-mono">
+                        <h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                           Next Step
                         </h4>
-                        <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
+                        <p class="text-muted-foreground text-sm mt-1 leading-relaxed">
                           {brief["next_step"]}
                         </p>
                       </div>
                       <div>
-                        <h4 class="text-xs font-semibold text-zinc-350 uppercase tracking-wider font-mono">
+                        <h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
                           Compiler Info
                         </h4>
-                        <p class="text-zinc-400 text-sm mt-1 leading-relaxed">
+                        <p class="text-muted-foreground text-sm mt-1 leading-relaxed">
                           {compiler["provider"]} / {compiler["model"]}
                         </p>
                       </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                      <div class="rounded-xl border border-zinc-800 bg-zinc-900/20 p-4">
-                        <h4 class="text-xs font-semibold text-lime-400 uppercase tracking-wider font-mono mb-2">
+                      <div class="rounded-xl border bg-card/20 p-4">
+                        <h4 class="text-xs font-semibold text-primary uppercase tracking-wider font-mono mb-2">
                           Acceptance criteria
                         </h4>
-                        <p class="text-xs text-zinc-400 leading-relaxed whitespace-pre-line">
+                        <p class="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
                           {brief["acceptance_criteria"]}
                         </p>
                       </div>
 
-                      <div class="rounded-xl border border-zinc-800 bg-zinc-900/20 p-4">
-                        <h4 class="text-xs font-semibold text-lime-400 uppercase tracking-wider font-mono mb-2">
+                      <div class="rounded-xl border bg-card/20 p-4">
+                        <h4 class="text-xs font-semibold text-primary uppercase tracking-wider font-mono mb-2">
                           Production boundary
                         </h4>
                         <div class="space-y-3">
                           <div class="grid grid-cols-2 gap-2 text-xs">
                             <div>
-                              <span class="text-zinc-500 block font-mono text-[10px] uppercase">
+                              <span class="text-muted-foreground block font-mono text-[10px] uppercase">
                                 Risk Tier
                               </span>
-                              <span class="text-zinc-300 font-medium">
+                              <span class="text-muted-foreground font-medium">
                                 {boundary_value(@compiled_boundary_summary, "risk_tier")}
                               </span>
                             </div>
                             <div>
-                              <span class="text-zinc-500 block font-mono text-[10px] uppercase">
+                              <span class="text-muted-foreground block font-mono text-[10px] uppercase">
                                 Launch Window
                               </span>
-                              <span class="text-zinc-300 font-medium">
+                              <span class="text-muted-foreground font-medium">
                                 {boundary_value(@compiled_boundary_summary, "launch_window")}
                               </span>
                             </div>
                           </div>
                           <div>
-                            <span class="text-zinc-500 text-xs block font-mono text-[10px] uppercase">
+                            <span class="text-muted-foreground text-xs block font-mono text-[10px] uppercase">
                               Budget Note
                             </span>
-                            <span class="text-zinc-300 text-xs font-medium leading-relaxed">
+                            <span class="text-muted-foreground text-xs font-medium leading-relaxed">
                               {boundary_value(@compiled_boundary_summary, "budget_note")}
                             </span>
                           </div>
                           <div>
-                            <span class="text-zinc-500 text-xs block mb-1 font-mono text-[10px] uppercase">
+                            <span class="text-muted-foreground text-xs block mb-1 font-mono text-[10px] uppercase">
                               Constraints
                             </span>
-                            <p class="text-xs text-zinc-400 leading-relaxed">
+                            <p class="text-xs text-muted-foreground leading-relaxed">
                               {boundary_text(@compiled_boundary_summary, "constraints")}
                             </p>
                           </div>
                         </div>
                       </div>
 
-                      <div class="rounded-xl border border-zinc-800 bg-zinc-900/20 p-4 md:col-span-2">
-                        <h4 class="text-xs font-semibold text-lime-400 uppercase tracking-wider font-mono mb-2">
+                      <div class="rounded-xl border bg-card/20 p-4 md:col-span-2">
+                        <h4 class="text-xs font-semibold text-primary uppercase tracking-wider font-mono mb-2">
                           Open Questions
                         </h4>
-                        <ul class="text-xs text-zinc-400 space-y-1.5 list-disc list-inside">
+                        <ul class="text-xs text-muted-foreground space-y-1.5 list-disc list-inside">
                           <%= for item <- brief["open_questions"] || [] do %>
                             <li>{item}</li>
                           <% end %>
@@ -463,15 +463,15 @@ defmodule ControlKeelWeb.OnboardingLive do
                       </div>
                     </div>
                   <% else %>
-                    <p class="text-zinc-400 text-sm">The brief is not available yet.</p>
+                    <p class="text-muted-foreground text-sm">The brief is not available yet.</p>
                   <% end %>
                 </div>
             <% end %>
 
-            <div class="flex items-center justify-between gap-4 mt-8 pt-4 border-t border-zinc-800/60">
+            <div class="flex items-center justify-between gap-4 mt-8 pt-4 border-t">
               <%= if @step > 1 do %>
                 <button
-                  class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-lime-400 hover:text-lime-300 transition font-mono"
+                  class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-primary hover:text-primary transition font-mono"
                   type="button"
                   phx-click="back"
                 >
@@ -483,7 +483,7 @@ defmodule ControlKeelWeb.OnboardingLive do
 
               <button
                 :if={@step < 4}
-                class="px-6 py-2.5 rounded-full bg-lime-400 text-zinc-950 font-bold text-sm hover:bg-lime-300 hover:shadow-[0_0_20px_rgba(196,240,66,0.3)] transition-all duration-200"
+                class="px-6 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:bg-primary hover:shadow-[0_0_20px_rgba(196,240,66,0.3)] transition-all duration-200"
                 type="submit"
               >
                 {if @step == 3, do: "Compile brief", else: "Continue"}
@@ -491,13 +491,13 @@ defmodule ControlKeelWeb.OnboardingLive do
 
               <div :if={@step == 4} class="flex flex-wrap items-center justify-between gap-4">
                 <button
-                  class="px-6 py-2.5 rounded-full bg-zinc-800 text-zinc-400 font-semibold text-sm hover:bg-zinc-700 hover:text-zinc-200 transition-all duration-200"
+                  class="px-6 py-2.5 rounded-full bg-card text-muted-foreground font-semibold text-sm hover:bg-muted hover:text-foreground transition-all duration-200"
                   phx-click="regenerate"
                 >
                   Regenerate
                 </button>
                 <button
-                  class="px-6 py-2.5 rounded-full bg-lime-400 text-zinc-950 font-bold text-sm hover:bg-lime-300 hover:shadow-[0_0_20px_rgba(196,240,66,0.3)] transition-all duration-200"
+                  class="px-6 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:bg-primary hover:shadow-[0_0_20px_rgba(196,240,66,0.3)] transition-all duration-200"
                   type="button"
                   phx-click="accept"
                 >
@@ -509,66 +509,66 @@ defmodule ControlKeelWeb.OnboardingLive do
         </div>
 
         <div class="lg:col-span-1 space-y-6">
-          <div class="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6 backdrop-blur-xl">
-            <p class="text-[10px] font-semibold tracking-wider text-lime-400 uppercase font-mono mb-3">
+          <div class="rounded-2xl border bg-card/30 p-6 backdrop-blur-xl">
+            <p class="text-[10px] font-semibold tracking-wider text-primary uppercase font-mono mb-3">
               Domain pack preview
             </p>
             <div class="space-y-4">
               <div>
-                <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                <h4 class="text-xs font-semibold text-muted-foreground font-mono uppercase tracking-wider">
                   Occupation
                 </h4>
-                <p class="text-zinc-200 text-sm mt-0.5">{@preflight.occupation.label}</p>
+                <p class="text-foreground text-sm mt-0.5">{@preflight.occupation.label}</p>
               </div>
 
               <div>
-                <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                <h4 class="text-xs font-semibold text-muted-foreground font-mono uppercase tracking-wider">
                   Description
                 </h4>
-                <p class="text-zinc-200 text-sm mt-0.5">{@preflight.occupation.description}</p>
+                <p class="text-foreground text-sm mt-0.5">{@preflight.occupation.description}</p>
               </div>
 
               <div class="flex gap-2 justify-between">
                 <div>
-                  <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                  <h4 class="text-xs font-semibold text-muted-foreground font-mono uppercase tracking-wider">
                     Domain
                   </h4>
-                  <p class="text-zinc-200 text-sm mt-0.5">{@preflight.occupation.domain_pack}</p>
+                  <p class="text-foreground text-sm mt-0.5">{@preflight.occupation.domain_pack}</p>
                 </div>
 
                 <div>
-                  <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                  <h4 class="text-xs font-semibold text-muted-foreground font-mono uppercase tracking-wider">
                     preliminary risk
                   </h4>
-                  <p class="text-zinc-200 text-sm mt-0.5">{@preflight.preliminary_risk_tier}</p>
+                  <p class="text-foreground text-sm mt-0.5">{@preflight.preliminary_risk_tier}</p>
                 </div>
               </div>
 
               <div>
-                <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                <h4 class="text-xs font-semibold text-muted-foreground font-mono uppercase tracking-wider">
                   Validation emphasis
                 </h4>
-                <p class="text-zinc-200 text-sm mt-0.5 leading-relaxed">
+                <p class="text-foreground text-sm mt-0.5 leading-relaxed">
                   {@preflight.validation_language}
                 </p>
               </div>
               <div>
-                <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider mb-1.5">
+                <h4 class="text-xs font-semibold text-muted-foreground font-mono uppercase tracking-wider mb-1.5">
                   Compliance
                 </h4>
                 <div class="flex flex-wrap gap-1">
                   <%= for item <- @preflight.compliance do %>
-                    <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700/50">
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-card text-muted-foreground border">
                       {item}
                     </span>
                   <% end %>
                 </div>
               </div>
               <div>
-                <h4 class="text-xs font-semibold text-zinc-400 font-mono uppercase tracking-wider">
+                <h4 class="text-xs font-semibold text-muted-foreground font-mono uppercase tracking-wider">
                   Stack guidance
                 </h4>
-                <p class="text-zinc-200 text-xs mt-0.5 leading-relaxed">
+                <p class="text-foreground text-xs mt-0.5 leading-relaxed">
                   {@preflight.stack_guidance}
                 </p>
               </div>

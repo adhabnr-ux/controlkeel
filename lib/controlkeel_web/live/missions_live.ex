@@ -17,23 +17,23 @@ defmodule ControlKeelWeb.MissionsLive do
     <section class="mx-auto max-w-7xl px-4 py-8 md:py-12">
       <div class="mb-6 flex items-center justify-between gap-4">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-lime-300">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             Missions
           </p>
         </div>
 
         <a
           href={~p"/missions/start"}
-          class="inline-flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-lg shadow-lime-300/20 transition hover:-translate-y-0.5 hover:bg-lime-200"
+          class="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary"
         >
           <.icon name="hero-plus" class="size-4" /> New Mission
         </a>
       </div>
 
-      <section class="rounded-3xl border border-white/10 bg-zinc-900/70 shadow-2xl shadow-black/20 backdrop-blur">
+      <section class="rounded-3xl border bg-card/70 shadow-2xl shadow-black/20 backdrop-blur">
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-white/10 text-left text-sm">
-            <thead class="bg-white/[0.03] text-xs uppercase tracking-[0.14em] text-zinc-500">
+          <table class="min-w-full divide-y divide-border text-left text-sm">
+            <thead class="bg-muted/[0.03] text-xs uppercase tracking-[0.14em] text-muted-foreground">
               <tr>
                 <th class="px-5 py-3 font-semibold">Mission</th>
                 <th class="px-5 py-3 font-semibold">Risk</th>
@@ -43,23 +43,25 @@ defmodule ControlKeelWeb.MissionsLive do
                 <th class="px-5 py-3 font-semibold"></th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-white/10">
+            <tbody class="divide-y divide-border">
               <%= if @recent_sessions == [] do %>
                 <tr>
                   <td colspan="6" class="px-5 py-12 text-center">
-                    <p class="text-base font-medium text-white">No missions yet.</p>
-                    <p class="mt-1 text-sm text-zinc-500">
+                    <p class="text-base font-medium text-foreground">No missions yet.</p>
+                    <p class="mt-1 text-sm text-muted-foreground">
                       Start a mission to populate live governance telemetry.
                     </p>
                   </td>
                 </tr>
               <% else %>
                 <%= for session <- @recent_sessions do %>
-                  <tr class="transition hover:bg-white/[0.03]">
+                  <tr class="transition hover:bg-muted/[0.03]">
                     <td class="max-w-sm px-5 py-4">
-                      <p class="font-medium text-white">{session.title}</p>
-                      <p class="mt-1 line-clamp-1 text-xs text-zinc-500">{session.objective}</p>
-                      <p class="mt-2 text-xs text-zinc-600">
+                      <p class="font-medium text-foreground">{session.title}</p>
+                      <p class="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                        {session.objective}
+                      </p>
+                      <p class="mt-2 text-xs text-muted-foreground">
                         {session.workspace && session.workspace.name}
                       </p>
                     </td>
@@ -67,36 +69,36 @@ defmodule ControlKeelWeb.MissionsLive do
                       <span class={[
                         "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
                         session.risk_tier in ["critical", "high"] &&
-                          "bg-red-400/10 text-red-200 ring-red-300/20",
+                          "bg-destructive/10 text-destructive ring-destructive/20",
                         session.risk_tier in ["medium", "moderate"] &&
-                          "bg-amber-300/10 text-amber-100 ring-amber-200/20",
+                          "bg-[var(--ck-warning)]/10 text-[var(--ck-warning)] ring-[var(--ck-warning)]/20",
                         session.risk_tier in ["low"] &&
-                          "bg-emerald-300/10 text-emerald-100 ring-emerald-200/20",
+                          "bg-[var(--ck-success)]/10 text-[var(--ck-success)] ring-[var(--ck-success)]/20",
                         session.risk_tier not in ["critical", "high", "medium", "moderate", "low"] &&
-                          "bg-white/10 text-zinc-300 ring-white/15"
+                          "bg-muted text-muted-foreground ring-border"
                       ]}>
                         {session.risk_tier}
                       </span>
                     </td>
                     <td class="px-5 py-4">
-                      <div class="flex items-center gap-2 text-zinc-300">
-                        <.icon name="hero-list-bullet" class="size-4 text-zinc-500" />
+                      <div class="flex items-center gap-2 text-muted-foreground">
+                        <.icon name="hero-list-bullet" class="size-4 text-muted-foreground" />
                         {Enum.count(session.tasks)} tasks
                       </div>
                     </td>
                     <td class="px-5 py-4">
-                      <div class="flex items-center gap-2 text-zinc-300">
-                        <.icon name="hero-exclamation-circle" class="size-4 text-zinc-500" />
+                      <div class="flex items-center gap-2 text-muted-foreground">
+                        <.icon name="hero-exclamation-circle" class="size-4 text-muted-foreground" />
                         {Enum.count(session.findings)}
                       </div>
                     </td>
-                    <td class="px-5 py-4 text-zinc-300">
+                    <td class="px-5 py-4 text-muted-foreground">
                       ${session.budget_cents |> Kernel./(100) |> trunc()}
                     </td>
                     <td class="px-5 py-4 text-right">
                       <a
                         href={~p"/missions/#{session.id}"}
-                        class="inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:border-lime-300/40 hover:bg-lime-300/10 hover:text-white"
+                        class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
                       >
                         Inspect <.icon name="hero-arrow-right" class="size-3" />
                       </a>
