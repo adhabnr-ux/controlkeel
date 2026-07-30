@@ -1,9 +1,11 @@
-<div>
+<div class="h-screen flex overflow-hidden">
   <.sidebar current_user={@current_user} current_path={@current_path} />
 
-  <div class="lg:pl-64">
-    <main class="min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 lg:px-8">
-      <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
+  <div class="flex flex-1 flex-col overflow-hidden">
+    <.dashboard_header current_path={@current_path} />
+
+    <main class="flex-1 overflow-y-auto py-6 space-y-6">
+      <div class="px-4 sm:px-6 lg:px-8">
         <div class="space-y-1 mb-8">
           <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
             Observability
@@ -111,9 +113,11 @@
             Recommendations
           </.link>
         </div>
+      </div>
 
+      <div class="px-4 sm:px-6 lg:px-8">
         {@inner_content}
-      </section>
+      </div>
     </main>
   </div>
 </div>
