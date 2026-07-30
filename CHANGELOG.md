@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.82 — 2026-07-30
+
+### What's changed
+
+- Merge pull request #49 from aryaminus/feat/user-menu
+- feat/user-menu: encapsulate user menu into reusable component and update layout logic
+- feat/user-menu: replace breadcrumb with dashboard_header and move external links to header
+- feat/user-menu: remove OrganizationSettingsLive as functionality is consolidated elsewhere
+- feat/user-menu: simplify breadcrumb_trail logic using Enum.with_index and Enum.take
+- fix(organizations): align role badge test with reformatted template
+- feat/user-menu: implement dynamic breadcrumb component and integrate into dashboard layout via NavHighlight hook
+- feat/user-menu: replace simple logout link with user profile menu popover in sidebar
+
 ## v0.3.81 — 2026-07-28
 
 ### What's changed
