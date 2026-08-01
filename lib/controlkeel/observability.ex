@@ -2,6 +2,7 @@ defmodule ControlKeel.Observability do
   @moduledoc false
 
   import Ecto.Query, warn: false
+  require Logger
 
   alias ControlKeel.Benchmark
   alias ControlKeel.Benchmark.{Result, Scenario, Suite}
@@ -18,6 +19,10 @@ defmodule ControlKeel.Observability do
   @active_finding_statuses ~w(open blocked escalated)
   @active_task_statuses ~w(queued in_progress blocked paused)
   @cost_group_fields ~w(model tool source provider)
+  # Upper bound on optimistic-lock retries for a single candidate lifecycle
+  # transition. Same-candidate concurrent benchmark runs are uncommon, so a
+  # handful of attempts resolves any realistic contention (issue #50).
+  @lifecycle_max_retries 5
 
   def workspace_overview(opts \\ []) do
     limit = Keyword.get(opts, :limit, 6)
@@ -313,6 +318,32 @@ defmodule ControlKeel.Observability do
   end
 
   defp update_eval_candidate_from_results(candidate_id, scenario, results, run) do
+    # The candidate row is read-modify-written (lifecycle_seq is incremented and
+    # a marker is merged into metadata). Two benchmark runs completing
+    # concurrently for the same candidate would otherwise race and the last
+    # write would silently drop the other transition's marker (issue #50).
+    # optimistic_lock(:lock_version) + stale_error_field turns a stale-snapshot
+    # write into an {:error, changeset} we can detect and retry against a fresh
+    # read, so both transitions land with distinct, strictly-increasing
+    # lifecycle_seq.
+    apply_lifecycle_transition(candidate_id, scenario, results, run, @lifecycle_max_retries)
+  end
+
+  defp apply_lifecycle_transition(candidate_id, _scenario, _results, _run, 0) do
+    # Exhausted retries under sustained contention. Return nil — the caller
+    # already treats a nil update as "nothing to broadcast" and the next run
+    # will re-evaluate the candidate from its persisted state. Log so the
+    # drop is observable rather than silent (Greptile on PR #51).
+    Logger.warning(
+      "[EvalCandidate ##{candidate_id}] lifecycle transition abandoned after " <>
+        "#{@lifecycle_max_retries} optimistic-lock retries; the next " <>
+        "benchmark run will re-evaluate it from persisted state."
+    )
+
+    nil
+  end
+
+  defp apply_lifecycle_transition(candidate_id, scenario, results, run, attempts_left) do
     case Repo.get(EvalCandidate, candidate_id) do
       nil ->
         nil
@@ -324,7 +355,8 @@ defmodule ControlKeel.Observability do
 
         # Monotonic per-candidate sequence so the promotion policy can order
         # transitions that share a second-precision closed_at. Old rows without
-        # lifecycle_seq start at 0; the counter only moves forward.
+        # lifecycle_seq start at 0; the counter only moves forward. Re-read on
+        # every retry attempt so the seq is derived from the latest snapshot.
         prev_metadata = candidate.metadata || %{}
         next_seq = (prev_metadata["lifecycle_seq"] || 0) + 1
 
@@ -343,12 +375,38 @@ defmodule ControlKeel.Observability do
 
         candidate
         |> EvalCandidate.changeset(%{status: new_status, metadata: metadata})
-        |> Repo.update()
+        |> Ecto.Changeset.optimistic_lock(:lock_version)
+        |> Repo.update(stale_error_field: :lock_version)
         |> case do
-          {:ok, updated} -> updated
-          {:error, _reason} -> nil
+          {:ok, updated} ->
+            updated
+
+          {:error, %Ecto.Changeset{} = cs} ->
+            # Retry on a stale-snapshot conflict while retries remain. The
+            # `attempts_left == 0` clause is the single exhaustion path (it
+            # logs and returns nil), so the guard must allow recursing from
+            # attempts_left == 1 down to 0 — otherwise exhaustion falls through
+            # to this else branch silently and the warning is never reached
+            # (spotted by @saragam-git on PR #51).
+            if stale_changeset?(cs) and attempts_left > 0 do
+              apply_lifecycle_transition(candidate_id, scenario, results, run, attempts_left - 1)
+            else
+              # Genuine validation error: drop the update. The next benchmark
+              # run re-evaluates from persisted state.
+              nil
+            end
         end
     end
+  end
+
+  # An optimistic-lock conflict surfaces as a changeset error tagged with
+  # stale: true (via Repo.update(stale_error_field: :lock_version)). Distinguish
+  # it from a real validation failure so only conflicts are retried.
+  defp stale_changeset?(%Ecto.Changeset{errors: errors}) do
+    Enum.any?(errors, fn
+      {_field, {_message, opts}} -> Keyword.get(opts, :stale, false)
+      _other -> false
+    end)
   end
 
   defp lifecycle_transition(true), do: {"archived", "lifecycle_closed_by_run"}
