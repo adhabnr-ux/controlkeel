@@ -102,6 +102,7 @@ Keep this root file lean: only project-specific governance, commands, and critic
 
 ## JS, CSS, and UI
 
+- Follow `docs/ui-style-guide.md` for page titles, headings, cards, stat cards, tables, and tone tokens.
 - Tailwind v4 import syntax in `app.css` must stay:
 
       @import "tailwindcss" source(none);
