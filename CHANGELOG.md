@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.84 — 2026-08-01
+
+### What's changed
+
+- Merge pull request #51 from aryaminus/fix/evalcandidate-optimistic-lock
+- fix(observability): make optimistic-lock exhaustion warning reachable
+- fix(observability): log warning on lifecycle retry exhaustion + correct doc
+- fix(observability): optimistic-lock EvalCandidate lifecycle writes (#50)
+
 ## v0.3.83 — 2026-07-30
 
 ### What's changed
