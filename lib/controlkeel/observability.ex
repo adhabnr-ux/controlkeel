@@ -382,11 +382,17 @@ defmodule ControlKeel.Observability do
             updated
 
           {:error, %Ecto.Changeset{} = cs} ->
-            if stale_changeset?(cs) and attempts_left > 1 do
+            # Retry on a stale-snapshot conflict while retries remain. The
+            # `attempts_left == 0` clause is the single exhaustion path (it
+            # logs and returns nil), so the guard must allow recursing from
+            # attempts_left == 1 down to 0 — otherwise exhaustion falls through
+            # to this else branch silently and the warning is never reached
+            # (spotted by @saragam-git on PR #51).
+            if stale_changeset?(cs) and attempts_left > 0 do
               apply_lifecycle_transition(candidate_id, scenario, results, run, attempts_left - 1)
             else
-              # Genuine validation error, or contention exhausted: drop the
-              # update. The next benchmark run re-evaluates from persisted state.
+              # Genuine validation error: drop the update. The next benchmark
+              # run re-evaluates from persisted state.
               nil
             end
         end
