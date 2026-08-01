@@ -245,12 +245,11 @@ defmodule ControlKeelWeb.Layouts do
       <.dashboard_header current_path={@current_path} />
   """
   attr :current_path, :string, default: nil
+  attr :page_action, :map, default: nil
 
   def dashboard_header(assigns) do
-    assigns = assign_new(assigns, :current_path, fn -> nil end)
-
     ~H"""
-    <div class="w-full border-b p-4">
+    <div class="flex w-full items-center justify-between border-b p-4">
       <nav :if={@current_path && @current_path != "/"} aria-label="Breadcrumb">
         <ol class="flex items-center gap-1.5 text-sm">
           <li>
@@ -278,6 +277,33 @@ defmodule ControlKeelWeb.Layouts do
           <% end %>
         </ol>
       </nav>
+      <div :if={@page_action} class="flex items-center gap-2">
+        <a
+          :if={@page_action[:to]}
+          href={@page_action.to}
+          class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
+        >
+          <.icon :if={@page_action[:icon]} name={@page_action.icon} class="size-4" /> {@page_action.label}
+        </a>
+
+        <button
+          :if={@page_action[:form]}
+          type="submit"
+          form={@page_action.form}
+          class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
+        >
+          <.icon :if={@page_action[:icon]} name={@page_action.icon} class="size-4" /> {@page_action.label}
+        </button>
+
+        <button
+          :if={@page_action[:event]}
+          type="button"
+          phx-click={@page_action.event}
+          class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
+        >
+          <.icon :if={@page_action[:icon]} name={@page_action.icon} class="size-4" /> {@page_action.label}
+        </button>
+      </div>
     </div>
     """
   end
