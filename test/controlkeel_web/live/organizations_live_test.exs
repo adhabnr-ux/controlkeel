@@ -15,7 +15,7 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
 
       {:ok, _view, html} = live(build_conn(), ~p"/organizations")
 
-      assert html =~ "Your organizations"
+      assert html =~ "Organizations"
       assert html =~ "Alpha"
       assert html =~ "Beta"
       refute html =~ "Gamma"

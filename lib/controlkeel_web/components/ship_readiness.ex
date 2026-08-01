@@ -5,6 +5,8 @@ defmodule ControlKeelWeb.ShipReadiness do
   """
   use Phoenix.Component
 
+  import ControlKeelWeb.Typography
+
   attr :verdict, :map, required: true
   attr :improvement_loop, :map, default: %{}
   attr :outcome_metrics, :map, required: true
@@ -14,11 +16,10 @@ defmodule ControlKeelWeb.ShipReadiness do
 
   def ship_readiness(assigns) do
     ~H"""
-    <div class="p-6 rounded-3xl border bg-card/70 backdrop-blur-xl shadow-2xl shadow-black/20 mt-6">
+    <div class="rounded-2xl border bg-card p-6 shadow-card mt-6">
       <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b">
-        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-          Ship readiness
-        </p>
+        <.section_title>Ship readiness</.section_title>
+
         <span class={[
           "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em]",
           verdict_badge_class(@verdict.tone)
@@ -35,7 +36,7 @@ defmodule ControlKeelWeb.ShipReadiness do
       </p>
 
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-5">
-        <div class="p-4 rounded-2xl border bg-card">
+        <div class="rounded-2xl bg-muted p-4">
           <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Proof-backed tasks
           </p>
@@ -43,7 +44,7 @@ defmodule ControlKeelWeb.ShipReadiness do
             {format_percent(@outcome_metrics.proof_backed_task_coverage_percent)}
           </strong>
         </div>
-        <div class="p-4 rounded-2xl border bg-card">
+        <div class="rounded-2xl bg-muted p-4">
           <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Deploy-ready rate
           </p>
@@ -51,7 +52,7 @@ defmodule ControlKeelWeb.ShipReadiness do
             {format_percent(@outcome_metrics.deploy_ready_task_rate_percent)}
           </strong>
         </div>
-        <div class="p-4 rounded-2xl border bg-card">
+        <div class="rounded-2xl bg-muted p-4">
           <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Cost / deploy-ready
           </p>
@@ -59,7 +60,7 @@ defmodule ControlKeelWeb.ShipReadiness do
             {format_cost(@outcome_metrics.cost_per_deploy_ready_task_cents)}
           </strong>
         </div>
-        <div class="p-4 rounded-2xl border bg-card">
+        <div class="rounded-2xl bg-muted p-4">
           <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             First deploy-ready proof
           </p>
@@ -67,7 +68,7 @@ defmodule ControlKeelWeb.ShipReadiness do
             {format_duration(@outcome_metrics.average_time_to_first_deploy_ready_proof_seconds)}
           </strong>
         </div>
-        <div class="p-4 rounded-2xl border bg-card">
+        <div class="rounded-2xl bg-muted p-4">
           <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Risky interventions
           </p>
@@ -75,7 +76,7 @@ defmodule ControlKeelWeb.ShipReadiness do
             {format_percent(@outcome_metrics.risky_intervention_rate_percent)}
           </strong>
         </div>
-        <div class="p-4 rounded-2xl border bg-card">
+        <div class="rounded-2xl bg-muted p-4">
           <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Resume success
           </p>
@@ -86,7 +87,7 @@ defmodule ControlKeelWeb.ShipReadiness do
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-        <div class="p-4 rounded-2xl border bg-card">
+        <div class="rounded-2xl bg-muted p-4">
           <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
             Autonomy posture
           </p>
@@ -95,7 +96,7 @@ defmodule ControlKeelWeb.ShipReadiness do
             {@autonomy_profile["human_role"]} · {@autonomy_profile["operator_posture"]}
           </p>
         </div>
-        <div class="p-4 rounded-2xl border bg-card">
+        <div class="rounded-2xl bg-muted p-4">
           <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
             Outcome alignment
           </p>
@@ -113,7 +114,7 @@ defmodule ControlKeelWeb.ShipReadiness do
           </p>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <%= for row <- @agent_outcomes do %>
-              <div class="p-4 rounded-2xl border bg-card">
+              <div class="rounded-2xl bg-muted p-4">
                 <p class="text-sm font-semibold text-foreground">{row.agent}</p>
                 <p class="text-xs text-muted-foreground mt-1">
                   {row.completed_tasks}/{row.total_tasks} done · {format_percent(
@@ -130,17 +131,16 @@ defmodule ControlKeelWeb.ShipReadiness do
   end
 
   defp verdict_badge_class("ready"),
-    do: "bg-[var(--ck-success)]/15 text-[var(--ck-success)] border-[var(--ck-success)]/30"
+    do: "bg-success/15 text-success border-success/30"
 
   defp verdict_badge_class("blocked"),
     do: "bg-destructive/15 text-destructive border-destructive/30"
 
-  # No design token for the in-progress/info state; kept blue pending an info token.
   defp verdict_badge_class("progress"),
     do: "bg-info/15 text-info border-info/30"
 
   defp verdict_badge_class(_),
-    do: "bg-[var(--ck-warning)]/15 text-[var(--ck-warning)] border-[var(--ck-warning)]/30"
+    do: "bg-warning/15 text-warning border-warning/30"
 
   defp format_percent(nil), do: "Not enough data"
   defp format_percent(value), do: "#{value}%"

@@ -277,7 +277,7 @@ defmodule ControlKeelWeb.Layouts do
           <% end %>
         </ol>
       </nav>
-      <div :if={@page_action} class="flex items-center gap-2">
+      <div :if={@page_action} class="flex items-center gap-2" id="dashboard-page-action">
         <a
           :if={@page_action[:to]}
           href={@page_action.to}

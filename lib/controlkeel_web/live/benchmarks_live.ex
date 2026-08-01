@@ -9,6 +9,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
     {:ok,
      socket
      |> assign(:page_title, "Benchmarks")
+     |> assign(:page_action, run_benchmark_action())
      |> assign(:run, nil)
      |> assign(:matrix, %{subjects: [], scenarios: []})
      |> assign(:detail_metrics, %{})
@@ -35,7 +36,12 @@ defmodule ControlKeelWeb.BenchmarksLive do
          |> assign(:matrix, Benchmark.run_matrix(run))
          |> assign(:detail_metrics, Benchmark.run_detail_metrics(run))
          |> assign(:eval_profile, Benchmark.run_eval_profile(run))
-         |> assign(:page_title, "Benchmark Run #{run.id}")}
+         |> assign(:page_title, "Benchmark Run #{run.id}")
+         |> assign(:page_action, %{
+           label: "Export CSV",
+           to: "/api/v1/benchmarks/runs/#{run.id}/export?format=csv",
+           icon: "hero-document-text"
+         })}
     end
   end
 
@@ -47,6 +53,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
      |> assign(:detail_metrics, %{})
      |> assign(:eval_profile, %{})
      |> assign(:page_title, "Benchmarks")
+     |> assign(:page_action, run_benchmark_action())
      |> refresh_dashboard_assigns()}
   end
 
@@ -121,29 +128,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
   @impl true
   def render(%{live_action: :show} = assigns) do
     ~H"""
-    <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-4 pb-16 max-[900px]:w-[min(calc(100%-1.25rem),1180px)] max-[900px]:pt-6">
-      <.link
-        navigate={~p"/benchmarks"}
-        class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
-      >
-        <.icon name="hero-arrow-left" class="w-3 h-3" /> Back to benchmarks
-      </.link>
-
-      <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
-        <div class="space-y-1">
-          <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
-            Run ##{@run.id} — {@run.suite.name}
-          </h2>
-        </div>
-
-        <a
-          href={~p"/api/v1/benchmarks/runs/#{@run.id}/export?format=csv"}
-          class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] border rounded-xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] px-3 py-2 text-muted-foreground hover:text-foreground hover:border-primary"
-        >
-          <.icon name="hero-document-text" class="w-3 h-3" /> Export CSV
-        </a>
-      </div>
-
+    <section class="w-full space-y-6">
       <div class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
         <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold mb-4">
           Performance metrics
@@ -289,17 +274,13 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
   def render(assigns) do
     ~H"""
-    <section class="w-[min(1180px,calc(100%-2rem))] mx-auto pt-8 pb-16 max-[900px]:w-[min(calc(100%-1.25rem),1180px)] max-[900px]:pt-6">
-      <div class="space-y-1">
-        <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
-          Benchmark engine
-        </h2>
-        <p class="text-muted-foreground">
-          Compare governed subjects and external agents on the same scenario suites, then keep the results as product evidence.
-        </p>
-      </div>
+    <section class="w-full space-y-6">
+      <.page_title
+        title="Benchmark engine"
+        subtitle="Compare governed subjects and external agents on the same scenario suites, then keep the results as product evidence."
+      />
 
-      <div class="grid gap-4 grid-cols-[2fr_1fr] mt-6">
+      <div class="grid gap-4 grid-cols-[2fr_1fr]">
         <div class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 grid gap-4">
           <div class="flex flex-col gap-3 mb-6">
             <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
@@ -367,12 +348,9 @@ defmodule ControlKeelWeb.BenchmarksLive do
               />
             </div>
             <div class="flex items-center justify-between gap-4 mt-4 max-[900px]:flex-col max-[900px]:items-start">
-              <button
-                type="submit"
-                class="inline-flex items-center justify-center gap-[0.4rem] px-4 py-2 rounded-full bg-primary text-[#11170d] font-bold transition-transform transition-shadow duration-150 hover:-translate-y-px hover:shadow-[0_12px_24px_rgba(196,240,66,0.24)]"
-              >
-                Run benchmark
-              </button>
+              <p class="text-sm text-muted-foreground">
+                Run this suite from the <strong>Run benchmark</strong> action in the header.
+              </p>
             </div>
           </.form>
           <p class="text-muted-foreground text-sm mt-4">
@@ -543,6 +521,10 @@ defmodule ControlKeelWeb.BenchmarksLive do
       </div>
     </section>
     """
+  end
+
+  defp run_benchmark_action do
+    %{label: "Run benchmark", form: "benchmark-runner", icon: "hero-play"}
   end
 
   defp default_form_params do

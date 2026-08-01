@@ -11,10 +11,10 @@ defmodule ControlKeelWeb.DeploymentLive do
     socket =
       socket
       |> assign(:page_title, "Deployment Advisor")
+      |> assign(:page_action, %{label: "Analyze Project", event: "analyze", icon: "hero-play"})
       |> assign(:project_root, project_root)
       |> assign(:analysis, nil)
       |> assign(:cost_estimates, nil)
-      |> assign(:generating, false)
       |> assign(:generated_files, nil)
       |> assign(:selected_tier, "free")
       |> assign(:needs_db, true)
@@ -70,189 +70,217 @@ defmodule ControlKeelWeb.DeploymentLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16 max-[900px]:w-[min(100%-1.25rem,1180px)] max-[900px]:pt-6">
-      <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
-        <div>
-          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-            Deployment
-          </p>
-          <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">Deployment Advisor</h1>
-          <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
-            Analyze your project stack, preview deployment files, and estimate hosting costs across major platforms.
-          </p>
-        </div>
-        <div class="flex items-center justify-between gap-4">
-          <button phx-click="analyze">
-            Analyze Project
-          </button>
-          <a
-            href={~p"/"}
-            class="uppercase tracking-[0.14em] text-xs text-primary font-semibold"
-          >
-            Back home
-          </a>
-        </div>
-      </div>
+    <div class="w-full space-y-6">
+      <.page_title
+        title="Deployment Advisor"
+        subtitle="Analyze your project stack, preview deployment files, and estimate hosting costs across major platforms."
+      />
 
       <%= if @analysis do %>
-        <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
-          <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-              Detected Stack
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <article class="rounded-2xl border bg-card p-5 shadow-card">
+            <p class="text-sm font-medium text-muted-foreground">Detected Stack</p>
+            <p class="mt-2 text-xl font-semibold text-foreground/90">
+              {String.capitalize(to_string(@analysis.stack))}
             </p>
-            <strong class="text-lg">{String.capitalize(to_string(@analysis.stack))}</strong>
-          </div>
-          <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-              Monthly Cost Range
-            </p>
-            <strong>
+          </article>
+
+          <article class="rounded-2xl border bg-card p-5 shadow-card">
+            <p class="text-sm font-medium text-muted-foreground">Monthly Cost Range</p>
+            <p class="mt-2 text-xl font-semibold text-foreground/90">
               ${@analysis.monthly_cost_range.low} - ${@analysis.monthly_cost_range.high}
-            </strong>
-          </div>
-          <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-              Compatible Platforms
             </p>
-            <strong>{length(@analysis.platforms)}</strong>
-          </div>
-          <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-              Files to Generate
+          </article>
+
+          <article class="rounded-2xl border bg-card p-5 shadow-card">
+            <p class="text-sm font-medium text-muted-foreground">Compatible Platforms</p>
+            <p class="mt-2 text-xl font-semibold text-foreground/90">
+              {length(@analysis.platforms)}
             </p>
-            <strong>{length(@analysis.generators)}</strong>
-          </div>
+          </article>
+
+          <article class="rounded-2xl border bg-card p-5 shadow-card">
+            <p class="text-sm font-medium text-muted-foreground">Files to Generate</p>
+            <p class="mt-2 text-xl font-semibold text-foreground/90">
+              {length(@analysis.generators)}
+            </p>
+          </article>
         </div>
 
-        <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2>Recommended Platforms</h2>
-            <div class="flex gap-2 items-center">
-              <label class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-                Tier:
+        <section class="space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <.section_title>Recommended Platforms</.section_title>
+
+            <div class="flex flex-wrap items-center gap-3 text-sm">
+              <label class="flex items-center gap-2 text-muted-foreground">
+                Tier
+                <select
+                  phx-change="select_tier"
+                  class="rounded-lg border border-input bg-background px-3 py-1.5 text-sm font-medium text-foreground"
+                >
+                  <option value="free" selected={@selected_tier == "free"}>Free</option>
+                  <option value="hobby" selected={@selected_tier == "hobby"}>Hobby ($5-10/mo)</option>
+                  <option value="standard_1x" selected={@selected_tier == "standard_1x"}>
+                    Standard ($25/mo)
+                  </option>
+                  <option value="performance" selected={@selected_tier == "performance"}>
+                    Performance ($85+/mo)
+                  </option>
+                </select>
               </label>
-              <select phx-change="select_tier" class="text-sm" style="width:auto">
-                <option value="free" selected={@selected_tier == "free"}>Free</option>
-                <option value="hobby" selected={@selected_tier == "hobby"}>Hobby ($5-10/mo)</option>
-                <option value="standard_1x" selected={@selected_tier == "standard_1x"}>
-                  Standard ($25/mo)
-                </option>
-                <option value="performance" selected={@selected_tier == "performance"}>
-                  Performance ($85+/mo)
-                </option>
-              </select>
-              <label class="flex items-center gap-1 text-sm">
-                <input type="checkbox" checked={@needs_db} phx-click="toggle_db" class="rounded" />
-                Database
+
+              <label class="flex cursor-pointer items-center gap-2 text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={@needs_db}
+                  phx-click="toggle_db"
+                  class="size-4 rounded border-input bg-background accent-primary"
+                /> Database
               </label>
-              <button phx-click="estimate_costs">
+
+              <button
+                type="button"
+                phx-click="estimate_costs"
+                class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+              >
                 Estimate Costs
               </button>
             </div>
           </div>
 
           <%= if @show_costs and @cost_estimates do %>
-            <div class="overflow-x-auto">
-              <.table id="cost-estimates" rows={@cost_estimates}>
-                <:col :let={est} label="Platform">
-                  <div>
-                    <strong>{est.name}</strong>
-                    <%= if est.fits_stack do %>
-                      <span class="inline-block ml-2 px-1.5 py-0.5 text-xs rounded bg-[var(--ck-success)] text-[var(--ck-success)]">
-                        Best fit
-                      </span>
-                    <% end %>
-                  </div>
-                </:col>
-                <:col :let={est} label="Compute">
-                  ${:erlang.float_to_binary(est.breakdown.compute / 100, decimals: 2)}/mo
-                </:col>
-                <:col :let={est} label="Database">
-                  ${:erlang.float_to_binary(est.breakdown.database / 100, decimals: 2)}/mo
-                </:col>
-                <:col :let={est} label="Bandwidth">
-                  ${:erlang.float_to_binary(est.breakdown.bandwidth / 100, decimals: 2)}/mo
-                </:col>
-                <:col :let={est} label="Total">
-                  <strong>${:erlang.float_to_binary(est.total_monthly_usd, decimals: 2)}/mo</strong>
-                </:col>
-              </.table>
+            <div class="bg-card border rounded-2xl shadow-card overflow-hidden">
+              <table class="min-w-full divide-y divide-border text-left text-sm">
+                <thead class="bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                  <tr>
+                    <th class="px-5 py-3 font-semibold">Platform</th>
+                    <th class="px-5 py-3 font-semibold">Compute</th>
+                    <th class="px-5 py-3 font-semibold">Database</th>
+                    <th class="px-5 py-3 font-semibold">Bandwidth</th>
+                    <th class="px-5 py-3 font-semibold text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                  <%= for est <- @cost_estimates do %>
+                    <tr class="transition hover:bg-muted/30">
+                      <td class="px-5 py-4">
+                        <div class="flex items-center gap-2">
+                          <span class="font-medium text-foreground">{est.name}</span>
+                          <%= if est.fits_stack do %>
+                            <span class="inline-flex rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success ring-1 ring-success/20">
+                              Best fit
+                            </span>
+                          <% end %>
+                        </div>
+                      </td>
+                      <td class="px-5 py-4 text-muted-foreground">
+                        ${format_cents(est.breakdown.compute)}/mo
+                      </td>
+                      <td class="px-5 py-4 text-muted-foreground">
+                        ${format_cents(est.breakdown.database)}/mo
+                      </td>
+                      <td class="px-5 py-4 text-muted-foreground">
+                        ${format_cents(est.breakdown.bandwidth)}/mo
+                      </td>
+                      <td class="px-5 py-4 text-right font-medium text-foreground">
+                        ${format_usd(est.total_monthly_usd)}/mo
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
             </div>
           <% else %>
-            <div class="overflow-x-auto">
-              <.table id="platform-list" rows={@analysis.platforms}>
-                <:col :let={p} label="Platform">
-                  <a
-                    href={p.url}
-                    target="_blank"
-                    class="uppercase tracking-[0.14em] text-xs text-primary font-semibold"
-                  >
-                    {p.name}
-                  </a>
-                </:col>
-                <:col :let={p} label="Tier">
-                  {p.tier.name}
-                </:col>
-                <:col :let={p} label="Starting Price">
-                  <%= if p.tier.monthly_low == 0 do %>
-                    Free
-                  <% else %>
-                    ${p.tier.monthly_low}/mo
+            <div class="bg-card border rounded-2xl shadow-card overflow-hidden">
+              <table class="min-w-full divide-y divide-border text-left text-sm">
+                <thead class="bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                  <tr>
+                    <th class="px-5 py-3 font-semibold">Platform</th>
+                    <th class="px-5 py-3 font-semibold">Tier</th>
+                    <th class="px-5 py-3 font-semibold">Starting Price</th>
+                    <th class="px-5 py-3 font-semibold">Notes</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                  <%= for p <- @analysis.platforms do %>
+                    <tr class="transition hover:bg-muted/30">
+                      <td class="px-5 py-4">
+                        <a
+                          href={p.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="font-medium text-foreground transition hover:text-primary"
+                        >
+                          {p.name}
+                        </a>
+                      </td>
+                      <td class="px-5 py-4 text-muted-foreground">{p.tier.name}</td>
+                      <td class="px-5 py-4 text-muted-foreground">
+                        <%= if p.tier.monthly_low == 0 do %>
+                          Free
+                        <% else %>
+                          ${p.tier.monthly_low}/mo
+                        <% end %>
+                      </td>
+                      <td class="px-5 py-4 text-muted-foreground">{p.notes}</td>
+                    </tr>
                   <% end %>
-                </:col>
-                <:col :let={p} label="Notes">
-                  <span class="text-sm text-muted-foreground">{p.notes}</span>
-                </:col>
-              </.table>
+                </tbody>
+              </table>
             </div>
           <% end %>
-        </div>
+        </section>
 
-        <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2>Generated Files (Preview)</h2>
-            <div class="flex gap-2">
-              <button phx-click="generate_files">
-                Preview Files
-              </button>
-            </div>
+        <section class="space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <.section_title>Generated Files (Preview)</.section_title>
+            <button
+              type="button"
+              phx-click="generate_files"
+              class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+            >
+              Preview Files
+            </button>
           </div>
 
           <%= if @generated_files do %>
-            <div class="space-y-4">
+            <div class="bg-card border rounded-2xl shadow-card overflow-hidden">
               <%= for {:ok, name, path, content, status} <- @generated_files do %>
-                <div class="border rounded-lg overflow-hidden">
-                  <div class="flex items-center justify-between px-4 py-2 bg-muted border-b">
-                    <div>
-                      <strong class="text-sm">{name}</strong>
-                      <span class="ml-2 text-xs text-muted-foreground">{path}</span>
+                <div class="divide-y divide-border">
+                  <div class="flex items-center justify-between gap-3 px-5 py-3">
+                    <div class="min-w-0">
+                      <p class="font-medium text-foreground">{name}</p>
+                      <p class="mt-0.5 truncate text-xs text-muted-foreground">{path}</p>
                     </div>
                     <span class={[
-                      "text-xs px-2 py-0.5 rounded",
-                      status == :written && "bg-[var(--ck-success)] text-[var(--ck-success)]",
-                      status == :skipped && "bg-[var(--ck-warning)] text-[var(--ck-warning)]"
+                      "inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
+                      status == :written && "bg-success/10 text-success ring-success/20",
+                      status == :skipped && "bg-warning/10 text-warning ring-warning/20"
                     ]}>
                       {String.capitalize(to_string(status))}
                     </span>
                   </div>
-                  <pre class="p-4 text-xs overflow-x-auto bg-card text-[var(--ck-success)] max-h-64"><code phx-no-curly-interpolation>{content}</code></pre>
+                  <pre class="max-h-64 overflow-x-auto bg-muted px-5 py-4 font-mono text-xs text-foreground/90"><code phx-no-curly-interpolation>{content}</code></pre>
                 </div>
               <% end %>
             </div>
           <% else %>
-            <p class="text-muted-foreground text-sm">
+            <p class="text-sm text-muted-foreground">
               Click "Preview Files" to see what will be generated for your {@analysis.stack} project.
             </p>
           <% end %>
-        </div>
+        </section>
       <% else %>
-        <div class="border bg-card rounded-3xl backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6">
-          <p class="text-muted-foreground">
+        <div class="rounded-2xl border bg-card p-5 shadow-card">
+          <p class="text-sm text-muted-foreground">
             Click "Analyze Project" to detect your project stack and get deployment recommendations.
           </p>
         </div>
       <% end %>
-    </section>
+    </div>
     """
   end
+
+  defp format_cents(cents), do: :erlang.float_to_binary(cents / 100, decimals: 2)
+  defp format_usd(amount), do: :erlang.float_to_binary(amount, decimals: 2)
 end
