@@ -156,12 +156,12 @@ defmodule ControlKeelWeb.OrganizationsLive do
                     <.role_badge role={row.role} />
                   </td>
                   <td class="px-4 text-right whitespace-nowrap w-px">
-                    <a
-                      href={~p"/organizations/#{row.org.slug}"}
+                    <.link
+                      navigate={~p"/organizations/#{row.org.slug}"}
                       class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
                     >
                       View <.icon name="hero-arrow-right" class="size-3" />
-                    </a>
+                    </.link>
                   </td>
                 </tr>
               <% end %>

@@ -84,12 +84,12 @@ defmodule ControlKeelWeb.MissionsLive do
                     ${session.budget_cents |> Kernel./(100) |> trunc()}
                   </td>
                   <td class="px-4 text-right whitespace-nowrap w-px">
-                    <a
-                      href={~p"/missions/#{session.id}"}
+                    <.link
+                      navigate={~p"/missions/#{session.id}"}
                       class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
                     >
                       Inspect <.icon name="hero-arrow-right" class="size-3" />
-                    </a>
+                    </.link>
                   </td>
                 </tr>
               <% end %>
