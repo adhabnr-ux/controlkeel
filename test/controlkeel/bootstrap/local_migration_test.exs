@@ -102,14 +102,44 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
       assert Repo.get(Session, session.id).workspace_id == existing_default.id
     end
 
-    test "is idempotent: a second run is a no-op" do
+    test "is idempotent: a second run is a no-op once the DB matches the architecture" do
       workspace = workspace_fixture(%{name: "Solo", slug: "solo-ws"})
       session_fixture(%{workspace: workspace})
 
       assert {:ok, %{} = first} = LocalMigration.run()
       assert first.sessions_moved == 1
 
-      assert {:ok, :skipped_already_run} = LocalMigration.run()
+      # After consolidation the DB has a single default org/workspace, so the
+      # data-shape gate short-circuits the second run.
+      assert {:ok, :already_reconciled} = LocalMigration.run()
+    end
+
+    test "is a no-op when the database already matches the default architecture" do
+      {:ok, {_org, _workspace}} = ControlKeel.Bootstrap.LocalDefaults.ensure()
+
+      sessions_before = Repo.aggregate(Session, :count)
+      orgs_before = Repo.aggregate(Org, :count)
+      workspaces_before = Repo.aggregate(Workspace, :count)
+
+      assert {:ok, :already_reconciled} = LocalMigration.run()
+
+      # nothing created, moved, or deleted
+      assert Repo.aggregate(Session, :count) == sessions_before
+      assert Repo.aggregate(Org, :count) == orgs_before
+      assert Repo.aggregate(Workspace, :count) == workspaces_before
+    end
+
+    test "provisions the defaults when they are missing" do
+      # reset_migration_state! removed the default org/workspace. With no legacy
+      # sessions either, the gate still fires on "defaults missing" and creates
+      # them, consolidating nothing.
+      assert {:ok, summary} = LocalMigration.run()
+
+      assert Accounts.get_org_by_slug(LocalDefaults.default_org_slug())
+      assert Mission.get_workspace_by_slug(LocalDefaults.default_workspace_slug())
+      assert summary.sessions_moved == 0
+      assert summary.workspaces_removed == 0
+      assert summary.orgs_removed == 0
     end
   end
 
@@ -129,10 +159,67 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
     end
   end
 
+  describe "render/1 and to_payload/1 (update notification)" do
+    test "render reports counts when reconciliation did work" do
+      lines =
+        LocalMigration.render(%{
+          sessions_moved: 3,
+          workspaces_removed: 2,
+          orgs_removed: 1
+        })
+
+      assert Enum.join(lines, "\n") =~ "Moved 3 session(s) into the Default Workspace."
+      assert Enum.join(lines, "\n") =~ "Removed 2 workspace(s)."
+      assert Enum.join(lines, "\n") =~ "Removed 1 org(s)."
+    end
+
+    test "render flags unexpected cardinality" do
+      lines =
+        LocalMigration.render(%{sessions_moved: 0, workspaces_removed: 3, orgs_removed: 2})
+
+      assert Enum.any?(lines, &String.contains?(&1, "single org/workspace"))
+    end
+
+    test "render stays quiet when nothing needed reconciliation" do
+      assert LocalMigration.render(:already_reconciled) == [
+               "Local data already matches the current architecture — nothing to reconcile."
+             ]
+
+      assert LocalMigration.render(:skipped_not_local) == []
+    end
+
+    test "to_payload is JSON-safe for every result shape" do
+      assert LocalMigration.to_payload(%{
+               sessions_moved: 1,
+               workspaces_removed: 1,
+               orgs_removed: 0
+             }) == %{
+               "status" => "completed",
+               "sessions_moved" => 1,
+               "workspaces_removed" => 1,
+               "orgs_removed" => 0
+             }
+
+      assert LocalMigration.to_payload(:already_reconciled) == %{"status" => "already_reconciled"}
+      assert LocalMigration.to_payload(:skipped_not_local) == %{"status" => "skipped_not_local"}
+      assert LocalMigration.to_payload({:failed, :exception}) == %{"status" => "failed"}
+
+      # every payload must be Jason-encodable (no tuples/atoms leaking)
+      for result <- [
+            %{sessions_moved: 1, workspaces_removed: 1, orgs_removed: 0},
+            :already_reconciled,
+            :skipped_not_local,
+            {:failed, :exception}
+          ] do
+        assert {:ok, _} = Jason.encode(LocalMigration.to_payload(result))
+      end
+    end
+  end
+
   # ──────────────── helpers ────────────────
 
   # Each test must start from a clean slate: the shared test database retains
-  # the default org/workspace/marker from a previous test (tests run serially).
+  # the default org/workspace from a previous test (tests run serially).
   # delete_all lets the DB cascade handle children; the current test's orphan
   # fixtures are created after this reset, so they are untouched.
   defp reset_migration_state! do

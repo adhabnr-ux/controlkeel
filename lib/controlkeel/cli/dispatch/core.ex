@@ -49,9 +49,16 @@ defmodule ControlKeel.CLI.Dispatch.Core do
         sync_attached: options[:sync_attached] == true
       )
 
+    # One-time local data reconciliation (local mode only). Triggered here, by
+    # `controlkeel update` running on the new binary, rather than at boot or in
+    # `setup`, so it fires at update time and is a clean no-op once the database
+    # already matches the single-default architecture.
+    {:ok, migration} = LocalMigration.run()
+    payload = Map.put(payload, "data_reconciliation", LocalMigration.to_payload(migration))
+
     case effective_cli_format(options) do
       {:ok, "json"} -> {:ok, [Jason.encode!(payload)]}
-      {:ok, _} -> {:ok, Updater.render(payload)}
+      {:ok, _} -> {:ok, Updater.render(payload) ++ LocalMigration.render(migration)}
       {:error, reason} -> {:error, format_cli_error(reason)}
     end
   end
@@ -108,7 +115,6 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     overrides = %{"agent" => options[:agent] || "claude"}
 
     with {:ok, _} <- LocalDefaults.ensure(),
-         {:ok, _migration} <- LocalMigration.run(),
          {:ok, _binding, session, mode} <- ensure_local_project(root, overrides) do
       snapshot = SetupAdvisor.snapshot(root)
 
