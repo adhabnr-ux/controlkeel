@@ -888,12 +888,15 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
           nil
       end
 
+    can_manage = viewer_role && Accounts.role_at_least?(viewer_role, "admin")
+
     socket
     |> assign(:memberships, memberships)
     |> assign(:member_count, Accounts.count_memberships_for_org(org_id))
     |> assign(:active_owner_count, count_active_owners(memberships))
     |> assign(:current_role, viewer_role)
-    |> assign(:can_manage, viewer_role && Accounts.role_at_least?(viewer_role, "admin"))
+    |> assign(:can_manage, can_manage)
+    |> assign(:page_action, page_actions(socket.assigns[:local_mode], can_manage))
   end
 
   defp count_active_owners(memberships) do
