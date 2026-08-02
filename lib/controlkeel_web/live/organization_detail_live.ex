@@ -96,7 +96,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
      |> assign(:show_settings_modal, false)
      |> assign(:settings_form, settings_form(org, budget_cents))
      |> assign(:settings_error, nil)
-     |> assign(:page_action, settings_page_action(local_mode, can_manage))
+     |> assign(:page_action, page_actions(local_mode, can_manage))
      |> assign(:current_user, socket.assigns[:current_user])}
   end
 
@@ -345,43 +345,24 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
     ~H"""
     <section class="w-full space-y-6">
       <div class="flex flex-wrap items-start justify-between gap-4">
-        <div class="space-y-2">
-          <div class="flex flex-wrap items-center gap-3">
-            <h1 class="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              {@org.name}
-            </h1>
-            <span class={[
-              "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
-              @org.status == "active" && "bg-success/10 text-success ring-success/20",
-              @org.status != "active" && "bg-muted text-muted-foreground ring-border"
-            ]}>
-              {@org.status}
-            </span>
-          </div>
-          <%= if @local_mode do %>
-            <p class="max-w-2xl text-sm text-muted-foreground">
-              View organization details below. Member management is unavailable in local mode.
-            </p>
-          <% else %>
-            <p class="max-w-2xl text-sm text-muted-foreground">
-              Invite teammates, adjust roles, and keep ownership boundaries clear.
-            </p>
-          <% end %>
-        </div>
+        <.page_title
+          title={@org.name}
+          subtitle={
+            if @local_mode do
+              "View organization details below. Member management is unavailable in local mode."
+            else
+              "Invite teammates, adjust roles, and keep ownership boundaries clear."
+            end
+          }
+        />
 
-        <div class="flex items-center gap-2">
-          <%= unless @local_mode do %>
-            <%= if @can_manage do %>
-              <button
-                type="button"
-                phx-click="open_invite"
-                class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-              >
-                <.icon name="hero-plus" class="size-4" /> Invite member
-              </button>
-            <% end %>
-          <% end %>
-        </div>
+        <span class={[
+          "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
+          @org.status == "active" && "bg-success/10 text-success ring-success/20",
+          @org.status != "active" && "bg-muted text-muted-foreground ring-border"
+        ]}>
+          {@org.status}
+        </span>
       </div>
 
       <%= if @invite_token do %>
@@ -822,11 +803,31 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
 
   # ── Private ─────────────────────────────────────────────────────────
 
+  defp page_actions(local_mode, can_manage) do
+    actions =
+      []
+      |> maybe_add_action(settings_page_action(local_mode, can_manage))
+      |> maybe_add_action(invite_page_action(local_mode, can_manage))
+
+    if actions == [], do: nil, else: actions
+  end
+
+  defp maybe_add_action(actions, nil), do: actions
+  defp maybe_add_action(actions, action), do: actions ++ [action]
+
   defp settings_page_action(local_mode, can_manage) do
     if local_mode || can_manage do
       %{label: "Settings", event: "open_settings", icon: "hero-cog-6-tooth"}
     else
       nil
+    end
+  end
+
+  defp invite_page_action(local_mode, can_manage) do
+    if local_mode || not can_manage do
+      nil
+    else
+      %{label: "Invite member", event: "open_invite", icon: "hero-plus"}
     end
   end
 

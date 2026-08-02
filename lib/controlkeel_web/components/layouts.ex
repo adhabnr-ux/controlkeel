@@ -248,9 +248,18 @@ defmodule ControlKeelWeb.Layouts do
       />
   """
   attr :current_path, :string, default: nil
-  attr :page_action, :map, default: nil
+  attr :page_action, :any, default: nil
 
   def dashboard_header(assigns) do
+    actions =
+      cond do
+        is_nil(assigns.page_action) -> []
+        is_list(assigns.page_action) -> assigns.page_action
+        true -> [assigns.page_action]
+      end
+
+    assigns = assign(assigns, :actions, actions)
+
     ~H"""
     <div class="flex w-full items-center justify-between border-b p-4">
       <nav :if={@current_path && @current_path != "/"} aria-label="Breadcrumb">
@@ -280,32 +289,34 @@ defmodule ControlKeelWeb.Layouts do
           <% end %>
         </ol>
       </nav>
-      <div :if={@page_action} class="flex items-center gap-2" id="dashboard-page-action">
-        <a
-          :if={@page_action[:to]}
-          href={@page_action.to}
-          class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
-        >
-          <.icon :if={@page_action[:icon]} name={@page_action.icon} class="size-4" /> {@page_action.label}
-        </a>
+      <div :if={@actions != []} class="flex items-center gap-2" id="dashboard-page-action">
+        <%= for action <- @actions do %>
+          <a
+            :if={action[:to]}
+            href={action.to}
+            class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
+          >
+            <.icon :if={action[:icon]} name={action.icon} class="size-4" /> {action.label}
+          </a>
 
-        <button
-          :if={@page_action[:form]}
-          type="submit"
-          form={@page_action.form}
-          class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
-        >
-          <.icon :if={@page_action[:icon]} name={@page_action.icon} class="size-4" /> {@page_action.label}
-        </button>
+          <button
+            :if={action[:form]}
+            type="submit"
+            form={action.form}
+            class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
+          >
+            <.icon :if={action[:icon]} name={action.icon} class="size-4" /> {action.label}
+          </button>
 
-        <button
-          :if={@page_action[:event]}
-          type="button"
-          phx-click={@page_action.event}
-          class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
-        >
-          <.icon :if={@page_action[:icon]} name={@page_action.icon} class="size-4" /> {@page_action.label}
-        </button>
+          <button
+            :if={action[:event]}
+            type="button"
+            phx-click={action.event}
+            class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
+          >
+            <.icon :if={action[:icon]} name={action.icon} class="size-4" /> {action.label}
+          </button>
+        <% end %>
       </div>
     </div>
     """

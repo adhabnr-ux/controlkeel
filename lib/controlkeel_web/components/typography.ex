@@ -23,15 +23,15 @@ defmodule ControlKeelWeb.Typography do
   def page_title(assigns) do
     ~H"""
     <div class={["space-y-2", @class]}>
-      <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">{@title}</h1>
+      <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">{@title}</h1>
       <p :if={@subtitle} class="text-muted-foreground">{@subtitle}</p>
     </div>
     """
   end
 
   @doc """
-  Section heading (`<h2>`). Uses `text-primary` so it reads as an accent and
-  stays distinct from the foreground page title.
+  Section heading (`<h2>`). Uses the shared section-title styling from the UI
+  style guide so it stays distinct from the page title without over-emphasizing.
 
       <.section_title>Delivery funnel</.section_title>
   """
