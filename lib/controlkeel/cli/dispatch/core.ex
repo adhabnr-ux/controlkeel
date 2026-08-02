@@ -4,6 +4,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
   alias ControlKeel.Analytics
   alias ControlKeel.Agent.AutonomyLoop
   alias ControlKeel.Bootstrap.LocalDefaults
+  alias ControlKeel.Bootstrap.LocalMigration
   alias ControlKeel.Budget
   alias ControlKeel.CLI.Help
   alias ControlKeel.Project.Local
@@ -107,6 +108,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     overrides = %{"agent" => options[:agent] || "claude"}
 
     with {:ok, _} <- LocalDefaults.ensure(),
+         {:ok, _migration} <- LocalMigration.run(),
          {:ok, _binding, session, mode} <- ensure_local_project(root, overrides) do
       snapshot = SetupAdvisor.snapshot(root)
 

@@ -222,6 +222,7 @@ defmodule ControlKeel.Application do
     else
       case ControlKeel.Bootstrap.LocalDefaults.ensure() do
         {:ok, _} ->
+          _ = ControlKeel.Bootstrap.LocalMigration.run()
           :ok
 
         {:error, reason} ->
