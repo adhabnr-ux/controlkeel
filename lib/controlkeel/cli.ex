@@ -167,10 +167,13 @@ defmodule ControlKeel.CLI do
   def usage_text, do: Help.usage_text()
 
   def run_command(%{command: command} = parsed, project_root) do
-    case ControlKeel.CLI.Catalog.for_command(command) do
-      %{family: family} ->
-        module = Map.fetch!(dispatch_modules(), family)
-        module.run_command(parsed, project_root)
+    with :ok <- local_mode_guard(command),
+         %{family: family} <- ControlKeel.CLI.Catalog.for_command(command) do
+      module = Map.fetch!(dispatch_modules(), family)
+      module.run_command(parsed, project_root)
+    else
+      {:error, _message} = error ->
+        error
 
       nil ->
         {:error, "Unknown command: #{command}"}
@@ -180,6 +183,30 @@ defmodule ControlKeel.CLI do
   def run_command(_parsed, _project_root) do
     {:error, "Invalid command payload"}
   end
+
+  # Org-admin commands require the cloud user/org/membership model. Local mode
+  # is single-user with a single reserved Default Org, so creating orgs,
+  # inviting members, or listing members is meaningless there — and `org create`
+  # would also be undone by the local data reconciliation on the next update
+  # (it deletes any non-default org). Refuse these up front in local mode with
+  # guidance to migrate to cloud mode.
+  @local_mode_denied_commands [:org_create, :org_invite, :org_members]
+
+  defp local_mode_guard(command) when command in @local_mode_denied_commands do
+    if ControlKeel.Runtime.local?() do
+      {:error,
+       "#{display_command(command)} is only supported in cloud mode. " <>
+         "Please migrate to cloud mode to use it."}
+    else
+      :ok
+    end
+  end
+
+  defp local_mode_guard(_command), do: :ok
+
+  defp display_command(:org_create), do: "org create"
+  defp display_command(:org_invite), do: "org invite"
+  defp display_command(:org_members), do: "org members"
 
   def dispatch_modules do
     %{
