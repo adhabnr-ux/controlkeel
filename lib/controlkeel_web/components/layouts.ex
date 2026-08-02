@@ -242,7 +242,10 @@ defmodule ControlKeelWeb.Layouts do
 
   ## Examples
 
-      <.dashboard_header current_path={@current_path} />
+      <.dashboard_header
+        current_path={@current_path}
+        page_action={%{to: "/dashboard/missions/new", label: "New mission", icon: "hero-plus"}}
+      />
   """
   attr :current_path, :string, default: nil
   attr :page_action, :map, default: nil
