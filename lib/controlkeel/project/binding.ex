@@ -288,6 +288,7 @@ defmodule ControlKeel.Project.Binding do
       "project_root" => project_root,
       "workspace_id" => attrs["workspace_id"] || attrs[:workspace_id],
       "session_id" => attrs["session_id"] || attrs[:session_id],
+      "org_id" => attrs["org_id"] || attrs[:org_id],
       "agent" => attrs["agent"] || attrs[:agent],
       "attached_agents" => attrs["attached_agents"] || attrs[:attached_agents] || %{},
       "bootstrap" =>
@@ -307,12 +308,18 @@ defmodule ControlKeel.Project.Binding do
            "session_id" => session_id,
            "agent" => agent,
            "attached_agents" => attached_agents
-         },
+         } = binding,
          expected_root
        )
        when is_binary(project_root) and is_integer(workspace_id) and is_integer(session_id) and
               is_binary(agent) and is_map(attached_agents) do
-    if project_root == expected_root, do: :ok, else: {:error, :project_root_mismatch}
+    case Map.get(binding, "org_id") do
+      org_id when is_nil(org_id) or is_integer(org_id) ->
+        if project_root == expected_root, do: :ok, else: {:error, :project_root_mismatch}
+
+      _other ->
+        {:error, :invalid_binding}
+    end
   end
 
   defp validate(_binding, _expected_root), do: {:error, :invalid_binding}

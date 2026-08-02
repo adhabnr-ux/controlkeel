@@ -1,8 +1,11 @@
 defmodule ControlKeel.Project.LocalTest do
   use ControlKeel.DataCase
 
+  alias ControlKeel.Accounts
   alias ControlKeel.Project.Local
   alias ControlKeel.Project.Binding
+  alias ControlKeel.Repo
+  alias ControlKeel.Mission.Workspace
 
   setup do
     tmp_dir =
@@ -47,6 +50,47 @@ defmodule ControlKeel.Project.LocalTest do
     assert File.exists?(Path.join(project_root, "controlkeel/project.json"))
     assert File.exists?(Path.join(project_root, "controlkeel/bin/controlkeel-mcp"))
     assert {:ok, _effective, :project} = Binding.read_effective(project_root)
+  end
+
+  test "load_or_bootstrap creates a default org and workspace for local projects", %{
+    tmp_dir: tmp_dir
+  } do
+    project_root = Path.join(tmp_dir, "project-defaults")
+    File.mkdir_p!(project_root)
+
+    assert {:ok, binding, session, :bootstrapped_project} =
+             Local.load_or_bootstrap(project_root, %{"agent" => "codex"}, ephemeral_ok: true)
+
+    org = Accounts.get_org_by_slug("default-organization")
+    workspace = Repo.get_by(Workspace, slug: "default-workspace")
+
+    assert org
+    assert workspace
+    assert workspace.org_id == org.id
+    assert session.workspace_id == workspace.id
+    assert binding["org_id"] == org.id
+    assert binding["workspace_id"] == workspace.id
+  end
+
+  test "a second project reuses the same default org and workspace", %{tmp_dir: tmp_dir} do
+    project_a = Path.join(tmp_dir, "project-a")
+    project_b = Path.join(tmp_dir, "project-b")
+    File.mkdir_p!(project_a)
+    File.mkdir_p!(project_b)
+
+    assert {:ok, _binding_a, session_a, :bootstrapped_project} =
+             Local.load_or_bootstrap(project_a, %{"agent" => "codex"}, ephemeral_ok: true)
+
+    assert {:ok, _binding_b, session_b, :bootstrapped_project} =
+             Local.load_or_bootstrap(project_b, %{"agent" => "codex"}, ephemeral_ok: true)
+
+    org = Accounts.get_org_by_slug("default-organization")
+    workspace = Repo.get_by(Workspace, slug: "default-workspace")
+
+    assert workspace.org_id == org.id
+    assert session_a.workspace_id == workspace.id
+    assert session_b.workspace_id == workspace.id
+    assert session_a.id != session_b.id
   end
 
   test "load_or_bootstrap falls back to an ephemeral binding when the repo is not writable", %{

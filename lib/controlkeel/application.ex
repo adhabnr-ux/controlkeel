@@ -31,7 +31,8 @@ defmodule ControlKeel.Application do
         {:ok, supervisor} ->
           result =
             with :ok <- maybe_run_migrations(),
-                 :ok <- start_late_children(supervisor) do
+                 :ok <- start_late_children(supervisor),
+                 :ok <- maybe_seed_local_defaults() do
               :ok
             end
 
@@ -145,6 +146,12 @@ defmodule ControlKeel.Application do
         {:error, _} = err -> err
       end
 
+    result =
+      case result do
+        :ok -> maybe_seed_local_defaults()
+        {:error, _} = err -> err
+      end
+
     case result do
       :ok ->
         :persistent_term.put(@mcp_backend_ready_key, :ready)
@@ -200,6 +207,28 @@ defmodule ControlKeel.Application do
       :ok
     else
       migration_runner().()
+    end
+  end
+
+  # Best-effort provisioning of the local-mode default org + workspace at boot.
+  # Gated to release runtime (like migrations) so it runs when the binary /
+  # release boots, not on every Application.start (test, iex, dev). In cloud /
+  # self-hosted it is a no-op. Never blocks boot: on any failure it logs and
+  # returns :ok, leaving session creation's defensive check as the safety net.
+  defp maybe_seed_local_defaults do
+    if skip_migrations?() or
+         not (ControlKeel.Runtime.local?() and ControlKeel.Runtime.local_repo_configured?()) do
+      :ok
+    else
+      case ControlKeel.Bootstrap.LocalDefaults.ensure() do
+        {:ok, _} ->
+          :ok
+
+        {:error, reason} ->
+          require Logger
+          Logger.warning("[bootstrap] default org/workspace seed failed: #{inspect(reason)}")
+          :ok
+      end
     end
   end
 

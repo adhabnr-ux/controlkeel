@@ -53,6 +53,7 @@ defmodule ControlKeel.CLITasksTest do
              "agent",
              "attached_agents",
              "bootstrap",
+             "org_id",
              "project_root",
              "provider_override",
              "session_id",

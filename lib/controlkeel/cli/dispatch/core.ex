@@ -3,6 +3,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
 
   alias ControlKeel.Analytics
   alias ControlKeel.Agent.AutonomyLoop
+  alias ControlKeel.Bootstrap.LocalDefaults
   alias ControlKeel.Budget
   alias ControlKeel.CLI.Help
   alias ControlKeel.Project.Local
@@ -105,26 +106,26 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     root = resolve_project_root(options, project_root)
     overrides = %{"agent" => options[:agent] || "claude"}
 
-    case ensure_local_project(root, overrides) do
-      {:ok, _binding, session, mode} ->
-        snapshot = SetupAdvisor.snapshot(root)
+    with {:ok, _} <- LocalDefaults.ensure(),
+         {:ok, _binding, session, mode} <- ensure_local_project(root, overrides) do
+      snapshot = SetupAdvisor.snapshot(root)
 
-        {:ok,
-         [
-           "ControlKeel setup",
-           "Project root: #{snapshot["project_root"]}",
-           "Session: #{session.title} (##{session.id})",
-           "Binding mode: #{mode}",
-           SetupAdvisor.detected_hosts_line(snapshot),
-           SetupAdvisor.attached_agents_line(snapshot),
-           "Provider source: #{snapshot["provider_status"]["selected_source"]}.",
-           "Provider: #{snapshot["provider_status"]["selected_provider"]}.",
-           "Core loop: #{SetupAdvisor.core_loop()}",
-           "Recommended next steps:"
-         ] ++
-           Enum.map(SetupAdvisor.recommended_attach_lines(snapshot), &"  - #{&1}") ++
-           maybe_line(SetupAdvisor.service_account_hint(snapshot), "  - ")}
-
+      {:ok,
+       [
+         "ControlKeel setup",
+         "Project root: #{snapshot["project_root"]}",
+         "Session: #{session.title} (##{session.id})",
+         "Binding mode: #{mode}",
+         SetupAdvisor.detected_hosts_line(snapshot),
+         SetupAdvisor.attached_agents_line(snapshot),
+         "Provider source: #{snapshot["provider_status"]["selected_source"]}.",
+         "Provider: #{snapshot["provider_status"]["selected_provider"]}.",
+         "Core loop: #{SetupAdvisor.core_loop()}",
+         "Recommended next steps:"
+       ] ++
+         Enum.map(SetupAdvisor.recommended_attach_lines(snapshot), &"  - #{&1}") ++
+         maybe_line(SetupAdvisor.service_account_hint(snapshot), "  - ")}
+    else
       {:error, reason} ->
         {:error, "Failed to set up ControlKeel: #{inspect(reason)}"}
     end
