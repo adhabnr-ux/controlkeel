@@ -7,12 +7,12 @@
     "url": "https://github.com/aryaminus/controlkeel.git",
     "source": "github"
   },
-  "version": "0.3.84",
+  "version": "0.3.85",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@aryaminus/controlkeel",
-      "version": "0.3.84",
+      "version": "0.3.85",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

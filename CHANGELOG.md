@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.85 — 2026-08-02
+
+### What's changed
+
+- Merge pull request #53 from aryaminus/refactor/page-style
+- refactor/page-style: derive can_manage permission and use it to determine organization page actions
+- refactor/page-style: update dashboard_header page_action attribute to accept a list of maps
+- refactor/page-style: update card_title font size and fix documentation typos
+- refactor/page-style: support multiple page actions in dashboard header and standardize organization detail UI components
+- refactor/page-style: replace standard anchor tags with Phoenix components for client-side navigation in missions and organizations views
+- refactor/page-style: add page_action support to dashboard_header component documentation examples
+- refactor/page-style: remove assertion for "New Mission" from dashboard live view test
+- refactor/page-style: standardize UI components and modernize design system tokens across dashboards and mission views.
+- refactor/page-style: remove provider status components and add typography component and layout defaults module
+- refactor/page-style: add UI style guide and introduce Typography component for standardized heading rendering.
+
 ## v0.3.84 — 2026-08-01
 
 ### What's changed
