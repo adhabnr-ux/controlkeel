@@ -34,11 +34,11 @@ Render with `<.page_title>` (`ControlKeelWeb.Typography`):
 
 Max three levels; don't skip. Each level maps to a component in `ControlKeelWeb.Typography` — use the component, don't hand-write the classes.
 
-| Level  | Component          | Classes                                                   | Use                         |
-| ------ | ------------------ | --------------------------------------------------------- | --------------------------- |
-| `<h1>` | `<.page_title>`    | `text-xl font-semibold tracking-tight sm:text-2xl`        | Page title (once, optional) |
-| `<h2>` | `<.section_title>` | `text-lg sm:text-xl font-semibold text-foreground/90`     | Section                     |
-| `<h3>` | `<.card_title>`    | `text-regular font-semibold` (inherits size from context) | Card / panel                |
+| Level  | Component          | Classes                                               | Use                         |
+| ------ | ------------------ | ----------------------------------------------------- | --------------------------- |
+| `<h1>` | `<.page_title>`    | `text-xl font-semibold tracking-tight sm:text-2xl`    | Page title (once, optional) |
+| `<h2>` | `<.section_title>` | `text-lg sm:text-xl font-semibold text-foreground/90` | Section                     |
+| `<h3>` | `<.card_title>`    | `text-base font-semibold`                             | Card / panel                |
 
 ## Cards
 
@@ -210,7 +210,7 @@ Status pill (tone by value):
 </div>
 ```
 
-Wraping the table corners clip and the header stick is optional, and depends on the usecase.
+Wrapping the table corners clip and using a sticky header is optional, and depends on the use case.
 
 - `divide-y divide-border` on both `<table>` (header/body separator) and `<tbody>` (row separators).
 - `thead`: `bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground`. Add `sticky top-0 z-10` to pin it to the page scroll.

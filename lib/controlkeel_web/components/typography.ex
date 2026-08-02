@@ -56,7 +56,7 @@ defmodule ControlKeelWeb.Typography do
 
   def card_title(assigns) do
     ~H"""
-    <h3 class={["font-semibold", @class]}>
+    <h3 class={["text-base font-semibold", @class]}>
       {render_slot(@inner_block)}
     </h3>
     """
