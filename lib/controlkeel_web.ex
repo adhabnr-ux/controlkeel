@@ -78,6 +78,7 @@ defmodule ControlKeelWeb do
       import Phoenix.HTML
       # Core UI components
       import ControlKeelWeb.CoreComponents
+      import ControlKeelWeb.Typography
       import ControlKeelWeb.FormatHelpers
 
       # Common modules used in templates

@@ -237,6 +237,18 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
       {:ok, org: org, owner: owner, admin: admin, member: member}
     end
 
+    test "settings action appears in the dashboard header and opens the modal", %{owner: owner} do
+      {:ok, view, html} = live(conn_for(owner), ~p"/organizations/setco")
+
+      refute html =~ "org-settings-modal"
+      assert render(view) =~ ~s(id="dashboard-page-action")
+      assert render(view) =~ "phx-click=\"open_settings\""
+
+      view |> render_click("open_settings")
+      assert render(view) =~ "org-settings-modal"
+      assert render(view) =~ "Organization name"
+    end
+
     test "owner opens the modal and saves the org name", %{org: org, owner: owner} do
       {:ok, view, html} = live(conn_for(owner), ~p"/organizations/setco")
 

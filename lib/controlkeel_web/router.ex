@@ -77,11 +77,12 @@ defmodule ControlKeelWeb.Router do
       layout: {ControlKeelWeb.Layouts, :dashboard},
       on_mount: [
         {ControlKeelWeb.LiveAuth, :require_cloud_auth},
-        ControlKeelWeb.NavHighlight
+        ControlKeelWeb.LayoutDefaults
       ] do
       live "/dashboard", DashboardLive, :index
       live "/missions", MissionsLive, :index
       live "/missions/start", OnboardingLive, :new
+      live "/missions/:id", MissionControlLive, :show
       live "/findings", FindingsLive, :index
       live "/benchmarks", BenchmarksLive, :index
       live "/benchmarks/runs/:id", BenchmarksLive, :show
@@ -97,20 +98,19 @@ defmodule ControlKeelWeb.Router do
       live "/workspaces/:id/service-accounts", WorkspaceServiceAccountsLive, :index
       live "/workspaces/:id/webhooks", WorkspaceWebhooksLive, :index
       live "/workspaces/:id/tool-policy", WorkspaceToolPolicyLive, :edit
-      live "/missions/:id", MissionControlLive, :show
       live "/policies", PolicyStudioLive, :index
       live "/skills", SkillsLive, :index
       live "/deploy", DeploymentLive, :index
     end
 
     # Observability section routes use the :observability framework layout
-    # (ControlKeelWeb.Layouts). NavHighlight sets @current_path for subnav
-    # active-link highlighting.
+    # (ControlKeelWeb.Layouts). LayoutDefaults sets shared layout assigns
+    # (@current_path, @page_action) for active-link highlighting.
     live_session :observability,
       layout: {ControlKeelWeb.Layouts, :observability},
       on_mount: [
         {ControlKeelWeb.LiveAuth, :require_cloud_auth},
-        ControlKeelWeb.NavHighlight
+        ControlKeelWeb.LayoutDefaults
       ] do
       live "/observability", ObservabilityOverviewLive, :index
       live "/observability/loop", ObservabilityLoopLive, :index
@@ -131,13 +131,13 @@ defmodule ControlKeelWeb.Router do
     end
 
     # Session-scoped observability routes use the :observability_session
-    # framework layout (sidebar + session tabs). NavHighlight sets @current_path
-    # for tab highlighting.
+    # framework layout (sidebar + session tabs). LayoutDefaults sets shared
+    # layout assigns (@current_path, @page_action) for tab highlighting.
     live_session :observability_session,
       layout: {ControlKeelWeb.Layouts, :observability_session},
       on_mount: [
         {ControlKeelWeb.LiveAuth, :require_cloud_auth},
-        ControlKeelWeb.NavHighlight
+        ControlKeelWeb.LayoutDefaults
       ] do
       live "/observability/sessions/:id/memory", ObservabilityMemoryLive, :show
       live "/observability/sessions/:id/timeline", ObservabilityTimelineLive, :show

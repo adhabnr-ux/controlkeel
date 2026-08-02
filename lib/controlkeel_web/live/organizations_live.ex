@@ -19,6 +19,10 @@ defmodule ControlKeelWeb.OrganizationsLive do
     socket =
       socket
       |> assign(:page_title, "Organizations")
+      |> assign(
+        :page_action,
+        %{label: "New Organization", event: "new_org", icon: "hero-plus"}
+      )
       |> assign(:show_create_modal, false)
       |> assign(:changeset, Org.changeset(%Org{}, %{}))
       |> assign_form(Org.changeset(%Org{}, %{}))
@@ -108,76 +112,65 @@ defmodule ControlKeelWeb.OrganizationsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="mx-auto max-w-7xl px-4 py-8 md:py-12">
-      <div class="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            Organizations
-          </p>
-          <h1 class="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            Your organizations
-          </h1>
-        </div>
-
-        <button
-          type="button"
-          phx-click="new_org"
-          class="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary"
-        >
-          <.icon name="hero-plus" class="size-4" /> New Organization
-        </button>
-      </div>
-
-      <section class="border bg-card/70 shadow-2xl shadow-black/20 backdrop-blur">
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-border text-left text-sm">
-            <thead class="bg-muted/[0.03] text-xs uppercase tracking-[0.14em] text-muted-foreground">
+    <section class="w-full">
+      <div class="bg-card border rounded-2xl shadow-card overflow-clip">
+        <table class="min-w-full divide-y divide-border text-left text-sm">
+          <thead class="bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground sticky top-0 z-10">
+            <tr>
+              <th class="px-5 py-3 font-semibold">Name</th>
+              <th class="px-5 py-3 font-semibold">Slug</th>
+              <th class="px-5 py-3 font-semibold">Status</th>
+              <th class="px-5 py-3 font-semibold">Role</th>
+              <th class="px-5 py-3 font-semibold w-px whitespace-nowrap"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <%= if @orgs == [] do %>
               <tr>
-                <th class="px-5 py-3 font-semibold">Name</th>
-                <th class="px-5 py-3 font-semibold">Slug</th>
-                <th class="px-5 py-3 font-semibold">Status</th>
-                <th class="px-5 py-3 font-semibold">Role</th>
+                <td colspan="5" class="px-5 py-12 text-center">
+                  <p class="text-base font-medium text-foreground">No organizations yet.</p>
+                  <p class="mt-1 text-sm text-muted-foreground">
+                    Create an organization to group workspaces, members, and budgets.
+                  </p>
+                </td>
               </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <%= if @orgs == [] do %>
-                <tr>
-                  <td colspan="4" class="px-5 py-12 text-center">
-                    <p class="text-base font-medium text-foreground">No organizations yet.</p>
-                    <p class="mt-1 text-sm text-muted-foreground">
-                      Create an organization to group workspaces, members, and budgets.
-                    </p>
+            <% else %>
+              <%= for row <- @orgs do %>
+                <tr class="transition hover:bg-muted/30">
+                  <td class="max-w-sm px-5 py-4">
+                    <p class="font-medium text-foreground">{row.org.name}</p>
+                  </td>
+                  <td class="px-5 py-4 font-mono text-xs text-muted-foreground">{row.org.slug}</td>
+                  <td class="px-5 py-4">
+                    <span class={[
+                      "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
+                      row.org.status == "active" &&
+                        "bg-success/10 text-success ring-success/20",
+                      row.org.status != "active" &&
+                        "bg-muted text-muted-foreground ring-border"
+                    ]}>
+                      {row.org.status}
+                    </span>
+                  </td>
+                  <td class="px-5 py-4">
+                    <.role_badge role={row.role} />
+                  </td>
+                  <td class="px-4 text-right whitespace-nowrap w-px">
+                    <.link
+                      navigate={~p"/organizations/#{row.org.slug}"}
+                      class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
+                    >
+                      View <.icon name="hero-arrow-right" class="size-3" />
+                    </.link>
                   </td>
                 </tr>
-              <% else %>
-                <%= for row <- @orgs do %>
-                  <tr class="transition hover:bg-muted/[0.03]">
-                    <td class="px-5 py-4">
-                      <.link
-                        navigate={~p"/organizations/#{row.org.slug}"}
-                        class="font-medium text-foreground transition hover:text-primary"
-                      >
-                        {row.org.name}
-                      </.link>
-                    </td>
-                    <td class="px-5 py-4 font-mono text-xs text-muted-foreground">{row.org.slug}</td>
-                    <td class="px-5 py-4">
-                      <span class="inline-flex rounded-full bg-[var(--ck-success)]/10 px-2.5 py-1 text-xs font-semibold capitalize text-[var(--ck-success)] ring-1 ring-[var(--ck-success)]/20">
-                        {row.org.status}
-                      </span>
-                    </td>
-                    <td class="px-5 py-4">
-                      <.role_badge role={row.role} />
-                    </td>
-                  </tr>
-                <% end %>
               <% end %>
-            </tbody>
-          </table>
-        </div>
-      </section>
+            <% end %>
+          </tbody>
+        </table>
 
-      <.create_modal :if={@show_create_modal} form={@form} />
+        <.create_modal :if={@show_create_modal} form={@form} />
+      </div>
     </section>
     """
   end
@@ -199,7 +192,7 @@ defmodule ControlKeelWeb.OrganizationsLive do
       />
 
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-2xl border bg-card/95 p-6 shadow-2xl shadow-black/50">
+        <div class="w-full max-w-md rounded-2xl border bg-card/95 p-6 shadow-card">
           <div class="mb-5 flex items-center justify-between">
             <h2 class="text-lg font-semibold text-foreground">New organization</h2>
             <button
@@ -270,8 +263,7 @@ defmodule ControlKeelWeb.OrganizationsLive do
         "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
         @role == "owner" && "bg-primary/10 text-primary ring-primary/20",
         @role == "admin" && "bg-info/10 text-info ring-info/20",
-        @role == "member" && "bg-muted/10 text-foreground ring-border",
-        @role == "viewer" && "bg-muted/10 text-muted-foreground ring-border"
+        @role in ["member", "viewer"] && "bg-muted text-muted-foreground ring-border"
       ]}>
         {@role}
       </span>

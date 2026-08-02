@@ -96,6 +96,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
      |> assign(:show_settings_modal, false)
      |> assign(:settings_form, settings_form(org, budget_cents))
      |> assign(:settings_error, nil)
+     |> assign(:page_action, page_actions(local_mode, can_manage))
      |> assign(:current_user, socket.assigns[:current_user])}
   end
 
@@ -342,53 +343,34 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="mx-auto max-w-7xl px-4 py-8 md:py-12">
-      <div class="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            {@org.name}
-          </p>
-          <%= if @local_mode do %>
-            <p class="mt-2 text-sm text-muted-foreground">
-              View your organization details below. Member management is not available in local mode.
-            </p>
-          <% else %>
-            <p class="mt-2 text-sm text-muted-foreground">
-              Invite teammates and manage roles. Owners can promote and demote; the last owner is protected.
-            </p>
-          <% end %>
-        </div>
+    <section class="w-full space-y-6">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <.page_title
+          title={@org.name}
+          subtitle={
+            if @local_mode do
+              "View organization details below. Member management is unavailable in local mode."
+            else
+              "Invite teammates, adjust roles, and keep ownership boundaries clear."
+            end
+          }
+        />
 
-        <div class="flex items-center gap-3">
-          <%= if @can_manage || @local_mode do %>
-            <button
-              type="button"
-              phx-click="open_settings"
-              class="inline-flex items-center gap-2 rounded-full border border-input bg-background px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted/[0.08] hover:text-foreground"
-            >
-              <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
-            </button>
-          <% end %>
-          <%= unless @local_mode do %>
-            <%= if @can_manage do %>
-              <button
-                type="button"
-                phx-click="open_invite"
-                class="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary"
-              >
-                <.icon name="hero-plus" class="size-4" /> Invite member
-              </button>
-            <% end %>
-          <% end %>
-        </div>
+        <span class={[
+          "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
+          @org.status == "active" && "bg-success/10 text-success ring-success/20",
+          @org.status != "active" && "bg-muted text-muted-foreground ring-border"
+        ]}>
+          {@org.status}
+        </span>
       </div>
 
       <%= if @invite_token do %>
-        <div class="mb-6 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+        <div class="rounded-2xl border border-primary/30 bg-primary/10 p-5">
           <p class="text-sm font-medium text-primary">
-            Invitation token issued. Send this link to the invitee — the token will not be shown again.
+            Invitation token issued. Share it with the invitee — it will not be shown again.
           </p>
-          <pre class="mt-2 rounded-lg bg-overlay/30 px-4 py-2 font-mono text-xs text-muted-foreground"><code id="invite-token-value">/invitations/{@invite_token}</code></pre>
+          <pre class="mt-2 overflow-x-auto rounded-xl bg-background/70 px-4 py-2 font-mono text-xs text-muted-foreground"><code id="invite-token-value">/invitations/{@invite_token}</code></pre>
           <button
             type="button"
             phx-click="dismiss-token"
@@ -399,57 +381,37 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
         </div>
       <% end %>
 
-      <section class="mb-6 rounded-3xl border bg-card/70 p-6 shadow-2xl shadow-black/20 backdrop-blur">
-        <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Name
-            </dt>
-            <dd class="mt-1 text-sm text-foreground">{@org.name}</dd>
-          </div>
-          <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Slug
-            </dt>
-            <dd class="mt-1 font-mono text-sm text-muted-foreground">{@org.slug}</dd>
-          </div>
-          <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Status
-            </dt>
-            <dd class="mt-1 text-sm capitalize text-foreground">{@org.status}</dd>
-          </div>
-          <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Members
-            </dt>
-            <dd class="mt-1 text-sm text-foreground">{@member_count}</dd>
-          </div>
-          <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Monthly budget
-            </dt>
-            <dd class="mt-1 text-sm text-foreground">
+      <section class="rounded-2xl border bg-card p-5 shadow-card">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <article>
+            <p class="text-sm font-medium text-muted-foreground">Slug</p>
+            <p class="mt-2 font-mono text-sm text-foreground">{@org.slug}</p>
+          </article>
+          <article>
+            <p class="text-sm font-medium text-muted-foreground">Members</p>
+            <p class="mt-2 text-xl font-semibold text-foreground/90">{@member_count}</p>
+          </article>
+          <article>
+            <p class="text-sm font-medium text-muted-foreground">Monthly budget</p>
+            <p class="mt-2 text-xl font-semibold text-foreground/90">
               <%= if @budget_cents > 0 do %>
                 {"$#{Float.round(@budget_cents / 100, 2)}"}
               <% else %>
                 <span class="text-muted-foreground">—</span>
               <% end %>
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Created
-            </dt>
-            <dd class="mt-1 text-sm text-foreground">
+            </p>
+          </article>
+          <article>
+            <p class="text-sm font-medium text-muted-foreground">Created</p>
+            <p class="mt-2 text-lg font-semibold text-foreground/90">
               {Calendar.strftime(@org.inserted_at, "%b %d, %Y")}
-            </dd>
-          </div>
-        </dl>
+            </p>
+          </article>
+        </div>
       </section>
 
       <%= if @local_mode do %>
-        <section class="rounded-3xl border bg-card/70 p-12 text-center shadow-2xl shadow-black/20 backdrop-blur">
+        <section class="rounded-2xl border bg-card p-12 text-center shadow-card">
           <.icon name="hero-users" class="mx-auto size-10 text-muted-foreground" />
           <p class="mt-4 text-base font-medium text-foreground">
             Member management is not available in local mode.
@@ -459,15 +421,15 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
           </p>
         </section>
       <% else %>
-        <section class="rounded-3xl border bg-card/70 shadow-2xl shadow-black/20 backdrop-blur">
+        <section class="rounded-2xl border bg-card shadow-card overflow-clip">
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-border text-left text-sm">
-              <thead class="bg-muted/[0.03] text-xs uppercase tracking-[0.14em] text-muted-foreground">
+              <thead class="bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground sticky top-0 z-10">
                 <tr>
                   <th class="px-5 py-3 font-semibold">Email</th>
                   <th class="px-5 py-3 font-semibold">Role</th>
                   <th class="px-5 py-3 font-semibold">Status</th>
-                  <th class="px-5 py-3 font-semibold"></th>
+                  <th class="px-5 py-3 font-semibold w-px whitespace-nowrap"></th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-border">
@@ -485,12 +447,12 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                     <tr
                       id={"membership-#{m.id}"}
                       class={[
-                        "transition hover:bg-muted/[0.03]",
+                        "transition hover:bg-muted/30",
                         @current_user && m.user_id == @current_user.id && "bg-primary/5"
                       ]}
                     >
-                      <td class="px-5 py-4 font-medium text-foreground">
-                        <div class="flex items-center gap-2">
+                      <td class="max-w-sm px-5 py-4 font-medium text-foreground">
+                        <div class="flex flex-wrap items-center gap-2">
                           {(m.user && m.user.email) || "—"}
                           <%= if @current_user && m.user_id == @current_user.id do %>
                             <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
@@ -510,7 +472,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                               name="role"
                               disabled={state.disabled}
                               class={[
-                                "rounded-lg border bg-card px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1",
+                                "rounded-lg border bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1",
                                 if(state.disabled,
                                   do: "cursor-not-allowed text-muted-foreground opacity-60",
                                   else: "text-foreground focus:border-primary focus:ring-primary"
@@ -534,15 +496,15 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                         <span class={[
                           "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
                           m.status == "active" &&
-                            "bg-[var(--ck-success)]/10 text-[var(--ck-success)] ring-[var(--ck-success)]/20",
+                            "bg-success/10 text-success ring-success/20",
                           m.status == "pending" &&
-                            "bg-[var(--ck-warning)]/10 text-[var(--ck-warning)] ring-[var(--ck-warning)]/20",
-                          m.status == "revoked" && "bg-muted/10 text-muted-foreground ring-border"
+                            "bg-warning/10 text-warning ring-warning/20",
+                          m.status == "revoked" && "bg-muted text-muted-foreground ring-border"
                         ]}>
                           {m.status}
                         </span>
                       </td>
-                      <td class="px-5 py-4 text-right">
+                      <td class="px-4 py-4 text-right whitespace-nowrap w-px">
                         <%= if can_revoke?(@current_role, m, @current_user) do %>
                           <button
                             type="button"
@@ -592,7 +554,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
           />
 
           <div class="fixed inset-0 flex items-center justify-center p-4">
-            <div class="w-full max-w-md rounded-2xl border bg-card/95 p-6 shadow-2xl shadow-black/50">
+            <div class="w-full max-w-md rounded-2xl border bg-card/95 p-6 shadow-card">
               <div class="mb-5 flex items-center gap-3">
                 <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive/15">
                   <.icon name="hero-exclamation-triangle" class="size-5 text-destructive" />
@@ -683,7 +645,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
       />
 
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-2xl border bg-card/95 p-6 shadow-2xl shadow-black/50">
+        <div class="w-full max-w-md rounded-2xl border bg-card/95 p-6 shadow-card">
           <div class="mb-5 flex items-center justify-between">
             <h2 class="text-lg font-semibold text-foreground">Invite member</h2>
             <button
@@ -760,7 +722,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
       />
 
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-2xl border bg-card/95 p-6 shadow-2xl shadow-black/50">
+        <div class="w-full max-w-md rounded-2xl border bg-card/95 p-6 shadow-card">
           <div class="mb-5 flex items-center justify-between">
             <h2 class="text-lg font-semibold text-foreground">Settings</h2>
             <button
@@ -841,6 +803,34 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
 
   # ── Private ─────────────────────────────────────────────────────────
 
+  defp page_actions(local_mode, can_manage) do
+    actions =
+      []
+      |> maybe_add_action(settings_page_action(local_mode, can_manage))
+      |> maybe_add_action(invite_page_action(local_mode, can_manage))
+
+    if actions == [], do: nil, else: actions
+  end
+
+  defp maybe_add_action(actions, nil), do: actions
+  defp maybe_add_action(actions, action), do: actions ++ [action]
+
+  defp settings_page_action(local_mode, can_manage) do
+    if local_mode || can_manage do
+      %{label: "Settings", event: "open_settings", icon: "hero-cog-6-tooth"}
+    else
+      nil
+    end
+  end
+
+  defp invite_page_action(local_mode, can_manage) do
+    if local_mode || not can_manage do
+      nil
+    else
+      %{label: "Invite member", event: "open_invite", icon: "hero-plus"}
+    end
+  end
+
   defp settings_form(org, budget_cents) do
     to_form(
       %{
@@ -898,12 +888,15 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
           nil
       end
 
+    can_manage = viewer_role && Accounts.role_at_least?(viewer_role, "admin")
+
     socket
     |> assign(:memberships, memberships)
     |> assign(:member_count, Accounts.count_memberships_for_org(org_id))
     |> assign(:active_owner_count, count_active_owners(memberships))
     |> assign(:current_role, viewer_role)
-    |> assign(:can_manage, viewer_role && Accounts.role_at_least?(viewer_role, "admin"))
+    |> assign(:can_manage, can_manage)
+    |> assign(:page_action, page_actions(socket.assigns[:local_mode], can_manage))
   end
 
   defp count_active_owners(memberships) do

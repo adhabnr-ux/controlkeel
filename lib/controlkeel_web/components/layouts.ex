@@ -242,15 +242,28 @@ defmodule ControlKeelWeb.Layouts do
 
   ## Examples
 
-      <.dashboard_header current_path={@current_path} />
+      <.dashboard_header
+        current_path={@current_path}
+        page_action={[
+          %{to: "/dashboard/missions/new", label: "New mission", icon: "hero-plus"}
+        ]}
+      />
   """
   attr :current_path, :string, default: nil
+  attr :page_action, :any, default: nil
 
   def dashboard_header(assigns) do
-    assigns = assign_new(assigns, :current_path, fn -> nil end)
+    actions =
+      cond do
+        is_nil(assigns.page_action) -> []
+        is_list(assigns.page_action) -> assigns.page_action
+        true -> [assigns.page_action]
+      end
+
+    assigns = assign(assigns, :actions, actions)
 
     ~H"""
-    <div class="w-full border-b p-4">
+    <div class="flex w-full items-center justify-between border-b p-4">
       <nav :if={@current_path && @current_path != "/"} aria-label="Breadcrumb">
         <ol class="flex items-center gap-1.5 text-sm">
           <li>
@@ -278,6 +291,35 @@ defmodule ControlKeelWeb.Layouts do
           <% end %>
         </ol>
       </nav>
+      <div :if={@actions != []} class="flex items-center gap-2" id="dashboard-page-action">
+        <%= for action <- @actions do %>
+          <a
+            :if={action[:to]}
+            href={action.to}
+            class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
+          >
+            <.icon :if={action[:icon]} name={action.icon} class="size-4" /> {action.label}
+          </a>
+
+          <button
+            :if={action[:form]}
+            type="submit"
+            form={action.form}
+            class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
+          >
+            <.icon :if={action[:icon]} name={action.icon} class="size-4" /> {action.label}
+          </button>
+
+          <button
+            :if={action[:event]}
+            type="button"
+            phx-click={action.event}
+            class="inline-flex items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
+          >
+            <.icon :if={action[:icon]} name={action.icon} class="size-4" /> {action.label}
+          </button>
+        <% end %>
+      </div>
     </div>
     """
   end
