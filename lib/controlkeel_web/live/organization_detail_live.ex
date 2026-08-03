@@ -540,13 +540,18 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
         <% else %>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <%= for ws <- @workspaces do %>
-              <article class="rounded-2xl border bg-card p-5 shadow-card">
+              <.link
+                href={~p"/organizations/#{@org.slug}/workspaces/#{ws.id}"}
+                class="group block rounded-2xl border bg-card p-5 shadow-card transition hover:border-primary/40 hover:shadow-card"
+              >
                 <div class="flex items-start justify-between gap-3">
                   <div class="flex min-w-0 items-center gap-2">
                     <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-info/10 text-info">
                       <.icon name="hero-squares-2x2" class="size-4" />
                     </span>
-                    <h3 class="truncate text-base font-semibold text-foreground">{ws.name}</h3>
+                    <h3 class="truncate text-base font-semibold text-foreground transition group-hover:text-primary">
+                      {ws.name}
+                    </h3>
                   </div>
                   <span class={[
                     "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
@@ -571,7 +576,7 @@ defmodule ControlKeelWeb.OrganizationDetailLive do
                     </dd>
                   </div>
                 </dl>
-              </article>
+              </.link>
             <% end %>
           </div>
         <% end %>

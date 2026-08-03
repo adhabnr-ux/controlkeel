@@ -94,6 +94,7 @@ defmodule ControlKeelWeb.Router do
       live "/cloud/projects/:ws_id", CloudProjectsLive, :show
       live "/organizations", OrganizationsLive, :index
       live "/organizations/:slug", OrganizationDetailLive, :index
+      live "/organizations/:slug/workspaces/:id", WorkspaceDetailLive, :index
       live "/workspaces/:id/repos", WorkspaceReposLive, :index
       live "/workspaces/:id/service-accounts", WorkspaceServiceAccountsLive, :index
       live "/workspaces/:id/webhooks", WorkspaceWebhooksLive, :index

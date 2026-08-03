@@ -327,12 +327,17 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
       {:ok, org: org, owner: owner, workspace: ws}
     end
 
-    test "workspaces is the default tab and lists the org's workspaces", %{owner: owner} do
+    test "workspaces is the default tab and lists the org's workspaces", %{
+      owner: owner,
+      workspace: ws
+    } do
       {:ok, view, html} = live(conn_for(owner), ~p"/organizations/tabco")
 
       assert html =~ "Workspaces"
       assert html =~ "?tab=members"
       assert render(view) =~ "core-workspace"
+      # The workspace card links to its nested detail route.
+      assert render(view) =~ ~s(href="/organizations/tabco/workspaces/#{ws.id}")
       # Workspaces table shows budget and status.
       assert render(view) =~ "$123.45"
       assert render(view) =~ "active"
