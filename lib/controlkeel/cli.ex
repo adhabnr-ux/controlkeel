@@ -196,7 +196,7 @@ defmodule ControlKeel.CLI do
     if ControlKeel.Runtime.local?() do
       {:error,
        "#{display_command(command)} is only supported in cloud mode. " <>
-         "Please migrate to cloud mode to use it."}
+         "In local mode you can only use the default organization."}
     else
       :ok
     end

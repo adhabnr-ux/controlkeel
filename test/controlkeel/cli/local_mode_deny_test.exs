@@ -26,7 +26,7 @@ defmodule ControlKeel.CLI.LocalModeDenyTest do
                  CLI.run_command(%{command: command, options: %{}}, System.tmp_dir!())
 
         assert message =~ "only supported in cloud mode"
-        assert message =~ "Please migrate to cloud mode"
+        assert message =~ "only use the default organization"
       end
     end
 
