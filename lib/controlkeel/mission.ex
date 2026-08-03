@@ -103,6 +103,9 @@ defmodule ControlKeel.Mission do
   def list_workspaces, do: Repo.all(Workspace)
   def get_workspace!(id), do: Repo.get!(Workspace, id)
 
+  def list_workspaces_for_org(org_id),
+    do: Repo.all(from w in Workspace, where: w.org_id == ^org_id)
+
   def list_sessions_for_workspace(workspace_id),
     do: Repo.all(from s in Session, where: s.workspace_id == ^workspace_id)
 

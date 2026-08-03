@@ -62,7 +62,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
     end
 
     test "owner row is locked (disabled)", %{conn: conn, memberships: ms} do
-      {:ok, view, _html} = live(conn, ~p"/organizations/acme")
+      {:ok, view, _html} = live(conn, ~p"/organizations/acme?tab=members")
 
       form = element(view, "#role-form-#{ms.owner.id}") |> render()
       assert form =~ "disabled"
@@ -75,7 +75,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
       conn: conn,
       memberships: ms
     } do
-      {:ok, view, _html} = live(conn, ~p"/organizations/acme")
+      {:ok, view, _html} = live(conn, ~p"/organizations/acme?tab=members")
 
       form = element(view, "#role-form-#{ms.admin.id}") |> render()
       refute form =~ "disabled"
@@ -87,7 +87,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
     end
 
     test "admin can self-demit to viewer", %{conn: conn, memberships: ms} do
-      {:ok, view, _html} = live(conn, ~p"/organizations/acme")
+      {:ok, view, _html} = live(conn, ~p"/organizations/acme?tab=members")
 
       view
       |> element("#role-form-#{ms.admin.id}")
@@ -102,7 +102,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
       conn: conn,
       memberships: ms
     } do
-      {:ok, view, _html} = live(conn, ~p"/organizations/acme")
+      {:ok, view, _html} = live(conn, ~p"/organizations/acme?tab=members")
 
       for target <- [:member, :viewer] do
         form = element(view, "#role-form-#{ms[target].id}") |> render()
@@ -118,7 +118,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
       conn: conn,
       memberships: ms
     } do
-      {:ok, view, _html} = live(conn, ~p"/organizations/acme")
+      {:ok, view, _html} = live(conn, ~p"/organizations/acme?tab=members")
 
       # Sanity: admin can manage before the change.
       assert render(view) =~ ~s(id="role-form-#{ms.member.id}")
@@ -142,7 +142,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
       conn: conn,
       memberships: ms
     } do
-      {:ok, view, _html} = live(conn, ~p"/organizations/acme")
+      {:ok, view, _html} = live(conn, ~p"/organizations/acme?tab=members")
 
       view
       |> element("#role-form-#{ms.member.id}")
@@ -167,7 +167,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
     end
 
     test "sole owner cannot change their own role (locked)", %{conn: conn, owner_m: owner_m} do
-      {:ok, view, _html} = live(conn, ~p"/organizations/omega")
+      {:ok, view, _html} = live(conn, ~p"/organizations/omega?tab=members")
 
       form = element(view, "#role-form-#{owner_m.id}") |> render()
       assert form =~ "disabled"
@@ -180,7 +180,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
       second = create_user!("owner-b@example.com")
       add_active_membership(second.id, org_id, "owner")
 
-      {:ok, view, _html} = live(conn, ~p"/organizations/omega")
+      {:ok, view, _html} = live(conn, ~p"/organizations/omega?tab=members")
 
       form = element(view, "#role-form-#{owner_m.id}") |> render()
       refute form =~ "disabled"
@@ -197,7 +197,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
       second = create_user!("owner-c@example.com")
       add_active_membership(second.id, owner_m.org_id, "owner")
 
-      {:ok, view, _html} = live(conn, ~p"/organizations/omega")
+      {:ok, view, _html} = live(conn, ~p"/organizations/omega?tab=members")
 
       # Sanity: management controls present before the change.
       html_before = render(view)
@@ -238,7 +238,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
     end
 
     test "settings action appears in the dashboard header and opens the modal", %{owner: owner} do
-      {:ok, view, html} = live(conn_for(owner), ~p"/organizations/setco")
+      {:ok, view, html} = live(conn_for(owner), ~p"/organizations/setco?tab=members")
 
       refute html =~ "org-settings-modal"
       assert render(view) =~ ~s(id="dashboard-page-action")
@@ -250,7 +250,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
     end
 
     test "owner opens the modal and saves the org name", %{org: org, owner: owner} do
-      {:ok, view, html} = live(conn_for(owner), ~p"/organizations/setco")
+      {:ok, view, html} = live(conn_for(owner), ~p"/organizations/setco?tab=members")
 
       # Modal is absent until opened.
       refute html =~ "org-settings-modal"
@@ -270,7 +270,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
     end
 
     test "admin can open the modal but status and budget are owner-locked", %{admin: admin} do
-      {:ok, view, _html} = live(conn_for(admin), ~p"/organizations/setco")
+      {:ok, view, _html} = live(conn_for(admin), ~p"/organizations/setco?tab=members")
 
       view |> render_click("open_settings")
       html = render(view)
@@ -281,7 +281,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
     end
 
     test "non-admin members do not see the settings button", %{member: member} do
-      {:ok, _view, html} = live(conn_for(member), ~p"/organizations/setco")
+      {:ok, _view, html} = live(conn_for(member), ~p"/organizations/setco?tab=members")
 
       refute html =~ "open_settings"
     end
@@ -293,7 +293,7 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
       # Members can mount the org detail LiveView; the button is hidden, but the
       # server must still reject a forged `save_settings` event so they cannot
       # rename the org or touch owner-only fields.
-      {:ok, view, _html} = live(conn_for(member), ~p"/organizations/setco")
+      {:ok, view, _html} = live(conn_for(member), ~p"/organizations/setco?tab=members")
 
       view
       |> render_click("save_settings", %{
@@ -304,6 +304,244 @@ defmodule ControlKeelWeb.OrganizationDetailLiveTest do
       reloaded = Accounts.get_org(org.id)
       assert reloaded.name == "Setco"
       assert reloaded.status == "active"
+    end
+  end
+
+  describe "workspaces and members tabs" do
+    setup do
+      owner = create_user!("tab-owner@example.com")
+      {:ok, org} = Accounts.create_org_with_owner(owner.id, %{name: "Tabco", slug: "tabco"})
+
+      {:ok, ws} =
+        ControlKeel.Mission.create_workspace(%{
+          name: "Core Workspace",
+          slug: "core-workspace",
+          industry: "web",
+          agent: "claude",
+          budget_cents: 12_345,
+          compliance_profile: "general",
+          status: "active",
+          org_id: org.id
+        })
+
+      {:ok, org: org, owner: owner, workspace: ws}
+    end
+
+    test "workspaces is the default tab and lists the org's workspaces", %{owner: owner} do
+      {:ok, view, html} = live(conn_for(owner), ~p"/organizations/tabco")
+
+      assert html =~ "Workspaces"
+      assert html =~ "?tab=members"
+      assert render(view) =~ "core-workspace"
+      # Workspaces table shows budget and status.
+      assert render(view) =~ "$123.45"
+      assert render(view) =~ "active"
+      # Member management UI is not rendered on the default tab.
+      refute render(view) =~ ~s(id="role-form-")
+      refute render(view) =~ "No members yet."
+    end
+
+    test "members tab lists memberships", %{owner: owner} do
+      {:ok, view, _html} = live(conn_for(owner), ~p"/organizations/tabco?tab=members")
+
+      html = render(view)
+      assert html =~ "tab-owner@example.com"
+      refute html =~ "core-workspace"
+    end
+
+    test "clicking the Members tab switches content", %{owner: owner} do
+      {:ok, view, _html} = live(conn_for(owner), ~p"/organizations/tabco")
+      assert render(view) =~ "core-workspace"
+
+      view
+      |> element("a[href=\"/organizations/tabco?tab=members\"]")
+      |> render_click()
+
+      html = render(view)
+      assert html =~ "tab-owner@example.com"
+      refute html =~ "core-workspace"
+    end
+
+    test "unknown tab value falls back to workspaces", %{owner: owner} do
+      {:ok, view, _html} = live(conn_for(owner), ~p"/organizations/tabco?tab=wat")
+      assert render(view) =~ "core-workspace"
+    end
+  end
+
+  describe "new workspace modal" do
+    setup do
+      owner = create_user!("ws-owner@example.com")
+      {:ok, org} = Accounts.create_org_with_owner(owner.id, %{name: "Wsco", slug: "wsco"})
+
+      {:ok, org: org, owner: owner}
+    end
+
+    test "cloud mode opens the create form", %{owner: owner} do
+      {:ok, view, html} = live(conn_for(owner), ~p"/organizations/wsco")
+
+      refute html =~ "new-workspace-modal"
+
+      view |> render_click("new_workspace")
+      modal = render(view)
+
+      assert modal =~ "new-workspace-modal"
+      assert modal =~ "Workspace name"
+      assert modal =~ "Monthly budget"
+      refute modal =~ "Only the default workspace is available in local mode."
+    end
+
+    test "cloud mode creates a workspace and lists it", %{org: org, owner: owner} do
+      {:ok, view, _html} = live(conn_for(owner), ~p"/organizations/wsco")
+
+      view |> render_click("new_workspace")
+
+      view
+      |> element("#new-workspace-form")
+      |> render_submit(%{
+        "workspace" => %{
+          "name" => "Data Pipeline",
+          "slug" => "data-pipeline",
+          "industry" => "web",
+          "budget_cents" => "5000"
+        }
+      })
+
+      html = render(view)
+      assert html =~ "Workspace Data Pipeline created."
+      assert html =~ "data-pipeline"
+
+      workspace = ControlKeel.Mission.get_workspace_by_slug("data-pipeline")
+      assert workspace.org_id == org.id
+      assert workspace.status == "active"
+    end
+
+    test "blank slug is auto-generated from the name", %{owner: owner} do
+      {:ok, view, _html} = live(conn_for(owner), ~p"/organizations/wsco")
+
+      view |> render_click("new_workspace")
+
+      view
+      |> element("#new-workspace-form")
+      |> render_submit(%{
+        "workspace" => %{
+          "name" => "Payments Core",
+          "slug" => "",
+          "industry" => "finance",
+          "budget_cents" => "0"
+        }
+      })
+
+      assert render(view) =~ "payments-core"
+      assert ControlKeel.Mission.get_workspace_by_slug("payments-core")
+    end
+
+    test "slug collision surfaces a validation error", %{owner: owner, org: org} do
+      {:ok, _ws} =
+        ControlKeel.Mission.create_workspace(%{
+          name: "Existing",
+          slug: "taken",
+          industry: "web",
+          agent: "claude",
+          budget_cents: 0,
+          compliance_profile: "general",
+          status: "active",
+          org_id: org.id
+        })
+
+      {:ok, view, _html} = live(conn_for(owner), ~p"/organizations/wsco")
+
+      view |> render_click("new_workspace")
+
+      view
+      |> element("#new-workspace-form")
+      |> render_submit(%{
+        "workspace" => %{
+          "name" => "Other",
+          "slug" => "taken",
+          "industry" => "web",
+          "budget_cents" => "0"
+        }
+      })
+
+      assert render(view) =~ "has already been taken"
+      refute render(view) =~ "Workspace Other created."
+    end
+  end
+
+  describe "new workspace modal in local mode" do
+    setup do
+      original = Application.get_env(:controlkeel, :runtime_mode)
+      Application.put_env(:controlkeel, :runtime_mode, :local)
+
+      on_exit(fn ->
+        if is_nil(original) do
+          Application.delete_env(:controlkeel, :runtime_mode)
+        else
+          Application.put_env(:controlkeel, :runtime_mode, original)
+        end
+      end)
+
+      {:ok, org} = Accounts.create_org(%{name: "Local WS Org", slug: "local-ws-org"})
+      {:ok, org: org}
+    end
+
+    test "modal shows the local-mode notice instead of the form", %{org: _org} do
+      {:ok, view, _html} = live(build_conn(), ~p"/organizations/local-ws-org")
+
+      view |> render_click("new_workspace")
+      modal = render(view)
+
+      assert modal =~ "new-workspace-modal"
+      assert modal =~ "Only the default workspace is available in local mode."
+      assert modal =~ "Upgrade to cloud mode to create additional workspaces."
+      refute modal =~ "new-workspace-form"
+    end
+
+    test "forged save_workspace event is rejected in local mode", %{org: org} do
+      {:ok, view, _html} = live(build_conn(), ~p"/organizations/local-ws-org")
+
+      view
+      |> render_click("save_workspace", %{
+        "workspace" => %{
+          "name" => "Sneaky",
+          "slug" => "sneaky",
+          "industry" => "web",
+          "budget_cents" => "0"
+        }
+      })
+
+      refute render(view) =~ "Workspace Sneaky created."
+      assert ControlKeel.Mission.list_workspaces_for_org(org.id) == []
+    end
+  end
+
+  describe "local mode members tab" do
+    setup do
+      original = Application.get_env(:controlkeel, :runtime_mode)
+      Application.put_env(:controlkeel, :runtime_mode, :local)
+
+      on_exit(fn ->
+        if is_nil(original) do
+          Application.delete_env(:controlkeel, :runtime_mode)
+        else
+          Application.put_env(:controlkeel, :runtime_mode, original)
+        end
+      end)
+
+      {:ok, org} = Accounts.create_org(%{name: "Local Org", slug: "local-org"})
+      {:ok, org: org}
+    end
+
+    test "workspaces is the default tab and members shows the local-mode notice", %{org: _org} do
+      {:ok, view, _html} = live(build_conn(), ~p"/organizations/local-org")
+      assert render(view) =~ "Workspaces"
+      refute render(view) =~ "Member management is not available in local mode."
+
+      {:ok, view, _html} = live(build_conn(), ~p"/organizations/local-org?tab=members")
+      html = render(view)
+
+      assert html =~ "Member management is not available in local mode."
+      assert html =~ "Switch to cloud or self-hosted mode to invite teammates and manage roles."
     end
   end
 end

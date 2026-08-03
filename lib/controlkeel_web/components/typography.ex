@@ -24,7 +24,7 @@ defmodule ControlKeelWeb.Typography do
     ~H"""
     <div class={["space-y-2", @class]}>
       <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">{@title}</h1>
-      <p :if={@subtitle} class="text-muted-foreground">{@subtitle}</p>
+      <p :if={@subtitle} class="text-sm text-muted-foreground">{@subtitle}</p>
     </div>
     """
   end
