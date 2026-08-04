@@ -16,13 +16,13 @@ defmodule ControlKeelWeb.OrganizationsLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    local_mode = Mode.current() == :local
+
     socket =
       socket
       |> assign(:page_title, "Organizations")
-      |> assign(
-        :page_action,
-        %{label: "New Organization", event: "new_org", icon: "hero-plus"}
-      )
+      |> assign(:local_mode, local_mode)
+      |> assign(:page_action, %{label: "New Organization", event: "new_org", icon: "hero-plus"})
       |> assign(:show_create_modal, false)
       |> assign(:changeset, Org.changeset(%Org{}, %{}))
       |> assign_form(Org.changeset(%Org{}, %{}))
@@ -82,6 +82,10 @@ defmodule ControlKeelWeb.OrganizationsLive do
   end
 
   @impl true
+  def handle_event("save", _params, %{assigns: %{local_mode: true}} = socket) do
+    {:noreply, local_mode_org_creation_denied(socket)}
+  end
+
   def handle_event("save", %{"org" => params}, socket) do
     case create_org_for_current_mode(socket, params) do
       {:ok, _org} ->
@@ -93,13 +97,19 @@ defmodule ControlKeelWeb.OrganizationsLive do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, :changeset, changeset) |> assign_form(changeset)}
+
+      {:error, :signed_out} ->
+        {:noreply, put_flash(socket, :error, "Sign in to create an organization.")}
+
+      {:error, :local_mode} ->
+        {:noreply, local_mode_org_creation_denied(socket)}
     end
   end
 
   defp create_org_for_current_mode(socket, params) do
     cond do
       Mode.current() == :local ->
-        Accounts.create_org(params)
+        {:error, :local_mode}
 
       user = socket.assigns[:current_user] ->
         Accounts.create_org_with_owner(user.id, params)
@@ -107,6 +117,14 @@ defmodule ControlKeelWeb.OrganizationsLive do
       true ->
         {:error, :signed_out}
     end
+  end
+
+  defp local_mode_org_creation_denied(socket) do
+    socket
+    |> put_flash(
+      :error,
+      "Organizations are not created in local mode — only the default organization is available. Upgrade to cloud mode to create organizations."
+    )
   end
 
   @impl true
@@ -130,7 +148,11 @@ defmodule ControlKeelWeb.OrganizationsLive do
                 <td colspan="5" class="px-5 py-12 text-center">
                   <p class="text-base font-medium text-foreground">No organizations yet.</p>
                   <p class="mt-1 text-sm text-muted-foreground">
-                    Create an organization to group workspaces, members, and budgets.
+                    <%= if @local_mode do %>
+                      In local mode only the default organization is available.
+                    <% else %>
+                      Create an organization to group workspaces, members, and budgets.
+                    <% end %>
                   </p>
                 </td>
               </tr>
@@ -169,13 +191,14 @@ defmodule ControlKeelWeb.OrganizationsLive do
           </tbody>
         </table>
 
-        <.create_modal :if={@show_create_modal} form={@form} />
+        <.create_modal :if={@show_create_modal} form={@form} local_mode={@local_mode} />
       </div>
     </section>
     """
   end
 
   attr :form, :map, required: true
+  attr :local_mode, :boolean, default: false
 
   defp create_modal(assigns) do
     ~H"""
@@ -205,49 +228,64 @@ defmodule ControlKeelWeb.OrganizationsLive do
             </button>
           </div>
 
-          <.form
-            for={@form}
-            phx-change="validate"
-            phx-submit="save"
-            id="organization-form"
-            class="space-y-4"
-          >
-            <.input
-              field={@form[:name]}
-              type="text"
-              label="Name"
-              placeholder="Acme Inc"
-              class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-
-            <.input
-              field={@form[:slug]}
-              type="text"
-              label="Slug"
-              placeholder="acme-inc"
-              class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-
-            <p class="text-xs text-muted-foreground">
-              Lowercase letters, numbers, and hyphens. Used in URLs.
-            </p>
-
-            <div class="flex items-center justify-end gap-3 border-t pt-4">
-              <button
-                type="button"
-                phx-click="cancel_new"
-                class="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary"
-              >
-                Create organization
-              </button>
+          <%= if @local_mode do %>
+            <div class="rounded-xl border border-warning/30 bg-warning/10 p-4">
+              <div class="flex items-center gap-2">
+                <.icon name="hero-lock-closed" class="size-4 text-warning" />
+                <p class="text-sm font-semibold text-warning">Local mode</p>
+              </div>
+              <p class="mt-2 text-sm text-foreground/80">
+                Only the default organization is available in local mode.
+              </p>
+              <p class="mt-1 text-sm text-muted-foreground">
+                Upgrade to cloud mode to create additional organizations.
+              </p>
             </div>
-          </.form>
+          <% else %>
+            <.form
+              for={@form}
+              phx-change="validate"
+              phx-submit="save"
+              id="organization-form"
+              class="space-y-4"
+            >
+              <.input
+                field={@form[:name]}
+                type="text"
+                label="Name"
+                placeholder="Acme Inc"
+                class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+
+              <.input
+                field={@form[:slug]}
+                type="text"
+                label="Slug"
+                placeholder="acme-inc"
+                class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+
+              <p class="text-xs text-muted-foreground">
+                Lowercase letters, numbers, and hyphens. Used in URLs.
+              </p>
+
+              <div class="flex items-center justify-end gap-3 border-t pt-4">
+                <button
+                  type="button"
+                  phx-click="cancel_new"
+                  class="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary"
+                >
+                  Create organization
+                </button>
+              </div>
+            </.form>
+          <% end %>
         </div>
       </div>
     </div>

@@ -25,8 +25,13 @@ defmodule ControlKeel.CLI.LocalModeDenyTest do
         assert {:error, message} =
                  CLI.run_command(%{command: command, options: %{}}, System.tmp_dir!())
 
-        assert message =~ "only supported in cloud mode"
-        assert message =~ "only use the default organization"
+        assert message =~ "not available in local mode"
+        assert message =~ "new organization cannot be created"
+
+        assert message =~ "use the default organization" ||
+                 message =~ "Use the default organization"
+
+        assert message =~ "upgrade to cloud mode"
       end
     end
 
@@ -63,7 +68,7 @@ defmodule ControlKeel.CLI.LocalModeDenyTest do
       assert {:error, message} =
                CLI.run_command(%{command: :org_create, options: %{}}, System.tmp_dir!())
 
-      refute message =~ "only supported in cloud mode"
+      refute message =~ "not available in local mode"
       assert message =~ "Missing required option"
     end
   end

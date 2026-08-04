@@ -195,8 +195,8 @@ defmodule ControlKeel.CLI do
   defp local_mode_guard(command) when command in @local_mode_denied_commands do
     if ControlKeel.Runtime.local?() do
       {:error,
-       "#{display_command(command)} is only supported in cloud mode. " <>
-         "In local mode you can only use the default organization."}
+       "#{display_command(command)} is not available in local mode — a new organization cannot be created here. " <>
+         "Use the default organization, or upgrade to cloud mode to create organizations."}
     else
       :ok
     end

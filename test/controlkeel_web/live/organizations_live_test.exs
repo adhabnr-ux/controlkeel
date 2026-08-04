@@ -45,69 +45,39 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
       assert render(view) =~ "—"
     end
 
-    test "new_org click opens the create modal" do
-      {:ok, view, _html} = live(build_conn(), ~p"/organizations")
+    test "new_org shows the local-mode info panel instead of the create form" do
+      {:ok, view, html} = live(build_conn(), ~p"/organizations")
 
-      refute render(view) =~ "New organization"
-      refute render(view) =~ ~s(id="organization-form")
+      # The New Organization button is still shown in local mode.
+      assert html =~ "New Organization"
+      assert html =~ "new_org"
 
       render_click(view, "new_org")
 
       html = render(view)
       assert html =~ "New organization"
-      assert html =~ ~s(id="organization-form")
+      assert html =~ "Only the default organization is available in local mode"
+      # The form is not rendered — only the info panel.
+      refute html =~ ~s(id="organization-form")
     end
 
     test "cancel_new click closes the create modal" do
       {:ok, view, _html} = live(build_conn(), ~p"/organizations")
 
       render_click(view, "new_org")
-      assert render(view) =~ ~s(id="organization-form")
+      assert render(view) =~ ~s(id="organization-create-modal")
 
       render_click(view, "cancel_new")
-      refute render(view) =~ ~s(id="organization-form")
+      refute render(view) =~ ~s(id="organization-create-modal")
     end
 
-    test "save inserts an org with no membership" do
+    test "save is denied in local mode and creates no org" do
       {:ok, view, _html} = live(build_conn(), ~p"/organizations")
-      render_click(view, "new_org")
 
-      view
-      |> form("#organization-form", org: %{name: "New Co", slug: "new-co"})
-      |> render_submit()
+      html = render_submit(view, "save", %{"org" => %{name: "New Co", slug: "new-co"}})
 
-      org = Repo.get_by!(ControlKeel.Accounts.Org, slug: "new-co")
-      assert org.name == "New Co"
-      assert org.status == "active"
-
-      # Local mode never creates a membership.
-      assert Repo.aggregate(Membership, :count) == 0
-    end
-
-    test "save closes the modal and refreshes the list" do
-      {:ok, view, _html} = live(build_conn(), ~p"/organizations")
-      render_click(view, "new_org")
-
-      view
-      |> form("#organization-form", org: %{name: "Modal Co", slug: "modal-co"})
-      |> render_submit()
-
-      html = render(view)
-      refute html =~ ~s(id="organization-form")
-      assert html =~ "Modal Co"
-    end
-
-    test "save re-renders the form inside the modal on validation errors" do
-      {:ok, view, _html} = live(build_conn(), ~p"/organizations")
-      render_click(view, "new_org")
-
-      html =
-        view
-        |> form("#organization-form", org: %{name: "", slug: ""})
-        |> render_submit()
-
-      assert html =~ "can&#39;t be blank"
-      assert html =~ ~s(id="organization-form")
+      refute Repo.get_by(ControlKeel.Accounts.Org, slug: "new-co")
+      assert html =~ "Organizations are not created in local mode"
     end
   end
 
