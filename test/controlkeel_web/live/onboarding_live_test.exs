@@ -171,27 +171,49 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
     assert next_html =~ "Marketing / Content"
   end
 
-  test "onboarding UI prevents duplicate project names", %{conn: conn} do
-    workspace = workspace_fixture(%{name: "Existing Project"})
-    _session = session_fixture(%{workspace: workspace, title: "Existing Project"})
-
+  test "onboarding creates the session in the default workspace", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/missions/start")
 
-    # Step 1
-    render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
+    assert render_submit(
+             form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"})
+           ) =~ "Describe the product"
 
-    # Step 2: Attempting to submit a duplicate project name
-    error_html =
-      render_submit(
-        form(view, "form",
-          launch: %{
-            "project_name" => "Existing Project",
-            "idea" => "Build a new portal with workflow."
+    assert render_submit(
+             form(view, "form",
+               launch: %{
+                 "project_name" => "Portal Rebuild",
+                 "idea" =>
+                   "Rebuild the internal portal with workflow, approvals, and audit notes."
+               }
+             )
+           ) =~ "Answer the guided interview"
+
+    render_submit(
+      form(view, "form",
+        launch: %{
+          "interview_answers" => %{
+            "who_uses_it" => "Internal staff across teams",
+            "data_involved" => "Portal content, approvals, and activity logs",
+            "first_release" => "Rebuilt navigation, approvals, search",
+            "constraints" => "Local-first deploy, approval before merge"
           }
-        )
+        }
       )
+    )
 
-    assert error_html =~ "This project name is already used by an existing mission."
+    render_click(element(view, "button[phx-click=\"accept\"]"))
+    {path, _flash} = assert_redirect(view)
+    assert path =~ "/missions/"
+
+    session_id =
+      path
+      |> String.split("/missions/")
+      |> List.last()
+      |> String.split("?")
+      |> List.first()
+
+    session = Mission.get_session_with_workspace(String.to_integer(session_id))
+    assert session.workspace.slug == "default-workspace"
   end
 
   test "user can continue from an existing mission in onboarding", %{conn: conn} do

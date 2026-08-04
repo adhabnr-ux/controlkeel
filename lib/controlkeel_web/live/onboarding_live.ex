@@ -642,11 +642,6 @@ defmodule ControlKeelWeb.OnboardingLive do
         "Give the project a name."
       )
       |> maybe_error(
-        "project_name",
-        duplicate_project_name?(attrs["project_name"]),
-        "This project name is already used by an existing mission."
-      )
-      |> maybe_error(
         "idea",
         short_text?(attrs["idea"], 12),
         "Describe the product in a few concrete sentences (at least 12 characters)."
@@ -739,10 +734,6 @@ defmodule ControlKeelWeb.OnboardingLive do
     Intent.occupation_profiles()
     |> List.first()
     |> Map.fetch!(:id)
-  end
-
-  defp duplicate_project_name?(name) do
-    not blank?(name) and Mission.project_name_taken?(name)
   end
 
   defp blank?(value), do: String.trim(to_string(value || "")) == ""

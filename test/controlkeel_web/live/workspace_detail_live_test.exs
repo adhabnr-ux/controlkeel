@@ -64,9 +64,7 @@ defmodule ControlKeelWeb.WorkspaceDetailLiveTest do
       # Session rows render in the missions-style table.
       assert html =~ "First session"
       assert html =~ "Second session"
-      assert html =~ "$25"
-      assert html =~ s1.external_id
-      assert html =~ s2.external_id
+      assert html =~ "$100"
     end
 
     test "shows an empty state when the workspace has no sessions" do

@@ -9,7 +9,7 @@ defmodule ControlKeel.MissionTest do
   import ControlKeel.MissionFixtures
   import ControlKeel.IntentFixtures
 
-  test "create_launch/1 creates a workspace, session, tasks, and findings" do
+  test "create_launch/1 creates a session, tasks, and findings in the default workspace" do
     params = %{
       "project_name" => "Clinic Intake",
       "industry" => "health",
@@ -22,7 +22,7 @@ defmodule ControlKeel.MissionTest do
     }
 
     assert {:ok, session} = Mission.create_launch(params)
-    assert session.workspace.name == "Clinic Intake"
+    assert session.workspace.name == "Default Workspace"
     assert session.risk_tier == "critical"
     assert length(session.tasks) >= 3
     assert length(session.findings) >= 2
@@ -55,15 +55,15 @@ defmodule ControlKeel.MissionTest do
                brief
              )
 
-    assert session.workspace.name == "School launchpad"
-    assert session.workspace.industry == "education"
+    assert session.workspace.name == "Default Workspace"
+    assert session.workspace.industry == "general"
     assert session.risk_tier == "moderate"
     assert session.execution_brief["compiler"]["provider"] == "openai"
     assert session.execution_brief["domain_pack"] == "education"
     assert length(session.tasks) >= 3
   end
 
-  test "create_launch_from_brief/2 reuses the workspace when the project name already exists" do
+  test "create_launch_from_brief/2 without a workspace_id always targets the default workspace" do
     brief =
       execution_brief_fixture(
         payload: %{
@@ -89,11 +89,9 @@ defmodule ControlKeel.MissionTest do
                brief
              )
 
-    # A second launch with the same project name reuses the existing workspace
-    # and adds a new session inside it, rather than failing. This keeps
-    # bootstrap/re-launch idempotent for an already-initialized project. The
-    # interactive onboarding wizard still warns on duplicate names up front via
-    # Mission.project_name_taken?/1.
+    # A second launch with the same project name and no workspace_id does not
+    # create or look up a workspace by project name; both sessions land in the
+    # resolved default workspace.
     assert {:ok, second} =
              Mission.create_launch_from_brief(
                %{"agent" => "codex", "project_root" => "/tmp/controlkeel-duplicate-2"},
@@ -101,8 +99,8 @@ defmodule ControlKeel.MissionTest do
              )
 
     assert second.workspace_id == first.workspace_id
+    assert second.workspace.slug == "default-workspace"
     assert second.id != first.id
-    assert Mission.project_name_taken?("Duplicate launchpad")
   end
 
   test "create_launch_from_brief/2 preserves the domain pack for every supported domain" do
@@ -190,7 +188,7 @@ defmodule ControlKeel.MissionTest do
                brief
              )
 
-    assert session.workspace.industry == "security"
+    assert session.workspace.name == "Default Workspace"
     assert session.execution_brief["domain_pack"] == "security"
     assert session.metadata["mission_template"] == "security_defender_v1"
     assert session.metadata["cyber_access_mode"] == "verified_research"

@@ -978,53 +978,22 @@ defmodule ControlKeel.Mission do
   end
 
   defp persist_launch_plan(plan, workspace_id) do
-    case workspace_id do
-      id when is_integer(id) ->
-        case Repo.get(Workspace, id) do
-          %Workspace{} = workspace -> persist_launch_plan_in_workspace(plan, workspace)
-          nil -> {:error, :workspace_not_found}
-        end
+    workspace =
+      case workspace_id do
+        id when is_integer(id) -> Repo.get(Workspace, id)
+        _ -> resolve_default_workspace()
+      end
 
-      _ ->
-        case find_workspace_by_name(plan.workspace.name) do
-          %Workspace{} = existing_workspace ->
-            # Workspace name already taken — reuse it and create a new session inside.
-            persist_launch_plan_in_workspace(plan, existing_workspace)
+    case workspace do
+      %Workspace{} = ws -> persist_launch_plan_in_workspace(plan, ws)
+      nil -> {:error, :workspace_not_found}
+    end
+  end
 
-          nil ->
-            plan = ensure_unique_workspace_slug(plan)
-
-            Multi.new()
-            |> Multi.insert(:workspace, Workspace.changeset(%Workspace{}, plan.workspace))
-            |> Multi.insert(:session, fn %{workspace: workspace} ->
-              Session.changeset(%Session{}, Map.put(plan.session, :workspace_id, workspace.id))
-            end)
-            |> Multi.run(:tasks, fn repo, %{session: session} ->
-              insert_many(repo, Task, plan.tasks, :session_id, session.id)
-            end)
-            |> Multi.run(:task_edges, fn repo, %{session: session, tasks: tasks} ->
-              insert_task_edges(repo, session.id, tasks)
-            end)
-            |> Multi.run(:findings, fn repo, %{session: session} ->
-              insert_many(repo, Finding, plan.findings, :session_id, session.id)
-            end)
-            |> RepoRetry.transaction_with_busy_retry()
-            |> case do
-              {:ok, %{session: session}} ->
-                emit_mission_created(plan, session)
-                record_brief_memory(session)
-                loaded = get_session_with_details!(session.id)
-                Enum.each(loaded.tasks, &record_task_memory(:created, &1))
-                Enum.each(loaded.findings, &record_finding_memory(:created, &1))
-                {:ok, loaded}
-
-              {:error, :workspace, changeset, _changes} ->
-                {:error, :workspace, changeset}
-
-              {:error, _step, changeset, _changes} ->
-                {:error, :session, changeset}
-            end
-        end
+  defp resolve_default_workspace do
+    case ControlKeel.Bootstrap.LocalDefaults.ensure() do
+      {:ok, {_org, %Workspace{} = ws}} -> ws
+      _ -> get_workspace_by_slug(ControlKeel.Bootstrap.LocalDefaults.default_workspace_slug())
     end
   end
 
@@ -1062,43 +1031,6 @@ defmodule ControlKeel.Mission do
 
       {:error, _step, changeset, _changes} ->
         {:error, :session, changeset}
-    end
-  end
-
-  def find_workspace_by_name(nil), do: nil
-
-  def find_workspace_by_name(name) when is_binary(name) do
-    normalized = String.downcase(String.trim(name))
-
-    from(w in Workspace,
-      where: fragment("lower(?)", w.name) == ^normalized
-    )
-    |> Repo.one()
-  end
-
-  def project_name_taken?(nil), do: false
-
-  def project_name_taken?(name) when is_binary(name) do
-    find_workspace_by_name(name) != nil
-  end
-
-  defp ensure_unique_workspace_slug(%{workspace: %{slug: slug}} = plan) do
-    put_in(plan[:workspace][:slug], unique_workspace_slug(slug))
-  end
-
-  defp unique_workspace_slug(slug) do
-    case Repo.get_by(Workspace, slug: slug) do
-      nil -> slug
-      _ -> unique_workspace_slug(slug, 1)
-    end
-  end
-
-  defp unique_workspace_slug(slug, count) do
-    candidate = "#{slug}-#{count}"
-
-    case Repo.get_by(Workspace, slug: candidate) do
-      nil -> candidate
-      _ -> unique_workspace_slug(slug, count + 1)
     end
   end
 
