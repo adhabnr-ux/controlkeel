@@ -180,6 +180,49 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
     end
   end
 
+  def run_command(%{command: :workspace_create, options: options}, _project_root) do
+    alias ControlKeel.Mission
+
+    org_slug = options[:org]
+
+    with {:ok, org_slug} <- require_string_option(org_slug, "org"),
+         {:ok, name} <- require_string_option(options[:name], "name"),
+         org when not is_nil(org) <- Accounts.get_org_by_slug(org_slug) do
+      slug = options[:slug]
+
+      case Mission.create_workspace(%{
+             name: name,
+             slug: slug,
+             industry: "general",
+             agent: "claude",
+             budget_cents: 0,
+             compliance_profile: "general",
+             status: "active",
+             org_id: org.id
+           }) do
+        {:ok, workspace} ->
+          {:ok,
+           [
+             "Workspace created",
+             "ID: #{workspace.id}",
+             "Org: #{org.slug}",
+             "Name: #{workspace.name}",
+             "Slug: #{workspace.slug}",
+             "Status: #{workspace.status}"
+           ]}
+
+        {:error, changeset} ->
+          {:error, "Failed to create workspace: #{format_changeset_errors(changeset)}"}
+      end
+    else
+      {:error, {:missing_option, opt}} ->
+        {:error, "Missing required option --#{opt}"}
+
+      nil ->
+        {:error, "Org not found: #{org_slug}"}
+    end
+  end
+
   def run_command(%{command: :org_list, options: _options}, _project_root) do
     alias ControlKeel.Accounts
 

@@ -264,6 +264,13 @@ defmodule ControlKeel.CLI.Parser do
   @org_budget_show_switches [project_root: :string, json: :boolean]
   @org_invite_switches [project_root: :string, email: :string, role: :string, json: :boolean]
   @org_members_switches [project_root: :string, json: :boolean]
+  @workspace_create_switches [
+    project_root: :string,
+    org: :string,
+    name: :string,
+    slug: :string,
+    json: :boolean
+  ]
   @run_cloud_agent_switches [
     project_root: :string,
     runtime: :string,
@@ -543,6 +550,9 @@ defmodule ControlKeel.CLI.Parser do
           {:ok, parsed} -> {:ok, Map.put(parsed, :args, [slug])}
           err -> err
         end
+
+      ["workspace", "create" | rest] ->
+        parse_with_switches(:workspace_create, rest, @workspace_create_switches)
 
       ["mcp", "registry", "check", server_name | rest] ->
         case parse_with_switches(:mcp_registry_check, rest, @mcp_registry_check_switches) do
