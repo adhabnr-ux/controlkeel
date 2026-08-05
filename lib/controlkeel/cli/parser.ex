@@ -14,6 +14,8 @@ defmodule ControlKeel.CLI.Parser do
     users: :string,
     data: :string,
     project_name: :string,
+    org: :string,
+    workspace: :string,
     no_attach: :boolean,
     json: :boolean
   ]

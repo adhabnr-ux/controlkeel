@@ -8,6 +8,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
   alias ControlKeel.Budget
   alias ControlKeel.CLI.Help
   alias ControlKeel.Project.Local
+  alias ControlKeel.Project.Cloud
   alias ControlKeel.Mission
   alias ControlKeel.ProviderBroker
   alias ControlKeel.Project.Binding
@@ -68,7 +69,15 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     attrs = Enum.into(options, %{}, fn {key, value} -> {Atom.to_string(key), value} end)
     no_attach = Keyword.get(options, :no_attach, false)
 
-    case Local.init(attrs, project_root) do
+    result =
+      if ControlKeel.Runtime.local?() do
+        maybe_warn_local_org_workspace_flags(attrs)
+        Local.init(attrs, project_root)
+      else
+        Cloud.init(attrs, project_root)
+      end
+
+    case result do
       {:ok, binding, :created} ->
         base_lines = [
           "Initialized ControlKeel for #{binding["project_root"]}",
@@ -106,7 +115,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
          ]}
 
       {:error, reason} ->
-        {:error, "Failed to initialize ControlKeel: #{inspect(reason)}"}
+        {:error, "Failed to initialize ControlKeel: #{Cloud.error_message(reason)}"}
     end
   end
 
@@ -297,6 +306,26 @@ defmodule ControlKeel.CLI.Dispatch.Core do
         {:error, reason} ->
           {:error, "Failed to load local project: #{inspect(reason)}"}
       end
+    end
+  end
+
+  defp maybe_warn_local_org_workspace_flags(attrs) do
+    flags =
+      ["org", "workspace"]
+      |> Enum.filter(&(Map.get(attrs, &1) not in [nil, ""]))
+      |> Enum.map(&"--#{&1}")
+
+    case flags do
+      [] ->
+        :ok
+
+      _ ->
+        IO.puts(
+          :stderr,
+          "Warning: #{Enum.join(flags, ", ")} is ignored in local mode — " <>
+            "ControlKeel always uses the default organization and workspace. " <>
+            "Use cloud mode to target a specific org or workspace."
+        )
     end
   end
 end
