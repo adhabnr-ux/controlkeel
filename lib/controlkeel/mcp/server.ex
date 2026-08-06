@@ -113,19 +113,15 @@ defmodule ControlKeel.MCP.Server do
   defp start_reader(input) do
     parent = self()
 
-    Task.start_link(fn ->
-      # MCP stdio: newline-delimited JSON-RPC (modelcontextprotocol.io).
-      _ = :io.setopts(binary: true, encoding: :utf8)
-      read_loop(parent, input)
-    end)
-    |> case do
-      {:ok, pid} ->
-        ref = Process.monitor(pid)
-        {pid, ref}
+    {:ok, pid} =
+      Task.start_link(fn ->
+        # MCP stdio: newline-delimited JSON-RPC (modelcontextprotocol.io).
+        _ = :io.setopts(binary: true, encoding: :utf8)
+        read_loop(parent, input)
+      end)
 
-      other ->
-        other
-    end
+    ref = Process.monitor(pid)
+    {pid, ref}
   end
 
   defp read_loop(parent, input) do
@@ -174,10 +170,7 @@ defmodule ControlKeel.MCP.Server do
   # IO.read/2 in the reader task. :file.write + :file.sync on :standard_io has
   # caused long stalls on some piped MCP hosts (Cursor ~10s abort window).
   defp write_binary(:stdio, data) do
-    case IO.binwrite(:stdio, data) do
-      :ok -> :ok
-      {:error, _} = error -> error
-    end
+    IO.binwrite(:stdio, data)
   end
 
   defp write_binary(device, data) do

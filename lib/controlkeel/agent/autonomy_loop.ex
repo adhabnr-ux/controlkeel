@@ -540,7 +540,7 @@ defmodule ControlKeel.Agent.AutonomyLoop do
 
   defp present?(value) when is_binary(value), do: String.trim(value) != ""
   defp present?(nil), do: false
-  defp present?(value), do: value != nil
+  defp present?(_value), do: true
 
   defp blank?(value) when is_binary(value), do: String.trim(value) == ""
   defp blank?(nil), do: true

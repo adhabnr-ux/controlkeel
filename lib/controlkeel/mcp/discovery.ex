@@ -17,8 +17,6 @@ defmodule ControlKeel.MCP.Discovery do
   `true` (e.g. for trusted in-cluster discovery).
   """
 
-  require Logger
-
   alias ControlKeel.MCP.ToolSecurity
 
   @default_timeout 10_000

@@ -588,7 +588,7 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
       end
     else
       {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
-      {:error, msg} when is_binary(msg) -> {:error, msg}
+      {:error, :invalid_id} -> {:error, "Workspace id must be an integer."}
     end
   end
 
@@ -605,7 +605,7 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
       end
     else
       {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
-      {:error, msg} when is_binary(msg) -> {:error, msg}
+      {:error, :invalid_id} -> {:error, "Workspace id must be an integer."}
     end
   end
 

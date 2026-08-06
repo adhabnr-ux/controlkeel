@@ -25,10 +25,7 @@ defmodule ControlKeel.MCP.Tools.CkMcpDiscover do
                "usage_hint" =>
                  "Use the discovered tool schemas to understand available capabilities. " <>
                    "To register these tools with CK, use the MCP client configuration or skills system."
-             }
-             |> then(fn r ->
-               if Map.has_key?(result, :note), do: Map.put(r, "note", result.note), else: r
-             end)}
+             }}
 
           {:error, reason} ->
             {:error, format_error(reason)}

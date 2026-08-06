@@ -64,9 +64,6 @@ defmodule ControlKeel.Memory.RetentionScheduler do
     case run_once() do
       {:ok, %{archived: count}} ->
         Logger.debug("[memory_retention] archived #{count} stale record(s)")
-
-      other ->
-        Logger.warning("[memory_retention] sweep returned #{inspect(other)}")
     end
 
     schedule(state)

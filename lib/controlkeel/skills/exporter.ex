@@ -274,9 +274,6 @@ defmodule ControlKeel.Skills.Exporter do
       {:ok, _removed} ->
         ensure_directory(root)
 
-      {:error, :enoent, _path} ->
-        ensure_directory(root)
-
       {:error, :eexist, _path} ->
         # Older standalone builds occasionally race with pre-existing dist targets.
         # Treat an already-present directory as recoverable and reuse it after mkdir_p.

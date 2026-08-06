@@ -38,10 +38,8 @@ defmodule ControlKeel.Policy.PackLoader do
   end
 
   def all_packs do
-    case load_cache() do
-      {:ok, packs} -> packs
-      {:error, _reason} -> %{}
-    end
+    {:ok, packs} = load_cache()
+    packs
   end
 
   def clear_cache do

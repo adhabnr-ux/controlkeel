@@ -221,7 +221,6 @@ defmodule ControlKeel.Mcp.ProtocolInterop do
     else
       :skip -> :ok
       {:error, _reason} -> :ok
-      nil -> :ok
     end
   end
 
