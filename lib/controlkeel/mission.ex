@@ -109,6 +109,20 @@ defmodule ControlKeel.Mission do
   def list_sessions_for_workspace(workspace_id),
     do: Repo.all(from s in Session, where: s.workspace_id == ^workspace_id)
 
+  @doc """
+  Returns true when a session (mission) already uses `name` as its title,
+  case-insensitively. Used by the onboarding wizard to prevent duplicate
+  project names before compile.
+  """
+  def project_name_taken?(nil), do: false
+
+  def project_name_taken?(name) when is_binary(name) do
+    normalized = String.downcase(String.trim(name))
+
+    from(s in Session, where: fragment("lower(?)", s.title) == ^normalized)
+    |> Repo.one() != nil
+  end
+
   def create_workspace(attrs) do
     %Workspace{}
     |> Workspace.changeset(attrs)

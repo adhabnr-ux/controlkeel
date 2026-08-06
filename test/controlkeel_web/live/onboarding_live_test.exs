@@ -73,6 +73,26 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
     assert length(Mission.list_sessions()) == initial_session_count + 1
   end
 
+  test "onboarding UI prevents duplicate project names", %{conn: conn} do
+    _session = session_fixture(%{title: "Existing Project"})
+
+    {:ok, view, _html} = live(conn, ~p"/missions/start")
+
+    render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
+
+    error_html =
+      render_submit(
+        form(view, "form",
+          launch: %{
+            "project_name" => "Existing Project",
+            "idea" => "Build a new portal with workflow."
+          }
+        )
+      )
+
+    assert error_html =~ "This project name is already used by an existing mission."
+  end
+
   test "validation errors render and provider keys are not exposed in the browser", %{conn: conn} do
     original = Application.get_env(:controlkeel, ControlKeel.Intent)
 
