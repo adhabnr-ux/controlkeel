@@ -253,7 +253,13 @@ defmodule ControlKeel.CLI.Parser do
   @mcp_registry_check_switches [project_root: :string, attested: :boolean, json: :boolean]
   @mcp_guardrails_switches [project_root: :string, json: :boolean]
   @user_create_switches [project_root: :string, email: :string, name: :string, json: :boolean]
-  @org_create_switches [project_root: :string, name: :string, slug: :string, json: :boolean]
+  @org_create_switches [
+    project_root: :string,
+    name: :string,
+    slug: :string,
+    default_workspace: :boolean,
+    json: :boolean
+  ]
   @org_list_switches [project_root: :string, json: :boolean]
   @org_budget_set_switches [
     project_root: :string,
