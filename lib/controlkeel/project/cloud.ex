@@ -65,6 +65,16 @@ defmodule ControlKeel.Project.Cloud do
   end
 
   defp resolve_org(attrs) do
+    # NOTE: membership is intentionally NOT validated here. The CLI has no
+    # notion of a "current user" (no login, stored token, or whoami seed), so
+    # there is no user_id to pass to Accounts.get_active_membership/2. This is
+    # an authorization gap: any caller who knows an org slug can init into it.
+    # The web onboarding path gates on current_membership (owner/admin) because
+    # it has a signed-in user; the CLI cannot, yet. Revisit once CLI identity
+    # exists (e.g. `controlkeel whoami`, `--user-id`, or an auth token) and
+    # reject users without an active membership in the resolved org. See
+    # docs/org-mission-relation-review.md §3.3 and issue acceptance criterion
+    # "rejects users without membership".
     case trimmed(Map.get(attrs, "org")) do
       nil ->
         prompt_org()
