@@ -39,12 +39,12 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
       assert default_ws
       assert default_ws.org_id == default_org.id
 
-      # both sessions moved into the default workspace
+      # both sessions end up under the default workspace
       assert Repo.get(Session, session_a.id).workspace_id == default_ws.id
       assert Repo.get(Session, session_b.id).workspace_id == default_ws.id
 
-      # orphan workspaces deleted
-      refute Repo.get(Workspace, ws_a.id)
+      # the oldest workspace (ws_a) was repurposed into the default; the rest deleted
+      assert Repo.get(Workspace, ws_a.id).slug == "default-workspace"
       refute Repo.get(Workspace, ws_b.id)
 
       # only the default org + workspace remain
@@ -53,8 +53,26 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
 
       # zero sessions lost
       assert Repo.aggregate(Session, :count) == sessions_before
-      assert summary.sessions_moved == 2
-      assert summary.workspaces_removed == 2
+      assert summary.sessions_moved == 1
+      assert summary.workspaces_removed == 1
+    end
+
+    test "with multiple orgs, the oldest is renamed to default and the rest are deleted" do
+      {:ok, org_a} = Accounts.create_org(%{name: "Org A", slug: "org-a"})
+      {:ok, org_b} = Accounts.create_org(%{name: "Org B", slug: "org-b"})
+      {:ok, org_c} = Accounts.create_org(%{name: "Org C", slug: "org-c"})
+
+      # org_a is oldest; it should become the default and keep its row identity.
+      assert {:ok, summary} = LocalMigration.run()
+
+      default_org = Accounts.get_org_by_slug(LocalDefaults.default_org_slug())
+
+      assert default_org.id == org_a.id
+      assert Repo.get(Accounts.Org, org_a.id).slug == LocalDefaults.default_org_slug()
+      refute Repo.get(Accounts.Org, org_b.id)
+      refute Repo.get(Accounts.Org, org_c.id)
+      assert Repo.aggregate(Org, :count) == 1
+      assert summary.orgs_removed == 2
     end
 
     test "repoints session-scoped memory and analytics onto the default workspace" do
@@ -96,8 +114,8 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
 
       # the pre-existing default-workspace was claimed for the default org
       assert Repo.get(Workspace, existing_default.id).org_id == default_org.id
-      # the other org is now empty and removed
-      refute Repo.get(Accounts.Org, other_org.id)
+      # the other org was the only org, so it was renamed into the default (not deleted)
+      assert Repo.get(Accounts.Org, other_org.id).slug == LocalDefaults.default_org_slug()
       # the session survived and stays under the (now claimed) default workspace
       assert Repo.get(Session, session.id).workspace_id == existing_default.id
     end
@@ -107,7 +125,9 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
       session_fixture(%{workspace: workspace})
 
       assert {:ok, %{} = first} = LocalMigration.run()
-      assert first.sessions_moved == 1
+      # the single workspace was renamed into the default in place, so the
+      # session already lives in it — nothing to move.
+      assert first.sessions_moved == 0
 
       # After consolidation the DB has a single default org/workspace, so the
       # data-shape gate short-circuits the second run.

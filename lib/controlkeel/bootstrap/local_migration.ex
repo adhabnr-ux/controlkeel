@@ -7,8 +7,20 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
   created a fresh orphan workspace (`org_id` nil) named after the project —
   invisible to users (no UI/CLI surface) and unattached to any org. This
   migration consolidates that legacy data into a single
-  `Default Organization` -> `Default Workspace` -> N sessions, deleting the
-  empty workspace/org shells.
+  `Default Organization` -> `Default Workspace` -> N sessions.
+
+  ## Reconciliation policy
+
+  Rather than creating new default rows and discarding the originals, the
+  migration **repurposes the oldest existing rows** to preserve their identity:
+
+    * **Orgs:** if a single org exists, rename it to the Default Organization
+      (name + slug). If several exist, rename the **oldest** (first created) to
+      the default and delete the rest.
+    * **Workspaces:** if a single workspace exists, rename it to the Default
+      Workspace and link it to the Default Org. If several exist, rename the
+      **oldest** to the default, link it to the Default Org, move every session
+      into it, then delete the rest.
 
   Safe by construction: sessions and their children are **evacuated** (moved,
   with their memory and analytics repointed) before any workspace is deleted, so
@@ -80,8 +92,8 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
   defp perform do
     backup_database()
 
-    {:ok, default_org} = ensure_default_org()
-    {:ok, default_workspace} = ensure_default_workspace(default_org)
+    {:ok, default_org} = reconcile_org()
+    {:ok, default_workspace} = reconcile_workspace(default_org)
 
     summary = consolidate(default_org, default_workspace)
 
@@ -126,27 +138,42 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
     ).()
   end
 
-  # ──────────────── defaults ────────────────
+  # ──────────────── reconcile (rename oldest into default) ────────────────
 
-  defp ensure_default_org do
-    case Accounts.get_org_by_slug(LocalDefaults.default_org_slug()) do
+  # Pick the Default Org. If one with the default slug already exists, reuse it
+  # (idempotent). Otherwise rename the OLDEST existing org into the default
+  # (preserving its row identity); deletion of the remaining orgs happens later
+  # in `consolidate/2` once workspaces/sessions have been evacuated.
+  defp reconcile_org do
+    default_slug = LocalDefaults.default_org_slug()
+
+    case Accounts.get_org_by_slug(default_slug) do
       %Org{} = org ->
         {:ok, org}
 
       nil ->
-        Accounts.create_org(%{
-          name: "Default Organization",
-          slug: LocalDefaults.default_org_slug()
-        })
+        orgs = Repo.all(from(o in Org, order_by: [asc: o.inserted_at, asc: o.id]))
+
+        case orgs do
+          [] ->
+            Accounts.create_org(%{name: "Default Organization", slug: default_slug})
+
+          [oldest | _rest] ->
+            Org.changeset(oldest, %{name: "Default Organization", slug: default_slug})
+            |> Repo.update()
+        end
     end
   end
 
-  # The migration CLAIMS an existing `default-workspace` row for the default org
-  # (reparent), unlike LocalDefaults.ensure/0 which treats a different-org
-  # default-workspace as a hard conflict. Intentional: the migration is the
-  # consolidating authority and runs once.
-  defp ensure_default_workspace(default_org) do
-    case Mission.get_workspace_by_slug(LocalDefaults.default_workspace_slug()) do
+  # Pick the Default Workspace. If one with the default slug already exists,
+  # reuse it (reparenting to the Default Org if needed). Otherwise rename the
+  # OLDEST existing workspace into the default and link it to the Default Org;
+  # deletion of the remaining workspaces happens later in `consolidate/2` after
+  # sessions are evacuated into the default workspace.
+  defp reconcile_workspace(default_org) do
+    default_slug = LocalDefaults.default_workspace_slug()
+
+    case Mission.get_workspace_by_slug(default_slug) do
       %Workspace{org_id: org_id} = workspace when org_id == default_org.id ->
         {:ok, workspace}
 
@@ -154,16 +181,28 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
         Mission.update_workspace(workspace, %{org_id: default_org.id})
 
       nil ->
-        Mission.create_workspace(%{
-          name: "Default Workspace",
-          slug: LocalDefaults.default_workspace_slug(),
-          industry: "general",
-          agent: "claude",
-          budget_cents: 0,
-          compliance_profile: "general",
-          status: "active",
-          org_id: default_org.id
-        })
+        workspaces = Repo.all(from(w in Workspace, order_by: [asc: w.inserted_at, asc: w.id]))
+
+        case workspaces do
+          [] ->
+            Mission.create_workspace(%{
+              name: "Default Workspace",
+              slug: default_slug,
+              industry: "general",
+              agent: "claude",
+              budget_cents: 0,
+              compliance_profile: "general",
+              status: "active",
+              org_id: default_org.id
+            })
+
+          [oldest | _rest] ->
+            Mission.update_workspace(oldest, %{
+              name: "Default Workspace",
+              slug: default_slug,
+              org_id: default_org.id
+            })
+        end
     end
   end
 
