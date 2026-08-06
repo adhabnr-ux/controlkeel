@@ -3,7 +3,9 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
 
   import Phoenix.LiveViewTest
   import ControlKeel.MissionFixtures
+  import ControlKeel.AccountsFixtures
 
+  alias ControlKeel.Accounts
   alias ControlKeel.Mission
 
   test "user can complete onboarding, regenerate, and create a mission", %{conn: conn} do
@@ -263,5 +265,177 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
     # Verify project name is populated
     assert has_element?(view, "input[name=\"launch[project_name]\"][value=\"Saved Project\"]")
     assert render(view) =~ "Original project objective"
+  end
+
+  describe "cloud mode /missions/start" do
+    setup do
+      original = Application.get_env(:controlkeel, :runtime_mode)
+      Application.put_env(:controlkeel, :runtime_mode, :cloud)
+
+      on_exit(fn ->
+        if is_nil(original) do
+          Application.delete_env(:controlkeel, :runtime_mode)
+        else
+          Application.put_env(:controlkeel, :runtime_mode, original)
+        end
+      end)
+
+      :ok
+    end
+
+    defp cloud_conn(user, org_id) do
+      build_conn()
+      |> Plug.Test.init_test_session(%{
+        "current_user_id" => user.id,
+        "current_org_id" => org_id
+      })
+    end
+
+    test "blocks onboarding when the user has no organizations", %{} do
+      user = user_fixture()
+
+      {:ok, view, html} = live(cloud_conn(user, nil), ~p"/missions/start")
+
+      assert html =~ "Organization and workspace"
+      assert html =~ "admin or owner of at least one organization"
+
+      html =
+        render_submit(
+          form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"})
+        )
+
+      assert html =~ "admin or owner of at least one organization"
+      assert html =~ "Choose the domain and primary agent"
+    end
+
+    test "excludes orgs where the user is only a member or viewer from the picker", %{} do
+      owner = user_fixture()
+      member = user_fixture()
+
+      {:ok, org} =
+        Accounts.create_org_with_owner(owner.id, %{name: "Owned Org", slug: "owned-org"})
+
+      ws = workspace_fixture(%{org_id: org.id, name: "Core", slug: "core"})
+
+      {:ok, _membership} =
+        ControlKeel.Accounts.Membership.changeset(%ControlKeel.Accounts.Membership{}, %{
+          user_id: member.id,
+          org_id: org.id,
+          role: "member",
+          status: "active",
+          accepted_at: DateTime.utc_now()
+        })
+        |> ControlKeel.Repo.insert()
+
+      {:ok, view, html} = live(cloud_conn(member, org.id), ~p"/missions/start")
+
+      assert html =~ "Organization and workspace"
+      assert html =~ "admin or owner of at least one organization"
+      refute html =~ "Owned Org"
+      refute html =~ ">Core<"
+      refute has_element?(view, "#onboarding-workspace-select option[value=\"#{ws.id}\"]")
+
+      html =
+        render_submit(
+          form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"})
+        )
+
+      refute html =~ "Owned Org"
+      assert html =~ "Choose the domain and primary agent"
+
+      # The /organizations index still lists the org for the member.
+      assert {:ok, _orgs_view, orgs_html} = live(cloud_conn(member, org.id), ~p"/organizations")
+      assert orgs_html =~ "Owned Org"
+    end
+
+    test "blocks onboarding when the selected org has no workspaces", %{} do
+      user = user_fixture()
+      {:ok, org} = Accounts.create_org_with_owner(user.id, %{name: "No WS", slug: "no-ws"})
+
+      {:ok, view, html} = live(cloud_conn(user, org.id), ~p"/missions/start")
+
+      assert html =~ "Organization and workspace"
+      assert html =~ "has no workspaces yet"
+
+      html =
+        render_submit(
+          form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"})
+        )
+
+      assert html =~ "has no workspaces yet"
+      assert html =~ "Choose the domain and primary agent"
+    end
+
+    test "renders the org/workspace selector and creates the mission in the selected workspace",
+         %{} do
+      user = user_fixture()
+      {:ok, org} = Accounts.create_org_with_owner(user.id, %{name: "Acme", slug: "acme"})
+      ws = workspace_fixture(%{org_id: org.id, name: "Backend", slug: "backend"})
+
+      {:ok, view, html} = live(cloud_conn(user, org.id), ~p"/missions/start")
+
+      assert html =~ "Organization and workspace"
+      assert has_element?(view, "#onboarding-org-select option[value=\"#{org.id}\"]")
+      assert has_element?(view, "#onboarding-workspace-select option[value=\"#{ws.id}\"]")
+
+      assert render_submit(
+               form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"})
+             ) =~ "Describe the product"
+
+      assert render_submit(
+               form(view, "form",
+                 launch: %{
+                   "project_name" => "Cloud Portal",
+                   "idea" => "Build a portal with workflow, approvals, and audit notes."
+                 }
+               )
+             ) =~ "Answer the guided interview"
+
+      render_submit(
+        form(view, "form",
+          launch: %{
+            "interview_answers" => %{
+              "who_uses_it" => "Operators across teams",
+              "data_involved" => "Portal content, approvals, and audit logs",
+              "first_release" => "Portal, approvals, search",
+              "constraints" => "Cloud deploy, approval before merge"
+            }
+          }
+        )
+      )
+
+      render_click(element(view, "button[phx-click=\"accept\"]"))
+      {path, _flash} = assert_redirect(view)
+      assert path =~ "/missions/"
+
+      session_id =
+        path
+        |> String.split("/missions/")
+        |> List.last()
+        |> String.split("?")
+        |> List.first()
+
+      session = Mission.get_session_with_workspace(String.to_integer(session_id))
+      assert session.workspace_id == ws.id
+      assert session.workspace.slug == "backend"
+    end
+
+    test "changing the org repopulates the workspace options", %{} do
+      user = user_fixture()
+      {:ok, org_a} = Accounts.create_org_with_owner(user.id, %{name: "Org A", slug: "org-a"})
+      {:ok, org_b} = Accounts.create_org_with_owner(user.id, %{name: "Org B", slug: "org-b"})
+      ws_a = workspace_fixture(%{org_id: org_a.id, name: "Alpha WS", slug: "alpha-ws"})
+      ws_b = workspace_fixture(%{org_id: org_b.id, name: "Beta WS", slug: "beta-ws"})
+
+      {:ok, view, _html} = live(cloud_conn(user, org_a.id), ~p"/missions/start")
+
+      assert has_element?(view, "#onboarding-workspace-select option[value=\"#{ws_a.id}\"]")
+      refute has_element?(view, "#onboarding-workspace-select option[value=\"#{ws_b.id}\"]")
+
+      render_change(view, :select_org, %{org_id: to_string(org_b.id)})
+
+      assert has_element?(view, "#onboarding-workspace-select option[value=\"#{ws_b.id}\"]")
+      refute has_element?(view, "#onboarding-workspace-select option[value=\"#{ws_a.id}\"]")
+    end
   end
 end

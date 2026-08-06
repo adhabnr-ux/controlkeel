@@ -1,19 +1,25 @@
 defmodule ControlKeelWeb.OnboardingLive do
   use ControlKeelWeb, :live_view
 
+  alias ControlKeel.Accounts
   alias ControlKeel.Intent
   alias ControlKeel.Mission
+  alias ControlKeel.Runtime.Mode
 
   @impl true
   def mount(_params, _session, socket) do
     occupation = default_occupation()
     attrs = default_attrs(occupation)
     project_root = socket.endpoint.config(:project_root) || File.cwd!()
+    mode = Mode.current()
+    cloud_mode = mode in [:cloud, :self_hosted]
 
     {:ok,
      socket
      |> assign(:page_title, "Start a mission")
      |> assign(:project_root, project_root)
+     |> assign(:mode, mode)
+     |> assign(:cloud_mode, cloud_mode)
      |> assign(:occupation_profiles, Intent.occupation_profiles())
      |> assign(:agent_options, Intent.agent_options())
      |> assign(:step, 1)
@@ -26,6 +32,7 @@ defmodule ControlKeelWeb.OnboardingLive do
      |> assign(:compiled_boundary_summary, Intent.boundary_summary(nil))
      |> assign(:started?, false)
      |> assign(:recent_sessions, Mission.list_recent_sessions())
+     |> assign_org_context(cloud_mode)
      |> assign_form()}
   end
 
@@ -43,12 +50,47 @@ defmodule ControlKeelWeb.OnboardingLive do
   end
 
   @impl true
+  def handle_event("select_org", %{"org_id" => org_id}, socket) do
+    selected_org_id = parse_org_id(org_id, socket.assigns.org_options)
+    workspaces = load_workspaces(selected_org_id)
+
+    {:noreply,
+     socket
+     |> assign(:selected_org_id, selected_org_id)
+     |> assign(:workspace_options, Enum.map(workspaces, &{&1.id, &1.name}))
+     |> assign(
+       :selected_workspace_id,
+       default_workspace_id(workspaces, socket.assigns[:current_membership])
+     )
+     |> recompute_onboarding_state()}
+  end
+
+  @impl true
+  def handle_event("select_workspace", %{"workspace_id" => workspace_id}, socket) do
+    selected_workspace_id = parse_workspace_id(workspace_id, socket.assigns.workspace_options)
+
+    {:noreply,
+     socket
+     |> assign(:selected_workspace_id, selected_workspace_id)
+     |> recompute_onboarding_state()}
+  end
+
+  @impl true
   def handle_event("back", _params, socket) do
     {:noreply,
      socket
      |> assign(:step, max(socket.assigns.step - 1, 1))
      |> assign(:errors, %{})
      |> assign(:compile_error, nil)}
+  end
+
+  @impl true
+  def handle_event(
+        "next",
+        %{"launch" => _params},
+        %{assigns: %{cloud_mode: true, can_onboard: false}} = socket
+      ) do
+    {:noreply, put_flash(socket, :error, onboarding_block_message(socket))}
   end
 
   @impl true
@@ -99,17 +141,37 @@ defmodule ControlKeelWeb.OnboardingLive do
   end
 
   @impl true
+  def handle_event(
+        "accept",
+        _params,
+        %{assigns: %{cloud_mode: true, can_onboard: false}} = socket
+      ) do
+    {:noreply, put_flash(socket, :error, onboarding_block_message(socket))}
+  end
+
+  @impl true
   def handle_event("accept", _params, %{assigns: %{compiled_brief: nil}} = socket) do
     {:noreply, put_flash(socket, :error, "Compile the brief before creating a mission.")}
   end
 
   @impl true
   def handle_event("accept", _params, socket) do
-    case Mission.create_launch_from_brief(socket.assigns.attrs, socket.assigns.compiled_brief) do
+    attrs = maybe_put_workspace_id(socket.assigns.attrs, socket)
+
+    case Mission.create_launch_from_brief(attrs, socket.assigns.compiled_brief) do
       {:ok, session} ->
         {:noreply,
          socket
          |> push_navigate(to: ~p"/missions/#{session.id}?launched=1")}
+
+      {:error, :workspace_not_found} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :error,
+           "No workspace is available for this mission. Choose an organization and workspace before continuing."
+         )
+         |> assign(:step, 4)}
 
       {:error, _scope, _changeset} ->
         {:noreply,
@@ -171,6 +233,75 @@ defmodule ControlKeelWeb.OnboardingLive do
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div class="lg:col-span-2 rounded-2xl border bg-card/30 p-6 md:p-8 backdrop-blur-xl">
+          <%= if @cloud_mode do %>
+            <div class="mb-8 space-y-4">
+              <div>
+                <p class="text-xs font-semibold tracking-wider text-primary uppercase font-mono">
+                  Organization and workspace
+                </p>
+                <p class="text-sm text-muted-foreground mt-1">
+                  Choose where this mission's session will be created.
+                </p>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="space-y-1.5">
+                  <label
+                    for="onboarding-org-select"
+                    class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono"
+                  >
+                    Organization
+                  </label>
+                  <select
+                    id="onboarding-org-select"
+                    name="org_id"
+                    phx-change="select_org"
+                    class="w-full border border-input bg-background hover:border-primary rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
+                  >
+                    <%= for {id, name, _slug} <- @org_options do %>
+                      <option value={id} selected={@selected_org_id == id}>{name}</option>
+                    <% end %>
+                  </select>
+                </div>
+
+                <div class="space-y-1.5">
+                  <label
+                    for="onboarding-workspace-select"
+                    class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono"
+                  >
+                    Workspace
+                  </label>
+                  <select
+                    id="onboarding-workspace-select"
+                    name="workspace_id"
+                    phx-change="select_workspace"
+                    class="w-full border border-input bg-background hover:border-primary rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
+                  >
+                    <%= for {id, name} <- @workspace_options do %>
+                      <option value={id} selected={@selected_workspace_id == id}>{name}</option>
+                    <% end %>
+                  </select>
+                </div>
+              </div>
+
+              <%= if @onboarding_notice do %>
+                <div class="flex flex-col gap-2 rounded-xl border border-[var(--ck-warning)]/20 bg-[var(--ck-warning)]/5 p-4">
+                  <p class="text-sm text-[var(--ck-warning)] font-medium">
+                    {@onboarding_notice.text}
+                  </p>
+                  <%= if @onboarding_notice.link do %>
+                    <.link
+                      navigate={@onboarding_notice.link}
+                      class="text-xs font-semibold text-primary hover:text-primary/80 underline underline-offset-4"
+                    >
+                      {@onboarding_notice.link_text}
+                    </.link>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
           <.form for={@form} phx-change="validate" phx-submit="next">
             <%= case @step do %>
               <% 1 -> %>
@@ -483,7 +614,12 @@ defmodule ControlKeelWeb.OnboardingLive do
 
               <button
                 :if={@step < 4}
-                class="px-6 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:bg-primary hover:shadow-[0_0_20px_rgba(196,240,66,0.3)] transition-all duration-200"
+                disabled={not @can_onboard}
+                class={[
+                  "px-6 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-sm transition-all duration-200",
+                  "hover:bg-primary hover:shadow-[0_0_20px_rgba(196,240,66,0.3)]",
+                  not @can_onboard && "opacity-50 cursor-not-allowed"
+                ]}
                 type="submit"
               >
                 {if @step == 3, do: "Compile brief", else: "Continue"}
@@ -497,7 +633,12 @@ defmodule ControlKeelWeb.OnboardingLive do
                   Regenerate
                 </button>
                 <button
-                  class="px-6 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:bg-primary hover:shadow-[0_0_20px_rgba(196,240,66,0.3)] transition-all duration-200"
+                  disabled={not @can_onboard}
+                  class={[
+                    "px-6 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-sm transition-all duration-200",
+                    "hover:bg-primary hover:shadow-[0_0_20px_rgba(196,240,66,0.3)]",
+                    not @can_onboard && "opacity-50 cursor-not-allowed"
+                  ]}
                   type="button"
                   phx-click="accept"
                 >
@@ -608,6 +749,143 @@ defmodule ControlKeelWeb.OnboardingLive do
 
   defp assign_form(socket) do
     assign(socket, :form, to_form(socket.assigns.attrs, as: :launch))
+  end
+
+  defp assign_org_context(socket, false) do
+    socket
+    |> assign(:org_options, [])
+    |> assign(:workspace_options, [])
+    |> assign(:selected_org_id, nil)
+    |> assign(:selected_workspace_id, nil)
+    |> assign(:can_onboard, true)
+    |> assign(:onboarding_notice, nil)
+  end
+
+  defp assign_org_context(socket, true) do
+    case socket.assigns[:current_user] do
+      nil ->
+        socket
+        |> assign(:org_options, [])
+        |> assign(:workspace_options, [])
+        |> assign(:selected_org_id, nil)
+        |> assign(:selected_workspace_id, nil)
+        |> recompute_onboarding_state()
+
+      user ->
+        org_rows = Accounts.list_orgs_for_user(user.id, "admin")
+        org_options = Enum.map(org_rows, &{&1.org.id, &1.org.name, &1.org.slug})
+        selected_org_id = default_org_id(org_rows, socket.assigns[:current_membership])
+        workspaces = load_workspaces(selected_org_id)
+
+        socket
+        |> assign(:org_options, org_options)
+        |> assign(:workspace_options, Enum.map(workspaces, &{&1.id, &1.name}))
+        |> assign(:selected_org_id, selected_org_id)
+        |> assign(
+          :selected_workspace_id,
+          default_workspace_id(workspaces, socket.assigns[:current_membership])
+        )
+        |> recompute_onboarding_state()
+    end
+  end
+
+  defp recompute_onboarding_state(socket) do
+    socket
+    |> assign(
+      :can_onboard,
+      is_integer(socket.assigns.selected_org_id) and
+        is_integer(socket.assigns.selected_workspace_id)
+    )
+    |> assign(:onboarding_notice, workspace_notice(socket.assigns))
+  end
+
+  defp load_workspaces(org_id) when is_integer(org_id),
+    do: Accounts.list_workspaces_for_org(org_id)
+
+  defp load_workspaces(_org_id), do: []
+
+  defp default_org_id(org_rows, %{org_id: org_id}) when is_integer(org_id) do
+    if Enum.any?(org_rows, &(&1.org.id == org_id)),
+      do: org_id,
+      else: default_org_id(org_rows, nil)
+  end
+
+  defp default_org_id([], _membership), do: nil
+  defp default_org_id([%{org: org} | _], _membership), do: org.id
+
+  defp default_workspace_id(workspaces, %{mission_workspace_id: workspace_id})
+       when is_integer(workspace_id) do
+    if Enum.any?(workspaces, &(&1.id == workspace_id)),
+      do: workspace_id,
+      else: default_workspace_id(workspaces, nil)
+  end
+
+  defp default_workspace_id([], _membership), do: nil
+  defp default_workspace_id([workspace | _], _membership), do: workspace.id
+
+  defp parse_org_id(org_id, options) do
+    parse_option_id(org_id, options, fn {id, _name, _slug} -> id end)
+  end
+
+  defp parse_workspace_id(workspace_id, options) do
+    parse_option_id(workspace_id, options, fn {id, _name} -> id end)
+  end
+
+  defp parse_option_id(value, options, id_of) do
+    case Integer.parse(to_string(value || "")) do
+      {id, ""} ->
+        if Enum.any?(options, &(id_of.(&1) == id)), do: id, else: nil
+
+      _ ->
+        nil
+    end
+  end
+
+  defp maybe_put_workspace_id(attrs, socket) do
+    if socket.assigns.cloud_mode and is_integer(socket.assigns.selected_workspace_id) do
+      Map.put(attrs, "workspace_id", socket.assigns.selected_workspace_id)
+    else
+      attrs
+    end
+  end
+
+  defp onboarding_block_message(%{assigns: assigns}) do
+    case workspace_notice(assigns) do
+      %{text: text} -> text
+      nil -> "Choose an organization and workspace before starting this mission."
+    end
+  end
+
+  defp workspace_notice(assigns) do
+    cond do
+      assigns.org_options == [] ->
+        %{
+          text:
+            "You need to be an admin or owner of at least one organization to start a mission here. Organizations where you are only a member or viewer are not shown for onboarding.",
+          link: ~p"/organizations",
+          link_text: "View organizations"
+        }
+
+      assigns.workspace_options == [] ->
+        %{
+          text:
+            "This organization has no workspaces yet. Create a workspace before starting a mission.",
+          link: ~p"/organizations/#{selected_org_slug(assigns)}",
+          link_text: "Manage workspaces"
+        }
+
+      not is_integer(assigns.selected_workspace_id) ->
+        %{text: "Choose a workspace before starting this mission.", link: nil, link_text: nil}
+
+      true ->
+        nil
+    end
+  end
+
+  defp selected_org_slug(assigns) do
+    Enum.find_value(assigns.org_options, fn {id, _name, slug} ->
+      if id == assigns.selected_org_id, do: slug
+    end)
   end
 
   defp boundary_value(map, key), do: Map.get(map, key) || "Not specified"
