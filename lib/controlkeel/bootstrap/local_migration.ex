@@ -17,6 +17,7 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
     * **Orgs:** if a single org exists, rename it to the Default Organization
       (name + slug). If several exist, rename the **oldest** (first created) to
       the default and delete the rest.
+
     * **Workspaces:** if a single workspace exists, rename it to the Default
       Workspace and link it to the Default Org. If several exist, rename the
       **oldest** to the default, link it to the Default Org, move every session
