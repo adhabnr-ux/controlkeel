@@ -213,51 +213,6 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
     end
   end
 
-  defp maybe_create_default_workspace(org, options) do
-    create? =
-      case options[:default_workspace] do
-        true -> true
-        false -> false
-        _ -> prompt_default_workspace?()
-      end
-
-    if create? do
-      slug = "default-ws-" <> random_alnum(5)
-
-      Mission.create_workspace(%{
-        name: "Default Workspace",
-        slug: slug,
-        industry: "general",
-        agent: "claude",
-        budget_cents: 0,
-        compliance_profile: "general",
-        status: "active",
-        org_id: org.id
-      })
-    else
-      :skip
-    end
-  end
-
-  defp prompt_default_workspace? do
-    answer =
-      IO.gets("Create a default workspace? [Y/n]: ")
-      |> case do
-        :eof -> ""
-        {:error, _} -> ""
-        input -> String.downcase(String.trim(input))
-      end
-
-    answer not in ["n", "no"]
-  end
-
-  defp random_alnum(n) do
-    "abcdefghijklmnopqrstuvwxyz0123456789"
-    |> String.graphemes()
-    |> Enum.take_random(n)
-    |> Enum.join()
-  end
-
   def run_command(%{command: :workspace_create, options: options}, _project_root) do
     alias ControlKeel.Mission
 
@@ -709,7 +664,6 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
       end
     else
       {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
-      {:error, msg} when is_binary(msg) -> {:error, msg}
     end
   end
 
@@ -726,7 +680,6 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
       end
     else
       {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
-      {:error, msg} when is_binary(msg) -> {:error, msg}
     end
   end
 
@@ -858,5 +811,50 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
 
   def run_command(%{command: :selfhost_install_guide, options: _options}, _project_root) do
     {:ok, [ControlKeel.Ops.SelfHost.install_guide()]}
+  end
+
+  defp maybe_create_default_workspace(org, options) do
+    create? =
+      case options[:default_workspace] do
+        true -> true
+        false -> false
+        _ -> prompt_default_workspace?()
+      end
+
+    if create? do
+      slug = "default-ws-" <> random_alnum(5)
+
+      Mission.create_workspace(%{
+        name: "Default Workspace",
+        slug: slug,
+        industry: "general",
+        agent: "claude",
+        budget_cents: 0,
+        compliance_profile: "general",
+        status: "active",
+        org_id: org.id
+      })
+    else
+      :skip
+    end
+  end
+
+  defp prompt_default_workspace? do
+    answer =
+      IO.gets("Create a default workspace? [Y/n]: ")
+      |> case do
+        :eof -> ""
+        {:error, _} -> ""
+        input -> String.downcase(String.trim(input))
+      end
+
+    answer not in ["n", "no"]
+  end
+
+  defp random_alnum(n) do
+    "abcdefghijklmnopqrstuvwxyz0123456789"
+    |> String.graphemes()
+    |> Enum.take_random(n)
+    |> Enum.join()
   end
 end
