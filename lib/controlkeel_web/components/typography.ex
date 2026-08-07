@@ -12,7 +12,7 @@ defmodule ControlKeelWeb.Typography do
   @doc """
   Page title block: an `<h1>` with an optional one-line subtitle.
 
-      <.page_title title="Agent Control Plane" subtitle="Live mission state." />
+      <.page_title title="Agent Control Plane" subtitle="Live session state." />
 
   Pass `class` to adjust the wrapper spacing (e.g. `class="mb-12"`).
   """

@@ -80,7 +80,7 @@ defmodule ControlKeelWeb.ObservabilityLiveTest do
     session = session_fixture()
     task_fixture(%{session: session})
 
-    {:ok, _view, html} = live(conn, ~p"/missions/#{session.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{session.id}")
 
     assert html =~ "mission-observability-open"
     assert html =~ "Open run observability"

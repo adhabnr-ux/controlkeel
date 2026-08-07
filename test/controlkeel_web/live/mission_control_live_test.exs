@@ -41,7 +41,7 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
         title: "Release verify"
       })
 
-    {:ok, _view, html} = live(conn, ~p"/missions/#{session.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{session.id}")
 
     assert html =~ "Task dependencies"
     assert html =~ "Architecture lock"
@@ -70,7 +70,7 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
                }
              })
 
-    {:ok, _view, html} = live(conn, ~p"/missions/#{session.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{session.id}")
 
     assert html =~ "Inversion:"
     assert html =~ "Evidence check:"
@@ -89,7 +89,7 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
                "session_id" => session.id
              })
 
-    {:ok, _view, html} = live(conn, ~p"/missions/#{session.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{session.id}")
 
     assert html =~ "Build the first governed workflow"
     assert html =~ "Sql injection"
@@ -117,7 +117,7 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
 
     task_fixture(%{session: session})
 
-    {:ok, _view, html} = live(conn, ~p"/missions/#{session.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{session.id}")
 
     assert html =~ "Production boundary"
     assert html =~ "Local-first deploy"
@@ -136,7 +136,7 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
       status: "open"
     })
 
-    {:ok, _view, html} = live(conn, ~p"/missions/#{session.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{session.id}")
 
     assert html =~ "mission-observability-panel"
     assert html =~ "Session run observability"
@@ -150,7 +150,7 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
     session = session_fixture(%{spent_cents: 600, budget_cents: 5_000})
     task_fixture(%{session: session})
 
-    {:ok, view, html} = live(conn, ~p"/missions/#{session.id}")
+    {:ok, view, html} = live(conn, ~p"/sessions/#{session.id}")
     assert html =~ "6.0 / 50.0"
 
     assert {:ok, _} =
@@ -197,7 +197,7 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
         metadata: %{"path" => "assets/js/app.js", "matched_text_redacted" => "inner...HTML"}
       })
 
-    {:ok, view, _html} = live(conn, ~p"/missions/#{session.id}")
+    {:ok, view, _html} = live(conn, ~p"/sessions/#{session.id}")
 
     detail_html =
       render_click(
@@ -218,7 +218,7 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
     session = session_fixture()
     task = task_fixture(%{session: session, status: "in_progress"})
 
-    {:ok, view, html} = live(conn, ~p"/missions/#{session.id}")
+    {:ok, view, html} = live(conn, ~p"/sessions/#{session.id}")
 
     assert html =~ "Workspace context"
     assert html =~ "Recent transcript"
@@ -255,7 +255,7 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
         title: "Done task"
       })
 
-    {:ok, _view, html} = live(conn, ~p"/missions/#{session.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{session.id}")
 
     assert html =~ "Verified task"
     assert html =~ "verified"
@@ -270,7 +270,7 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
     finding_fixture(%{session: session, status: "blocked", title: "Blocked ship finding"})
     {:ok, _proof} = Mission.generate_proof_bundle(task.id)
 
-    {:ok, _view, html} = live(conn, ~p"/missions/#{session.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{session.id}")
 
     assert html =~ "Ship readiness"
     # Blocked finding forces a Blocked verdict.

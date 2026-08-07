@@ -82,7 +82,7 @@ defmodule ControlKeelWeb.Layouts do
   defp nav_items do
     [
       {~p"/dashboard", "hero-squares-2x2", "Dashboard"},
-      {~p"/missions", "hero-rocket-launch", "Missions"},
+      {~p"/sessions", "hero-rocket-launch", "Sessions"},
       {~p"/organizations", "hero-building-office-2", "Organizations"},
       {~p"/skills", "hero-puzzle-piece", "Skills"},
       {~p"/proofs", "hero-shield-check", "Proofs"},
@@ -245,7 +245,7 @@ defmodule ControlKeelWeb.Layouts do
       <.dashboard_header
         current_path={@current_path}
         page_action={[
-          %{to: "/dashboard/missions/new", label: "New mission", icon: "hero-plus"}
+          %{to: "/sessions/start", label: "New session", icon: "hero-plus"}
         ]}
       />
   """
@@ -326,7 +326,7 @@ defmodule ControlKeelWeb.Layouts do
 
   @label_map %{
     "dashboard" => "Dashboard",
-    "missions" => "Missions",
+    "sessions" => "Sessions",
     "findings" => "Findings",
     "benchmarks" => "Benchmarks",
     "proofs" => "Proofs",
@@ -342,7 +342,7 @@ defmodule ControlKeelWeb.Layouts do
     "service-accounts" => "Service Accounts",
     "webhooks" => "Webhooks",
     "tool-policy" => "Tool Policy",
-    "start" => "New Mission",
+    "start" => "New Session",
     "runs" => "Runs",
     "telemetry" => "Telemetry",
     "projects" => "Projects"

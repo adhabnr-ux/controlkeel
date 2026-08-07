@@ -109,10 +109,10 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           </div>
 
           <.link
-            navigate={~p"/missions/#{@proof.session_id}"}
+            navigate={~p"/sessions/#{@proof.session_id}"}
             class="text-xs font-semibold uppercase tracking-[0.14em] text-primary border-muted-foreground border rounded-md px-3 py-2 hover:bg-primary/10"
           >
-            Open mission
+            Open session
           </.link>
         </div>
       </div>
@@ -172,7 +172,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           </p>
           <div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
             <div>
-              <h3>Mission</h3>
+              <h3>Session</h3>
               <p class="text-muted-foreground">{@proof.session.title}</p>
             </div>
             <div>
@@ -532,7 +532,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
           Proof browser
         </h2>
         <p class="text-muted-foreground">
-          Review immutable task evidence, filter by readiness and risk, and jump back to the mission that generated each bundle.
+          Review immutable task evidence, filter by readiness and risk, and jump back to the session that generated each bundle.
         </p>
       </div>
 
@@ -551,7 +551,7 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 name="filters[q]"
                 type="text"
                 value={@form[:q].value}
-                placeholder="Mission or task..."
+                placeholder="Session or task..."
                 phx-debounce="300"
                 class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
               />
@@ -562,14 +562,14 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                 for="filters-session_id"
                 class="text-xs uppercase tracking-[0.28em]"
               >
-                Mission
+                Session
               </label>
               <select
                 id="filters-session_id"
                 name="filters[session_id]"
                 class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
               >
-                <option value="">All missions</option>
+                <option value="">All sessions</option>
                 <%= for session_option <- @session_options do %>
                   <option
                     value={session_option.id}
@@ -794,10 +794,10 @@ defmodule ControlKeelWeb.ProofBrowserLive do
                     <td class="px-2 py-6 text-right align-top">
                       <div class="flex justify-end gap-2 font-semibold text-sm">
                         <.link
-                          navigate={~p"/missions/#{proof.session_id}"}
+                          navigate={~p"/sessions/#{proof.session_id}"}
                           class="text-muted-foreground transition hover:text-foreground border px-2 py-1 rounded-md"
                         >
-                          Mission
+                          Session
                         </.link>
 
                         <.link
