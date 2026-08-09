@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.87 — 2026-08-09
+
+### What's changed
+
+- Merge pull request #59 from aryaminus/fix/warnings
+- Merge branch 'main' of github.com:aryaminus/controlkeel into fix/warnings
+- fix/warnings: remove redundant nil checks and simplify session metadata handling across core logic
+- fix/warnings: simplify code paths by removing redundant checks and update websockex dependency to 0.5.1
+
 ## v0.3.86 — 2026-08-07
 
 ### What's changed
