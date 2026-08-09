@@ -16,24 +16,36 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
 
     * **Orgs:** if a single org exists, rename it to the Default Organization
       (name + slug). If several exist, rename the **oldest** (first created) to
-      the default and delete the rest.
+      the default.
     * **Workspaces:** if a single workspace exists, rename it to the Default
       Workspace and link it to the Default Org. If several exist, rename the
-      **oldest** to the default, link it to the Default Org, move every session
-      into it, then delete the rest.
+      **oldest** to the default and link it to the Default Org, then move every
+      session (with its memory and analytics) into it.
 
-  Safe by construction: sessions and their children are **evacuated** (moved,
-  with their memory and analytics repointed) before any workspace is deleted, so
-  the `sessions.workspace_id on_delete: :delete_all` cascade never touches user
+  Leftover orgs/workspaces are NOT deleted by the migration itself. They are
+  reported as **orphans**, and the caller decides via `cleanup:`:
+
+    * `:keep` (default) — orphans stay as-is. They remain usable as source data
+      for a future local-to-cloud migration and are never destroyed.
+    * `:ask` — an interactive prompt is issued after a completed migration
+      asking the user to delete all orphans or keep them. A missing/non-"yes"
+      answer keeps them.
+    * `:delete` — all non-default workspaces and orgs are removed after
+      sessions have been evacuated.
+
+  Sessions and their children are always **evacuated** (moved, with memory and
+  analytics repointed) before any workspace or org is deleted, so the
+  `sessions.workspace_id on_delete: :delete_all` cascade never touches user
   data. The `workspaces.org_id` FK is `on_delete: :nilify_all`, so deleting
-  non-default orgs is safe.
+  non-default orgs only when their workspaces are already gone is safe.
 
   Local mode only. Triggered by `controlkeel update` (the new binary's update
   command). Idempotent: gated on the database not already matching the default
-  architecture, so it runs at most once with real work and is a clean no-op on
-  fresh installs, re-runs, and already-reconciled databases. Never blocks the
-  caller — `run/0` always returns `{:ok, _}` and logs failures instead of
-  propagating them.
+  architecture, so it runs at most once with real work per data shape and is a
+  clean no-op on fresh installs, re-runs, and already-reconciled databases —
+  retained orphans do NOT re-trigger it. Never blocks the caller at the
+  database layer: `run/0` always returns `{:ok, _}` and logs failures instead
+  of propagating them.
   """
 
   import Ecto.Query
@@ -51,37 +63,48 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
   @doc """
   Run the local data reconciliation.
 
-  Triggered by `controlkeel update` (local mode only). It runs only when the
-  database does NOT already match the default architecture — i.e. when any of
-  these is true:
+  The database needs reconciliation iff the database does NOT already match the
+  default architecture, i.e. when any of these is true:
 
     * the Default Organization does not exist
     * the Default Workspace does not exist
-    * more than one org exists
-    * more than one workspace exists
+    * the Default Workspace is not linked to the Default Organization
     * any session lives in a workspace other than the Default Workspace
+
+  Satisfying the default architecture (including retained orphans) makes a
+  repeat run a `:already_reconciled` no-op.
+
+  ## Options
+
+    * `:cleanup` — `:keep` (default) leaves orphan orgs/workspaces untouched;
+      `:ask` prompts the user; `:delete` removes them after evacuation.
+    * `:prompt` — a `fun/1` invoked for `cleanup: :ask`, receiving the summary
+      map and returning `:delete` or `:keep`. Defaults to a terminal prompt
+      that keeps orphans unless the user answers `y`.
 
   Returns:
 
-    * `{:ok, summary}`  — a map of counts (`:sessions_moved`, `:workspaces_removed`, `:orgs_removed`)
+    * `{:ok, summary}`  — a map with `:sessions_moved`, `:orphan_workspaces`,
+      `:orphan_orgs`, and (when orphans were deleted) `:removed_workspaces`/
+      `:removed_orgs`
     * `{:ok, :already_reconciled}` — the database already matches the default architecture
     * `{:ok, :skipped_not_local}`  — not running in local mode
     * `{:ok, {:failed, reason}}`   — a handled failure (logged; caller unaffected)
   """
-  @spec run :: {:ok, map() | atom() | {atom(), term()}}
-  def run do
+  @spec run(keyword()) :: {:ok, map() | atom() | {atom(), term()}}
+  def run(opts \\ []) do
     if not local_mode?() do
       {:ok, :skipped_not_local}
     else
-      {:ok, safe_run()}
+      {:ok, safe_run(opts)}
     end
   end
 
-  defp safe_run do
+  defp safe_run(opts) do
     if not reconciliation_needed?() do
       :already_reconciled
     else
-      perform()
+      perform(opts)
     end
   rescue
     exception ->
@@ -89,24 +112,31 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
       {:failed, :exception}
   end
 
-  defp perform do
+  defp perform(opts) do
     backup_database()
 
-    {:ok, default_org} = reconcile_org()
-    {:ok, default_workspace} = reconcile_workspace(default_org)
+    case Repo.transaction(fn ->
+           {:ok, default_org} = reconcile_org()
+           {:ok, default_workspace} = reconcile_workspace(default_org)
 
-    summary = consolidate(default_org, default_workspace)
+           summary = consolidate(default_org, default_workspace)
+           apply_orphan_action(summary, default_org, default_workspace, opts)
+         end) do
+      {:ok, summary} ->
+        emit_summary(summary)
+        summary
 
-    emit_summary(summary)
-    summary
+      {:error, reason} ->
+        log_failure(reason)
+        {:failed, :transaction}
+    end
   end
 
   # ──────────────── gating ────────────────
 
-  # The database needs reconciliation iff it does NOT already match the single
-  # default hierarchy: exactly one Default Org, exactly one Default Workspace,
-  # and every session under that workspace. Each condition below is a signal
-  # that the DB still holds legacy data (or has not yet been provisioned).
+  # The database needs reconciliation iff it is missing a linked default pair,
+  # or still routes sessions outside the Default Workspace. Retained orphans do
+  # not count as "needs reconciliation" — they are a stable, allowed shape.
   defp reconciliation_needed? do
     default_org = Accounts.get_org_by_slug(LocalDefaults.default_org_slug())
     default_workspace = Mission.get_workspace_by_slug(LocalDefaults.default_workspace_slug())
@@ -114,13 +144,13 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
     cond do
       is_nil(default_org) -> true
       is_nil(default_workspace) -> true
-      Repo.aggregate(Org, :count) > 1 -> true
-      Repo.aggregate(Workspace, :count) > 1 -> true
+      default_workspace.org_id != default_org.id -> true
       misplaced_sessions?(default_workspace) -> true
       true -> false
     end
   end
 
+  # Any session in a workspace other than the Default Workspace.
   defp misplaced_sessions?(default_workspace) do
     Repo.aggregate(
       from(s in Session, where: s.workspace_id != ^default_workspace.id),
@@ -142,8 +172,7 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
 
   # Pick the Default Org. If one with the default slug already exists, reuse it
   # (idempotent). Otherwise rename the OLDEST existing org into the default
-  # (preserving its row identity); deletion of the remaining orgs happens later
-  # in `consolidate/2` once workspaces/sessions have been evacuated.
+  # (preserving its row identity).
   defp reconcile_org do
     default_slug = LocalDefaults.default_org_slug()
 
@@ -165,20 +194,22 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
     end
   end
 
-  # Pick the Default Workspace. If one with the default slug already exists,
-  # reuse it (reparenting to the Default Org if needed). Otherwise rename the
-  # OLDEST existing workspace into the default and link it to the Default Org;
-  # deletion of the remaining workspaces happens later in `consolidate/2` after
-  # sessions are evacuated into the default workspace.
+  # Pick the Default Workspace and link it to the Default Org. If one with the
+  # default slug already exists, reuse it (reparenting to the Default Org if
+  # needed). Otherwise rename the OLDEST existing workspace into the default
+  # and link it to the Default Org.
   defp reconcile_workspace(default_org) do
     default_slug = LocalDefaults.default_workspace_slug()
 
     case Mission.get_workspace_by_slug(default_slug) do
-      %Workspace{org_id: org_id} = workspace when org_id == default_org.id ->
-        {:ok, workspace}
-
       %Workspace{} = workspace ->
-        Mission.update_workspace(workspace, %{org_id: default_org.id})
+        case workspace.org_id do
+          org_id when org_id == default_org.id ->
+            {:ok, workspace}
+
+          _ ->
+            Mission.update_workspace(workspace, %{org_id: default_org.id})
+        end
 
       nil ->
         workspaces = Repo.all(from(w in Workspace, order_by: [asc: w.inserted_at, asc: w.id]))
@@ -206,7 +237,7 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
     end
   end
 
-  # ──────────────── consolidate ────────────────
+  # ──────────────── consolidate (evacuate, never delete here) ────────────────
 
   defp consolidate(default_org, default_workspace) do
     moved_session_ids =
@@ -220,7 +251,7 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
     if moved_session_ids != [] do
       # Repoint session-scoped children BEFORE moving the sessions, so they
       # follow the session onto the default workspace instead of stranding on a
-      # workspace we are about to delete.
+      # workspace that remains an orphan.
       Repo.update_all(
         from(m in MemoryRecord, where: m.session_id in ^moved_session_ids),
         set: [workspace_id: default_workspace.id]
@@ -237,10 +268,54 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
       )
     end
 
-    # Hard-delete empty non-default workspaces. After the move only the default
-    # workspace holds sessions, so this removes the orphan shells. Cascades hit
-    # only disposable workspace config (agents, github repos, baselines, tool
-    # policies, workspace-only memory) — never sessions.
+    %{
+      sessions_moved: length(moved_session_ids),
+      orphan_workspaces: count_orphan_workspaces(default_workspace),
+      orphan_orgs: count_orphan_orgs(default_org)
+    }
+  end
+
+  defp count_orphan_workspaces(default_workspace) do
+    Repo.aggregate(
+      from(w in Workspace, where: w.id != ^default_workspace.id),
+      :count
+    )
+  end
+
+  defp count_orphan_orgs(default_org) do
+    Repo.aggregate(
+      from(o in Org, where: o.id != ^default_org.id),
+      :count
+    )
+  end
+
+  # ──────────────── orphan policy ────────────────
+
+  # Applies the caller's orphan cleanup policy after consolidation. Only ever
+  # deletes rows that hold no sessions (sessions were evacuated above).
+  defp apply_orphan_action(summary, _default_org, _default_workspace, _opts)
+       when summary.orphan_workspaces == 0 and summary.orphan_orgs == 0,
+       do: summary
+
+  defp apply_orphan_action(summary, default_org, default_workspace, opts) do
+    case Keyword.get(opts, :cleanup, :keep) do
+      :delete ->
+        remove_orphans(summary, default_org, default_workspace)
+
+      :ask ->
+        prompt = Keyword.get(opts, :prompt, &default_prompt/1)
+
+        case prompt.(summary) do
+          :delete -> remove_orphans(summary, default_org, default_workspace)
+          _ -> summary
+        end
+
+      _keep ->
+        summary
+    end
+  end
+
+  defp remove_orphans(summary, default_org, default_workspace) do
     session_workspace_ids = from(s in Session, select: s.workspace_id)
 
     {workspaces_removed, _} =
@@ -250,9 +325,6 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
         )
       )
 
-    # Hard-delete empty non-default orgs. After the workspace cleanup only the
-    # default workspace remains (under the default org), so every other org is
-    # unreferenced. org_id FK is nilify_all, so this is safe regardless.
     workspace_org_ids = from(w in Workspace, select: w.org_id)
 
     {orgs_removed, _} =
@@ -262,11 +334,29 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
         )
       )
 
-    %{
-      sessions_moved: length(moved_session_ids),
-      workspaces_removed: workspaces_removed,
-      orgs_removed: orgs_removed
-    }
+    summary
+    |> Map.put(:removed_workspaces, workspaces_removed)
+    |> Map.put(:removed_orgs, orgs_removed)
+    |> Map.put(:orphan_workspaces, count_orphan_workspaces(default_workspace))
+    |> Map.put(:orphan_orgs, count_orphan_orgs(default_org))
+  end
+
+  defp default_prompt(summary) do
+    case IO.gets(
+           "The update uses a single Default Organization and Default Workspace. " <>
+             "#{summary.orphan_workspaces} leftover workspace(s) and " <>
+             "#{summary.orphan_orgs} leftover org(s) can be deleted now or kept for " <>
+             "local-to-cloud migration. Delete them now? [y/N] "
+         ) do
+      answer when is_binary(answer) ->
+        case String.trim(answer) |> String.downcase() do
+          value when value in ["y", "yes"] -> :delete
+          _ -> :keep
+        end
+
+      _ ->
+        :keep
+    end
   end
 
   # ──────────────── backup (best-effort) ────────────────
@@ -318,20 +408,43 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
   output. Used so the update command can notify the user of what changed.
   """
   @spec render(term()) :: [String.t()]
-  def render(%{sessions_moved: sessions, workspaces_removed: workspaces, orgs_removed: orgs}) do
+  def render(%{sessions_moved: sessions} = summary) do
+    orphan_ws = Map.get(summary, :orphan_workspaces, 0)
+    orphan_orgs = Map.get(summary, :orphan_orgs, 0)
+    removed_ws = Map.get(summary, :removed_workspaces, 0)
+    removed_orgs = Map.get(summary, :removed_orgs, 0)
+
     lines = [
       "Local data reconciliation:",
-      "  Moved #{sessions} session(s) into the Default Workspace.",
-      "  Removed #{workspaces} workspace(s).",
-      "  Removed #{orgs} org(s)."
+      "  Moved #{sessions} session(s) into the Default Workspace."
     ]
 
-    if workspaces > 1 or orgs > 1 do
-      lines ++
-        ["  Note: local mode expects a single org/workspace — review if unexpected."]
-    else
-      lines
-    end
+    lines =
+      if removed_ws > 0 or removed_orgs > 0 do
+        lines ++
+          [
+            "  Deleted #{removed_ws} leftover workspace(s) and " <>
+              "#{removed_orgs} leftover org(s)."
+          ]
+      else
+        lines
+      end
+
+    lines =
+      if orphan_ws > 0 or orphan_orgs > 0 do
+        lines ++
+          [
+            "  Left #{orphan_ws} leftover workspace(s) and " <>
+              "#{orphan_orgs} leftover org(s) in place as orphans.",
+            "  Local mode uses a single Default Workspace/Organization. " <>
+              "Orphans are preserved for a future local-to-cloud migration; " <>
+              "you can delete them with the interactive cleanup prompt."
+          ]
+      else
+        lines
+      end
+
+    lines
   end
 
   def render(:already_reconciled),
@@ -349,12 +462,14 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
   payload. Avoids encoding raw atoms/tuples directly.
   """
   @spec to_payload(term()) :: map()
-  def to_payload(%{sessions_moved: s, workspaces_removed: w, orgs_removed: o}) do
+  def to_payload(%{} = summary) do
     %{
       "status" => "completed",
-      "sessions_moved" => s,
-      "workspaces_removed" => w,
-      "orgs_removed" => o
+      "sessions_moved" => Map.get(summary, :sessions_moved, 0),
+      "orphan_workspaces" => Map.get(summary, :orphan_workspaces, 0),
+      "orphan_orgs" => Map.get(summary, :orphan_orgs, 0),
+      "removed_workspaces" => Map.get(summary, :removed_workspaces, 0),
+      "removed_orgs" => Map.get(summary, :removed_orgs, 0)
     }
   end
 
@@ -368,21 +483,34 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
 
     Logger.info(
       "[local-migration] consolidated local data into the default org/workspace: " <>
-        "moved #{summary.sessions_moved} session(s), " <>
-        "removed #{summary.workspaces_removed} workspace(s), " <>
-        "removed #{summary.orgs_removed} org(s)."
+        "moved #{summary.sessions_moved} session(s)"
     )
 
-    if summary.workspaces_removed > 1 or summary.orgs_removed > 1 do
+    if Map.get(summary, :orphan_workspaces, 0) > 0 or Map.get(summary, :orphan_orgs, 0) > 0 do
       Logger.warning(
-        "[local-migration] local mode expects a single org/workspace; " <>
-          "removed #{summary.workspaces_removed} workspace(s) and #{summary.orgs_removed} org(s)."
+        "[local-migration] left #{summary.orphan_workspaces} leftover workspace(s) " <>
+          "and #{summary.orphan_orgs} leftover org(s) as orphans — kept for local-to-cloud migration."
+      )
+    end
+
+    if Map.get(summary, :removed_workspaces, 0) > 0 or Map.get(summary, :removed_orgs, 0) > 0 do
+      Logger.warning(
+        "[local-migration] deleted #{summary.removed_workspaces} workspace(s) and " <>
+          "#{summary.removed_orgs} org(s) after evacuating their sessions."
       )
     end
   end
 
   defp log_failure(exception) do
     require Logger
-    Logger.warning("[local-migration] consolidation failed: #{Exception.message(exception)}")
+
+    message =
+      case exception do
+        %{__exception__: true} -> Exception.message(exception)
+        other when is_binary(other) -> other
+        other -> inspect(other)
+      end
+
+    Logger.warning("[local-migration] consolidation failed: #{message}")
   end
 end
