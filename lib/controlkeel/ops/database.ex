@@ -174,9 +174,6 @@ defmodule ControlKeel.Ops.Database do
     case run_once() do
       {:ok, %{events_pruned: count, vacuumed: vacuumed}} ->
         Logger.debug("[db_maintenance] sweep complete: pruned=#{count} vacuumed=#{vacuumed}")
-
-      other ->
-        Logger.warning("[db_maintenance] sweep returned #{inspect(other)}")
     end
 
     schedule(state)

@@ -169,17 +169,11 @@ defmodule ControlKeel.Intent.Router do
       |> to_string()
       |> String.trim()
 
-    objective =
-      plan.session.execution_brief.objective ||
-        "Stand up the first production-safe version of the requested workflow."
+    objective = plan.session.execution_brief.objective
 
-    next_step =
-      plan.session.execution_brief.next_step ||
-        "Generate the smallest useful first slice and validate it before release."
+    next_step = plan.session.execution_brief.next_step
 
-    launch_window =
-      plan.session.execution_brief.launch_window ||
-        "Launch after one controlled internal pass."
+    launch_window = plan.session.execution_brief.launch_window
 
     compiler_metadata = %{
       "provider" => "heuristic",

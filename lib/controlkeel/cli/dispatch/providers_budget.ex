@@ -11,8 +11,8 @@ defmodule ControlKeel.CLI.Dispatch.ProvidersBudget do
   def run_command(%{command: :workspace_tool_policy_get, options: options}, _project_root) do
     with {:ok, workspace_id} <- require_integer_option(options[:workspace_id], "workspace-id") do
       policy = Accounts.get_workspace_tool_policy(workspace_id)
-      mode = (policy && policy.mode) || "inherit"
-      tools = (policy && WorkspaceToolPolicy.decode_tools(policy)) || []
+      mode = policy.mode
+      tools = WorkspaceToolPolicy.decode_tools(policy)
 
       lines = [
         "Tool policy for workspace ##{workspace_id}:",

@@ -32,11 +32,8 @@ defmodule ControlKeel.MCP.Tools.CkCostOptimizer do
                  normalized["task_description"] || "Unknown task",
                  opts
                ) do
-            {:ok, comparisons} when is_list(comparisons) ->
+            {:ok, %{comparisons: comparisons}} ->
               {:ok, %{"mode" => "compare", "comparisons" => comparisons}}
-
-            other ->
-              other
           end
       end
     end

@@ -230,7 +230,7 @@ defmodule ControlKeel.Learning.OutcomeTracker do
         metadata =
           %{
             "depth" => depth,
-            "terminal_status" => to_string(status || ""),
+            "terminal_status" => to_string(status),
             "review_id" => review_id
           }
           |> Map.merge(Keyword.get(opts, :metadata, %{}))

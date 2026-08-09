@@ -123,6 +123,5 @@ defmodule Mix.Tasks.Ck.Watch do
     "[" <> String.duplicate("█", filled) <> String.duplicate("░", empty) <> "]"
   end
 
-  defp format_cents(nil), do: "$0.00"
   defp format_cents(cents), do: "$#{:erlang.float_to_binary(cents / 100, decimals: 2)}"
 end

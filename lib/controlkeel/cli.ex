@@ -6,8 +6,6 @@ defmodule ControlKeel.CLI do
   # The compiler warning about clause grouping is expected and acceptable.
   # Grouping all run_command clauses together would harm maintainability.
 
-  require Logger
-
   alias ControlKeel.Agent.Integration
   alias ControlKeel.Agent.AttachedSync
   alias ControlKeel.Budget
@@ -2814,7 +2812,7 @@ defmodule ControlKeel.CLI do
 
       _ ->
         %{}
-    end || %{}
+    end
   end
 
   def ensure_stdio_server_running(timeout_ms) do

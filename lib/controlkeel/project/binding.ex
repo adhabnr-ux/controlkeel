@@ -438,7 +438,6 @@ defmodule ControlKeel.Project.Binding do
 
   defp binding_path(project_root, :project), do: path(project_root)
   defp binding_path(project_root, :ephemeral), do: ephemeral_path(project_root)
-  defp binding_path(project_root, _mode), do: path(project_root)
 
   defp binding_mode(project_root) do
     case read_effective(project_root) do
