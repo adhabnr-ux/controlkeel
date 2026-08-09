@@ -86,8 +86,6 @@ defmodule ControlKeel.MCP.Tools.CkSkillValidate do
     _ -> {:ok, output}
   end
 
-  defp parse_output(output), do: {:ok, output}
-
   defp parse_schema(schema) when is_binary(schema) do
     case Jason.decode(schema) do
       {:ok, parsed} when is_map(parsed) ->

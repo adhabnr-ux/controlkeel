@@ -141,8 +141,6 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
     """
   end
 
-  defp format_frequency(map) when map == %{}, do: "none"
-
   defp format_frequency(map) when is_map(map) do
     map
     |> Enum.sort_by(fn {_key, count} -> count end, :desc)

@@ -93,11 +93,6 @@ defmodule ControlKeelWeb.ProxyController do
         conn
         |> put_status(:bad_request)
         |> json(%{"error" => %{"message" => message}})
-
-      {:error, reason} ->
-        conn
-        |> put_status(:bad_gateway)
-        |> json(%{"error" => %{"message" => inspect(reason)}})
     end
   end
 
@@ -137,11 +132,6 @@ defmodule ControlKeelWeb.ProxyController do
         conn
         |> put_status(:not_found)
         |> json(%{"error" => %{"message" => "Proxy session not found"}})
-
-      {:error, reason} ->
-        conn
-        |> put_status(:bad_gateway)
-        |> json(%{"error" => %{"message" => inspect(reason)}})
     end
   end
 

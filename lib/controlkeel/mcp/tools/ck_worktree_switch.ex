@@ -12,7 +12,7 @@ defmodule ControlKeel.MCP.Tools.CkWorktreeSwitch do
          {:ok, worktrees_info} <- WorkspaceContext.list_worktrees(project_root),
          {:ok, target_worktree} <- find_worktree(worktrees_info["worktrees"], worktree_path) do
       updated_metadata =
-        Map.put(session.metadata || %{}, "worktree_path", target_worktree["path"])
+        Map.put(session.metadata, "worktree_path", target_worktree["path"])
 
       case Mission.update_session(session, %{metadata: updated_metadata}) do
         {:ok, _updated_session} ->

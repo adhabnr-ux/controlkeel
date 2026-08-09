@@ -644,6 +644,14 @@ defmodule ControlKeelWeb.ApiController do
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "benchmark run not found"})
 
+      # This clause is intentionally kept even though the type checker flags it as
+      # "redundant": Benchmark.import_result can return {:error, %Ecto.Changeset{}}
+      # (and other non-atom reasons) because Repo.update failures from its internal
+      # update/recalculate steps pass through its with/else unhandled. The checker
+      # does not model Ecto changeset error returns, so it wrongly assumes only the
+      # atom errors above are possible. Without this clause a validation failure on
+      # the public import endpoint would surface as a 500 CaseClauseError instead of
+      # this 422. Do not remove it.
       {:error, reason} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
@@ -1128,8 +1136,8 @@ defmodule ControlKeelWeb.ApiController do
 
       json(conn, %{
         workspace_id: String.to_integer(workspace_id),
-        mode: (policy && policy.mode) || "inherit",
-        tools: (policy && ControlKeel.Accounts.WorkspaceToolPolicy.decode_tools(policy)) || []
+        mode: policy.mode,
+        tools: ControlKeel.Accounts.WorkspaceToolPolicy.decode_tools(policy)
       })
     else
       {:error, :forbidden} -> conn |> put_status(:forbidden) |> json(%{error: "forbidden"})

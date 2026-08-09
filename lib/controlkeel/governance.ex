@@ -262,10 +262,6 @@ defmodule ControlKeel.Governance do
     else
       {:error, reason} ->
         {:error, reason}
-
-      _ ->
-        {:error,
-         "Unsupported PR URL format. Use a GitHub pull request URL such as https://github.com/org/repo/pull/123."}
     end
   end
 

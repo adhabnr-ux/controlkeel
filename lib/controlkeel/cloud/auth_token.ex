@@ -91,7 +91,6 @@ defmodule ControlKeel.Cloud.AuthToken do
       {:ok, token}
     else
       :error -> {:error, :public_key_invalid}
-      other -> {:error, other}
     end
   end
 
@@ -122,8 +121,6 @@ defmodule ControlKeel.Cloud.AuthToken do
        }}
     else
       {:error, reason} when is_atom(reason) -> {:error, reason}
-      {:error, _other} -> {:error, :malformed}
-      _ -> {:error, :malformed}
     end
   catch
     _, _ -> {:error, :malformed}

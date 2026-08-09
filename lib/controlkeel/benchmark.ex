@@ -518,7 +518,8 @@ defmodule ControlKeel.Benchmark do
         output_tokens = metric_value(result.metadata, ["output_tokens", "completion_tokens"])
 
         total_tokens =
-          metric_value(result.metadata, ["total_tokens"]) || input_tokens + output_tokens
+          metric_value_or_nil(result.metadata, ["total_tokens"]) ||
+            input_tokens + output_tokens
 
         cost = metric_value(result.metadata, ["cost_cents", "estimated_cost_cents"])
 
@@ -539,6 +540,12 @@ defmodule ControlKeel.Benchmark do
   end
 
   defp metric_value(_metadata, _keys), do: 0
+
+  defp metric_value_or_nil(metadata, keys) when is_map(metadata) do
+    first_numeric(metadata, keys) || first_numeric(metadata["import_metadata"] || %{}, keys)
+  end
+
+  defp metric_value_or_nil(_metadata, _keys), do: nil
 
   defp tool_use_metrics(results) do
     Enum.reduce(

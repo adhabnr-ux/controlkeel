@@ -1337,8 +1337,6 @@ defmodule ControlKeelWeb.MissionControlLive do
     }
   end
 
-  defp session_accessible?(_session, nil), do: true
-
   defp session_accessible?(%{workspace_id: ws_id}, org_id) when is_integer(org_id) do
     org_id
     |> ControlKeel.Accounts.list_workspaces_for_org()
