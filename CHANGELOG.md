@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.89 — 2026-08-12
+
+### What's changed
+
+- Merge pull request #68 from aryaminus/palette/add-command-pill-accessibility-15805215596890986666
+- 🎨 Palette: Add accessible labels and focus styles to command pill
+- chore: drop bot metadata (.Jules/palette.md) from this branch
+- 🎨 Palette: Add accessible labels and focus styles to command pill
+
 ## v0.3.88 — 2026-08-12
 
 ### What's changed
