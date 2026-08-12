@@ -332,9 +332,6 @@ defmodule ControlKeel.CLI.Dispatch.Execution do
     else
       {:error, :invalid_id} ->
         {:error, "Session id must be an integer."}
-
-      {:error, reason} ->
-        {:error, "Failed to execute session: #{inspect(reason)}"}
     end
   end
 

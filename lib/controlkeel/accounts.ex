@@ -948,9 +948,6 @@ defmodule ControlKeel.Accounts do
           })
 
         err
-
-      other ->
-        other
     end
   end
 

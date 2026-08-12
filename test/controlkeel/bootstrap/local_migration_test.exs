@@ -20,7 +20,7 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
   end
 
   describe "run/0 in local mode" do
-    test "consolidates orphan workspaces into the default org/workspace" do
+    test "consolidates orphan workspaces into the default org/workspace, keeping leftovers" do
       ws_a = workspace_fixture(%{name: "Project A", slug: "project-a"})
       ws_b = workspace_fixture(%{name: "Project B", slug: "project-b"})
       session_a = session_fixture(%{workspace: ws_a})
@@ -43,36 +43,42 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
       assert Repo.get(Session, session_a.id).workspace_id == default_ws.id
       assert Repo.get(Session, session_b.id).workspace_id == default_ws.id
 
-      # the oldest workspace (ws_a) was repurposed into the default; the rest deleted
+      # the oldest workspace (ws_a) was repurposed into the default
       assert Repo.get(Workspace, ws_a.id).slug == "default-workspace"
-      refute Repo.get(Workspace, ws_b.id)
 
-      # only the default org + workspace remain
-      assert Repo.aggregate(Workspace, :count) == 1
+      # the leftover workspace is kept as an orphan — NOT deleted
+      assert Repo.get(Workspace, ws_b.id)
+      assert Repo.aggregate(Workspace, :count) == 2
       assert Repo.aggregate(Org, :count) == 1
 
       # zero sessions lost
       assert Repo.aggregate(Session, :count) == sessions_before
       assert summary.sessions_moved == 1
-      assert summary.workspaces_removed == 1
+      assert summary.orphan_workspaces == 1
+      assert summary.orphan_orgs == 0
+      assert Map.get(summary, :removed_workspaces, 0) == 0
+      assert Map.get(summary, :removed_orgs, 0) == 0
     end
 
-    test "with multiple orgs, the oldest is renamed to default and the rest are deleted" do
+    test "with multiple orgs, the oldest becomes defaults and the rest are kept as orphans" do
       {:ok, org_a} = Accounts.create_org(%{name: "Org A", slug: "org-a"})
       {:ok, org_b} = Accounts.create_org(%{name: "Org B", slug: "org-b"})
       {:ok, org_c} = Accounts.create_org(%{name: "Org C", slug: "org-c"})
 
-      # org_a is oldest; it should become the default and keep its row identity.
       assert {:ok, summary} = LocalMigration.run()
 
       default_org = Accounts.get_org_by_slug(LocalDefaults.default_org_slug())
 
+      # org_a is oldest; it becomes the default and keeps its row identity
       assert default_org.id == org_a.id
       assert Repo.get(Accounts.Org, org_a.id).slug == LocalDefaults.default_org_slug()
-      refute Repo.get(Accounts.Org, org_b.id)
-      refute Repo.get(Accounts.Org, org_c.id)
-      assert Repo.aggregate(Org, :count) == 1
-      assert summary.orgs_removed == 2
+
+      # the other orgs RETAIN their rows as orphans (not deleted)
+      assert Repo.get(Accounts.Org, org_b.id)
+      assert Repo.get(Accounts.Org, org_c.id)
+      assert Repo.aggregate(Org, :count) == 3
+      assert summary.orphan_orgs == 2
+      assert Map.get(summary, :removed_orgs, 0) == 0
     end
 
     test "repoints session-scoped memory and analytics onto the default workspace" do
@@ -114,9 +120,9 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
 
       # the pre-existing default-workspace was claimed for the default org
       assert Repo.get(Workspace, existing_default.id).org_id == default_org.id
-      # the other org was the only org, so it was renamed into the default (not deleted)
+      # the other org was renamed into the default
       assert Repo.get(Accounts.Org, other_org.id).slug == LocalDefaults.default_org_slug()
-      # the session survived and stays under the (now claimed) default workspace
+      # the session survived and stays under the (now default) workspace
       assert Repo.get(Session, session.id).workspace_id == existing_default.id
     end
 
@@ -125,8 +131,6 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
       session_fixture(%{workspace: workspace})
 
       assert {:ok, %{} = first} = LocalMigration.run()
-      # the single workspace was renamed into the default in place, so the
-      # session already lives in it — nothing to move.
       assert first.sessions_moved == 0
 
       # After consolidation the DB has a single default org/workspace, so the
@@ -150,16 +154,86 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
     end
 
     test "provisions the defaults when they are missing" do
-      # reset_migration_state! removed the default org/workspace. With no legacy
-      # sessions either, the gate still fires on "defaults missing" and creates
-      # them, consolidating nothing.
       assert {:ok, summary} = LocalMigration.run()
 
       assert Accounts.get_org_by_slug(LocalDefaults.default_org_slug())
       assert Mission.get_workspace_by_slug(LocalDefaults.default_workspace_slug())
       assert summary.sessions_moved == 0
-      assert summary.workspaces_removed == 0
-      assert summary.orgs_removed == 0
+      assert summary.orphan_workspaces == 0
+      assert summary.orphan_orgs == 0
+    end
+  end
+
+  describe "orphan cleanup policy" do
+    test "cleanup: :keep leaves multiple orphan workspaces/orgs untouched" do
+      ws_a = workspace_fixture(%{name: "Project A", slug: "project-a"})
+      ws_b = workspace_fixture(%{name: "Project B", slug: "project-b"})
+      session_fixture(%{workspace: ws_a})
+      session_fixture(%{workspace: ws_b})
+
+      assert {:ok, summary} = LocalMigration.run(cleanup: :keep)
+
+      assert summary.orphan_workspaces == 1
+      assert summary.orphan_orgs == 0
+      assert Map.get(summary, :removed_workspaces, 0) == 0
+      assert Repo.aggregate(Workspace, :count) == 2
+    end
+
+    test "cleanup: :delete removes all orphan workspaces and orgs after evacuation" do
+      {:ok, org_a} = Accounts.create_org(%{name: "Org A", slug: "org-a"})
+      {:ok, org_b} = Accounts.create_org(%{name: "Org B", slug: "org-b"})
+
+      ws_a = workspace_fixture(%{name: "WS A", slug: "ws-a", org_id: org_a.id})
+      ws_b = workspace_fixture(%{name: "WS B", slug: "ws-b", org_id: org_b.id})
+      session_a = session_fixture(%{workspace: ws_a})
+      session_b = session_fixture(%{workspace: ws_b})
+
+      sessions_before = Repo.aggregate(Session, :count)
+      assert is_nil(Mission.get_workspace_by_slug(LocalDefaults.default_workspace_slug()))
+
+      assert {:ok, summary} = LocalMigration.run(cleanup: :delete)
+
+      default_ws = Mission.get_workspace_by_slug(LocalDefaults.default_workspace_slug())
+
+      # sessions evacuated into the default workspace, none lost
+      assert Repo.aggregate(Session, :count) == sessions_before
+      assert Repo.get(Session, session_a.id).workspace_id == default_ws.id
+      assert Repo.get(Session, session_b.id).workspace_id == default_ws.id
+
+      # only the default workspace and default org remain
+      assert Repo.aggregate(Workspace, :count) == 1
+      assert Repo.aggregate(Org, :count) == 1
+      assert summary.orphan_workspaces == 0
+      assert summary.orphan_orgs == 0
+      assert summary.removed_workspaces == 1
+      assert summary.removed_orgs == 1
+    end
+
+    test "cleanup: :ask prompts and honors a :delete answer" do
+      ws_a = workspace_fixture(%{name: "WS A", slug: "ask-ws-a"})
+      ws_b = workspace_fixture(%{name: "WS B", slug: "ask-ws-b"})
+      session_fixture(%{workspace: ws_a})
+      session_fixture(%{workspace: ws_b})
+
+      assert {:ok, summary} = LocalMigration.run(cleanup: :ask, prompt: fn _ -> :delete end)
+
+      # the prompt returned :delete, so the orphaned workspace was removed
+      assert summary.orphan_workspaces == 0
+      assert summary.removed_workspaces == 1
+      assert Repo.aggregate(Workspace, :count) == 1
+    end
+
+    test "cleanup: :ask keeps orphans when the prompt says so" do
+      ws_a = workspace_fixture(%{name: "WS A", slug: "keep-ws-a"})
+      ws_b = workspace_fixture(%{name: "WS B", slug: "keep-ws-b"})
+      session_fixture(%{workspace: ws_a})
+      session_fixture(%{workspace: ws_b})
+
+      assert {:ok, summary} = LocalMigration.run(cleanup: :ask, prompt: fn _ -> :keep end)
+
+      assert summary.orphan_workspaces == 1
+      assert Map.get(summary, :removed_workspaces, 0) == 0
+      assert Repo.aggregate(Workspace, :count) == 2
     end
   end
 
@@ -180,24 +254,30 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
   end
 
   describe "render/1 and to_payload/1 (update notification)" do
-    test "render reports counts when reconciliation did work" do
+    test "render reports sessions + orphans kept when cleanup kept orphans" do
       lines =
         LocalMigration.render(%{
           sessions_moved: 3,
-          workspaces_removed: 2,
-          orgs_removed: 1
+          orphan_workspaces: 2,
+          orphan_orgs: 1
         })
 
       assert Enum.join(lines, "\n") =~ "Moved 3 session(s) into the Default Workspace."
-      assert Enum.join(lines, "\n") =~ "Removed 2 workspace(s)."
-      assert Enum.join(lines, "\n") =~ "Removed 1 org(s)."
+      assert Enum.join(lines, "\n") =~ "Left 2 leftover workspace(s) and 1 leftover org(s)"
     end
 
-    test "render flags unexpected cardinality" do
+    test "render reports removal counts when orphans were deleted" do
       lines =
-        LocalMigration.render(%{sessions_moved: 0, workspaces_removed: 3, orgs_removed: 2})
+        LocalMigration.render(%{
+          sessions_moved: 1,
+          orphan_workspaces: 0,
+          orphan_orgs: 0,
+          removed_workspaces: 2,
+          removed_orgs: 1
+        })
 
-      assert Enum.any?(lines, &String.contains?(&1, "single org/workspace"))
+      assert Enum.join(lines, "\n") =~ "Moved 1 session(s) into the Default Workspace."
+      assert Enum.join(lines, "\n") =~ "Deleted 2 leftover workspace(s) and 1 leftover org(s)."
     end
 
     test "render stays quiet when nothing needed reconciliation" do
@@ -211,13 +291,17 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
     test "to_payload is JSON-safe for every result shape" do
       assert LocalMigration.to_payload(%{
                sessions_moved: 1,
-               workspaces_removed: 1,
-               orgs_removed: 0
+               orphan_workspaces: 2,
+               orphan_orgs: 1,
+               removed_workspaces: 1,
+               removed_orgs: 1
              }) == %{
                "status" => "completed",
                "sessions_moved" => 1,
-               "workspaces_removed" => 1,
-               "orgs_removed" => 0
+               "orphan_workspaces" => 2,
+               "orphan_orgs" => 1,
+               "removed_workspaces" => 1,
+               "removed_orgs" => 1
              }
 
       assert LocalMigration.to_payload(:already_reconciled) == %{"status" => "already_reconciled"}
@@ -226,7 +310,14 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
 
       # every payload must be Jason-encodable (no tuples/atoms leaking)
       for result <- [
-            %{sessions_moved: 1, workspaces_removed: 1, orgs_removed: 0},
+            %{sessions_moved: 1, orphan_workspaces: 1, orphan_orgs: 0},
+            %{
+              sessions_moved: 1,
+              orphan_workspaces: 0,
+              orphan_orgs: 0,
+              removed_workspaces: 1,
+              removed_orgs: 1
+            },
             :already_reconciled,
             :skipped_not_local,
             {:failed, :exception}
@@ -238,10 +329,6 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
 
   # ──────────────── helpers ────────────────
 
-  # Each test must start from a clean slate: the shared test database retains
-  # the default org/workspace from a previous test (tests run serially).
-  # delete_all lets the DB cascade handle children; the current test's orphan
-  # fixtures are created after this reset, so they are untouched.
   defp reset_migration_state! do
     Repo.delete_all(
       from(w in Workspace, where: w.slug == ^LocalDefaults.default_workspace_slug())

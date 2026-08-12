@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.86 — 2026-08-07
+
+### What's changed
+
+- Merge pull request #65 from aryaminus/fix/websockex-deps-lock-mismatch
+- chore: upgrade websockex dependency to version 0.5.1
+
 ## v0.3.85 — 2026-08-02
 
 ### What's changed

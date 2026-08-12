@@ -3913,7 +3913,11 @@ defmodule ControlKeel.Mission do
   end
 
   defp summarize_runtime_context(metadata) when is_map(metadata) do
-    runtime = get_in(metadata, ["runtime_context"]) || %{}
+    runtime =
+      case get_in(metadata, ["runtime_context"]) do
+        %{} = map -> map
+        _ -> %{}
+      end
 
     partial_reads =
       runtime["partial_reads"] || runtime["truncated_reads"] || runtime["read_truncations"] || []
@@ -3930,8 +3934,13 @@ defmodule ControlKeel.Mission do
         length(List.wrap(partial_reads))
 
     compaction_count =
-      runtime["compaction_count"] || length(List.wrap(compaction_events)) ||
-        if(runtime["context_compacted"] == true, do: 1, else: 0)
+      case Map.fetch(runtime, "compaction_count") do
+        {:ok, count} ->
+          count
+
+        :error ->
+          length(List.wrap(compaction_events))
+      end
 
     status =
       cond do
@@ -4232,13 +4241,13 @@ defmodule ControlKeel.Mission do
       "security_workflow" =>
         if(security_workflow?,
           do: %{
-            "mission_template" => get_in(session.metadata || %{}, ["mission_template"]),
+            "mission_template" => get_in(session.metadata, ["mission_template"]),
             "cyber_access_mode" => SecurityWorkflow.session_cyber_access_mode(session),
-            "phases" => get_in(session.metadata || %{}, ["security_workflow_phases"]) || [],
+            "phases" => get_in(session.metadata, ["security_workflow_phases"]) || [],
             "vulnerability_summary" => security_summary,
             "release_gate_decision" => if(security_release_ready?, do: "ready", else: "blocked"),
             "redaction_policy" =>
-              get_in(session.metadata || %{}, ["proof_redaction_policy"]) || "security_default"
+              get_in(session.metadata, ["proof_redaction_policy"]) || "security_default"
           },
           else: nil
         ),
@@ -5925,8 +5934,6 @@ defmodule ControlKeel.Mission do
       })
     end)
   end
-
-  defp put_plan_decision(metadata, _review, nil, _decision), do: metadata
 
   defp put_plan_decision(metadata, review, plan_refinement, decision) do
     update_in(metadata, ["planning_context"], fn planning_context ->

@@ -2953,8 +2953,6 @@ defmodule ControlKeel.MCP.Protocol do
     await_mcp_backend_ready_until(deadline_ms)
   end
 
-  defp await_mcp_backend_ready(_timeout_ms), do: :ready
-
   defp await_mcp_backend_ready_until(deadline_ms) do
     case normalize_mcp_backend_status(ControlKeel.Application.mcp_backend_boot_status()) do
       :booting ->

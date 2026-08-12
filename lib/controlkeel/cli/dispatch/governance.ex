@@ -79,12 +79,6 @@ defmodule ControlKeel.CLI.Dispatch.Governance do
 
           {:error, {:invalid_arguments, msg}} when is_binary(msg) ->
             {:error, msg}
-
-          {:error, {:invalid_arguments, reason}} ->
-            {:error, format_cli_error(reason)}
-
-          {:error, reason} ->
-            {:error, "Validation failed: #{format_cli_error(reason)}"}
         end
       end
     end

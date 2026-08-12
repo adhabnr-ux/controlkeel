@@ -53,8 +53,17 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     # One-time local data reconciliation (local mode only). Triggered here, by
     # `controlkeel update` running on the new binary, rather than at boot or in
     # `setup`, so it fires at update time and is a clean no-op once the database
-    # already matches the single-default architecture.
-    {:ok, migration} = LocalMigration.run()
+    # already matches the single-default architecture. In text mode the user is
+    # offered the choice to delete orphaned orgs/workspaces or keep them for a
+    # future local-to-cloud migration; JSON output keeps them (non-interactive).
+    cleanup =
+      if options[:json] == true or options[:format] == "json" do
+        :keep
+      else
+        :ask
+      end
+
+    {:ok, migration} = LocalMigration.run(cleanup: cleanup)
     payload = Map.put(payload, "data_reconciliation", LocalMigration.to_payload(migration))
 
     case effective_cli_format(options) do

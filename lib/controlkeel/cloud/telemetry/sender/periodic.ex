@@ -169,7 +169,6 @@ defmodule ControlKeel.Cloud.Telemetry.Sender.Periodic do
   defp classify({:ok, :no_pending, _}), do: :idle
   defp classify({:ok, :no_endpoint, _}), do: :idle
   defp classify({:error, _, _}), do: :failure
-  defp classify(_), do: :failure
 
   defp backoff_ms(state, failures) do
     next = state.backoff_initial_ms * trunc(:math.pow(2, failures - 1))
