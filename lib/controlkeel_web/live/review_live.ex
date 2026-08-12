@@ -15,22 +15,30 @@ defmodule ControlKeelWeb.ReviewLive do
   end
 
   @impl true
-  def handle_params(%{"id" => id}, _uri, socket) do
-    case parse_integer(id) do
-      {:ok, review_id} ->
-        case Mission.get_review_with_context(review_id) do
-          nil ->
-            {:noreply,
-             socket
-             |> put_flash(:error, "Review not found.")
-             |> assign(:review, nil)
-             |> assign(:diff_chunks, [])
-             |> assign(:review_url, nil)}
+  def handle_params(%{"rid" => rid, "sid" => sid}, _uri, socket) do
+    with {:ok, review_id} <- parse_integer(rid),
+         {:ok, session_id} <- parse_integer(sid) do
+      case Mission.get_review_with_context(review_id) do
+        nil ->
+          {:noreply,
+           socket
+           |> put_flash(:error, "Review not found.")
+           |> assign(:review, nil)
+           |> assign(:diff_chunks, [])
+           |> assign(:review_url, nil)}
 
-          review ->
-            {:noreply, assign_review(socket, review)}
-        end
+        %{session_id: ^session_id} = review ->
+          {:noreply, assign_review(socket, review)}
 
+        _review ->
+          {:noreply,
+           socket
+           |> put_flash(:error, "Review not found.")
+           |> assign(:review, nil)
+           |> assign(:diff_chunks, [])
+           |> assign(:review_url, nil)}
+      end
+    else
       :error ->
         {:noreply, put_flash(socket, :error, "Invalid review id.")}
     end
@@ -76,22 +84,20 @@ defmodule ControlKeelWeb.ReviewLive do
       <%= if @review do %>
         <div class="flex items-center justify-between gap-4 mt-6 mb-4 max-[900px]:flex-col max-[900px]:items-start">
           <div>
-            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-              Browser Review
-            </p>
             <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">{@review.title}</h1>
-            <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
-              Review type: {String.capitalize(@review.review_type)}. Task: {if @review.task,
-                do: @review.task.title,
-                else: "session-level submission"}.
-            </p>
+            <div class="mt-4 space-y-1">
+              <p class="text-muted-foreground text-[1.05rem] leading-[1.7]">
+                Review type:
+                <span class="text-foreground">{String.capitalize(@review.review_type)}</span>
+              </p>
+              <p class="text-muted-foreground text-[1.05rem] leading-[1.7]">
+                Task:
+                <span class="text-foreground">
+                  {if @review.task, do: @review.task.title, else: "session-level submission"}
+                </span>
+              </p>
+            </div>
           </div>
-          <a
-            class="uppercase tracking-[0.14em] text-xs text-primary font-semibold"
-            href={~p"/sessions/#{@review.session_id}"}
-          >
-            Open session
-          </a>
         </div>
 
         <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
@@ -346,7 +352,7 @@ defmodule ControlKeelWeb.ReviewLive do
     socket
     |> assign(:review, review)
     |> assign(:page_title, review.title)
-    |> assign(:review_url, ControlKeelWeb.Endpoint.url() <> "/reviews/#{review.id}")
+    |> assign(:review_url, ControlKeel.Mission.ReviewBridge.browser_url(review))
     |> assign(:diff_chunks, diff_chunks(review))
     |> assign(:response_form, response_form(review))
   end

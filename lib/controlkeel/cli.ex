@@ -29,7 +29,6 @@ defmodule ControlKeel.CLI do
   alias ControlKeel.Skills
   alias ControlKeel.Project.WorkspaceContext
   alias ControlKeel.Utils.Yaml, as: UtilsYaml
-  alias ControlKeelWeb.Endpoint
 
   def standalone_argv do
     cond do
@@ -1885,7 +1884,8 @@ defmodule ControlKeel.CLI do
 
   def format_cli_error(reason), do: inspect(reason)
 
-  def review_url(review_id), do: Endpoint.url() <> "/reviews/#{review_id}"
+  def review_url(%{session_id: session_id, id: review_id}),
+    do: ReviewBridge.browser_url(session_id, review_id)
 
   def manual_approval_lines(review, %{server_serving: false}) do
     [

@@ -34,7 +34,7 @@ defmodule ControlKeelWeb.ReviewLiveTest do
                "validation_plan" => ["mix test test/controlkeel_web/live/review_live_test.exs"]
              })
 
-    {:ok, _view, html} = live(conn, ~p"/reviews/#{review.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{review.session_id}/reviews/#{review.id}")
 
     assert html =~ "Human context gathered before execution"
     assert html =~ "PM confirmed the rollout should stay behind approval gates."
@@ -66,7 +66,7 @@ defmodule ControlKeelWeb.ReviewLiveTest do
                "harness_quality_checks" => ["Proof metadata is preserved"]
              })
 
-    {:ok, _view, html} = live(conn, ~p"/reviews/#{review.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{review.session_id}/reviews/#{review.id}")
 
     assert html =~ "Agent execution guardrails"
     assert html =~ "Allowed semantic changes"

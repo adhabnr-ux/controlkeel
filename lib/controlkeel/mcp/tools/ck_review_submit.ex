@@ -27,7 +27,7 @@ defmodule ControlKeel.MCP.Tools.CkReviewSubmit do
 
         browser_url =
           try do
-            ControlKeelWeb.Endpoint.url() <> "/reviews/#{review.id}"
+            ControlKeel.Mission.ReviewBridge.browser_url(review)
           rescue
             _ -> nil
           end
