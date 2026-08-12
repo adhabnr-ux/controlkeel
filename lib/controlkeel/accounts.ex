@@ -151,15 +151,20 @@ defmodule ControlKeel.Accounts do
   Used by the `/organizations` index in cloud/self_hosted mode so the UI can
   render a role badge per row. In local mode there is no user, so callers
   wrap `list_orgs/1` results with `role: nil` instead.
+
+  Pass `min_role` to keep only orgs where the user holds at least that role
+  (e.g. `"admin"` for admin-or-owner surfaces such as the mission onboarding
+  org picker).
   """
-  @spec list_orgs_for_user(integer()) :: [%{org: Org.t(), role: String.t()}]
-  def list_orgs_for_user(user_id) when is_integer(user_id) do
+  @spec list_orgs_for_user(integer(), String.t() | nil) :: [%{org: Org.t(), role: String.t()}]
+  def list_orgs_for_user(user_id, min_role \\ nil) when is_integer(user_id) do
     Membership
     |> join(:inner, [m], o in Org, on: o.id == m.org_id)
     |> where([m], m.user_id == ^user_id and m.status == "active")
     |> order_by([_, o], asc: o.name)
     |> select([m, o], %{org: o, role: m.role})
     |> Repo.all()
+    |> Enum.filter(fn row -> is_nil(min_role) or role_at_least?(row.role, min_role) end)
   end
 
   # ──────────────── Memberships ────────────

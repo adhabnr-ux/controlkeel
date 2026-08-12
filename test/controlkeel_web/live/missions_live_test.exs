@@ -11,7 +11,7 @@ defmodule ControlKeelWeb.MissionsLiveTest do
       session_fixture(%{workspace: workspace, title: "Session #{n}"})
     end
 
-    {:ok, _view, html} = live(conn, ~p"/missions")
+    {:ok, _view, html} = live(conn, ~p"/sessions")
 
     assert html =~ "Session 7"
     assert html =~ "Session 1"

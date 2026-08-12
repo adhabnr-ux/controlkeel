@@ -101,7 +101,7 @@ defmodule ControlKeelWeb.WorkspaceReposLive do
           </p>
           <h1 class="text-[clamp(2rem,4vw,3.4rem)] leading-[1.02]">GitHub repositories</h1>
           <p class="text-muted-foreground text-[1.05rem] leading-[1.7] max-w-[48rem]">
-            Bind GitHub repos so missions, findings, and proofs can reference them.
+            Bind GitHub repos so sessions, findings, and proofs can reference them.
             For governance via the GitHub App, set <code>installation_id</code>.
           </p>
         </div>

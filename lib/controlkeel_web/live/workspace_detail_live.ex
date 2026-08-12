@@ -119,7 +119,7 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
           <.section_title>Sessions</.section_title>
 
           <.link
-            navigate={~p"/missions/start"}
+            navigate={~p"/sessions/start"}
             class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
           >
             <.icon name="hero-plus" class="size-4" /> New Session
@@ -189,7 +189,7 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
                     </td>
                     <td class="px-4 text-right whitespace-nowrap w-px">
                       <.link
-                        navigate={~p"/missions/#{session.id}"}
+                        navigate={~p"/sessions/#{session.id}"}
                         class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
                       >
                         Inspect <.icon name="hero-arrow-right" class="size-3" />

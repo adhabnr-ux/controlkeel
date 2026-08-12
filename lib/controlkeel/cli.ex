@@ -188,19 +188,27 @@ defmodule ControlKeel.CLI do
   # would also be undone by the local data reconciliation on the next update
   # (it deletes any non-default org). Refuse these up front in local mode with
   # guidance to migrate to cloud mode.
-  @local_mode_denied_commands [:org_create, :org_invite, :org_members]
+  @local_mode_denied_commands [:org_create, :org_invite, :org_members, :workspace_create]
 
   defp local_mode_guard(command) when command in @local_mode_denied_commands do
     if ControlKeel.Runtime.local?() do
-      {:error,
-       "#{display_command(command)} is not available in local mode — a new organization cannot be created here. " <>
-         "Use the default organization, or upgrade to cloud mode to create organizations."}
+      {:error, local_mode_denied_message(command)}
     else
       :ok
     end
   end
 
   defp local_mode_guard(_command), do: :ok
+
+  defp local_mode_denied_message(:workspace_create) do
+    "workspace create is not available in local mode — only the default workspace is available. " <>
+      "Upgrade to cloud mode to create workspaces."
+  end
+
+  defp local_mode_denied_message(command) do
+    "#{display_command(command)} is not available in local mode — a new organization cannot be created here. " <>
+      "Use the default organization, or upgrade to cloud mode to create organizations."
+  end
 
   defp display_command(:org_create), do: "org create"
   defp display_command(:org_invite), do: "org invite"

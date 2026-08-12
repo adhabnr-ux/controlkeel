@@ -156,27 +156,103 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
     end
   end
 
+  # TODO(ck-cli-auth): org_create calls Accounts.create_org/1 which inserts a
+  # bare org row with NO owner membership. This is intentional for now because
+  # the CLI has no concept of a "current user" — there is no login/identity
+  # primitive, stored credential, or session token tying the CLI to a User row.
+  #
+  # Consequence: CLI-created orgs are orphaned from a membership perspective.
+  # After cloud migration, Accounts.list_orgs_for_user/1 will not return them,
+  # and Accounts.authorize_cloud_execution/2 will reject cloud runtime work on
+  # their workspaces (no membership → {:error, :unauthorized}).
+  #
+  # Fix: once CLI auth is introduced (e.g. `controlkeel login` storing a user
+  # identity, or a --user-id/--email flag resolved to a User), this handler
+  # must call Accounts.create_org_with_owner/2 instead of create_org/1 so an
+  # active owner membership is created atomically with the org.
   def run_command(%{command: :org_create, options: options}, _project_root) do
     alias ControlKeel.Accounts
+    alias ControlKeel.Mission
 
     with {:ok, name} <- require_string_option(options[:name], "name"),
          {:ok, slug} <- require_string_option(options[:slug], "slug") do
       case Accounts.create_org(%{name: name, slug: slug}) do
         {:ok, org} ->
-          {:ok,
-           [
-             "Org created",
-             "ID: #{org.id}",
-             "Name: #{org.name}",
-             "Slug: #{org.slug}",
-             "Status: #{org.status}"
-           ]}
+          base_lines = [
+            "Org created",
+            "ID: #{org.id}",
+            "Name: #{org.name}",
+            "Slug: #{org.slug}",
+            "Status: #{org.status}"
+          ]
+
+          case maybe_create_default_workspace(org, options) do
+            {:ok, workspace} ->
+              {:ok,
+               base_lines ++
+                 [
+                   "Default workspace: #{workspace.name} (#{workspace.slug})"
+                 ]}
+
+            {:error, changeset} ->
+              {:ok,
+               base_lines ++
+                 [
+                   "Warning: failed to create default workspace: #{format_changeset_errors(changeset)}"
+                 ]}
+
+            :skip ->
+              {:ok, base_lines}
+          end
 
         {:error, changeset} ->
           {:error, "Failed to create org: #{format_changeset_errors(changeset)}"}
       end
     else
       {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
+    end
+  end
+
+  def run_command(%{command: :workspace_create, options: options}, _project_root) do
+    alias ControlKeel.Mission
+
+    org_slug = options[:org]
+
+    with {:ok, org_slug} <- require_string_option(org_slug, "org"),
+         {:ok, name} <- require_string_option(options[:name], "name"),
+         org when not is_nil(org) <- Accounts.get_org_by_slug(org_slug) do
+      slug = options[:slug]
+
+      case Mission.create_workspace(%{
+             name: name,
+             slug: slug,
+             industry: "general",
+             agent: "claude",
+             budget_cents: 0,
+             compliance_profile: "general",
+             status: "active",
+             org_id: org.id
+           }) do
+        {:ok, workspace} ->
+          {:ok,
+           [
+             "Workspace created",
+             "ID: #{workspace.id}",
+             "Org: #{org.slug}",
+             "Name: #{workspace.name}",
+             "Slug: #{workspace.slug}",
+             "Status: #{workspace.status}"
+           ]}
+
+        {:error, changeset} ->
+          {:error, "Failed to create workspace: #{format_changeset_errors(changeset)}"}
+      end
+    else
+      {:error, {:missing_option, opt}} ->
+        {:error, "Missing required option --#{opt}"}
+
+      nil ->
+        {:error, "Org not found: #{org_slug}"}
     end
   end
 
@@ -588,7 +664,6 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
       end
     else
       {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
-      {:error, :invalid_id} -> {:error, "Workspace id must be an integer."}
     end
   end
 
@@ -605,7 +680,6 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
       end
     else
       {:error, {:missing_option, opt}} -> {:error, "Missing required option --#{opt}"}
-      {:error, :invalid_id} -> {:error, "Workspace id must be an integer."}
     end
   end
 
@@ -737,5 +811,50 @@ defmodule ControlKeel.CLI.Dispatch.CloudSelfhost do
 
   def run_command(%{command: :selfhost_install_guide, options: _options}, _project_root) do
     {:ok, [ControlKeel.Ops.SelfHost.install_guide()]}
+  end
+
+  defp maybe_create_default_workspace(org, options) do
+    create? =
+      case options[:default_workspace] do
+        true -> true
+        false -> false
+        _ -> prompt_default_workspace?()
+      end
+
+    if create? do
+      slug = "default-ws-" <> random_alnum(5)
+
+      Mission.create_workspace(%{
+        name: "Default Workspace",
+        slug: slug,
+        industry: "general",
+        agent: "claude",
+        budget_cents: 0,
+        compliance_profile: "general",
+        status: "active",
+        org_id: org.id
+      })
+    else
+      :skip
+    end
+  end
+
+  defp prompt_default_workspace? do
+    answer =
+      IO.gets("Create a default workspace? [Y/n]: ")
+      |> case do
+        :eof -> ""
+        {:error, _} -> ""
+        input -> String.downcase(String.trim(input))
+      end
+
+    answer not in ["n", "no"]
+  end
+
+  defp random_alnum(n) do
+    "abcdefghijklmnopqrstuvwxyz0123456789"
+    |> String.graphemes()
+    |> Enum.take_random(n)
+    |> Enum.join()
   end
 end

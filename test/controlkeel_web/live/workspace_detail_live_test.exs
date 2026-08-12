@@ -61,7 +61,7 @@ defmodule ControlKeelWeb.WorkspaceDetailLiveTest do
       assert html =~ "Slug"
       assert html =~ "Sessions"
       assert html =~ "Monthly budget"
-      # Session rows render in the missions-style table.
+      # Session rows render in the sessions-style table.
       assert html =~ "First session"
       assert html =~ "Second session"
       assert html =~ "$100"

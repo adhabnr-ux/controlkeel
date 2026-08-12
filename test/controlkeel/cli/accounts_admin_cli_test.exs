@@ -65,7 +65,11 @@ defmodule ControlKeel.CLI.AccountsAdminTest do
     test "creates an org" do
       assert {:ok, lines} =
                CLI.run_command(
-                 %{command: :org_create, options: %{name: "Acme", slug: "acme"}, args: []},
+                 %{
+                   command: :org_create,
+                   options: %{name: "Acme", slug: "acme", default_workspace: false},
+                   args: []
+                 },
                  File.cwd!()
                )
 
