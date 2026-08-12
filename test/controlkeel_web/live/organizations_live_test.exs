@@ -27,87 +27,56 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
       assert html =~ "No organizations yet."
     end
 
-    test "local mode renders Role column header but every row's role is nil (no badge)" do
+    test "local mode renders the org card with no role badge (role is nil)" do
       {:ok, _} = Accounts.create_org(%{name: "Local Co", slug: "local-co"})
 
       {:ok, view, html} = live(build_conn(), ~p"/organizations")
 
-      # Header is present.
-      assert html =~ ">Role<"
-
-      # Row is present, but no role badge is rendered — only the muted em-dash placeholder.
+      # The org card is rendered.
+      assert html =~ "Local Co"
       assert render(view) =~ "Local Co"
-      refute render(view) =~ ~s(owner)
-      refute render(view) =~ ~s(admin)
-      refute render(view) =~ ~s(member)
-      refute render(view) =~ ~s(viewer)
-      # The placeholder dash is rendered for null roles.
-      assert render(view) =~ "—"
+
+      # Local mode has no membership concept, so role is nil for every row and
+      # the role badge component renders nothing. Assert on role-badge styling
+      # rather than literal role text, since "member" also appears in the
+      # "N members" count rendered on every card.
+      refute render(view) =~ "ring-primary/20"
+      refute render(view) =~ "ring-info/20"
     end
 
-    test "new_org click opens the create modal" do
-      {:ok, view, _html} = live(build_conn(), ~p"/organizations")
+    test "new_org shows the local-mode info panel instead of the create form" do
+      {:ok, view, html} = live(build_conn(), ~p"/organizations")
 
-      refute render(view) =~ "New organization"
-      refute render(view) =~ ~s(id="organization-form")
+      # The New Organization button is still shown in local mode.
+      assert html =~ "New Organization"
+      assert html =~ "new_org"
 
       render_click(view, "new_org")
 
       html = render(view)
       assert html =~ "New organization"
-      assert html =~ ~s(id="organization-form")
+      assert html =~ "Only the default organization is available in local mode"
+      # The form is not rendered — only the info panel.
+      refute html =~ ~s(id="organization-form")
     end
 
     test "cancel_new click closes the create modal" do
       {:ok, view, _html} = live(build_conn(), ~p"/organizations")
 
       render_click(view, "new_org")
-      assert render(view) =~ ~s(id="organization-form")
+      assert render(view) =~ ~s(id="organization-create-modal")
 
       render_click(view, "cancel_new")
-      refute render(view) =~ ~s(id="organization-form")
+      refute render(view) =~ ~s(id="organization-create-modal")
     end
 
-    test "save inserts an org with no membership" do
+    test "save is denied in local mode and creates no org" do
       {:ok, view, _html} = live(build_conn(), ~p"/organizations")
-      render_click(view, "new_org")
 
-      view
-      |> form("#organization-form", org: %{name: "New Co", slug: "new-co"})
-      |> render_submit()
+      html = render_submit(view, "save", %{"org" => %{name: "New Co", slug: "new-co"}})
 
-      org = Repo.get_by!(ControlKeel.Accounts.Org, slug: "new-co")
-      assert org.name == "New Co"
-      assert org.status == "active"
-
-      # Local mode never creates a membership.
-      assert Repo.aggregate(Membership, :count) == 0
-    end
-
-    test "save closes the modal and refreshes the list" do
-      {:ok, view, _html} = live(build_conn(), ~p"/organizations")
-      render_click(view, "new_org")
-
-      view
-      |> form("#organization-form", org: %{name: "Modal Co", slug: "modal-co"})
-      |> render_submit()
-
-      html = render(view)
-      refute html =~ ~s(id="organization-form")
-      assert html =~ "Modal Co"
-    end
-
-    test "save re-renders the form inside the modal on validation errors" do
-      {:ok, view, _html} = live(build_conn(), ~p"/organizations")
-      render_click(view, "new_org")
-
-      html =
-        view
-        |> form("#organization-form", org: %{name: "", slug: ""})
-        |> render_submit()
-
-      assert html =~ "can&#39;t be blank"
-      assert html =~ ~s(id="organization-form")
+      refute Repo.get_by(ControlKeel.Accounts.Org, slug: "new-co")
+      assert html =~ "Organizations are not created in local mode"
     end
   end
 
@@ -148,10 +117,9 @@ defmodule ControlKeelWeb.OrganizationsLiveTest do
 
       {:ok, _view, html} = live(conn, ~p"/organizations")
 
-      # Header is present, and the owner role badge is rendered (not the muted placeholder).
-      # The role text is rendered on its own line by HEEx, so assert on the
-      # owner-specific lime styling and role text rather than a literal `>owner<`.
-      assert html =~ ">Role<"
+      # The owner role badge is rendered for the user's org (not a placeholder).
+      # Assert on the owner-specific styling and role text rather than a literal
+      # `>owner<`, since HEEx renders the role text on its own line.
       assert html =~ "Owned"
       assert html =~ "ring-primary/20"
       assert html =~ "owner"

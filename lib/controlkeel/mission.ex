@@ -103,13 +103,40 @@ defmodule ControlKeel.Mission do
   def list_workspaces, do: Repo.all(Workspace)
   def get_workspace!(id), do: Repo.get!(Workspace, id)
 
+  def list_workspaces_for_org(org_id),
+    do: Repo.all(from w in Workspace, where: w.org_id == ^org_id)
+
   def list_sessions_for_workspace(workspace_id),
     do: Repo.all(from s in Session, where: s.workspace_id == ^workspace_id)
+
+  @doc """
+  Returns true when a session (mission) already uses `name` as its title,
+  case-insensitively. Used by the onboarding wizard to prevent duplicate
+  project names before compile.
+  """
+  def project_name_taken?(nil), do: false
+
+  def project_name_taken?(name) when is_binary(name) do
+    normalized = String.downcase(String.trim(name))
+
+    from(s in Session, where: fragment("lower(?)", s.title) == ^normalized)
+    |> Repo.one() != nil
+  end
 
   def create_workspace(attrs) do
     %Workspace{}
     |> Workspace.changeset(attrs)
     |> Repo.insert()
+  end
+
+  def update_workspace(%Workspace{} = workspace, attrs) do
+    workspace
+    |> Workspace.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def get_workspace_by_slug(slug) when is_binary(slug) do
+    Repo.get_by(Workspace, slug: slug)
   end
 
   def get_task(id), do: Repo.get(Task, id)
@@ -952,7 +979,7 @@ defmodule ControlKeel.Mission do
 
   def create_launch(attrs) do
     plan = Planner.build(attrs)
-    persist_launch_plan(plan)
+    persist_launch_plan(plan, workspace_id_from_attrs(attrs))
   end
 
   def create_launch_from_brief(attrs, %ExecutionBrief{} = brief) do
@@ -961,48 +988,34 @@ defmodule ControlKeel.Mission do
 
     brief
     |> Planner.build_from_brief(attrs)
-    |> persist_launch_plan()
+    |> persist_launch_plan(workspace_id_from_attrs(attrs))
   end
 
-  defp persist_launch_plan(plan) do
-    case find_workspace_by_name(plan.workspace.name) do
-      %Workspace{} = existing_workspace ->
-        # Workspace name already taken — reuse it and create a new session inside.
-        persist_launch_plan_in_workspace(plan, existing_workspace)
+  defp persist_launch_plan(plan, workspace_id) do
+    workspace =
+      case workspace_id do
+        id when is_integer(id) -> Repo.get(Workspace, id)
+        _ -> resolve_default_workspace()
+      end
 
-      nil ->
-        plan = ensure_unique_workspace_slug(plan)
+    case workspace do
+      %Workspace{} = ws -> persist_launch_plan_in_workspace(plan, ws)
+      nil -> {:error, :workspace_not_found}
+    end
+  end
 
-        Multi.new()
-        |> Multi.insert(:workspace, Workspace.changeset(%Workspace{}, plan.workspace))
-        |> Multi.insert(:session, fn %{workspace: workspace} ->
-          Session.changeset(%Session{}, Map.put(plan.session, :workspace_id, workspace.id))
-        end)
-        |> Multi.run(:tasks, fn repo, %{session: session} ->
-          insert_many(repo, Task, plan.tasks, :session_id, session.id)
-        end)
-        |> Multi.run(:task_edges, fn repo, %{session: session, tasks: tasks} ->
-          insert_task_edges(repo, session.id, tasks)
-        end)
-        |> Multi.run(:findings, fn repo, %{session: session} ->
-          insert_many(repo, Finding, plan.findings, :session_id, session.id)
-        end)
-        |> RepoRetry.transaction_with_busy_retry()
-        |> case do
-          {:ok, %{session: session}} ->
-            emit_mission_created(plan, session)
-            record_brief_memory(session)
-            loaded = get_session_with_details!(session.id)
-            Enum.each(loaded.tasks, &record_task_memory(:created, &1))
-            Enum.each(loaded.findings, &record_finding_memory(:created, &1))
-            {:ok, loaded}
+  defp resolve_default_workspace do
+    case ControlKeel.Bootstrap.LocalDefaults.ensure() do
+      {:ok, {_org, %Workspace{} = ws}} -> ws
+      _ -> get_workspace_by_slug(ControlKeel.Bootstrap.LocalDefaults.default_workspace_slug())
+    end
+  end
 
-          {:error, :workspace, changeset, _changes} ->
-            {:error, :workspace, changeset}
-
-          {:error, _step, changeset, _changes} ->
-            {:error, :session, changeset}
-        end
+  defp workspace_id_from_attrs(attrs) when is_map(attrs) do
+    cond do
+      is_integer(Map.get(attrs, :workspace_id)) -> Map.get(attrs, :workspace_id)
+      is_integer(Map.get(attrs, "workspace_id")) -> Map.get(attrs, "workspace_id")
+      true -> nil
     end
   end
 
@@ -1032,43 +1045,6 @@ defmodule ControlKeel.Mission do
 
       {:error, _step, changeset, _changes} ->
         {:error, :session, changeset}
-    end
-  end
-
-  def find_workspace_by_name(nil), do: nil
-
-  def find_workspace_by_name(name) when is_binary(name) do
-    normalized = String.downcase(String.trim(name))
-
-    from(w in Workspace,
-      where: fragment("lower(?)", w.name) == ^normalized
-    )
-    |> Repo.one()
-  end
-
-  def project_name_taken?(nil), do: false
-
-  def project_name_taken?(name) when is_binary(name) do
-    find_workspace_by_name(name) != nil
-  end
-
-  defp ensure_unique_workspace_slug(%{workspace: %{slug: slug}} = plan) do
-    put_in(plan[:workspace][:slug], unique_workspace_slug(slug))
-  end
-
-  defp unique_workspace_slug(slug) do
-    case Repo.get_by(Workspace, slug: slug) do
-      nil -> slug
-      _ -> unique_workspace_slug(slug, 1)
-    end
-  end
-
-  defp unique_workspace_slug(slug, count) do
-    candidate = "#{slug}-#{count}"
-
-    case Repo.get_by(Workspace, slug: candidate) do
-      nil -> candidate
-      _ -> unique_workspace_slug(slug, count + 1)
     end
   end
 

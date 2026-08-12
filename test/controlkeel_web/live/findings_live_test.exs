@@ -42,7 +42,7 @@ defmodule ControlKeelWeb.FindingsLiveTest do
     assert html =~ "Findings browser"
     assert html =~ "Alpha SQL finding"
     refute html =~ "Bravo XSS finding"
-    assert has_element?(view, "a[href=\"/missions/#{alpha.id}\"]", alpha.title)
+    assert has_element?(view, "a[href=\"/sessions/#{alpha.id}\"]", alpha.title)
 
     patched =
       render_change(

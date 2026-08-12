@@ -20,7 +20,7 @@ defmodule ControlKeelWeb.MissionControlLive do
       nil ->
         {:ok,
          socket
-         |> put_flash(:error, "Mission not found.")
+         |> put_flash(:error, "Session not found.")
          |> push_navigate(to: ~p"/")}
 
       session when not is_nil(org_id) and not is_nil(session) ->
@@ -39,7 +39,7 @@ defmodule ControlKeelWeb.MissionControlLive do
         else
           {:ok,
            socket
-           |> put_flash(:error, "Mission not found.")
+           |> put_flash(:error, "Session not found.")
            |> push_navigate(to: ~p"/")}
         end
 

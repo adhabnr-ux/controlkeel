@@ -5,6 +5,24 @@ defmodule ControlKeel.CLI.AccountsAdminTest do
   alias ControlKeel.CLI
   alias ControlKeel.MissionFixtures
 
+  # These are cloud/self-host admin commands; the CLI denies org create /
+  # invite / members in local mode. Run the whole module in cloud mode. The
+  # CloudRepo has no :url under the test sandbox, so Repo.active/0 still
+  # resolves to Repo.Local — queries keep hitting the sandboxed SQLite DB.
+  setup do
+    prior = Application.get_env(:controlkeel, :runtime_mode)
+    Application.put_env(:controlkeel, :runtime_mode, :cloud)
+
+    on_exit(fn ->
+      case prior do
+        nil -> Application.delete_env(:controlkeel, :runtime_mode)
+        value -> Application.put_env(:controlkeel, :runtime_mode, value)
+      end
+    end)
+
+    :ok
+  end
+
   describe "user create" do
     test "creates a user and reports id/email" do
       assert {:ok, lines} =
@@ -47,7 +65,11 @@ defmodule ControlKeel.CLI.AccountsAdminTest do
     test "creates an org" do
       assert {:ok, lines} =
                CLI.run_command(
-                 %{command: :org_create, options: %{name: "Acme", slug: "acme"}, args: []},
+                 %{
+                   command: :org_create,
+                   options: %{name: "Acme", slug: "acme", default_workspace: false},
+                   args: []
+                 },
                  File.cwd!()
                )
 

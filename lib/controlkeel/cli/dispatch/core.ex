@@ -3,9 +3,12 @@ defmodule ControlKeel.CLI.Dispatch.Core do
 
   alias ControlKeel.Analytics
   alias ControlKeel.Agent.AutonomyLoop
+  alias ControlKeel.Bootstrap.LocalDefaults
+  alias ControlKeel.Bootstrap.LocalMigration
   alias ControlKeel.Budget
   alias ControlKeel.CLI.Help
   alias ControlKeel.Project.Local
+  alias ControlKeel.Project.Cloud
   alias ControlKeel.Mission
   alias ControlKeel.ProviderBroker
   alias ControlKeel.Project.Binding
@@ -47,9 +50,25 @@ defmodule ControlKeel.CLI.Dispatch.Core do
         sync_attached: options[:sync_attached] == true
       )
 
+    # One-time local data reconciliation (local mode only). Triggered here, by
+    # `controlkeel update` running on the new binary, rather than at boot or in
+    # `setup`, so it fires at update time and is a clean no-op once the database
+    # already matches the single-default architecture. In text mode the user is
+    # offered the choice to delete orphaned orgs/workspaces or keep them for a
+    # future local-to-cloud migration; JSON output keeps them (non-interactive).
+    cleanup =
+      if options[:json] == true or options[:format] == "json" do
+        :keep
+      else
+        :ask
+      end
+
+    {:ok, migration} = LocalMigration.run(cleanup: cleanup)
+    payload = Map.put(payload, "data_reconciliation", LocalMigration.to_payload(migration))
+
     case effective_cli_format(options) do
       {:ok, "json"} -> {:ok, [Jason.encode!(payload)]}
-      {:ok, _} -> {:ok, Updater.render(payload)}
+      {:ok, _} -> {:ok, Updater.render(payload) ++ LocalMigration.render(migration)}
       {:error, reason} -> {:error, format_cli_error(reason)}
     end
   end
@@ -59,7 +78,15 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     attrs = Enum.into(options, %{}, fn {key, value} -> {Atom.to_string(key), value} end)
     no_attach = Keyword.get(options, :no_attach, false)
 
-    case Local.init(attrs, project_root) do
+    result =
+      if ControlKeel.Runtime.local?() do
+        maybe_warn_local_org_workspace_flags(attrs)
+        Local.init(attrs, project_root)
+      else
+        Cloud.init(attrs, project_root)
+      end
+
+    case result do
       {:ok, binding, :created} ->
         base_lines = [
           "Initialized ControlKeel for #{binding["project_root"]}",
@@ -97,7 +124,7 @@ defmodule ControlKeel.CLI.Dispatch.Core do
          ]}
 
       {:error, reason} ->
-        {:error, "Failed to initialize ControlKeel: #{inspect(reason)}"}
+        {:error, "Failed to initialize ControlKeel: #{Cloud.error_message(reason)}"}
     end
   end
 
@@ -105,26 +132,26 @@ defmodule ControlKeel.CLI.Dispatch.Core do
     root = resolve_project_root(options, project_root)
     overrides = %{"agent" => options[:agent] || "claude"}
 
-    case ensure_local_project(root, overrides) do
-      {:ok, _binding, session, mode} ->
-        snapshot = SetupAdvisor.snapshot(root)
+    with {:ok, _} <- LocalDefaults.ensure(),
+         {:ok, _binding, session, mode} <- ensure_local_project(root, overrides) do
+      snapshot = SetupAdvisor.snapshot(root)
 
-        {:ok,
-         [
-           "ControlKeel setup",
-           "Project root: #{snapshot["project_root"]}",
-           "Session: #{session.title} (##{session.id})",
-           "Binding mode: #{mode}",
-           SetupAdvisor.detected_hosts_line(snapshot),
-           SetupAdvisor.attached_agents_line(snapshot),
-           "Provider source: #{snapshot["provider_status"]["selected_source"]}.",
-           "Provider: #{snapshot["provider_status"]["selected_provider"]}.",
-           "Core loop: #{SetupAdvisor.core_loop()}",
-           "Recommended next steps:"
-         ] ++
-           Enum.map(SetupAdvisor.recommended_attach_lines(snapshot), &"  - #{&1}") ++
-           maybe_line(SetupAdvisor.service_account_hint(snapshot), "  - ")}
-
+      {:ok,
+       [
+         "ControlKeel setup",
+         "Project root: #{snapshot["project_root"]}",
+         "Session: #{session.title} (##{session.id})",
+         "Binding mode: #{mode}",
+         SetupAdvisor.detected_hosts_line(snapshot),
+         SetupAdvisor.attached_agents_line(snapshot),
+         "Provider source: #{snapshot["provider_status"]["selected_source"]}.",
+         "Provider: #{snapshot["provider_status"]["selected_provider"]}.",
+         "Core loop: #{SetupAdvisor.core_loop()}",
+         "Recommended next steps:"
+       ] ++
+         Enum.map(SetupAdvisor.recommended_attach_lines(snapshot), &"  - #{&1}") ++
+         maybe_line(SetupAdvisor.service_account_hint(snapshot), "  - ")}
+    else
       {:error, reason} ->
         {:error, "Failed to set up ControlKeel: #{inspect(reason)}"}
     end
@@ -288,6 +315,26 @@ defmodule ControlKeel.CLI.Dispatch.Core do
         {:error, reason} ->
           {:error, "Failed to load local project: #{inspect(reason)}"}
       end
+    end
+  end
+
+  defp maybe_warn_local_org_workspace_flags(attrs) do
+    flags =
+      ["org", "workspace"]
+      |> Enum.filter(&(Map.get(attrs, &1) not in [nil, ""]))
+      |> Enum.map(&"--#{&1}")
+
+    case flags do
+      [] ->
+        :ok
+
+      _ ->
+        IO.puts(
+          :stderr,
+          "Warning: #{Enum.join(flags, ", ")} is ignored in local mode — " <>
+            "ControlKeel always uses the default organization and workspace. " <>
+            "Use cloud mode to target a specific org or workspace."
+        )
     end
   end
 end

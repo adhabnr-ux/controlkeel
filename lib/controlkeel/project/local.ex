@@ -1,10 +1,11 @@
 defmodule ControlKeel.Project.Local do
   @moduledoc false
 
+  alias ControlKeel.Bootstrap.LocalDefaults
   alias ControlKeel.Mission
-  alias ControlKeel.Project.Root
-  alias ControlKeel.Project.Binding
   alias ControlKeel.Mission.SessionTranscript
+  alias ControlKeel.Project.Binding
+  alias ControlKeel.Project.Root
 
   def init(attrs, project_root \\ File.cwd!()) when is_map(attrs) do
     root = Root.resolve(project_root)
@@ -66,7 +67,9 @@ defmodule ControlKeel.Project.Local do
     bootstrap_metadata = %{"auto_bootstrapped" => true}
     launch_attrs = default_init_attrs(root, overrides)
 
-    with {:ok, session} <- Mission.create_launch(launch_attrs) do
+    with {:ok, {_org, workspace}} <- LocalDefaults.ensure(),
+         launch_attrs <- Map.put(launch_attrs, "workspace_id", workspace.id),
+         {:ok, session} <- Mission.create_launch(launch_attrs) do
       case create_binding(root, session, launch_attrs, bootstrap_metadata) do
         {:ok, binding, mode} ->
           {:ok, binding, Mission.get_session_context(session.id), mode}
@@ -106,7 +109,9 @@ defmodule ControlKeel.Project.Local do
   defp create_and_bind(attrs, root) do
     launch_attrs = default_init_attrs(root, attrs)
 
-    with {:ok, session} <- Mission.create_launch(launch_attrs),
+    with {:ok, {_org, workspace}} <- LocalDefaults.ensure(),
+         launch_attrs <- Map.put(launch_attrs, "workspace_id", workspace.id),
+         {:ok, session} <- Mission.create_launch(launch_attrs),
          :ok <- Binding.ensure_gitignore(root),
          :ok <- Binding.ensure_mcp_wrapper(root),
          {:ok, binding} <-
@@ -114,6 +119,7 @@ defmodule ControlKeel.Project.Local do
              %{
                "workspace_id" => session.workspace_id,
                "session_id" => session.id,
+               "org_id" => workspace.org_id,
                "agent" => Map.get(launch_attrs, "agent", "claude"),
                "attached_agents" => %{}
              },
@@ -134,6 +140,7 @@ defmodule ControlKeel.Project.Local do
              %{
                "workspace_id" => session.workspace_id,
                "session_id" => session.id,
+               "org_id" => session.workspace.org_id,
                "agent" => Map.get(launch_attrs, "agent", "claude"),
                "attached_agents" => %{},
                "bootstrap" => Map.put(bootstrap_metadata, "mode", "project")
@@ -156,6 +163,7 @@ defmodule ControlKeel.Project.Local do
              %{
                "workspace_id" => session.workspace_id,
                "session_id" => session.id,
+               "org_id" => session.workspace.org_id,
                "agent" => Map.get(launch_attrs, "agent", "claude"),
                "attached_agents" => %{},
                "bootstrap" => Map.put(bootstrap_metadata, "mode", "ephemeral")

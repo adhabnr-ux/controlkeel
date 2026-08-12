@@ -80,9 +80,9 @@ defmodule ControlKeelWeb.Router do
         ControlKeelWeb.LayoutDefaults
       ] do
       live "/dashboard", DashboardLive, :index
-      live "/missions", MissionsLive, :index
-      live "/missions/start", OnboardingLive, :new
-      live "/missions/:id", MissionControlLive, :show
+      live "/sessions", MissionsLive, :index
+      live "/sessions/start", OnboardingLive, :new
+      live "/sessions/:id", MissionControlLive, :show
       live "/findings", FindingsLive, :index
       live "/benchmarks", BenchmarksLive, :index
       live "/benchmarks/runs/:id", BenchmarksLive, :show
@@ -94,6 +94,7 @@ defmodule ControlKeelWeb.Router do
       live "/cloud/projects/:ws_id", CloudProjectsLive, :show
       live "/organizations", OrganizationsLive, :index
       live "/organizations/:slug", OrganizationDetailLive, :index
+      live "/organizations/:slug/workspaces/:id", WorkspaceDetailLive, :index
       live "/workspaces/:id/repos", WorkspaceReposLive, :index
       live "/workspaces/:id/service-accounts", WorkspaceServiceAccountsLive, :index
       live "/workspaces/:id/webhooks", WorkspaceWebhooksLive, :index

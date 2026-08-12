@@ -11,7 +11,7 @@ defmodule ControlKeelWeb.DashboardLiveTest do
     assert html =~ "Proof Coverage"
     assert html =~ "Deploy Ready Rate"
     assert html =~ "Delivery Funnel"
-    assert html =~ "Recent Missions"
+    assert html =~ "Recent Sessions"
     assert html =~ "Provider and Autonomy"
     assert html =~ "Provider and bootstrap status"
     assert html =~ "ACP registry cache"

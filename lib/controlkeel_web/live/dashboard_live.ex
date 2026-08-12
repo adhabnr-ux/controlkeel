@@ -37,7 +37,7 @@ defmodule ControlKeelWeb.DashboardLive do
     <div class="w-full space-y-8">
       <.page_title
         title="Agent Control Plane"
-        subtitle="Live mission state, findings, proof coverage, benchmark signal, and ship readiness in one operator view."
+        subtitle="Live session state, findings, proof coverage, benchmark signal, and ship readiness in one operator view."
       />
 
       <%!-- Key metrics --%>
@@ -111,7 +111,7 @@ defmodule ControlKeelWeb.DashboardLive do
           <p class="mt-2 text-xl font-semibold text-foreground/90">
             {format_number(avg_findings)}
           </p>
-          <p class="mt-4 text-xs text-muted-foreground">Average findings per recent mission</p>
+          <p class="mt-4 text-xs text-muted-foreground">Average findings per recent session</p>
         </article>
       </div>
 
@@ -389,12 +389,12 @@ defmodule ControlKeelWeb.DashboardLive do
         </div>
       </section>
 
-      <%!-- Recent Missions --%>
+      <%!-- Recent Sessions --%>
       <section class="space-y-3">
         <div class="flex items-center justify-between gap-3">
-          <.section_title>Recent Missions</.section_title>
+          <.section_title>Recent Sessions</.section_title>
           <a
-            href={~p"/missions"}
+            href={~p"/sessions"}
             class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-primary"
           >
             View all <.icon name="hero-arrow-up-right" class="size-3" />
@@ -405,7 +405,7 @@ defmodule ControlKeelWeb.DashboardLive do
           <table class="min-w-full divide-y divide-border text-left text-sm">
             <thead class="bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground">
               <tr>
-                <th class="px-5 py-3 font-semibold">Mission</th>
+                <th class="px-5 py-3 font-semibold">Session</th>
                 <th class="px-5 py-3 font-semibold">Risk</th>
                 <th class="px-5 py-3 font-semibold">Workload</th>
                 <th class="px-5 py-3 font-semibold">Findings</th>
@@ -417,9 +417,9 @@ defmodule ControlKeelWeb.DashboardLive do
               <%= if @recent_sessions == [] do %>
                 <tr>
                   <td colspan="6" class="px-5 py-12 text-center">
-                    <p class="text-base font-medium text-foreground">No missions yet.</p>
+                    <p class="text-base font-medium text-foreground">No sessions yet.</p>
                     <p class="mt-1 text-sm text-muted-foreground">
-                      Start a mission to populate live governance telemetry.
+                      Start a session to populate live governance telemetry.
                     </p>
                   </td>
                 </tr>
@@ -428,7 +428,7 @@ defmodule ControlKeelWeb.DashboardLive do
                   <tr class="transition hover:bg-muted/30">
                     <td class="max-w-sm px-5 py-4">
                       <a
-                        href={~p"/missions/#{session.id}"}
+                        href={~p"/sessions/#{session.id}"}
                         class="font-medium text-foreground transition hover:text-primary"
                       >
                         {session.title}
@@ -475,7 +475,7 @@ defmodule ControlKeelWeb.DashboardLive do
                     </td>
                     <td class="px-5 py-4 text-right">
                       <a
-                        href={~p"/missions/#{session.id}"}
+                        href={~p"/sessions/#{session.id}"}
                         aria-label={"Inspect #{session.title}"}
                         class="inline-flex items-center justify-center rounded-full border p-2 text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
                       >
@@ -581,7 +581,7 @@ defmodule ControlKeelWeb.DashboardLive do
   defp always_available_capabilities do
     [
       "Governance and policy validation on agent actions",
-      "Findings, proof bundles, and mission audit trail",
+      "Findings, proof bundles, and session audit trail",
       "MCP tools, skills, and agent attachments",
       "Benchmark runs and policy artifact management"
     ]

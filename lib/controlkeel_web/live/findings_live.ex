@@ -255,14 +255,14 @@ defmodule ControlKeelWeb.FindingsLive do
               </div>
               <div class="space-y-2">
                 <label for="filters-session_id" class="text-xs uppercase tracking-[0.28em]">
-                  Mission
+                  Session
                 </label>
                 <select
                   id="filters-session_id"
                   name="filters[session_id]"
                   class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
                 >
-                  <option value="">All missions</option>
+                  <option value="">All sessions</option>
                   <%= for {label, id} <- session_filter_options(@session_options) do %>
                     <option
                       value={id}
@@ -299,7 +299,7 @@ defmodule ControlKeelWeb.FindingsLive do
                     Finding
                   </th>
                   <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                    Mission
+                    Session
                   </th>
                   <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                     Severity
@@ -335,7 +335,7 @@ defmodule ControlKeelWeb.FindingsLive do
                   </td>
                   <td class="px-8 py-6 align-top">
                     <.link
-                      navigate={~p"/missions/#{finding.session_id}"}
+                      navigate={~p"/sessions/#{finding.session_id}"}
                       class="text-xs font-semibold tracking-[0.14em] text-primary hover:underline"
                     >
                       {finding.session.title}

@@ -12,7 +12,7 @@ defmodule ControlKeelWeb.Typography do
   @doc """
   Page title block: an `<h1>` with an optional one-line subtitle.
 
-      <.page_title title="Agent Control Plane" subtitle="Live mission state." />
+      <.page_title title="Agent Control Plane" subtitle="Live session state." />
 
   Pass `class` to adjust the wrapper spacing (e.g. `class="mb-12"`).
   """
@@ -24,7 +24,7 @@ defmodule ControlKeelWeb.Typography do
     ~H"""
     <div class={["space-y-2", @class]}>
       <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">{@title}</h1>
-      <p :if={@subtitle} class="text-muted-foreground">{@subtitle}</p>
+      <p :if={@subtitle} class="text-sm text-muted-foreground">{@subtitle}</p>
     </div>
     """
   end

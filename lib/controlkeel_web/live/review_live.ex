@@ -88,9 +88,9 @@ defmodule ControlKeelWeb.ReviewLive do
           </div>
           <a
             class="uppercase tracking-[0.14em] text-xs text-primary font-semibold"
-            href={~p"/missions/#{@review.session_id}"}
+            href={~p"/sessions/#{@review.session_id}"}
           >
-            Open mission
+            Open session
           </a>
         </div>
 
