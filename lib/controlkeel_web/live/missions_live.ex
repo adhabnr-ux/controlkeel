@@ -7,10 +7,10 @@ defmodule ControlKeelWeb.MissionsLive do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(:page_title, "Missions")
+|> assign(:page_title, "Sessions")
      |> assign(
        :page_action,
-       %{label: "New Mission", to: ~p"/missions/start", icon: "hero-plus"}
+       %{label: "New Session", to: ~p"/sessions/start", icon: "hero-plus"}
      )
      |> assign(:recent_sessions, Mission.list_all_sessions())}
   end
@@ -23,7 +23,7 @@ defmodule ControlKeelWeb.MissionsLive do
         <table class="min-w-full divide-y divide-border text-left text-sm">
           <thead class="bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground sticky top-0 z-10">
             <tr>
-              <th class="px-5 py-3 font-semibold">Mission</th>
+              <th class="px-5 py-3 font-semibold">Session</th>
               <th class="px-5 py-3 font-semibold">Risk</th>
               <th class="px-5 py-3 font-semibold">Workload</th>
               <th class="px-5 py-3 font-semibold">Findings</th>
@@ -35,9 +35,9 @@ defmodule ControlKeelWeb.MissionsLive do
             <%= if @recent_sessions == [] do %>
               <tr>
                 <td colspan="6" class="px-5 py-12 text-center">
-                  <p class="text-base font-medium text-foreground">No missions yet.</p>
+                  <p class="text-base font-medium text-foreground">No sessions yet.</p>
                   <p class="mt-1 text-sm text-muted-foreground">
-                    Start a mission to populate live governance telemetry.
+                    Start a session to populate live governance telemetry.
                   </p>
                 </td>
               </tr>
@@ -85,7 +85,7 @@ defmodule ControlKeelWeb.MissionsLive do
                   </td>
                   <td class="px-4 text-right whitespace-nowrap w-px">
                     <.link
-                      navigate={~p"/missions/#{session.id}"}
+                      navigate={~p"/sessions/#{session.id}"}
                       class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
                     >
                       Inspect <.icon name="hero-arrow-right" class="size-3" />

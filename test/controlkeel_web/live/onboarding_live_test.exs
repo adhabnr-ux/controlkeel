@@ -13,7 +13,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
     # assert against the delta, not an absolute empty list.
     initial_session_count = length(Mission.list_sessions())
 
-    {:ok, view, html} = live(conn, ~p"/missions/start")
+    {:ok, view, html} = live(conn, ~p"/sessions/start")
 
     assert html =~ "Choose the domain and primary agent"
     assert html =~ "Founder / Product Builder"
@@ -62,7 +62,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
     render_click(element(view, "button[phx-click=\"accept\"]"))
     {path, _flash} = assert_redirect(view)
 
-    assert path =~ "/missions/"
+    assert path =~ "/sessions/"
 
     redirected_html =
       conn
@@ -78,7 +78,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
   test "onboarding UI prevents duplicate project names", %{conn: conn} do
     _session = session_fixture(%{title: "Existing Project"})
 
-    {:ok, view, _html} = live(conn, ~p"/missions/start")
+    {:ok, view, _html} = live(conn, ~p"/sessions/start")
 
     render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
 
@@ -92,7 +92,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
         )
       )
 
-    assert error_html =~ "This project name is already used by an existing mission."
+    assert error_html =~ "This project name is already used by an existing session."
   end
 
   test "validation errors render and provider keys are not exposed in the browser", %{conn: conn} do
@@ -116,7 +116,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
       }
     )
 
-    {:ok, view, html} = live(conn, ~p"/missions/start")
+    {:ok, view, html} = live(conn, ~p"/sessions/start")
     refute html =~ "sk-secret-test"
 
     render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
@@ -133,7 +133,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
   test "review step explains heuristic mode and provider status without leaking secrets", %{
     conn: conn
   } do
-    {:ok, view, _html} = live(conn, ~p"/missions/start")
+    {:ok, view, _html} = live(conn, ~p"/sessions/start")
 
     render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
 
@@ -170,7 +170,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
   end
 
   test "expanded domain occupations render and advance through onboarding", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/missions/start")
+    {:ok, view, _html} = live(conn, ~p"/sessions/start")
 
     assert has_element?(view, "option[value=\"hr\"]")
     assert has_element?(view, "option[value=\"legal\"]")
@@ -194,7 +194,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
   end
 
   test "onboarding creates the session in the default workspace", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/missions/start")
+    {:ok, view, _html} = live(conn, ~p"/sessions/start")
 
     assert render_submit(
              form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"})
@@ -225,11 +225,11 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
 
     render_click(element(view, "button[phx-click=\"accept\"]"))
     {path, _flash} = assert_redirect(view)
-    assert path =~ "/missions/"
+    assert path =~ "/sessions/"
 
     session_id =
       path
-      |> String.split("/missions/")
+      |> String.split("/sessions/")
       |> List.last()
       |> String.split("?")
       |> List.first()
@@ -238,7 +238,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
     assert session.workspace.slug == "default-workspace"
   end
 
-  test "user can continue from an existing mission in onboarding", %{conn: conn} do
+  test "user can continue from an existing session in onboarding", %{conn: conn} do
     session =
       session_fixture(%{
         title: "Saved Project",
@@ -254,12 +254,12 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
         }
       })
 
-    {:ok, view, _html} = live(conn, ~p"/missions/start")
+    {:ok, view, _html} = live(conn, ~p"/sessions/start")
 
     # Step 1
     render_submit(form(view, "form", launch: %{"occupation" => "founder", "agent" => "claude"}))
 
-    # Step 2: Select the existing mission from dropdown
+    # Step 2: Select the existing session from dropdown
     render_change(view, :select_mission, %{recent_mission_id: to_string(session.id)})
 
     # Verify project name is populated
@@ -267,7 +267,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
     assert render(view) =~ "Original project objective"
   end
 
-  describe "cloud mode /missions/start" do
+  describe "cloud mode /sessions/start" do
     setup do
       original = Application.get_env(:controlkeel, :runtime_mode)
       Application.put_env(:controlkeel, :runtime_mode, :cloud)
@@ -294,7 +294,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
     test "blocks onboarding when the user has no organizations", %{} do
       user = user_fixture()
 
-      {:ok, view, html} = live(cloud_conn(user, nil), ~p"/missions/start")
+      {:ok, view, html} = live(cloud_conn(user, nil), ~p"/sessions/start")
 
       assert html =~ "Organization and workspace"
       assert html =~ "admin or owner of at least one organization"
@@ -327,7 +327,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
         })
         |> ControlKeel.Repo.insert()
 
-      {:ok, view, html} = live(cloud_conn(member, org.id), ~p"/missions/start")
+      {:ok, view, html} = live(cloud_conn(member, org.id), ~p"/sessions/start")
 
       assert html =~ "Organization and workspace"
       assert html =~ "admin or owner of at least one organization"
@@ -352,7 +352,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
       user = user_fixture()
       {:ok, org} = Accounts.create_org_with_owner(user.id, %{name: "No WS", slug: "no-ws"})
 
-      {:ok, view, html} = live(cloud_conn(user, org.id), ~p"/missions/start")
+      {:ok, view, html} = live(cloud_conn(user, org.id), ~p"/sessions/start")
 
       assert html =~ "Organization and workspace"
       assert html =~ "has no workspaces yet"
@@ -372,7 +372,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
       {:ok, org} = Accounts.create_org_with_owner(user.id, %{name: "Acme", slug: "acme"})
       ws = workspace_fixture(%{org_id: org.id, name: "Backend", slug: "backend"})
 
-      {:ok, view, html} = live(cloud_conn(user, org.id), ~p"/missions/start")
+      {:ok, view, html} = live(cloud_conn(user, org.id), ~p"/sessions/start")
 
       assert html =~ "Organization and workspace"
       assert has_element?(view, "#onboarding-org-select option[value=\"#{org.id}\"]")
@@ -406,11 +406,11 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
 
       render_click(element(view, "button[phx-click=\"accept\"]"))
       {path, _flash} = assert_redirect(view)
-      assert path =~ "/missions/"
+      assert path =~ "/sessions/"
 
       session_id =
         path
-        |> String.split("/missions/")
+        |> String.split("/sessions/")
         |> List.last()
         |> String.split("?")
         |> List.first()
@@ -427,7 +427,7 @@ defmodule ControlKeelWeb.OnboardingLiveTest do
       ws_a = workspace_fixture(%{org_id: org_a.id, name: "Alpha WS", slug: "alpha-ws"})
       ws_b = workspace_fixture(%{org_id: org_b.id, name: "Beta WS", slug: "beta-ws"})
 
-      {:ok, view, _html} = live(cloud_conn(user, org_a.id), ~p"/missions/start")
+      {:ok, view, _html} = live(cloud_conn(user, org_a.id), ~p"/sessions/start")
 
       assert has_element?(view, "#onboarding-workspace-select option[value=\"#{ws_a.id}\"]")
       refute has_element?(view, "#onboarding-workspace-select option[value=\"#{ws_b.id}\"]")

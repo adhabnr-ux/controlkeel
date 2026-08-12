@@ -16,7 +16,7 @@ defmodule ControlKeelWeb.OnboardingLive do
 
     {:ok,
      socket
-     |> assign(:page_title, "Start a mission")
+     |> assign(:page_title, "Start a session")
      |> assign(:project_root, project_root)
      |> assign(:mode, mode)
      |> assign(:cloud_mode, cloud_mode)
@@ -162,7 +162,7 @@ defmodule ControlKeelWeb.OnboardingLive do
       {:ok, session} ->
         {:noreply,
          socket
-         |> push_navigate(to: ~p"/missions/#{session.id}?launched=1")}
+         |> push_navigate(to: ~p"/sessions/#{session.id}?launched=1")}
 
       {:error, :workspace_not_found} ->
         {:noreply,
@@ -176,7 +176,7 @@ defmodule ControlKeelWeb.OnboardingLive do
       {:error, _scope, _changeset} ->
         {:noreply,
          socket
-         |> put_flash(:error, "ControlKeel could not create the mission from this brief.")
+         |> put_flash(:error, "ControlKeel could not create the session from this brief.")
          |> assign(:step, 4)}
     end
   end
@@ -197,7 +197,7 @@ defmodule ControlKeelWeb.OnboardingLive do
           nil ->
             {:noreply,
              socket
-             |> put_flash(:error, "Selected mission not found.")}
+             |> put_flash(:error, "Selected session not found.")}
 
           session ->
             brief = session.execution_brief || %{}
@@ -227,7 +227,7 @@ defmodule ControlKeelWeb.OnboardingLive do
     <section class="max-w-7xl mx-auto px-4 py-6">
       <div class="mb-8">
         <p class="text-xs font-semibold tracking-wider text-primary uppercase font-mono">
-          Mission onboarding
+          Session onboarding
         </p>
       </div>
 
@@ -240,7 +240,7 @@ defmodule ControlKeelWeb.OnboardingLive do
                   Organization and workspace
                 </p>
                 <p class="text-sm text-muted-foreground mt-1">
-                  Choose where this mission's session will be created.
+                  Choose where this session will be created.
                 </p>
               </div>
 
@@ -420,7 +420,7 @@ defmodule ControlKeelWeb.OnboardingLive do
                     <div class="border-t pt-6">
                       <div class="space-y-1.5">
                         <label class="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
-                          Or continue from an existing mission
+                          Or continue from an existing session
                         </label>
                         <select
                           name="recent_mission_id"
@@ -642,7 +642,7 @@ defmodule ControlKeelWeb.OnboardingLive do
                   type="button"
                   phx-click="accept"
                 >
-                  Create mission
+                  Create session
                 </button>
               </div>
             </div>
@@ -852,7 +852,7 @@ defmodule ControlKeelWeb.OnboardingLive do
   defp onboarding_block_message(%{assigns: assigns}) do
     case workspace_notice(assigns) do
       %{text: text} -> text
-      nil -> "Choose an organization and workspace before starting this mission."
+      nil -> "Choose an organization and workspace before starting this session."
     end
   end
 
@@ -861,7 +861,7 @@ defmodule ControlKeelWeb.OnboardingLive do
       assigns.org_options == [] ->
         %{
           text:
-            "You need to be an admin or owner of at least one organization to start a mission here. Organizations where you are only a member or viewer are not shown for onboarding.",
+            "You need to be an admin or owner of at least one organization to start a session here. Organizations where you are only a member or viewer are not shown for onboarding.",
           link: ~p"/organizations",
           link_text: "View organizations"
         }
@@ -869,13 +869,13 @@ defmodule ControlKeelWeb.OnboardingLive do
       assigns.workspace_options == [] ->
         %{
           text:
-            "This organization has no workspaces yet. Create a workspace before starting a mission.",
+            "This organization has no workspaces yet. Create a workspace before starting a session.",
           link: ~p"/organizations/#{selected_org_slug(assigns)}",
           link_text: "Manage workspaces"
         }
 
       not is_integer(assigns.selected_workspace_id) ->
-        %{text: "Choose a workspace before starting this mission.", link: nil, link_text: nil}
+        %{text: "Choose a workspace before starting this session.", link: nil, link_text: nil}
 
       true ->
         nil
@@ -904,7 +904,7 @@ defmodule ControlKeelWeb.OnboardingLive do
       |> maybe_error(
         "occupation",
         blank?(attrs["occupation"]),
-        "Choose the occupation that best fits this mission."
+        "Choose the occupation that best fits this session."
       )
       |> maybe_error("agent", blank?(attrs["agent"]), "Choose the primary coding agent.")
 
@@ -922,7 +922,7 @@ defmodule ControlKeelWeb.OnboardingLive do
       |> maybe_error(
         "project_name",
         duplicate_project_name?(attrs["project_name"]),
-        "This project name is already used by an existing mission."
+        "This project name is already used by an existing session."
       )
       |> maybe_error(
         "idea",
