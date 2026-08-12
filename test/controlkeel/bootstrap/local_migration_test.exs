@@ -209,13 +209,25 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
       assert summary.removed_orgs == 1
     end
 
-    test "cleanup: :ask prompts and honors a :delete answer" do
+    test "cleanup: :ask prompts outside the write transaction and honors a :delete answer" do
       ws_a = workspace_fixture(%{name: "WS A", slug: "ask-ws-a"})
       ws_b = workspace_fixture(%{name: "WS B", slug: "ask-ws-b"})
       session_fixture(%{workspace: ws_a})
       session_fixture(%{workspace: ws_b})
 
-      assert {:ok, summary} = LocalMigration.run(cleanup: :ask, prompt: fn _ -> :delete end)
+      prompt =
+        fn counts ->
+          # the prompt must run BEFORE the write transaction (reconcile) opens,
+          # so no default org/workspace exists yet, and receives the read-only
+          # pre-pass orphan counts
+          assert is_nil(Mission.get_workspace_by_slug(LocalDefaults.default_workspace_slug()))
+          refute Accounts.get_org_by_slug(LocalDefaults.default_org_slug())
+          assert counts.orphan_workspaces == 1
+          assert counts.orphan_orgs == 0
+          :delete
+        end
+
+      assert {:ok, summary} = LocalMigration.run(cleanup: :ask, prompt: prompt)
 
       # the prompt returned :delete, so the orphaned workspace was removed
       assert summary.orphan_workspaces == 0
@@ -234,6 +246,29 @@ defmodule ControlKeel.Bootstrap.LocalMigrationTest do
       assert summary.orphan_workspaces == 1
       assert Map.get(summary, :removed_workspaces, 0) == 0
       assert Repo.aggregate(Workspace, :count) == 2
+    end
+
+    test "cleanup: :ask does not invoke the prompt when nothing is orphaned" do
+      {:ok, org} = Accounts.create_org(%{name: "Solo Org", slug: "solo-org"})
+
+      workspace_fixture(%{
+        name: "Solo WS",
+        slug: "solo-ws",
+        org_id: org.id
+      })
+
+      session_fixture(%{workspace: Mission.get_workspace_by_slug("solo-ws")})
+
+      assert {:ok, summary} =
+               LocalMigration.run(
+                 cleanup: :ask,
+                 prompt: fn _ -> raise "prompt must not be called with no orphans" end
+               )
+
+      assert summary.orphan_workspaces == 0
+      assert summary.orphan_orgs == 0
+      assert Map.get(summary, :removed_workspaces, 0) == 0
+      assert Map.get(summary, :removed_orgs, 0) == 0
     end
   end
 

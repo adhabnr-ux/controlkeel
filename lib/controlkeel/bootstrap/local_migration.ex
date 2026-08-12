@@ -27,9 +27,10 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
 
     * `:keep` (default) — orphans stay as-is. They remain usable as source data
       for a future local-to-cloud migration and are never destroyed.
-    * `:ask` — an interactive prompt is issued after a completed migration
-      asking the user to delete all orphans or keep them. A missing/non-"yes"
-      answer keeps them.
+    * `:ask` — an interactive prompt is issued asking the user to delete all
+      orphans or keep them. The prompt runs BEFORE the write transaction is
+      opened (via a read-only orphan-count pre-pass), so no transaction lock is
+      held across blocking stdin IO; a missing/non-"yes" answer keeps them.
     * `:delete` — all non-default workspaces and orgs are removed after
       sessions have been evacuated.
 
@@ -78,9 +79,10 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
 
     * `:cleanup` — `:keep` (default) leaves orphan orgs/workspaces untouched;
       `:ask` prompts the user; `:delete` removes them after evacuation.
-    * `:prompt` — a `fun/1` invoked for `cleanup: :ask`, receiving the summary
-      map and returning `:delete` or `:keep`. Defaults to a terminal prompt
-      that keeps orphans unless the user answers `y`.
+    * `:prompt` — a `fun/1` invoked for `cleanup: :ask`, receiving a summary
+      map with `:orphan_workspaces`/`:orphan_orgs` counts and returning
+      `:delete` or `:keep`. Defaults to a terminal prompt that keeps orphans
+      unless the user answers `y`. Runs before the write transaction opens.
 
   Returns:
 
@@ -115,12 +117,14 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
   defp perform(opts) do
     backup_database()
 
+    orphan_decision = resolve_orphan_decision(opts)
+
     case Repo.transaction(fn ->
            {:ok, default_org} = reconcile_org()
            {:ok, default_workspace} = reconcile_workspace(default_org)
 
            summary = consolidate(default_org, default_workspace)
-           apply_orphan_action(summary, default_org, default_workspace, opts)
+           apply_orphan_decision(orphan_decision, summary, default_org, default_workspace)
          end) do
       {:ok, summary} ->
         emit_summary(summary)
@@ -289,31 +293,54 @@ defmodule ControlKeel.Bootstrap.LocalMigration do
     )
   end
 
+  # Pre-pass totals for the orphan decision. The reconcile step renames the
+  # oldest row into the default (or reuses an existing default-slug row), so it
+  # never changes the row counts — the post-consolidate orphan count is always
+  # exactly `total - 1`.
+  defp orphan_workspace_count do
+    Repo.aggregate(Workspace, :count)
+  end
+
+  defp orphan_org_count do
+    Repo.aggregate(Org, :count)
+  end
+
   # ──────────────── orphan policy ────────────────
 
-  # Applies the caller's orphan cleanup policy after consolidation. Only ever
-  # deletes rows that hold no sessions (sessions were evacuated above).
-  defp apply_orphan_action(summary, _default_org, _default_workspace, _opts)
-       when summary.orphan_workspaces == 0 and summary.orphan_orgs == 0,
-       do: summary
-
-  defp apply_orphan_action(summary, default_org, default_workspace, opts) do
+  # Resolves the orphan cleanup decision using a read-only pre-pass, BEFORE
+  # the write transaction opens. `cleanup: :ask` runs its interactive prompt
+  # here so no transaction (or its lock) is held open across blocking stdin
+  # IO. The counts are derived from a full read; the subsequent transactional
+  # reconcile never adds/removes org/workspace rows (it renames the oldest), so
+  # the finite orphans (id != default) are exactly (total - 1). The decision
+  # is then applied inside the same transaction as reconcile/consolidate.
+  defp resolve_orphan_decision(opts) do
     case Keyword.get(opts, :cleanup, :keep) do
-      :delete ->
-        remove_orphans(summary, default_org, default_workspace)
-
       :ask ->
-        prompt = Keyword.get(opts, :prompt, &default_prompt/1)
+        counts = %{
+          orphan_workspaces: max(orphan_workspace_count() - 1, 0),
+          orphan_orgs: max(orphan_org_count() - 1, 0)
+        }
 
-        case prompt.(summary) do
-          :delete -> remove_orphans(summary, default_org, default_workspace)
-          _ -> summary
+        if counts.orphan_workspaces == 0 and counts.orphan_orgs == 0 do
+          :keep
+        else
+          prompt = Keyword.get(opts, :prompt, &default_prompt/1)
+          prompt.(counts)
         end
 
-      _keep ->
-        summary
+      decision ->
+        decision
     end
   end
+
+  # Applies the caller's orphan cleanup decision after consolidation. Only ever
+  # deletes rows that hold no sessions (sessions were evacuated above).
+  defp apply_orphan_decision(:delete, summary, default_org, default_workspace) do
+    remove_orphans(summary, default_org, default_workspace)
+  end
+
+  defp apply_orphan_decision(_keep, summary, _default_org, _default_workspace), do: summary
 
   defp remove_orphans(summary, default_org, default_workspace) do
     session_workspace_ids = from(s in Session, select: s.workspace_id)
