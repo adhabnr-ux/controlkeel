@@ -249,7 +249,7 @@ defmodule ControlKeelWeb.ApiControllerTest do
 
       assert %{"review" => review} = json_response(conn, 201)
       assert review["status"] == "pending"
-      assert review["browser_url"] =~ "/reviews/"
+      assert review["browser_url"] =~ "/reviews/#{review["id"]}"
 
       conn = build_conn() |> get(~p"/api/v1/reviews/#{review["id"]}")
       assert %{"review" => fetched} = json_response(conn, 200)

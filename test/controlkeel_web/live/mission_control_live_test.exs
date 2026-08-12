@@ -146,6 +146,18 @@ defmodule ControlKeelWeb.MissionControlLiveTest do
     assert html =~ "mission-observability-recommendations"
   end
 
+  test "mission control links to the session review queue page", %{conn: conn} do
+    session = session_fixture()
+    review_fixture(%{session: session, submitted_by: "opencode"})
+
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{session.id}")
+
+    assert html =~ "1 total review gates"
+    assert html =~ "1 pending"
+    assert html =~ "/sessions/#{session.id}/reviews"
+    assert html =~ "View all"
+  end
+
   test "mission control refreshes when new findings and spend data appear", %{conn: conn} do
     session = session_fixture(%{spent_cents: 600, budget_cents: 5_000})
     task_fixture(%{session: session})
