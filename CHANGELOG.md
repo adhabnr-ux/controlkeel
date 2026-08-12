@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.3.88 — 2026-08-12
+
+### What's changed
+
+- Merge pull request #56 from aryaminus/refactor/org-workspace-relation
+- refactor/org-workspace-relation: resolve orphan cleanup decision via pre-transaction read to avoid blocking locks during prompt input
+- Merge pull request #63 from aryaminus/refactor/cloud-org-workspace-relation
+- Merge branch 'refactor/org-workspace-relation' into refactor/cloud-org-workspace-relation
+- Merge pull request #66 from aryaminus/refactor/web-mission-to-session
+- refactor/org-workspace-relation: update local migration to support optional orphan cleanup and non-destructive reconciliation
+- Merge branch 'main' of github.com:aryaminus/controlkeel into refactor/org-workspace-relation
+- refactor/web-mission-to-session: rename mission to session across web UI, routes, and documentation (Part 1)
+- Merge branch 'main' of github.com:aryaminus/controlkeel into refactor/cloud-org-workspace-relation
+- Merge branch 'main' of github.com:aryaminus/controlkeel into refactor/org-workspace-relation
+- refactor/cloud-org-workspace-relation: relocate workspace helper functions and remove redundant error handling clauses
+- refactor/cloud-org-workspace-relation: update organization CLI and LiveView tests to reflect default workspace settings and role badge rendering changes
+- refactor/org-workspace-relation: remove extra newline in local migration documentation
+- refactor/cloud-org-workspace-relation: add comment for Cloud project logic.
+- refactor/cloud-org-workspace-relation: integrate organization and workspace selection into the cloud mode onboarding flow
+- refactor/cloud-org-workspace-relation: implement cloud-mode organization and workspace selection for CLI initialization and web onboarding.
+- refactor/cloud-org-workspace-relation: add workspace creation command and CLI infrastructure for cloud-mode organization selection
+- refactor/cloud-org-workspace-relation: implement cloud mode for project initialization with support for organization and workspace targeting
+- refactor/org-workspace-relation: refactor migration documentation
+- refactor/org-workspace-relation: update local migration to repurpose oldest existing orgs and workspaces instead of creating new ones
+- refactor/org-workspace-relation: add duplicate project name validation to onboarding wizard
+- refactor/org-workspace-relation: enforce Session-Workspace-Org hierarchy by creating default entities and recording org_id in project bindings
+- refactor/org-workspace-relation: standardize session creation to use default workspace and remove duplicate project name validation
+- refactor/org-workspace-relation: add workspace detail page and link to it from organization view
+- refactor/org-workspace-relation: implement workspace management and organization dashboard tabs
+
 ## v0.3.87 — 2026-08-09
 
 ### What's changed
