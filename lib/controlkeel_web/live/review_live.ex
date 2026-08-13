@@ -213,42 +213,41 @@ defmodule ControlKeelWeb.ReviewLive do
                   </span>
 
                   <div class="flex items-center gap-2">
-                    <button
+                    <.button
                       id="review-response-approve"
                       type="submit"
                       name="review_response[decision]"
                       value="approved"
                       disabled={@review.status != "pending"}
-                      class="rounded-lg bg-secondary/30 hover:bg-secondary/40 border border-border/40 px-4 py-1.5 text-xs font-semibold text-muted-foreground cursor-pointer"
                     >
                       Approve
-                    </button>
-                    <button
+                    </.button>
+                    <.button
                       id="review-response-deny"
                       type="submit"
+                      variant="destructive"
                       name="review_response[decision]"
                       value="denied"
                       disabled={@review.status != "pending"}
-                      class="rounded-lg bg-destructive/20 hover:bg-destructive/30 border border-destructive/40 px-4 py-1.5 text-xs font-semibold text-destructive cursor-pointer"
                     >
                       Deny
-                    </button>
+                    </.button>
                   </div>
                 </div>
 
                 <div class="mt-5 space-y-4">
-                  <.input_component
+                  <.textarea
                     field={@response_form[:feedback_notes]}
                     label="Feedback notes"
                     placeholder="Add notes..."
-                    rows={3}
+                    class="resize-none h-24"
                   />
 
-                  <.input_component
+                  <.textarea
                     field={@response_form[:annotation_text]}
                     label="Annotations"
                     placeholder="Add notes..."
-                    rows={3}
+                    class="resize-none h-24"
                   />
                 </div>
               </.form>

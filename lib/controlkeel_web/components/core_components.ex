@@ -76,6 +76,65 @@ defmodule ControlKeelWeb.CoreComponents do
   end
 
   @doc """
+  Renders a button with a selectable variant.
+
+  Variants:
+
+    * `default` - solid primary fill, the default accent
+    * `secondary` - muted soft fill for less prominent actions
+    * `outline` - bordered transparent for neutral actions
+    * `destructive` - soft destructive fill for high-risk actions
+
+  Any additional attributes (such as `id`, `name`, `value`, `disabled`,
+  `phx-click`) are passed through to the button element.
+
+  ## Examples
+
+      <.button>Submit</.button>
+      <.button variant="outline" phx-click="cancel">Cancel</.button>
+      <.button variant="destructive" type="submit" name="decision" value="denied">Deny</.button>
+  """
+  attr :variant, :string,
+    default: "default",
+    values: ~w(default secondary outline destructive)
+
+  attr :type, :string, default: "button", values: ~w(button submit reset)
+  attr :class, :any, default: nil, doc: "additional classes appended to the base styling"
+
+  attr :rest, :global,
+    include: ~w(id disabled name value form autofocus formaction formnovalidate)
+
+  slot :inner_block, required: true
+
+  def button(assigns) do
+    ~H"""
+    <button
+      type={@type}
+      class={[
+        "inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-semibold transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50",
+        button_variant_class(@variant),
+        @class
+      ]}
+      {@rest}
+    >
+      {render_slot(@inner_block)}
+    </button>
+    """
+  end
+
+  defp button_variant_class("default"),
+    do: "bg-primary text-primary-foreground hover:bg-primary/90"
+
+  defp button_variant_class("secondary"),
+    do: "bg-secondary/30 hover:bg-secondary/40 border border-border/40 text-muted-foreground"
+
+  defp button_variant_class("outline"),
+    do: "border border-border bg-transparent text-foreground hover:bg-muted"
+
+  defp button_variant_class("destructive"),
+    do: "bg-destructive/20 hover:bg-destructive/30 border border-destructive/40 text-destructive"
+
+  @doc """
   Renders an input with label and error messages.
 
   A `Phoenix.HTML.FormField` may be passed as argument,
@@ -261,72 +320,115 @@ defmodule ControlKeelWeb.CoreComponents do
   end
 
   @doc """
-  Renders a labeled input or textarea with the alternate soft-surface styling.
+  Renders a labeled input with the alternate soft-surface styling.
+
+  `input_component` exists because a legacy `input` component is already
+  used throughout the repo. Changing `input` now would ripple across many
+  call sites, so new form fields are written against `input_component`
+  (or `<.textarea>` for multi-line input) instead. Usages migrate slowly,
+  and once the legacy `input` is fully replaced, `input_component` will
+  be renamed to `input`.
 
   Accepts a `Phoenix.HTML.FormField` for the bound field, an optional icon
-  and hint, and dispatches on `:type` (defaults to `"textarea"`).
+  and hint.
 
   ## Examples
 
-      <.input_component field={@form[:feedback_notes]} label="Feedback notes" placeholder="Add notes..." rows={3} />
       <.input_component field={@form[:title]} type="text" label="Title" icon="hero-bars-3" />
   """
   attr :id, :any, default: nil
   attr :name, :any
   attr :label, :string, required: true
   attr :value, :any
-  attr :type, :string, default: "textarea"
+  attr :type, :string, default: "text"
   attr :field, Phoenix.HTML.FormField
-  attr :rows, :integer, default: 3
   attr :hint, :string, default: nil
   attr :icon, :string, default: nil
+  attr :class, :any, default: nil, doc: "additional classes appended to the default styling"
 
   attr :rest, :global,
     include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
                 multiple pattern placeholder readonly required size step)
-
-  def input_component(%{type: "textarea"} = assigns) do
-    assigns = assign_component_field(assigns)
-
-    ~H"""
-    <div>
-      <div class="mb-1.5 flex items-center gap-1.5">
-        <.icon :if={@icon} name={@icon} class="size-3.5 text-muted-foreground" />
-        <label for={@id} class="text-sm font-medium text-foreground/90">{@label}</label>
-      </div>
-      <div :if={@hint} class="sr-only">{@hint}</div>
-      <textarea
-        id={@id}
-        name={@name}
-        rows={@rows}
-        class={input_component_class(@rest[:disabled] || false)}
-        {@rest}
-      >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
-      <p :if={@hint} class="mt-1.5 text-xs text-muted-foreground">{@hint}</p>
-    </div>
-    """
-  end
 
   def input_component(assigns) do
     assigns = assign_component_field(assigns)
 
     ~H"""
     <div>
-      <div class="mb-1.5 flex items-center gap-1.5">
-        <.icon :if={@icon} name={@icon} class="size-3.5 text-muted-foreground" />
-        <label for={@id} class="text-sm font-medium text-foreground/90">{@label}</label>
-      </div>
-      <div :if={@hint} class="sr-only">{@hint}</div>
+      <.component_field_header icon={@icon} label={@label} hint={@hint} id={@id} />
       <input
         type={@type}
         id={@id}
         name={@name}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
-        class={input_component_class(@rest[:disabled] || false)}
+        class={[input_component_field_class(), @class]}
         {@rest}
       />
-      <p :if={@hint} class="mt-1.5 text-xs text-muted-foreground">{@hint}</p>
+      <.component_field_hint :if={@hint} hint={@hint} />
     </div>
+    """
+  end
+
+  defp input_component_field_class(),
+    do:
+      "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm"
+
+  @doc """
+  Renders a labeled textarea with the alternate soft-surface styling.
+
+  See the migration note in `input_component/1`.
+
+  ## Examples
+
+      <.textarea field={@form[:feedback_notes]} label="Feedback notes" placeholder="Add notes..." />
+  """
+  attr :id, :any, default: nil
+  attr :name, :any
+  attr :label, :string, required: true
+  attr :value, :any
+  attr :field, Phoenix.HTML.FormField
+  attr :hint, :string, default: nil
+  attr :icon, :string, default: nil
+  attr :class, :any, default: nil, doc: "additional classes appended to the default styling"
+
+  attr :rest, :global,
+    include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
+                multiple pattern placeholder readonly required size step)
+
+  def textarea(assigns) do
+    assigns = assign_component_field(assigns)
+
+    ~H"""
+    <div>
+      <.component_field_header icon={@icon} label={@label} hint={@hint} id={@id} />
+      <textarea
+        id={@id}
+        name={@name}
+        class={[textarea_component_field_class(), @class]}
+        {@rest}
+      >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
+      <.component_field_hint :if={@hint} hint={@hint} />
+    </div>
+    """
+  end
+
+  defp textarea_component_field_class(),
+    do:
+      "flex field-sizing-content min-h-16 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm"
+
+  defp component_field_header(assigns) do
+    ~H"""
+    <div class="mb-1.5 flex items-center gap-1.5">
+      <.icon :if={@icon} name={@icon} class="size-3.5 text-muted-foreground" />
+      <label for={@id} class="text-sm font-medium text-foreground/90">{@label}</label>
+    </div>
+    <div :if={@hint} class="sr-only">{@hint}</div>
+    """
+  end
+
+  defp component_field_hint(assigns) do
+    ~H"""
+    <p class="mt-1.5 text-xs text-muted-foreground">{@hint}</p>
     """
   end
 
@@ -338,14 +440,6 @@ defmodule ControlKeelWeb.CoreComponents do
   end
 
   defp assign_component_field(assigns), do: assigns
-
-  defp input_component_class(false),
-    do:
-      "w-full resize-none rounded-xl border border-border bg-muted/30 px-3.5 py-2.5 text-sm leading-6 text-foreground placeholder:text-muted-foreground/50 transition focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
-
-  defp input_component_class(true),
-    do:
-      "w-full resize-none rounded-xl border border-border/60 bg-muted/30 px-3.5 py-2.5 text-sm leading-6 text-muted-foreground transition cursor-not-allowed"
 
   # Helper used by inputs to generate form errors
   defp error(assigns) do
