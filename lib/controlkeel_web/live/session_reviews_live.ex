@@ -40,39 +40,15 @@ defmodule ControlKeelWeb.SessionReviewsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="mx-auto max-w-[1180px] w-full px-4 pt-8 pb-16">
-      <div class="mb-8">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div class="space-y-1">
-            <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
-              Review queue
-            </h2>
-            <p class="text-muted-foreground">
-              Plan, diff, and completion submissions for {@session.title}.
-            </p>
-          </div>
-        </div>
+    <div class="space-y-8">
+      <.page_title title={"Review queue: #{@session.title}"} />
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5 max-w-lg">
-          <div class="p-5 rounded-3xl border bg-card/70 backdrop-blur-xl shadow-lg">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary mb-1">
-              Total
-            </p>
-            <strong>{@review_counts.total} total</strong>
-          </div>
-          <div class="p-5 rounded-3xl border bg-card/70 backdrop-blur-xl shadow-lg">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary mb-1">
-              Pending
-            </p>
-            <strong>{@review_counts.pending} pending</strong>
-          </div>
-          <div class="p-5 rounded-3xl border bg-card/70 backdrop-blur-xl shadow-lg">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary mb-1">
-              Resolved
-            </p>
-            <strong>{resolved_count(@reviews)} resolved</strong>
-          </div>
-        </div>
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+        <span>{@review_counts.total} total</span>
+        <span aria-hidden="true" class="size-1.5 rounded-full bg-warning" />
+        <span>{@review_counts.pending} pending</span>
+        <span aria-hidden="true" class="size-1.5 rounded-full bg-success" />
+        <span>{resolved_count(@reviews)} resolved</span>
       </div>
 
       <div class="bg-card border rounded-2xl shadow-card overflow-clip">
@@ -83,8 +59,8 @@ defmodule ControlKeelWeb.SessionReviewsLive do
               <th class="px-5 py-3 font-semibold">Task</th>
               <th class="px-5 py-3 font-semibold">Type</th>
               <th class="px-5 py-3 font-semibold">Submitted by</th>
-              <th class="px-5 py-3 font-semibold">Date</th>
-              <th class="px-5 py-3 font-semibold text-right">Status</th>
+              <th class="px-5 py-3 font-semibold w-px whitespace-nowrap">Date</th>
+              <th class="px-5 py-3 font-semibold w-px whitespace-nowrap text-right">Status</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
@@ -103,10 +79,10 @@ defmodule ControlKeelWeb.SessionReviewsLive do
                 </td>
                 <td class="px-5 py-4 text-muted-foreground capitalize">{review.review_type}</td>
                 <td class="px-5 py-4 text-muted-foreground">{review.submitted_by || "agent"}</td>
-                <td class="px-5 py-4 text-muted-foreground whitespace-nowrap font-mono tabular-nums tracking-tight">
+                <td class="px-5 py-4 text-muted-foreground whitespace-nowrap w-px font-mono tabular-nums tracking-tight">
                   {event_timestamp(review.inserted_at)}
                 </td>
-                <td class="px-5 py-4 text-right">
+                <td class="px-5 py-4 text-right whitespace-nowrap w-px">
                   <span class={review_status_pill_class(review.status)}>{review.status}</span>
                 </td>
               </tr>
@@ -124,7 +100,7 @@ defmodule ControlKeelWeb.SessionReviewsLive do
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
     """
   end
 

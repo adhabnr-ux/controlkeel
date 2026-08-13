@@ -110,8 +110,19 @@ defmodule ControlKeelWeb.ReviewLive do
         <div class="grid gap-6 lg:grid-cols-3">
           <div class="space-y-6 lg:col-span-2">
             <article class="rounded-2xl border bg-card p-5 shadow-card" id="review-submission-body">
-              <.card_title>Submission</.card_title>
-              <pre class="mt-4 rounded-lg bg-muted p-4 whitespace-pre-wrap break-words font-mono text-sm leading-6">{@review.submission_body}</pre>
+              <div class="flex items-center justify-between gap-3">
+                <.card_title>Submission</.card_title>
+                <.button
+                  type="button"
+                  variant="outline"
+                  phx-click={
+                    JS.dispatch("phx:copy-to-clipboard", detail: %{text: @review.submission_body})
+                  }
+                >
+                  <.icon name="hero-clipboard" class="size-3.5" /> Copy
+                </.button>
+              </div>
+              <pre class="mt-4 rounded-lg bg-muted p-4 whitespace-pre-wrap break-words font-mono text-xs leading-6 overflow-y-auto max-h-96">{@review.submission_body}</pre>
             </article>
 
             <article
@@ -186,13 +197,13 @@ defmodule ControlKeelWeb.ReviewLive do
                   Previous: {String.capitalize(@review.previous_review.status)}
                 </span>
               </div>
-              <div class="mt-4 space-y-3">
+              <div class="mt-4 space-y-3 overflow-y-auto max-h-96">
                 <%= for chunk <- @diff_chunks do %>
                   <div class={diff_chunk_class(chunk.kind)}>
                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                       {diff_chunk_label(chunk.kind)}
                     </p>
-                    <pre class="mt-2 whitespace-pre-wrap break-words font-mono text-sm leading-6">{chunk.text}</pre>
+                    <pre class="mt-2 whitespace-pre-wrap break-words font-mono text-xs leading-6">{chunk.text}</pre>
                   </div>
                 <% end %>
               </div>
