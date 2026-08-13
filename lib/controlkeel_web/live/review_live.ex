@@ -13,6 +13,8 @@ defmodule ControlKeelWeb.ReviewLive do
      |> assign(:response_form, response_form())}
   end
 
+  # TODO(security): backend endpoints/contexts lack per-user auth/token checks.
+  # See https://github.com/aryaminus/controlkeel/issues/83
   @impl true
   def handle_params(%{"rid" => rid, "sid" => sid}, _uri, socket) do
     with {:ok, review_id} <- parse_integer(rid),
