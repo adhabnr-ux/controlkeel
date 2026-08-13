@@ -260,6 +260,93 @@ defmodule ControlKeelWeb.CoreComponents do
     """
   end
 
+  @doc """
+  Renders a labeled input or textarea with the alternate soft-surface styling.
+
+  Accepts a `Phoenix.HTML.FormField` for the bound field, an optional icon
+  and hint, and dispatches on `:type` (defaults to `"textarea"`).
+
+  ## Examples
+
+      <.input_component field={@form[:feedback_notes]} label="Feedback notes" placeholder="Add notes..." rows={3} />
+      <.input_component field={@form[:title]} type="text" label="Title" icon="hero-bars-3" />
+  """
+  attr :id, :any, default: nil
+  attr :name, :any
+  attr :label, :string, required: true
+  attr :value, :any
+  attr :type, :string, default: "textarea"
+  attr :field, Phoenix.HTML.FormField
+  attr :rows, :integer, default: 3
+  attr :hint, :string, default: nil
+  attr :icon, :string, default: nil
+
+  attr :rest, :global,
+    include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
+                multiple pattern placeholder readonly required size step)
+
+  def input_component(%{type: "textarea"} = assigns) do
+    assigns = assign_component_field(assigns)
+
+    ~H"""
+    <div>
+      <div class="mb-1.5 flex items-center gap-1.5">
+        <.icon :if={@icon} name={@icon} class="size-3.5 text-muted-foreground" />
+        <label for={@id} class="text-sm font-medium text-foreground/90">{@label}</label>
+      </div>
+      <div :if={@hint} class="sr-only">{@hint}</div>
+      <textarea
+        id={@id}
+        name={@name}
+        rows={@rows}
+        class={input_component_class(@rest[:disabled] || false)}
+        {@rest}
+      >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
+      <p :if={@hint} class="mt-1.5 text-xs text-muted-foreground">{@hint}</p>
+    </div>
+    """
+  end
+
+  def input_component(assigns) do
+    assigns = assign_component_field(assigns)
+
+    ~H"""
+    <div>
+      <div class="mb-1.5 flex items-center gap-1.5">
+        <.icon :if={@icon} name={@icon} class="size-3.5 text-muted-foreground" />
+        <label for={@id} class="text-sm font-medium text-foreground/90">{@label}</label>
+      </div>
+      <div :if={@hint} class="sr-only">{@hint}</div>
+      <input
+        type={@type}
+        id={@id}
+        name={@name}
+        value={Phoenix.HTML.Form.normalize_value(@type, @value)}
+        class={input_component_class(@rest[:disabled] || false)}
+        {@rest}
+      />
+      <p :if={@hint} class="mt-1.5 text-xs text-muted-foreground">{@hint}</p>
+    </div>
+    """
+  end
+
+  defp assign_component_field(%{field: %Phoenix.HTML.FormField{} = field} = assigns) do
+    assigns
+    |> assign(field: nil, id: assigns.id || field.id)
+    |> assign_new(:name, fn -> field.name end)
+    |> assign_new(:value, fn -> field.value end)
+  end
+
+  defp assign_component_field(assigns), do: assigns
+
+  defp input_component_class(false),
+    do:
+      "w-full resize-none rounded-xl border border-border bg-muted/30 px-3.5 py-2.5 text-sm leading-6 text-foreground placeholder:text-muted-foreground/50 transition focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
+
+  defp input_component_class(true),
+    do:
+      "w-full resize-none rounded-xl border border-border/60 bg-muted/30 px-3.5 py-2.5 text-sm leading-6 text-muted-foreground transition cursor-not-allowed"
+
   # Helper used by inputs to generate form errors
   defp error(assigns) do
     ~H"""

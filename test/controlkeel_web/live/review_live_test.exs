@@ -80,4 +80,30 @@ defmodule ControlKeelWeb.ReviewLiveTest do
     assert html =~ "Harness quality checks"
     assert html =~ "Proof metadata is preserved"
   end
+
+  test "review live renders respond header controls, textareas, and audit trail timeline", %{
+    conn: conn
+  } do
+    session = session_fixture()
+    task = task_fixture(%{session: session, status: "queued", title: "Respond UI test"})
+
+    assert {:ok, review} =
+             Mission.submit_review(%{
+               "task_id" => task.id,
+               "review_type" => "plan",
+               "submission_body" => "Plan submission for UI test"
+             })
+
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{review.session_id}/reviews/#{review.id}")
+
+    assert html =~ "Respond"
+    assert html =~ "Pending"
+    assert html =~ "Approve"
+    assert html =~ "Deny"
+    assert html =~ "Feedback notes"
+    assert html =~ "Annotations"
+    assert html =~ "placeholder=\"Add notes...\""
+    assert html =~ "Audit trail"
+    assert html =~ "Submitted"
+  end
 end
