@@ -45,34 +45,39 @@ defmodule ControlKeelWeb.ReviewLive do
 
   @impl true
   def handle_event("respond", %{"review_response" => params}, socket) do
-    review = socket.assigns.review
-
-    annotations =
-      case String.trim(params["annotation_text"] || "") do
-        "" -> %{}
-        text -> %{"browser_notes" => text}
-      end
-
-    case Mission.respond_review(review, %{
-           "decision" => params["decision"],
-           "feedback_notes" => params["feedback_notes"],
-           "annotations" => annotations,
-           "reviewed_by" => "browser"
-         }) do
-      {:ok, updated_review} ->
-        {:noreply,
-         socket
-         |> assign_review(updated_review)
-         |> put_flash(:info, "Review response saved.")}
-
-      {:error, {:invalid_arguments, message}} ->
-        {:noreply, put_flash(socket, :error, message)}
-
-      {:error, :not_found} ->
+    case socket.assigns.review do
+      nil ->
         {:noreply, put_flash(socket, :error, "Review not found.")}
 
-      {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to respond to review: #{inspect(reason)}")}
+      review ->
+        annotations =
+          case String.trim(params["annotation_text"] || "") do
+            "" -> %{}
+            text -> %{"browser_notes" => text}
+          end
+
+        case Mission.respond_review(review, %{
+               "decision" => params["decision"],
+               "feedback_notes" => params["feedback_notes"],
+               "annotations" => annotations,
+               "reviewed_by" => "browser"
+             }) do
+          {:ok, updated_review} ->
+            {:noreply,
+             socket
+             |> assign_review(updated_review)
+             |> put_flash(:info, "Review response saved.")}
+
+          {:error, {:invalid_arguments, message}} ->
+            {:noreply, put_flash(socket, :error, message)}
+
+          {:error, :not_found} ->
+            {:noreply, put_flash(socket, :error, "Review not found.")}
+
+          {:error, reason} ->
+            {:noreply,
+             put_flash(socket, :error, "Failed to respond to review: #{inspect(reason)}")}
+        end
     end
   end
 

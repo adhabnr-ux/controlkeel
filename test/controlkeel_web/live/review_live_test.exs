@@ -106,4 +106,21 @@ defmodule ControlKeelWeb.ReviewLiveTest do
     assert html =~ "Audit trail"
     assert html =~ "Submitted"
   end
+
+  test "respond with no review loaded flashes an error instead of raising" do
+    socket = %Phoenix.LiveView.Socket{
+      assigns: %{__changed__: %{}, review: nil, flash: %{}}
+    }
+
+    assert {:noreply, socket} =
+             ControlKeelWeb.ReviewLive.handle_event(
+               "respond",
+               %{
+                 "review_response" => %{"decision" => "approved"}
+               },
+               socket
+             )
+
+    assert socket.assigns.flash["error"] == "Review not found."
+  end
 end
