@@ -48,7 +48,7 @@ defmodule ControlKeelWeb.SessionReviewsLive do
         <span aria-hidden="true" class="size-1.5 rounded-full bg-warning" />
         <span>{@review_counts.pending} pending</span>
         <span aria-hidden="true" class="size-1.5 rounded-full bg-success" />
-        <span>{resolved_count(@reviews)} resolved</span>
+        <span>{@review_counts.total - @review_counts.pending} resolved</span>
       </div>
 
       <div class="bg-card border rounded-2xl shadow-card overflow-clip">
@@ -122,10 +122,6 @@ defmodule ControlKeelWeb.SessionReviewsLive do
   end
 
   defp schedule_refresh, do: Process.send_after(self(), :refresh, @refresh_interval_ms)
-
-  defp resolved_count(reviews) do
-    Enum.count(reviews, &(&1.status in ["approved", "denied", "superseded"]))
-  end
 
   defp event_timestamp(nil), do: "unknown"
 

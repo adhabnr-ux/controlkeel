@@ -181,23 +181,13 @@ defmodule ControlKeel.MCP.Tools.ReviewHelpers do
 
   defp safe_review_url(%{session_id: session_id, id: review_id})
        when is_integer(session_id) and is_integer(review_id),
-       do: build_review_url(session_id, review_id)
+       do: ReviewBridge.browser_url(session_id, review_id)
 
   defp safe_review_url(%{"session_id" => session_id, "id" => review_id})
        when is_integer(session_id) and is_integer(review_id),
-       do: build_review_url(session_id, review_id)
+       do: ReviewBridge.browser_url(session_id, review_id)
 
   defp safe_review_url(_review), do: nil
-
-  defp build_review_url(session_id, review_id) do
-    try do
-      ControlKeelWeb.Endpoint.url() <> "/sessions/#{session_id}/reviews/#{review_id}"
-    rescue
-      _ -> nil
-    catch
-      _, _ -> nil
-    end
-  end
 
   defp take_balanced_json_object("{" <> _ = input) do
     bytes = :binary.bin_to_list(input)

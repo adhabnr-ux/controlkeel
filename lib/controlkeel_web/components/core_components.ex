@@ -355,7 +355,7 @@ defmodule ControlKeelWeb.CoreComponents do
 
     ~H"""
     <div>
-      <.component_field_header icon={@icon} label={@label} hint={@hint} id={@id} />
+      <.component_field_header icon={@icon} label={@label} id={@id} />
       <input
         type={@type}
         id={@id}
@@ -374,9 +374,10 @@ defmodule ControlKeelWeb.CoreComponents do
       "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm"
 
   @doc """
-  Renders a labeled textarea with the alternate soft-surface styling.
+  Renders a labeled textarea with the soft-surface styling.
 
-  See the migration note in `input_component/1`.
+  Accepts a `Phoenix.HTML.FormField` for the bound field, an optional icon
+  and hint.
 
   ## Examples
 
@@ -400,7 +401,7 @@ defmodule ControlKeelWeb.CoreComponents do
 
     ~H"""
     <div>
-      <.component_field_header icon={@icon} label={@label} hint={@hint} id={@id} />
+      <.component_field_header icon={@icon} label={@label} id={@id} />
       <textarea
         id={@id}
         name={@name}
@@ -422,7 +423,6 @@ defmodule ControlKeelWeb.CoreComponents do
       <.icon :if={@icon} name={@icon} class="size-3.5 text-muted-foreground" />
       <label for={@id} class="text-sm font-medium text-foreground/90">{@label}</label>
     </div>
-    <div :if={@hint} class="sr-only">{@hint}</div>
     """
   end
 
