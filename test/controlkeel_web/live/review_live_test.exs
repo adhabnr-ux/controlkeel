@@ -123,4 +123,38 @@ defmodule ControlKeelWeb.ReviewLiveTest do
 
     assert socket.assigns.flash["error"] == "Review not found."
   end
+
+  test "review live renders later resubmissions as revisions", %{conn: conn} do
+    session = session_fixture()
+    task = task_fixture(%{session: session, status: "queued", title: "Revision rendering"})
+
+    assert {:ok, parent} =
+             Mission.submit_review(%{
+               "task_id" => task.id,
+               "review_type" => "plan",
+               "submission_body" => "Original plan submission",
+               "title" => "Original plan"
+             })
+
+    assert {:ok, revision} =
+             Mission.submit_review(%{
+               "task_id" => task.id,
+               "review_type" => "plan",
+               "submission_body" => "Revised plan submission",
+               "title" => "Revised plan",
+               "previous_review_id" => parent.id
+             })
+
+    {:ok, view, html} = live(conn, ~p"/sessions/#{parent.session_id}/reviews/#{parent.id}")
+
+    assert html =~ "Revisions"
+    assert html =~ "Later resubmissions of this review"
+    assert html =~ "Revised plan"
+
+    assert view
+           |> element("#review-revisions-card a[href*='reviews/#{revision.id}']")
+           |> render()
+
+    assert html =~ String.capitalize(revision.status)
+  end
 end

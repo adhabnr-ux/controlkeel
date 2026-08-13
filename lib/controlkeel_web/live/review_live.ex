@@ -215,6 +215,44 @@ defmodule ControlKeelWeb.ReviewLive do
                 <% end %>
               </div>
             </article>
+
+            <article
+              class="rounded-2xl border bg-card p-5 shadow-card"
+              id="review-revisions-card"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <.card_title>Revisions</.card_title>
+                <span class="inline-flex rounded-full border px-2.5 py-1 text-xs text-muted-foreground">
+                  {length(@review.revisions)}
+                </span>
+              </div>
+              <p class="mt-1 text-sm text-muted-foreground">
+                Later resubmissions of this review
+              </p>
+              <ul class="mt-4 space-y-3">
+                <li
+                  :for={revision <- @review.revisions}
+                  class="flex items-center justify-between gap-3"
+                >
+                  <div>
+                    <.link
+                      navigate={
+                        ~p"/sessions/#{revision.session_id || @review.session_id}/reviews/#{revision.id}"
+                      }
+                      class="font-medium text-sm hover:text-primary"
+                    >
+                      {revision.title}
+                    </.link>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
+                      {String.capitalize(revision.review_type)} · {format_dt(revision.inserted_at)}
+                    </p>
+                  </div>
+                  <span class={status_text_class(revision.status)}>
+                    {String.capitalize(revision.status)}
+                  </span>
+                </li>
+              </ul>
+            </article>
           </div>
 
           <div
