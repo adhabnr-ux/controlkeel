@@ -105,11 +105,11 @@ defmodule ControlKeelWeb.Router do
       live "/deploy", DeploymentLive, :index
     end
 
-    # Observability section routes use the :observability framework layout
-    # (ControlKeelWeb.Layouts). LayoutDefaults sets shared layout assigns
-    # (@current_path, @page_action) for active-link highlighting.
+    # Observability section routes use the shared :dashboard framework layout;
+    # each page renders its own heading. LayoutDefaults sets shared layout
+    # assigns (@current_path, @page_action) for active-link highlighting.
     live_session :observability,
-      layout: {ControlKeelWeb.Layouts, :observability},
+      layout: {ControlKeelWeb.Layouts, :dashboard},
       on_mount: [
         {ControlKeelWeb.LiveAuth, :require_cloud_auth},
         ControlKeelWeb.LayoutDefaults
