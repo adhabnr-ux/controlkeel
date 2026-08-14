@@ -29,8 +29,11 @@ defmodule ControlKeelWeb.Layouts do
     assigns = assign_new(assigns, :mode, fn -> ControlKeel.Runtime.Mode.current() end)
 
     ~H"""
-    <aside class="hidden h-screen w-64 flex-col border-r bg-sidebar px-4 py-5 shadow-2xl shadow-black/30 lg:flex">
-      <a href={~p"/dashboard"} class="flex items-center gap-3 rounded-2xl px-2 py-1.5">
+    <aside
+      id="app-sidebar"
+      class="hidden h-screen w-64 flex-col border-r bg-sidebar shadow-2xl shadow-black/30 lg:flex"
+    >
+      <.link navigate={~p"/dashboard"} class="flex items-center gap-3 px-3 py-4">
         <span class="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
           <.icon name="hero-bolt-solid" class="size-5" />
         </span>
@@ -38,18 +41,62 @@ defmodule ControlKeelWeb.Layouts do
           <span class="block text-sm font-semibold tracking-wide text-foreground">ControlKeel</span>
           <span class="block text-xs text-muted-foreground">Governance memory</span>
         </span>
-      </a>
+      </.link>
 
-      <nav data-sidebar class="mt-8 flex flex-1 flex-col gap-1 text-sm">
-        <%= for {path, icon, label} <- nav_items() do %>
-          <% active = sidebar_active?(@current_path, path) %>
-          <a href={path} data-sidebar-link class={sidebar_link_class(active)}>
-            <.icon name={icon} class={sidebar_icon_class(active)} /> {label}
-          </a>
+      <nav
+        id="sidebar-nav"
+        phx-hook="SidebarNav"
+        class="mt-2 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 overscroll-contain text-sm"
+      >
+        <%= for item <- nav_items() do %>
+          <% active = nav_active?(@current_path, item.href) %>
+          <% label_id = Phoenix.Naming.underscore(item.label) %>
+          <%= if item[:children] do %>
+            <% opened = active %>
+            <% collapse_id = "sidebar-collapse-#{label_id}" %>
+            <% chevron_id = "sidebar-chevron-#{label_id}" %>
+            <div class="flex flex-col gap-1">
+              <button
+                type="button"
+                id={"sidebar-toggle-#{label_id}"}
+                data-sidebar-toggle
+                aria-expanded={(opened && "true") || "false"}
+                aria-controls={collapse_id}
+                class={["w-full text-left cursor-pointer", sidebar_link_class(active)]}
+              >
+                <.icon name={item.icon} class={sidebar_icon_class(active)} />
+                <span class="flex-1">{item.label}</span>
+                <span
+                  id={chevron_id}
+                  class={[
+                    "inline-flex shrink-0 transition-transform duration-200 text-muted-foreground",
+                    opened && "rotate-90"
+                  ]}
+                >
+                  <.icon name="hero-chevron-right" class="size-4 shrink-0" />
+                </span>
+              </button>
+              <div id={collapse_id} class={unless opened, do: "hidden"}>
+                <.sidebar_children
+                  children={item.children}
+                  current_path={@current_path}
+                  parent_href={item.href}
+                />
+              </div>
+            </div>
+          <% else %>
+            <.link
+              navigate={item.href}
+              aria-current={active && "page"}
+              class={sidebar_link_class(active)}
+            >
+              <.icon name={item.icon} class={sidebar_icon_class(active)} /> {item.label}
+            </.link>
+          <% end %>
         <% end %>
       </nav>
 
-      <div class="mt-3 flex flex-col gap-1 border-t pt-3">
+      <div class="flex flex-col gap-1 border-t mt-2 px-3 py-2">
         <a
           href={~p"/getting-started"}
           target="_blank"
@@ -66,39 +113,99 @@ defmodule ControlKeelWeb.Layouts do
         >
           <.icon name="hero-code-bracket" class="size-4" /> GitHub
         </a>
-      </div>
 
-      <.user_menu
-        :if={@current_user != nil and @mode != :local}
-        id="sidebar-user-menu"
-        current_user={@current_user}
-        class="mt-3 border-t pt-3"
-        popover_class="bottom-20 right-4"
-      />
+        <.user_menu
+          :if={@current_user != nil and @mode != :local}
+          id="sidebar-user-menu"
+          current_user={@current_user}
+          class="mt-3 border-t pt-3"
+          popover_class="bottom-20 right-4"
+        />
+      </div>
     </aside>
     """
   end
 
   defp nav_items do
     [
-      {~p"/dashboard", "hero-squares-2x2", "Dashboard"},
-      {~p"/sessions", "hero-rocket-launch", "Sessions"},
-      {~p"/organizations", "hero-building-office-2", "Organizations"},
-      {~p"/skills", "hero-puzzle-piece", "Skills"},
-      {~p"/proofs", "hero-shield-check", "Proofs"},
-      {~p"/policies", "hero-adjustments-horizontal", "Policy Studio"},
-      {~p"/deploy", "hero-cloud-arrow-up", "Deploy"},
-      {~p"/benchmarks", "hero-chart-bar-square", "Benchmarks"},
-      {~p"/findings", "hero-exclamation-triangle", "Findings"},
-      {~p"/observability", "hero-signal", "Observability"}
+      %{label: "Dashboard", href: ~p"/dashboard", icon: "hero-squares-2x2"},
+      %{label: "Sessions", href: ~p"/sessions", icon: "hero-rocket-launch"},
+      %{label: "Organizations", href: ~p"/organizations", icon: "hero-building-office-2"},
+      %{label: "Skills", href: ~p"/skills", icon: "hero-puzzle-piece"},
+      %{label: "Proofs", href: ~p"/proofs", icon: "hero-shield-check"},
+      %{label: "Policy Studio", href: ~p"/policies", icon: "hero-adjustments-horizontal"},
+      %{label: "Deploy", href: ~p"/deploy", icon: "hero-cloud-arrow-up"},
+      %{label: "Benchmarks", href: ~p"/benchmarks", icon: "hero-chart-bar-square"},
+      %{label: "Findings", href: ~p"/findings", icon: "hero-exclamation-triangle"},
+      %{
+        label: "Observability",
+        href: ~p"/observability",
+        icon: "hero-signal",
+        children: [
+          %{group: "Workspace signals"},
+          %{label: "Overview", href: ~p"/observability", icon: "hero-signal"},
+          %{label: "Learning loop", href: ~p"/observability/loop", icon: "hero-arrow-path"},
+          %{
+            label: "Memory quality",
+            href: ~p"/observability/memory-quality",
+            icon: "hero-cpu-chip"
+          },
+          %{label: "Trends", href: ~p"/observability/trends", icon: "hero-arrow-trending-up"},
+          %{
+            label: "Problems",
+            href: ~p"/observability/problems",
+            icon: "hero-exclamation-triangle"
+          },
+          %{
+            label: "Recommendations",
+            href: ~p"/observability/recommendations",
+            icon: "hero-light-bulb"
+          },
+          %{group: "Evals"},
+          %{label: "Evals", href: ~p"/observability/evals", icon: "hero-chart-pie"},
+          %{
+            label: "Saved evals",
+            href: ~p"/observability/evals/persisted",
+            icon: "hero-bookmark"
+          },
+          %{group: "Benchmarks"},
+          %{
+            label: "Drafts",
+            href: ~p"/observability/benchmarks/drafts",
+            icon: "hero-pencil-square"
+          },
+          %{
+            label: "Scenarios",
+            href: ~p"/observability/benchmarks/scenarios",
+            icon: "hero-beaker"
+          },
+          %{label: "History", href: ~p"/observability/benchmarks/history", icon: "hero-clock"},
+          %{
+            label: "Regressions",
+            href: ~p"/observability/regressions",
+            icon: "hero-arrow-trending-down"
+          },
+          %{group: "Delivery & data"},
+          %{label: "Costs", href: ~p"/observability/costs", icon: "hero-currency-dollar"},
+          %{label: "Imports", href: ~p"/observability/imports", icon: "hero-arrow-down-tray"},
+          %{label: "Compare", href: ~p"/observability/compare", icon: "hero-scale"},
+          %{label: "Promotions", href: ~p"/observability/promotions", icon: "hero-trophy"}
+        ]
+      }
     ]
   end
 
-  defp sidebar_active?(current_path, path) when is_binary(current_path) and is_binary(path) do
+  defp nav_active?(current_path, path, exact \\ false)
+
+  defp nav_active?(current_path, path, true) when is_binary(current_path) and is_binary(path) do
+    current_path == path
+  end
+
+  defp nav_active?(current_path, path, false) when is_binary(current_path) and is_binary(path) do
     current_path == path or String.starts_with?(current_path, path <> "/")
   end
 
-  defp sidebar_active?(_current_path, _path), do: false
+  defp nav_active?(_current_path, _path, _exact), do: false
 
   defp sidebar_link_class(true) do
     "group flex items-center gap-3 rounded-xl bg-muted px-3 py-2.5 font-medium text-foreground shadow-sm ring-1 ring-border transition hover:bg-muted"
@@ -110,6 +217,46 @@ defmodule ControlKeelWeb.Layouts do
 
   defp sidebar_icon_class(true), do: "size-4 text-primary"
   defp sidebar_icon_class(false), do: "size-4 text-muted-foreground group-hover:text-primary"
+
+  attr :children, :list, required: true
+  attr :current_path, :string, default: nil
+  attr :parent_href, :string, required: true
+
+  def sidebar_children(assigns) do
+    ~H"""
+    <div data-sidebar-subnav class="mt-1 flex flex-col gap-0.5 pl-4 border-l border-border ml-4">
+      <%= for child <- @children do %>
+        <%= if child[:group] do %>
+          <p class="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            {child.group}
+          </p>
+        <% else %>
+          <% active = nav_active?(@current_path, child.href, child.href == @parent_href) %>
+          <.link
+            navigate={child.href}
+            aria-current={active && "page"}
+            class={subnav_link_class(active)}
+          >
+            <.icon name={child.icon} class={subnav_icon_class(active)} /> {child.label}
+          </.link>
+        <% end %>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp subnav_link_class(true) do
+    "group flex items-center gap-2.5 rounded-lg bg-muted px-2.5 py-1.5 text-sm font-medium text-foreground shadow-sm ring-1 ring-border transition hover:bg-muted"
+  end
+
+  defp subnav_link_class(false) do
+    "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+  end
+
+  defp subnav_icon_class(true), do: "size-3.5 shrink-0 text-primary"
+
+  defp subnav_icon_class(false),
+    do: "size-3.5 shrink-0 text-muted-foreground/70 group-hover:text-primary"
 
   attr :id, :string, required: true
   attr :current_user, :any, required: true
@@ -372,20 +519,6 @@ defmodule ControlKeelWeb.Layouts do
     |> String.split(" ")
     |> Enum.map(&String.capitalize/1)
     |> Enum.join(" ")
-  end
-
-  # Active-link class for the observability subnav. `path == current_path`
-  # highlights the current page.
-  defp nav_link_class(path, current_path) do
-    active = path == current_path
-
-    base = "text-sm font-medium transition-colors px-3 py-1.5 rounded-lg border"
-
-    if active do
-      "#{base} text-primary bg-[rgba(190,242,100,0.1)] border-primary"
-    else
-      "#{base} hover:text-primary bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.06)]"
-    end
   end
 
   # Tab styling for the observability session layout (Overview / Timeline /
