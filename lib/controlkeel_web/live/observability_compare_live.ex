@@ -31,111 +31,104 @@ defmodule ControlKeelWeb.ObservabilityCompareLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section
-      id="observability-compare"
-      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
-    >
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold text-primary">Compare invocations</h1>
-          <p class="text-muted-foreground text-sm mt-1">
+    <section id="observability-compare" class="w-full space-y-8">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="space-y-2">
+          <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
+            Compare invocations
+          </h1>
+          <p class="text-sm text-muted-foreground">
             Local host, model, provider, and tool comparison from recorded invocation metrics.
           </p>
         </div>
-        <div class="flex items-center gap-3 shrink-0">
-          <span class="inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+        <div class="flex flex-wrap items-center gap-3 shrink-0 justify-end">
+          <span id="observability-compare-count" class={neutral_pill_class()}>
             {@comparison.totals.invocations} invocation(s)
           </span>
         </div>
       </div>
 
-      <CommandPill.command_pill command="controlkeel obs compare" />
+      <div class="flex flex-wrap items-center gap-3">
+        <CommandPill.command_pill command="controlkeel obs compare" />
+      </div>
 
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Invocations
-          </p>
-          <p class="text-2xl font-semibold">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-1">
+          <p class="text-sm font-medium text-muted-foreground">Invocations</p>
+          <p class="text-2xl font-semibold text-foreground/90">
             {@comparison.totals.invocations}
           </p>
-          <p class="text-muted-foreground text-xs">
+          <p class="text-xs text-muted-foreground">
             {@comparison.totals.sessions} session(s)
           </p>
-        </div>
-        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Estimated spend
-          </p>
-          <p class="text-2xl font-semibold">
+        </section>
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-1">
+          <p class="text-sm font-medium text-muted-foreground">Estimated spend</p>
+          <p class="text-2xl font-semibold text-foreground/90">
             {format_currency(@comparison.totals.estimated_cost_cents)}
           </p>
-          <p class="text-muted-foreground text-xs">Across compared calls</p>
-        </div>
-        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Tokens</p>
-          <p class="text-2xl font-semibold">
+          <p class="text-xs text-muted-foreground">Across compared calls</p>
+        </section>
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-1">
+          <p class="text-sm font-medium text-muted-foreground">Tokens</p>
+          <p class="text-2xl font-semibold text-foreground/90">
             {@comparison.totals.input_tokens + @comparison.totals.cached_input_tokens +
               @comparison.totals.output_tokens}
           </p>
-          <p class="text-muted-foreground text-xs">Input, cached, and output</p>
-        </div>
+          <p class="text-xs text-muted-foreground">Input, cached, and output</p>
+        </section>
       </div>
 
       <%= if @comparison.recommendations != [] do %>
-        <div class="space-y-2">
-          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-            Recommendations
-          </p>
-          <ul class="list-disc pl-5">
-            <%= for recommendation <- @comparison.recommendations do %>
-              <li class="text-muted-foreground text-sm leading-relaxed">{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-3">
+          <.section_title>Recommendations</.section_title>
+          <%= for recommendation <- @comparison.recommendations do %>
+            <p class="text-sm leading-relaxed text-muted-foreground">{recommendation}</p>
+          <% end %>
+        </section>
       <% end %>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <%= for {grouping, comparison} <- @comparisons do %>
-          <div
-            id={"observability-compare-by-#{grouping}"}
-            class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-3"
-          >
-            <div class="flex items-center justify-between gap-2">
-              <div>
-                <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                  Compared by
+      <div class="space-y-4">
+        <.section_title>Group comparisons</.section_title>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <%= for {grouping, comparison} <- @comparisons do %>
+            <section
+              id={"observability-compare-by-#{grouping}"}
+              class="rounded-2xl border bg-card p-5 shadow-card space-y-4"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-sm font-medium text-muted-foreground">
+                  Compared by <span class="font-semibold text-foreground">{grouping}</span>
                 </p>
-                <p class="text-base font-semibold capitalize">{grouping}</p>
+                <span class="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
+                  {length(comparison.groups)} group(s)
+                </span>
               </div>
-              <span class="inline-flex items-center border rounded-full px-2.5 py-1 text-xs bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
-                {length(comparison.groups)} group(s)
-              </span>
-            </div>
 
-            <%= if comparison.groups == [] do %>
-              <p class="text-muted-foreground text-sm">
-                No invocation data is available for comparison yet.
-              </p>
-            <% else %>
-              <div class="space-y-2">
-                <%= for group <- comparison.groups do %>
-                  <div class="border-t pt-2 space-y-1">
-                    <p class="text-sm font-semibold">{group.name}</p>
-                    <p class="text-muted-foreground text-xs">
-                      {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.cost_per_call_cents} cent(s)/call · {group.tokens_per_call} token(s)/call
-                    </p>
-                    <%= if group.decisions && group.decisions != %{} do %>
-                      <p class="text-muted-foreground text-xs">
-                        Decisions: {format_frequency(group.decisions)}
+              <%= if comparison.groups == [] do %>
+                <p class="text-sm text-muted-foreground">
+                  No invocation data is available for comparison yet.
+                </p>
+              <% else %>
+                <div class="divide-y divide-border">
+                  <%= for group <- comparison.groups do %>
+                    <div class="space-y-1 py-2.5 first:pt-0 last:pb-0">
+                      <p class="text-sm font-medium text-foreground">{group.name}</p>
+                      <p class="text-xs text-muted-foreground">
+                        {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.cost_per_call_cents} cent(s)/call · {group.tokens_per_call} token(s)/call
                       </p>
-                    <% end %>
-                  </div>
-                <% end %>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
+                      <%= if group.decisions && group.decisions != %{} do %>
+                        <p class="text-xs text-muted-foreground">
+                          Decisions: {format_frequency(group.decisions)}
+                        </p>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </section>
+          <% end %>
+        </div>
       </div>
     </section>
     """

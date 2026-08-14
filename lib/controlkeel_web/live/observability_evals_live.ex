@@ -12,114 +12,202 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
     recent_session = Mission.list_recent_sessions(1) |> List.first()
     opts = if recent_session, do: [workspace_id: recent_session.workspace_id], else: []
     eval_candidates = Observability.eval_candidates(opts)
+    saved = Observability.saved_eval_candidates(opts)
 
     {:ok,
      socket
      |> assign(:page_title, "Observability Eval Candidates")
-     |> assign(:eval_candidates, eval_candidates)}
+     |> assign(:eval_candidates, eval_candidates)
+     |> assign(:saved, saved)}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <section
-      id="observability-evals-page"
-      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
-    >
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold text-primary">Eval candidates</h1>
-          <p class="text-muted-foreground text-sm mt-1">
+    <section id="observability-evals-page" class="w-full space-y-8">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="space-y-2">
+          <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
+            Eval candidates
+          </h1>
+          <p class="text-sm text-muted-foreground">
             Advisory regression candidates derived from grouped problems and feedback evidence.
           </p>
         </div>
-        <div class="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+        <div class="flex flex-wrap items-center gap-3 shrink-0 justify-end">
           <span id="observability-evals-health" class={health_pill_class(@eval_candidates.health)}>
             {@eval_candidates.health}
           </span>
-          <span class={neutral_pill_class()}>{@eval_candidates.count} candidate(s)</span>
+          <span class="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
+            {@eval_candidates.count} candidate(s)
+          </span>
         </div>
       </div>
 
-      <CommandPill.command_pill command="controlkeel obs evals" />
+      <div class="flex flex-wrap items-center gap-3">
+        <CommandPill.command_pill command="controlkeel obs evals" />
+        <CommandPill.command_pill command="controlkeel obs evals save" />
+        <p class="text-xs text-muted-foreground">
+          Save persists the current advisory candidates locally for human-gated review.
+        </p>
+      </div>
 
       <%= if @eval_candidates.recommendations != [] do %>
-        <div class="space-y-2">
-          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-            Recommended next actions
-          </p>
-          <ul class="list-disc pl-5">
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-4">
+          <.section_title>Recommended next actions</.section_title>
+          <ul class="space-y-2 text-sm leading-relaxed text-muted-foreground list-disc ml-5">
             <%= for recommendation <- @eval_candidates.recommendations do %>
-              <li class="text-muted-foreground text-sm leading-relaxed">{recommendation}</li>
+              <li>{recommendation}</li>
             <% end %>
           </ul>
-        </div>
+        </section>
       <% end %>
 
-      <div id="observability-evals-list" class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-          Active candidates
-        </p>
+      <section
+        id="observability-evals-list"
+        class="rounded-2xl border bg-card p-5 shadow-card space-y-4"
+      >
+        <.section_title>Active candidates</.section_title>
         <%= if @eval_candidates.candidates == [] do %>
-          <p class="text-muted-foreground text-sm">
+          <p class="text-sm text-muted-foreground">
             No eval candidates are currently active.
           </p>
         <% else %>
-          <%= for candidate <- @eval_candidates.candidates do %>
-            <div
-              id={"observability-eval-#{candidate.id}"}
-              class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-2"
-            >
-              <div class="flex items-center justify-between gap-4">
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    {candidate.category}
-                  </p>
-                  <p class="text-sm font-semibold">{candidate.title}</p>
+          <div class="divide-y divide-border">
+            <%= for candidate <- @eval_candidates.candidates do %>
+              <div
+                id={"observability-eval-#{candidate.id}"}
+                class="space-y-2 py-3 first:pt-0 last:pb-0"
+              >
+                <div class="flex items-center justify-between gap-4">
+                  <div class="min-w-0 space-y-1">
+                    <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {candidate.category}
+                    </p>
+                    <p class="text-sm font-medium text-foreground">{candidate.title}</p>
+                  </div>
+                  <span class={priority_pill_class(candidate.priority)}>{candidate.priority}</span>
                 </div>
-                <span class={priority_pill_class(candidate.priority)}>{candidate.priority}</span>
+                <p class="text-xs text-muted-foreground">
+                  {candidate.rule_id} · {candidate.finding_count} finding(s) · {candidate.affected_session_count} session(s)
+                </p>
+                <p class="text-sm leading-relaxed text-foreground">
+                  {candidate.evidence_summary}
+                </p>
+                <p class="text-xs text-muted-foreground">
+                  Benchmark hint: {candidate.benchmark_hint}
+                </p>
+                <p class="text-xs text-muted-foreground">
+                  Human gate required: {candidate.human_gate_required}
+                </p>
               </div>
-              <p class="text-muted-foreground text-xs">
-                {candidate.rule_id} · {candidate.finding_count} finding(s) · {candidate.affected_session_count} session(s)
-              </p>
-              <p class="text-sm leading-relaxed">
-                {candidate.evidence_summary}
-              </p>
-              <p class="text-muted-foreground text-xs">
-                Benchmark hint: {candidate.benchmark_hint}
-              </p>
-              <p class="text-muted-foreground text-xs">
-                Human gate required: {candidate.human_gate_required}
-              </p>
-            </div>
-          <% end %>
+            <% end %>
+          </div>
         <% end %>
+      </section>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <article
+          id="observability-persisted-evals-status"
+          class="rounded-2xl border bg-card p-5 shadow-card"
+        >
+          <p class="text-sm font-medium text-muted-foreground">Saved status</p>
+          <p class="mt-2 text-lg font-semibold text-foreground/90">
+            {format_frequency(@saved.by_status)}
+          </p>
+        </article>
+
+        <article
+          id="observability-persisted-evals-priority"
+          class="rounded-2xl border bg-card p-5 shadow-card"
+        >
+          <p class="text-sm font-medium text-muted-foreground">Saved priority</p>
+          <p class="mt-2 text-lg font-semibold text-foreground/90">
+            {format_frequency(@saved.by_priority)}
+          </p>
+        </article>
       </div>
+
+      <section
+        id="observability-persisted-evals-list"
+        class="rounded-2xl border bg-card p-5 shadow-card space-y-4"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <.section_title>Saved eval candidates</.section_title>
+          <span class="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
+            {@saved.count} saved
+          </span>
+        </div>
+        <%= if @saved.candidates == [] do %>
+          <p class="text-sm text-muted-foreground">No saved eval candidates yet.</p>
+        <% else %>
+          <div class="divide-y divide-border">
+            <%= for candidate <- @saved.candidates do %>
+              <div
+                id={"observability-persisted-eval-#{candidate.id}"}
+                class="space-y-2 py-3 first:pt-0 last:pb-0"
+              >
+                <div class="flex items-center justify-between gap-4">
+                  <div class="min-w-0 space-y-1">
+                    <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {candidate.category || "uncategorized"}
+                    </p>
+                    <p class="text-sm font-medium text-foreground">{candidate.title}</p>
+                  </div>
+                  <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                    {candidate.status}
+                  </span>
+                </div>
+                <p class="text-xs text-muted-foreground">
+                  {candidate.rule_id} · {candidate.priority} · human gate {candidate.human_gate_required}
+                </p>
+                <p class="text-sm leading-relaxed text-foreground">
+                  {candidate.evidence_summary}
+                </p>
+                <p class="text-xs text-muted-foreground">Next: {candidate.suggested_action}</p>
+                <p class="text-xs text-muted-foreground">
+                  Benchmark hint: {candidate.benchmark_hint || "none"}
+                </p>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </section>
     </section>
     """
   end
 
   defp health_pill_class("red"),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-destructive/10 text-destructive ring-destructive/20"
 
   defp health_pill_class("yellow"),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-warning/10 text-warning ring-warning/20"
 
   defp health_pill_class(_),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-success/10 text-success ring-success/20"
 
   defp priority_pill_class("critical"),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+      "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 bg-destructive/10 text-destructive ring-destructive/20"
 
   defp priority_pill_class("high"),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 bg-warning/10 text-warning ring-warning/20"
 
   defp priority_pill_class(_),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,255,255,0.04)]"
+      "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 bg-muted text-foreground ring-border"
+
+  defp format_frequency(map) when map == %{}, do: "none"
+
+  defp format_frequency(map) when is_map(map) do
+    map
+    |> Enum.sort_by(fn {_key, count} -> count end, :desc)
+    |> Enum.take(4)
+    |> Enum.map(fn {key, count} -> "#{key}: #{count}" end)
+    |> Enum.join(", ")
+  end
 end

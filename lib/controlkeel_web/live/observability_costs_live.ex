@@ -31,100 +31,83 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section
-      id="observability-costs"
-      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
-    >
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold text-primary">Costs</h1>
-          <p class="text-muted-foreground text-sm mt-1">
-            Estimated spend, token usage, and invocation counts grouped by model, tool, source, or provider.
-          </p>
-        </div>
+    <section id="observability-costs" class="w-full space-y-8">
+      <div class="space-y-2">
+        <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">Costs</h1>
+        <p class="text-sm text-muted-foreground">
+          Estimated spend, token usage, and invocation counts grouped by model, tool, source, or provider.
+        </p>
       </div>
 
-      <CommandPill.command_pill command="controlkeel obs costs" />
+      <div class="flex flex-wrap items-center gap-3">
+        <CommandPill.command_pill command="controlkeel obs costs" />
+      </div>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Invocations
-          </p>
-          <p class="text-2xl font-semibold">{@costs.totals.invocations}</p>
-          <p class="text-muted-foreground text-xs">{@costs.totals.sessions} session(s)</p>
-        </div>
-        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Estimated spend
-          </p>
-          <p class="text-2xl font-semibold">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-1">
+          <p class="text-sm font-medium text-muted-foreground">Invocations</p>
+          <p class="text-2xl font-semibold text-foreground/90">{@costs.totals.invocations}</p>
+          <p class="text-xs text-muted-foreground">{@costs.totals.sessions} session(s)</p>
+        </section>
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-1">
+          <p class="text-sm font-medium text-muted-foreground">Estimated spend</p>
+          <p class="text-2xl font-semibold text-foreground/90">
             {format_currency(@costs.totals.estimated_cost_cents)}
           </p>
-          <p class="text-muted-foreground text-xs">Local invocation estimate</p>
-        </div>
-        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Input tokens
-          </p>
-          <p class="text-2xl font-semibold">{@costs.totals.input_tokens}</p>
-          <p class="text-muted-foreground text-xs">
+          <p class="text-xs text-muted-foreground">Local invocation estimate</p>
+        </section>
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-1">
+          <p class="text-sm font-medium text-muted-foreground">Input tokens</p>
+          <p class="text-2xl font-semibold text-foreground/90">{@costs.totals.input_tokens}</p>
+          <p class="text-xs text-muted-foreground">
             {@costs.totals.cached_input_tokens} cached
           </p>
-        </div>
-        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Output tokens
-          </p>
-          <p class="text-2xl font-semibold">{@costs.totals.output_tokens}</p>
-          <p class="text-muted-foreground text-xs">Across recorded calls</p>
-        </div>
+        </section>
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-1">
+          <p class="text-sm font-medium text-muted-foreground">Output tokens</p>
+          <p class="text-2xl font-semibold text-foreground/90">{@costs.totals.output_tokens}</p>
+          <p class="text-xs text-muted-foreground">Across recorded calls</p>
+        </section>
       </div>
 
       <%= if @costs.recommendations != [] do %>
-        <div class="space-y-2">
-          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-            Recommendations
-          </p>
-          <ul class="list-disc pl-5">
-            <%= for recommendation <- @costs.recommendations do %>
-              <li class="text-muted-foreground text-sm leading-relaxed">{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-3">
+          <.section_title>Recommendations</.section_title>
+          <%= for recommendation <- @costs.recommendations do %>
+            <p class="text-sm leading-relaxed text-muted-foreground">{recommendation}</p>
+          <% end %>
+        </section>
       <% end %>
 
       <div class="space-y-4">
-        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-          Group breakdown
-        </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <.section_title>Group breakdown</.section_title>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <%= for {grouping, costs} <- @grouped_costs do %>
-            <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-3">
-              <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                Grouped by {grouping}
-                <span class="ml-2 text-primary">{length(costs.groups)} group(s)</span>
-              </p>
+            <section class="rounded-2xl border bg-card p-5 shadow-card space-y-4">
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-sm font-medium text-muted-foreground">Grouped by {grouping}</p>
+                <span class="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
+                  {length(costs.groups)} group(s)
+                </span>
+              </div>
 
               <%= if costs.groups == [] do %>
-                <p class="text-muted-foreground text-sm">
+                <p class="text-sm text-muted-foreground">
                   No invocation cost data has been recorded yet.
                 </p>
               <% else %>
-                <div class="space-y-2">
+                <div class="divide-y divide-border">
                   <%= for group <- costs.groups do %>
-                    <div class="flex items-center justify-between gap-2 p-2 rounded-lg border bg-[rgba(255,255,255,0.02)]">
-                      <div>
-                        <p class="text-sm font-medium">{group.name}</p>
-                        <p class="text-muted-foreground text-xs">
-                          {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.input_tokens} input · {group.output_tokens} output
-                        </p>
-                      </div>
+                    <div class="py-2.5 first:pt-0 last:pb-0">
+                      <p class="text-sm font-medium text-foreground">{group.name}</p>
+                      <p class="mt-1 text-xs text-muted-foreground">
+                        {group.invocations} call(s) · {format_currency(group.estimated_cost_cents)} · {group.input_tokens} input · {group.output_tokens} output
+                      </p>
                     </div>
                   <% end %>
                 </div>
               <% end %>
-            </div>
+            </section>
           <% end %>
         </div>
       </div>

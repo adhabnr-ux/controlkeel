@@ -122,7 +122,6 @@ defmodule ControlKeelWeb.Router do
       live "/observability/compare", ObservabilityCompareLive, :index
       live "/observability/costs", ObservabilityCostsLive, :index
       live "/observability/evals", ObservabilityEvalsLive, :index
-      live "/observability/evals/persisted", ObservabilityPersistedEvalsLive, :index
       live "/observability/imports", ObservabilityImportsLive, :index
       live "/observability/memory-quality", ObservabilityMemoryQualityLive, :index
       live "/observability/recommendations", ObservabilityRecommendationsLive, :index

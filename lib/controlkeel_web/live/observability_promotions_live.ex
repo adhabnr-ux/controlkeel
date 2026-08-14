@@ -22,90 +22,82 @@ defmodule ControlKeelWeb.ObservabilityPromotionsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section
-      id="observability-promotions"
-      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
-    >
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold text-primary">Promotion candidates</h1>
-          <p class="text-muted-foreground text-sm mt-1">
+    <section id="observability-promotions" class="w-full space-y-8">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="space-y-2">
+          <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
+            Promotion candidates
+          </h1>
+          <p class="text-sm text-muted-foreground">
             Advisory, human-gated promotion candidates backed by local observability evidence.
           </p>
         </div>
-
-        <div class="flex items-center gap-3 shrink-0">
-          <span class="inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+        <div class="flex flex-wrap items-center gap-3 shrink-0 justify-end">
+          <span id="observability-promotions-count" class={neutral_pill_class()}>
             {@promotions.count} candidate(s)
           </span>
         </div>
       </div>
 
-      <CommandPill.command_pill command="controlkeel obs promotions" />
+      <div class="flex flex-wrap items-center gap-3">
+        <CommandPill.command_pill command="controlkeel obs promotions" />
+      </div>
 
-      <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-        <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-          Execution boundary
-        </p>
-        <p class="text-sm font-semibold">
+      <section class="rounded-2xl border bg-card p-5 shadow-card space-y-1">
+        <p class="text-sm font-medium text-muted-foreground">Execution boundary</p>
+        <p class="text-base font-semibold text-foreground/90">
           Promotion execution: {@promotions.promotion_execution}
         </p>
-        <p class="text-muted-foreground text-xs">
+        <p class="text-xs text-muted-foreground">
           This page does not mutate policy, router, prompt, or autofix artifacts.
         </p>
-      </div>
+      </section>
 
-      <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-        <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-          Recommendations
-        </p>
-
+      <section class="rounded-2xl border bg-card p-5 shadow-card space-y-3">
+        <.section_title>Recommendations</.section_title>
         <%= if @promotions.recommendations == [] do %>
-          <p class="text-muted-foreground text-sm">No promotion recommendations yet.</p>
+          <p class="text-sm text-muted-foreground">No promotion recommendations yet.</p>
         <% else %>
-          <ul class="space-y-2 list-disc pl-4">
-            <%= for recommendation <- @promotions.recommendations do %>
-              <li class=" text-sm leading-relaxed">{recommendation}</li>
-            <% end %>
-          </ul>
-        <% end %>
-      </div>
-
-      <div class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-          Candidates
-        </p>
-
-        <%= if @promotions.candidates == [] do %>
-          <p class="text-muted-foreground text-sm">No promotion candidates yet.</p>
-        <% else %>
-          <%= for candidate <- @promotions.candidates do %>
-            <div
-              id={"observability-promotion-candidate-#{candidate.id}"}
-              class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-1"
-            >
-              <div class="flex items-center justify-between gap-4">
-                <p class="text-sm font-semibold">{candidate.rule_id}</p>
-                <span class={readiness_pill_class(candidate.readiness)}>{candidate.readiness}</span>
-              </div>
-              <p class="text-muted-foreground text-xs">{candidate.suggested_action}</p>
-            </div>
+          <%= for recommendation <- @promotions.recommendations do %>
+            <p class="text-sm leading-relaxed text-muted-foreground">{recommendation}</p>
           <% end %>
         <% end %>
-      </div>
+      </section>
+
+      <section class="rounded-2xl border bg-card p-5 shadow-card space-y-4">
+        <.section_title>Candidates</.section_title>
+        <%= if @promotions.candidates == [] do %>
+          <p class="text-sm text-muted-foreground">No promotion candidates yet.</p>
+        <% else %>
+          <div class="divide-y divide-border">
+            <%= for candidate <- @promotions.candidates do %>
+              <div
+                id={"observability-promotion-candidate-#{candidate.id}"}
+                class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+              >
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-foreground">{candidate.rule_id}</p>
+                  <p class="mt-1 text-xs text-muted-foreground">{candidate.suggested_action}</p>
+                </div>
+                <span class={readiness_pill_class(candidate.readiness)}>{candidate.readiness}</span>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </section>
     </section>
     """
   end
 
   defp readiness_pill_class("ready"),
     do:
-      "inline-flex items-center border rounded-full px-2.5 py-1 text-xs bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 bg-success/10 text-success ring-success/20"
 
   defp readiness_pill_class("needs_draft"),
     do:
-      "inline-flex items-center border rounded-full px-2.5 py-1 text-xs bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 bg-warning/10 text-warning ring-warning/20"
 
   defp readiness_pill_class(_),
     do:
-      "inline-flex items-center border rounded-full px-2.5 py-1 text-xs bg-[rgba(255,255,255,0.06)] text-muted-foreground"
+      "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 bg-muted text-foreground ring-border"
 end

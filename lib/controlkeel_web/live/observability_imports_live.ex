@@ -22,159 +22,144 @@ defmodule ControlKeelWeb.ObservabilityImportsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section
-      id="observability-imports"
-      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
-    >
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold text-primary">Imported snapshots</h1>
-          <p class="text-muted-foreground text-sm mt-1">
+    <section id="observability-imports" class="w-full space-y-8">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="space-y-2">
+          <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
+            Imported snapshots
+          </h1>
+          <p class="text-sm text-muted-foreground">
             Local persisted observability envelopes, listed as summary-only evidence snapshots.
           </p>
         </div>
-        <div class="flex items-center gap-3 shrink-0">
-          <span class="inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+        <div class="flex flex-wrap items-center gap-3 shrink-0 justify-end">
+          <span id="observability-imports-count" class={neutral_pill_class()}>
             {@imports.count} persisted
           </span>
         </div>
       </div>
 
-      <CommandPill.command_pill command="controlkeel obs imports" />
+      <div class="flex flex-wrap items-center gap-3">
+        <CommandPill.command_pill command="controlkeel obs imports" />
+      </div>
 
-      <div class="grid grid-cols-2 gap-4">
-        <div
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <article
           id="observability-imports-integrity"
-          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-2xl border bg-card p-5 shadow-card"
         >
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Integrity
-          </p>
-          <p class="text-base font-semibold">
+          <p class="text-sm font-medium text-muted-foreground">Integrity</p>
+          <p class="mt-2 text-lg font-semibold text-foreground/90">
             {format_frequency(@imports.by_integrity)}
           </p>
-        </div>
-        <div
+        </article>
+        <article
           id="observability-imports-health"
-          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-2xl border bg-card p-5 shadow-card"
         >
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Health</p>
-          <p class="text-base font-semibold">
+          <p class="text-sm font-medium text-muted-foreground">Health</p>
+          <p class="mt-2 text-lg font-semibold text-foreground/90">
             {format_frequency(@imports.by_health)}
           </p>
-        </div>
+        </article>
       </div>
 
       <%= if @imports.recommendations != [] do %>
-        <div class="space-y-2">
-          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-            Recommendations
-          </p>
-          <ul class="list-disc pl-5">
-            <%= for recommendation <- @imports.recommendations do %>
-              <li class="text-muted-foreground text-sm leading-relaxed">{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-3">
+          <.section_title>Recommendations</.section_title>
+          <%= for recommendation <- @imports.recommendations do %>
+            <p class="text-sm leading-relaxed text-muted-foreground">{recommendation}</p>
+          <% end %>
+        </section>
       <% end %>
 
-      <div class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-          Recent imports
-        </p>
+      <section class="rounded-2xl border bg-card p-5 shadow-card space-y-4">
+        <.section_title>Recent imports</.section_title>
         <%= if @imports.recent == [] do %>
-          <p class="text-muted-foreground text-sm">
+          <p class="text-sm text-muted-foreground">
             No persisted observability imports yet.
           </p>
         <% else %>
-          <%= for imported <- @imports.recent do %>
-            <div
-              id={"observability-import-#{imported.id}"}
-              class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-2"
-            >
-              <p class="text-sm font-semibold">
-                {imported.original_session_title || "Unknown session"}
-              </p>
-              <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Imported
-                  </p>
-                  <p>{imported.imported_at || "unknown time"}</p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Exported
-                  </p>
-                  <p>{imported.exported_at || "unknown time"}</p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Session
-                  </p>
-                  <p>#{imported.original_session_id || "unknown"}</p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Health
-                  </p>
-                  <p>{imported.health}</p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Problem groups
-                  </p>
-                  <p>{imported.problem_groups}</p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Findings
-                  </p>
-                  <p>{imported.total_problem_findings}</p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Integrity
-                  </p>
-                  <p>{imported.integrity_status}</p>
-                </div>
-                <div class="col-span-2">
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Fingerprint
-                  </p>
-                  <p class=" font-mono text-[10px] truncate">
-                    {imported.payload_fingerprint || "unknown"}
-                  </p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Mutation
-                  </p>
-                  <p>{imported.mutation}</p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Schema
-                  </p>
-                  <p>{imported.schema_version}</p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Source
-                  </p>
-                  <p>{source_label(imported.source)}</p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    Redaction
-                  </p>
-                  <p>{imported.redaction_policy || "unknown"}</p>
-                </div>
+          <div class="divide-y divide-border">
+            <%= for imported <- @imports.recent do %>
+              <div
+                id={"observability-import-#{imported.id}"}
+                class="space-y-3 py-4 first:pt-0 last:pb-0"
+              >
+                <p class="text-sm font-medium text-foreground">
+                  {imported.original_session_title || "Unknown session"}
+                </p>
+                <dl class="grid grid-cols-2 gap-3 text-xs md:grid-cols-4">
+                  <div>
+                    <dt class="text-muted-foreground">Imported</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">
+                      {imported.imported_at || "unknown time"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Exported</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">
+                      {imported.exported_at || "unknown time"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Session</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">
+                      #{imported.original_session_id || "unknown"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Health</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">{imported.health}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Problem groups</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">{imported.problem_groups}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Findings</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">
+                      {imported.total_problem_findings}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Integrity</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">
+                      {imported.integrity_status}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Mutation</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">{imported.mutation}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Schema</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">{imported.schema_version}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Source</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">
+                      {source_label(imported.source)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Redaction</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">
+                      {imported.redaction_policy || "unknown"}
+                    </dd>
+                  </div>
+                  <div class="col-span-2 md:col-span-4">
+                    <dt class="text-muted-foreground">Fingerprint</dt>
+                    <dd class="mt-0.5 truncate font-mono text-[10px] text-foreground">
+                      {imported.payload_fingerprint || "unknown"}
+                    </dd>
+                  </div>
+                </dl>
               </div>
-            </div>
-          <% end %>
+            <% end %>
+          </div>
         <% end %>
-      </div>
+      </section>
     </section>
     """
   end

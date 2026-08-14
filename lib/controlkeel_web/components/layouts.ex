@@ -161,13 +161,7 @@ defmodule ControlKeelWeb.Layouts do
             href: ~p"/observability/recommendations",
             icon: "hero-light-bulb"
           },
-          %{group: "Evals"},
           %{label: "Evals", href: ~p"/observability/evals", icon: "hero-chart-pie"},
-          %{
-            label: "Saved evals",
-            href: ~p"/observability/evals/persisted",
-            icon: "hero-bookmark"
-          },
           %{group: "Benchmarks"},
           %{
             label: "Drafts",
