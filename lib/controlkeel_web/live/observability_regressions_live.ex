@@ -22,7 +22,7 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section id="observability-regressions" class="w-full space-y-8">
+    <section id="observability-regressions" class="w-full space-y-5">
       <div class="flex items-start justify-between gap-4 flex-wrap">
         <div class="space-y-2">
           <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">

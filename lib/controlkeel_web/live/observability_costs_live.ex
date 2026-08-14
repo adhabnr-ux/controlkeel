@@ -31,7 +31,7 @@ defmodule ControlKeelWeb.ObservabilityCostsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section id="observability-costs" class="w-full space-y-8">
+    <section id="observability-costs" class="w-full space-y-5">
       <div class="space-y-2">
         <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">Costs</h1>
         <p class="text-sm text-muted-foreground">

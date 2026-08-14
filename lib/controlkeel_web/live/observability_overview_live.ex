@@ -23,7 +23,7 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section id="observability-overview-page" class="w-full space-y-8">
+    <section id="observability-overview-page" class="w-full space-y-5">
       <div class="space-y-2">
         <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
           Observability

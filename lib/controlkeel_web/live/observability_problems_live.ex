@@ -21,7 +21,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section id="observability-problem-list" class="w-full space-y-8">
+    <section id="observability-problem-list" class="w-full space-y-5">
       <div class="flex items-start justify-between gap-4 flex-wrap">
         <div class="space-y-2">
           <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
@@ -42,7 +42,7 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
 
       <CommandPill.command_pill command="controlkeel obs problems" />
 
-      <div class="space-y-8">
+      <div class="space-y-5">
         <%= if @problems.recommendations != [] do %>
           <section class="rounded-2xl border bg-card p-5 shadow-card space-y-3">
             <.section_title>Recommendations</.section_title>
