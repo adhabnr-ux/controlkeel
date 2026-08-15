@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.90 — 2026-08-15
+
+### What's changed
+
+- Merge pull request #80 from aryaminus/a11y/flash-dismiss-focus-ring
+- a11y(web): add focus-visible ring to flash dismiss button
+
 ## v0.3.89 — 2026-08-12
 
 ### What's changed
