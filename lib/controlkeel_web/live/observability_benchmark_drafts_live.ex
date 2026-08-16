@@ -26,7 +26,12 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
 
     case Observability.update_benchmark_draft_status(id, "approved", opts) do
       {:ok, _result} ->
-        {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
+        materialize = Observability.materialize_benchmark_drafts(socket.assigns.opts)
+
+        {:noreply,
+         socket
+         |> assign(:drafts, Observability.benchmark_drafts(socket.assigns.opts))
+         |> put_flash(:info, approve_materialize_message(materialize))}
 
       {:error, reason} ->
         {:noreply,
@@ -49,6 +54,29 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
     end
   end
 
+  def handle_event("archive-draft", %{"id" => id}, socket) do
+    opts = Keyword.merge(socket.assigns.opts, reviewed_by: "web")
+
+    case Observability.update_benchmark_draft_status(id, "archived", opts) do
+      {:ok, _result} ->
+        {:noreply, assign(socket, :drafts, Observability.benchmark_drafts(socket.assigns.opts))}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, flash_for_status_error(reason))}
+    end
+  end
+
+  def handle_event("generate-drafts", _params, socket) do
+    result = Observability.generate_benchmark_drafts(socket.assigns.opts)
+
+    {:noreply,
+     socket
+     |> assign(:drafts, Observability.benchmark_drafts(socket.assigns.opts))
+     |> put_flash(:info, generate_drafts_message(result))}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -66,6 +94,14 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
           <span id="observability-benchmark-drafts-count" class={neutral_pill_class()}>
             {@drafts.count} draft(s)
           </span>
+          <.button
+            id="observability-benchmark-drafts-generate"
+            type="button"
+            variant="outline"
+            phx-click="generate-drafts"
+          >
+            Generate drafts
+          </.button>
         </div>
       </div>
 
@@ -158,6 +194,17 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
                   >
                     Reject
                   </button>
+                  <%= if draft.status != "archived" do %>
+                    <button
+                      id={"observability-benchmark-draft-archive-#{draft.id}"}
+                      type="button"
+                      class="inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-semibold text-foreground transition hover:opacity-90"
+                      phx-click="archive-draft"
+                      phx-value-id={draft.id}
+                    >
+                      Archive
+                    </button>
+                  <% end %>
                 </div>
               </div>
             <% end %>
@@ -176,9 +223,29 @@ defmodule ControlKeelWeb.ObservabilityBenchmarkDraftsLive do
     do:
       "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 bg-destructive/10 text-destructive ring-destructive/20"
 
+  defp status_pill_class("archived"),
+    do:
+      "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 bg-muted text-foreground/60 ring-border"
+
   defp status_pill_class(_),
     do:
       "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 bg-muted text-foreground ring-border"
+
+  defp approve_materialize_message(%{materialized: materialized, existing: existing}) do
+    count_part = "Approved and materialized #{materialized} draft(s)"
+    existing_part = if existing > 0, do: " · #{existing} already existed", else: ""
+    count_part <> existing_part <> "."
+  end
+
+  defp generate_drafts_message(%{source_count: 0}) do
+    "No open saved eval candidates to generate draft scenarios from."
+  end
+
+  defp generate_drafts_message(%{stored: stored, existing: existing}) do
+    count_part = "Generated #{stored} draft(s)"
+    existing_part = if existing > 0, do: " · #{existing} already existed", else: ""
+    count_part <> existing_part <> "."
+  end
 
   defp materialized_scenario(draft) do
     case get_in(draft.metadata || %{}, ["materialized_scenario_id"]) do
