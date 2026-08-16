@@ -226,6 +226,10 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
     "No active eval candidates to save."
   end
 
+  defp save_summary_message(%{stored: 0, existing: existing}) when existing > 0 do
+    "Nothing new to save — #{existing} candidate(s) already saved."
+  end
+
   defp save_summary_message(%{stored: stored, existing: existing}) do
     count_part = "Saved #{stored} candidate(s)"
     existing_part = if existing > 0, do: " · #{existing} already existed", else: ""
