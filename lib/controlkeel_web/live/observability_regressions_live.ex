@@ -22,123 +22,114 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section
-      id="observability-regressions"
-      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
-    >
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold text-primary">Regression tracking</h1>
-          <p class="text-muted-foreground text-sm mt-1">
+    <section id="observability-regressions" class="w-full space-y-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="space-y-2">
+          <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
+            Regression tracking
+          </h1>
+          <p class="text-sm text-muted-foreground">
             Read-only benchmark run posture connected to saved eval candidates and benchmark drafts.
           </p>
         </div>
-        <div class="flex items-center gap-3 shrink-0">
+        <div class="flex flex-wrap items-center gap-3 shrink-0 justify-end">
           <span class={health_pill_class(@regressions.health.status)}>
             {@regressions.health.status}
           </span>
         </div>
       </div>
 
-      <CommandPill.command_pill command="controlkeel obs regressions" />
+      <div class="flex flex-wrap items-center gap-3">
+        <CommandPill.command_pill command="controlkeel obs regressions" />
+      </div>
 
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section
           id="observability-regressions-runs"
-          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-2xl border bg-card p-5 shadow-card space-y-1"
         >
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Benchmark runs
-          </p>
-          <p class="text-2xl font-semibold">
+          <p class="text-sm font-medium text-muted-foreground">Benchmark runs</p>
+          <p class="text-2xl font-semibold text-foreground/90">
             {@regressions.benchmark_runs.count}
           </p>
-          <p class="text-muted-foreground text-xs">Window: {@regressions.days} day(s)</p>
-        </div>
-        <div
+          <p class="text-xs text-muted-foreground">Window: {@regressions.days} day(s)</p>
+        </section>
+        <section
           id="observability-regressions-catch-rate"
-          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-2xl border bg-card p-5 shadow-card space-y-1"
         >
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Average catch rate
-          </p>
-          <p class="text-2xl font-semibold">
+          <p class="text-sm font-medium text-muted-foreground">Average catch rate</p>
+          <p class="text-2xl font-semibold text-foreground/90">
             {format_rate(@regressions.benchmark_runs.average_catch_rate)}
           </p>
-          <p class="text-muted-foreground text-xs">
+          <p class="text-xs text-muted-foreground">
             {format_frequency(@regressions.benchmark_runs.by_status)}
           </p>
-        </div>
-        <div
+        </section>
+        <section
           id="observability-regressions-draft-coverage"
-          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-2xl border bg-card p-5 shadow-card space-y-1"
         >
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Draft coverage
-          </p>
-          <p class="text-2xl font-semibold">
+          <p class="text-sm font-medium text-muted-foreground">Draft coverage</p>
+          <p class="text-2xl font-semibold text-foreground/90">
             {@regressions.draft_coverage.benchmark_drafts} draft(s)
           </p>
-          <p class="text-muted-foreground text-xs">
+          <p class="text-xs text-muted-foreground">
             {@regressions.draft_coverage.saved_eval_candidates} saved eval(s)
           </p>
-        </div>
+        </section>
       </div>
 
       <%= if @regressions.recommendations != [] do %>
-        <div class="space-y-2">
-          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-            Recommendations
-          </p>
-          <ul class="list-disc pl-5">
-            <%= for recommendation <- @regressions.recommendations do %>
-              <li class="text-muted-foreground text-sm leading-relaxed">{recommendation}</li>
-            <% end %>
-          </ul>
-        </div>
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-3">
+          <.section_title>Recommendations</.section_title>
+          <%= for recommendation <- @regressions.recommendations do %>
+            <p class="text-sm leading-relaxed text-muted-foreground">{recommendation}</p>
+          <% end %>
+        </section>
       <% end %>
 
-      <div class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-          Recent benchmark runs
-        </p>
+      <section class="rounded-2xl border bg-card p-5 shadow-card space-y-4">
+        <.section_title>Recent benchmark runs</.section_title>
         <%= if @regressions.benchmark_runs.recent == [] do %>
-          <p class="text-muted-foreground text-sm">
+          <p class="text-sm text-muted-foreground">
             No benchmark runs in the selected window.
           </p>
         <% else %>
-          <%= for run <- @regressions.benchmark_runs.recent do %>
-            <div
-              id={"observability-regression-run-#{run.id}"}
-              class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-2"
-            >
-              <div class="flex items-center justify-between gap-4">
-                <div>
-                  <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                    {run.suite}
-                  </p>
-                  <p class="text-sm font-semibold">Run #{run.id}</p>
+          <div class="divide-y divide-border">
+            <%= for run <- @regressions.benchmark_runs.recent do %>
+              <div
+                id={"observability-regression-run-#{run.id}"}
+                class="space-y-2 py-3 first:pt-0 last:pb-0"
+              >
+                <div class="flex items-center justify-between gap-4">
+                  <div class="min-w-0 space-y-1">
+                    <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {run.suite}
+                    </p>
+                    <p class="text-sm font-medium text-foreground">Run #{run.id}</p>
+                  </div>
+                  <span class={health_pill_class(run.status)}>{run.status}</span>
                 </div>
-                <span class={health_pill_class(run.status)}>{run.status}</span>
-              </div>
-              <p class="text-muted-foreground text-xs">
-                Catch rate {format_rate(run.catch_rate)} · {run.caught_count}/{run.total_scenarios} scenario(s) · {run.result_count} result(s)
-              </p>
-              <div class="flex items-center gap-4 text-xs">
-                <p class="text-muted-foreground">
-                  {format_datetime(run.inserted_at, "unknown")}
+                <p class="text-xs text-muted-foreground">
+                  Catch rate {format_rate(run.catch_rate)} · {run.caught_count}/{run.total_scenarios} scenario(s) · {run.result_count} result(s)
                 </p>
-                <.link
-                  navigate={~p"/benchmarks/runs/#{run.id}"}
-                  class="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
-                >
-                  Open run →
-                </.link>
+                <div class="flex items-center gap-4 text-xs">
+                  <p class="text-muted-foreground">
+                    {format_datetime(run.inserted_at, "unknown")}
+                  </p>
+                  <.link
+                    navigate={~p"/benchmarks/runs/#{run.id}"}
+                    class="text-sm font-medium text-primary transition hover:text-primary"
+                  >
+                    Open run →
+                  </.link>
+                </div>
               </div>
-            </div>
-          <% end %>
+            <% end %>
+          </div>
         <% end %>
-      </div>
+      </section>
     </section>
     """
   end
@@ -156,13 +147,13 @@ defmodule ControlKeelWeb.ObservabilityRegressionsLive do
 
   defp health_pill_class("red"),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-destructive/10 text-destructive ring-destructive/20"
 
   defp health_pill_class("yellow"),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-warning/10 text-warning ring-warning/20"
 
   defp health_pill_class(_status),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-success/10 text-success ring-success/20"
 end

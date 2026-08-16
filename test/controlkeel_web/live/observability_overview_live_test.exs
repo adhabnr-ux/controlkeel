@@ -30,7 +30,6 @@ defmodule ControlKeelWeb.ObservabilityOverviewLiveTest do
     assert html =~ "/observability/memory-quality"
     assert html =~ "/observability/trends"
     assert html =~ "/observability/evals"
-    assert html =~ "/observability/evals/persisted"
     assert html =~ "/observability/benchmarks/drafts"
     assert html =~ "/observability/benchmarks/scenarios"
     assert html =~ "/observability/benchmarks/history"

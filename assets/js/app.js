@@ -26,54 +26,62 @@ import topbar from "../vendor/topbar"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
-const setSidebarActiveLink = () => {
-  // TODO: Replace this client-side active-link with a LiveView-driven approach
-  const links = document.querySelectorAll("[data-sidebar-link]")
-  if (!links.length) return
+const Hooks = {}
 
-  const pathname = window.location.pathname
-  let bestMatch = null
-  let bestScore = -1
-
-  links.forEach(link => {
-    const href = link.getAttribute("href")
-    if (!href) return
-
-    const url = href.startsWith("/")
-      ? href
-      : new URL(href, window.location.origin).pathname
-
-    let score = 0
-    if (url === "/") {
-      score = pathname === "/" ? 2 : 0
-    } else if (pathname === url) {
-      score = 100 + url.length
-    } else if (pathname === url || pathname.startsWith(url + "/")) {
-      score = 10 + url.length
-    }
-
-    if (score > bestScore) {
-      bestScore = score
-      bestMatch = link
-    }
-
-    link.classList.remove("bg-white/10", "text-white", "shadow-sm", "ring-1", "ring-white/10")
-    link.removeAttribute("aria-current")
-  })
-
-  if (bestMatch) {
-    bestMatch.classList.add("bg-white/10", "text-white", "shadow-sm", "ring-1", "ring-white/10")
-    bestMatch.setAttribute("aria-current", "page")
+Hooks.SidebarNav = {
+  mounted() {
+    this.restoreScroll()
+    this.el.addEventListener("scroll", () => {
+      sessionStorage.setItem("sidebar-nav-scroll", this.el.scrollTop)
+    }, {passive: true})
+    this.el.addEventListener("click", event => {
+      const button = event.target.closest("[data-sidebar-toggle]")
+      if (!button) return
+      this.toggle(button)
+    })
+    this.applyExpanded()
+  },
+  updated() {
+    this.applyExpanded()
+  },
+  toggle(button) {
+    const collapseId = button.getAttribute("aria-controls")
+    const collapse = document.getElementById(collapseId)
+    if (!collapse) return
+    const expanded = collapse.classList.toggle("hidden") === false
+    const chevron = document.getElementById(collapseId.replace("sidebar-collapse-", "sidebar-chevron-"))
+    if (chevron) chevron.classList.toggle("rotate-90", expanded)
+    button.setAttribute("aria-expanded", String(expanded))
+    sessionStorage.setItem(`sidebar-nav-expanded:${collapseId}`, expanded ? "1" : "0")
+  },
+  applyExpanded() {
+    this.el.querySelectorAll("[data-sidebar-toggle]").forEach(button => {
+      const collapseId = button.getAttribute("aria-controls")
+      const stored = sessionStorage.getItem(`sidebar-nav-expanded:${collapseId}`)
+      if (stored === null) return
+      const expanded = stored === "1"
+      const collapse = document.getElementById(collapseId)
+      if (!collapse) return
+      collapse.classList.toggle("hidden", !expanded)
+      const chevron = document.getElementById(collapseId.replace("sidebar-collapse-", "sidebar-chevron-"))
+      if (chevron) chevron.classList.toggle("rotate-90", expanded)
+      button.setAttribute("aria-expanded", String(expanded))
+    })
+  },
+  restoreScroll() {
+    const saved = sessionStorage.getItem("sidebar-nav-scroll")
+    if (saved === null) return
+    const position = parseInt(saved, 10)
+    if (this.el.scrollTop === position) return
+    if (this.el.scrollHeight <= this.el.clientHeight) return
+    this.el.scrollTop = position
   }
 }
-
-document.addEventListener("DOMContentLoaded", setSidebarActiveLink)
-window.addEventListener("phx:page-loading-stop", setSidebarActiveLink)
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {},
+  hooks: Hooks,
 })
 
 // Show progress bar on live navigation and form submits

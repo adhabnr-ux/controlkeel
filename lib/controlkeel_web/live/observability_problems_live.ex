@@ -21,21 +21,20 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section
-      id="observability-problem-list"
-      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
-    >
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold text-primary">Problems</h1>
-          <p class="text-muted-foreground text-sm mt-1">
+    <section id="observability-problem-list" class="w-full space-y-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="space-y-2">
+          <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
+            Problems
+          </h1>
+          <p class="text-sm text-muted-foreground">
             Recurring problem patterns across sessions, grouped by category and rule ID with health indicators and remediation guidance.
           </p>
         </div>
 
         <div class="flex items-center gap-3 shrink-0">
           <span class={health_pill_class(@problems.health)}>{@problems.health}</span>
-          <span class="inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
             {@problems.count} {if @problems.count == 1, do: "group", else: "groups"}
           </span>
         </div>
@@ -43,180 +42,149 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
 
       <CommandPill.command_pill command="controlkeel obs problems" />
 
-      <div class="space-y-8">
+      <div class="space-y-5">
         <%= if @problems.recommendations != [] do %>
-          <div class="space-y-2">
-            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-              Recommendations
-            </p>
+          <section class="rounded-2xl border bg-card p-5 shadow-card space-y-3">
+            <.section_title>Recommendations</.section_title>
             <%= for recommendation <- @problems.recommendations do %>
-              <p class=" text-sm leading-relaxed">
-                {recommendation}
-              </p>
+              <p class="text-sm leading-relaxed text-muted-foreground">{recommendation}</p>
             <% end %>
-          </div>
+          </section>
         <% end %>
 
         <%= if @problems.problems == [] do %>
-          <p class="text-muted-foreground text-sm">No active problems detected.</p>
+          <p class="text-sm text-muted-foreground">No active problems detected.</p>
         <% else %>
-          <%= for {problem, idx} <- Enum.with_index(@problems.problems) do %>
-            <div
-              id={"observability-problem-#{problem_key_id(problem.key)}"}
-              class={["space-y-8", if(idx > 0, do: "pt-8 border-t")]}
-            >
-              <div class="flex items-start justify-between gap-4">
-                <div class="space-y-1 min-w-0">
-                  <p class="text-xl font-semibold">
-                    {problem.title}
-                  </p>
+          <div class="space-y-8">
+            <%= for {problem, idx} <- Enum.with_index(@problems.problems) do %>
+              <section
+                id={"observability-problem-#{problem_key_id(problem.key)}"}
+                class={[
+                  "rounded-2xl border bg-card p-5 shadow-card space-y-5",
+                  if(idx > 0, do: "", else: "")
+                ]}
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="min-w-0 space-y-1">
+                    <p class="text-lg font-semibold text-foreground/90">{problem.title}</p>
+                  </div>
+                  <span class={health_pill_class(problem.health)}>{problem.health}</span>
                 </div>
-                <span class={health_pill_class(problem.health)}>{problem.health}</span>
-              </div>
 
-              <div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <dl class="grid grid-cols-2 gap-3 md:grid-cols-4 text-xs">
                   <div>
-                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                      Category
-                    </p>
-                    <p class=" mt-1 font-medium">{problem.category}</p>
+                    <dt class="text-muted-foreground">Category</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">{problem.category}</dd>
                   </div>
                   <div>
-                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                      Rule ID
-                    </p>
-                    <p class=" mt-1 font-medium">{problem.rule_id}</p>
+                    <dt class="text-muted-foreground">Rule ID</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">{problem.rule_id}</dd>
                   </div>
                   <div>
-                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                      Severity
-                    </p>
-                    <p class=" mt-1 font-medium">{problem.severity}</p>
+                    <dt class="text-muted-foreground">Severity</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">{problem.severity}</dd>
                   </div>
                   <div>
-                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                      Count
-                    </p>
-                    <p class=" mt-1 font-medium">{problem.count}</p>
+                    <dt class="text-muted-foreground">Count</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">{problem.count}</dd>
                   </div>
                   <div>
-                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                      Sessions
-                    </p>
-                    <p class=" mt-1 font-medium">
+                    <dt class="text-muted-foreground">Sessions</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">
                       {problem.affected_session_count}
-                    </p>
+                    </dd>
                   </div>
-                  <div class="col-span-2 md:col-span-3">
-                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                      Last seen
-                    </p>
-                    <p class=" mt-1 font-medium">
+                  <div class="col-span-1 md:col-span-2">
+                    <dt class="text-muted-foreground">Last seen</dt>
+                    <dd class="mt-0.5 font-medium text-foreground">
                       {format_datetime(problem.last_seen)}
-                    </p>
+                    </dd>
                   </div>
-                  <div class="col-span-2 md:col-span-4 mt-2">
-                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                      Recommendation
-                    </p>
-                    <p class=" mt-1.5 leading-relaxed">
+                  <div class="col-span-2">
+                    <dt class="text-muted-foreground">Recommendation</dt>
+                    <dd class="mt-0.5 text-sm leading-relaxed text-foreground">
                       {problem.recommendation}
-                    </p>
+                    </dd>
                   </div>
-                </div>
-              </div>
+                </dl>
 
-              <div class="space-y-3">
-                <p class="uppercase tracking-[0.14em] text-xs text-muted-foreground font-semibold">
-                  Feedback loop
-                </p>
-                <div class="space-y-4">
-                  <div class="flex flex-wrap gap-x-8 gap-y-4 text-sm">
-                    <div>
-                      <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                        Eval
-                      </p>
-                      <p class=" mt-1 font-medium">
-                        {problem.feedback_loop.eval_candidate_title}
-                      </p>
-                    </div>
-                    <div>
-                      <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                        Action
-                      </p>
-                      <p class=" mt-1 font-medium">
-                        {problem.feedback_loop.evidence_summary}
-                      </p>
-                    </div>
-                    <div>
-                      <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                        Benchmark
-                      </p>
-                      <p class=" mt-1 font-medium">
-                        {problem.feedback_loop.benchmark_hint}
-                      </p>
-                    </div>
-                    <div>
-                      <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                        Human Gate
-                      </p>
-                      <p class={[
-                        "mt-1 font-medium",
-                        if(problem.feedback_loop.human_gate_required,
-                          do: "text-[#ffcf6b]",
-                          else: ""
-                        )
-                      ]}>
-                        {if problem.feedback_loop.human_gate_required do
-                          "required"
-                        else
-                          "not required"
-                        end}
-                      </p>
-                    </div>
-                  </div>
-                  <div>
-                    <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-                      Suggested Action
-                    </p>
-                    <p class=" text-sm mt-1.5">
-                      {problem.feedback_loop.suggested_action}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <%= if problem.examples && problem.examples != [] do %>
-                <div class="space-y-3">
-                  <p class="uppercase tracking-[0.14em] text-xs text-muted-foreground font-semibold">
-                    Examples
-                  </p>
-                  <div class="grid gap-2">
-                    <%= for example <- problem.examples do %>
-                      <div class="flex items-center justify-between gap-4 rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] hover:bg-[rgba(255,255,255,0.03)] transition-colors">
-                        <div class="min-w-0">
-                          <p class="text-sm font-medium truncate">
-                            {example.title}
-                          </p>
-                          <p class="text-xs text-muted-foreground mt-1">
-                            {example.severity} / {example.status}
-                            <span class="mx-1.5 opacity-50">•</span> session {example.session_id}
-                          </p>
-                        </div>
-                        <.link
-                          navigate={~p"/observability/sessions/#{example.session_id}"}
-                          class="shrink-0 text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
-                        >
-                          Open run →
-                        </.link>
+                <div class="space-y-3 border-t border-border pt-4">
+                  <.section_title>Feedback loop</.section_title>
+                  <div class="space-y-4">
+                    <dl class="flex flex-wrap gap-x-8 gap-y-3 text-xs">
+                      <div>
+                        <dt class="text-muted-foreground">Eval</dt>
+                        <dd class="mt-0.5 font-medium text-foreground">
+                          {problem.feedback_loop.eval_candidate_title}
+                        </dd>
                       </div>
-                    <% end %>
+                      <div>
+                        <dt class="text-muted-foreground">Action</dt>
+                        <dd class="mt-0.5 font-medium text-foreground">
+                          {problem.feedback_loop.evidence_summary}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt class="text-muted-foreground">Benchmark</dt>
+                        <dd class="mt-0.5 font-medium text-foreground">
+                          {problem.feedback_loop.benchmark_hint}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt class="text-muted-foreground">Human gate</dt>
+                        <dd class={[
+                          "mt-0.5 font-medium",
+                          if(problem.feedback_loop.human_gate_required,
+                            do: "text-warning",
+                            else: "text-foreground"
+                          )
+                        ]}>
+                          {if problem.feedback_loop.human_gate_required do
+                            "required"
+                          else
+                            "not required"
+                          end}
+                        </dd>
+                      </div>
+                    </dl>
+                    <div>
+                      <p class="text-xs text-muted-foreground">Suggested action</p>
+                      <p class="mt-0.5 text-sm text-foreground">
+                        {problem.feedback_loop.suggested_action}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              <% end %>
-            </div>
-          <% end %>
+
+                <%= if problem.examples && problem.examples != [] do %>
+                  <div class="space-y-3 border-t border-border pt-4">
+                    <.section_title>Examples</.section_title>
+                    <div class="divide-y divide-border">
+                      <%= for example <- problem.examples do %>
+                        <div class="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
+                          <div class="min-w-0">
+                            <p class="truncate text-sm font-medium text-foreground">
+                              {example.title}
+                            </p>
+                            <p class="mt-1 text-xs text-muted-foreground">
+                              {example.severity} / {example.status}
+                              <span class="mx-1.5 opacity-50">•</span> session {example.session_id}
+                            </p>
+                          </div>
+                          <.link
+                            navigate={~p"/observability/sessions/#{example.session_id}"}
+                            class="shrink-0 inline-flex items-center gap-2 text-sm font-medium text-primary transition hover:text-primary"
+                          >
+                            Open run <.icon name="hero-arrow-up-right" class="size-3" />
+                          </.link>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              </section>
+            <% end %>
+          </div>
         <% end %>
       </div>
     </section>
@@ -225,15 +193,15 @@ defmodule ControlKeelWeb.ObservabilityProblemsLive do
 
   defp health_pill_class("red"),
     do:
-      "border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-destructive/10 text-destructive ring-destructive/20"
 
   defp health_pill_class("yellow"),
     do:
-      "border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-warning/10 text-warning ring-warning/20"
 
   defp health_pill_class(_),
     do:
-      "border bg-muted rounded-full px-[0.8rem] py-[0.45rem] text-[0.8rem] bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-success/10 text-success ring-success/20"
 
   defp problem_key_id(key) do
     key

@@ -13,8 +13,26 @@ defmodule ControlKeelWeb.RecentSessionsTest do
 
   test "renders session list with health pills" do
     runs = [
-      %{id: 1, title: "Session A", health: "red"},
-      %{id: 2, title: "Session B", health: "green"}
+      %{
+        id: 1,
+        title: "Session A",
+        health: "red",
+        active_findings: 3,
+        blocked_findings: 1,
+        budget_spent_cents: 1250,
+        budget_limit_cents: 10_000,
+        memory_records: 7
+      },
+      %{
+        id: 2,
+        title: "Session B",
+        health: "green",
+        active_findings: 0,
+        blocked_findings: 0,
+        budget_spent_cents: 0,
+        budget_limit_cents: 5000,
+        memory_records: 2
+      }
     ]
 
     html = render_component(&RecentSessions.session_observability_section/1, runs: runs)
@@ -22,6 +40,9 @@ defmodule ControlKeelWeb.RecentSessionsTest do
     assert html =~ "Session B"
     assert html =~ "/observability/sessions/1"
     assert html =~ "/observability/sessions/2"
+    assert html =~ "3 active"
+    assert html =~ "1 blocked"
+    assert html =~ "7 records"
     refute html =~ "No sessions available yet."
   end
 end

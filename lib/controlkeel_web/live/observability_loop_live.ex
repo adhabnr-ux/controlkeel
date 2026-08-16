@@ -22,21 +22,20 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section
-      id="observability-loop"
-      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
-    >
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold text-primary">Learning loop</h1>
-          <p class="text-muted-foreground text-sm mt-1">
+    <section id="observability-loop" class="w-full space-y-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="space-y-2">
+          <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
+            Learning loop
+          </h1>
+          <p class="text-sm text-muted-foreground">
             Read-only, local-first status for turning repeated CK and agent use into reviewed evals, benchmark evidence, and human-gated improvement candidates.
           </p>
         </div>
 
         <div class="flex items-center gap-3 shrink-0">
           <span class={health_pill_class(@loop.health)}>{@loop.health}</span>
-          <span class="inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]">
+          <span class="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary ring-1 ring-primary/20">
             {@loop.learning_loop.mode}
           </span>
         </div>
@@ -44,115 +43,104 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
 
       <CommandPill.command_pill command="controlkeel obs loop" />
 
-      <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-        <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-          Safety boundary
-        </p>
-        <p class="text-sm font-semibold">
+      <section class="rounded-2xl border bg-card p-5 shadow-card space-y-3">
+        <.section_title>Safety boundary</.section_title>
+        <p class="text-sm font-medium text-foreground">
           Read-only: {@loop.read_only} · Mutation: {@loop.mutation}
         </p>
-        <p class="text-muted-foreground text-xs">
+        <p class="text-xs text-muted-foreground">
           Automatic benchmark execution: {@loop.learning_loop.automatic_benchmark_execution} · Automatic promotion: {@loop.learning_loop.automatic_promotion}
         </p>
-        <p class="text-muted-foreground text-xs">
+        <p class="text-xs text-muted-foreground">
           Generated benchmarks are {@loop.learning_loop.generated_benchmarks}.
         </p>
-      </div>
+      </section>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Problems
-          </p>
-          <p class="text-lg font-semibold">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <article class="rounded-2xl border bg-card p-5 shadow-card">
+          <p class="text-sm font-medium text-muted-foreground">Problems</p>
+          <p class="mt-2 text-xl font-semibold text-foreground/90">
             {@loop.active_problems.count} group(s)
           </p>
-          <p class="text-muted-foreground text-xs">
+          <p class="mt-1 text-xs text-muted-foreground">
             {@loop.active_problems.total_findings} active finding(s)
           </p>
-        </div>
-        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Evals</p>
-          <p class="text-lg font-semibold">
+        </article>
+
+        <article class="rounded-2xl border bg-card p-5 shadow-card">
+          <p class="text-sm font-medium text-muted-foreground">Evals</p>
+          <p class="mt-2 text-xl font-semibold text-foreground/90">
             {@loop.evals.derived} derived / {@loop.evals.saved} saved
           </p>
-          <p class="text-muted-foreground text-xs">
+          <p class="mt-1 text-xs text-muted-foreground">
             Saved status: {format_frequency(@loop.evals.saved_by_status)}
           </p>
-        </div>
-        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Benchmarks
-          </p>
-          <p class="text-lg font-semibold">
+        </article>
+
+        <article class="rounded-2xl border bg-card p-5 shadow-card">
+          <p class="text-sm font-medium text-muted-foreground">Benchmarks</p>
+          <p class="mt-2 text-xl font-semibold text-foreground/90">
             {@loop.benchmarks.scenarios} scenario(s)
           </p>
-          <p class="text-muted-foreground text-xs">
+          <p class="mt-1 text-xs text-muted-foreground">
             {@loop.benchmarks.drafts} draft(s), readiness {@loop.benchmarks.history_readiness.status}
           </p>
-        </div>
-        <div class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1">
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Promotions
-          </p>
-          <p class="text-lg font-semibold">
+        </article>
+
+        <article class="rounded-2xl border bg-card p-5 shadow-card">
+          <p class="text-sm font-medium text-muted-foreground">Promotions</p>
+          <p class="mt-2 text-xl font-semibold text-foreground/90">
             {@loop.promotions.count} candidate(s)
           </p>
-          <p class="text-muted-foreground text-xs">
+          <p class="mt-1 text-xs text-muted-foreground">
             Readiness: {format_frequency(@loop.promotions.by_readiness)}
           </p>
-        </div>
+        </article>
       </div>
 
-      <div class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-          Blockers
-        </p>
+      <section class="rounded-2xl border bg-card p-5 shadow-card space-y-4">
+        <.section_title>Blockers</.section_title>
         <%= if @loop.blockers == [] do %>
-          <p class="text-muted-foreground text-sm">No learning-loop blockers detected.</p>
+          <p class="text-sm text-muted-foreground">No learning-loop blockers detected.</p>
         <% else %>
           <div class="space-y-2">
             <%= for blocker <- @loop.blockers do %>
-              <div class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)]">
-                <p class="text-sm font-semibold">{blocker.id}</p>
-                <p class="text-muted-foreground text-xs">{blocker.reason}</p>
+              <div class="flex items-start justify-between gap-3 rounded-lg px-3 py-2 bg-destructive/10">
+                <p class="text-sm font-medium text-foreground">{blocker.id}</p>
+                <p class="shrink-0 text-xs text-muted-foreground">{blocker.reason}</p>
               </div>
             <% end %>
           </div>
         <% end %>
-      </div>
+      </section>
 
-      <div class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-          Next actions
-        </p>
+      <section class="rounded-2xl border bg-card p-5 shadow-card space-y-4">
+        <.section_title>Next actions</.section_title>
         <%= if @loop.next_actions == [] do %>
-          <p class="text-muted-foreground text-sm">No next actions.</p>
+          <p class="text-sm text-muted-foreground">No next actions.</p>
         <% else %>
           <div class="space-y-2">
             <%= for action <- @loop.next_actions do %>
-              <div class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)] space-y-1">
-                <p class="text-sm font-semibold">
+              <div class="rounded-lg px-3 py-2 bg-muted/30 space-y-1">
+                <p class="text-sm font-medium text-foreground">
                   [{action.priority}] {action.title}
                 </p>
-                <p class="text-muted-foreground text-xs">{action.suggested_action}</p>
+                <p class="text-xs text-muted-foreground">{action.suggested_action}</p>
               </div>
             <% end %>
           </div>
         <% end %>
-      </div>
+      </section>
 
       <%= if @loop.recommendations != [] do %>
-        <div class="space-y-2">
-          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-            Recommendations
-          </p>
-          <ul class="space-y-2 list-disc pl-5">
+        <section class="rounded-2xl border bg-card p-5 shadow-card space-y-4">
+          <.section_title>Recommendations</.section_title>
+          <ul class="space-y-2 text-sm leading-relaxed text-muted-foreground list-disc ml-5">
             <%= for recommendation <- @loop.recommendations do %>
-              <li class=" text-sm leading-relaxed">{recommendation}</li>
+              <li>{recommendation}</li>
             <% end %>
           </ul>
-        </div>
+        </section>
       <% end %>
     </section>
     """
@@ -160,15 +148,15 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
 
   defp health_pill_class("red"),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,107,107,0.1)] text-[#ff6b6b]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-destructive/10 text-destructive ring-destructive/20"
 
   defp health_pill_class("yellow"),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(255,207,107,0.1)] text-[#ffcf6b]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-warning/10 text-warning ring-warning/20"
 
   defp health_pill_class(_),
     do:
-      "inline-flex items-center border rounded-full px-3 py-1.5 text-sm bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+      "inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 bg-success/10 text-success ring-success/20"
 
   defp format_frequency(map) when map == %{}, do: "none"
 

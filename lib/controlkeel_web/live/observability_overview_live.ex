@@ -23,142 +23,133 @@ defmodule ControlKeelWeb.ObservabilityOverviewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section
-      id="observability-overview-page"
-      class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 space-y-5"
-    >
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-xl font-semibold text-primary">Observability</h1>
-          <p class="text-muted-foreground text-sm mt-1">
-            Session runs, problems, costs, and trace export at a glance.
-          </p>
-        </div>
+    <section id="observability-overview-page" class="w-full space-y-5">
+      <div class="space-y-2">
+        <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
+          Observability
+        </h1>
+        <p class="text-sm text-muted-foreground">
+          Session runs, problems, costs, and trace export at a glance.
+        </p>
       </div>
 
       <CommandPill.command_pill command="controlkeel obs" />
 
-      <div class="grid grid-cols-2 md:grid-cols-2 gap-4">
-        <div
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <article
           id="observability-overview-runs"
-          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-2xl border bg-card p-5 shadow-card"
         >
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Runs</p>
-          <p class="text-xl font-semibold">{@overview.runs.count} recent</p>
-          <p class="text-muted-foreground text-xs">
+          <p class="text-sm font-medium text-muted-foreground">Runs</p>
+          <p class="mt-2 text-xl font-semibold text-foreground/90">
+            {@overview.runs.count} recent
+          </p>
+          <p class="mt-1 text-xs text-muted-foreground">
             {@overview.health.red_runs} red · {@overview.health.yellow_runs} yellow · {@overview.health.green_runs} green
           </p>
-        </div>
+        </article>
 
-        <div
+        <article
           id="observability-overview-problems"
-          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-2xl border bg-card p-5 shadow-card"
         >
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Problems
-          </p>
-          <p class="text-xl font-semibold">
+          <p class="text-sm font-medium text-muted-foreground">Problems</p>
+          <p class="mt-2 text-xl font-semibold text-foreground/90">
             {@overview.problems.count} groups
           </p>
-          <p class="text-muted-foreground text-xs">
+          <p class="mt-1 text-xs text-muted-foreground">
             {@overview.problems.total_findings} active finding(s)
           </p>
           <.link
             navigate={~p"/observability/problems"}
-            class="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
+            class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary transition hover:text-primary"
           >
-            Review groups
+            Review groups <.icon name="hero-arrow-up-right" class="size-3" />
           </.link>
-        </div>
+        </article>
 
-        <div
+        <article
           id="observability-overview-costs"
-          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-2xl border bg-card p-5 shadow-card"
         >
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">Costs</p>
-          <p class="text-xl font-semibold">
+          <p class="text-sm font-medium text-muted-foreground">Costs</p>
+          <p class="mt-2 text-xl font-semibold text-foreground/90">
             {format_currency(@overview.costs.spent_cents)} / {format_currency(
               @overview.costs.budget_cents
             )}
           </p>
-          <p class="text-muted-foreground text-xs">
+          <p class="mt-1 text-xs text-muted-foreground">
             {@overview.costs.invocations} invocation(s), {format_currency(
               @overview.costs.estimated_invocation_cents
             )} estimated
           </p>
           <.link
             navigate={~p"/observability/costs"}
-            class="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
+            class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary transition hover:text-primary"
           >
-            Review costs
+            Review costs <.icon name="hero-arrow-up-right" class="size-3" />
           </.link>
-        </div>
+        </article>
 
-        <div
+        <article
           id="observability-overview-telemetry"
-          class="rounded-xl p-4 border bg-[rgba(255,255,255,0.015)] space-y-1"
+          class="rounded-2xl border bg-card p-5 shadow-card"
         >
-          <p class="text-muted-foreground uppercase tracking-[0.1em] text-[10px]">
-            Trace export
-          </p>
-          <p class="text-xl font-semibold">
+          <p class="text-sm font-medium text-muted-foreground">Trace export</p>
+          <p class="mt-2 text-xl font-semibold text-foreground/90">
             {@overview.telemetry.import_mode}
           </p>
-          <p class="text-muted-foreground text-xs">
+          <p class="mt-1 text-xs text-muted-foreground">
             {@overview.telemetry.export_schema_version} · {@overview.telemetry.integrity}
           </p>
-          <p class="text-muted-foreground text-xs">
+          <p class="mt-1 text-xs text-muted-foreground">
             {@overview.telemetry.persisted_imports} persisted import(s)
           </p>
           <.link
             navigate={~p"/observability/imports"}
-            class="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
+            class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary transition hover:text-primary"
           >
-            Review imports
+            Review imports <.icon name="hero-arrow-up-right" class="size-3" />
           </.link>
-        </div>
+        </article>
       </div>
 
-      <div class="space-y-2">
-        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-          Recommended next actions
-        </p>
+      <section class="rounded-2xl border bg-card p-5 shadow-card space-y-4">
+        <.section_title>Recommended next actions</.section_title>
         <%= if @overview.recommendations == [] do %>
-          <p class="text-muted-foreground text-sm">No recommendations available.</p>
+          <p class="text-sm text-muted-foreground">No recommendations available.</p>
         <% else %>
-          <ul class="space-y-1 list-disc pl-5">
+          <ul class="space-y-2 text-sm text-muted-foreground list-disc ml-5">
             <%= for recommendation <- @overview.recommendations do %>
-              <li class="text-muted-foreground text-sm leading-relaxed">{recommendation}</li>
+              <li class="leading-relaxed">{recommendation}</li>
             <% end %>
           </ul>
         <% end %>
         <.link
           navigate={~p"/observability/recommendations"}
-          class="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
+          class="inline-flex items-center gap-2 text-sm font-medium text-primary transition hover:text-primary"
         >
-          Open recommendations →
+          Open recommendations <.icon name="hero-arrow-up-right" class="size-3" />
         </.link>
-      </div>
+      </section>
 
-      <div class="space-y-3">
-        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-          Top problems
-        </p>
+      <section class="rounded-2xl border bg-card p-5 shadow-card space-y-4">
+        <.section_title>Top problems</.section_title>
         <%= if @overview.problems.top == [] do %>
-          <p class="text-muted-foreground text-sm">No active problems detected.</p>
+          <p class="text-sm text-muted-foreground">No active problems detected.</p>
         <% else %>
           <div class="space-y-2">
             <%= for problem <- @overview.problems.top do %>
-              <div class="rounded-xl px-4 py-3 border bg-[rgba(255,255,255,0.015)]">
-                <p class="text-sm font-medium">{problem.rule_id}</p>
-                <p class="text-muted-foreground text-xs mt-1">
+              <div class="flex items-start justify-between gap-3 rounded-lg px-3 py-2 bg-muted/30">
+                <p class="text-sm font-medium text-foreground">{problem.rule_id}</p>
+                <p class="shrink-0 text-xs text-muted-foreground">
                   {problem.health} · {problem.count} finding(s) · {problem.affected_session_count} session(s)
                 </p>
               </div>
             <% end %>
           </div>
         <% end %>
-      </div>
+      </section>
 
       <RecentSessions.session_observability_section runs={@overview.runs.recent} />
     </section>
