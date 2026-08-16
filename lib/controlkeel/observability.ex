@@ -3350,6 +3350,7 @@ defmodule ControlKeel.Observability do
         |> Enum.map(fn review ->
           %{
             id: review.id,
+            session_id: review.session_id,
             status: review.status,
             review_type: review.review_type,
             title: review.title || "Review #{review.id}"

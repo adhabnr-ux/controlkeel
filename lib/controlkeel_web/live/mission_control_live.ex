@@ -346,6 +346,12 @@ defmodule ControlKeelWeb.MissionControlLive do
             <p class="text-xs text-muted-foreground mt-1">
               {@observability.gates.total_reviews} total review gates
             </p>
+            <.link
+              navigate={~p"/sessions/#{@session.id}/reviews"}
+              class="inline-flex items-center gap-1 mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary hover:text-primary transition cursor-pointer"
+            >
+              View all <.icon name="hero-arrow-right" class="size-3" />
+            </.link>
           </div>
           <div
             id="mission-observability-timeline"

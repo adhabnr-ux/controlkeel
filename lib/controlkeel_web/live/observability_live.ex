@@ -335,7 +335,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
               <%= for review <- @run.gates.latest do %>
                 <div class="rounded-lg px-3 py-2 border bg-[rgba(255,255,255,0.02)]">
                   <.link
-                    navigate={~p"/reviews/#{review.id}"}
+                    navigate={~p"/sessions/#{review.session_id}/reviews/#{review.id}"}
                     class="text-sm font-medium text-primary hover:opacity-80 transition-opacity"
                   >
                     {review.title}

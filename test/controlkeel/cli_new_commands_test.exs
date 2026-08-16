@@ -296,7 +296,11 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                  tmp_dir
                )
 
-      assert Enum.any?(open_lines, &String.contains?(&1, "/reviews/#{review.id}"))
+      assert Enum.any?(
+               open_lines,
+               &String.contains?(&1, "/sessions/#{review.session_id}/reviews/#{review.id}")
+             )
+
       assert Enum.any?(open_lines, &String.contains?(&1, "Review server serving:"))
       assert Enum.any?(open_lines, &String.contains?(&1, "Opened browser: false"))
 
@@ -433,7 +437,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
 
       assert is_integer(review_id)
       assert get_in(payload, ["review", "task_id"]) == task.id
-      assert payload["browser_url"] =~ "/reviews/#{review_id}"
+      assert payload["browser_url"] =~ "/sessions/#{session.id}/reviews/#{review_id}"
 
       assert {:ok, [open_json]} =
                CLI.run_command(
@@ -442,7 +446,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
                )
 
       open_payload = decode_cli_json(open_json)
-      assert open_payload["browser_url"] =~ "/reviews/#{review_id}"
+      assert open_payload["browser_url"] =~ "/sessions/#{session.id}/reviews/#{review_id}"
       assert open_payload["open_target"] == "manual"
       assert open_payload["opened"] == false
       assert open_payload["remote"] == true
@@ -545,7 +549,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
       assert wait_payload["timed_out"] == true
       assert wait_payload["status"] == "pending"
       assert get_in(wait_payload, ["review", "status"]) == "pending"
-      assert wait_payload["browser_url"] =~ "/reviews/#{review.id}"
+      assert wait_payload["browser_url"] =~ "/sessions/#{review.session_id}/reviews/#{review.id}"
     end
   end
 

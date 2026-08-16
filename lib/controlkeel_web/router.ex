@@ -83,12 +83,13 @@ defmodule ControlKeelWeb.Router do
       live "/sessions", MissionsLive, :index
       live "/sessions/start", OnboardingLive, :new
       live "/sessions/:id", MissionControlLive, :show
+      live "/sessions/:id/reviews", SessionReviewsLive, :index
       live "/findings", FindingsLive, :index
       live "/benchmarks", BenchmarksLive, :index
       live "/benchmarks/runs/:id", BenchmarksLive, :show
       live "/proofs", ProofBrowserLive, :index
       live "/proofs/:id", ProofBrowserLive, :show
-      live "/reviews/:id", ReviewLive, :show
+      live "/sessions/:sid/reviews/:rid", ReviewLive, :show
       live "/cloud/telemetry", CloudTelemetryLive, :index
       live "/cloud/projects", CloudProjectsLive, :index
       live "/cloud/projects/:ws_id", CloudProjectsLive, :show

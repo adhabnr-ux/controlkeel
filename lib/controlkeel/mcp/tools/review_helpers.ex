@@ -52,10 +52,10 @@ defmodule ControlKeel.MCP.Tools.ReviewHelpers do
   Extracts the browser URL from a review record.
   """
   def review_browser_url(%{fallback_payload: payload}) do
-    Map.get(payload, "browser_url") || safe_review_url(Map.get(payload, "review", %{})["id"])
+    Map.get(payload, "browser_url") || safe_review_url(Map.get(payload, "review"))
   end
 
-  def review_browser_url(review), do: safe_review_url(review.id)
+  def review_browser_url(review), do: safe_review_url(review)
 
   @doc """
   Builds approval instructions for a review.
@@ -179,15 +179,15 @@ defmodule ControlKeel.MCP.Tools.ReviewHelpers do
 
   defp safe_review_url(nil), do: nil
 
-  defp safe_review_url(review_id) do
-    try do
-      ControlKeelWeb.Endpoint.url() <> "/reviews/#{review_id}"
-    rescue
-      _ -> nil
-    catch
-      _, _ -> nil
-    end
-  end
+  defp safe_review_url(%{session_id: session_id, id: review_id})
+       when is_integer(session_id) and is_integer(review_id),
+       do: ReviewBridge.browser_url(session_id, review_id)
+
+  defp safe_review_url(%{"session_id" => session_id, "id" => review_id})
+       when is_integer(session_id) and is_integer(review_id),
+       do: ReviewBridge.browser_url(session_id, review_id)
+
+  defp safe_review_url(_review), do: nil
 
   defp take_balanced_json_object("{" <> _ = input) do
     bytes = :binary.bin_to_list(input)

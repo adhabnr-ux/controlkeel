@@ -56,7 +56,7 @@ defmodule ControlKeel.CLI.Dispatch.Review do
       payload =
         review_cli_payload(review, %{
           "message" => "submitted",
-          "browser_url" => review_url(review.id)
+          "browser_url" => review_url(review)
         })
 
       if options[:json] do
@@ -66,7 +66,7 @@ defmodule ControlKeel.CLI.Dispatch.Review do
          [
            "Submitted plan review ##{review.id}.",
            "Status: #{review.status}",
-           "Browser URL: #{review_url(review.id)}",
+           "Browser URL: #{review_url(review)}",
            "Execution gate: task remains blocked until the plan review is approved."
          ]}
       end
@@ -133,7 +133,7 @@ defmodule ControlKeel.CLI.Dispatch.Review do
       payload =
         review_cli_payload(review, %{
           "message" => "wait",
-          "browser_url" => review_url(review.id)
+          "browser_url" => review_url(review)
         })
 
       case review.status do
@@ -145,7 +145,7 @@ defmodule ControlKeel.CLI.Dispatch.Review do
              [
                "Plan review ##{review.id} approved.",
                "Status: #{review.status}",
-               "Browser URL: #{review_url(review.id)}"
+               "Browser URL: #{review_url(review)}"
              ] ++ review_feedback_lines(review)}
           end
 
@@ -172,7 +172,7 @@ defmodule ControlKeel.CLI.Dispatch.Review do
             "message" => "timeout",
             "timed_out" => true,
             "status" => review.status,
-            "browser_url" => review_url(review.id)
+            "browser_url" => review_url(review)
           })
 
         if review.status in ["pending", "superseded"] do
@@ -183,7 +183,7 @@ defmodule ControlKeel.CLI.Dispatch.Review do
              [
                "Timed out waiting for plan review ##{review.id}.",
                "Status: #{review.status}",
-               "Browser URL: #{review_url(review.id)}",
+               "Browser URL: #{review_url(review)}",
                "Review is still open; keep waiting or respond in browser."
              ]}
           end
@@ -212,7 +212,7 @@ defmodule ControlKeel.CLI.Dispatch.Review do
       payload =
         review_cli_payload(review, %{
           "message" => "responded",
-          "browser_url" => review_url(review.id)
+          "browser_url" => review_url(review)
         })
 
       if options[:json] do
@@ -222,7 +222,7 @@ defmodule ControlKeel.CLI.Dispatch.Review do
          [
            "Updated plan review ##{review.id}.",
            "Status: #{review.status}",
-           "Browser URL: #{review_url(review.id)}"
+           "Browser URL: #{review_url(review)}"
          ]}
       end
     else

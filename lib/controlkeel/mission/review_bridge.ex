@@ -5,10 +5,28 @@ defmodule ControlKeel.Mission.ReviewBridge do
   alias ControlKeel.Mission.Review
   alias ControlKeelWeb.Endpoint
 
-  def browser_url(%Review{id: id}), do: browser_url(id)
+  def browser_url(%Review{id: review_id, session_id: session_id}),
+    do: browser_url(session_id, review_id)
 
-  def browser_url(review_id) when is_integer(review_id),
-    do: Endpoint.url() <> "/reviews/#{review_id}"
+  def browser_url(_review), do: nil
+
+  def browser_url(session_id, review_id)
+      when is_integer(session_id) and is_integer(review_id) do
+    case safe_endpoint_url() do
+      nil -> nil
+      base -> base <> "/sessions/#{session_id}/reviews/#{review_id}"
+    end
+  end
+
+  def browser_url(_session_id, _review_id), do: nil
+
+  defp safe_endpoint_url do
+    Endpoint.url()
+  rescue
+    _ -> nil
+  catch
+    _, _ -> nil
+  end
 
   def open_review(review_or_id, opts \\ []) do
     with {:ok, review} <- fetch_review(review_or_id) do

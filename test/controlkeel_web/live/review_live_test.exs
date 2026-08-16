@@ -34,7 +34,7 @@ defmodule ControlKeelWeb.ReviewLiveTest do
                "validation_plan" => ["mix test test/controlkeel_web/live/review_live_test.exs"]
              })
 
-    {:ok, _view, html} = live(conn, ~p"/reviews/#{review.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{review.session_id}/reviews/#{review.id}")
 
     assert html =~ "Human context gathered before execution"
     assert html =~ "PM confirmed the rollout should stay behind approval gates."
@@ -66,7 +66,7 @@ defmodule ControlKeelWeb.ReviewLiveTest do
                "harness_quality_checks" => ["Proof metadata is preserved"]
              })
 
-    {:ok, _view, html} = live(conn, ~p"/reviews/#{review.id}")
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{review.session_id}/reviews/#{review.id}")
 
     assert html =~ "Agent execution guardrails"
     assert html =~ "Allowed semantic changes"
@@ -79,5 +79,82 @@ defmodule ControlKeelWeb.ReviewLiveTest do
     assert html =~ "Planner semantics change"
     assert html =~ "Harness quality checks"
     assert html =~ "Proof metadata is preserved"
+  end
+
+  test "review live renders respond header controls, textareas, and audit trail timeline", %{
+    conn: conn
+  } do
+    session = session_fixture()
+    task = task_fixture(%{session: session, status: "queued", title: "Respond UI test"})
+
+    assert {:ok, review} =
+             Mission.submit_review(%{
+               "task_id" => task.id,
+               "review_type" => "plan",
+               "submission_body" => "Plan submission for UI test"
+             })
+
+    {:ok, _view, html} = live(conn, ~p"/sessions/#{review.session_id}/reviews/#{review.id}")
+
+    assert html =~ "Respond"
+    assert html =~ "Pending"
+    assert html =~ "Approve"
+    assert html =~ "Deny"
+    assert html =~ "Feedback notes"
+    assert html =~ "Annotations"
+    assert html =~ "placeholder=\"Add notes...\""
+    assert html =~ "Audit trail"
+    assert html =~ "Submitted"
+  end
+
+  test "respond with no review loaded flashes an error instead of raising" do
+    socket = %Phoenix.LiveView.Socket{
+      assigns: %{__changed__: %{}, review: nil, flash: %{}}
+    }
+
+    assert {:noreply, socket} =
+             ControlKeelWeb.ReviewLive.handle_event(
+               "respond",
+               %{
+                 "review_response" => %{"decision" => "approved"}
+               },
+               socket
+             )
+
+    assert socket.assigns.flash["error"] == "Review not found."
+  end
+
+  test "review live renders later resubmissions as revisions", %{conn: conn} do
+    session = session_fixture()
+    task = task_fixture(%{session: session, status: "queued", title: "Revision rendering"})
+
+    assert {:ok, parent} =
+             Mission.submit_review(%{
+               "task_id" => task.id,
+               "review_type" => "plan",
+               "submission_body" => "Original plan submission",
+               "title" => "Original plan"
+             })
+
+    assert {:ok, revision} =
+             Mission.submit_review(%{
+               "task_id" => task.id,
+               "review_type" => "plan",
+               "submission_body" => "Revised plan submission",
+               "title" => "Revised plan",
+               "previous_review_id" => parent.id
+             })
+
+    {:ok, view, html} = live(conn, ~p"/sessions/#{parent.session_id}/reviews/#{parent.id}")
+
+    assert html =~ "Revisions"
+    assert html =~ "Later resubmissions of this review"
+    assert html =~ "Revised plan"
+
+    assert view
+           |> element("#review-revisions-card a[href*='reviews/#{revision.id}']")
+           |> render()
+
+    assert html =~ String.capitalize(revision.status)
   end
 end

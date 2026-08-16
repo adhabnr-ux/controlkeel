@@ -1655,7 +1655,7 @@ defmodule ControlKeelWeb.ApiController do
       previous_review_id: review.previous_review_id,
       responded_at: review.responded_at,
       inserted_at: review.inserted_at,
-      browser_url: ControlKeelWeb.Endpoint.url() <> "/reviews/#{review.id}",
+      browser_url: ControlKeel.Mission.ReviewBridge.browser_url(review),
       task_title: review.task && review.task.title,
       previous_status: review.previous_review && review.previous_review.status
     }
