@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.3.91 — 2026-08-16
+
+### What's changed
+
+- Merge pull request #87 from aryaminus/refactor/observability-layout
+- Merge pull request #84 from aryaminus/refactor/session-review-web
+- refactor/observability-layout: update recent sessions component test with detailed finding and budget metrics
+- refactor/observability-layout: reduce vertical spacing in observability live view pages
+- refactor/observability-layout: overhaul observability UI components with consistent card-based design and updated color tokens
+- refactor/observability-layout: remove observability layout and consolidate routes under the dashboard layout
+- refactor/observability-layout: implement persistent, scroll-aware, and collapsible sidebar navigation with LiveView hook
+- refactor/session-review-web: add revisions card to ReviewLive and update local database configuration
+- refactor/session-review-web: nest review routes under sessions and centralize URL generation in ReviewBridge
+- refactor/session-review-web: prevent potential crash in ReviewLive when responding to nil review and allow configurable database path in dev config
+- refactor/session-review-web: nest review routes under sessions and centralize URL generation in ReviewBridge
+- refactor/session-review-web: improve review UI responsiveness, add clipboard support, and configure dev database path
+- refactor/session-review-web: standardize form components and add reusable button component with variants
+- refactor/session-review-web: redesign ReviewLive UI using standardized components and remove unused review_url state
+- refactor/session-review-web: implement session-scoped review URLs and add a SessionReviewsLive view for managing review queues
+- refactor/session-review-web: nest review routes under sessions and implement centralized browser URL generation
+
 ## v0.3.90 — 2026-08-15
 
 ### What's changed
