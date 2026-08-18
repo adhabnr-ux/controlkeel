@@ -1,7 +1,9 @@
 defmodule ControlKeelWeb.FindingsLive do
   use ControlKeelWeb, :live_view
 
+  alias ControlKeel.Governance.SecurityWorkflow
   alias ControlKeel.Mission
+  alias ControlKeel.Mission.FindingPlainEnglish
 
   @severities ~w(critical high medium low)
   @statuses ~w(open blocked escalated approved rejected)
@@ -19,6 +21,9 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:session_options, Mission.list_findings_browser_sessions())
      |> assign(:selected_finding, nil)
      |> assign(:selected_fix, nil)
+     |> assign(:selected_plain_english, nil)
+     |> assign(:selected_vuln, nil)
+     |> assign(:selected_audit_events, [])
      |> assign(:reject_id, nil)
      |> assign(:reject_reason, "")
      |> assign(:severities, @severities)
@@ -161,7 +166,10 @@ defmodule ControlKeelWeb.FindingsLive do
        socket
        |> assign(:open_dropdown_id, nil)
        |> assign(:selected_finding, finding)
-       |> assign(:selected_fix, fix)}
+       |> assign(:selected_fix, fix)
+       |> assign(:selected_plain_english, FindingPlainEnglish.translate(finding))
+       |> assign(:selected_vuln, vuln_case_summary(finding))
+       |> assign(:selected_audit_events, Mission.finding_audit_events(finding_id))}
     else
       _error ->
         {:noreply,
@@ -194,6 +202,9 @@ defmodule ControlKeelWeb.FindingsLive do
      socket
      |> assign(:selected_finding, nil)
      |> assign(:selected_fix, nil)
+     |> assign(:selected_plain_english, nil)
+     |> assign(:selected_vuln, nil)
+     |> assign(:selected_audit_events, [])
      |> assign(:open_dropdown_id, nil)}
   end
 
@@ -362,6 +373,77 @@ defmodule ControlKeelWeb.FindingsLive do
             >
               Reset all
             </.link>
+          </div>
+        </div>
+
+        <div
+          :if={@browser.security_summary["case_count"] > 0}
+          class="border-t bg-overlay/20 px-6 py-4"
+        >
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <p class="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+              Security cases
+            </p>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded-full border border-input px-3 py-1 text-sm text-muted-foreground">
+                {summary_count(@browser.security_summary, "case_count")} total
+              </span>
+              <span class="inline-flex items-center gap-1.5 rounded-full border border-[var(--ck-warning)]/40 bg-[var(--ck-warning)]/10 px-3 py-1 text-sm text-[var(--ck-warning)]">
+                {summary_count(@browser.security_summary, "unresolved")} unresolved
+              </span>
+              <span
+                :if={summary_count(@browser.security_summary, "critical_unresolved") > 0}
+                class="inline-flex items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1 text-sm text-destructive"
+              >
+                {summary_count(@browser.security_summary, "critical_unresolved")} critical unresolved
+              </span>
+            </div>
+          </div>
+          <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-md border border-input bg-background/50 px-3 py-2">
+              <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Patch</p>
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                <%= for {value, count} <- breakdown_entries(@browser.security_summary, "patch_status") do %>
+                  <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                    {option_label(value)} {count}
+                  </span>
+                <% end %>
+              </div>
+            </div>
+            <div class="rounded-md border border-input bg-background/50 px-3 py-2">
+              <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Disclosure</p>
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                <%= for {value, count} <- breakdown_entries(@browser.security_summary, "disclosure_status") do %>
+                  <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                    {option_label(value)} {count}
+                  </span>
+                <% end %>
+              </div>
+            </div>
+            <div class="rounded-md border border-input bg-background/50 px-3 py-2">
+              <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                Maintainer scope
+              </p>
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                <%= for {value, count} <- breakdown_entries(@browser.security_summary, "maintainer_scope") do %>
+                  <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                    {option_label(value)} {count}
+                  </span>
+                <% end %>
+              </div>
+            </div>
+            <div class="rounded-md border border-input bg-background/50 px-3 py-2">
+              <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                Exploitability
+              </p>
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                <%= for {value, count} <- breakdown_entries(@browser.security_summary, "exploitability_status") do %>
+                  <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                    {option_label(value)} {count}
+                  </span>
+                <% end %>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -627,6 +709,45 @@ defmodule ControlKeelWeb.FindingsLive do
 
           <p class="text-sm text-muted-foreground">{@selected_fix["summary"]}</p>
 
+          <div :if={@selected_plain_english && @selected_plain_english.explanation != ""}>
+            <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+              In plain English
+            </h4>
+            <p class="mt-1 text-sm">{@selected_plain_english.explanation}</p>
+            <p :if={@selected_plain_english.fix} class="mt-2 text-sm">
+              <span class="font-semibold">Recommended:</span> {@selected_plain_english.fix}
+            </p>
+            <p
+              :if={@selected_plain_english.risk_if_ignored}
+              class="mt-2 text-sm text-[var(--ck-warning)]"
+            >
+              If ignored: {@selected_plain_english.risk_if_ignored}
+            </p>
+          </div>
+
+          <div :if={@selected_vuln} class="rounded-md border border-input bg-background/50 px-3 py-2">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              Security case
+            </p>
+            <div class="mt-1 flex flex-wrap gap-1.5">
+              <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                {option_label(@selected_vuln["patch_status"])}
+              </span>
+              <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                {option_label(@selected_vuln["disclosure_status"])}
+              </span>
+              <span class={[
+                "rounded-full px-2 py-0.5 text-[11px] border",
+                @selected_vuln["is_resolved"] &&
+                  "border-primary/40 bg-primary/10 text-primary",
+                !@selected_vuln["is_resolved"] &&
+                  "border-[var(--ck-warning)]/40 bg-[var(--ck-warning)]/10 text-[var(--ck-warning)]"
+              ]}>
+                {if @selected_vuln["is_resolved"], do: "resolved", else: "unresolved"}
+              </span>
+            </div>
+          </div>
+
           <div class="grid grid-cols-2 gap-4">
             <div>
               <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
@@ -667,6 +788,20 @@ defmodule ControlKeelWeb.FindingsLive do
               Agent prompt
             </h4>
             <pre class="mt-1 rounded-lg border border-input bg-background p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words max-h-60 overflow-y-auto"><code>{@selected_fix["agent_prompt"]}</code></pre>
+          </div>
+
+          <div :if={length(@selected_audit_events) > 0}>
+            <h4 class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+              Audit trail
+            </h4>
+            <ul class="mt-1 space-y-1 list-none p-0">
+              <%= for event <- @selected_audit_events do %>
+                <li class="text-xs text-muted-foreground">
+                  {ControlKeelWeb.FormatHelpers.format_datetime(event.inserted_at, "short")} · {event.action} · {event.user_email ||
+                    "system"}
+                </li>
+              <% end %>
+            </ul>
           </div>
 
           <div class="flex items-center justify-between pt-2">
@@ -741,6 +876,14 @@ defmodule ControlKeelWeb.FindingsLive do
 
   defp maybe_regenerate_fix(nil), do: nil
   defp maybe_regenerate_fix(finding), do: Mission.auto_fix_for_finding(finding)
+
+  defp vuln_case_summary(finding) do
+    if SecurityWorkflow.vulnerability_case?(finding) do
+      SecurityWorkflow.vulnerability_case_summary(finding)
+    else
+      nil
+    end
+  end
 
   defp filter_params(params) do
     params
@@ -831,6 +974,14 @@ defmodule ControlKeelWeb.FindingsLive do
       page: 1,
       page_size: 20
     }
+  end
+
+  defp summary_count(security_summary, key), do: Map.get(security_summary, key, 0)
+
+  defp breakdown_entries(security_summary, key) do
+    security_summary
+    |> Map.get(key, %{})
+    |> Enum.sort_by(fn {_value, count} -> -count end)
   end
 
   defp option_label("open_source"), do: "Open source"
