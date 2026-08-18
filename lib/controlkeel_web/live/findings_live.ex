@@ -5,6 +5,9 @@ defmodule ControlKeelWeb.FindingsLive do
 
   @severities ~w(critical high medium low)
   @statuses ~w(open blocked escalated approved rejected)
+  @patch_statuses ~w(none drafted validated merged)
+  @disclosure_statuses ~w(draft triaged reported patched public wont_fix)
+  @maintainer_scopes ~w(first_party open_source third_party_vendor)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -20,6 +23,9 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:reject_reason, "")
      |> assign(:severities, @severities)
      |> assign(:statuses, @statuses)
+     |> assign(:patch_statuses, @patch_statuses)
+     |> assign(:disclosure_statuses, @disclosure_statuses)
+     |> assign(:maintainer_scopes, @maintainer_scopes)
      |> assign(:open_dropdown_id, nil)
      |> assign(:form, to_form(%{}, as: :filters))}
   end
@@ -78,6 +84,24 @@ defmodule ControlKeelWeb.FindingsLive do
          socket
          |> assign(:open_dropdown_id, nil)
          |> put_flash(:error, "ControlKeel could not approve that finding.")}
+    end
+  end
+
+  @impl true
+  def handle_event("escalate", %{"id" => id}, socket) do
+    with {:ok, finding_id} <- parse_id(id),
+         %{} = finding <- Mission.get_finding(finding_id),
+         {:ok, _updated} <- Mission.escalate_finding(finding) do
+      {:noreply,
+       socket
+       |> put_flash(:info, "Finding escalated.")
+       |> refresh_browser()}
+    else
+      _error ->
+        {:noreply,
+         socket
+         |> assign(:open_dropdown_id, nil)
+         |> put_flash(:error, "ControlKeel could not escalate that finding.")}
     end
   end
 
@@ -189,7 +213,7 @@ defmodule ControlKeelWeb.FindingsLive do
       <div class="rounded-lg border bg-card">
         <div class="space-y-4 p-4">
           <.form for={@form} phx-change="filter">
-            <div class="grid gap-4 xl:grid-cols-5">
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div class="space-y-2">
                 <label for="filters-q" class="text-xs uppercase tracking-[0.28em]">Search</label>
                 <input
@@ -269,6 +293,57 @@ defmodule ControlKeelWeb.FindingsLive do
                       selected={to_string(@form[:session_id].value) == to_string(id)}
                     >
                       {label}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+              <div class="space-y-2">
+                <label for="filters-patch_status" class="text-xs uppercase tracking-[0.28em]">
+                  Patch status
+                </label>
+                <select
+                  id="filters-patch_status"
+                  name="filters[patch_status]"
+                  class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+                >
+                  <option value="">All patch statuses</option>
+                  <%= for s <- @patch_statuses do %>
+                    <option value={s} selected={@form[:patch_status].value == s}>
+                      {option_label(s)}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+              <div class="space-y-2">
+                <label for="filters-disclosure_status" class="text-xs uppercase tracking-[0.28em]">
+                  Disclosure status
+                </label>
+                <select
+                  id="filters-disclosure_status"
+                  name="filters[disclosure_status]"
+                  class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+                >
+                  <option value="">All disclosure statuses</option>
+                  <%= for s <- @disclosure_statuses do %>
+                    <option value={s} selected={@form[:disclosure_status].value == s}>
+                      {option_label(s)}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+              <div class="space-y-2">
+                <label for="filters-maintainer_scope" class="text-xs uppercase tracking-[0.28em]">
+                  Maintainer scope
+                </label>
+                <select
+                  id="filters-maintainer_scope"
+                  name="filters[maintainer_scope]"
+                  class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+                >
+                  <option value="">All scopes</option>
+                  <%= for s <- @maintainer_scopes do %>
+                    <option value={s} selected={@form[:maintainer_scope].value == s}>
+                      {option_label(s)}
                     </option>
                   <% end %>
                 </select>
@@ -402,6 +477,16 @@ defmodule ControlKeelWeb.FindingsLive do
                             phx-value-id={finding.id}
                           >
                             Reject
+                          </button>
+                        <% end %>
+                        <%= if finding.status in ~w(open blocked) do %>
+                          <button
+                            type="button"
+                            class="w-full text-left px-4 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
+                            phx-click="escalate"
+                            phx-value-id={finding.id}
+                          >
+                            Escalate
                           </button>
                         <% end %>
                         <button
@@ -670,6 +755,9 @@ defmodule ControlKeelWeb.FindingsLive do
       "status" => filters.status || "",
       "category" => filters.category || "",
       "session_id" => filters.session_id || "",
+      "patch_status" => filters.patch_status || "",
+      "disclosure_status" => filters.disclosure_status || "",
+      "maintainer_scope" => filters.maintainer_scope || "",
       "page" => filters.page
     }
   end
@@ -727,11 +815,27 @@ defmodule ControlKeelWeb.FindingsLive do
   defp empty_browser do
     %{
       entries: [],
-      filters: %{q: nil, severity: nil, status: nil, category: nil, session_id: nil, page: 1},
+      filters: %{
+        q: nil,
+        severity: nil,
+        status: nil,
+        category: nil,
+        session_id: nil,
+        patch_status: nil,
+        disclosure_status: nil,
+        maintainer_scope: nil,
+        page: 1
+      },
       total_count: 0,
       total_pages: 1,
       page: 1,
       page_size: 20
     }
   end
+
+  defp option_label("open_source"), do: "Open source"
+  defp option_label("third_party_vendor"), do: "Third party vendor"
+  defp option_label("first_party"), do: "First party"
+  defp option_label("wont_fix"), do: "Won't fix"
+  defp option_label(value), do: value |> String.replace("_", " ") |> String.capitalize()
 end

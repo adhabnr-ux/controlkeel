@@ -1255,6 +1255,7 @@ defmodule ControlKeel.Mission do
   end
 
   @disposition_actions ~w(resolve dismiss escalate)
+  @disposition_statuses ~w(open blocked escalated)
 
   @doc """
   Disposition a single finding via a high-level action so agents (and bulk paths) can
@@ -1315,6 +1316,35 @@ defmodule ControlKeel.Mission do
   end
 
   def dispose_session_findings(_session_id, _filter, _action), do: {:error, :invalid_action}
+
+  @doc """
+  Bulk-disposition a list of finding ids via a single action (`resolve`,
+  `dismiss`, or `escalate`). Dismissals record `opts[:reason]` on the finding
+  metadata and audit event. Only findings currently in an active status
+  (`open`, `blocked`, `escalated`) are touched, so the operation is idempotent.
+  Returns `{:ok, %{count: n, ids: [finding_id]}}`.
+  """
+  def dispose_findings(ids, action, opts \\ []) when is_list(ids) do
+    if action in @disposition_actions do
+      disposition_opts = Keyword.put(opts, :reason, opts[:reason] && to_string(opts[:reason]))
+
+      ids =
+        Enum.reduce(ids, [], fn id, acc ->
+          with %Finding{status: status} <- get_finding(id),
+               true <- status in @disposition_statuses,
+               {:ok, updated} <- do_dispose_finding(action, id, disposition_opts) do
+            [updated.id | acc]
+          else
+            _ -> acc
+          end
+        end)
+        |> Enum.reverse()
+
+      {:ok, %{count: length(ids), ids: ids}}
+    else
+      {:error, :invalid_action}
+    end
+  end
 
   defp matches_disposition_filter?(finding, filter) do
     statuses = Map.get(filter, :statuses) || ~w(open blocked escalated)

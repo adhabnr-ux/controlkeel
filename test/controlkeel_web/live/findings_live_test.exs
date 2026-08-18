@@ -159,6 +159,120 @@ defmodule ControlKeelWeb.FindingsLiveTest do
     assert render(view) =~ "False positive on legacy code"
   end
 
+  test "findings browser escalates an active finding from the row menu", %{conn: conn} do
+    session = session_fixture()
+
+    open_finding =
+      finding_fixture(%{
+        session: session,
+        title: "Escalatable finding",
+        rule_id: "security.sql_injection",
+        severity: "high",
+        category: "security",
+        status: "open"
+      })
+
+    approved =
+      finding_fixture(%{
+        session: session,
+        title: "Approved finding",
+        rule_id: "security.xss_unsafe_html",
+        severity: "medium",
+        category: "security",
+        status: "approved"
+      })
+
+    {:ok, view, _html} = live(conn, ~p"/findings")
+
+    # Escalate only appears for active (open/blocked) findings, not settled ones
+    refute has_element?(view, "button[phx-click=\"escalate\"]")
+
+    render_click(
+      element(view, "button[phx-click=\"toggle_dropdown\"][phx-value-id=\"#{approved.id}\"]")
+    )
+
+    refute has_element?(view, "button[phx-click=\"escalate\"]")
+
+    render_click(
+      element(view, "button[phx-click=\"toggle_dropdown\"][phx-value-id=\"#{open_finding.id}\"]")
+    )
+
+    assert has_element?(view, "button[phx-click=\"escalate\"]")
+
+    render_click(element(view, "button[phx-click=\"escalate\"]"))
+
+    assert render(view) =~ "Finding escalated."
+    assert Mission.get_finding!(open_finding.id).status == "escalated"
+  end
+
+  test "findings browser filters by vulnerability-case metadata", %{conn: conn} do
+    session = session_fixture()
+
+    patched =
+      finding_fixture(%{
+        session: session,
+        title: "Patched case",
+        rule_id: "security.sql_injection",
+        severity: "high",
+        category: "security",
+        status: "open",
+        metadata: %{
+          "finding_family" => "vulnerability_case",
+          "patch_status" => "merged",
+          "disclosure_status" => "public",
+          "maintainer_scope" => "first_party"
+        }
+      })
+
+    _draft =
+      finding_fixture(%{
+        session: session,
+        title: "Draft case",
+        rule_id: "security.xss_unsafe_html",
+        severity: "medium",
+        category: "security",
+        status: "open",
+        metadata: %{
+          "finding_family" => "vulnerability_case",
+          "patch_status" => "none",
+          "disclosure_status" => "draft",
+          "maintainer_scope" => "third_party_vendor"
+        }
+      })
+
+    {:ok, view, _html} =
+      live(conn, ~p"/findings?#{%{patch_status: "merged"}}")
+
+    assert render(view) =~ "Patched case"
+    refute render(view) =~ "Draft case"
+
+    patched_change =
+      render_change(
+        form(view, "form",
+          filters: %{
+            "q" => "",
+            "severity" => "",
+            "status" => "",
+            "category" => "",
+            "session_id" => "",
+            "patch_status" => "",
+            "disclosure_status" => "draft",
+            "maintainer_scope" => "third_party_vendor"
+          }
+        )
+      )
+
+    assert patched_change =~ "Draft case"
+    refute patched_change =~ "Patched case"
+
+    assert_patch(
+      view,
+      ~p"/findings?#{%{disclosure_status: "draft", maintainer_scope: "third_party_vendor"}}"
+    )
+
+    _ = patched
+  end
+
   test "findings browser renders the guided fix panel", %{conn: conn} do
     session = session_fixture()
 

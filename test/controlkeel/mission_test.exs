@@ -272,6 +272,58 @@ defmodule ControlKeel.MissionTest do
     assert event.actor_identifier == "ck_finding"
   end
 
+  test "dispose_findings/3 bulk-disposes selected ids and is idempotent" do
+    resolve = finding_fixture(%{status: "open"})
+    dismiss = finding_fixture(%{status: "open"})
+    escalate = finding_fixture(%{status: "blocked"})
+    settled = finding_fixture(%{status: "approved"})
+
+    assert {:ok, %{count: 3, ids: ids}} =
+             Mission.dispose_findings(
+               [resolve.id, dismiss.id, escalate.id, settled.id],
+               "resolve"
+             )
+
+    # settle was already approved, so it is untouched
+    assert Enum.sort(ids) == Enum.sort([resolve.id, dismiss.id, escalate.id])
+
+    assert Mission.get_finding!(resolve.id).status == "approved"
+    assert Mission.get_finding!(dismiss.id).status == "approved"
+    assert Mission.get_finding!(escalate.id).status == "approved"
+    assert Mission.get_finding!(settled.id).status == "approved"
+
+    # idempotent re-run touches nothing new
+    assert {:ok, %{count: 0, ids: []}} =
+             Mission.dispose_findings([resolve.id, dismiss.id], "resolve")
+  end
+
+  test "dispose_findings/3 records reason for dismiss and actor opts" do
+    finding = finding_fixture(%{status: "open"})
+
+    assert {:ok, %{count: 1}} =
+             Mission.dispose_findings([finding.id], "dismiss",
+               reason: "New build removes this path",
+               actor_source: "web",
+               actor_identifier: "operator@example.com"
+             )
+
+    updated = Mission.get_finding!(finding.id)
+    assert updated.status == "rejected"
+    assert updated.metadata["rejection_reason"] == "New build removes this path"
+
+    assert [event] = Mission.finding_audit_events(finding.id)
+    assert event.event_type == "rejected"
+    assert event.reason == "New build removes this path"
+    assert event.actor_source == "web"
+    assert event.actor_identifier == "operator@example.com"
+  end
+
+  test "dispose_findings/3 rejects unknown actions" do
+    finding = finding_fixture()
+
+    assert {:error, :invalid_action} = Mission.dispose_findings([finding.id], "archive")
+  end
+
   test "browse_findings/1 applies filters and paginates deterministically" do
     session_a = session_fixture(%{title: "Alpha mission"})
     session_b = session_fixture(%{title: "Bravo mission"})
