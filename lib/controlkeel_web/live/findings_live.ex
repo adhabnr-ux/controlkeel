@@ -26,6 +26,9 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:selected_audit_events, [])
      |> assign(:reject_id, nil)
      |> assign(:reject_reason, "")
+     |> assign(:selected_ids, MapSet.new())
+     |> assign(:bulk_action, nil)
+     |> assign(:bulk_reason, "")
      |> assign(:severities, @severities)
      |> assign(:statuses, @statuses)
      |> assign(:patch_statuses, @patch_statuses)
@@ -78,7 +81,7 @@ defmodule ControlKeelWeb.FindingsLive do
   def handle_event("approve", %{"id" => id}, socket) do
     with {:ok, finding_id} <- parse_id(id),
          %{} = finding <- Mission.get_finding(finding_id),
-         {:ok, _updated} <- Mission.approve_finding(finding) do
+         {:ok, _updated} <- Mission.approve_finding(finding, actor_opts(socket)) do
       {:noreply,
        socket
        |> put_flash(:info, "Finding approved.")
@@ -96,7 +99,7 @@ defmodule ControlKeelWeb.FindingsLive do
   def handle_event("escalate", %{"id" => id}, socket) do
     with {:ok, finding_id} <- parse_id(id),
          %{} = finding <- Mission.get_finding(finding_id),
-         {:ok, _updated} <- Mission.escalate_finding(finding) do
+         {:ok, _updated} <- Mission.escalate_finding(finding, actor_opts(socket)) do
       {:noreply,
        socket
        |> put_flash(:info, "Finding escalated.")
@@ -133,7 +136,7 @@ defmodule ControlKeelWeb.FindingsLive do
 
     with {:ok, finding_id} <- parse_id(id),
          %{} = finding <- Mission.get_finding(finding_id),
-         {:ok, _updated} <- Mission.reject_finding(finding, reason) do
+         {:ok, _updated} <- Mission.reject_finding(finding, reason, actor_opts(socket)) do
       {:noreply,
        socket
        |> assign(:reject_id, nil)
@@ -153,6 +156,99 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:reject_id, nil)
      |> assign(:reject_reason, "")
      |> assign(:open_dropdown_id, nil)}
+  end
+
+  @impl true
+  def handle_event("toggle_select", %{"id" => id}, socket) do
+    with {:ok, finding_id} <- parse_id(id) do
+      selected =
+        if MapSet.member?(socket.assigns.selected_ids, finding_id),
+          do: MapSet.delete(socket.assigns.selected_ids, finding_id),
+          else: MapSet.put(socket.assigns.selected_ids, finding_id)
+
+      {:noreply, assign(socket, :selected_ids, selected)}
+    else
+      _error -> {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("select_page", _params, socket) do
+    page_ids = Enum.map(socket.assigns.browser.entries, & &1.id)
+    selected = socket.assigns.selected_ids
+
+    all_selected? = page_ids != [] and Enum.all?(page_ids, &MapSet.member?(selected, &1))
+
+    selected =
+      if all_selected?,
+        do: Enum.reduce(page_ids, selected, &MapSet.delete(&2, &1)),
+        else: Enum.reduce(page_ids, selected, &MapSet.put(&2, &1))
+
+    {:noreply, assign(socket, :selected_ids, selected)}
+  end
+
+  @impl true
+  def handle_event("clear_selection", _params, socket) do
+    {:noreply, assign(socket, :selected_ids, MapSet.new())}
+  end
+
+  @impl true
+  def handle_event("open_bulk", %{"action" => action}, socket) do
+    if action in ~w(resolve dismiss escalate) and MapSet.size(socket.assigns.selected_ids) > 0 do
+      {:noreply,
+       socket
+       |> assign(:bulk_action, action)
+       |> assign(:bulk_reason, "")}
+    else
+      {:noreply,
+       socket
+       |> put_flash(:error, "Select at least one finding first.")}
+    end
+  end
+
+  @impl true
+  def handle_event("set_bulk_reason", %{"value" => reason}, socket) do
+    {:noreply, assign(socket, :bulk_reason, reason)}
+  end
+
+  @impl true
+  def handle_event("confirm_bulk", _params, socket) do
+    action = socket.assigns.bulk_action
+    ids = MapSet.to_list(socket.assigns.selected_ids)
+
+    reason =
+      socket.assigns.bulk_reason |> String.trim() |> then(&if &1 == "", do: nil, else: &1)
+
+    opts =
+      actor_opts(socket) ++
+        if(reason, do: [reason: reason], else: [])
+
+    with true <- action in ~w(resolve dismiss escalate),
+         true <- ids != [],
+         {:ok, %{count: count}} <- Mission.dispose_findings(ids, action, opts) do
+      {:noreply,
+       socket
+       |> assign(:selected_ids, MapSet.new())
+       |> assign(:bulk_action, nil)
+       |> assign(:bulk_reason, "")
+       |> put_flash(:info, "#{count} finding(s) #{bulk_verb(action, count)}.")
+       |> refresh_browser()}
+    else
+      _error ->
+        {:noreply,
+         socket
+         |> assign(:bulk_action, nil)
+         |> assign(:bulk_reason, "")
+         |> put_flash(:error, "ControlKeel could not dispose those findings.")}
+    end
+  end
+
+  @impl true
+  def handle_event("cancel_bulk", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:bulk_action, nil)
+     |> assign(:bulk_reason, "")}
   end
 
   @impl true
@@ -447,11 +543,65 @@ defmodule ControlKeelWeb.FindingsLive do
           </div>
         </div>
 
+        <div
+          :if={MapSet.size(@selected_ids) > 0}
+          class="border-t bg-overlay/30 px-6 py-3"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm text-muted-foreground">
+              <span class="font-semibold text-primary">{MapSet.size(@selected_ids)}</span>
+              finding(s) selected
+            </p>
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                class="rounded-md border border-primary bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary-foreground transition hover:brightness-110"
+                phx-click="open_bulk"
+                phx-value-action="resolve"
+              >
+                Resolve
+              </button>
+              <button
+                type="button"
+                class="rounded-md border border-[var(--ck-warning)]/40 bg-[var(--ck-warning)]/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ck-warning)] transition hover:brightness-110"
+                phx-click="open_bulk"
+                phx-value-action="dismiss"
+              >
+                Dismiss
+              </button>
+              <button
+                type="button"
+                class="rounded-md border border-input bg-background px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground transition hover:border-primary hover:text-primary"
+                phx-click="open_bulk"
+                phx-value-action="escalate"
+              >
+                Escalate
+              </button>
+              <button
+                type="button"
+                class="rounded-md border border-input bg-background px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground transition hover:text-destructive"
+                phx-click="clear_selection"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="overflow-x-auto w-full">
           <div class="overflow-hidden border-t bg-overlay/30">
             <table class="min-w-full divide-y divide-border">
               <thead class="bg-muted">
                 <tr>
+                  <th class="w-8 px-4 py-6 text-left">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all on this page"
+                      checked={all_page_selected?(@selected_ids, @browser.entries)}
+                      phx-click="select_page"
+                      class="h-4 w-4 rounded border-input text-primary focus:ring-primary/15"
+                    />
+                  </th>
                   <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
                     Finding
                   </th>
@@ -474,7 +624,7 @@ defmodule ControlKeelWeb.FindingsLive do
               </thead>
               <tbody class="divide-y divide-border">
                 <tr :if={@browser.entries == []}>
-                  <td colspan="6" class="px-8 py-12 text-center text-sm text-muted-foreground">
+                  <td colspan="7" class="px-8 py-12 text-center text-sm text-muted-foreground">
                     No findings match the current filters.
                   </td>
                 </tr>
@@ -482,6 +632,16 @@ defmodule ControlKeelWeb.FindingsLive do
                   :for={finding <- @browser.entries}
                   class="transition hover:bg-muted/[0.02]"
                 >
+                  <td class="w-8 px-4 py-6 align-top">
+                    <input
+                      type="checkbox"
+                      aria-label={"Select #{finding.title}"}
+                      checked={MapSet.member?(@selected_ids, finding.id)}
+                      phx-click="toggle_select"
+                      phx-value-id={finding.id}
+                      class="h-4 w-4 rounded border-input text-primary focus:ring-primary/15"
+                    />
+                  </td>
                   <td class="px-8 py-6 align-top">
                     <div>
                       <p class="font-bold text-foreground">{finding.title}</p>
@@ -675,6 +835,51 @@ defmodule ControlKeelWeb.FindingsLive do
       </div>
 
       <div
+        :if={@bulk_action}
+        class="fixed inset-0 z-50 flex items-center justify-center"
+        phx-key="Escape"
+        phx-key-target="window"
+      >
+        <div class="fixed inset-0 bg-overlay/60" phx-click="cancel_bulk"></div>
+        <div class="relative rounded-lg border bg-card shadow-2xl p-6 w-full max-w-md mx-4">
+          <h3 class="text-lg font-semibold text-foreground">
+            {bulk_title(@bulk_action)} findings
+          </h3>
+          <p class="mt-1 text-sm text-muted-foreground">
+            {MapSet.size(@selected_ids)} finding(s) selected.
+            <%= if @bulk_action != "dismiss" do %>
+              Only findings currently open, blocked, or escalated will be changed.
+            <% end %>
+          </p>
+          <textarea
+            :if={@bulk_action == "dismiss"}
+            class="mt-4 w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+            placeholder="Reason for dismissal..."
+            value={@bulk_reason}
+            phx-keyup="set_bulk_reason"
+            phx-debounce="blur"
+            rows="3"
+          ></textarea>
+          <div class="flex justify-end gap-3 mt-4">
+            <button
+              type="button"
+              class="rounded-md border bg-overlay px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground transition hover:border-destructive/40 hover:text-destructive"
+              phx-click="cancel_bulk"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="rounded-md border bg-overlay px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary transition hover:border-primary"
+              phx-click="confirm_bulk"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
         :if={@selected_finding && @selected_fix}
         class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto"
         phx-click-away="close_fix"
@@ -797,8 +1002,8 @@ defmodule ControlKeelWeb.FindingsLive do
             <ul class="mt-1 space-y-1 list-none p-0">
               <%= for event <- @selected_audit_events do %>
                 <li class="text-xs text-muted-foreground">
-                  {ControlKeelWeb.FormatHelpers.format_datetime(event.inserted_at, "short")} · {event.action} · {event.user_email ||
-                    "system"}
+                  {ControlKeelWeb.FormatHelpers.format_datetime(event.recorded_at, "short")} · {event.event_type} · {event.actor_identifier ||
+                    event.actor_source}
                 </li>
               <% end %>
             </ul>
@@ -977,6 +1182,30 @@ defmodule ControlKeelWeb.FindingsLive do
   end
 
   defp summary_count(security_summary, key), do: Map.get(security_summary, key, 0)
+
+  defp actor_opts(socket) do
+    case socket.assigns[:current_user] do
+      nil -> [actor_source: "web", actor_identifier: "web"]
+      user -> [actor_source: "web", actor_user_id: user.id, actor_identifier: user.email]
+    end
+  end
+
+  defp all_page_selected?(selected_ids, entries) do
+    entries != [] and Enum.all?(entries, &MapSet.member?(selected_ids, &1.id))
+  end
+
+  defp bulk_verb("resolve", count), do: pluralize(count, "resolved")
+  defp bulk_verb("dismiss", count), do: pluralize(count, "dismissed")
+  defp bulk_verb("escalate", count), do: pluralize(count, "escalated")
+  defp bulk_verb(_, _), do: "disposed"
+
+  defp pluralize(1, singular), do: singular
+  defp pluralize(_, word), do: word
+
+  defp bulk_title("resolve"), do: "Resolve"
+  defp bulk_title("dismiss"), do: "Dismiss"
+  defp bulk_title("escalate"), do: "Escalate"
+  defp bulk_title(_), do: "Dispose"
 
   defp breakdown_entries(security_summary, key) do
     security_summary

@@ -299,4 +299,170 @@ defmodule ControlKeelWeb.FindingsLiveTest do
     assert detail_html =~ "parameterized queries"
     assert detail_html =~ "Copy fix prompt"
   end
+
+  test "findings browser bulk-resolves and bulk-dismisses selected findings", %{conn: conn} do
+    session = session_fixture()
+
+    first =
+      finding_fixture(%{
+        session: session,
+        title: "Bulk resolve me",
+        rule_id: "security.sql_injection",
+        severity: "high",
+        category: "security",
+        status: "open"
+      })
+
+    second =
+      finding_fixture(%{
+        session: session,
+        title: "Bulk dismiss me",
+        rule_id: "security.xss_unsafe_html",
+        severity: "medium",
+        category: "security",
+        status: "open"
+      })
+
+    settled =
+      finding_fixture(%{
+        session: session,
+        title: "Already approved",
+        rule_id: "security.csp_inline_script",
+        severity: "medium",
+        category: "security",
+        status: "approved"
+      })
+
+    dismissable =
+      finding_fixture(%{
+        session: session,
+        title: "Dismiss with reason",
+        rule_id: "security.loose_tls_cert",
+        severity: "low",
+        category: "ops",
+        status: "open"
+      })
+
+    {:ok, view, _html} = live(conn, ~p"/findings")
+
+    refute has_element?(view, "button[phx-click=\"open_bulk\"]")
+
+    render_click(
+      element(view, "input[phx-click=\"toggle_select\"][phx-value-id=\"#{first.id}\"]")
+    )
+
+    render_click(
+      element(view, "input[phx-click=\"toggle_select\"][phx-value-id=\"#{second.id}\"]")
+    )
+
+    assert has_element?(view, "button[phx-click=\"open_bulk\"][phx-value-action=\"resolve\"]")
+    assert render(view) =~ "finding(s) selected"
+
+    render_click(element(view, "button[phx-click=\"open_bulk\"][phx-value-action=\"resolve\"]"))
+
+    assert has_element?(view, "button[phx-click=\"confirm_bulk\"]")
+    assert render(view) =~ "Resolve findings"
+
+    render_click(element(view, "button[phx-click=\"confirm_bulk\"]"))
+
+    assert Mission.get_finding!(first.id).status == "approved"
+    assert Mission.get_finding!(second.id).status == "approved"
+    assert Mission.get_finding!(settled.id).status == "approved"
+    assert Mission.get_finding!(dismissable.id).status == "open"
+
+    refute has_element?(view, "button[phx-click=\"open_bulk\"]")
+
+    # Bulk dismiss records an optional reason
+    render_click(
+      element(view, "input[phx-click=\"toggle_select\"][phx-value-id=\"#{dismissable.id}\"]")
+    )
+
+    render_click(element(view, "button[phx-click=\"open_bulk\"][phx-value-action=\"dismiss\"]"))
+
+    assert render(view) =~ "Dismiss findings"
+
+    render_click(view, "set_bulk_reason", %{"value" => "Duplicate of CK-123"})
+    render_click(element(view, "button[phx-click=\"confirm_bulk\"]"))
+
+    dismissed = Mission.get_finding!(dismissable.id)
+    assert dismissed.status == "rejected"
+    assert dismissed.metadata["rejection_reason"] == "Duplicate of CK-123"
+  end
+
+  test "findings browser select-page checkbox selects and clears the page", %{conn: conn} do
+    session = session_fixture()
+
+    finding = finding_fixture(%{session: session, title: "One", status: "open"})
+    other = finding_fixture(%{session: session, title: "Two", status: "open"})
+
+    {:ok, view, _html} = live(conn, ~p"/findings")
+
+    render_click(element(view, "input[phx-click=\"select_page\"]"))
+
+    assert render(view) =~ "finding(s) selected"
+
+    render_click(element(view, "input[phx-click=\"select_page\"]"))
+
+    refute has_element?(view, "button[phx-click=\"open_bulk\"]")
+
+    # Individual toggle still works
+    render_click(
+      element(view, "input[phx-click=\"toggle_select\"][phx-value-id=\"#{finding.id}\"]")
+    )
+
+    assert render(view) =~ "finding(s) selected"
+
+    render_click(element(view, "button[phx-click=\"clear_selection\"]"))
+    refute has_element?(view, "button[phx-click=\"open_bulk\"]")
+
+    _ = other
+  end
+
+  test "web-disposed findings record web actor attribution on audit events", %{conn: conn} do
+    session = session_fixture()
+
+    finding =
+      finding_fixture(%{
+        session: session,
+        title: "Actor tracked",
+        rule_id: "security.sql_injection",
+        severity: "high",
+        category: "security",
+        status: "open"
+      })
+
+    escalated =
+      finding_fixture(%{
+        session: session,
+        title: "Bulk actor tracked",
+        rule_id: "security.xss_unsafe_html",
+        severity: "medium",
+        category: "security",
+        status: "open"
+      })
+
+    {:ok, view, _html} = live(conn, ~p"/findings")
+
+    render_click(
+      element(view, "button[phx-click=\"toggle_dropdown\"][phx-value-id=\"#{finding.id}\"]")
+    )
+
+    render_click(element(view, "button[phx-click=\"approve\"]"))
+
+    event = Mission.finding_audit_events(finding.id) |> List.last()
+    assert event.actor_source == "web"
+    assert event.actor_identifier == "web"
+
+    render_click(
+      element(view, "input[phx-click=\"toggle_select\"][phx-value-id=\"#{escalated.id}\"]")
+    )
+
+    render_click(element(view, "button[phx-click=\"open_bulk\"][phx-value-action=\"escalate\"]"))
+
+    render_click(element(view, "button[phx-click=\"confirm_bulk\"]"))
+
+    event = Mission.finding_audit_events(escalated.id) |> List.last()
+    assert event.event_type == "escalated"
+    assert event.actor_source == "web"
+  end
 end
