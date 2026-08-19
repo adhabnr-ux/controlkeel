@@ -7,7 +7,7 @@ defmodule ControlKeelWeb.MissionsLive do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-|> assign(:page_title, "Sessions")
+     |> assign(:page_title, "Sessions")
      |> assign(
        :page_action,
        %{label: "New Session", to: ~p"/sessions/start", icon: "hero-plus"}

@@ -206,8 +206,6 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
     """
   end
 
-  defp check_workspace_access(%Workspace{org_id: nil}, _assigns), do: :ok
-
   defp check_workspace_access(%Workspace{org_id: ws_org_id}, assigns) do
     case assigns[:current_org_id] do
       nil ->
@@ -220,8 +218,6 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
         {:error, "Workspace belongs to a different organization."}
     end
   end
-
-  defp check_workspace_access(_, _), do: :ok
 
   defp redirect_with_flash(socket, kind, msg, path) do
     socket

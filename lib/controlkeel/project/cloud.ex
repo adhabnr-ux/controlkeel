@@ -157,8 +157,10 @@ defmodule ControlKeel.Project.Cloud do
 
   defp default_chooser(title, items, label) do
     IO.puts(title)
+
     Enum.with_index(items, 1)
     |> Enum.each(fn {item, i} -> IO.puts("  #{i}. #{label.(item)}") end)
+
     IO.write("Enter a number (blank to cancel): ")
 
     case IO.gets("") do
@@ -189,7 +191,10 @@ defmodule ControlKeel.Project.Cloud do
   @doc false
   def error_message({:org_not_found, slug, available}) do
     base = "Organization \"#{slug}\" not found. Available orgs: #{format_list(available)}."
-    if available == [], do: "Organization \"#{slug}\" not found. Create an organization first.", else: base
+
+    if available == [],
+      do: "Organization \"#{slug}\" not found. Create an organization first.",
+      else: base
   end
 
   @doc false
