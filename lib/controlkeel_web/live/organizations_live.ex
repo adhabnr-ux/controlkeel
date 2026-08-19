@@ -229,7 +229,7 @@ defmodule ControlKeelWeb.OrganizationsLive do
               <div class="mt-4 flex items-center justify-between border-t pt-3">
                 <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <.icon name="hero-users" class="size-3.5" />
-                  <span>{row.member_count} {row.member_count == 1 && "member" || "members"}</span>
+                  <span>{row.member_count} {(row.member_count == 1 && "member") || "members"}</span>
                 </div>
                 <.role_badge role={row.role} />
               </div>

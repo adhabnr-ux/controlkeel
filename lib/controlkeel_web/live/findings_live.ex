@@ -24,15 +24,15 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:selected_plain_english, nil)
      |> assign(:selected_vuln, nil)
      |> assign(:selected_audit_events, [])
-|> assign(:reject_id, nil)
-      |> assign(:reject_reason, "")
-      |> assign(:severities, @severities)
-      |> assign(:statuses, @statuses)
-      |> assign(:patch_statuses, @patch_statuses)
-      |> assign(:disclosure_statuses, @disclosure_statuses)
-      |> assign(:maintainer_scopes, @maintainer_scopes)
-      |> assign(:more_filters_open?, false)
-      |> assign(:form, to_form(%{}, as: :filters))}
+     |> assign(:reject_id, nil)
+     |> assign(:reject_reason, "")
+     |> assign(:severities, @severities)
+     |> assign(:statuses, @statuses)
+     |> assign(:patch_statuses, @patch_statuses)
+     |> assign(:disclosure_statuses, @disclosure_statuses)
+     |> assign(:maintainer_scopes, @maintainer_scopes)
+     |> assign(:more_filters_open?, false)
+     |> assign(:form, to_form(%{}, as: :filters))}
   end
 
   @impl true
@@ -354,12 +354,10 @@ defmodule ControlKeelWeb.FindingsLive do
               </button>
             </div>
 
-            <div
-              class={[
-                "grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4",
-                !@more_filters_open? && "hidden"
-              ]}
-            >
+            <div class={[
+              "grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4",
+              !@more_filters_open? && "hidden"
+            ]}>
               <div class="space-y-2">
                 <label for="filters-category" class="text-xs uppercase tracking-[0.28em]">
                   Category
@@ -793,7 +791,10 @@ defmodule ControlKeelWeb.FindingsLive do
   defp severity_colors(_), do: "bg-muted text-muted-foreground ring-border"
 
   defp status_pill("approved"), do: [pill_base(), "bg-success/10 text-success ring-success/20"]
-  defp status_pill("rejected"), do: [pill_base(), "bg-destructive/10 text-destructive ring-destructive/20"]
+
+  defp status_pill("rejected"),
+    do: [pill_base(), "bg-destructive/10 text-destructive ring-destructive/20"]
+
   defp status_pill("escalated"), do: [pill_base(), "bg-primary/10 text-primary ring-primary/20"]
   defp status_pill("blocked"), do: [pill_base(), "bg-warning/10 text-warning ring-warning/20"]
   defp status_pill(_status), do: [pill_base(), "bg-muted text-muted-foreground ring-border"]
@@ -860,19 +861,19 @@ defmodule ControlKeelWeb.FindingsLive do
     end
   end
 
-defp advanced_filter_count(form) do
-  Enum.count(advanced_filter_keys(), &(not empty_filter_value?(input_value(form, &1))))
-end
+  defp advanced_filter_count(form) do
+    Enum.count(advanced_filter_keys(), &(not empty_filter_value?(input_value(form, &1))))
+  end
 
-defp advanced_active?(filters) do
-  Enum.any?(advanced_filter_keys(), &(not empty_filter_value?(Map.get(filters, &1))))
-end
+  defp advanced_active?(filters) do
+    Enum.any?(advanced_filter_keys(), &(not empty_filter_value?(Map.get(filters, &1))))
+  end
 
-defp advanced_filter_keys do
-  [:category, :patch_status, :disclosure_status, :maintainer_scope]
-end
+  defp advanced_filter_keys do
+    [:category, :patch_status, :disclosure_status, :maintainer_scope]
+  end
 
-defp input_value(form, key), do: Phoenix.HTML.Form.input_value(form, key)
+  defp input_value(form, key), do: Phoenix.HTML.Form.input_value(form, key)
 
   defp empty_filter_value?(nil), do: true
   defp empty_filter_value?(value) when is_binary(value), do: value == ""
