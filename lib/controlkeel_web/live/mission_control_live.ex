@@ -111,7 +111,7 @@ defmodule ControlKeelWeb.MissionControlLive do
   def handle_event("approve_finding", %{"id" => id}, socket) do
     with {:ok, finding_id} <- parse_id(id),
          %{} = finding <- Enum.find(socket.assigns.session.findings, &(&1.id == finding_id)),
-         {:ok, _updated} <- Mission.approve_finding(finding) do
+         {:ok, _updated} <- Mission.approve_finding(finding, actor_opts(socket)) do
       case Mission.get_session_context(socket.assigns.session.id) do
         nil ->
           {:noreply, socket}
@@ -135,7 +135,7 @@ defmodule ControlKeelWeb.MissionControlLive do
 
     with {:ok, finding_id} <- parse_id(id),
          %{} = finding <- Enum.find(socket.assigns.session.findings, &(&1.id == finding_id)),
-         {:ok, _updated} <- Mission.reject_finding(finding, reason) do
+         {:ok, _updated} <- Mission.reject_finding(finding, reason, actor_opts(socket)) do
       case Mission.get_session_context(socket.assigns.session.id) do
         nil ->
           {:noreply, socket}
@@ -1330,6 +1330,13 @@ defmodule ControlKeelWeb.MissionControlLive do
     case Integer.parse(to_string(value)) do
       {parsed, ""} -> {:ok, parsed}
       _ -> {:error, :invalid_id}
+    end
+  end
+
+  defp actor_opts(socket) do
+    case socket.assigns[:current_user] do
+      nil -> [actor_source: "web", actor_identifier: "web"]
+      user -> [actor_source: "web", actor_user_id: user.id, actor_identifier: user.email]
     end
   end
 
