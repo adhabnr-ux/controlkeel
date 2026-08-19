@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.93 — 2026-08-19
+
+### What's changed
+
+- Merge pull request #101 from aryaminus/fix/lint-and-warnings
+- fix/lint-and-warnings: remove redundant workspace access checks for nil org_ids
+- fix/lint-and-warnings: fix indentation and formatting across LiveViews and utility modules
+
 ## v0.3.92 — 2026-08-19
 
 ### What's changed
