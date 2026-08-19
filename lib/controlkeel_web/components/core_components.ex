@@ -50,26 +50,37 @@ defmodule ControlKeelWeb.CoreComponents do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
+      phx-hook="FlashTimeout"
+      data-flash-kind={@kind}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
-      class="toast toast-top toast-end z-50"
+      class="fixed right-4 top-4 z-50"
       {@rest}
     >
       <div class={[
-        "alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap",
-        @kind == :info && "alert-info",
-        @kind == :error && "alert-error"
+        "w-80 sm:w-96 max-w-[calc(100vw-2rem)] text-wrap rounded-xl border bg-card p-4 shadow-card",
+        @kind == :info && "border-info/30",
+        @kind == :error && "border-destructive/40 bg-destructive/10"
       ]}>
-        <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0" />
-        <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0" />
-        <div>
-          <p :if={@title} class="font-semibold">{@title}</p>
-          <p>{msg}</p>
+        <div class="flex items-start gap-2">
+          <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0 mt-0.5" />
+          <.icon
+            :if={@kind == :error}
+            name="hero-exclamation-circle"
+            class="size-5 shrink-0 mt-0.5 text-destructive"
+          />
+          <div class="min-w-0 flex-1">
+            <p :if={@title} class="font-semibold text-foreground">{@title}</p>
+            <p class="text-foreground/80">{msg}</p>
+          </div>
+          <button
+            type="button"
+            class="group self-start cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            aria-label={gettext("close")}
+          >
+            <.icon name="hero-x-mark" class="size-5 opacity-40 group-hover:opacity-70" />
+          </button>
         </div>
-        <div class="flex-1" />
-        <button type="button" class="group self-start cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded" aria-label={gettext("close")}>
-          <.icon name="hero-x-mark" class="size-5 opacity-40 group-hover:opacity-70" />
-        </button>
       </div>
     </div>
     """

@@ -28,6 +28,21 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 
 const Hooks = {}
 
+Hooks.FlashTimeout = {
+  mounted() {
+    this.hideTimer = setTimeout(() => {
+      const kind = this.el.dataset.flashKind
+      this.pushEventTo(this.el, "lv:clear-flash", {key: kind})
+      this.el.classList.add("opacity-0", "-translate-y-2")
+      this.el.style.transition = "opacity 300ms ease, transform 300ms ease"
+      setTimeout(() => this.el.classList.add("hidden"), 320)
+    }, this.el.dataset.flashKind === "error" ? 10000 : 6000)
+  },
+  destroyed() {
+    clearTimeout(this.hideTimer)
+  }
+}
+
 Hooks.SidebarNav = {
   mounted() {
     this.restoreScroll()

@@ -17,8 +17,22 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
     {:ok,
      socket
      |> assign(:page_title, "Observability Eval Candidates")
+     |> assign(:opts, opts)
      |> assign(:eval_candidates, eval_candidates)
      |> assign(:saved, saved)}
+  end
+
+  @impl true
+  def handle_event("save-candidates", _params, socket) do
+    opts = socket.assigns.opts
+    result = Observability.save_eval_candidates(opts)
+
+    socket =
+      socket
+      |> assign(:eval_candidates, Observability.eval_candidates(opts))
+      |> assign(:saved, Observability.saved_eval_candidates(opts))
+
+    {:noreply, put_flash(socket, :info, save_summary_message(result))}
   end
 
   @impl true
@@ -41,12 +55,19 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
           <span class="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
             {@eval_candidates.count} candidate(s)
           </span>
+          <button
+            id="observability-evals-save"
+            type="button"
+            phx-click="save-candidates"
+            class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+          >
+            Review &amp; save candidates
+          </button>
         </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
         <CommandPill.command_pill command="controlkeel obs evals" />
-        <CommandPill.command_pill command="controlkeel obs evals save" />
         <p class="text-xs text-muted-foreground">
           Save persists the current advisory candidates locally for human-gated review.
         </p>
@@ -200,6 +221,20 @@ defmodule ControlKeelWeb.ObservabilityEvalsLive do
   defp priority_pill_class(_),
     do:
       "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 bg-muted text-foreground ring-border"
+
+  defp save_summary_message(%{stored: 0, existing: _existing, source_count: 0}) do
+    "No active eval candidates to save."
+  end
+
+  defp save_summary_message(%{stored: 0, existing: existing}) when existing > 0 do
+    "Nothing new to save — #{existing} candidate(s) already saved."
+  end
+
+  defp save_summary_message(%{stored: stored, existing: existing}) do
+    count_part = "Saved #{stored} candidate(s)"
+    existing_part = if existing > 0, do: " · #{existing} already existed", else: ""
+    count_part <> existing_part <> "."
+  end
 
   defp format_frequency(map) when map == %{}, do: "none"
 

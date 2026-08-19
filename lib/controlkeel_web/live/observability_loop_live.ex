@@ -12,11 +12,31 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
     recent_session = Mission.list_recent_sessions(1) |> List.first()
     opts = if recent_session, do: [workspace_id: recent_session.workspace_id], else: []
     loop = Observability.loop_status(opts)
+    diagnostics = Observability.loop_diagnostics(opts)
 
     {:ok,
      socket
      |> assign(:page_title, "Observability Learning Loop")
-     |> assign(:loop, loop)}
+     |> assign(:opts, opts)
+     |> assign(:session_id, recent_session && recent_session.id)
+     |> assign(:loop, loop)
+     |> assign(:diagnostics, diagnostics)
+     |> assign(:snapshot, nil)}
+  end
+
+  @impl true
+  def handle_event("capture-perf-snapshot", _params, socket) do
+    opts =
+      socket.assigns.opts
+      |> maybe_put_session(socket.assigns.session_id)
+      |> Keyword.put(:persist, true)
+
+    snapshot = Observability.perf_snapshot(opts)
+
+    {:noreply,
+     socket
+     |> assign(:snapshot, snapshot)
+     |> put_flash(:info, perf_flash_message(snapshot))}
   end
 
   @impl true
@@ -142,6 +162,181 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
           </ul>
         </section>
       <% end %>
+
+      <section id="observability-loop-diagnostics" class="space-y-4">
+        <div class="flex items-start justify-between gap-3 flex-wrap">
+          <div class="space-y-1">
+            <.section_title>Loop diagnostics</.section_title>
+            <p class="text-xs text-muted-foreground">
+              Repeated identical tool-event and invocation runs detected in the sampled window.
+            </p>
+          </div>
+          <span class={neutral_pill_class()}>
+            {@diagnostics.totals.event_runs} event run(s) · {@diagnostics.totals.invocation_runs} invocation run(s)
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <section
+            id="observability-loop-diagnostics-events"
+            class="rounded-2xl border bg-card p-5 shadow-card space-y-3"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-sm font-medium text-muted-foreground">Repeated tool events</p>
+              <span class="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
+                {@diagnostics.totals.event_runs} run(s)
+              </span>
+            </div>
+            <%= if @diagnostics.repeated_tool_events == [] do %>
+              <p class="text-sm text-muted-foreground">
+                No repeated identical tool-event runs detected.
+              </p>
+            <% else %>
+              <div class="divide-y divide-border">
+                <%= for run <- @diagnostics.repeated_tool_events do %>
+                  <div class="space-y-1.5 py-3 first:pt-0 last:pb-0">
+                    <div class="flex items-center justify-between gap-3">
+                      <p class="text-sm font-medium text-foreground">{run.sample.event_type}</p>
+                      <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                        {run.count}×
+                      </span>
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                      actor: {run.sample.actor || "—"} · session #{run.sample.session_id}
+                    </p>
+                    <p class="text-xs leading-relaxed text-foreground">{run.sample.summary}</p>
+                    <p class="text-xs text-muted-foreground">
+                      {format_dt(run.first_at)} → {format_dt(run.last_at)}
+                    </p>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </section>
+
+          <section
+            id="observability-loop-diagnostics-invocations"
+            class="rounded-2xl border bg-card p-5 shadow-card space-y-3"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-sm font-medium text-muted-foreground">Repeated invocations</p>
+              <span class="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
+                {@diagnostics.totals.invocation_runs} run(s)
+              </span>
+            </div>
+            <%= if @diagnostics.repeated_invocations == [] do %>
+              <p class="text-sm text-muted-foreground">
+                No repeated identical invocation runs detected.
+              </p>
+            <% else %>
+              <div class="divide-y divide-border">
+                <%= for run <- @diagnostics.repeated_invocations do %>
+                  <div class="space-y-1.5 py-3 first:pt-0 last:pb-0">
+                    <div class="flex items-center justify-between gap-3">
+                      <p class="text-sm font-medium text-foreground">{run.sample.tool}</p>
+                      <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                        {run.count}×
+                      </span>
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                      {run.sample.source} · {run.sample.provider} / {run.sample.model}
+                    </p>
+                    <p class="text-xs text-muted-foreground">session #{run.sample.session_id}</p>
+                    <p class="text-xs text-muted-foreground">
+                      {format_dt(run.first_at)} → {format_dt(run.last_at)}
+                    </p>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </section>
+        </div>
+
+        <%= if @diagnostics.recommendations != [] do %>
+          <section class="rounded-2xl border bg-card p-5 shadow-card space-y-3">
+            <.section_title>Diagnostics recommendations</.section_title>
+            <ul class="space-y-2 text-sm leading-relaxed text-muted-foreground list-disc ml-5">
+              <%= for recommendation <- @diagnostics.recommendations do %>
+                <li>{recommendation}</li>
+              <% end %>
+            </ul>
+          </section>
+        <% end %>
+      </section>
+
+      <section
+        id="observability-perf-snapshot"
+        class="rounded-2xl border bg-card p-5 shadow-card space-y-4"
+      >
+        <div class="flex items-start justify-between gap-3 flex-wrap">
+          <div class="space-y-1">
+            <.section_title>Performance snapshot</.section_title>
+            <p class="text-xs text-muted-foreground">
+              Measures observability read-path timing; capturing persists a durable memory record.
+            </p>
+          </div>
+          <.button
+            id="observability-perf-capture"
+            type="button"
+            variant="outline"
+            phx-click="capture-perf-snapshot"
+          >
+            Capture performance snapshot
+          </.button>
+        </div>
+
+        <%= if @snapshot do %>
+          <p class="text-xs text-muted-foreground">
+            Generated at {format_dt(@snapshot.generated_at)}
+          </p>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <article class="rounded-2xl border bg-card p-4">
+              <p class="text-sm font-medium text-muted-foreground">Items</p>
+              <p class="mt-2 text-xl font-semibold text-foreground/90">
+                {@snapshot.summary.item_count}
+              </p>
+            </article>
+            <article class="rounded-2xl border bg-card p-4">
+              <p class="text-sm font-medium text-muted-foreground">Total wall time</p>
+              <p class="mt-2 text-xl font-semibold text-foreground/90">
+                {format_ms(@snapshot.summary.total_wall_ms)}
+              </p>
+            </article>
+            <article class="rounded-2xl border bg-card p-4">
+              <p class="text-sm font-medium text-muted-foreground">Ecto queries</p>
+              <p class="mt-2 text-xl font-semibold text-foreground/90">
+                {@snapshot.summary.total_ecto_queries}
+              </p>
+            </article>
+            <article class="rounded-2xl border bg-card p-4">
+              <p class="text-sm font-medium text-muted-foreground">Payload</p>
+              <p class="mt-2 text-xl font-semibold text-foreground/90">
+                {format_bytes(@snapshot.summary.total_payload_bytes)}
+              </p>
+            </article>
+          </div>
+
+          <div id="observability-perf-items" class="divide-y divide-border">
+            <%= for item <- @snapshot.items do %>
+              <div class="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-foreground leading-snug">{item.label}</p>
+                </div>
+                <p class="shrink-0 text-xs text-muted-foreground">
+                  {format_ms(item.wall_ms)} · {item.ecto_query_count} query(s) · {format_bytes(
+                    item.payload_bytes
+                  )}
+                </p>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="text-sm text-muted-foreground">
+            No performance snapshot captured yet. Capture one to persist a durable perf memory record.
+          </p>
+        <% end %>
+      </section>
     </section>
     """
   end
@@ -166,4 +361,23 @@ defmodule ControlKeelWeb.ObservabilityLoopLive do
     |> Enum.map(fn {key, count} -> "#{key}: #{count}" end)
     |> Enum.join(", ")
   end
+
+  defp perf_flash_message(%{summary: summary}) do
+    "Performance snapshot captured and persisted: #{summary.item_count} item(s), #{summary.total_wall_ms} ms total."
+  end
+
+  defp maybe_put_session(opts, nil), do: opts
+  defp maybe_put_session(opts, session_id), do: Keyword.put(opts, :session_id, session_id)
+
+  defp format_dt(nil), do: "—"
+  defp format_dt(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M")
+  defp format_dt(%NaiveDateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M")
+  defp format_dt(_), do: "—"
+
+  defp format_ms(value) when is_number(value), do: "#{value} ms"
+  defp format_ms(_), do: "—"
+
+  defp format_bytes(nil), do: "—"
+  defp format_bytes(bytes) when is_integer(bytes), do: "#{bytes} B"
+  defp format_bytes(_), do: "—"
 end
