@@ -376,10 +376,12 @@ defmodule ControlKeel.MissionTest do
 
     first_page = Mission.browse_findings(%{"page" => "1"})
     second_page = Mission.browse_findings(%{"page" => "2"})
+    third_page = Mission.browse_findings(%{"page" => "3"})
 
-    assert first_page.total_pages == 2
-    assert length(first_page.entries) == 20
-    assert length(second_page.entries) == 3
+    assert first_page.total_pages == 3
+    assert length(first_page.entries) == 10
+    assert length(second_page.entries) == 10
+    assert length(third_page.entries) == 3
   end
 
   test "browse_findings/1 filters vulnerability lifecycle metadata and summarizes filtered cases" do

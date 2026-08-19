@@ -39,7 +39,7 @@ defmodule ControlKeel.Mission do
   alias ControlKeel.Scanner
   alias ControlKeel.Utils
 
-  @findings_page_size 20
+  @findings_page_size 10
   @proofs_page_size 20
   @plan_phases ~w(ticket research_packet design_options narrowed_decision implementation_plan code_backed_plan)
   @execution_ready_plan_phases ~w(implementation_plan code_backed_plan)

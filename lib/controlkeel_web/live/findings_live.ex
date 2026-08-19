@@ -24,18 +24,15 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:selected_plain_english, nil)
      |> assign(:selected_vuln, nil)
      |> assign(:selected_audit_events, [])
-     |> assign(:reject_id, nil)
-     |> assign(:reject_reason, "")
-     |> assign(:selected_ids, MapSet.new())
-     |> assign(:bulk_action, nil)
-     |> assign(:bulk_reason, "")
-     |> assign(:severities, @severities)
-     |> assign(:statuses, @statuses)
-     |> assign(:patch_statuses, @patch_statuses)
-     |> assign(:disclosure_statuses, @disclosure_statuses)
-     |> assign(:maintainer_scopes, @maintainer_scopes)
-     |> assign(:open_dropdown_id, nil)
-     |> assign(:form, to_form(%{}, as: :filters))}
+|> assign(:reject_id, nil)
+      |> assign(:reject_reason, "")
+      |> assign(:severities, @severities)
+      |> assign(:statuses, @statuses)
+      |> assign(:patch_statuses, @patch_statuses)
+      |> assign(:disclosure_statuses, @disclosure_statuses)
+      |> assign(:maintainer_scopes, @maintainer_scopes)
+      |> assign(:more_filters_open?, false)
+      |> assign(:form, to_form(%{}, as: :filters))}
   end
 
   @impl true
@@ -57,7 +54,7 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:browser, browser)
      |> assign(:selected_finding, selected_finding)
      |> assign(:selected_fix, maybe_regenerate_fix(selected_finding))
-     |> assign(:open_dropdown_id, nil)
+     |> assign(:more_filters_open?, advanced_active?(browser.filters))
      |> assign(:form, to_form(browser_form_params(browser.filters), as: :filters))}
   end
 
@@ -67,14 +64,8 @@ defmodule ControlKeelWeb.FindingsLive do
   end
 
   @impl true
-  def handle_event("toggle_dropdown", %{"id" => id}, socket) do
-    current = socket.assigns.open_dropdown_id
-    {:noreply, assign(socket, :open_dropdown_id, if(current == id, do: nil, else: id))}
-  end
-
-  @impl true
-  def handle_event("close_dropdown", _params, socket) do
-    {:noreply, assign(socket, :open_dropdown_id, nil)}
+  def handle_event("toggle_more_filters", _params, socket) do
+    {:noreply, assign(socket, :more_filters_open?, !socket.assigns.more_filters_open?)}
   end
 
   @impl true
@@ -85,13 +76,11 @@ defmodule ControlKeelWeb.FindingsLive do
       {:noreply,
        socket
        |> put_flash(:info, "Finding approved.")
-       |> refresh_browser()}
+       |> refresh_browser()
+       |> refresh_modal_context()}
     else
       _error ->
-        {:noreply,
-         socket
-         |> assign(:open_dropdown_id, nil)
-         |> put_flash(:error, "ControlKeel could not approve that finding.")}
+        {:noreply, put_flash(socket, :error, "ControlKeel could not approve that finding.")}
     end
   end
 
@@ -103,13 +92,11 @@ defmodule ControlKeelWeb.FindingsLive do
       {:noreply,
        socket
        |> put_flash(:info, "Finding escalated.")
-       |> refresh_browser()}
+       |> refresh_browser()
+       |> refresh_modal_context()}
     else
       _error ->
-        {:noreply,
-         socket
-         |> assign(:open_dropdown_id, nil)
-         |> put_flash(:error, "ControlKeel could not escalate that finding.")}
+        {:noreply, put_flash(socket, :error, "ControlKeel could not escalate that finding.")}
     end
   end
 
@@ -118,8 +105,7 @@ defmodule ControlKeelWeb.FindingsLive do
     {:noreply,
      socket
      |> assign(:reject_id, id)
-     |> assign(:reject_reason, "")
-     |> assign(:open_dropdown_id, nil)}
+     |> assign(:reject_reason, "")}
   end
 
   @impl true
@@ -142,7 +128,8 @@ defmodule ControlKeelWeb.FindingsLive do
        |> assign(:reject_id, nil)
        |> assign(:reject_reason, "")
        |> put_flash(:info, "Finding rejected.")
-       |> refresh_browser()}
+       |> refresh_browser()
+       |> refresh_modal_context()}
     else
       _error ->
         {:noreply, put_flash(socket, :error, "ControlKeel could not reject that finding.")}
@@ -154,101 +141,7 @@ defmodule ControlKeelWeb.FindingsLive do
     {:noreply,
      socket
      |> assign(:reject_id, nil)
-     |> assign(:reject_reason, "")
-     |> assign(:open_dropdown_id, nil)}
-  end
-
-  @impl true
-  def handle_event("toggle_select", %{"id" => id}, socket) do
-    with {:ok, finding_id} <- parse_id(id) do
-      selected =
-        if MapSet.member?(socket.assigns.selected_ids, finding_id),
-          do: MapSet.delete(socket.assigns.selected_ids, finding_id),
-          else: MapSet.put(socket.assigns.selected_ids, finding_id)
-
-      {:noreply, assign(socket, :selected_ids, selected)}
-    else
-      _error -> {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_event("select_page", _params, socket) do
-    page_ids = Enum.map(socket.assigns.browser.entries, & &1.id)
-    selected = socket.assigns.selected_ids
-
-    all_selected? = page_ids != [] and Enum.all?(page_ids, &MapSet.member?(selected, &1))
-
-    selected =
-      if all_selected?,
-        do: Enum.reduce(page_ids, selected, &MapSet.delete(&2, &1)),
-        else: Enum.reduce(page_ids, selected, &MapSet.put(&2, &1))
-
-    {:noreply, assign(socket, :selected_ids, selected)}
-  end
-
-  @impl true
-  def handle_event("clear_selection", _params, socket) do
-    {:noreply, assign(socket, :selected_ids, MapSet.new())}
-  end
-
-  @impl true
-  def handle_event("open_bulk", %{"action" => action}, socket) do
-    if action in ~w(resolve dismiss escalate) and MapSet.size(socket.assigns.selected_ids) > 0 do
-      {:noreply,
-       socket
-       |> assign(:bulk_action, action)
-       |> assign(:bulk_reason, "")}
-    else
-      {:noreply,
-       socket
-       |> put_flash(:error, "Select at least one finding first.")}
-    end
-  end
-
-  @impl true
-  def handle_event("set_bulk_reason", %{"value" => reason}, socket) do
-    {:noreply, assign(socket, :bulk_reason, reason)}
-  end
-
-  @impl true
-  def handle_event("confirm_bulk", _params, socket) do
-    action = socket.assigns.bulk_action
-    ids = MapSet.to_list(socket.assigns.selected_ids)
-
-    reason =
-      socket.assigns.bulk_reason |> String.trim() |> then(&if &1 == "", do: nil, else: &1)
-
-    opts =
-      actor_opts(socket) ++
-        if(reason, do: [reason: reason], else: [])
-
-    with true <- action in ~w(resolve dismiss escalate),
-         true <- ids != [],
-         {:ok, %{count: count}} <- Mission.dispose_findings(ids, action, opts) do
-      {:noreply,
-       socket
-       |> assign(:selected_ids, MapSet.new())
-       |> assign(:bulk_action, nil)
-       |> assign(:bulk_reason, "")
-       |> put_flash(:info, "#{count} finding(s) #{bulk_verb(action, count)}.")
-       |> refresh_browser()}
-    else
-      _error ->
-        {:noreply,
-         socket
-         |> assign(:bulk_action, nil)
-         |> assign(:bulk_reason, "")
-         |> put_flash(:error, "ControlKeel could not dispose those findings.")}
-    end
-  end
-
-  @impl true
-  def handle_event("cancel_bulk", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:bulk_action, nil)
-     |> assign(:bulk_reason, "")}
+     |> assign(:reject_reason, "")}
   end
 
   @impl true
@@ -260,7 +153,6 @@ defmodule ControlKeelWeb.FindingsLive do
 
       {:noreply,
        socket
-       |> assign(:open_dropdown_id, nil)
        |> assign(:selected_finding, finding)
        |> assign(:selected_fix, fix)
        |> assign(:selected_plain_english, FindingPlainEnglish.translate(finding))
@@ -270,7 +162,6 @@ defmodule ControlKeelWeb.FindingsLive do
       _error ->
         {:noreply,
          socket
-         |> assign(:open_dropdown_id, nil)
          |> put_flash(:error, "ControlKeel could not load that fix.")}
     end
   end
@@ -300,27 +191,91 @@ defmodule ControlKeelWeb.FindingsLive do
      |> assign(:selected_fix, nil)
      |> assign(:selected_plain_english, nil)
      |> assign(:selected_vuln, nil)
-     |> assign(:selected_audit_events, [])
-     |> assign(:open_dropdown_id, nil)}
+     |> assign(:selected_audit_events, [])}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="mx-auto w-[min(1180px,calc(100%-2rem))] pt-8 pb-16">
-      <div class="space-y-1 mb-12">
-        <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
-          Findings browser
-        </h2>
-        <p class="text-muted-foreground">
-          Filter, approve, reject, and inspect guided fixes without leaving the governed ControlKeel workflow.
-        </p>
+    <section>
+      <.page_title
+        title="Findings browser"
+        subtitle="Filter, approve, reject, and inspect guided fixes without leaving the governed ControlKeel workflow."
+        class="mb-6"
+      />
+
+      <div
+        :if={@browser.security_summary["case_count"] > 0}
+        class="rounded-2xl border bg-card shadow-card p-5 mb-4"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+          <.section_title>Security cases</.section_title>
+          <p class="text-sm text-muted-foreground">
+            <span class="font-semibold text-foreground/90">
+              {summary_count(@browser.security_summary, "case_count")} total
+            </span>
+            <span class="mx-2 text-border">·</span>
+            <span class="text-warning">
+              {summary_count(@browser.security_summary, "unresolved")} unresolved
+            </span>
+            <span
+              :if={summary_count(@browser.security_summary, "critical_unresolved") > 0}
+              class="text-destructive"
+            >
+              <span class="mx-2 text-border">·</span>
+              {summary_count(@browser.security_summary, "critical_unresolved")} critical
+              unresolved
+            </span>
+          </p>
+        </div>
+        <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div>
+            <p class="text-sm font-medium text-muted-foreground">Patch</p>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              <%= for {value, count} <- breakdown_entries(@browser.security_summary, "patch_status") do %>
+                <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                  {option_label(value)} {count}
+                </span>
+              <% end %>
+            </div>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-muted-foreground">Disclosure</p>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              <%= for {value, count} <- breakdown_entries(@browser.security_summary, "disclosure_status") do %>
+                <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                  {option_label(value)} {count}
+                </span>
+              <% end %>
+            </div>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-muted-foreground">Maintainer scope</p>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              <%= for {value, count} <- breakdown_entries(@browser.security_summary, "maintainer_scope") do %>
+                <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                  {option_label(value)} {count}
+                </span>
+              <% end %>
+            </div>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-muted-foreground">Exploitability</p>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              <%= for {value, count} <- breakdown_entries(@browser.security_summary, "exploitability_status") do %>
+                <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                  {option_label(value)} {count}
+                </span>
+              <% end %>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="rounded-lg border bg-card">
-        <div class="space-y-4 p-4">
+      <div class="rounded-2xl border bg-card shadow-card overflow-clip">
+        <div class="space-y-4 p-5">
           <.form for={@form} phx-change="filter">
-            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div class="space-y-2">
                 <label for="filters-q" class="text-xs uppercase tracking-[0.28em]">Search</label>
                 <input
@@ -368,23 +323,6 @@ defmodule ControlKeelWeb.FindingsLive do
                 </select>
               </div>
               <div class="space-y-2">
-                <label for="filters-category" class="text-xs uppercase tracking-[0.28em]">
-                  Category
-                </label>
-                <select
-                  id="filters-category"
-                  name="filters[category]"
-                  class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
-                >
-                  <option value="">All categories</option>
-                  <%= for c <- @categories do %>
-                    <option value={c} selected={@form[:category].value == c}>
-                      {String.capitalize(c)}
-                    </option>
-                  <% end %>
-                </select>
-              </div>
-              <div class="space-y-2">
                 <label for="filters-session_id" class="text-xs uppercase tracking-[0.28em]">
                   Session
                 </label>
@@ -400,6 +338,41 @@ defmodule ControlKeelWeb.FindingsLive do
                       selected={to_string(@form[:session_id].value) == to_string(id)}
                     >
                       {label}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex justify-end mt-4">
+              <button
+                type="button"
+                class="rounded-md border border-input bg-background px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground transition hover:border-primary hover:text-primary"
+                phx-click="toggle_more_filters"
+              >
+                {more_filters_label(@form, @more_filters_open?)}
+              </button>
+            </div>
+
+            <div
+              class={[
+                "grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4",
+                !@more_filters_open? && "hidden"
+              ]}
+            >
+              <div class="space-y-2">
+                <label for="filters-category" class="text-xs uppercase tracking-[0.28em]">
+                  Category
+                </label>
+                <select
+                  id="filters-category"
+                  name="filters[category]"
+                  class="w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+                >
+                  <option value="">All categories</option>
+                  <%= for c <- @categories do %>
+                    <option value={c} selected={@form[:category].value == c}>
+                      {String.capitalize(c)}
                     </option>
                   <% end %>
                 </select>
@@ -472,283 +445,58 @@ defmodule ControlKeelWeb.FindingsLive do
           </div>
         </div>
 
-        <div
-          :if={@browser.security_summary["case_count"] > 0}
-          class="border-t bg-overlay/20 px-6 py-4"
-        >
-          <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <p class="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-              Security cases
-            </p>
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="rounded-full border border-input px-3 py-1 text-sm text-muted-foreground">
-                {summary_count(@browser.security_summary, "case_count")} total
-              </span>
-              <span class="inline-flex items-center gap-1.5 rounded-full border border-[var(--ck-warning)]/40 bg-[var(--ck-warning)]/10 px-3 py-1 text-sm text-[var(--ck-warning)]">
-                {summary_count(@browser.security_summary, "unresolved")} unresolved
-              </span>
-              <span
-                :if={summary_count(@browser.security_summary, "critical_unresolved") > 0}
-                class="inline-flex items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1 text-sm text-destructive"
-              >
-                {summary_count(@browser.security_summary, "critical_unresolved")} critical unresolved
-              </span>
-            </div>
-          </div>
-          <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div class="rounded-md border border-input bg-background/50 px-3 py-2">
-              <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Patch</p>
-              <div class="mt-1 flex flex-wrap gap-1.5">
-                <%= for {value, count} <- breakdown_entries(@browser.security_summary, "patch_status") do %>
-                  <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                    {option_label(value)} {count}
+        <div class="border-t bg-muted/20">
+          <ul class="divide-y divide-border">
+            <li
+              :if={@browser.entries == []}
+              class="px-6 py-12 text-center text-sm text-muted-foreground"
+            >
+              No findings match the current filters.
+            </li>
+            <li
+              :for={finding <- @browser.entries}
+              class="px-6 py-5 transition hover:bg-muted/[0.02]"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-3">
+                  <span class={[pill_base(), severity_colors(finding.severity)]}>
+                    {finding.severity}
                   </span>
-                <% end %>
-              </div>
-            </div>
-            <div class="rounded-md border border-input bg-background/50 px-3 py-2">
-              <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Disclosure</p>
-              <div class="mt-1 flex flex-wrap gap-1.5">
-                <%= for {value, count} <- breakdown_entries(@browser.security_summary, "disclosure_status") do %>
-                  <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                    {option_label(value)} {count}
-                  </span>
-                <% end %>
-              </div>
-            </div>
-            <div class="rounded-md border border-input bg-background/50 px-3 py-2">
-              <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Maintainer scope
-              </p>
-              <div class="mt-1 flex flex-wrap gap-1.5">
-                <%= for {value, count} <- breakdown_entries(@browser.security_summary, "maintainer_scope") do %>
-                  <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                    {option_label(value)} {count}
-                  </span>
-                <% end %>
-              </div>
-            </div>
-            <div class="rounded-md border border-input bg-background/50 px-3 py-2">
-              <p class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Exploitability
-              </p>
-              <div class="mt-1 flex flex-wrap gap-1.5">
-                <%= for {value, count} <- breakdown_entries(@browser.security_summary, "exploitability_status") do %>
-                  <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                    {option_label(value)} {count}
-                  </span>
-                <% end %>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          :if={MapSet.size(@selected_ids) > 0}
-          class="border-t bg-overlay/30 px-6 py-3"
-        >
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-muted-foreground">
-              <span class="font-semibold text-primary">{MapSet.size(@selected_ids)}</span>
-              finding(s) selected
-            </p>
-            <div class="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                class="rounded-md border border-primary bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary-foreground transition hover:brightness-110"
-                phx-click="open_bulk"
-                phx-value-action="resolve"
-              >
-                Resolve
-              </button>
-              <button
-                type="button"
-                class="rounded-md border border-[var(--ck-warning)]/40 bg-[var(--ck-warning)]/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ck-warning)] transition hover:brightness-110"
-                phx-click="open_bulk"
-                phx-value-action="dismiss"
-              >
-                Dismiss
-              </button>
-              <button
-                type="button"
-                class="rounded-md border border-input bg-background px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground transition hover:border-primary hover:text-primary"
-                phx-click="open_bulk"
-                phx-value-action="escalate"
-              >
-                Escalate
-              </button>
-              <button
-                type="button"
-                class="rounded-md border border-input bg-background px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground transition hover:text-destructive"
-                phx-click="clear_selection"
-              >
-                Clear
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="overflow-x-auto w-full">
-          <div class="overflow-hidden border-t bg-overlay/30">
-            <table class="min-w-full divide-y divide-border">
-              <thead class="bg-muted">
-                <tr>
-                  <th class="w-8 px-4 py-6 text-left">
-                    <input
-                      type="checkbox"
-                      aria-label="Select all on this page"
-                      checked={all_page_selected?(@selected_ids, @browser.entries)}
-                      phx-click="select_page"
-                      class="h-4 w-4 rounded border-input text-primary focus:ring-primary/15"
-                    />
-                  </th>
-                  <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                    Finding
-                  </th>
-                  <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                    Session
-                  </th>
-                  <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                    Severity
-                  </th>
-                  <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                    Status
-                  </th>
-                  <th class="px-8 py-6 text-left text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                    Rule
-                  </th>
-                  <th class="w-0 px-2 py-6 text-right text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-border">
-                <tr :if={@browser.entries == []}>
-                  <td colspan="7" class="px-8 py-12 text-center text-sm text-muted-foreground">
-                    No findings match the current filters.
-                  </td>
-                </tr>
-                <tr
-                  :for={finding <- @browser.entries}
-                  class="transition hover:bg-muted/[0.02]"
+                  <span class={status_pill(finding.status)}>{finding.status}</span>
+                </div>
+                <button
+                  type="button"
+                  class="shrink-0 rounded-md border border-input bg-background px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary transition hover:border-primary"
+                  phx-click="view_fix"
+                  phx-value-id={finding.id}
                 >
-                  <td class="w-8 px-4 py-6 align-top">
-                    <input
-                      type="checkbox"
-                      aria-label={"Select #{finding.title}"}
-                      checked={MapSet.member?(@selected_ids, finding.id)}
-                      phx-click="toggle_select"
-                      phx-value-id={finding.id}
-                      class="h-4 w-4 rounded border-input text-primary focus:ring-primary/15"
-                    />
-                  </td>
-                  <td class="px-8 py-6 align-top">
-                    <div>
-                      <p class="font-bold text-foreground">{finding.title}</p>
-                      <p class="mt-2 max-w-md text-sm text-muted-foreground">
-                        {finding.plain_message}
-                      </p>
-                    </div>
-                  </td>
-                  <td class="px-8 py-6 align-top">
-                    <.link
-                      navigate={~p"/sessions/#{finding.session_id}"}
-                      class="text-xs font-semibold tracking-[0.14em] text-primary hover:underline"
-                    >
-                      {finding.session.title}
-                    </.link>
-                  </td>
-                  <td class="px-8 py-6 align-top">
-                    <span class={[pill_base(), severity_colors(finding.severity)]}>
-                      {finding.severity}
-                    </span>
-                  </td>
-                  <td class="px-8 py-6 align-top">
-                    <span class={[pill_base(), "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"]}>
-                      {finding.status}
-                    </span>
-                    <p
-                      :if={finding.status == "rejected" && finding.metadata["rejection_reason"]}
-                      class="mt-2 text-xs text-muted-foreground italic"
-                    >
-                      {finding.metadata["rejection_reason"]}
-                    </p>
-                  </td>
-                  <td class="px-8 py-6 align-top">
-                    <p>{rule_label(finding.rule_id)}</p>
-                  </td>
-                  <td class="px-2 py-6 text-right align-top">
-                    <div class="relative inline-flex">
-                      <button
-                        type="button"
-                        aria-label="Finding actions"
-                        class="flex items-center justify-center w-8 h-8 rounded-md border border-input bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        phx-click="toggle_dropdown"
-                        phx-value-id={finding.id}
-                      >
-                        ⋮
-                      </button>
-                      <div
-                        :if={@open_dropdown_id == to_string(finding.id)}
-                        class="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg border bg-card shadow-2xl py-1"
-                        phx-click-away="close_dropdown"
-                      >
-                        <%= if finding.status == "approved" do %>
-                          <span class="block w-full text-left px-4 py-2 text-sm text-muted-foreground cursor-not-allowed">
-                            Approved
-                          </span>
-                        <% else %>
-                          <button
-                            type="button"
-                            class="w-full text-left px-4 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
-                            phx-click="approve"
-                            phx-value-id={finding.id}
-                          >
-                            Approve
-                          </button>
-                        <% end %>
-                        <%= if finding.status == "rejected" do %>
-                          <span class="block w-full text-left px-4 py-2 text-sm text-muted-foreground cursor-not-allowed">
-                            Rejected
-                          </span>
-                        <% else %>
-                          <button
-                            type="button"
-                            class="w-full text-left px-4 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
-                            phx-click="reject"
-                            phx-value-id={finding.id}
-                          >
-                            Reject
-                          </button>
-                        <% end %>
-                        <%= if finding.status in ~w(open blocked) do %>
-                          <button
-                            type="button"
-                            class="w-full text-left px-4 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
-                            phx-click="escalate"
-                            phx-value-id={finding.id}
-                          >
-                            Escalate
-                          </button>
-                        <% end %>
-                        <button
-                          type="button"
-                          class="w-full text-left px-4 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
-                          phx-click="view_fix"
-                          phx-value-id={finding.id}
-                        >
-                          View fix
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                  View
+                </button>
+              </div>
+              <h3 class="mt-3 font-bold text-foreground break-words">{finding.title}</h3>
+              <p class="mt-1 text-sm text-muted-foreground break-words">{finding.plain_message}</p>
+              <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                <span>session:</span>
+                <.link
+                  navigate={~p"/sessions/#{finding.session_id}"}
+                  class="font-semibold text-primary hover:underline"
+                >
+                  {finding.session.title}
+                </.link>
+                <span aria-hidden="true">·</span>
+                <span>rule: {rule_label(finding.rule_id)}</span>
+              </div>
+              <p
+                :if={finding.status == "rejected" && finding.metadata["rejection_reason"]}
+                class="mt-2 text-xs text-muted-foreground italic"
+              >
+                {finding.metadata["rejection_reason"]}
+              </p>
+            </li>
+          </ul>
         </div>
 
-        <div class="border-t bg-overlay/40 px-6 py-4">
+        <div class="border-t bg-muted/20 px-6 py-4">
           <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="text-xs uppercase tracking-[0.15em] text-muted-foreground">
               Page {@browser.page} of {@browser.total_pages}
@@ -797,12 +545,12 @@ defmodule ControlKeelWeb.FindingsLive do
 
       <div
         :if={@reject_id}
-        class="fixed inset-0 z-50 flex items-center justify-center"
+        class="fixed inset-0 z-[60] flex items-center justify-center"
         phx-key="Escape"
         phx-key-target="window"
       >
         <div class="fixed inset-0 bg-overlay/60" phx-click="cancel_reject"></div>
-        <div class="relative rounded-lg border bg-card shadow-2xl p-6 w-full max-w-md mx-4">
+        <div class="relative rounded-2xl border bg-card shadow-card p-6 w-full max-w-md mx-4">
           <h3 class="text-lg font-semibold text-foreground">Reject finding</h3>
           <p class="mt-1 text-sm text-muted-foreground">
             Rule: {rejected_finding_title(@browser.entries, @reject_id)}
@@ -835,51 +583,6 @@ defmodule ControlKeelWeb.FindingsLive do
       </div>
 
       <div
-        :if={@bulk_action}
-        class="fixed inset-0 z-50 flex items-center justify-center"
-        phx-key="Escape"
-        phx-key-target="window"
-      >
-        <div class="fixed inset-0 bg-overlay/60" phx-click="cancel_bulk"></div>
-        <div class="relative rounded-lg border bg-card shadow-2xl p-6 w-full max-w-md mx-4">
-          <h3 class="text-lg font-semibold text-foreground">
-            {bulk_title(@bulk_action)} findings
-          </h3>
-          <p class="mt-1 text-sm text-muted-foreground">
-            {MapSet.size(@selected_ids)} finding(s) selected.
-            <%= if @bulk_action != "dismiss" do %>
-              Only findings currently open, blocked, or escalated will be changed.
-            <% end %>
-          </p>
-          <textarea
-            :if={@bulk_action == "dismiss"}
-            class="mt-4 w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
-            placeholder="Reason for dismissal..."
-            value={@bulk_reason}
-            phx-keyup="set_bulk_reason"
-            phx-debounce="blur"
-            rows="3"
-          ></textarea>
-          <div class="flex justify-end gap-3 mt-4">
-            <button
-              type="button"
-              class="rounded-md border bg-overlay px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground transition hover:border-destructive/40 hover:text-destructive"
-              phx-click="cancel_bulk"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="rounded-md border bg-overlay px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary transition hover:border-primary"
-              phx-click="confirm_bulk"
-            >
-              Confirm
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div
         :if={@selected_finding && @selected_fix}
         class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto"
         phx-click-away="close_fix"
@@ -887,7 +590,7 @@ defmodule ControlKeelWeb.FindingsLive do
         phx-key-target="window"
       >
         <div class="fixed inset-0 bg-overlay/60" phx-click="close_fix"></div>
-        <div class="relative rounded-lg border bg-card shadow-2xl p-8 w-full max-w-2xl mx-4 space-y-4">
+        <div class="relative rounded-2xl border bg-card shadow-card p-8 w-full max-w-2xl mx-4 space-y-4">
           <button
             type="button"
             class="absolute top-2 right-2 text-muted-foreground hover:text-foreground transition"
@@ -902,14 +605,19 @@ defmodule ControlKeelWeb.FindingsLive do
               </p>
               <h3 class="text-lg font-semibold text-foreground mt-1">{@selected_finding.title}</h3>
             </div>
-            <span class={[
-              "inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border uppercase tracking-wider",
-              @selected_fix["supported"] && "border-primary/40 bg-primary/10 text-primary",
-              !@selected_fix["supported"] &&
-                "border-[var(--ck-warning)]/40 bg-[var(--ck-warning)]/10 text-[var(--ck-warning)]"
-            ]}>
-              {if @selected_fix["supported"], do: "supported", else: "manual review"}
-            </span>
+            <div class="flex shrink-0 items-center gap-2">
+              <span class={status_pill(@selected_finding.status)}>
+                {@selected_finding.status}
+              </span>
+              <span class={[
+                "inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border uppercase tracking-wider",
+                @selected_fix["supported"] && "border-primary/40 bg-primary/10 text-primary",
+                !@selected_fix["supported"] &&
+                  "border-warning/40 bg-warning/10 text-warning"
+              ]}>
+                {if @selected_fix["supported"], do: "supported", else: "manual review"}
+              </span>
+            </div>
           </div>
 
           <p class="text-sm text-muted-foreground">{@selected_fix["summary"]}</p>
@@ -924,7 +632,7 @@ defmodule ControlKeelWeb.FindingsLive do
             </p>
             <p
               :if={@selected_plain_english.risk_if_ignored}
-              class="mt-2 text-sm text-[var(--ck-warning)]"
+              class="mt-2 text-sm text-warning"
             >
               If ignored: {@selected_plain_english.risk_if_ignored}
             </p>
@@ -946,7 +654,7 @@ defmodule ControlKeelWeb.FindingsLive do
                 @selected_vuln["is_resolved"] &&
                   "border-primary/40 bg-primary/10 text-primary",
                 !@selected_vuln["is_resolved"] &&
-                  "border-[var(--ck-warning)]/40 bg-[var(--ck-warning)]/10 text-[var(--ck-warning)]"
+                  "border-warning/40 bg-warning/10 text-warning"
               ]}>
                 {if @selected_vuln["is_resolved"], do: "resolved", else: "unresolved"}
               </span>
@@ -1009,16 +717,52 @@ defmodule ControlKeelWeb.FindingsLive do
             </ul>
           </div>
 
-          <div class="flex items-center justify-between pt-2">
+          <div class="flex flex-wrap items-center gap-3 border-t border-border pt-4">
             <button
-              :if={@selected_fix["agent_prompt"]}
+              :if={@selected_finding.status != "approved"}
               type="button"
               class="rounded-md border border-primary bg-primary px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary-foreground transition hover:brightness-110"
-              phx-click="copy_fix_prompt"
+              phx-click="approve"
               phx-value-id={@selected_finding.id}
             >
-              Copy fix prompt
+              Approve
             </button>
+            <button
+              :if={@selected_finding.status != "rejected"}
+              type="button"
+              class="rounded-md border border-warning/40 bg-warning/10 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-warning transition hover:brightness-110"
+              phx-click="reject"
+              phx-value-id={@selected_finding.id}
+            >
+              Reject
+            </button>
+            <button
+              :if={@selected_finding.status in ~w(open blocked)}
+              type="button"
+              class="rounded-md border border-input bg-background px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground transition hover:border-primary hover:text-primary"
+              phx-click="escalate"
+              phx-value-id={@selected_finding.id}
+            >
+              Escalate
+            </button>
+            <div class="ml-auto flex flex-wrap items-center gap-3">
+              <button
+                :if={@selected_fix["agent_prompt"]}
+                type="button"
+                class="rounded-md border border-primary bg-primary px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-primary-foreground transition hover:brightness-110"
+                phx-click="copy_fix_prompt"
+                phx-value-id={@selected_finding.id}
+              >
+                Copy fix prompt
+              </button>
+              <button
+                type="button"
+                class="rounded-md border bg-overlay px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground transition hover:border-destructive/40 hover:text-destructive"
+                phx-click="close_fix"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1038,14 +782,21 @@ defmodule ControlKeelWeb.FindingsLive do
   end
 
   defp pill_base do
-    "inline-flex items-center px-3 py-1.5 text-sm rounded-full border"
+    "inline-flex items-center px-2.5 py-1 text-xs font-semibold capitalize ring-1"
   end
 
-  defp severity_colors("critical"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
-  defp severity_colors("high"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
-  defp severity_colors("medium"), do: "bg-[rgba(255,207,107,0.12)] text-[#fff0bf]"
-  defp severity_colors("low"), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
-  defp severity_colors(_), do: "bg-muted text-foreground/70"
+  defp severity_colors(severe) when severe in ~w(critical high),
+    do: "bg-destructive/10 text-destructive ring-destructive/20"
+
+  defp severity_colors("medium"), do: "bg-warning/10 text-warning ring-warning/20"
+  defp severity_colors("low"), do: "bg-success/10 text-success ring-success/20"
+  defp severity_colors(_), do: "bg-muted text-muted-foreground ring-border"
+
+  defp status_pill("approved"), do: [pill_base(), "bg-success/10 text-success ring-success/20"]
+  defp status_pill("rejected"), do: [pill_base(), "bg-destructive/10 text-destructive ring-destructive/20"]
+  defp status_pill("escalated"), do: [pill_base(), "bg-primary/10 text-primary ring-primary/20"]
+  defp status_pill("blocked"), do: [pill_base(), "bg-warning/10 text-warning ring-warning/20"]
+  defp status_pill(_status), do: [pill_base(), "bg-muted text-muted-foreground ring-border"]
 
   defp rejected_finding_title(entries, reject_id) do
     case Enum.find(entries, &(to_string(&1.id) == reject_id)) do
@@ -1075,12 +826,57 @@ defmodule ControlKeelWeb.FindingsLive do
     |> assign(:browser, browser)
     |> assign(:selected_finding, selected_finding)
     |> assign(:selected_fix, maybe_regenerate_fix(selected_finding))
-    |> assign(:open_dropdown_id, nil)
     |> assign(:form, to_form(browser_form_params(browser.filters), as: :filters))
   end
 
   defp maybe_regenerate_fix(nil), do: nil
   defp maybe_regenerate_fix(finding), do: Mission.auto_fix_for_finding(finding)
+
+  defp refresh_modal_context(socket) do
+    case socket.assigns.selected_finding do
+      %{id: id} ->
+        with %{} = finding <- Mission.get_finding_with_context(id) do
+          socket
+          |> assign(:selected_finding, finding)
+          |> assign(:selected_fix, Mission.auto_fix_for_finding(finding))
+          |> assign(:selected_plain_english, FindingPlainEnglish.translate(finding))
+          |> assign(:selected_vuln, vuln_case_summary(finding))
+          |> assign(:selected_audit_events, Mission.finding_audit_events(id))
+        else
+          _error -> socket
+        end
+
+      _other ->
+        socket
+    end
+  end
+
+  defp more_filters_label(_form, true), do: "Fewer filters"
+
+  defp more_filters_label(form, false) do
+    case advanced_filter_count(form) do
+      0 -> "More filters"
+      n -> "More filters (#{n} active)"
+    end
+  end
+
+defp advanced_filter_count(form) do
+  Enum.count(advanced_filter_keys(), &(not empty_filter_value?(input_value(form, &1))))
+end
+
+defp advanced_active?(filters) do
+  Enum.any?(advanced_filter_keys(), &(not empty_filter_value?(Map.get(filters, &1))))
+end
+
+defp advanced_filter_keys do
+  [:category, :patch_status, :disclosure_status, :maintainer_scope]
+end
+
+defp input_value(form, key), do: Phoenix.HTML.Form.input_value(form, key)
+
+  defp empty_filter_value?(nil), do: true
+  defp empty_filter_value?(value) when is_binary(value), do: value == ""
+  defp empty_filter_value?(_value), do: false
 
   defp vuln_case_summary(finding) do
     if SecurityWorkflow.vulnerability_case?(finding) do
@@ -1177,7 +973,7 @@ defmodule ControlKeelWeb.FindingsLive do
       total_count: 0,
       total_pages: 1,
       page: 1,
-      page_size: 20
+      page_size: 10
     }
   end
 
@@ -1189,23 +985,6 @@ defmodule ControlKeelWeb.FindingsLive do
       user -> [actor_source: "web", actor_user_id: user.id, actor_identifier: user.email]
     end
   end
-
-  defp all_page_selected?(selected_ids, entries) do
-    entries != [] and Enum.all?(entries, &MapSet.member?(selected_ids, &1.id))
-  end
-
-  defp bulk_verb("resolve", count), do: pluralize(count, "resolved")
-  defp bulk_verb("dismiss", count), do: pluralize(count, "dismissed")
-  defp bulk_verb("escalate", count), do: pluralize(count, "escalated")
-  defp bulk_verb(_, _), do: "disposed"
-
-  defp pluralize(1, singular), do: singular
-  defp pluralize(_, word), do: word
-
-  defp bulk_title("resolve"), do: "Resolve"
-  defp bulk_title("dismiss"), do: "Dismiss"
-  defp bulk_title("escalate"), do: "Escalate"
-  defp bulk_title(_), do: "Dispose"
 
   defp breakdown_entries(security_summary, key) do
     security_summary
