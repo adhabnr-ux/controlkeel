@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.92 — 2026-08-19
+
+### What's changed
+
+- Merge pull request #100 from aryaminus/refactor/findings-web
+- Merge pull request #94 from aryaminus/refactor/observability-web
+- refactor/findings-web: remove bulk action functionality and simplify findings browser UI and state management
+- refactor/findings-web: implement web UI parity for findings including bulk actions, security summaries, audit trails, and read-only metadata fields
+- refactor/findings-web: plan, track, and initiate findings browser parity updates for web and cloud consistency
+- refactor/findings-web: implement bulk findings disposition, escalation support, and metadata-based filtering in the Findings web interface.
+- refactor/observability-web: add observability loop diagnostics and performance snapshot capture to dashboard
+- refactor/observability-web: implement observability cost optimization suggestions and agent cost comparisons on the costs live view
+- refactor/observability-web: add auto-hiding flash notifications and enhance status feedback for observability drafts and eval saves.
+- refactor/observability-web: add benchmark draft archival and generation features to observability dashboard
+- refactor/observability-web: add implementation plans for observability web partitioning and feature promotion.
+
 ## v0.3.91 — 2026-08-16
 
 ### What's changed
