@@ -422,7 +422,8 @@ defmodule ControlKeelWeb.Layouts do
           <li>
             <.link
               navigate={~p"/dashboard"}
-              class="flex items-center gap-1 text-muted-foreground transition hover:text-muted-foreground"
+              aria-label="Dashboard home"
+              class="flex items-center gap-1 text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
             >
               <.icon name="hero-home" class="size-3.5" />
             </.link>
@@ -435,7 +436,7 @@ defmodule ControlKeelWeb.Layouts do
               <% else %>
                 <.link
                   navigate={path}
-                  class="text-muted-foreground transition hover:text-muted-foreground"
+                  class="text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
                 >
                   {label}
                 </.link>
