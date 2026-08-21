@@ -1,0 +1,83 @@
+<section class="ck-shell ck-shell-tight">
+  <div class="ck-section-header">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">About</p>
+      <.page_title title="About ControlKeel" />
+      <p class="text-sm text-muted-foreground mt-2">
+        ControlKeel is an open-source agent control plane for governed AI engineering. We turn your policies, review taste, and domain rules into live governance that works across every supported AI coding agent.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="ck-shell ck-shell-tight" style="padding-top:0">
+  <div class="space-y-8">
+    <div>
+      <.section_title>The problem</.section_title>
+      <p class="text-sm leading-6 text-zinc-400 mt-2">
+        AI coding agents are powerful but ungoverned. Teams ship code faster than they can review it, and static documentation doesn't enforce anything. Agent output is cheap; reviewability, release safety, and cost control are not.
+      </p>
+    </div>
+
+    <div>
+      <.section_title>Our approach</.section_title>
+      <p class="text-sm leading-6 text-zinc-400 mb-4 mt-2">
+        ControlKeel sits between the agent and the codebase, enforcing governance in real time:
+      </p>
+      <ul class="space-y-2 text-sm text-zinc-400">
+        <li>
+          <strong class="text-white">Findings</strong>
+          — turn policy violations into reviewable work with severity, category, and resolution hints.
+        </li>
+        <li>
+          <strong class="text-white">Proof bundles</strong>
+          — provide immutable evidence of what happened, who approved it, and why.
+        </li>
+        <li>
+          <strong class="text-white">Approval gates</strong>
+          — ensure humans review high-risk changes before they ship.
+        </li>
+        <li>
+          <strong class="text-white">Budgets</strong>
+          — prevent runaway agent costs with per-session and daily spend limits.
+        </li>
+        <li>
+          <strong class="text-white">Benchmarks</strong>
+          — measure whether workflows are getting safer, cheaper, or faster over time.
+        </li>
+      </ul>
+    </div>
+
+    <div>
+      <.section_title>Open source</.section_title>
+      <p class="text-sm leading-6 text-zinc-400 mt-2">
+        ControlKeel is open source under the MIT license. We believe governance infrastructure should be transparent, auditable, and community-driven.
+      </p>
+      <div class="mt-4 flex gap-4">
+        <a
+          href="https://github.com/aryaminus/controlkeel"
+          target="_blank"
+          rel="noopener"
+          class="text-sm text-lime-300 hover:text-lime-200 transition"
+        >
+          View on GitHub
+        </a>
+        <a
+          href="https://github.com/aryaminus/controlkeel/blob/main/LICENSE"
+          target="_blank"
+          rel="noopener"
+          class="text-sm text-lime-300 hover:text-lime-200 transition"
+        >
+          MIT License
+        </a>
+      </div>
+    </div>
+
+    <div>
+      <.section_title>Supported agents</.section_title>
+      <p class="text-sm leading-6 text-zinc-400 mt-2">
+        ControlKeel works with OpenCode, Claude Code, Cursor, Codex CLI, VS Code Copilot, Windsurf, Kiro, Amp, Gemini CLI, Continue, Aider, and Roo Code. The same governance state works across all of them.
+      </p>
+    </div>
+  </div>
+</section>

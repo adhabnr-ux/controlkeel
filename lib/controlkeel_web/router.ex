@@ -2,6 +2,7 @@ defmodule ControlKeelWeb.Router do
   use ControlKeelWeb, :router
 
   pipeline :browser do
+    plug ControlKeelWeb.Plugs.MarkdownNegotiation
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
@@ -51,6 +52,14 @@ defmodule ControlKeelWeb.Router do
 
     get "/", PageController, :home
     get "/getting-started", PageController, :getting_started
+    get "/about", PageController, :about
+    get "/contact", PageController, :contact
+    get "/privacy", PageController, :privacy
+    get "/developers", PageController, :developers
+
+    # Machine-readable resources
+    get "/llms.txt", LlmsTxtController, :index
+    get "/sitemap.xml", SitemapController, :index
 
     # Public in all modes
     live "/auth/login", AuthLive, :index
@@ -289,4 +298,9 @@ defmodule ControlKeelWeb.Router do
       live_dashboard "/dashboard", metrics: ControlKeelWeb.Telemetry
     end
   end
+
+  # Catch-all route: returns a real 404 for any unmatched path.
+  # This fixes the soft-404 issue where unknown paths returned HTTP 200
+  # with the app shell, confusing AI agents into thinking every path exists.
+  match :*, "/*path", ControlKeelWeb.FallbackController, :not_found
 end

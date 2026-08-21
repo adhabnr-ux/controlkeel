@@ -1,0 +1,278 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ControlKeel API",
+    "description": "REST API for ControlKeel — agent control plane for governed AI engineering. Manage sessions, tasks, findings, proofs, benchmarks, policies, and agent governance.",
+    "version": "0.4.0",
+    "contact": {
+      "name": "ControlKeel",
+      "url": "https://github.com/aryaminus/controlkeel"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://github.com/aryaminus/controlkeel/blob/main/LICENSE"
+    }
+  },
+  "servers": [{"url": "/api/v1", "description": "API v1"}],
+  "security": [{"apiKey": []}],
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "API key. Format: Bearer <token>."
+      }
+    },
+    "schemas": {
+      "Session": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "description": "Session ID"},
+          "title": {"type": "string"},
+          "status": {"type": "string", "enum": ["active", "completed", "failed", "paused"]},
+          "created_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "Task": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "session_id": {"type": "integer"},
+          "status": {"type": "string", "enum": ["pending", "in_progress", "completed", "failed", "blocked"]},
+          "title": {"type": "string"}
+        }
+      },
+      "Finding": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "session_id": {"type": "integer"},
+          "category": {"type": "string"},
+          "severity": {"type": "string", "enum": ["critical", "high", "medium", "low"]},
+          "rule_id": {"type": "string"},
+          "plain_message": {"type": "string"},
+          "status": {"type": "string", "enum": ["open", "blocked", "resolved", "dismissed", "escalated"]}
+        }
+      },
+      "Review": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "session_id": {"type": "integer"},
+          "review_type": {"type": "string", "enum": ["plan", "diff", "completion"]},
+          "status": {"type": "string", "enum": ["pending", "approved", "denied"]}
+        }
+      },
+      "MemoryRecord": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "record_type": {"type": "string", "enum": ["decision", "finding", "proof", "goal", "brief"]},
+          "title": {"type": "string"},
+          "body": {"type": "string"},
+          "tags": {"type": "array", "items": {"type": "string"}}
+        }
+      },
+      "Skill": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "scope": {"type": "string"}
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {"type": "string"},
+              "message": {"type": "string"},
+              "resolution": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/sessions": {
+      "get": {
+        "operationId": "listSessions",
+        "summary": "List recent sessions",
+        "description": "Returns the 50 most recent sessions for the current workspace.",
+        "tags": ["Sessions"],
+        "responses": {"200": {"description": "List of sessions"}}
+      },
+      "post": {
+        "operationId": "createSession",
+        "summary": "Create a new session",
+        "description": "Creates a new governed session.",
+        "tags": ["Sessions"],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"type": "object", "properties": {"title": {"type": "string"}, "workspace_id": {"type": "integer"}}}}}
+        },
+        "responses": {"201": {"description": "Session created"}, "422": {"description": "Validation error"}}
+      }
+    },
+    "/sessions/{id}": {
+      "get": {
+        "operationId": "getSession",
+        "summary": "Get session details",
+        "description": "Returns full context for a specific session.",
+        "tags": ["Sessions"],
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"description": "Session details"}, "404": {"description": "Session not found"}}
+      }
+    },
+    "/sessions/{id}/audit-log": {
+      "get": {
+        "operationId": "getSessionAuditLog",
+        "summary": "Get session audit log",
+        "tags": ["Sessions"],
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"description": "Audit log entries"}}
+      }
+    },
+    "/sessions/{id}/graph": {
+      "get": {
+        "operationId": "getSessionGraph",
+        "summary": "Get session task graph",
+        "tags": ["Sessions"],
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"description": "Task dependency graph"}}
+      }
+    },
+    "/sessions/{id}/execute": {
+      "post": {
+        "operationId": "executeSession",
+        "summary": "Execute a session",
+        "tags": ["Sessions"],
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"description": "Execution started"}}
+      }
+    },
+    "/sessions/{id}/run": {
+      "post": {
+        "operationId": "runSession",
+        "summary": "Run session tasks",
+        "tags": ["Sessions"],
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"description": "Run started"}}
+      }
+    },
+    "/sessions/{session_id}/tasks": {
+      "post": {
+        "operationId": "createTask",
+        "summary": "Create a task in a session",
+        "tags": ["Tasks"],
+        "parameters": [{"name": "session_id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"title": {"type": "string"}, "description": {"type": "string"}}}}}},
+        "responses": {"201": {"description": "Task created"}}
+      }
+    },
+    "/tasks/{id}": {
+      "patch": {
+        "operationId": "updateTask",
+        "summary": "Update a task",
+        "tags": ["Tasks"],
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}],
+        "responses": {"200": {"description": "Task updated"}}
+      }
+    },
+    "/tasks/{id}/run": {"post": {"operationId": "runTask", "summary": "Run a task", "tags": ["Tasks"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Task run started"}}}},
+    "/tasks/{id}/complete": {"post": {"operationId": "completeTask", "summary": "Complete a task", "tags": ["Tasks"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Task completed"}}}},
+    "/tasks/{id}/claim": {"post": {"operationId": "claimTask", "summary": "Claim a task", "tags": ["Tasks"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Task claimed"}}}},
+    "/tasks/{id}/heartbeat": {"post": {"operationId": "heartbeatTask", "summary": "Task heartbeat", "tags": ["Tasks"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Heartbeat recorded"}}}},
+    "/tasks/{id}/report": {"post": {"operationId": "reportTask", "summary": "Submit task report", "tags": ["Tasks"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Report submitted"}}}},
+    "/reviews": {
+      "post": {
+        "operationId": "createReview",
+        "summary": "Submit a review",
+        "tags": ["Reviews"],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"session_id": {"type": "integer"}, "review_type": {"type": "string", "enum": ["plan", "diff", "completion"]}, "submission_body": {"type": "string"}}}}}},
+        "responses": {"201": {"description": "Review created"}}
+      }
+    },
+    "/reviews/{id}": {"get": {"operationId": "getReview", "summary": "Get review status", "tags": ["Reviews"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Review details"}}}},
+    "/reviews/{id}/respond": {"post": {"operationId": "respondReview", "summary": "Respond to a review", "tags": ["Reviews"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Review responded"}}}},
+    "/findings": {
+      "get": {"operationId": "listFindings", "summary": "List findings", "tags": ["Findings"], "responses": {"200": {"description": "List of findings"}}},
+      "post": {
+        "operationId": "createFinding",
+        "summary": "Create a finding",
+        "tags": ["Findings"],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"session_id": {"type": "integer"}, "category": {"type": "string"}, "severity": {"type": "string"}, "rule_id": {"type": "string"}, "plain_message": {"type": "string"}, "decision": {"type": "string"}}}}}},
+        "responses": {"201": {"description": "Finding created"}}
+      }
+    },
+    "/findings/{id}/action": {"post": {"operationId": "findingAction", "summary": "Disposition a finding", "tags": ["Findings"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Finding dispositioned"}}}},
+    "/proofs": {"get": {"operationId": "listProofs", "summary": "List proof bundles", "tags": ["Proofs"], "responses": {"200": {"description": "List of proofs"}}}},
+    "/proofs/{id}": {"get": {"operationId": "getProof", "summary": "Get proof bundle", "tags": ["Proofs"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Proof bundle"}}}},
+    "/proof/{task_id}": {"get": {"operationId": "proofBundle", "summary": "Get proof for task", "tags": ["Proofs"], "parameters": [{"name": "task_id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Proof bundle"}}}},
+    "/benchmarks": {"get": {"operationId": "listBenchmarks", "summary": "List benchmarks", "tags": ["Benchmarks"], "responses": {"200": {"description": "List of benchmarks"}}}},
+    "/benchmarks/runs": {"post": {"operationId": "createBenchmarkRun", "summary": "Create benchmark run", "tags": ["Benchmarks"], "responses": {"201": {"description": "Benchmark run created"}}}},
+    "/benchmarks/runs/{id}": {"get": {"operationId": "getBenchmarkRun", "summary": "Get benchmark run", "tags": ["Benchmarks"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Benchmark run results"}}}},
+    "/benchmarks/runs/{id}/export": {"get": {"operationId": "exportBenchmarkRun", "summary": "Export benchmark run", "tags": ["Benchmarks"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Exported benchmark data"}}}},
+    "/validate": {
+      "post": {
+        "operationId": "validate",
+        "summary": "Validate content against policy",
+        "tags": ["Governance"],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"content": {"type": "string"}, "kind": {"type": "string", "enum": ["code", "config", "shell", "text"]}, "source_type": {"type": "string"}}}}}},
+        "responses": {"200": {"description": "Validation result"}}
+      }
+    },
+    "/context": {
+      "get": {"operationId": "getContext", "summary": "Get governance context", "tags": ["Governance"], "responses": {"200": {"description": "Governance context"}}},
+      "post": {"operationId": "setContext", "summary": "Set governance context", "tags": ["Governance"], "responses": {"200": {"description": "Context updated"}}}
+    },
+    "/budget": {"get": {"operationId": "getBudget", "summary": "Get budget status", "tags": ["Governance"], "responses": {"200": {"description": "Budget status"}}}},
+    "/memory": {
+      "post": {
+        "operationId": "createMemory",
+        "summary": "Create memory record",
+        "tags": ["Memory"],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"memory": {"type": "string"}, "record_type": {"type": "string"}, "title": {"type": "string"}, "tags": {"type": "array", "items": {"type": "string"}}}}}}},
+        "responses": {"201": {"description": "Memory record created"}}
+      }
+    },
+    "/memory/search": {"get": {"operationId": "searchMemory", "summary": "Search memory", "tags": ["Memory"], "parameters": [{"name": "q", "in": "query", "required": true, "schema": {"type": "string"}}], "responses": {"200": {"description": "Search results"}}}},
+    "/memory/{id}": {"delete": {"operationId": "archiveMemory", "summary": "Archive memory record", "tags": ["Memory"], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "Memory archived"}}}},
+    "/skills": {"get": {"operationId": "listSkills", "summary": "List skills", "tags": ["Skills"], "responses": {"200": {"description": "List of skills"}}}},
+    "/skills/{name}": {"get": {"operationId": "getSkill", "summary": "Get skill details", "tags": ["Skills"], "parameters": [{"name": "name", "in": "path", "required": true, "schema": {"type": "string"}}], "responses": {"200": {"description": "Skill details"}}}},
+    "/skills/export": {"post": {"operationId": "exportSkills", "summary": "Export skills", "tags": ["Skills"], "responses": {"200": {"description": "Exported skills"}}}},
+    "/providers": {"get": {"operationId": "listProviders", "summary": "List providers", "tags": ["Providers"], "responses": {"200": {"description": "List of providers"}}}},
+    "/providers/status": {"get": {"operationId": "providerStatus", "summary": "Provider status", "tags": ["Providers"], "responses": {"200": {"description": "Provider status"}}}},
+    "/domains": {"get": {"operationId": "listDomains", "summary": "List domains", "tags": ["Governance"], "responses": {"200": {"description": "List of domains"}}}},
+    "/improvement": {"get": {"operationId": "improvementSummary", "summary": "Improvement summary", "tags": ["Governance"], "responses": {"200": {"description": "Improvement summary"}}}},
+    "/route-agent": {
+      "post": {
+        "operationId": "routeAgent",
+        "summary": "Route to best agent",
+        "tags": ["Agents"],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"task": {"type": "string"}, "risk_tier": {"type": "string"}}}}}},
+        "responses": {"200": {"description": "Agent recommendation"}}
+      }
+    },
+    "/agents": {"get": {"operationId": "listAgents", "summary": "List agents", "tags": ["Agents"], "responses": {"200": {"description": "List of agents"}}}},
+    "/bootstrap": {"post": {"operationId": "bootstrapProject", "summary": "Bootstrap project", "tags": ["Governance"], "responses": {"200": {"description": "Bootstrap result"}}}},
+    "/release/readiness": {"post": {"operationId": "releaseReadiness", "summary": "Check release readiness", "tags": ["Governance"], "responses": {"200": {"description": "Readiness assessment"}}}}
+  },
+  "tags": [
+    {"name": "Sessions", "description": "Session management and execution"},
+    {"name": "Tasks", "description": "Task lifecycle management"},
+    {"name": "Reviews", "description": "Human review and approval gates"},
+    {"name": "Findings", "description": "Governed findings and policy violations"},
+    {"name": "Proofs", "description": "Proof bundles and evidence"},
+    {"name": "Benchmarks", "description": "Benchmark suites and runs"},
+    {"name": "Governance", "description": "Policy validation, context, and budgets"},
+    {"name": "Memory", "description": "Typed memory records"},
+    {"name": "Skills", "description": "Agent skill registry"},
+    {"name": "Providers", "description": "AI provider configuration"},
+    {"name": "Agents", "description": "Workspace agent roles and routing"}
+  ]
+}
