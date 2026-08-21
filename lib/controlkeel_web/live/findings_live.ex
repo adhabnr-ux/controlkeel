@@ -591,8 +591,9 @@ defmodule ControlKeelWeb.FindingsLive do
         <div class="relative rounded-2xl border bg-card shadow-card p-8 w-full max-w-2xl mx-4 space-y-4">
           <button
             type="button"
-            class="absolute top-2 right-2 text-muted-foreground hover:text-foreground transition"
+            class="absolute top-2 right-2 text-muted-foreground hover:text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
             phx-click="close_fix"
+            aria-label="Close guided fix"
           >
             <.icon name="hero-x-mark" class="w-5 h-5" />
           </button>
