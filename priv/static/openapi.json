@@ -3,7 +3,7 @@
   "info": {
     "title": "ControlKeel API",
     "description": "REST API for ControlKeel — agent control plane for governed AI engineering. Manage sessions, tasks, findings, proofs, benchmarks, policies, and agent governance.",
-    "version": "0.3.78",
+    "version": "0.4.0",
     "contact": {
       "name": "ControlKeel",
       "url": "https://github.com/aryaminus/controlkeel"
@@ -21,7 +21,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "Authorization",
-        "description": "API key. Format: Bearer <token> or Token <token>."
+        "description": "API key. Format: Bearer <token>."
       }
     },
     "schemas": {

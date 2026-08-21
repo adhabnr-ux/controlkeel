@@ -30,8 +30,12 @@ defmodule ControlKeelWeb.FallbackController do
 
   defp json_request?(conn) do
     case get_req_header(conn, "accept") do
-      [accept | _] -> String.contains?(accept, "application/json")
-      [] -> false
+      [accept | _] ->
+        String.contains?(accept, "application/json") or
+          String.ends_with?(accept, "+json")
+
+      [] ->
+        false
     end
   end
 

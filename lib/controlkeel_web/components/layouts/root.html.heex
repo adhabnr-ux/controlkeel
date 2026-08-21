@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <link rel="canonical" href="https://controlkeel.com" />
+    <% canonical_path = assigns[:current_path] || (assigns[:conn] && assigns[:conn].request_path) || "/" %>
+    <link rel="canonical" href={"https://controlkeel.com#{canonical_path}"} />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://controlkeel.com/images/logo.png" />
     <.live_title default="ControlKeel" suffix=" · Governance memory for AI-assisted work">

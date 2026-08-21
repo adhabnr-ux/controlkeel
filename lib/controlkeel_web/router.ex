@@ -2,6 +2,7 @@ defmodule ControlKeelWeb.Router do
   use ControlKeelWeb, :router
 
   pipeline :browser do
+    plug ControlKeelWeb.Plugs.MarkdownNegotiation
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
@@ -10,7 +11,6 @@ defmodule ControlKeelWeb.Router do
     plug :put_root_layout, html: {ControlKeelWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug ControlKeelWeb.Plugs.MarkdownNegotiation
   end
 
   pipeline :api do
