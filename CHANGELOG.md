@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.94 — 2026-08-21
+
+### What's changed
+
+- perf: optimize intermediate list allocations in observability aggregates
+- fix: breadcrumb accessibility and focus states
+- fix: add ARIA attributes and focus styles to user menu
+- fix: add accessibility to findings modal close button
+- 🎨 Palette: Enhance breadcrumb accessibility and focus states
+- 🎨 Palette: [UX improvement] add ARIA attributes and focus styles to user menu
+- 🎨 Palette: Add accessibility attributes to findings modal Close button
+- ⚡ Bolt: Optimize intermediate list allocations in Observability aggregates
+
 ## v0.3.93 — 2026-08-19
 
 ### What's changed
