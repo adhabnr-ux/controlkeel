@@ -1,5 +1,27 @@
-# See https://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file
-#
-# To ban all spiders from the entire site uncomment the next two lines:
-# User-agent: *
-# Disallow: /
+User-agent: *
+Allow: /
+
+Sitemap: https://controlkeel.com/sitemap.xml
+
+# Static assets and private routes
+Disallow: /assets/
+Disallow: /dev/
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /missions
+Disallow: /findings
+Disallow: /benchmarks
+Disallow: /proofs
+Disallow: /reviews/
+Disallow: /observability
+Disallow: /organizations
+Disallow: /workspaces
+Disallow: /policies
+Disallow: /skills
+Disallow: /deploy
+Disallow: /cloud/
+Disallow: /proxy/
+Disallow: /mcp
+Disallow: /a2a
+Disallow: /oauth/
+Disallow: /api/v1/

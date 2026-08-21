@@ -4,11 +4,34 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
+    <link rel="canonical" href="https://controlkeel.com" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://controlkeel.com/images/logo.png" />
     <.live_title default="ControlKeel" suffix=" · Governance memory for AI-assisted work">
       {assigns[:page_title]}
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "ControlKeel",
+        "description": "Agent control plane for governed AI engineering. Turns policies, review taste, and domain rules into live findings, proofs, approval gates, and budgets for AI coding agents.",
+        "url": "https://controlkeel.com",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Cross-platform",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "sameAs": [
+          "https://github.com/aryaminus/controlkeel"
+        ],
+        "license": "https://github.com/aryaminus/controlkeel/blob/main/LICENSE"
+      }
     </script>
   </head>
   <body>

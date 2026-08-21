@@ -18,4 +18,20 @@ defmodule ControlKeelWeb.PageController do
       agent_integrations: Skills.agent_integrations()
     )
   end
+
+  def about(conn, _params) do
+    render(conn, :about)
+  end
+
+  def contact(conn, _params) do
+    render(conn, :contact)
+  end
+
+  def privacy(conn, _params) do
+    render(conn, :privacy)
+  end
+
+  def developers(conn, _params) do
+    render(conn, :developers)
+  end
 end
