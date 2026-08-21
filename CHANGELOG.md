@@ -6,6 +6,16 @@
 
 - feat/is-agentic-score-improvement: add OpenAPI 3.1 spec, llms.txt, sitemap.xml, structured JSON errors, markdown content negotiation, JSON-LD schema, trust pages, developer portal, and robots.txt
 - Bump version to 0.4.0 across all manifests (mix.exs, npm, plugins, OpenAPI spec, dist manifests)
+- fix: address Greptile review findings (markdown negotiation ordering, vendor JSON detection, OpenAPI auth docs, dynamic canonical URLs, typography components)
+
+## v0.3.94 — 2026-08-21
+
+### What's changed
+
+- perf: optimize intermediate list allocations in observability aggregates
+- fix: breadcrumb accessibility and focus states
+- fix: add ARIA attributes and focus styles to user menu
+- fix: add accessibility to findings modal close button
 
 ## v0.3.93 — 2026-08-19
 
