@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.1 — 2026-08-21
+
+### What's changed
+
+- Merge pull request #109 from aryaminus/feat/is-agentic-score-improvement
+- Merge remote-tracking branch 'origin/main' into feat/is-agentic-score-improvement
+- fix: version bump 0.4.0 + address Greptile review findings
+- improve is-agentic score: add OpenAPI, llms.txt, sitemap, 404s, JSON errors, markdown negotiation, trust pages
+
 ## v0.4.0 — 2026-08-21
 
 ### What's changed
