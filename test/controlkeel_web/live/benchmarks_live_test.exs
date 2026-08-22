@@ -162,6 +162,123 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
     refute has_element?(view, "#comparison-chart")
   end
 
+  test "show renders the import panel for an awaiting-import run", %{conn: conn} do
+    tmp_dir = benchmark_tmp_dir()
+
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    write_benchmark_subjects!(tmp_dir, [
+      %{"id" => "manual_subject", "label" => "Manual Subject", "type" => "manual_import"}
+    ])
+
+    original_cwd = File.cwd!()
+    File.cd!(tmp_dir)
+    on_exit(fn -> File.cd!(original_cwd) end)
+
+    {:ok, run} =
+      ControlKeel.Benchmark.run_suite(
+        %{
+          "suite" => "vibe_failures_v1",
+          "subjects" => "manual_subject",
+          "baseline_subject" => "manual_subject",
+          "scenario_slugs" => "hardcoded_api_key_python_webhook"
+        },
+        tmp_dir
+      )
+
+    {:ok, view, html} = live(conn, ~p"/benchmarks/runs/#{run.id}")
+
+    assert has_element?(view, "#import-panel")
+    assert has_element?(view, "#import-slots")
+    assert has_element?(view, "#import-slot-manual_subject-hardcoded_api_key_python_webhook")
+    assert has_element?(view, "#benchmark-import-form")
+    assert html =~ "Manual Subject"
+  end
+
+  test "show completes a run through the import panel", %{conn: conn} do
+    tmp_dir = benchmark_tmp_dir()
+
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    write_benchmark_subjects!(tmp_dir, [
+      %{"id" => "manual_subject", "label" => "Manual Subject", "type" => "manual_import"}
+    ])
+
+    original_cwd = File.cwd!()
+    File.cd!(tmp_dir)
+    on_exit(fn -> File.cd!(original_cwd) end)
+
+    {:ok, run} =
+      ControlKeel.Benchmark.run_suite(
+        %{
+          "suite" => "vibe_failures_v1",
+          "subjects" => "manual_subject",
+          "baseline_subject" => "manual_subject",
+          "scenario_slugs" => "hardcoded_api_key_python_webhook"
+        },
+        tmp_dir
+      )
+
+    {:ok, view, _html} = live(conn, ~p"/benchmarks/runs/#{run.id}")
+
+    html =
+      view
+      |> form("#benchmark-import-form",
+        import: %{
+          "subject" => "manual_subject",
+          "scenario_slug" => "hardcoded_api_key_python_webhook",
+          "payload" => Jason.encode!(%{content: "OPENAI_KEY = \"AKIAIOSFODNN7EXAMPLE\""})
+        }
+      )
+      |> render_submit()
+
+    assert html =~
+             "Imported Manual Subject (external) result for hardcoded_api_key_python_webhook"
+
+    refute has_element?(view, "#import-panel")
+
+    assert has_element?(view, "#scenario-hardcoded_api_key_python_webhook")
+    assert render(view) =~ "completed"
+  end
+
+  test "show import panel flashes an error for invalid JSON without navigating", %{conn: conn} do
+    tmp_dir = benchmark_tmp_dir()
+
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    write_benchmark_subjects!(tmp_dir, [
+      %{"id" => "manual_subject", "label" => "Manual Subject", "type" => "manual_import"}
+    ])
+
+    {:ok, run} =
+      ControlKeel.Benchmark.run_suite(
+        %{
+          "suite" => "vibe_failures_v1",
+          "subjects" => "manual_subject",
+          "baseline_subject" => "manual_subject",
+          "scenario_slugs" => "hardcoded_api_key_python_webhook"
+        },
+        tmp_dir
+      )
+
+    {:ok, view, _html} = live(conn, ~p"/benchmarks/runs/#{run.id}")
+
+    html =
+      view
+      |> form("#benchmark-import-form",
+        import: %{
+          "subject" => "manual_subject",
+          "scenario_slug" => "hardcoded_api_key_python_webhook",
+          "payload" => "not json at all"
+        }
+      )
+      |> render_submit()
+
+    assert html =~ "Import payload must be valid JSON"
+    assert has_element?(view, "#import-panel")
+    assert has_element?(view, "#benchmark-import-form")
+  end
+
   test "index preset buttons fill multi-host subject fields", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/benchmarks")
 
@@ -244,5 +361,17 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
              live(conn, ~p"/benchmarks/runs/999999")
 
     assert flash["error"] == "Benchmark run not found."
+  end
+
+  defp benchmark_tmp_dir do
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "controlkeel-benchmarks-live-import-#{System.unique_integer([:positive])}"
+      )
+
+    File.rm_rf!(path)
+    File.mkdir_p!(path)
+    path
   end
 end

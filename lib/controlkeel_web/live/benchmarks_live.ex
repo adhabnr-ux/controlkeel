@@ -14,6 +14,8 @@ defmodule ControlKeelWeb.BenchmarksLive do
      |> assign(:matrix, %{subjects: [], scenarios: []})
      |> assign(:detail_metrics, %{})
      |> assign(:comparison, nil)
+     |> assign(:import_slots, [])
+     |> assign(:import_form, empty_import_form())
      |> assign(:subjects_dropdown_open, false)
      |> assign(:active_preset, "opencode_compare")
      |> assign(:form, to_form(default_form_params(), as: :benchmark))
@@ -31,15 +33,9 @@ defmodule ControlKeelWeb.BenchmarksLive do
          |> push_navigate(to: ~p"/benchmarks")}
 
       run ->
-        comparison = if comparable_run?(run), do: Benchmark.compare_run(run), else: nil
-
         {:noreply,
          socket
-         |> assign(:run, run)
-         |> assign(:matrix, Benchmark.run_matrix(run))
-         |> assign(:detail_metrics, Benchmark.run_detail_metrics(run))
-         |> assign(:eval_profile, Benchmark.run_eval_profile(run))
-         |> assign(:comparison, comparison)
+         |> assign_run_details(run)
          |> assign(:page_title, "Benchmark Run #{run.id}")
          |> assign(:page_action, %{
            label: "Export CSV",
@@ -57,6 +53,8 @@ defmodule ControlKeelWeb.BenchmarksLive do
      |> assign(:detail_metrics, %{})
      |> assign(:eval_profile, %{})
      |> assign(:comparison, nil)
+     |> assign(:import_slots, [])
+     |> assign(:import_form, empty_import_form())
      |> assign(:page_title, "Benchmarks")
      |> assign(:page_action, run_benchmark_action())
      |> refresh_dashboard_assigns()}
@@ -73,6 +71,54 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Benchmark run failed: #{inspect(reason)}")}
+    end
+  end
+
+  @impl true
+  def handle_event("import_result", %{"import" => import_params}, socket) do
+    %{"subject" => subject, "scenario_slug" => scenario_slug, "payload" => payload_json} =
+      import_params
+
+    run = socket.assigns.run
+
+    with {:ok, decoded} <- decode_import_payload(payload_json),
+         attrs = Map.put(decoded, "scenario_slug", scenario_slug),
+         {:ok, updated_run} <- Benchmark.import_result(run.id, subject, attrs) do
+      label = subject_label_by_id(socket.assigns.subjects_by_id, subject)
+
+      {:noreply,
+       socket
+       |> assign_run_details(updated_run)
+       |> put_flash(:info, "Imported #{label} result for #{scenario_slug}.")}
+    else
+      {:error, %Jason.DecodeError{} = error} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Import payload must be valid JSON: #{Exception.message(error)}"
+         )}
+
+      {:error, :invalid_payload_shape} ->
+        {:noreply, put_flash(socket, :error, "Import payload must be a JSON object.")}
+
+      {:error, :scenario_slug_required} ->
+        {:noreply, put_flash(socket, :error, "Select a scenario for the import.")}
+
+      {:error, :result_not_found} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "No matching benchmark result slot exists for that run, subject, and scenario_slug."
+         )}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Benchmark run not found.")}
+
+      {:error, reason} ->
+        {:noreply,
+         put_flash(socket, :error, "Failed to import benchmark output: #{inspect(reason)}")}
     end
   end
 
@@ -216,6 +262,103 @@ defmodule ControlKeelWeb.BenchmarksLive do
           <% end %>
         </p>
       </div>
+
+      <%= if @run.status == "awaiting_import" and @import_slots != [] do %>
+        <div
+          id="import-panel"
+          class="border my-6 rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+        >
+          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
+            Manual import
+          </p>
+          <p class="text-muted-foreground text-sm mt-2">
+            This run is waiting on imported results for the slots below. Paste the captured subject output as JSON (for example an OpenCode transcript artifact) to complete the run.
+          </p>
+
+          <ul class="flex flex-wrap gap-2 mt-4" id="import-slots">
+            <%= for slot <- @import_slots do %>
+              <li
+                id={"import-slot-#{slot.subject}-#{slot.scenario_slug}"}
+                class="border bg-muted rounded-full px-3 py-1 text-xs"
+              >
+                {subject_label_by_id(@subjects_by_id, slot.subject)} · {slot.scenario_name}
+              </li>
+            <% end %>
+          </ul>
+
+          <.form
+            for={@import_form}
+            id="benchmark-import-form"
+            phx-submit="import_result"
+            class="grid gap-4 mt-6"
+          >
+            <div class="grid gap-4 grid-cols-2 max-[900px]:grid-cols-1">
+              <div>
+                <label
+                  class="block text-sm font-medium text-muted-foreground mb-1"
+                  for="import-subject"
+                >
+                  Subject
+                </label>
+                <select
+                  id="import-subject"
+                  name="import[subject]"
+                  class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
+                >
+                  <%= for subject <- @import_slots |> Enum.map(& &1.subject) |> Enum.uniq() do %>
+                    <option value={subject}>
+                      {subject_label_by_id(@subjects_by_id, subject)}
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  class="block text-sm font-medium text-muted-foreground mb-1"
+                  for="import-scenario"
+                >
+                  Scenario
+                </label>
+                <select
+                  id="import-scenario"
+                  name="import[scenario_slug]"
+                  class="w-full rounded-lg border bg-card px-4 py-2 text-foreground"
+                >
+                  <%= for slot <- @import_slots do %>
+                    <option value={slot.scenario_slug}>
+                      {slot.scenario_name} ({slot.scenario_slug})
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-muted-foreground mb-1" for="import-payload">
+                Result JSON
+              </label>
+              <textarea
+                id="import-payload"
+                name="import[payload]"
+                rows="6"
+                required
+                placeholder='{"content": "...", "path": "app/main.py", "kind": "code", "duration_ms": 12, "metadata": {}}'
+                class="w-full rounded-lg border bg-card px-4 py-2 text-foreground font-mono text-xs"
+              />
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                class="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium"
+              >
+                Import result
+              </button>
+            </div>
+          </.form>
+        </div>
+      <% end %>
 
       <div
         id="comparison-panel"
@@ -732,6 +875,41 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
   defp comparable_run?(%Benchmark.Run{subjects: subjects}) do
     subjects |> List.wrap() |> Enum.uniq() |> length() >= 2
+  end
+
+  defp assign_run_details(socket, %Benchmark.Run{} = run) do
+    socket
+    |> assign(:run, run)
+    |> assign(:matrix, Benchmark.run_matrix(run))
+    |> assign(:detail_metrics, Benchmark.run_detail_metrics(run))
+    |> assign(:eval_profile, Benchmark.run_eval_profile(run))
+    |> assign(:comparison, if(comparable_run?(run), do: Benchmark.compare_run(run), else: nil))
+    |> assign(:import_slots, import_slots(run))
+  end
+
+  defp import_slots(%Benchmark.Run{} = run) do
+    run.results
+    |> Enum.filter(&(&1.status == "awaiting_import"))
+    |> Enum.sort_by(&{&1.subject, &1.scenario.position})
+    |> Enum.map(fn result ->
+      %{
+        subject: result.subject,
+        scenario_slug: result.scenario.slug,
+        scenario_name: result.scenario.name
+      }
+    end)
+  end
+
+  defp empty_import_form do
+    to_form(%{"subject" => "", "scenario_slug" => "", "payload" => ""}, as: :import)
+  end
+
+  defp decode_import_payload(json) do
+    case Jason.decode(json) do
+      {:ok, attrs} when is_map(attrs) -> {:ok, attrs}
+      {:ok, _other} -> {:error, :invalid_payload_shape}
+      {:error, %Jason.DecodeError{} = error} -> {:error, error}
+    end
   end
 
   defp format_delta_points(nil), do: "n/a"
