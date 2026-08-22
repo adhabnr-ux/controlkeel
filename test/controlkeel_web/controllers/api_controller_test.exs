@@ -984,6 +984,40 @@ defmodule ControlKeelWeb.ApiControllerTest do
       assert length(fetched["scenarios"]) == 1
     end
 
+    test "compares subjects for a multi-subject run", %{conn: conn} do
+      run =
+        benchmark_run_fixture(%{
+          "subjects" => "controlkeel_validate,null_policy_baseline",
+          "baseline_subject" => "null_policy_baseline"
+        })
+
+      conn = get(conn, ~p"/api/v1/benchmarks/runs/#{run.id}/compare")
+      assert %{"comparison" => comparison} = json_response(conn, 200)
+
+      assert comparison["run"]["id"] == run.id
+      assert comparison["run"]["baseline_subject"] == "null_policy_baseline"
+      assert length(comparison["subjects"]) == 2
+
+      baseline = Enum.find(comparison["subjects"], & &1["is_baseline"])
+      compared = Enum.find(comparison["subjects"], &(!&1["is_baseline"]))
+
+      assert baseline["subject"] == "null_policy_baseline"
+      assert compared["subject"] == "controlkeel_validate"
+      assert Map.has_key?(compared, "delta_vs_baseline")
+
+      assert Map.has_key?(comparison["summary"], "best_subject")
+      assert Map.has_key?(comparison["summary"], "headline")
+      assert Map.has_key?(comparison["summary"], "efficiency")
+      assert is_list(comparison["chart"])
+      assert Map.has_key?(comparison["claim_guidance"], "safe_claim")
+    end
+
+    test "returns 404 comparing an unknown run" do
+      conn = build_conn() |> get(~p"/api/v1/benchmarks/runs/999999/compare")
+
+      assert %{"error" => "benchmark run not found"} = json_response(conn, 404)
+    end
+
     test "imports a manual subject result and exports csv", %{conn: conn} do
       tmp_dir = benchmark_tmp_dir()
 
