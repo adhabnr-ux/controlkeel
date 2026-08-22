@@ -194,6 +194,23 @@ defmodule ControlKeelWeb.MissionControlLive do
   end
 
   @impl true
+  def handle_event("copy_generated_file", %{"name" => name}, socket) do
+    case Enum.find(socket.assigns.generated_files || [], fn
+           {:ok, n, _p, _c, _s} -> n == name
+           _ -> false
+         end) do
+      {:ok, ^name, _path, content, _status} when is_binary(content) ->
+        {:noreply,
+         socket
+         |> push_event("copy-to-clipboard", %{text: content})
+         |> put_flash(:info, "#{name} copied to the clipboard.")}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Could not copy that file.")}
+    end
+  end
+
+  @impl true
   def handle_event("approve_finding", %{"id" => id}, socket) do
     with {:ok, finding_id} <- parse_id(id),
          %{} = finding <- Enum.find(socket.assigns.session.findings, &(&1.id == finding_id)),
@@ -308,8 +325,8 @@ defmodule ControlKeelWeb.MissionControlLive do
             {@session.objective}
           </p>
         </div>
-        <.button size="md" phx-click="deploy_analyze" class="shrink-0">
-          <.icon name="hero-cloud-arrow-up" class="size-6" /> Deployment Advisor
+        <.button phx-click="deploy_analyze" class="shrink-0">
+          <.icon name="hero-cloud-arrow-up" class="size-4" /> Deployment Advisor
         </.button>
       </div>
 

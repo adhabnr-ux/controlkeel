@@ -236,15 +236,24 @@ defmodule ControlKeelWeb.DeploymentComponents do
                           <p class="font-medium text-foreground">{name}</p>
                           <p class="mt-0.5 truncate text-xs text-muted-foreground">{path}</p>
                         </div>
-                        <span class={[
-                          "inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
-                          status == :written && "bg-success/10 text-success ring-success/20",
-                          status == :skipped && "bg-warning/10 text-warning ring-warning/20"
-                        ]}>
-                          {String.capitalize(to_string(status))}
-                        </span>
+                        <div class="flex shrink-0 items-center gap-2">
+                          <.button
+                            variant="secondary"
+                            phx-click="copy_generated_file"
+                            phx-value-name={name}
+                          >
+                            <.icon name="hero-clipboard-document" class="size-3.5" /> Copy
+                          </.button>
+                          <span class={[
+                            "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
+                            status == :written && "bg-success/10 text-success ring-success/20",
+                            status == :skipped && "bg-warning/10 text-warning ring-warning/20"
+                          ]}>
+                            {String.capitalize(to_string(status))}
+                          </span>
+                        </div>
                       </div>
-                      <pre class="max-h-64 overflow-x-auto bg-muted px-4 py-3 font-mono text-xs text-foreground/90"><code phx-no-curly-interpolation>{content}</code></pre>
+                      <pre class="max-h-64 overflow-x-auto bg-muted px-4 py-3 font-mono text-xs text-foreground/90"><code>{content}</code></pre>
                     </div>
                   <% end %>
                 </div>
