@@ -13,6 +13,16 @@ Start the page directly with its content (title, cards, sections). The wrapper h
 
 Reference: `lib/controlkeel_web/components/layouts/dashboard.html.heex`.
 
+## Prefer core components
+
+Before hand-writing markup, check whether a shared component already covers it — use it instead of duplicating classes inline:
+
+- `ControlKeelWeb.CoreComponents`: `<.button>`, `<.input>`, `<.table>`, `<.flash>`, `<.icon>` (`lib/controlkeel_web/components/core_components.ex`).
+- `ControlKeelWeb.Typography`: `<.page_title>`, `<.section_title>`, `<.card_title>`.
+- Feature modules: `FindingComponents`, `DeploymentComponents`, `ShipReadiness`, `RecentSessions`, `CommandPill` (`lib/controlkeel_web/components/`).
+
+When an existing component is close but not exact, extend the component (new attr or variant) rather than copy-pasting its markup into a page — one source of truth per pattern. Drop to raw markup only when no component fits, and then follow the token and class rules in this guide so the one-off stays consistent.
+
 ## Page title
 
 Optional. Use only where a page needs an explicit heading — not on detail views, single tables, or self-explanatory pages. One primary heading per page. The title and action button can be accommodated in the dashboard header as needed.

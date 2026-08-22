@@ -36,9 +36,9 @@ defmodule ControlKeelWeb.DeploymentComponents do
 
         <div class="pr-8">
           <p class="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-            Deployment advisor
+            Deploy
           </p>
-          <h3 class="text-lg font-semibold text-foreground mt-1">Analyze project</h3>
+          <h3 class="text-lg font-semibold text-foreground mt-1">Deployment advisor</h3>
           <p class="text-sm text-muted-foreground">
             Stack detection, platform recommendations, cost estimates, and file previews for this session's project.
           </p>

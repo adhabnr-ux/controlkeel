@@ -299,13 +299,18 @@ defmodule ControlKeelWeb.MissionControlLive do
           </div>
         </div>
       <% end %>
-      <div class="space-y-1 mb-12">
-        <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
-          {@session.title}
-        </h2>
-        <p class="text-muted-foreground">
-          {@session.objective}
-        </p>
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12">
+        <div class="space-y-1 min-w-0">
+          <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
+            {@session.title}
+          </h2>
+          <p class="text-muted-foreground">
+            {@session.objective}
+          </p>
+        </div>
+        <.button size="md" phx-click="deploy_analyze" class="shrink-0">
+          <.icon name="hero-cloud-arrow-up" class="size-6" /> Deployment Advisor
+        </.button>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-5">
@@ -1228,11 +1233,6 @@ defmodule ControlKeelWeb.MissionControlLive do
 
   defp assign_deploy_state(socket, session, server_root) do
     socket
-    |> assign(:page_action, %{
-      label: "Analyze Project",
-      event: "deploy_analyze",
-      icon: "hero-cloud-arrow-up"
-    })
     |> assign(:session_project_root, WorkspaceContext.resolve_project_root(session, server_root))
     |> assign(:show_deploy_modal, false)
     |> assign(:deploy_unavailable, false)
