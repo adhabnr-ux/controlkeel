@@ -6,7 +6,11 @@ defmodule ControlKeelWeb.MissionControlLive do
   alias ControlKeel.Intent
   alias ControlKeel.Mission
   alias ControlKeel.Observability
+  alias ControlKeel.Ops.DeploymentAdvisor
+  alias ControlKeel.Ops.HostingCost
+  alias ControlKeel.Project.WorkspaceContext
   alias ControlKeel.Proxy
+  alias ControlKeelWeb.DeploymentComponents
   alias ControlKeelWeb.FindingComponents
   alias ControlKeelWeb.ShipReadiness
 
@@ -35,6 +39,7 @@ defmodule ControlKeelWeb.MissionControlLive do
            |> assign(:launched, Map.get(params, "launched") == "1")
            |> assign(:selected_finding, nil)
            |> assign(:selected_fix, nil)
+           |> assign_deploy_state(session, project_root)
            |> safe_assign_session(session)}
         else
           {:ok,
@@ -54,6 +59,7 @@ defmodule ControlKeelWeb.MissionControlLive do
          |> assign(:launched, Map.get(params, "launched") == "1")
          |> assign(:selected_finding, nil)
          |> assign(:selected_fix, nil)
+         |> assign_deploy_state(session, project_root)
          |> safe_assign_session(session)}
     end
   end
@@ -105,6 +111,86 @@ defmodule ControlKeelWeb.MissionControlLive do
   @impl true
   def handle_event("close_fix", _params, socket) do
     {:noreply, socket |> assign(:selected_finding, nil) |> assign(:selected_fix, nil)}
+  end
+
+  @impl true
+  def handle_event("deploy_analyze", _params, socket) do
+    case resolve_session_project_root(socket) do
+      nil ->
+        {:noreply,
+         socket
+         |> assign(:show_deploy_modal, true)
+         |> assign(:deploy_unavailable, true)}
+
+      root ->
+        {:ok, analysis} = DeploymentAdvisor.analyze(root)
+
+        {:noreply,
+         socket
+         |> assign(:show_deploy_modal, true)
+         |> assign(:deploy_unavailable, false)
+         |> assign(:session_project_root, root)
+         |> assign(:deployment_analysis, analysis)
+         |> assign(:cost_estimates, nil)
+         |> assign(:generated_files, nil)}
+    end
+  end
+
+  @impl true
+  def handle_event("close_deploy", _params, socket) do
+    {:noreply, assign(socket, :show_deploy_modal, false)}
+  end
+
+  @impl true
+  def handle_event("select_tier", %{"tier" => tier}, socket) do
+    known_tiers = Enum.map(HostingCost.available_tiers(), &to_string/1)
+
+    if tier in known_tiers do
+      {:noreply, assign(socket, :selected_tier, tier)}
+    else
+      {:noreply, put_flash(socket, :error, "Unknown compute tier.")}
+    end
+  end
+
+  @impl true
+  def handle_event("toggle_db", _params, socket) do
+    {:noreply, assign(socket, :needs_db, not socket.assigns.needs_db)}
+  end
+
+  @impl true
+  def handle_event("estimate_costs", _params, %{assigns: %{deployment_analysis: nil}} = socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("estimate_costs", _params, socket) do
+    {:ok, estimates} =
+      HostingCost.estimate(
+        stack: socket.assigns.deployment_analysis.stack,
+        tier: String.to_existing_atom(socket.assigns.selected_tier),
+        needs_db: socket.assigns.needs_db,
+        expected_bandwidth_gb: 10,
+        expected_storage_gb: 1
+      )
+
+    {:noreply, assign(socket, :cost_estimates, estimates)}
+  end
+
+  @impl true
+  def handle_event("preview_files", _params, %{assigns: %{deployment_analysis: nil}} = socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("preview_files", _params, socket) do
+    {:ok, results} =
+      DeploymentAdvisor.generate_files(
+        socket.assigns.session_project_root,
+        socket.assigns.deployment_analysis.generators,
+        dry_run: true
+      )
+
+    {:noreply, assign(socket, :generated_files, results)}
   end
 
   @impl true
@@ -1010,6 +1096,16 @@ defmodule ControlKeelWeb.MissionControlLive do
         copy_event="copy_fix_prompt"
         close_event="close_fix"
       />
+
+      <DeploymentComponents.deploy_modal
+        :if={@show_deploy_modal}
+        analysis={@deployment_analysis}
+        unavailable={@deploy_unavailable}
+        cost_estimates={@cost_estimates}
+        selected_tier={@selected_tier}
+        needs_db={@needs_db}
+        generated_files={@generated_files}
+      />
     </section>
     """
   end
@@ -1128,6 +1224,30 @@ defmodule ControlKeelWeb.MissionControlLive do
         default_metrics,
         []
       }
+  end
+
+  defp assign_deploy_state(socket, session, server_root) do
+    socket
+    |> assign(:page_action, %{
+      label: "Analyze Project",
+      event: "deploy_analyze",
+      icon: "hero-cloud-arrow-up"
+    })
+    |> assign(:session_project_root, WorkspaceContext.resolve_project_root(session, server_root))
+    |> assign(:show_deploy_modal, false)
+    |> assign(:deploy_unavailable, false)
+    |> assign(:deployment_analysis, nil)
+    |> assign(:cost_estimates, nil)
+    |> assign(:selected_tier, "free")
+    |> assign(:needs_db, true)
+    |> assign(:generated_files, nil)
+  end
+
+  defp resolve_session_project_root(socket) do
+    WorkspaceContext.resolve_project_root(
+      socket.assigns.session,
+      socket.assigns.project_root
+    )
   end
 
   defp schedule_refresh, do: Process.send_after(self(), :refresh, @refresh_interval_ms)
