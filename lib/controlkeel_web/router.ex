@@ -84,6 +84,7 @@ defmodule ControlKeelWeb.Router do
       live "/sessions/start", OnboardingLive, :new
       live "/sessions/:id", MissionControlLive, :show
       live "/sessions/:id/reviews", SessionReviewsLive, :index
+      live "/sessions/:id/deploy-review", DeployReviewLive, :show
       live "/findings", FindingsLive, :index
       live "/benchmarks", BenchmarksLive, :index
       live "/benchmarks/runs/:id", BenchmarksLive, :show
