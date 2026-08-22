@@ -39,7 +39,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
          |> assign(:page_title, "Benchmark Run #{run.id}")
          |> assign(:page_action, %{
            label: "Export CSV",
-           to: "/api/v1/benchmarks/runs/#{run.id}/export?format=csv",
+           to: ~p"/api/v1/benchmarks/runs/#{run.id}/export?format=csv",
            icon: "hero-document-text"
          })}
     end
@@ -56,7 +56,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
      |> assign(:import_slots, [])
      |> assign(:import_form, empty_import_form())
      |> assign(:page_title, "Benchmarks")
-     |> assign(:page_action, run_benchmark_action())
+     |> assign(:page_action, nil)
      |> refresh_dashboard_assigns()}
   end
 
@@ -75,11 +75,14 @@ defmodule ControlKeelWeb.BenchmarksLive do
   end
 
   @impl true
-  def handle_event("import_result", %{"import" => import_params}, socket) do
+  def handle_event(
+        "import_result",
+        %{"import" => import_params},
+        %{assigns: %{run: run}} = socket
+      )
+      when is_struct(run, Benchmark.Run) do
     %{"subject" => subject, "scenario_slug" => scenario_slug, "payload" => payload_json} =
       import_params
-
-    run = socket.assigns.run
 
     with {:ok, decoded} <- decode_import_payload(payload_json),
          attrs = Map.put(decoded, "scenario_slug", scenario_slug),
@@ -116,10 +119,17 @@ defmodule ControlKeelWeb.BenchmarksLive do
       {:error, :not_found} ->
         {:noreply, put_flash(socket, :error, "Benchmark run not found.")}
 
+      # Not redundant despite the type checker's warning: Benchmark.import_result
+      # can return unmodelled errors such as %Ecto.Changeset{} (same rationale as
+      # ApiController.import_benchmark_result). Do not remove.
       {:error, reason} ->
         {:noreply,
          put_flash(socket, :error, "Failed to import benchmark output: #{inspect(reason)}")}
     end
+  end
+
+  def handle_event("import_result", _params, socket) do
+    {:noreply, put_flash(socket, :error, "Import requires an open benchmark run.")}
   end
 
   def handle_event("preset_benchmark", %{"preset" => preset}, socket) do
@@ -308,8 +318,11 @@ defmodule ControlKeelWeb.BenchmarksLive do
         <% integrity = get_in(@eval_profile, ["promotion_integrity"]) || %{} %>
         <div class="flex items-center justify-between gap-4">
           <.section_title>Promotion integrity</.section_title>
-          <span class="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-            {Enum.join(integrity["evidence_channels"] || [], ", ")}
+          <span
+            :if={(integrity["evidence_channels"] || []) != []}
+            class="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
+          >
+            {Enum.join(integrity["evidence_channels"], ", ")}
           </span>
         </div>
         <div class="flex items-center gap-2">
@@ -988,17 +1001,27 @@ defmodule ControlKeelWeb.BenchmarksLive do
     end
   end
 
-  defp format_delta_points(nil), do: "n/a"
+  defp format_signed(nil, _suffix, _decimals), do: "n/a"
 
-  defp format_delta_points(value) when is_number(value) do
-    formatted = :erlang.float_to_binary(value / 1, decimals: 1)
+  defp format_signed(value, suffix, decimals) when is_number(value) do
+    formatted =
+      if decimals do
+        :erlang.float_to_binary(value / 1, decimals: decimals)
+      else
+        Integer.to_string(round(value))
+      end
 
     if value >= 0 do
-      "+#{formatted}"
+      "+#{formatted}#{suffix}"
     else
-      formatted
+      "#{formatted}#{suffix}"
     end
   end
+
+  defp format_delta_points(value), do: format_signed(value, "", 1)
+  defp format_signed_int(value), do: format_signed(value, "", nil)
+  defp format_signed_ms(value), do: format_signed(value, " ms", nil)
+  defp format_signed_cents(value), do: format_signed(value, "¢", 1)
 
   defp format_ratio_percent(nil), do: "n/a"
 
@@ -1009,42 +1032,6 @@ defmodule ControlKeelWeb.BenchmarksLive do
 
   defp format_cents(value) when is_number(value),
     do: "#{:erlang.float_to_binary(value / 1, decimals: 1)}¢"
-
-  defp format_signed_int(nil), do: "n/a"
-
-  defp format_signed_int(value) when is_number(value) do
-    rounded = round(value)
-
-    if rounded >= 0 do
-      "+#{rounded}"
-    else
-      Integer.to_string(rounded)
-    end
-  end
-
-  defp format_signed_ms(nil), do: "n/a"
-
-  defp format_signed_ms(value) when is_number(value) do
-    rounded = round(value)
-
-    if rounded >= 0 do
-      "+#{rounded} ms"
-    else
-      "#{rounded} ms"
-    end
-  end
-
-  defp format_signed_cents(nil), do: "n/a"
-
-  defp format_signed_cents(value) when is_number(value) do
-    formatted = :erlang.float_to_binary(value / 1, decimals: 1)
-
-    if value >= 0 do
-      "+#{formatted}¢"
-    else
-      "#{formatted}¢"
-    end
-  end
 
   defp decision_badge_class("block"),
     do: "bg-destructive/10 text-destructive border-destructive/20"

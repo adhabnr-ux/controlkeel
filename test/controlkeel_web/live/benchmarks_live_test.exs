@@ -163,28 +163,7 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
   end
 
   test "show renders the import panel for an awaiting-import run", %{conn: conn} do
-    tmp_dir = benchmark_tmp_dir()
-
-    on_exit(fn -> File.rm_rf!(tmp_dir) end)
-
-    write_benchmark_subjects!(tmp_dir, [
-      %{"id" => "manual_subject", "label" => "Manual Subject", "type" => "manual_import"}
-    ])
-
-    original_cwd = File.cwd!()
-    File.cd!(tmp_dir)
-    on_exit(fn -> File.cd!(original_cwd) end)
-
-    {:ok, run} =
-      ControlKeel.Benchmark.run_suite(
-        %{
-          "suite" => "vibe_failures_v1",
-          "subjects" => "manual_subject",
-          "baseline_subject" => "manual_subject",
-          "scenario_slugs" => "hardcoded_api_key_python_webhook"
-        },
-        tmp_dir
-      )
+    run = awaiting_import_run_fixture()
 
     {:ok, view, html} = live(conn, ~p"/benchmarks/runs/#{run.id}")
 
@@ -196,28 +175,7 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
   end
 
   test "show completes a run through the import panel", %{conn: conn} do
-    tmp_dir = benchmark_tmp_dir()
-
-    on_exit(fn -> File.rm_rf!(tmp_dir) end)
-
-    write_benchmark_subjects!(tmp_dir, [
-      %{"id" => "manual_subject", "label" => "Manual Subject", "type" => "manual_import"}
-    ])
-
-    original_cwd = File.cwd!()
-    File.cd!(tmp_dir)
-    on_exit(fn -> File.cd!(original_cwd) end)
-
-    {:ok, run} =
-      ControlKeel.Benchmark.run_suite(
-        %{
-          "suite" => "vibe_failures_v1",
-          "subjects" => "manual_subject",
-          "baseline_subject" => "manual_subject",
-          "scenario_slugs" => "hardcoded_api_key_python_webhook"
-        },
-        tmp_dir
-      )
+    run = awaiting_import_run_fixture()
 
     {:ok, view, _html} = live(conn, ~p"/benchmarks/runs/#{run.id}")
 
@@ -242,24 +200,7 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
   end
 
   test "show import panel flashes an error for invalid JSON without navigating", %{conn: conn} do
-    tmp_dir = benchmark_tmp_dir()
-
-    on_exit(fn -> File.rm_rf!(tmp_dir) end)
-
-    write_benchmark_subjects!(tmp_dir, [
-      %{"id" => "manual_subject", "label" => "Manual Subject", "type" => "manual_import"}
-    ])
-
-    {:ok, run} =
-      ControlKeel.Benchmark.run_suite(
-        %{
-          "suite" => "vibe_failures_v1",
-          "subjects" => "manual_subject",
-          "baseline_subject" => "manual_subject",
-          "scenario_slugs" => "hardcoded_api_key_python_webhook"
-        },
-        tmp_dir
-      )
+    run = awaiting_import_run_fixture()
 
     {:ok, view, _html} = live(conn, ~p"/benchmarks/runs/#{run.id}")
 
@@ -277,6 +218,22 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
     assert html =~ "Import payload must be valid JSON"
     assert has_element?(view, "#import-panel")
     assert has_element?(view, "#benchmark-import-form")
+  end
+
+  test "importing without an open run flashes an error instead of crashing", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/benchmarks")
+
+    html =
+      render_submit(view, "import_result", %{
+        "import" => %{
+          "subject" => "manual_subject",
+          "scenario_slug" => "hardcoded_api_key_python_webhook",
+          "payload" => "{}"
+        }
+      })
+
+    assert html =~ "Import requires an open benchmark run."
+    assert has_element?(view, "#benchmark-runner")
   end
 
   test "index preset buttons fill multi-host subject fields", %{conn: conn} do
@@ -361,6 +318,33 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
              live(conn, ~p"/benchmarks/runs/999999")
 
     assert flash["error"] == "Benchmark run not found."
+  end
+
+  defp awaiting_import_run_fixture do
+    tmp_dir = benchmark_tmp_dir()
+
+    on_exit(fn -> File.rm_rf!(tmp_dir) end)
+
+    write_benchmark_subjects!(tmp_dir, [
+      %{"id" => "manual_subject", "label" => "Manual Subject", "type" => "manual_import"}
+    ])
+
+    original_cwd = File.cwd!()
+    File.cd!(tmp_dir)
+    on_exit(fn -> File.cd!(original_cwd) end)
+
+    {:ok, run} =
+      ControlKeel.Benchmark.run_suite(
+        %{
+          "suite" => "vibe_failures_v1",
+          "subjects" => "manual_subject",
+          "baseline_subject" => "manual_subject",
+          "scenario_slugs" => "hardcoded_api_key_python_webhook"
+        },
+        tmp_dir
+      )
+
+    run
   end
 
   defp benchmark_tmp_dir do
