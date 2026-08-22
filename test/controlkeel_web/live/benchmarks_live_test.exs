@@ -10,7 +10,7 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
     {:ok, view, html} = live(conn, ~p"/benchmarks")
 
     assert has_element?(view, "h1", "Benchmark engine")
-    assert has_element?(view, "button[form='benchmark-runner'][type='submit']")
+    assert has_element?(view, "#benchmark-runner button[type='submit']")
     assert html =~ "OpenCode vs ControlKeel"
     assert has_element?(view, "#benchmark-runner")
     assert has_element?(view, "#benchmark-preset-opencode")
