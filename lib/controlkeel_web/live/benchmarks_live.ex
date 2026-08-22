@@ -13,6 +13,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
      |> assign(:run, nil)
      |> assign(:matrix, %{subjects: [], scenarios: []})
      |> assign(:detail_metrics, %{})
+     |> assign(:comparison, nil)
      |> assign(:subjects_dropdown_open, false)
      |> assign(:active_preset, "opencode_compare")
      |> assign(:form, to_form(default_form_params(), as: :benchmark))
@@ -30,12 +31,15 @@ defmodule ControlKeelWeb.BenchmarksLive do
          |> push_navigate(to: ~p"/benchmarks")}
 
       run ->
+        comparison = if comparable_run?(run), do: Benchmark.compare_run(run), else: nil
+
         {:noreply,
          socket
          |> assign(:run, run)
          |> assign(:matrix, Benchmark.run_matrix(run))
          |> assign(:detail_metrics, Benchmark.run_detail_metrics(run))
          |> assign(:eval_profile, Benchmark.run_eval_profile(run))
+         |> assign(:comparison, comparison)
          |> assign(:page_title, "Benchmark Run #{run.id}")
          |> assign(:page_action, %{
            label: "Export CSV",
@@ -52,6 +56,7 @@ defmodule ControlKeelWeb.BenchmarksLive do
      |> assign(:matrix, %{subjects: [], scenarios: []})
      |> assign(:detail_metrics, %{})
      |> assign(:eval_profile, %{})
+     |> assign(:comparison, nil)
      |> assign(:page_title, "Benchmarks")
      |> assign(:page_action, run_benchmark_action())
      |> refresh_dashboard_assigns()}
@@ -210,6 +215,136 @@ defmodule ControlKeelWeb.BenchmarksLive do
               Warnings: {Enum.join(warnings, ", ")}
           <% end %>
         </p>
+      </div>
+
+      <div
+        id="comparison-panel"
+        class="border my-6 rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6"
+      >
+        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
+          Subject comparison
+        </p>
+
+        <%= if @comparison do %>
+          <% summary = @comparison["summary"] %>
+          <div class="mt-4 grid gap-2">
+            <h3>{summary["headline"]}</h3>
+            <p class="text-sm">
+              Best subject: {subject_label_by_id(@subjects_by_id, summary["best_subject"])}
+              <span class="text-muted-foreground">
+                (catch {format_percent(summary["best_catch_rate"])}, max lift {format_delta_points(
+                  summary["max_catch_rate_lift_points"]
+                )} pts)
+              </span>
+            </p>
+            <p class="text-muted-foreground text-sm">{summary["efficiency_headline"]}</p>
+          </div>
+
+          <div class="mt-4 grid gap-1 font-mono text-xs text-muted-foreground" id="comparison-chart">
+            <%= for row <- @comparison["chart"] do %>
+              <p class="whitespace-pre overflow-x-auto" id={"comparison-chart-#{row["subject"]}"}>
+                {row["label"]}
+              </p>
+            <% end %>
+          </div>
+
+          <div class="grid gap-4 mt-4 grid-cols-2 max-[900px]:grid-cols-1">
+            <%= for metrics <- @comparison["subjects"] do %>
+              <% delta = metrics["delta_vs_baseline"] || %{} %>
+              <% classification = metrics["classification"] || %{} %>
+              <article
+                id={"comparison-subject-#{metrics["subject"]}"}
+                class="border/[0.07] rounded-[1.1rem] bg-muted/[0.03] p-4 grid gap-3"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <strong class="leading-snug">
+                    {subject_label_by_id(@subjects_by_id, metrics["subject"])}
+                  </strong>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <%= if metrics["is_baseline"] do %>
+                      <span class="border bg-muted rounded-full px-2 py-0.5 text-[0.7rem]">
+                        baseline
+                      </span>
+                    <% end %>
+                    <%= if metrics["subject"] == summary["best_subject"] do %>
+                      <span class="border bg-muted rounded-full px-2 py-0.5 text-[0.7rem]">
+                        best catch rate
+                      </span>
+                    <% end %>
+                  </div>
+                </div>
+
+                <div class="grid gap-1 text-sm">
+                  <p>
+                    Catch {format_percent(metrics["catch_rate"])}
+                    <span class="text-muted-foreground">
+                      (Δ {format_delta_points(delta["catch_rate_points"])} pts)
+                    </span>
+                  </p>
+                  <p>
+                    Block {format_percent(metrics["block_rate"])}
+                    <span class="text-muted-foreground">
+                      (Δ {format_delta_points(delta["block_rate_points"])} pts)
+                    </span>
+                  </p>
+                  <p>
+                    Expected rule hit {format_percent(metrics["expected_rule_hit_rate"])}
+                    <span class="text-muted-foreground">
+                      (Δ {format_delta_points(delta["expected_rule_hit_rate_points"])} pts)
+                    </span>
+                  </p>
+                  <p class="text-muted-foreground">
+                    TPR {format_ratio_percent(classification["tpr"])} · FPR {format_ratio_percent(
+                      classification["fpr"]
+                    )} · Youden's J {format_ratio_percent(classification["youdens_j"])}
+                  </p>
+                  <p>
+                    Median latency {format_latency(metrics["median_latency_ms"])}
+                    <span class="text-muted-foreground">
+                      (Δ {format_signed_ms(delta["latency_ms"])})
+                    </span>
+                    · Tokens {metrics["total_tokens"] || 0}
+                    <span class="text-muted-foreground">
+                      (Δ {format_signed_int(delta["total_tokens"])})
+                    </span>
+                    · Cost {format_cents(metrics["estimated_cost_cents"])}
+                    <span class="text-muted-foreground">
+                      (Δ {format_signed_cents(delta["estimated_cost_cents"])})
+                    </span>
+                  </p>
+                  <p>
+                    CK tool calls {metrics["ck_tool_call_count"] || 0}
+                    <span class="text-muted-foreground">
+                      ({format_percent(metrics["ck_tool_call_rate"])} of tasks)
+                    </span>
+                  </p>
+                </div>
+              </article>
+            <% end %>
+          </div>
+
+          <div class="mt-6 grid gap-2">
+            <p class="text-sm">
+              <span class="font-medium">Safe claim:</span>
+              <span class="text-muted-foreground">
+                {get_in(@comparison, ["claim_guidance", "safe_claim"])}
+              </span>
+            </p>
+            <p class="text-sm">
+              <span class="font-medium">Caveat:</span>
+              <span class="text-muted-foreground">
+                {get_in(@comparison, ["claim_guidance", "caveat"])}
+              </span>
+            </p>
+          </div>
+        <% else %>
+          <div class="mt-4 rounded-[1rem] border border-dashed p-8 text-center">
+            <p class="text-sm font-medium">No comparable subjects</p>
+            <p class="text-muted-foreground text-sm mt-1">
+              Comparison needs a run with at least two distinct subjects.
+            </p>
+          </div>
+        <% end %>
       </div>
 
       <div class="border rounded-[1.5rem] backdrop-blur-[18px] shadow-[0_24px_80px_rgba(0,0,0,0.22)] p-6 mt-6">
@@ -594,6 +729,68 @@ defmodule ControlKeelWeb.BenchmarksLive do
   defp format_percent(nil), do: "Not recorded"
   defp format_percent(value) when is_integer(value), do: "#{value}%"
   defp format_percent(value), do: "#{Float.round(value, 1)}%"
+
+  defp comparable_run?(%Benchmark.Run{subjects: subjects}) do
+    subjects |> List.wrap() |> Enum.uniq() |> length() >= 2
+  end
+
+  defp format_delta_points(nil), do: "n/a"
+
+  defp format_delta_points(value) when is_number(value) do
+    formatted = :erlang.float_to_binary(value / 1, decimals: 1)
+
+    if value >= 0 do
+      "+#{formatted}"
+    else
+      formatted
+    end
+  end
+
+  defp format_ratio_percent(nil), do: "n/a"
+
+  defp format_ratio_percent(value) when is_number(value),
+    do: "#{Float.round(value * 100, 1)}%"
+
+  defp format_cents(nil), do: "n/a"
+
+  defp format_cents(value) when is_number(value),
+    do: "#{:erlang.float_to_binary(value / 1, decimals: 1)}¢"
+
+  defp format_signed_int(nil), do: "n/a"
+
+  defp format_signed_int(value) when is_number(value) do
+    rounded = round(value)
+
+    if rounded >= 0 do
+      "+#{rounded}"
+    else
+      Integer.to_string(rounded)
+    end
+  end
+
+  defp format_signed_ms(nil), do: "n/a"
+
+  defp format_signed_ms(value) when is_number(value) do
+    rounded = round(value)
+
+    if rounded >= 0 do
+      "+#{rounded} ms"
+    else
+      "#{rounded} ms"
+    end
+  end
+
+  defp format_signed_cents(nil), do: "n/a"
+
+  defp format_signed_cents(value) when is_number(value) do
+    formatted = :erlang.float_to_binary(value / 1, decimals: 1)
+
+    if value >= 0 do
+      "+#{formatted}¢"
+    else
+      "#{formatted}¢"
+    end
+  end
 
   defp decision_badge_class(nil),
     do: " bg-muted text-muted-foreground"

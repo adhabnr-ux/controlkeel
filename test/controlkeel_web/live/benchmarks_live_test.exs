@@ -123,6 +123,45 @@ defmodule ControlKeelWeb.BenchmarksLiveTest do
     assert has_element?(view, "#scenario-legal_privileged_memo_logging")
   end
 
+  test "show renders the comparison panel for a multi-subject run", %{conn: conn} do
+    run =
+      benchmark_run_fixture(%{
+        "suite" => "domain_expansion_v1",
+        "subjects" => "controlkeel_validate,controlkeel_proxy",
+        "baseline_subject" => "controlkeel_validate",
+        "scenario_slugs" => "hr_discriminatory_candidate_filter,legal_privileged_memo_logging"
+      })
+
+    {:ok, view, html} = live(conn, ~p"/benchmarks/runs/#{run.id}")
+
+    assert has_element?(view, "#comparison-panel")
+    assert html =~ "Subject comparison"
+    assert has_element?(view, "#comparison-subject-controlkeel_validate")
+    assert has_element?(view, "#comparison-subject-controlkeel_proxy")
+    assert has_element?(view, "#comparison-chart-controlkeel_validate")
+    assert has_element?(view, "#comparison-chart-controlkeel_proxy")
+    assert html =~ "baseline"
+
+    assert html =~ "TPR"
+    assert html =~ "FPR"
+    assert html =~ "Youden"
+    assert html =~ "CK tool calls"
+    assert html =~ "Safe claim:"
+    assert html =~ "Caveat:"
+    assert html =~ "Δ"
+  end
+
+  test "show renders empty comparison state for a single-subject run", %{conn: conn} do
+    run = benchmark_run_fixture()
+
+    {:ok, view, html} = live(conn, ~p"/benchmarks/runs/#{run.id}")
+
+    assert has_element?(view, "#comparison-panel")
+    assert html =~ "No comparable subjects"
+    refute has_element?(view, "#comparison-subject-controlkeel_validate")
+    refute has_element?(view, "#comparison-chart")
+  end
+
   test "index preset buttons fill multi-host subject fields", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/benchmarks")
 
