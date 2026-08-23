@@ -12,7 +12,13 @@ defmodule ControlKeelWeb.PolicyStudioLive do
      |> assign(:page_title, "Policy Studio")
      |> assign(:open_packs, MapSet.new())
      |> assign_packs()
-     |> assign_policy_sets()}
+     |> assign_policy_sets()
+     |> assign(
+       :page_action,
+       %{label: "New policy set", event: "open_create_modal", icon: "hero-plus"}
+     )
+     |> assign(:show_create_modal, false)
+     |> assign_policy_set_form(empty_policy_set_changeset(), "", nil)}
   end
 
   @impl true
@@ -30,6 +36,52 @@ defmodule ControlKeelWeb.PolicyStudioLive do
       {:noreply, assign(socket, :open_packs, open_packs)}
     else
       {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("open_create_modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_create_modal, true)
+     |> assign_policy_set_form(empty_policy_set_changeset(), "", nil)}
+  end
+
+  @impl true
+  def handle_event("close_create_modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_create_modal, false)
+     |> assign_policy_set_form(empty_policy_set_changeset(), "", nil)}
+  end
+
+  @impl true
+  def handle_event("validate_policy_set", %{"policy_set" => params}, socket) do
+    {_attrs, changeset, raw, ui_error} = prepare_policy_set(params, :validate)
+
+    {:noreply, assign_policy_set_form(socket, changeset, raw, ui_error)}
+  end
+
+  @impl true
+  def handle_event("save_policy_set", %{"policy_set" => params}, socket) do
+    {attrs, changeset, raw, ui_error} = prepare_policy_set(params, :insert)
+
+    if ui_error do
+      {:noreply, assign_policy_set_form(socket, changeset, raw, ui_error)}
+    else
+      case Platform.create_policy_set(attrs) do
+        {:ok, set} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, "Created policy set ##{set.id}.")
+           |> assign(:show_create_modal, false)
+           |> assign_policy_set_form(empty_policy_set_changeset(), "", nil)
+           |> assign_policy_sets()}
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          {:noreply,
+           assign_policy_set_form(socket, Map.put(changeset, :action, :insert), raw, nil)}
+      end
     end
   end
 
@@ -184,6 +236,134 @@ defmodule ControlKeelWeb.PolicyStudioLive do
         </div>
       </div>
     </section>
+
+    <.create_policy_set_modal
+      :if={@show_create_modal}
+      form={@form}
+      rules_json={@rules_json}
+      rules_error={@rules_error}
+    />
+    """
+  end
+
+  defp rules_json_placeholder do
+    ~S([
+  {
+    "id": "shell.destructive_rm_rf",
+    "category": "security",
+    "severity": "critical",
+    "action": "block",
+    "plain_message": "Recursive force-delete commands are blocked in this workspace.",
+    "matcher": { "type": "regex", "patterns": ["rm\\s+-rf\\s+/"] }
+  }
+])
+  end
+
+  attr :form, :map, required: true
+  attr :rules_json, :string, default: ""
+  attr :rules_error, :string, default: nil
+
+  defp create_policy_set_modal(assigns) do
+    ~H"""
+    <div
+      id="policy-set-create-modal"
+      class="relative z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="policy-set-create-modal-title"
+      phx-mounted={Phoenix.LiveView.JS.show(to: "#policy-set-create-modal")}
+      phx-remove={Phoenix.LiveView.JS.hide(to: "#policy-set-create-modal")}
+    >
+      <div
+        class="fixed inset-0 bg-overlay/70 backdrop-blur-sm transition-opacity"
+        phx-click="close_create_modal"
+        aria-label="Close modal"
+      />
+
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-card/95 p-6 shadow-card">
+          <div class="mb-5 flex items-center justify-between">
+            <h2 id="policy-set-create-modal-title" class="text-lg font-semibold text-foreground">
+              New policy set
+            </h2>
+            <button
+              type="button"
+              phx-click="close_create_modal"
+              class="rounded-md text-muted-foreground transition hover:text-foreground"
+              aria-label="Close"
+            >
+              <.icon name="hero-x-mark" class="size-5" />
+            </button>
+          </div>
+
+          <.form
+            for={@form}
+            phx-change="validate_policy_set"
+            phx-submit="save_policy_set"
+            id="policy-set-form"
+            class="space-y-4"
+          >
+            <.input
+              field={@form[:name]}
+              type="text"
+              label="Name"
+              placeholder="no-rm-rf"
+              required
+              class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+
+            <.input
+              field={@form[:scope]}
+              type="select"
+              label="Scope"
+              options={[{"Workspace", "workspace"}, {"Global", "global"}]}
+              class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+
+            <.input
+              field={@form[:description]}
+              type="text"
+              label="Description"
+              placeholder="Block destructive deletes"
+              class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+
+            <div>
+              <label for="policy-set-rules-json" class="label mb-1 block">
+                Rules JSON <span class="font-normal text-muted-foreground">(optional)</span>
+              </label>
+              <textarea
+                id="policy-set-rules-json"
+                name="policy_set[rules_json]"
+                rows="10"
+                spellcheck="false"
+                placeholder={rules_json_placeholder()}
+                class="w-full rounded-xl border border-input bg-background px-3 py-2 font-mono text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              ><%= @rules_json %></textarea>
+              <p :if={@rules_error} class="mt-1 text-sm text-destructive">
+                {@rules_error}
+              </p>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 border-t pt-4">
+              <button
+                type="button"
+                phx-click="close_create_modal"
+                class="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary"
+              >
+                Create policy set
+              </button>
+            </div>
+          </.form>
+        </div>
+      </div>
+    </div>
     """
   end
 
@@ -218,6 +398,57 @@ defmodule ControlKeelWeb.PolicyStudioLive do
       end)
 
     assign(socket, :policy_sets, policy_sets)
+  end
+
+  defp empty_policy_set_changeset do
+    ControlKeel.Platform.PolicySet.changeset(%ControlKeel.Platform.PolicySet{}, %{})
+  end
+
+  defp assign_policy_set_form(socket, changeset, raw_rules_json, rules_error) do
+    socket
+    |> assign(:changeset, changeset)
+    |> assign(:form, to_form(changeset, as: :policy_set))
+    |> assign(:rules_json, raw_rules_json)
+    |> assign(:rules_error, rules_error)
+  end
+
+  defp prepare_policy_set(params, action) do
+    {raw, attrs} = Map.pop(params, "rules_json")
+    raw = raw || ""
+
+    {attrs, ui_error} =
+      case decode_rule_entries(raw) do
+        {:ok, rules} -> {Map.put(attrs, "rules", rules), nil}
+        {:error, message} -> {Map.put(attrs, "rules", %{"entries" => []}), message}
+      end
+
+    changeset =
+      %ControlKeel.Platform.PolicySet{}
+      |> ControlKeel.Platform.PolicySet.changeset(attrs)
+      |> then(fn changeset ->
+        if ui_error, do: Ecto.Changeset.add_error(changeset, :rules, ui_error), else: changeset
+      end)
+      |> Map.put(:action, action)
+
+    {attrs, changeset, raw, ui_error}
+  end
+
+  defp decode_rule_entries(""), do: {:ok, %{"entries" => []}}
+
+  defp decode_rule_entries(raw) do
+    case Jason.decode(raw) do
+      {:ok, %{"entries" => _entries} = wrapped} ->
+        {:ok, wrapped}
+
+      {:ok, entries} when is_list(entries) ->
+        {:ok, %{"entries" => entries}}
+
+      {:ok, _other} ->
+        {:error, ~s(must be an array of rule entries or {"entries": [...]})}
+
+      {:error, %Jason.DecodeError{} = error} ->
+        {:error, "invalid JSON: " <> Exception.message(error)}
+    end
   end
 
   defp pack_label("baseline"), do: "Baseline — Secrets & OWASP"
