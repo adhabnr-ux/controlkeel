@@ -1,25 +1,18 @@
 defmodule ControlKeelWeb.PolicyStudioLive do
   use ControlKeelWeb, :live_view
 
-  alias ControlKeel.Accounts
-  alias ControlKeel.Accounts.WorkspaceToolPolicy
   alias ControlKeel.Intent
+  alias ControlKeel.Platform
   alias ControlKeel.Policy.PackLoader
 
   @impl true
-  def mount(_params, session, socket) do
-    org_id =
-      socket.assigns[:current_org_id] ||
-        Map.get(session, "current_org_id") ||
-        Map.get(session, :current_org_id)
-
+  def mount(_params, _session, socket) do
     {:ok,
      socket
      |> assign(:page_title, "Policy Studio")
-     |> assign(:current_org_id, org_id)
      |> assign(:open_packs, MapSet.new())
      |> assign_packs()
-     |> assign_tool_policies(org_id)}
+     |> assign_policy_sets()}
   end
 
   @impl true
@@ -74,107 +67,120 @@ defmodule ControlKeelWeb.PolicyStudioLive do
         </div>
       </div>
 
-      <div class="grid gap-6 mt-6 max-[900px]:grid-cols-1 min-[901px]:grid-cols-[1.35fr_0.75fr]">
-        <div>
-          <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-              Policy packs
-            </p>
-            <p class="text-muted-foreground text-sm mt-4 mb-4">
-              <span class="rounded-full p-2 text-xs bg-destructive/15 text-destructive border border-destructive/15 mr-1 font-bold uppercase">
-                {@block_count} rules
-              </span>
-              block agent actions when violated. Other rules only generate warnings.
-            </p>
+      <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6 my-4">
+        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
+          Policy sets
+        </p>
 
-            <div class="grid gap-2 list-none m-0 p-0 max-h-[48rem] overflow-y-auto pr-1">
-              <%= for {name, rules} <- @packs do %>
-                <% open? = MapSet.member?(@open_packs, name) %>
-                <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] bg-[rgba(255,255,255,0.03)]">
-                  <% panel_id = "pack-panel-#{name}"
-                  label_id = "#{panel_id}-label" %>
-                  <h3 class="m-0">
-                    <button
-                      type="button"
-                      phx-click="toggle_pack"
-                      phx-value-name={name}
-                      aria-expanded={open?}
-                      aria-controls={panel_id}
-                      class="flex w-full items-center justify-between gap-4 p-4 cursor-pointer select-none text-left"
-                    >
-                      <span id={label_id}>{pack_label(name)}</span>
-                      <span class="flex items-center gap-2">
-                        <span class="text-xs text-muted-foreground">
-                          {length(rules)} rules
-                        </span>
-                        <svg
-                          aria-hidden="true"
-                          class={"w-4 h-4 text-muted-foreground transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </span>
-                    </button>
-                  </h3>
-                  <%= if open? do %>
-                    <div id={panel_id} role="region" aria-labelledby={label_id} class="px-4 pb-4">
-                      <p class="text-muted-foreground text-sm">{pack_description(name)}</p>
-                      <div class="flex flex-wrap gap-2 mt-3">
-                        <%= for rule <- rules do %>
-                          <span
-                            title={rule.action <> ", " <> rule.category}
-                            class={"border rounded-full px-3 py-[0.45rem] text-[0.8rem] #{rule_tag_class(rule.action)}"}
-                          >
-                            {rule_name(rule.id)}
-                          </span>
-                        <% end %>
-                      </div>
-                    </div>
+        <%= if @policy_sets == [] do %>
+          <p class="text-muted-foreground">
+            No custom policy sets yet. Create one with <code>controlkeel policy-set create</code>.
+          </p>
+        <% else %>
+          <div class="grid gap-4 list-none m-0 p-0">
+            <%= for set <- @policy_sets do %>
+              <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
+                <div class="flex items-center justify-between gap-4">
+                  <h3>#{set.id} {set.name}</h3>
+                  <span
+                    title={set.status}
+                    class={"border rounded-full px-3 py-[0.45rem] text-[0.8rem] #{status_pill_class(set.status)}"}
+                  >
+                    {set.status}
+                  </span>
+                </div>
+                <p class="text-muted-foreground mt-1">
+                  {length(Platform.PolicySet.rule_entries(set))} rules · scope: {set.scope}
+                  <%= if set.description not in [nil, ""] do %>
+                    · {set.description}
                   <% end %>
-                </article>
-              <% end %>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-            <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-              Workspace tool policies
-            </p>
-            <%= if @tool_policies == [] do %>
-              <p class="text-muted-foreground">
-                All workspaces inherit global tool access. Set a workspace policy with <code>controlkeel workspace tool-policy set</code>.
-              </p>
-            <% else %>
-              <div class="grid gap-4 list-none m-0 p-0">
-                <%= for {ws, policy} <- @tool_policies do %>
-                  <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
-                    <div class="flex items-center justify-between gap-4">
-                      <h3>{ws.name}</h3>
-                      <span class={"border rounded-full px-3 py-[0.45rem] text-[0.8rem] #{tool_policy_pill_class(policy.mode)}"}>
-                        {policy.mode}
-                      </span>
-                    </div>
-                    <% tools = WorkspaceToolPolicy.decode_tools(policy) %>
-                    <%= if tools != [] do %>
-                      <p class="text-muted-foreground mt-1">
-                        Tools: {Enum.join(tools, ", ")}
-                      </p>
+                </p>
+                <%= if set.workspace_policy_sets != [] do %>
+                  <p class="text-muted-foreground text-sm">
+                    Applied to:
+                    <%= for assignment <- set.workspace_policy_sets do %>
+                      workspace #{assignment.workspace_id} (precedence {assignment.precedence}
+                      <%= unless assignment.enabled do %>
+                        , disabled
+                      <% end %>)<%= if assignment != List.last(set.workspace_policy_sets) do %>
+                        ,
+                      <% end %>
                     <% end %>
-                  </article>
+                  </p>
+                <% else %>
+                  <p class="text-muted-foreground text-sm">Not applied to any workspace yet.</p>
                 <% end %>
-              </div>
+              </article>
             <% end %>
           </div>
+        <% end %>
+      </div>
+
+      <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
+        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
+          Policy packs
+        </p>
+        <p class="text-muted-foreground text-sm mt-4 mb-4">
+          <span class="rounded-full p-2 text-xs bg-destructive/15 text-destructive border border-destructive/15 mr-1 font-bold uppercase">
+            {@block_count} rules
+          </span>
+          block agent actions when violated. Other rules only generate warnings.
+        </p>
+
+        <div class="grid gap-2 list-none m-0 p-0 max-h-[48rem] overflow-y-auto pr-1">
+          <%= for {name, rules} <- @packs do %>
+            <% open? = MapSet.member?(@open_packs, name) %>
+            <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] bg-[rgba(255,255,255,0.03)]">
+              <% panel_id = "pack-panel-#{name}"
+              label_id = "#{panel_id}-label" %>
+              <h3 class="m-0">
+                <button
+                  type="button"
+                  phx-click="toggle_pack"
+                  phx-value-name={name}
+                  aria-expanded={open?}
+                  aria-controls={panel_id}
+                  class="flex w-full items-center justify-between gap-4 p-4 cursor-pointer select-none text-left"
+                >
+                  <span id={label_id}>{pack_label(name)}</span>
+                  <span class="flex items-center gap-2">
+                    <span class="text-xs text-muted-foreground">
+                      {length(rules)} rules
+                    </span>
+                    <svg
+                      aria-hidden="true"
+                      class={"w-4 h-4 text-muted-foreground transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </span>
+                </button>
+              </h3>
+              <%= if open? do %>
+                <div id={panel_id} role="region" aria-labelledby={label_id} class="px-4 pb-4">
+                  <p class="text-muted-foreground text-sm">{pack_description(name)}</p>
+                  <div class="flex flex-wrap gap-2 mt-3">
+                    <%= for rule <- rules do %>
+                      <span
+                        title={rule.action <> ", " <> rule.category}
+                        class={"border rounded-full px-3 py-[0.45rem] text-[0.8rem] #{rule_tag_class(rule.action)}"}
+                      >
+                        {rule_name(rule.id)}
+                      </span>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </article>
+          <% end %>
         </div>
       </div>
     </section>
@@ -200,22 +206,18 @@ defmodule ControlKeelWeb.PolicyStudioLive do
     |> assign(:blocked_rules, blocked_rules)
   end
 
-  defp assign_tool_policies(socket, nil) do
-    assign(socket, :tool_policies, [])
-  end
+  defp assign_policy_sets(socket) do
+    assignments_by_set =
+      Platform.list_workspace_policy_sets()
+      |> Enum.group_by(& &1.policy_set_id)
 
-  defp assign_tool_policies(socket, org_id) when is_integer(org_id) do
-    workspaces = Accounts.list_workspaces_for_org(org_id)
-
-    policies =
-      workspaces
-      |> Enum.map(fn ws ->
-        policy = Accounts.get_workspace_tool_policy(ws.id)
-        {ws, policy}
+    policy_sets =
+      Platform.list_policy_sets()
+      |> Enum.map(fn set ->
+        Map.put(set, :workspace_policy_sets, Map.get(assignments_by_set, set.id, []))
       end)
-      |> Enum.reject(fn {_ws, policy} -> is_nil(policy) || policy.mode == "inherit" end)
 
-    assign(socket, :tool_policies, policies)
+    assign(socket, :policy_sets, policy_sets)
   end
 
   defp pack_label("baseline"), do: "Baseline — Secrets & OWASP"
@@ -296,9 +298,10 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   defp pack_sort_order("software"), do: 2
   defp pack_sort_order(_), do: 3
 
-  defp tool_policy_pill_class("allowlist"), do: "bg-[rgba(125,226,174,0.12)] text-[#7de2ae]"
-  defp tool_policy_pill_class("denylist"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
-  defp tool_policy_pill_class(_), do: "bg-[rgba(125,226,174,0.1)] text-[#d2ffe7]"
+  defp status_pill_class("active"), do: "bg-[rgba(125,226,174,0.12)] text-[#7de2ae]"
+  defp status_pill_class("disabled"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
+  defp status_pill_class("archived"), do: "bg-muted text-muted-foreground"
+  defp status_pill_class(_), do: "bg-muted text-muted-foreground"
 
   defp rule_name(id) do
     id |> String.split(".") |> List.last() |> String.replace("_", " ")

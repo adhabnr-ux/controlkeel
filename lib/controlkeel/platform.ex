@@ -149,7 +149,17 @@ defmodule ControlKeel.Platform do
     |> Repo.insert()
   end
 
-  def list_workspace_policy_sets(workspace_id) do
+  def list_workspace_policy_sets(workspace_id \\ nil)
+
+  def list_workspace_policy_sets(nil) do
+    WorkspacePolicySet
+    |> where([assignment], assignment.enabled == true)
+    |> order_by([assignment], asc: assignment.precedence, asc: assignment.id)
+    |> preload(:policy_set)
+    |> Repo.all()
+  end
+
+  def list_workspace_policy_sets(workspace_id) when is_integer(workspace_id) do
     WorkspacePolicySet
     |> where(
       [assignment],

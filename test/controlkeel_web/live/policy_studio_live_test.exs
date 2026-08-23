@@ -37,26 +37,41 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
     refute render(view) =~ "Detects secrets, injection, and XSS"
   end
 
-  test "shows empty tool-policies state when no org_id is present", %{conn: conn} do
+  test "shows empty policy-sets state when none exist", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/policies")
 
-    assert html =~ "All workspaces inherit global tool access"
+    assert html =~ "No custom policy sets yet"
   end
 
-  test "shows workspace tool policies when org has non-inherit policies", %{conn: conn} do
-    {:ok, org} = Accounts.create_org(%{name: "Test Org", slug: "test-org-tool"})
-    workspace = workspace_fixture(%{org_id: org.id})
+  test "lists policy sets with status, rule count, and workspace assignments", %{conn: conn} do
+    {:ok, set} =
+      ControlKeel.Platform.create_policy_set(%{
+        "name" => "no-rm-rf",
+        "description" => "Block destructive deletes",
+        "rules" => [
+          %{
+            "id" => "shell.destructive_rm_rf",
+            "category" => "security",
+            "severity" => "critical",
+            "action" => "block",
+            "plain_message" => "blocked",
+            "matcher" => %{"type" => "regex", "patterns" => ["rm -rf"]}
+          }
+        ]
+      })
 
-    Accounts.set_workspace_tool_policy(workspace.id, "allowlist", ["file_read", "bash"])
-
-    conn = Plug.Test.init_test_session(conn, %{"current_org_id" => org.id})
+    {:ok, workspace} = Accounts.create_org(%{name: "Org A", slug: "test-org-a"})
+    ws = workspace_fixture(%{org_id: workspace.id})
+    {:ok, _assignment} = ControlKeel.Platform.apply_policy_set(ws.id, set.id, %{precedence: 10})
 
     {:ok, _view, html} = live(conn, ~p"/policies")
 
-    assert html =~ workspace.name
-    assert html =~ "allowlist"
-    assert html =~ "file_read"
-    assert html =~ "bash"
+    assert html =~ "no-rm-rf"
+    assert html =~ "active"
+    assert html =~ "1 rules"
+    assert html =~ "Block destructive deletes"
+    assert html =~ "workspace ##{ws.id}"
+    assert html =~ "precedence 10"
   end
 
   test "block count badge shows destructive class", %{conn: conn} do
