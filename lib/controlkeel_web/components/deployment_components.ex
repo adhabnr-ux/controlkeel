@@ -109,6 +109,8 @@ defmodule ControlKeelWeb.DeploymentComponents do
   end
 
   attr :analysis, :map, required: true
+  attr :tiers, :list, required: true
+  attr :db_tiers, :list, required: true
   attr :selected_tier, :string, required: true
   attr :selected_db_tier, :string, required: true
   attr :needs_db, :boolean, required: true
@@ -131,13 +133,8 @@ defmodule ControlKeelWeb.DeploymentComponents do
               phx-change="select_tier"
               class="rounded-lg border border-input bg-background px-3 py-1.5 text-sm font-medium text-foreground cursor-pointer"
             >
-              <option value="free" selected={@selected_tier == "free"}>Free</option>
-              <option value="hobby" selected={@selected_tier == "hobby"}>Hobby ($5-10/mo)</option>
-              <option value="standard_1x" selected={@selected_tier == "standard_1x"}>
-                Standard ($25/mo)
-              </option>
-              <option value="performance" selected={@selected_tier == "performance"}>
-                Performance ($85+/mo)
+              <option :for={{value, label} <- @tiers} value={value} selected={@selected_tier == value}>
+                {label}
               </option>
             </select>
           </label>
@@ -157,21 +154,12 @@ defmodule ControlKeelWeb.DeploymentComponents do
               phx-change="select_db_tier"
               class="rounded-lg border border-input bg-background px-3 py-1.5 text-sm font-medium text-foreground cursor-pointer"
             >
-              <option value="none" selected={@selected_db_tier == "none"}>None</option>
-              <option value="shared_small" selected={@selected_db_tier == "shared_small"}>
-                Shared small
-              </option>
-              <option value="managed_small" selected={@selected_db_tier == "managed_small"}>
-                Managed small ($15/mo)
-              </option>
-              <option value="managed_medium" selected={@selected_db_tier == "managed_medium"}>
-                Managed medium ($30/mo)
-              </option>
-              <option value="managed_large" selected={@selected_db_tier == "managed_large"}>
-                Managed large ($90/mo)
-              </option>
-              <option value="managed_xl" selected={@selected_db_tier == "managed_xl"}>
-                Managed XL ($360/mo)
+              <option
+                :for={{value, label} <- @db_tiers}
+                value={value}
+                selected={@selected_db_tier == value}
+              >
+                {label}
               </option>
             </select>
           </label>
@@ -269,6 +257,7 @@ defmodule ControlKeelWeb.DeploymentComponents do
 
   attr :analysis, :map, required: true
   attr :generated_files, :list, default: nil
+  attr :generate_mode, :atom, default: nil
   attr :confirm_write, :boolean, default: false
 
   def files_panel(assigns) do
@@ -300,27 +289,38 @@ defmodule ControlKeelWeb.DeploymentComponents do
 
       <%= if @generated_files do %>
         <div class="border rounded-2xl overflow-hidden divide-y divide-border">
-          <%= for {:ok, name, path, content, status} <- @generated_files do %>
+          <%= for result <- @generated_files do %>
             <div class="divide-y divide-border">
               <div class="flex items-center justify-between gap-3 px-5 py-3">
                 <div class="min-w-0">
-                  <p class="font-medium text-foreground">{name}</p>
-                  <p class="mt-0.5 truncate text-xs text-muted-foreground">{path}</p>
+                  <p class="font-medium text-foreground">{file_name(result)}</p>
+                  <p class="mt-0.5 truncate text-xs text-muted-foreground">{file_path(result)}</p>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
-                  <.button variant="secondary" phx-click="copy_generated_file" phx-value-name={name}>
+                  <.button
+                    :if={match?({:ok, _name, _path, _content, _status}, result)}
+                    variant="secondary"
+                    phx-click="copy_generated_file"
+                    phx-value-name={file_name(result)}
+                  >
                     <.icon name="hero-clipboard-document" class="size-3.5" /> Copy
                   </.button>
                   <span class={[
                     "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
-                    status == :written && "bg-success/10 text-success ring-success/20",
-                    status == :skipped && "bg-warning/10 text-warning ring-warning/20"
+                    status_class(result)
                   ]}>
-                    {status_label(status)}
+                    {status_label(result, @generate_mode)}
                   </span>
                 </div>
               </div>
-              <pre class="max-h-64 overflow-x-auto bg-muted px-5 py-4 font-mono text-xs text-foreground/90"><code>{content}</code></pre>
+              <%= case result do %>
+                <% {:ok, _name, _path, content, _status} -> %>
+                  <pre class="max-h-64 overflow-x-auto bg-muted px-5 py-4 font-mono text-xs text-foreground/90"><code>{content}</code></pre>
+                <% {:error, _name, _path, reason} -> %>
+                  <p class="px-5 py-4 text-sm font-medium text-destructive">
+                    Write failed: {format_error(reason)}
+                  </p>
+              <% end %>
             </div>
           <% end %>
         </div>
@@ -516,9 +516,33 @@ defmodule ControlKeelWeb.DeploymentComponents do
     """
   end
 
-  defp status_label(:skipped), do: "Skipped (dry run)"
+  defp file_name({:ok, name, _path, _content, _status}), do: name
+  defp file_name({:error, name, _path, _reason}), do: name
+
+  defp file_path({:ok, _name, path, _content, _status}), do: path
+  defp file_path({:error, _name, path, _reason}), do: path
+
+  defp status_label({:ok, _name, _path, _content, :skipped}, :write),
+    do: "Skipped (already exists)"
+
+  defp status_label({:ok, _name, _path, _content, :skipped}, _mode), do: "Skipped (dry run)"
+  defp status_label({:ok, _name, _path, _content, status}, _mode), do: status_label(status)
+  defp status_label({:error, _name, _path, _reason}, _mode), do: "Write failed"
+
   defp status_label(:written), do: "Written"
   defp status_label(status), do: String.capitalize(to_string(status))
+
+  defp status_class({:ok, _name, _path, _content, :written}),
+    do: "bg-success/10 text-success ring-success/20"
+
+  defp status_class({:ok, _name, _path, _content, :skipped}),
+    do: "bg-warning/10 text-warning ring-warning/20"
+
+  defp status_class({:error, _name, _path, _reason}),
+    do: "bg-destructive/10 text-destructive ring-destructive/20"
+
+  defp format_error(reason) when is_atom(reason), do: to_string(:file.format_error(reason))
+  defp format_error(reason), do: inspect(reason)
 
   defp format_cents(cents), do: :erlang.float_to_binary(cents / 100, decimals: 2)
   defp format_usd(amount), do: :erlang.float_to_binary(amount, decimals: 2)

@@ -15,6 +15,9 @@ defmodule ControlKeelWeb.DeployReviewLive do
 
   @tabs ~w(overview costs files guides)
 
+  @tier_order ~w(free hobby standard_1x standard_2x performance dedicated)a
+  @db_tier_order ~w(none shared_small managed_small managed_medium managed_large managed_xl)a
+
   @impl true
   def mount(%{"id" => id}, _session, socket) do
     org_id = socket.assigns[:current_org_id]
@@ -58,6 +61,8 @@ defmodule ControlKeelWeb.DeployReviewLive do
     |> assign(:analysis, analysis)
     |> assign(:unavailable, unavailable)
     |> assign(:tab, "overview")
+    |> assign(:tier_options, tier_options())
+    |> assign(:db_tier_options, db_tier_options())
     |> assign(:selected_tier, "free")
     |> assign(:selected_db_tier, "managed_small")
     |> assign(:needs_db, true)
@@ -65,6 +70,7 @@ defmodule ControlKeelWeb.DeployReviewLive do
     |> assign(:storage_gb, 1)
     |> assign(:cost_estimates, nil)
     |> assign(:generated_files, nil)
+    |> assign(:generate_mode, nil)
     |> assign(:confirm_write, false)
     |> assign(:write_results, nil)
     |> assign(:guides, nil)
@@ -84,9 +90,7 @@ defmodule ControlKeelWeb.DeployReviewLive do
 
   @impl true
   def handle_event("select_tier", %{"tier" => tier}, socket) do
-    known_tiers = Enum.map(HostingCost.available_tiers(), &to_string/1)
-
-    if tier in known_tiers do
+    if known_tier?(HostingCost.available_tiers(), tier) do
       {:noreply, assign(socket, :selected_tier, tier)}
     else
       {:noreply, put_flash(socket, :error, "Unknown compute tier.")}
@@ -95,9 +99,7 @@ defmodule ControlKeelWeb.DeployReviewLive do
 
   @impl true
   def handle_event("select_db_tier", %{"db_tier" => db_tier}, socket) do
-    known_db_tiers = Enum.map(HostingCost.available_database_tiers(), &to_string/1)
-
-    if db_tier in known_db_tiers do
+    if known_tier?(HostingCost.available_database_tiers(), db_tier) do
       {:noreply, assign(socket, :selected_db_tier, db_tier)}
     else
       {:noreply, put_flash(socket, :error, "Unknown database tier.")}
@@ -151,6 +153,7 @@ defmodule ControlKeelWeb.DeployReviewLive do
     {:noreply,
      socket
      |> assign(:generated_files, results)
+     |> assign(:generate_mode, :preview)
      |> assign(:confirm_write, false)}
   end
 
@@ -174,18 +177,24 @@ defmodule ControlKeelWeb.DeployReviewLive do
   def handle_event("confirm_write_files", _params, socket) do
     {:ok, results} = generate(socket, dry_run: false)
 
-    written = Enum.count(results, &match?({:ok, _n, _p, _c, :written}, &1))
-    skipped = length(results) - written
+    written = Enum.count(results, &match?({:ok, _name, _path, _content, :written}, &1))
+    skipped = Enum.count(results, &match?({:ok, _name, _path, _content, :skipped}, &1))
+    failed = Enum.count(results, &match?({:error, _name, _path, _reason}, &1))
+
+    message =
+      if failed > 0 do
+        "Wrote #{written}, skipped #{skipped}, failed #{failed}. Review the failed files below."
+      else
+        "Wrote #{written} file#{if written != 1, do: "s"}; skipped #{skipped} (already existed)."
+      end
 
     {:noreply,
      socket
      |> assign(:write_results, results)
      |> assign(:generated_files, results)
+     |> assign(:generate_mode, :write)
      |> assign(:confirm_write, false)
-     |> put_flash(
-       :info,
-       "Wrote #{written} file#{if written != 1, do: "s"}; skipped #{skipped} (already existed)."
-     )}
+     |> put_flash(if(failed > 0, do: :error, else: :info), message)}
   end
 
   @impl true
@@ -234,6 +243,8 @@ defmodule ControlKeelWeb.DeployReviewLive do
         <div :if={@tab == "costs"}>
           <DeploymentComponents.costs_panel
             analysis={@analysis}
+            tiers={@tier_options}
+            db_tiers={@db_tier_options}
             selected_tier={@selected_tier}
             selected_db_tier={@selected_db_tier}
             needs_db={@needs_db}
@@ -247,6 +258,7 @@ defmodule ControlKeelWeb.DeployReviewLive do
           <DeploymentComponents.files_panel
             analysis={@analysis}
             generated_files={@generated_files}
+            generate_mode={@generate_mode}
             confirm_write={@confirm_write}
           />
         </div>
@@ -266,6 +278,31 @@ defmodule ControlKeelWeb.DeployReviewLive do
       opts
     )
   end
+
+  defp tier_options do
+    tiers = HostingCost.available_tiers()
+
+    for key <- @tier_order, tier = tiers[key] do
+      {to_string(key), "#{tier.label} · #{tier.cpu} CPU / #{tier.memory_gb} GB"}
+    end
+  end
+
+  defp db_tier_options do
+    tiers = HostingCost.available_database_tiers()
+
+    for key <- @db_tier_order, tier = tiers[key] do
+      {to_string(key), "#{tier.label} (#{format_monthly(tier.monthly_cents)})"}
+    end
+  end
+
+  defp known_tier?(tiers, value) when is_map(tiers) and is_binary(value) do
+    Enum.any?(Map.keys(tiers), &(to_string(&1) == value))
+  end
+
+  defp format_monthly(cents) when rem(cents, 100) == 0, do: "$#{div(cents, 100)}/mo"
+
+  defp format_monthly(cents),
+    do: :erlang.float_to_binary(cents / 100, decimals: 2) <> "/mo"
 
   defp load_guides(stack) do
     %{
