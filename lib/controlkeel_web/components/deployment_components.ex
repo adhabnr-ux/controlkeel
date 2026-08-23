@@ -10,6 +10,7 @@ defmodule ControlKeelWeb.DeploymentComponents do
   use Phoenix.Component
 
   import ControlKeelWeb.CoreComponents, only: [button: 1, icon: 1]
+  import ControlKeelWeb.Typography
 
   attr :tab, :string, required: true
   attr :name, :string, required: true
@@ -63,10 +64,8 @@ defmodule ControlKeelWeb.DeploymentComponents do
       </div>
 
       <section class="space-y-3">
-        <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
-          Recommended platforms
-        </h3>
-        <div class="border rounded-2xl overflow-hidden">
+        <.section_title>Recommended platforms</.section_title>
+        <div class="bg-card border rounded-2xl shadow-card overflow-hidden">
           <table class="min-w-full divide-y divide-border text-left text-sm">
             <thead class="bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground">
               <tr>
@@ -122,9 +121,7 @@ defmodule ControlKeelWeb.DeploymentComponents do
     ~H"""
     <section class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
-          Cost estimator
-        </h3>
+        <.section_title>Cost estimator</.section_title>
 
         <div class="flex flex-wrap items-center gap-3 text-sm">
           <label class="flex items-center gap-2 text-muted-foreground">
@@ -207,7 +204,7 @@ defmodule ControlKeelWeb.DeploymentComponents do
 
   defp costs_table(assigns) do
     ~H"""
-    <div class="border rounded-2xl overflow-hidden">
+    <div class="bg-card border rounded-2xl shadow-card overflow-hidden">
       <table class="min-w-full divide-y divide-border text-left text-sm">
         <thead class="bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground">
           <tr>
@@ -264,9 +261,7 @@ defmodule ControlKeelWeb.DeploymentComponents do
     ~H"""
     <section class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
-          Deployment files
-        </h3>
+        <.section_title>Deployment files</.section_title>
         <div class="flex flex-wrap items-center gap-2">
           <.button phx-click="preview_files">Preview files</.button>
           <.button variant="secondary" phx-click="arm_write" disabled={!@generated_files}>
@@ -288,9 +283,9 @@ defmodule ControlKeelWeb.DeploymentComponents do
       <% end %>
 
       <%= if @generated_files do %>
-        <div class="border rounded-2xl overflow-hidden divide-y divide-border">
+        <div class="space-y-6">
           <%= for result <- @generated_files do %>
-            <div class="divide-y divide-border">
+            <div class="divide-y divide-border bg-card border rounded-2xl shadow-card overflow-hidden">
               <div class="flex items-center justify-between gap-3 px-5 py-3">
                 <div class="min-w-0">
                   <p class="font-medium text-foreground">{file_name(result)}</p>
@@ -339,13 +334,17 @@ defmodule ControlKeelWeb.DeploymentComponents do
     ~H"""
     <section class="space-y-3">
       <%= if @guides do %>
-        <details class="rounded-2xl border bg-card p-5 shadow-card" open>
-          <summary class="text-sm font-semibold uppercase tracking-[0.14em] text-primary cursor-pointer select-none">
-            DNS & SSL setup
+        <details class="group rounded-2xl border bg-card p-5 shadow-card" open>
+          <summary class="flex cursor-pointer select-none list-none items-center gap-2">
+            <.card_title>DNS & SSL setup</.card_title>
+            <.icon
+              name="hero-chevron-right"
+              class="size-3.5 group-open:rotate-90 transition-transform"
+            />
           </summary>
           <div class="mt-4 space-y-4">
             <div>
-              <h4 class="text-sm font-semibold text-muted-foreground mb-2">DNS steps</h4>
+              <p class="text-sm font-semibold text-muted-foreground mb-2">DNS steps</p>
               <ol class="space-y-1 text-sm text-muted-foreground list-decimal ml-5">
                 <%= for step <- @guides.dns_ssl.dns_setup do %>
                   <li>{step}</li>
@@ -353,7 +352,7 @@ defmodule ControlKeelWeb.DeploymentComponents do
               </ol>
             </div>
             <div>
-              <h4 class="text-sm font-semibold text-muted-foreground mb-2">SSL</h4>
+              <p class="text-sm font-semibold text-muted-foreground mb-2">SSL</p>
               <ul class="space-y-1 text-sm text-muted-foreground list-disc ml-5">
                 <%= for step <- @guides.dns_ssl.ssl_setup do %>
                   <li>{step}</li>
@@ -361,7 +360,7 @@ defmodule ControlKeelWeb.DeploymentComponents do
               </ul>
             </div>
             <div>
-              <h4 class="text-sm font-semibold text-muted-foreground mb-2">Registrars</h4>
+              <p class="text-sm font-semibold text-muted-foreground mb-2">Registrars</p>
               <div class="flex flex-wrap gap-2">
                 <%= for r <- @guides.dns_ssl.domain_registrars do %>
                   <a
@@ -376,7 +375,7 @@ defmodule ControlKeelWeb.DeploymentComponents do
               </div>
             </div>
             <div class="space-y-1.5">
-              <h4 class="text-sm font-semibold text-muted-foreground">Free SSL options</h4>
+              <p class="text-sm font-semibold text-muted-foreground">Free SSL options</p>
               <p class="text-sm text-muted-foreground">
                 <strong>Let's Encrypt:</strong> {@guides.dns_ssl.free_ssl.letsencrypt}
               </p>
@@ -390,20 +389,24 @@ defmodule ControlKeelWeb.DeploymentComponents do
           </div>
         </details>
 
-        <details class="rounded-2xl border bg-card p-5 shadow-card">
-          <summary class="text-sm font-semibold uppercase tracking-[0.14em] text-primary cursor-pointer select-none">
-            Database migrations
+        <details class="group rounded-2xl border bg-card p-5 shadow-card">
+          <summary class="flex cursor-pointer select-none list-none items-center gap-2">
+            <.card_title>Database migrations</.card_title>
+            <.icon
+              name="hero-chevron-right"
+              class="size-3.5 group-open:rotate-90 transition-transform"
+            />
           </summary>
           <div class="mt-4 space-y-4">
             <div>
-              <h4 class="text-sm font-semibold text-muted-foreground mb-2">Steps</h4>
+              <p class="text-sm font-semibold text-muted-foreground mb-2">Steps</p>
               <ol class="space-y-1 text-sm text-muted-foreground list-decimal ml-5">
                 <%= for step <- @guides.migration.steps do %>
                   <li>{step}</li>
                 <% end %>
               </ol>
             </div>
-            <p class="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
+            <p class="rounded-xl bg-warning/10 p-3 text-sm text-foreground">
               Rollback: {@guides.migration.rollback}
             </p>
             <p class="text-sm text-muted-foreground">
@@ -415,16 +418,20 @@ defmodule ControlKeelWeb.DeploymentComponents do
           </div>
         </details>
 
-        <details class="rounded-2xl border bg-card p-5 shadow-card">
-          <summary class="text-sm font-semibold uppercase tracking-[0.14em] text-primary cursor-pointer select-none">
-            Scaling
+        <details class="group rounded-2xl border bg-card p-5 shadow-card">
+          <summary class="flex cursor-pointer select-none list-none items-center gap-2">
+            <.card_title>Scaling</.card_title>
+            <.icon
+              name="hero-chevron-right"
+              class="size-3.5 group-open:rotate-90 transition-transform"
+            />
           </summary>
           <div class="mt-4 space-y-4">
             <div>
-              <h4 class="text-sm font-semibold text-muted-foreground mb-2">
+              <p class="text-sm font-semibold text-muted-foreground mb-2">
                 Vertical — {@guides.scaling.vertical_scaling.description}
-              </h4>
-              <table class="min-w-full divide-y divide-border text-left text-sm border rounded-xl overflow-hidden">
+              </p>
+              <table class="min-w-full divide-y divide-border text-left text-sm">
                 <thead class="bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground">
                   <tr>
                     <th class="px-4 py-2 font-semibold">Users</th>
@@ -455,7 +462,7 @@ defmodule ControlKeelWeb.DeploymentComponents do
             </p>
 
             <div>
-              <h4 class="text-sm font-semibold text-muted-foreground mb-2">Caching</h4>
+              <p class="text-sm font-semibold text-muted-foreground mb-2">Caching</p>
               <ul class="space-y-1 text-sm text-muted-foreground list-disc ml-5">
                 <%= for c <- @guides.scaling.caching do %>
                   <li><strong>{c.type}:</strong> {c.recommendation}</li>
@@ -464,7 +471,7 @@ defmodule ControlKeelWeb.DeploymentComponents do
             </div>
 
             <div>
-              <h4 class="text-sm font-semibold text-muted-foreground mb-2">Monitoring</h4>
+              <p class="text-sm font-semibold text-muted-foreground mb-2">Monitoring</p>
               <ul class="space-y-1 text-sm text-muted-foreground list-disc ml-5">
                 <%= for m <- @guides.scaling.monitoring do %>
                   <li><strong>{m.type}:</strong> {m.tool} — {m.setup}</li>
@@ -473,10 +480,10 @@ defmodule ControlKeelWeb.DeploymentComponents do
             </div>
 
             <div>
-              <h4 class="text-sm font-semibold text-muted-foreground mb-2">
+              <p class="text-sm font-semibold text-muted-foreground mb-2">
                 Concurrent users cost ladder
-              </h4>
-              <table class="min-w-full divide-y divide-border text-left text-sm border rounded-xl overflow-hidden">
+              </p>
+              <table class="min-w-full divide-y divide-border text-left text-sm">
                 <thead class="bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground">
                   <tr>
                     <th class="px-4 py-2 font-semibold">Users</th>
