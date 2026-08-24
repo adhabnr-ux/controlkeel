@@ -87,13 +87,13 @@ defmodule ControlKeelWeb.WorkspaceSettingsLiveTest do
       assert has_element?(view, "#workspace-policy-apply-form")
     end
 
-    test "tool_policy tab renders via query param" do
+    test "agent_tools tab renders via query param" do
       {org, ws} = org_workspace()
 
       {:ok, view, _html} =
         live(
           build_conn(),
-          ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings?tab=tool_policy"
+          ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings?tab=agent_tools"
         )
 
       assert has_element?(view, "#workspace-tool-policy-form")
@@ -107,12 +107,12 @@ defmodule ControlKeelWeb.WorkspaceSettingsLiveTest do
         live(build_conn(), ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings")
 
       view
-      |> element("button[phx-value-tab='tool_policy']")
+      |> element("button[phx-value-tab='agent_tools']")
       |> render_click()
 
       assert_patch(
         view,
-        ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings?tab=tool_policy"
+        ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings?tab=agent_tools"
       )
 
       assert has_element?(view, "#workspace-tool-policy-form")
@@ -318,7 +318,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLiveTest do
       {:ok, view, html} =
         live(
           build_conn(),
-          ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings?tab=tool_policy"
+          ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings?tab=agent_tools"
         )
 
       assert html =~ "No tools selected."
@@ -356,7 +356,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLiveTest do
       {:ok, view, _html} =
         live(
           build_conn(),
-          ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings?tab=tool_policy"
+          ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings?tab=agent_tools"
         )
 
       view
@@ -386,7 +386,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLiveTest do
       {:ok, view, _html} =
         live(
           build_conn(),
-          ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings?tab=tool_policy"
+          ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings?tab=agent_tools"
         )
 
       # Stored tools are shown as chips on mount.
@@ -470,9 +470,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLiveTest do
       assert html =~ "Workspace settings"
     end
 
-    test "a viewer role member of the same org can open settings" do
-      # Role enforcement is deferred to centralized auth (TODO in the module);
-      # only the org-workspace relation is checked for now.
+    test "a viewer role member is refused access" do
       owner = create_user!("settings-view-owner@example.com")
 
       {:ok, org} =
@@ -491,9 +489,10 @@ defmodule ControlKeelWeb.WorkspaceSettingsLiveTest do
           "current_org_id" => org.id
         })
 
-      {:ok, _view, html} = live(conn, ~p"/organizations/viewerco/workspaces/#{ws.id}/settings")
+      assert {:error, {:live_redirect, %{to: "/organizations", flash: %{"error" => msg}}}} =
+               live(conn, ~p"/organizations/viewerco/workspaces/#{ws.id}/settings")
 
-      assert html =~ "Workspace settings"
+      assert msg =~ "Admin or owner role required."
     end
 
     test "a user outside the org is refused access" do

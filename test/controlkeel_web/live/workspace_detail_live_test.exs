@@ -4,7 +4,9 @@ defmodule ControlKeelWeb.WorkspaceDetailLiveTest do
   import Phoenix.LiveViewTest
 
   alias ControlKeel.Accounts
+  alias ControlKeel.Accounts.Membership
   alias ControlKeel.Mission
+  alias ControlKeel.Repo
 
   defp create_user!(email) do
     {:ok, user} = Accounts.create_user(%{email: email})
@@ -187,6 +189,36 @@ defmodule ControlKeelWeb.WorkspaceDetailLiveTest do
 
       assert html =~ "Scoped"
       assert html =~ "Scoped"
+    end
+
+    test "a viewer role member of the workspace's org can view it" do
+      owner = create_user!("ws-view-owner@example.com")
+      {:ok, org} = Accounts.create_org_with_owner(owner.id, %{name: "ViewCo", slug: "viewco"})
+
+      ws =
+        create_workspace(%{name: "Viewable", slug: "viewable", industry: "web", org_id: org.id})
+
+      viewer = create_user!("ws-viewer@example.com")
+
+      %Membership{}
+      |> Membership.changeset(%{
+        user_id: viewer.id,
+        org_id: org.id,
+        role: "viewer",
+        status: "active"
+      })
+      |> Repo.insert!()
+
+      conn =
+        build_conn()
+        |> Plug.Test.init_test_session(%{
+          "current_user_id" => viewer.id,
+          "current_org_id" => org.id
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/organizations/viewco/workspaces/#{ws.id}")
+
+      assert html =~ "Viewable"
     end
 
     test "a user outside the org is refused access" do

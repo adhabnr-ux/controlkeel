@@ -17,8 +17,9 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
   alias ControlKeel.Mission.Workspace
   alias ControlKeel.Platform
   alias ControlKeel.Repo
+  alias ControlKeel.Runtime.Mode
 
-  @tabs ["policies", "tool_policy"]
+  @tabs ["policies", "agent_tools"]
 
   @impl true
   def mount(%{"id" => id, "slug" => slug} = _params, _session, socket) do
@@ -74,7 +75,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
     {:noreply, assign(socket, :active_tab, normalize_tab(params["tab"]))}
   end
 
-  defp normalize_tab("tool_policy"), do: "tool_policy"
+  defp normalize_tab("agent_tools"), do: "agent_tools"
   defp normalize_tab(_tab), do: "policies"
 
   @impl true
@@ -244,7 +245,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
         </nav>
 
         <%= case @active_tab do %>
-          <% "tool_policy" -> %>
+          <% "agent_tools" -> %>
             <.tool_policy_panel
               workspace={@workspace}
               modes={@modes}
@@ -499,7 +500,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
   end
 
   defp tab_label("policies"), do: "Policies"
-  defp tab_label("tool_policy"), do: "Agent tools"
+  defp tab_label("agent_tools"), do: "Agent tools"
 
   defp find_assignment(assignments, set_id) do
     Enum.find(assignments, &(&1.policy_set_id == set_id)) || {:error, :not_found}
@@ -530,21 +531,32 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
 
   defp check_org_slug(_, _), do: {:error, "Workspace does not belong to this organization."}
 
-  # TODO(auth): the workspace lookup + org-relation checks below are duplicated
-  # across workspace LiveViews. Extract into a shared on_mount hook and restore
-  # role enforcement when centralized auth lands (CLI/web parity PR).
-  defp check_workspace_access(%Workspace{org_id: ws_org_id}, assigns) do
-    case assigns[:current_org_id] do
-      nil ->
-        :ok
-
-      org_id when is_integer(org_id) and org_id == ws_org_id ->
-        :ok
-
-      _ ->
-        {:error, "Workspace belongs to a different organization."}
+  # TODO(auth): the workspace lookup + access checks below are duplicated
+  # across workspace LiveViews. Extract into a shared on_mount hook when
+  # centralized auth lands (CLI/web parity PR).
+  defp check_workspace_access(workspace, assigns) do
+    if Mode.current() == :local do
+      :ok
+    else
+      check_cloud_workspace_access(workspace, assigns)
     end
   end
+
+  defp check_cloud_workspace_access(%Workspace{org_id: nil}, _),
+    do: {:error, "Workspace is not bound to an org."}
+
+  defp check_cloud_workspace_access(%Workspace{org_id: ws_org}, %{
+         current_org_id: org_id,
+         current_membership: m
+       })
+       when is_integer(ws_org) and ws_org == org_id do
+    if m && Accounts.role_at_least?(m.role, "admin"),
+      do: :ok,
+      else: {:error, "Admin or owner role required."}
+  end
+
+  defp check_cloud_workspace_access(_, _),
+    do: {:error, "Workspace belongs to a different organization."}
 
   defp redirect_with_flash(socket, kind, msg, path) do
     socket

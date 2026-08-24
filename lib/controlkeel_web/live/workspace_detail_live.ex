@@ -18,6 +18,7 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
   alias ControlKeel.Mission.Workspace
   alias ControlKeel.Platform
   alias ControlKeel.Repo
+  alias ControlKeel.Runtime.Mode
 
   @impl true
   def mount(%{"id" => id, "slug" => slug} = _params, _session, socket) do
@@ -213,7 +214,7 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
 
                 <.link
                   navigate={
-                    ~p"/organizations/#{@workspace.org.slug}/workspaces/#{@workspace.id}/settings?tab=tool_policy"
+                    ~p"/organizations/#{@workspace.org.slug}/workspaces/#{@workspace.id}/settings?tab=agent_tools"
                   }
                   class="text-xs font-medium text-primary transition hover:text-primary/80"
                 >
@@ -337,21 +338,28 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
     """
   end
 
-  # TODO(auth): the workspace lookup + org-relation checks below are duplicated
+  # TODO(auth): the workspace lookup + access checks below are duplicated
   # across workspace LiveViews. Extract into a shared on_mount hook when
   # centralized auth lands (CLI/web parity PR).
-  defp check_workspace_access(%Workspace{org_id: ws_org_id}, assigns) do
-    case assigns[:current_org_id] do
-      nil ->
-        :ok
-
-      org_id when is_integer(org_id) and org_id == ws_org_id ->
-        :ok
-
-      _ ->
-        {:error, "Workspace belongs to a different organization."}
+  # View access: local mode is open; cloud mode requires membership of the
+  # workspace's org (no role requirement — role gates live on write surfaces).
+  defp check_workspace_access(workspace, assigns) do
+    if Mode.current() == :local do
+      :ok
+    else
+      check_cloud_workspace_access(workspace, assigns)
     end
   end
+
+  defp check_cloud_workspace_access(%Workspace{org_id: nil}, _),
+    do: {:error, "Workspace is not bound to an org."}
+
+  defp check_cloud_workspace_access(%Workspace{org_id: ws_org}, %{current_org_id: org_id})
+       when is_integer(ws_org) and ws_org == org_id,
+       do: :ok
+
+  defp check_cloud_workspace_access(_, _),
+    do: {:error, "Workspace belongs to a different organization."}
 
   defp redirect_with_flash(socket, kind, msg, path) do
     socket

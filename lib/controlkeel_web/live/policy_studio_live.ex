@@ -371,6 +371,10 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   end
 
   defp assign_policy_sets(socket) do
+    # Operator ruling (issue #117 review): creating policy sets here is
+    # intentionally open to all members — no role gate, regardless of the
+    # set's intended use. Cross-org visibility of assignments below is also
+    # accepted for now; tighten both in a future auth pass.
     assignments_by_set =
       Platform.list_workspace_policy_assignments()
       |> Enum.group_by(& &1.policy_set_id)
