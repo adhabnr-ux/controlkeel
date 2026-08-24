@@ -85,29 +85,30 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   def render(assigns) do
     ~H"""
     <section>
-      <div class="flex items-start justify-between gap-3 mb-8">
-        <.page_title
-          title="Policy Studio"
-          subtitle="Every agent action passes through these policy packs before it executes."
-        />
-        <.button phx-click="open_create_modal">
-          <.icon name="hero-plus" class="size-3.5" /> New policy set
-        </.button>
-      </div>
+      <.page_title
+        title="Policy Studio"
+        subtitle="Every agent action passes through these policy packs before it executes."
+        class="mb-8"
+      />
 
-      <section class="rounded-2xl border bg-card p-5 shadow-card">
-        <.section_title>Custom policy sets</.section_title>
+      <section class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <.section_title>Custom policy sets</.section_title>
+          <.button phx-click="open_create_modal">
+            <.icon name="hero-plus" class="size-3.5" /> New policy set
+          </.button>
+        </div>
 
         <%= if @policy_sets == [] do %>
           <p class="mt-4 text-sm text-muted-foreground">
-            No custom policy sets yet. Create one with <code>controlkeel policy-set create</code>.
+            No custom policy sets yet. Use the New policy set button to create one.
           </p>
         <% else %>
-          <ul class="mt-4 divide-y divide-border">
+          <ul class="mt-4 divide-y divide-border bg-card p-5 rounded-2xl shadow-card">
             <%= for set <- @policy_sets do %>
               <li class="py-4 first:pt-0 last:pb-0">
                 <div class="flex items-center justify-between gap-4">
-                  <h3 class="text-base font-semibold text-foreground">#{set.id} {set.name}</h3>
+                  <h3 class="text-base font-semibold text-foreground">{set.name}</h3>
                   <span
                     title={set.status}
                     class={"inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 #{status_pill_class(set.status)}"}
@@ -144,18 +145,19 @@ defmodule ControlKeelWeb.PolicyStudioLive do
         <% end %>
       </section>
 
-      <section class="mt-6 rounded-2xl border bg-card p-5 shadow-card">
-        <div class="flex items-center justify-between gap-3">
+      <section>
+        <div class="flex items-center justify-between gap-3 mb-4">
           <.section_title>Built-in policy packs</.section_title>
-        </div>
-        <p class="mt-2 text-sm text-muted-foreground">
-          <span class="mr-1 inline-flex rounded-full bg-destructive/10 px-2.5 py-1 align-middle text-xs font-semibold text-destructive ring-1 ring-destructive/20">
-            {@block_count} rules
-          </span>
-          block agent actions when violated. Other rules only generate warnings.
-        </p>
 
-        <div class="mt-4 max-h-[48rem] divide-y divide-border overflow-y-auto pr-1">
+          <p class="mt-2 text-sm text-muted-foreground">
+            <span class="mr-1 inline-flex rounded-full bg-destructive/10 px-2.5 py-1 align-middle text-xs font-semibold text-destructive ring-1 ring-destructive/20">
+              {@block_count} rules
+            </span>
+            block agent actions when violated. Other rules only generate warnings.
+          </p>
+        </div>
+
+        <div class="rounded-2xl border bg-card p-5 shadow-card max-h-[48rem] divide-y divide-border overflow-y-auto pr-1">
           <%= for {name, rules} <- @packs do %>
             <% open? = MapSet.member?(@open_packs, name) %>
             <% panel_id = "pack-panel-#{name}"
