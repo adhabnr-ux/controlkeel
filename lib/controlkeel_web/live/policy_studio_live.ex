@@ -155,12 +155,13 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                   <%= if entries != [] do %>
                     <div class="mt-2 flex flex-wrap gap-2">
                       <%= for rule <- entries do %>
-                        <span
+                        <.rule_tag
+                          action={rule["action"]}
                           title={"#{rule["action"]}, #{rule["category"]}"}
-                          class={"inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 #{rule_tag_class(rule["action"])}"}
+                          class="px-2.5 py-1 text-xs font-medium"
                         >
                           {rule_name(rule["id"])}
-                        </span>
+                        </.rule_tag>
                       <% end %>
                     </div>
                   <% end %>
@@ -392,12 +393,13 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                     <p class="text-sm text-muted-foreground">{pack_description(name)}</p>
                     <div class="mt-3 flex flex-wrap gap-2">
                       <%= for rule <- rules do %>
-                        <span
+                        <.rule_tag
+                          action={rule.action}
                           title={rule.action <> ", " <> rule.category}
-                          class={"inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 #{rule_tag_class(rule.action)}"}
+                          class="px-2.5 py-1 text-xs font-medium"
                         >
                           {rule_name(rule.id)}
-                        </span>
+                        </.rule_tag>
                       <% end %>
                     </div>
                   </div>
@@ -581,11 +583,4 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   defp rule_name(id) do
     id |> String.split(".") |> List.last() |> String.replace("_", " ")
   end
-
-  defp rule_tag_class("block"), do: "bg-destructive/10 text-destructive ring-destructive/20"
-  defp rule_tag_class("warn"), do: "bg-warning/10 text-warning ring-warning/20"
-
-  defp rule_tag_class("escalate_to_human"), do: "bg-info/10 text-info ring-info/20"
-
-  defp rule_tag_class(_), do: "bg-muted text-muted-foreground ring-border"
 end

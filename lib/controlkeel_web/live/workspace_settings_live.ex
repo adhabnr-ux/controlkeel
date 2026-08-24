@@ -53,10 +53,6 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
        |> assign(:tool_options, ToolGroups.all_tools())
        |> assign(:live_mode, tool_policy.mode)
        |> assign(
-         :form,
-         to_form(%{"mode" => tool_policy.mode, "tools" => Enum.join(tools, "\n")}, as: :policy)
-       )
-       |> assign(
          :apply_form,
          to_form(%{"policy_set_id" => "", "precedence" => "100"}, as: :assignment)
        )
@@ -168,10 +164,6 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
     end
   end
 
-  defp find_assignment(assignments, set_id) do
-    Enum.find(assignments, &(&1.policy_set_id == set_id)) || {:error, :not_found}
-  end
-
   @impl true
   def handle_event("mode_changed", %{"policy" => %{"mode" => mode}}, socket) do
     {:noreply, assign(socket, :live_mode, mode)}
@@ -200,7 +192,6 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
 
         {:noreply,
          socket
-         |> assign(:policy, policy)
          |> assign(:selected_tools, saved_tools)
          |> assign(:unknown_tools, saved_tools -- ToolGroups.all_tools())
          |> assign(:live_mode, policy.mode)
@@ -256,7 +247,6 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
           <% "tool_policy" -> %>
             <.tool_policy_panel
               workspace={@workspace}
-              form={@form}
               modes={@modes}
               tool_options={@tool_options}
               selected_tools={@selected_tools}
@@ -390,7 +380,6 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
   end
 
   attr :workspace, :map, required: true
-  attr :form, :map, required: true
   attr :modes, :list, required: true
   attr :tool_options, :list, required: true
   attr :selected_tools, :list, required: true
@@ -408,7 +397,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
         override it.
       </p>
 
-      <.form for={@form} phx-submit="submit" id="workspace-tool-policy-form" class="mt-4 space-y-4">
+      <form id="workspace-tool-policy-form" phx-submit="submit" class="mt-4 space-y-4">
         <div>
           <label
             for="tool-policy-mode"
@@ -428,67 +417,67 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
           </select>
         </div>
 
-        <div>
-          <%= if @selected_tools == [] do %>
-            <p class="text-xs text-muted-foreground">No tools selected.</p>
-          <% else %>
-            <ul class="flex list-none flex-wrap gap-1.5 m-0 p-0">
-              <%= for tool <- @selected_tools do %>
-                <li class={[
-                  "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ring-1",
-                  tool in @tool_options &&
-                    "bg-primary/10 text-primary ring-primary/20",
-                  tool not in @tool_options && "bg-warning/10 text-warning ring-warning/20",
-                  @live_mode == "inherit" && "opacity-50"
-                ]}>
-                  {tool}
-                  <button
-                    type="button"
-                    phx-click="remove_tool"
-                    phx-value-tool={tool}
-                    disabled={@live_mode == "inherit" || nil}
-                    aria-label={"Remove #{tool}"}
-                    class={[
-                      "transition",
-                      @live_mode == "inherit" &&
-                        "cursor-not-allowed opacity-60 hover:text-current",
-                      @live_mode != "inherit" && "cursor-pointer hover:text-destructive"
-                    ]}
-                  >
-                    <.icon name="hero-x-mark" class="size-3.5" />
-                  </button>
-                </li>
-              <% end %>
-            </ul>
-          <% end %>
-
-          <select
-            id="tool-policy-picker"
-            name="tool_picker"
-            phx-change="pick_tool"
-            disabled={@live_mode == "inherit" || nil}
-            class={[
-              "mt-2 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm",
-              @live_mode == "inherit" && "cursor-not-allowed opacity-50"
-            ]}
-          >
-            <option value="">Add a tool…</option>
-            <%= for tool <- @tool_options do %>
-              <%= unless tool in @selected_tools do %>
-                <option value={tool}>{tool}</option>
-              <% end %>
-            <% end %>
-          </select>
-
-          <p class="mt-1.5 text-xs text-muted-foreground">
-            Used by <code>allowlist</code>
-            and <code>denylist</code>
-            modes. Ignored under <code>inherit</code>.
-          </p>
-        </div>
-
         <.button type="submit">Save policy</.button>
-      </.form>
+      </form>
+
+      <div>
+        <%= if @selected_tools == [] do %>
+          <p class="text-xs text-muted-foreground">No tools selected.</p>
+        <% else %>
+          <ul class="flex list-none flex-wrap gap-1.5 m-0 p-0">
+            <%= for tool <- @selected_tools do %>
+              <li class={[
+                "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ring-1",
+                tool in @tool_options &&
+                  "bg-primary/10 text-primary ring-primary/20",
+                tool not in @tool_options && "bg-warning/10 text-warning ring-warning/20",
+                @live_mode == "inherit" && "opacity-50"
+              ]}>
+                {tool}
+                <button
+                  type="button"
+                  phx-click="remove_tool"
+                  phx-value-tool={tool}
+                  disabled={@live_mode == "inherit" || nil}
+                  aria-label={"Remove #{tool}"}
+                  class={[
+                    "transition",
+                    @live_mode == "inherit" &&
+                      "cursor-not-allowed opacity-60 hover:text-current",
+                    @live_mode != "inherit" && "cursor-pointer hover:text-destructive"
+                  ]}
+                >
+                  <.icon name="hero-x-mark" class="size-3.5" />
+                </button>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+
+        <select
+          id="tool-policy-picker"
+          name="tool_picker"
+          phx-change="pick_tool"
+          disabled={@live_mode == "inherit" || nil}
+          class={[
+            "mt-2 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm",
+            @live_mode == "inherit" && "cursor-not-allowed opacity-50"
+          ]}
+        >
+          <option value="">Add a tool…</option>
+          <%= for tool <- @tool_options do %>
+            <%= unless tool in @selected_tools do %>
+              <option value={tool}>{tool}</option>
+            <% end %>
+          <% end %>
+        </select>
+
+        <p class="mt-1.5 text-xs text-muted-foreground">
+          Used by <code>allowlist</code>
+          and <code>denylist</code>
+          modes. Ignored under <code>inherit</code>.
+        </p>
+      </div>
     </section>
     """
   end
@@ -511,6 +500,10 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
 
   defp tab_label("policies"), do: "Policies"
   defp tab_label("tool_policy"), do: "Agent tools"
+
+  defp find_assignment(assignments, set_id) do
+    Enum.find(assignments, &(&1.policy_set_id == set_id)) || {:error, :not_found}
+  end
 
   defp parse_int(value) when is_binary(value) do
     case Integer.parse(value) do

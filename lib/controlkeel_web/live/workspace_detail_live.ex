@@ -65,13 +65,6 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
 
   defp check_org_slug(_, _), do: {:error, "Workspace does not belong to this organization."}
 
-  defp rule_tag_class("block"), do: "bg-destructive/10 text-destructive ring-destructive/20"
-  defp rule_tag_class("warn"), do: "bg-warning/10 text-warning ring-warning/20"
-
-  defp rule_tag_class("escalate_to_human"), do: "bg-info/10 text-info ring-info/20"
-
-  defp rule_tag_class(_), do: "bg-muted text-muted-foreground ring-border"
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -183,12 +176,13 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
                       <div class="mt-2 space-y-1.5">
                         <%= for rule <- entries do %>
                           <div class="flex flex-wrap items-center gap-2">
-                            <span
+                            <.rule_tag
+                              action={rule["action"]}
                               title={rule["action"]}
-                              class={"inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ring-1 #{rule_tag_class(rule["action"])}"}
+                              class="px-2 py-0.5 text-[10px] font-semibold uppercase"
                             >
                               {rule["action"]}
-                            </span>
+                            </.rule_tag>
                             <span class="font-mono text-xs text-foreground">{rule["id"]}</span>
                             <span class="text-xs text-muted-foreground">{rule["plain_message"]}</span>
                           </div>

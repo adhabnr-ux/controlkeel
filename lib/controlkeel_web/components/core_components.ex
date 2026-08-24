@@ -567,6 +567,35 @@ defmodule ControlKeelWeb.CoreComponents do
     """
   end
 
+  @doc """
+  Renders a policy rule pill. Color reflects `action` (`block` / `warn` /
+  `escalate_to_human`); the label content goes in the inner block.
+
+  ## Examples
+
+      <.rule_tag action="block" class="px-2.5 py-1 text-xs font-medium">no rm rf</.rule_tag>
+  """
+  attr :action, :string, required: true
+  attr :title, :string, default: nil
+  attr :class, :any, default: nil, doc: "spacing/typography classes appended to the pill"
+  slot :inner_block, required: true, doc: "rule label"
+
+  def rule_tag(assigns) do
+    ~H"""
+    <span
+      title={@title}
+      class={["inline-flex rounded-full ring-1", rule_tag_class(@action), @class]}
+    >
+      {render_slot(@inner_block)}
+    </span>
+    """
+  end
+
+  defp rule_tag_class("block"), do: "bg-destructive/10 text-destructive ring-destructive/20"
+  defp rule_tag_class("warn"), do: "bg-warning/10 text-warning ring-warning/20"
+  defp rule_tag_class("escalate_to_human"), do: "bg-info/10 text-info ring-info/20"
+  defp rule_tag_class(_), do: "bg-muted text-muted-foreground ring-border"
+
   ## JS Commands
 
   def show(js \\ %JS{}, selector) do
