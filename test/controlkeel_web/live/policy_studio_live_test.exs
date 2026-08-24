@@ -18,6 +18,8 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
   test "toggle_pack expands and collapses baseline pack", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/policies")
 
+    render_click(view, "open_packs_dialog")
+
     trigger = element(view, "button[phx-value-name=\"baseline\"]")
     render_click(trigger)
 
@@ -54,8 +56,7 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
     {:ok, workspace} = Accounts.create_org(%{name: "Org A", slug: "test-org-a"})
     ws = workspace_fixture(%{org_id: workspace.id})
     {:ok, _assignment} = ControlKeel.Platform.apply_policy_set(ws.id, set.id, %{precedence: 10})
-
-    {:ok, _view, html} = live(conn, ~p"/policies")
+    {:ok, view, html} = live(conn, ~p"/policies")
 
     assert html =~ "no-rm-rf"
     assert html =~ "active"
@@ -63,6 +64,7 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
     assert html =~ "Block destructive deletes"
     assert html =~ "workspace ##{ws.id}"
     assert html =~ "precedence 10"
+    assert has_element?(view, "span[title='block, security']", "destructive rm rf")
   end
 
   test "block count badge shows destructive class", %{conn: conn} do
@@ -74,13 +76,19 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
   test "warn rules show warning class when pack is expanded", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/policies")
 
+    render_click(view, "open_packs_dialog")
     render_click(element(view, "button[phx-value-name=\"software\"]"))
 
     assert render(view) =~ "bg-warning/10"
   end
 
   test "renders pack labels for known domain packs", %{conn: conn} do
-    {:ok, _view, html} = live(conn, ~p"/policies")
+    {:ok, view, html} = live(conn, ~p"/policies")
+
+    refute html =~ "Baseline"
+
+    render_click(view, "open_packs_dialog")
+    html = render(view)
 
     assert html =~ "Baseline"
     assert html =~ "Cost"

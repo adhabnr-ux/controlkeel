@@ -11,10 +11,21 @@ defmodule ControlKeelWeb.PolicyStudioLive do
      socket
      |> assign(:page_title, "Policy Studio")
      |> assign(:open_packs, MapSet.new())
+     |> assign(:show_packs_dialog, false)
      |> assign_packs()
      |> assign_policy_sets()
      |> assign(:show_create_modal, false)
      |> assign_policy_set_form(empty_policy_set_changeset(), "", nil)}
+  end
+
+  @impl true
+  def handle_event("open_packs_dialog", _params, socket) do
+    {:noreply, assign(socket, :show_packs_dialog, true)}
+  end
+
+  @impl true
+  def handle_event("close_packs_dialog", _params, socket) do
+    {:noreply, assign(socket, :show_packs_dialog, false)}
   end
 
   @impl true
@@ -91,131 +102,93 @@ defmodule ControlKeelWeb.PolicyStudioLive do
         class="mb-8"
       />
 
-      <section class="mb-6">
-        <div class="flex items-center justify-between mb-4">
-          <.section_title>Custom policy sets</.section_title>
-          <.button phx-click="open_create_modal">
-            <.icon name="hero-plus" class="size-3.5" /> New policy set
-          </.button>
-        </div>
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <section>
+          <div class="flex items-center justify-between mb-4">
+            <.section_title>Custom policy sets</.section_title>
+            <.button phx-click="open_create_modal">
+              <.icon name="hero-plus" class="size-3.5" /> New policy set
+            </.button>
+          </div>
 
-        <%= if @policy_sets == [] do %>
-          <p class="mt-4 text-sm text-muted-foreground">
-            No custom policy sets yet. Use the New policy set button to create one.
-          </p>
-        <% else %>
-          <ul class="mt-4 divide-y divide-border bg-card p-5 rounded-2xl shadow-card">
-            <%= for set <- @policy_sets do %>
-              <li class="py-4 first:pt-0 last:pb-0">
-                <div class="flex items-center justify-between gap-4">
-                  <h3 class="text-base font-semibold text-foreground">{set.name}</h3>
-                  <span
-                    title={set.status}
-                    class={"inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 #{status_pill_class(set.status)}"}
-                  >
-                    {set.status}
-                  </span>
-                </div>
-                <p class="mt-1 text-sm text-muted-foreground">
-                  {length(Platform.PolicySet.rule_entries(set))} rules · scope: {set.scope}
-                  <%= if set.description not in [nil, ""] do %>
-                    · {set.description}
-                  <% end %>
-                </p>
-                <%= if set.workspace_policy_sets != [] do %>
-                  <p class="mt-1 text-xs text-muted-foreground">
-                    Applied to:
-                    <%= for assignment <- set.workspace_policy_sets do %>
-                      workspace #{assignment.workspace_id} (precedence {assignment.precedence}
-                      <%= unless assignment.enabled do %>
-                        , disabled
-                      <% end %>)<%= if assignment != List.last(set.workspace_policy_sets) do %>
-                        ,
-                      <% end %>
+          <%= if @policy_sets == [] do %>
+            <p class="mt-4 text-sm text-muted-foreground">
+              No custom policy sets yet. Use the New policy set button to create one.
+            </p>
+          <% else %>
+            <ul class="mt-4 divide-y divide-border bg-card p-5 rounded-2xl shadow-card">
+              <%= for set <- @policy_sets do %>
+                <li class="py-4 first:pt-0 last:pb-0">
+                  <div class="flex items-center justify-between gap-4">
+                    <h3 class="text-base font-semibold text-foreground">{set.name}</h3>
+                    <span
+                      title={set.status}
+                      class={"inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 #{status_pill_class(set.status)}"}
+                    >
+                      {set.status}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-muted-foreground">
+                    {length(Platform.PolicySet.rule_entries(set))} rules · scope: {set.scope}
+                    <%= if set.description not in [nil, ""] do %>
+                      · {set.description}
                     <% end %>
                   </p>
-                <% else %>
-                  <p class="mt-1 text-xs text-muted-foreground">
-                    Not applied to any workspace yet.
-                  </p>
-                <% end %>
-              </li>
-            <% end %>
-          </ul>
-        <% end %>
-      </section>
+                  <%= if set.workspace_policy_sets != [] do %>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                      Applied to:
+                      <%= for assignment <- set.workspace_policy_sets do %>
+                        workspace #{assignment.workspace_id} (precedence {assignment.precedence}
+                        <%= unless assignment.enabled do %>
+                          , disabled
+                        <% end %>)<%= if assignment != List.last(set.workspace_policy_sets) do %>
+                          ,
+                        <% end %>
+                      <% end %>
+                    </p>
+                  <% else %>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                      Not applied to any workspace yet.
+                    </p>
+                  <% end %>
+                  <% entries = Enum.filter(Platform.PolicySet.rule_entries(set), &is_binary(&1["id"])) %>
+                  <%= if entries != [] do %>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <%= for rule <- entries do %>
+                        <span
+                          title={"#{rule["action"]}, #{rule["category"]}"}
+                          class={"inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 #{rule_tag_class(rule["action"])}"}
+                        >
+                          {rule_name(rule["id"])}
+                        </span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+          <% end %>
+        </section>
 
-      <section>
-        <div class="flex items-center justify-between gap-3 mb-4">
-          <.section_title>Built-in policy packs</.section_title>
-
+        <aside class="self-start rounded-2xl border bg-card p-5 shadow-card">
+          <h3 class="text-base font-semibold text-foreground">Built-in policy packs</h3>
           <p class="mt-2 text-sm text-muted-foreground">
             <span class="mr-1 inline-flex rounded-full bg-destructive/10 px-2.5 py-1 align-middle text-xs font-semibold text-destructive ring-1 ring-destructive/20">
               {@block_count} rules
             </span>
-            block agent actions when violated. Other rules only generate warnings.
+            block agent actions when violated; other rules only warn.
           </p>
-        </div>
-
-        <div class="rounded-2xl border bg-card p-5 shadow-card max-h-[48rem] divide-y divide-border overflow-y-auto pr-1">
-          <%= for {name, rules} <- @packs do %>
-            <% open? = MapSet.member?(@open_packs, name) %>
-            <% panel_id = "pack-panel-#{name}"
-            label_id = "#{panel_id}-label" %>
-            <article class="py-2 first:pt-0 last:pb-0">
-              <h3 class="m-0">
-                <button
-                  type="button"
-                  phx-click="toggle_pack"
-                  phx-value-name={name}
-                  aria-expanded={open?}
-                  aria-controls={panel_id}
-                  class="flex w-full cursor-pointer select-none items-center justify-between gap-4 py-2 text-left"
-                >
-                  <span id={label_id} class="text-base font-semibold text-foreground">
-                    {pack_label(name)}
-                  </span>
-                  <span class="flex items-center gap-2">
-                    <span class="text-xs text-muted-foreground">
-                      {length(rules)} rules
-                    </span>
-                    <svg
-                      aria-hidden="true"
-                      class={"size-4 text-muted-foreground transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </span>
-                </button>
-              </h3>
-              <%= if open? do %>
-                <div id={panel_id} role="region" aria-labelledby={label_id} class="pb-2 pl-1">
-                  <p class="text-sm text-muted-foreground">{pack_description(name)}</p>
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    <%= for rule <- rules do %>
-                      <span
-                        title={rule.action <> ", " <> rule.category}
-                        class={"inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 #{rule_tag_class(rule.action)}"}
-                      >
-                        {rule_name(rule.id)}
-                      </span>
-                    <% end %>
-                  </div>
-                </div>
-              <% end %>
-            </article>
-          <% end %>
-        </div>
-      </section>
+          <p class="mt-2 text-xs text-muted-foreground">
+            {@pack_count} packs · {@rule_count} rules total, shipped with ControlKeel.
+          </p>
+          <.button variant="outline" phx-click="open_packs_dialog" class="mt-4 w-full">
+            View packs
+          </.button>
+        </aside>
+      </div>
     </section>
+
+    <.packs_dialog :if={@show_packs_dialog} packs={@packs} open_packs={@open_packs} />
 
     <.create_policy_set_modal
       :if={@show_create_modal}
@@ -339,6 +312,105 @@ defmodule ControlKeelWeb.PolicyStudioLive do
     """
   end
 
+  attr :packs, :list, required: true
+  attr :open_packs, :any, required: true
+
+  defp packs_dialog(assigns) do
+    ~H"""
+    <div
+      id="packs-dialog"
+      class="relative z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="packs-dialog-title"
+      phx-mounted={Phoenix.LiveView.JS.show(to: "#packs-dialog")}
+      phx-remove={Phoenix.LiveView.JS.hide(to: "#packs-dialog")}
+    >
+      <div
+        class="fixed inset-0 bg-overlay/70 backdrop-blur-sm transition-opacity"
+        phx-click="close_packs_dialog"
+        aria-label="Close dialog"
+      />
+
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="max-h-[85vh] w-full max-w-3xl overflow-hidden rounded-2xl border bg-card shadow-card">
+          <div class="flex items-center justify-between border-b p-5">
+            <h2 id="packs-dialog-title" class="text-lg font-semibold text-foreground">
+              Built-in policy packs
+            </h2>
+            <button
+              type="button"
+              phx-click="close_packs_dialog"
+              class="rounded-md text-muted-foreground transition hover:text-foreground"
+              aria-label="Close"
+            >
+              <.icon name="hero-x-mark" class="size-5" />
+            </button>
+          </div>
+
+          <div class="max-h-[70vh] divide-y divide-border overflow-y-auto p-5">
+            <%= for {name, rules} <- @packs do %>
+              <% open? = MapSet.member?(@open_packs, name) %>
+              <% panel_id = "pack-panel-#{name}"
+              label_id = "#{panel_id}-label" %>
+              <article class="py-2 first:pt-0 last:pb-0">
+                <h3 class="m-0">
+                  <button
+                    type="button"
+                    phx-click="toggle_pack"
+                    phx-value-name={name}
+                    aria-expanded={open?}
+                    aria-controls={panel_id}
+                    class="flex w-full cursor-pointer select-none items-center justify-between gap-4 py-2 text-left"
+                  >
+                    <span id={label_id} class="text-base font-semibold text-foreground">
+                      {pack_label(name)}
+                    </span>
+                    <span class="flex items-center gap-2">
+                      <span class="text-xs text-muted-foreground">
+                        {length(rules)} rules
+                      </span>
+                      <svg
+                        aria-hidden="true"
+                        class={"size-4 text-muted-foreground transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+                </h3>
+                <%= if open? do %>
+                  <div id={panel_id} role="region" aria-labelledby={label_id} class="pb-2 pl-1">
+                    <p class="text-sm text-muted-foreground">{pack_description(name)}</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <%= for rule <- rules do %>
+                        <span
+                          title={rule.action <> ", " <> rule.category}
+                          class={"inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 #{rule_tag_class(rule.action)}"}
+                        >
+                          {rule_name(rule.id)}
+                        </span>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              </article>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   defp assign_packs(socket) do
     packs = PackLoader.all_packs()
     all_rules = packs |> Map.values() |> List.flatten()
@@ -352,6 +424,8 @@ defmodule ControlKeelWeb.PolicyStudioLive do
     socket
     |> assign(:packs, Enum.sort_by(packs, fn {name, _} -> pack_sort_order(name) end))
     |> assign(:pack_names, MapSet.new(Map.keys(packs)))
+    |> assign(:pack_count, map_size(packs))
+    |> assign(:rule_count, length(all_rules))
     |> assign(:block_count, Enum.count(all_rules, &(&1.action == "block")))
     |> assign(:blocked_rules, blocked_rules)
   end
