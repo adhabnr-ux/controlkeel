@@ -186,6 +186,17 @@ defmodule ControlKeel.Platform do
     )
   end
 
+  def remove_workspace_policy_set(workspace_id, policy_set_id)
+      when is_integer(workspace_id) and is_integer(policy_set_id) do
+    case Repo.get_by(WorkspacePolicySet, workspace_id: workspace_id, policy_set_id: policy_set_id) do
+      nil ->
+        {:error, :not_found}
+
+      assignment ->
+        Repo.delete(assignment)
+    end
+  end
+
   def workspace_policy_rules(workspace_id) when is_integer(workspace_id) do
     workspace_id
     |> list_workspace_policy_sets()
