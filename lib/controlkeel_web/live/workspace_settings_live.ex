@@ -34,6 +34,18 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
        socket
        |> assign(:page_title, "Settings — #{workspace.name}")
        |> assign(:workspace, workspace)
+       |> assign(
+         :breadcrumbs,
+         [
+           %{label: "Organizations", to: ~p"/organizations"},
+           %{label: workspace.org.name, to: ~p"/organizations/#{workspace.org.slug}"},
+           %{
+             label: workspace.name,
+             to: ~p"/organizations/#{workspace.org.slug}/workspaces/#{workspace.id}"
+           },
+           %{label: "Settings", to: nil}
+         ]
+       )
        |> assign(:active_tab, "policies")
        |> assign(:tabs, @tabs)
        |> assign(:modes, WorkspaceToolPolicy.modes())
@@ -157,7 +169,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
          |> assign(:selected_tools, saved_tools)
          |> assign(:unknown_tools, saved_tools -- ToolGroups.all_tools())
          |> assign(:live_mode, policy.mode)
-         |> put_flash(:info, "Tool policy saved (#{policy.mode}).")}
+         |> put_flash(:info, "Agent tools policy saved (#{policy.mode}).")}
 
       {:error, %Ecto.Changeset{} = cs} ->
         msg = Enum.map_join(cs.errors, ", ", fn {f, {m, _}} -> "#{f}: #{m}" end)
@@ -172,12 +184,6 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
     <section class="w-full space-y-8">
       <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
         <div class="space-y-2">
-          <p class="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            <.link navigate={~p"/organizations/#{@workspace.org.slug}/workspaces/#{@workspace.id}"}>
-              {@workspace.name}
-            </.link>
-            · Settings
-          </p>
           <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
             Workspace settings
           </h1>
@@ -255,7 +261,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
             <li class="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
               <div>
                 <p class="text-sm font-semibold text-foreground">
-                  #{a.policy_set.id} {a.policy_set.name}
+                  {a.policy_set.name}
                 </p>
                 <p class="mt-0.5 text-xs text-muted-foreground">
                   precedence {a.precedence}
@@ -345,7 +351,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
   defp tool_policy_panel(assigns) do
     ~H"""
     <section class="rounded-2xl border bg-card p-5 shadow-card">
-      <.section_title>Tool policy</.section_title>
+      <.section_title>Agent tools</.section_title>
       <p class="mt-1 text-xs text-muted-foreground">
         Restrict which MCP tools agents in this workspace may invoke. <code>inherit</code>
         falls back to the global allowlist; <code>allowlist</code>
@@ -383,15 +389,22 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
                   "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ring-1",
                   tool in @tool_options &&
                     "bg-primary/10 text-primary ring-primary/20",
-                  tool not in @tool_options && "bg-warning/10 text-warning ring-warning/20"
+                  tool not in @tool_options && "bg-warning/10 text-warning ring-warning/20",
+                  @live_mode == "inherit" && "opacity-50"
                 ]}>
                   {tool}
                   <button
                     type="button"
                     phx-click="remove_tool"
                     phx-value-tool={tool}
+                    disabled={@live_mode == "inherit" || nil}
                     aria-label={"Remove #{tool}"}
-                    class="cursor-pointer transition hover:text-destructive"
+                    class={[
+                      "transition",
+                      @live_mode == "inherit" &&
+                        "cursor-not-allowed opacity-60 hover:text-current",
+                      @live_mode != "inherit" && "cursor-pointer hover:text-destructive"
+                    ]}
                   >
                     <.icon name="hero-x-mark" class="size-3.5" />
                   </button>
@@ -445,7 +458,7 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
   end
 
   defp tab_label("policies"), do: "Policies"
-  defp tab_label("tool_policy"), do: "Tool policy"
+  defp tab_label("tool_policy"), do: "Agent tools"
 
   defp parse_int(value) when is_binary(value) do
     case Integer.parse(value) do

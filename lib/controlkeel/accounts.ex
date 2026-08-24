@@ -1100,7 +1100,7 @@ defmodule ControlKeel.Accounts do
       when is_integer(workspace_id) and is_binary(mode) and is_list(tools) do
     existing = Repo.get_by(WorkspaceToolPolicy, workspace_id: workspace_id)
 
-    attrs = %{workspace_id: workspace_id, mode: mode, tools: tools}
+    attrs = %{workspace_id: workspace_id, mode: mode, tools: tools_for_mode(mode, tools)}
 
     changeset =
       case existing do
@@ -1110,6 +1110,10 @@ defmodule ControlKeel.Accounts do
 
     Repo.insert_or_update(changeset)
   end
+
+  # Under `inherit` the tools list is inert — never store stale selections.
+  defp tools_for_mode("inherit", _tools), do: []
+  defp tools_for_mode(_mode, tools), do: tools
 
   @doc """
   Checks `tool_name` against the workspace's tool policy. Returns `:ok` to

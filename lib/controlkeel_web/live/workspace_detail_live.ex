@@ -32,6 +32,14 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
        socket
        |> assign(:page_title, workspace.name)
        |> assign(:workspace, workspace)
+       |> assign(
+         :breadcrumbs,
+         [
+           %{label: "Organizations", to: ~p"/organizations"},
+           %{label: workspace.org.name, to: ~p"/organizations/#{workspace.org.slug}"},
+           %{label: workspace.name, to: nil}
+         ]
+       )
        |> assign(:sessions, sessions)
        |> assign(:policy_assignments, Platform.list_workspace_policy_sets(ws_id))
        |> assign(:tool_policy_mode, tool_policy.mode)
@@ -158,9 +166,6 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
                     <div class="flex flex-wrap items-center justify-between gap-2">
                       <p class="text-sm font-semibold text-foreground">
                         {a.policy_set.name}
-                        <span class="ml-1 font-mono text-xs font-normal text-muted-foreground">
-                          #{a.policy_set.id}
-                        </span>
                       </p>
                       <span class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-border">
                         precedence {a.precedence}
@@ -200,11 +205,11 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
 
           <section class="rounded-2xl border bg-card p-5 shadow-card">
             <div class="flex items-center justify-between gap-3">
-              <p class="text-sm font-semibold text-muted-foreground">Tool policy</p>
+              <p class="text-sm font-semibold text-muted-foreground">Agent tools</p>
               <div class="flex items-center gap-3">
                 <span class={[
                   "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
-                  @tool_policy_mode == "allowlist" && "bg-primary/10 text-primary ring-primary/20",
+                  @tool_policy_mode == "allowlist" && "bg-info/10 text-info ring-info/20",
                   @tool_policy_mode == "denylist" &&
                     "bg-destructive/10 text-destructive ring-destructive/20",
                   @tool_policy_mode == "inherit" && "bg-muted text-muted-foreground ring-border"
@@ -213,7 +218,9 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
                 </span>
 
                 <.link
-                  navigate={~p"/organizations/#{@workspace.org.slug}/workspaces/#{@workspace.id}/settings?tab=tool_policy"}
+                  navigate={
+                    ~p"/organizations/#{@workspace.org.slug}/workspaces/#{@workspace.id}/settings?tab=tool_policy"
+                  }
                   class="text-xs font-medium text-primary transition hover:text-primary/80"
                 >
                   Manage tools
