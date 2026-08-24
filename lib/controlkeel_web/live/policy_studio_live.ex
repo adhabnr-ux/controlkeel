@@ -3,6 +3,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
   alias ControlKeel.Intent
   alias ControlKeel.Platform
+  alias ControlKeel.Platform.PolicySet
   alias ControlKeel.Policy.PackLoader
 
   @impl true
@@ -136,15 +137,11 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                   </p>
                   <%= if set.workspace_policy_sets != [] do %>
                     <p class="mt-1 text-xs text-muted-foreground">
-                      Applied to:
-                      <%= for assignment <- set.workspace_policy_sets do %>
-                        workspace #{assignment.workspace_id} (precedence {assignment.precedence}
-                        <%= unless assignment.enabled do %>
-                          , disabled
-                        <% end %>)<%= if assignment != List.last(set.workspace_policy_sets) do %>
-                          ,
-                        <% end %>
-                      <% end %>
+                      Applied to: {Enum.map_join(
+                        set.workspace_policy_sets,
+                        ", ",
+                        &assignment_summary/1
+                      )}
                     </p>
                   <% else %>
                     <p class="mt-1 text-xs text-muted-foreground">
@@ -219,97 +216,65 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
   defp create_policy_set_modal(assigns) do
     ~H"""
-    <div
-      id="policy-set-create-modal"
-      class="relative z-50"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="policy-set-create-modal-title"
-      phx-mounted={Phoenix.LiveView.JS.show(to: "#policy-set-create-modal")}
-      phx-remove={Phoenix.LiveView.JS.hide(to: "#policy-set-create-modal")}
-    >
-      <div
-        class="fixed inset-0 bg-overlay/70 backdrop-blur-sm transition-opacity"
-        phx-click="close_create_modal"
-        aria-label="Close modal"
-      />
+    <.modal id="policy-set-create-modal" title="New policy set" on_close="close_create_modal">
+      <.form
+        for={@form}
+        phx-change="validate_policy_set"
+        phx-submit="save_policy_set"
+        id="policy-set-form"
+        class="space-y-4"
+      >
+        <.input_component
+          field={@form[:name]}
+          label="Name"
+          placeholder="no-rm-rf"
+          required
+        />
 
-      <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-card p-6 shadow-card">
-          <div class="mb-5 flex items-center justify-between">
-            <h2 id="policy-set-create-modal-title" class="text-lg font-semibold text-foreground">
-              New policy set
-            </h2>
-            <button
-              type="button"
-              phx-click="close_create_modal"
-              class="rounded-md text-muted-foreground transition hover:text-foreground"
-              aria-label="Close"
-            >
-              <.icon name="hero-x-mark" class="size-5" />
-            </button>
-          </div>
-
-          <.form
-            for={@form}
-            phx-change="validate_policy_set"
-            phx-submit="save_policy_set"
-            id="policy-set-form"
-            class="space-y-4"
+        <div>
+          <label
+            for="policy-set-scope"
+            class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground/90"
           >
-            <.input_component
-              field={@form[:name]}
-              label="Name"
-              placeholder="no-rm-rf"
-              required
-            />
-
-            <div>
-              <label
-                for="policy-set-scope"
-                class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground/90"
-              >
-                Scope
-              </label>
-              <select
-                id="policy-set-scope"
-                name="policy_set[scope]"
-                class="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
-              >
-                <option value="workspace" selected={@form[:scope].value in [nil, "workspace"]}>
-                  Workspace
-                </option>
-                <option value="global" selected={@form[:scope].value == "global"}>
-                  Global
-                </option>
-              </select>
-            </div>
-
-            <.input_component
-              field={@form[:description]}
-              label="Description"
-              placeholder="Example: no rm -rf rules"
-              required
-            />
-
-            <.textarea
-              name="policy_set[rules_json]"
-              value={@rules_json}
-              label="Rules JSON (optional)"
-              placeholder={rules_json_placeholder()}
-              spellcheck="false"
-              class="min-h-40 font-mono text-xs"
-              errors={if @rules_error, do: [@rules_error], else: []}
-            />
-
-            <div class="flex items-center justify-end gap-3 border-t pt-4">
-              <.button variant="outline" phx-click="close_create_modal">Cancel</.button>
-              <.button type="submit">Create policy set</.button>
-            </div>
-          </.form>
+            Scope
+          </label>
+          <select
+            id="policy-set-scope"
+            name="policy_set[scope]"
+            class="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+          >
+            <option value="workspace" selected={@form[:scope].value in [nil, "workspace"]}>
+              Workspace
+            </option>
+            <option value="global" selected={@form[:scope].value == "global"}>
+              Global
+            </option>
+          </select>
         </div>
-      </div>
-    </div>
+
+        <.input_component
+          field={@form[:description]}
+          label="Description"
+          placeholder="Example: no rm -rf rules"
+          required
+        />
+
+        <.textarea
+          name="policy_set[rules_json]"
+          value={@rules_json}
+          label="Rules JSON (optional)"
+          placeholder={rules_json_placeholder()}
+          spellcheck="false"
+          class="min-h-40 font-mono text-xs"
+          errors={if @rules_error, do: [@rules_error], else: []}
+        />
+
+        <div class="flex items-center justify-end gap-3 border-t pt-4">
+          <.button variant="outline" phx-click="close_create_modal">Cancel</.button>
+          <.button type="submit">Create policy set</.button>
+        </div>
+      </.form>
+    </.modal>
     """
   end
 
@@ -318,98 +283,71 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
   defp packs_dialog(assigns) do
     ~H"""
-    <div
+    <.modal
       id="packs-dialog"
-      class="relative z-50"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="packs-dialog-title"
-      phx-mounted={Phoenix.LiveView.JS.show(to: "#packs-dialog")}
-      phx-remove={Phoenix.LiveView.JS.hide(to: "#packs-dialog")}
+      title="Built-in policy packs"
+      on_close="close_packs_dialog"
+      width="max-w-3xl"
     >
-      <div
-        class="fixed inset-0 bg-overlay/70 backdrop-blur-sm transition-opacity"
-        phx-click="close_packs_dialog"
-        aria-label="Close dialog"
-      />
-
-      <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="max-h-[85vh] w-full max-w-3xl overflow-hidden rounded-2xl border bg-card shadow-card">
-          <div class="flex items-center justify-between border-b p-5">
-            <h2 id="packs-dialog-title" class="text-lg font-semibold text-foreground">
-              Built-in policy packs
-            </h2>
-            <button
-              type="button"
-              phx-click="close_packs_dialog"
-              class="rounded-md text-muted-foreground transition hover:text-foreground"
-              aria-label="Close"
-            >
-              <.icon name="hero-x-mark" class="size-5" />
-            </button>
-          </div>
-
-          <div class="max-h-[70vh] divide-y divide-border overflow-y-auto p-5">
-            <%= for {name, rules} <- @packs do %>
-              <% open? = MapSet.member?(@open_packs, name) %>
-              <% panel_id = "pack-panel-#{name}"
-              label_id = "#{panel_id}-label" %>
-              <article class="py-2 first:pt-0 last:pb-0">
-                <h3 class="m-0">
-                  <button
-                    type="button"
-                    phx-click="toggle_pack"
-                    phx-value-name={name}
-                    aria-expanded={open?}
-                    aria-controls={panel_id}
-                    class="flex w-full cursor-pointer select-none items-center justify-between gap-4 py-2 text-left"
+      <div class="divide-y divide-border">
+        <%= for {name, rules} <- @packs do %>
+          <% open? = MapSet.member?(@open_packs, name) %>
+          <% panel_id = "pack-panel-#{name}"
+          label_id = "#{panel_id}-label" %>
+          <article class="py-2 first:pt-0 last:pb-0">
+            <h3 class="m-0">
+              <button
+                type="button"
+                phx-click="toggle_pack"
+                phx-value-name={name}
+                aria-expanded={open?}
+                aria-controls={panel_id}
+                class="flex w-full cursor-pointer select-none items-center justify-between gap-4 py-2 text-left"
+              >
+                <span id={label_id} class="text-base font-semibold text-foreground">
+                  {pack_label(name)}
+                </span>
+                <span class="flex items-center gap-2">
+                  <span class="text-xs text-muted-foreground">
+                    {length(rules)} rules
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    class={"size-4 text-muted-foreground transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    <span id={label_id} class="text-base font-semibold text-foreground">
-                      {pack_label(name)}
-                    </span>
-                    <span class="flex items-center gap-2">
-                      <span class="text-xs text-muted-foreground">
-                        {length(rules)} rules
-                      </span>
-                      <svg
-                        aria-hidden="true"
-                        class={"size-4 text-muted-foreground transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </span>
-                  </button>
-                </h3>
-                <%= if open? do %>
-                  <div id={panel_id} role="region" aria-labelledby={label_id} class="pb-2 pl-1">
-                    <p class="text-sm text-muted-foreground">{pack_description(name)}</p>
-                    <div class="mt-3 flex flex-wrap gap-2">
-                      <%= for rule <- rules do %>
-                        <.rule_tag
-                          action={rule.action}
-                          title={rule.action <> ", " <> rule.category}
-                          class="px-2.5 py-1 text-xs font-medium"
-                        >
-                          {rule_name(rule.id)}
-                        </.rule_tag>
-                      <% end %>
-                    </div>
-                  </div>
-                <% end %>
-              </article>
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </h3>
+            <%= if open? do %>
+              <div id={panel_id} role="region" aria-labelledby={label_id} class="pb-2 pl-1">
+                <p class="text-sm text-muted-foreground">{pack_description(name)}</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <%= for rule <- rules do %>
+                    <.rule_tag
+                      action={rule.action}
+                      title={rule.action <> ", " <> rule.category}
+                      class="px-2.5 py-1 text-xs font-medium"
+                    >
+                      {rule_name(rule.id)}
+                    </.rule_tag>
+                  <% end %>
+                </div>
+              </div>
             <% end %>
-          </div>
-        </div>
+          </article>
+        <% end %>
       </div>
-    </div>
+    </.modal>
     """
   end
 
@@ -446,8 +384,13 @@ defmodule ControlKeelWeb.PolicyStudioLive do
     assign(socket, :policy_sets, policy_sets)
   end
 
+  defp assignment_summary(assignment) do
+    suffix = if assignment.enabled, do: "", else: ", disabled"
+    "workspace ##{assignment.workspace_id} (precedence #{assignment.precedence}#{suffix})"
+  end
+
   defp empty_policy_set_changeset do
-    ControlKeel.Platform.PolicySet.changeset(%ControlKeel.Platform.PolicySet{}, %{})
+    PolicySet.changeset(%PolicySet{}, %{})
   end
 
   defp assign_policy_set_form(socket, changeset, raw_rules_json, rules_error) do
@@ -469,11 +412,8 @@ defmodule ControlKeelWeb.PolicyStudioLive do
       end
 
     changeset =
-      %ControlKeel.Platform.PolicySet{}
-      |> ControlKeel.Platform.PolicySet.changeset(attrs)
-      |> then(fn changeset ->
-        if ui_error, do: Ecto.Changeset.add_error(changeset, :rules, ui_error), else: changeset
-      end)
+      %PolicySet{}
+      |> PolicySet.changeset(attrs)
       |> Map.put(:action, action)
 
     {attrs, changeset, raw, ui_error}

@@ -241,4 +241,26 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
 
     refute has_element?(view, "#policy-set-form")
   end
+
+  test "escape closes the packs dialog", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/policies")
+
+    render_click(view, "open_packs_dialog")
+    assert has_element?(view, "#packs-dialog")
+
+    view |> element("#packs-dialog") |> render_keydown(%{"key" => "escape"})
+
+    refute has_element?(view, "#packs-dialog")
+  end
+
+  test "escape closes the create modal", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/policies")
+
+    render_click(view, "open_create_modal")
+    assert has_element?(view, "#policy-set-form")
+
+    view |> element("#policy-set-create-modal") |> render_keydown(%{"key" => "escape"})
+
+    refute has_element?(view, "#policy-set-form")
+  end
 end
