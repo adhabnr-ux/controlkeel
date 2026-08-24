@@ -107,8 +107,9 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
            |> put_flash(:info, "Policy set applied.")
            |> refresh_policy_assigns()}
 
-        {:error, _changeset} ->
-          {:noreply, put_flash(socket, :error, "Failed to apply policy set.")}
+        {:error, %Ecto.Changeset{} = changeset} ->
+          msg = Enum.map_join(changeset.errors, ", ", fn {f, {m, _}} -> "#{f}: #{m}" end)
+          {:noreply, put_flash(socket, :error, msg)}
       end
     else
       :error ->

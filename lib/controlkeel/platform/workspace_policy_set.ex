@@ -19,7 +19,10 @@ defmodule ControlKeel.Platform.WorkspacePolicySet do
     workspace_policy_set
     |> cast(attrs, [:workspace_id, :policy_set_id, :precedence, :enabled])
     |> validate_required([:workspace_id, :policy_set_id, :precedence, :enabled])
-    |> validate_number(:precedence, greater_than_or_equal_to: 0)
+    |> validate_number(:precedence,
+      greater_than_or_equal_to: 0,
+      less_than_or_equal_to: 2_147_483_647
+    )
     |> assoc_constraint(:workspace)
     |> assoc_constraint(:policy_set)
     |> unique_constraint([:workspace_id, :policy_set_id])
