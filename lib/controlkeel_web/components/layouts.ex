@@ -391,6 +391,13 @@ defmodule ControlKeelWeb.Layouts do
   """
   attr :current_path, :string, default: nil
   attr :page_action, :any, default: nil
+  attr :breadcrumbs, :list,
+    default: nil,
+    doc: """
+    Explicit crumbs (`%{label: ..., to: ...}`, `to: nil` renders plain text).
+    Overrides the path-derived trail — use when path segments are opaque ids
+    or have no route.
+    """
 
   def dashboard_header(assigns) do
     actions =
@@ -400,7 +407,10 @@ defmodule ControlKeelWeb.Layouts do
         true -> [assigns.page_action]
       end
 
-    assigns = assign(assigns, :actions, actions)
+    assigns =
+      assigns
+      |> assign(:actions, actions)
+      |> assign(:trail, breadcrumb_items(assigns))
 
     ~H"""
     <div class="flex w-full items-center justify-between border-b p-4">
@@ -414,18 +424,18 @@ defmodule ControlKeelWeb.Layouts do
               <.icon name="hero-home" class="size-3.5" />
             </.link>
           </li>
-          <%= for {label, path, final} <- breadcrumb_trail(@current_path) do %>
+          <%= for {label, path} <- @trail do %>
             <li class="flex items-center gap-1.5">
               <.icon name="hero-chevron-right" class="size-3 text-muted-foreground" />
-              <%= if final do %>
-                <span class="font-medium text-muted-foreground">{label}</span>
-              <% else %>
+              <%= if path do %>
                 <.link
                   navigate={path}
                   class="text-muted-foreground transition hover:text-muted-foreground"
                 >
                   {label}
                 </.link>
+              <% else %>
+                <span class="font-medium text-muted-foreground">{label}</span>
               <% end %>
             </li>
           <% end %>
@@ -486,6 +496,20 @@ defmodule ControlKeelWeb.Layouts do
     "telemetry" => "Telemetry",
     "projects" => "Projects"
   }
+
+  defp breadcrumb_items(%{breadcrumbs: [_ | _] = crumbs}) do
+    Enum.map(crumbs, fn
+      %{label: label, to: to} -> {label, to}
+      %{label: label} -> {label, nil}
+    end)
+  end
+
+  defp breadcrumb_items(assigns) do
+    Enum.map(breadcrumb_trail(assigns.current_path), fn
+      {label, _path, true} -> {label, nil}
+      {label, path, false} -> {label, path}
+    end)
+  end
 
   defp breadcrumb_trail(current_path) do
     segments = String.split(current_path, "/", trim: true)

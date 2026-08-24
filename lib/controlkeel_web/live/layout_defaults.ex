@@ -10,6 +10,9 @@ defmodule ControlKeelWeb.LayoutDefaults do
     - `%{label: ..., event: ..., icon: ...}` — a `phx-click` button
     - `%{label: ..., form: ..., icon: ...}` — a `type="submit"` button that
       submits the form with the given DOM id (e.g. `"benchmark-runner"`)
+  - `@breadcrumbs` — defaults to `nil`; a LiveView overrides it with explicit
+    breadcrumb crumbs (`%{label: ..., to: ...}` where `to: nil` renders plain
+    text) when the path-derived trail would show opaque ids or dead segments.
 
   Attached as an `on_mount` hook on the live_sessions whose layout needs these,
   so individual LiveViews don't have to set them manually.
@@ -23,6 +26,7 @@ defmodule ControlKeelWeb.LayoutDefaults do
       socket
       |> assign(:current_path, nil)
       |> assign_new(:page_action, fn -> nil end)
+      |> assign_new(:breadcrumbs, fn -> nil end)
       |> attach_hook(:__current_path__, :handle_params, fn _params, uri, socket ->
         {:cont, assign(socket, :current_path, URI.parse(uri).path)}
       end)
