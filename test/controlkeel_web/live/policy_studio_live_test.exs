@@ -6,15 +6,6 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
 
   alias ControlKeel.Accounts
 
-  test "renders policy packs with stats cards", %{conn: conn} do
-    {:ok, _view, html} = live(conn, ~p"/policies")
-
-    assert html =~ "Policy Studio"
-    assert html =~ "Active packs"
-    assert html =~ "Total rules"
-    assert html =~ "Blocking rules"
-  end
-
   test "toggle_pack ignores unknown pack names", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/policies")
 
@@ -77,7 +68,7 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
   test "block count badge shows destructive class", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/policies")
 
-    assert html =~ "bg-destructive/15"
+    assert html =~ "bg-destructive/10"
   end
 
   test "warn rules show warning class when pack is expanded", %{conn: conn} do
@@ -85,7 +76,7 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
 
     render_click(element(view, "button[phx-value-name=\"software\"]"))
 
-    assert render(view) =~ "var(--ck-warning)"
+    assert render(view) =~ "bg-warning/10"
   end
 
   test "renders pack labels for known domain packs", %{conn: conn} do
@@ -96,7 +87,7 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
     assert html =~ "Software"
   end
 
-  test "page action button opens the create policy set modal", %{conn: conn} do
+  test "new policy set button opens the create modal", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/policies")
 
     refute has_element?(view, "#policy-set-form")

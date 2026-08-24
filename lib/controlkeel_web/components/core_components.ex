@@ -353,6 +353,7 @@ defmodule ControlKeelWeb.CoreComponents do
   attr :value, :any
   attr :type, :string, default: "text"
   attr :field, Phoenix.HTML.FormField
+  attr :errors, :list, default: [], doc: "error messages rendered below the input"
   attr :hint, :string, default: nil
   attr :icon, :string, default: nil
   attr :class, :any, default: nil, doc: "additional classes appended to the default styling"
@@ -372,9 +373,11 @@ defmodule ControlKeelWeb.CoreComponents do
         id={@id}
         name={@name}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
+        aria-invalid={@errors != [] || nil}
         class={[input_component_field_class(), @class]}
         {@rest}
       />
+      <.component_field_error :for={msg <- @errors} message={msg} />
       <.component_field_hint :if={@hint} hint={@hint} />
     </div>
     """
@@ -399,6 +402,7 @@ defmodule ControlKeelWeb.CoreComponents do
   attr :label, :string, required: true
   attr :value, :any
   attr :field, Phoenix.HTML.FormField
+  attr :errors, :list, default: [], doc: "error messages rendered below the textarea"
   attr :hint, :string, default: nil
   attr :icon, :string, default: nil
   attr :class, :any, default: nil, doc: "additional classes appended to the default styling"
@@ -416,9 +420,11 @@ defmodule ControlKeelWeb.CoreComponents do
       <textarea
         id={@id}
         name={@name}
+        aria-invalid={@errors != [] || nil}
         class={[textarea_component_field_class(), @class]}
         {@rest}
       >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
+      <.component_field_error :for={msg <- @errors} message={msg} />
       <.component_field_hint :if={@hint} hint={@hint} />
     </div>
     """
@@ -443,11 +449,20 @@ defmodule ControlKeelWeb.CoreComponents do
     """
   end
 
+  attr :message, :string, required: true
+
+  defp component_field_error(assigns) do
+    ~H"""
+    <p class="mt-1.5 text-xs font-medium text-destructive">{@message}</p>
+    """
+  end
+
   defp assign_component_field(%{field: %Phoenix.HTML.FormField{} = field} = assigns) do
     assigns
     |> assign(field: nil, id: assigns.id || field.id)
     |> assign_new(:name, fn -> field.name end)
     |> assign_new(:value, fn -> field.value end)
+    |> assign(:errors, Enum.map(field.errors, &translate_error(&1)))
   end
 
   defp assign_component_field(assigns), do: assigns

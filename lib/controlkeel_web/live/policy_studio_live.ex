@@ -13,10 +13,6 @@ defmodule ControlKeelWeb.PolicyStudioLive do
      |> assign(:open_packs, MapSet.new())
      |> assign_packs()
      |> assign_policy_sets()
-     |> assign(
-       :page_action,
-       %{label: "New policy set", event: "open_create_modal", icon: "hero-plus"}
-     )
      |> assign(:show_create_modal, false)
      |> assign_policy_set_form(empty_policy_set_changeset(), "", nil)}
   end
@@ -88,67 +84,45 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="mx-auto max-w-[1180px] px-4 py-12 pb-16 pt-8">
-      <div class="space-y-1 mb-12">
-        <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
-          Policy Studio
-        </h2>
-        <p class="text-muted-foreground">
-          Every agent action passes through these policy packs before it executes. Rules that block are enforced automatically — no action required from you.
-        </p>
+    <section>
+      <div class="flex items-start justify-between gap-3 mb-8">
+        <.page_title
+          title="Policy Studio"
+          subtitle="Every agent action passes through these policy packs before it executes."
+        />
+        <.button phx-click="open_create_modal">
+          <.icon name="hero-plus" class="size-3.5" /> New policy set
+        </.button>
       </div>
 
-      <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 mt-5">
-        <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-            Active packs
-          </p>
-          <strong>{@pack_count}</strong>
-        </div>
-        <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-            Total rules
-          </p>
-          <strong>{@rule_count}</strong>
-        </div>
-        <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-          <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-            Blocking rules
-          </p>
-          <strong>{@block_count}</strong>
-        </div>
-      </div>
-
-      <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6 my-4">
-        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-          Policy sets
-        </p>
+      <section class="rounded-2xl border bg-card p-5 shadow-card">
+        <.section_title>Custom policy sets</.section_title>
 
         <%= if @policy_sets == [] do %>
-          <p class="text-muted-foreground">
+          <p class="mt-4 text-sm text-muted-foreground">
             No custom policy sets yet. Create one with <code>controlkeel policy-set create</code>.
           </p>
         <% else %>
-          <div class="grid gap-4 list-none m-0 p-0">
+          <ul class="mt-4 divide-y divide-border">
             <%= for set <- @policy_sets do %>
-              <article class="grid gap-[0.55rem] border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] p-4 bg-[rgba(255,255,255,0.03)]">
+              <li class="py-4 first:pt-0 last:pb-0">
                 <div class="flex items-center justify-between gap-4">
-                  <h3>#{set.id} {set.name}</h3>
+                  <h3 class="text-base font-semibold text-foreground">#{set.id} {set.name}</h3>
                   <span
                     title={set.status}
-                    class={"border rounded-full px-3 py-[0.45rem] text-[0.8rem] #{status_pill_class(set.status)}"}
+                    class={"inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 #{status_pill_class(set.status)}"}
                   >
                     {set.status}
                   </span>
                 </div>
-                <p class="text-muted-foreground mt-1">
+                <p class="mt-1 text-sm text-muted-foreground">
                   {length(Platform.PolicySet.rule_entries(set))} rules · scope: {set.scope}
                   <%= if set.description not in [nil, ""] do %>
                     · {set.description}
                   <% end %>
                 </p>
                 <%= if set.workspace_policy_sets != [] do %>
-                  <p class="text-muted-foreground text-sm">
+                  <p class="mt-1 text-xs text-muted-foreground">
                     Applied to:
                     <%= for assignment <- set.workspace_policy_sets do %>
                       workspace #{assignment.workspace_id} (precedence {assignment.precedence}
@@ -160,31 +134,33 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                     <% end %>
                   </p>
                 <% else %>
-                  <p class="text-muted-foreground text-sm">Not applied to any workspace yet.</p>
+                  <p class="mt-1 text-xs text-muted-foreground">
+                    Not applied to any workspace yet.
+                  </p>
                 <% end %>
-              </article>
+              </li>
             <% end %>
-          </div>
+          </ul>
         <% end %>
-      </div>
+      </section>
 
-      <div class="border bg-card rounded-2xl backdrop-blur-lg shadow-2xl p-6">
-        <p class="uppercase tracking-[0.14em] text-xs text-primary font-semibold">
-          Policy packs
-        </p>
-        <p class="text-muted-foreground text-sm mt-4 mb-4">
-          <span class="rounded-full p-2 text-xs bg-destructive/15 text-destructive border border-destructive/15 mr-1 font-bold uppercase">
+      <section class="mt-6 rounded-2xl border bg-card p-5 shadow-card">
+        <div class="flex items-center justify-between gap-3">
+          <.section_title>Built-in policy packs</.section_title>
+        </div>
+        <p class="mt-2 text-sm text-muted-foreground">
+          <span class="mr-1 inline-flex rounded-full bg-destructive/10 px-2.5 py-1 align-middle text-xs font-semibold text-destructive ring-1 ring-destructive/20">
             {@block_count} rules
           </span>
           block agent actions when violated. Other rules only generate warnings.
         </p>
 
-        <div class="grid gap-2 list-none m-0 p-0 max-h-[48rem] overflow-y-auto pr-1">
+        <div class="mt-4 max-h-[48rem] divide-y divide-border overflow-y-auto pr-1">
           <%= for {name, rules} <- @packs do %>
             <% open? = MapSet.member?(@open_packs, name) %>
-            <article class="border border-[rgba(255,255,255,0.07)] rounded-[1.1rem] bg-[rgba(255,255,255,0.03)]">
-              <% panel_id = "pack-panel-#{name}"
-              label_id = "#{panel_id}-label" %>
+            <% panel_id = "pack-panel-#{name}"
+            label_id = "#{panel_id}-label" %>
+            <article class="py-2 first:pt-0 last:pb-0">
               <h3 class="m-0">
                 <button
                   type="button"
@@ -192,16 +168,18 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                   phx-value-name={name}
                   aria-expanded={open?}
                   aria-controls={panel_id}
-                  class="flex w-full items-center justify-between gap-4 p-4 cursor-pointer select-none text-left"
+                  class="flex w-full cursor-pointer select-none items-center justify-between gap-4 py-2 text-left"
                 >
-                  <span id={label_id}>{pack_label(name)}</span>
+                  <span id={label_id} class="text-base font-semibold text-foreground">
+                    {pack_label(name)}
+                  </span>
                   <span class="flex items-center gap-2">
                     <span class="text-xs text-muted-foreground">
                       {length(rules)} rules
                     </span>
                     <svg
                       aria-hidden="true"
-                      class={"w-4 h-4 text-muted-foreground transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
+                      class={"size-4 text-muted-foreground transition-transform duration-200 #{if open?, do: "rotate-180", else: ""}"}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -217,13 +195,13 @@ defmodule ControlKeelWeb.PolicyStudioLive do
                 </button>
               </h3>
               <%= if open? do %>
-                <div id={panel_id} role="region" aria-labelledby={label_id} class="px-4 pb-4">
-                  <p class="text-muted-foreground text-sm">{pack_description(name)}</p>
-                  <div class="flex flex-wrap gap-2 mt-3">
+                <div id={panel_id} role="region" aria-labelledby={label_id} class="pb-2 pl-1">
+                  <p class="text-sm text-muted-foreground">{pack_description(name)}</p>
+                  <div class="mt-3 flex flex-wrap gap-2">
                     <%= for rule <- rules do %>
                       <span
                         title={rule.action <> ", " <> rule.category}
-                        class={"border rounded-full px-3 py-[0.45rem] text-[0.8rem] #{rule_tag_class(rule.action)}"}
+                        class={"inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 #{rule_tag_class(rule.action)}"}
                       >
                         {rule_name(rule.id)}
                       </span>
@@ -234,7 +212,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
             </article>
           <% end %>
         </div>
-      </div>
+      </section>
     </section>
 
     <.create_policy_set_modal
@@ -281,7 +259,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
       />
 
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-card/95 p-6 shadow-card">
+        <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-card p-6 shadow-card">
           <div class="mb-5 flex items-center justify-between">
             <h2 id="policy-set-create-modal-title" class="text-lg font-semibold text-foreground">
               New policy set
@@ -303,62 +281,54 @@ defmodule ControlKeelWeb.PolicyStudioLive do
             id="policy-set-form"
             class="space-y-4"
           >
-            <.input
+            <.input_component
               field={@form[:name]}
-              type="text"
               label="Name"
               placeholder="no-rm-rf"
               required
-              class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-
-            <.input
-              field={@form[:scope]}
-              type="select"
-              label="Scope"
-              options={[{"Workspace", "workspace"}, {"Global", "global"}]}
-              class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-
-            <.input
-              field={@form[:description]}
-              type="text"
-              label="Description"
-              placeholder="Block destructive deletes"
-              class="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
 
             <div>
-              <label for="policy-set-rules-json" class="label mb-1 block">
-                Rules JSON <span class="font-normal text-muted-foreground">(optional)</span>
+              <label
+                for="policy-set-scope"
+                class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground/90"
+              >
+                Scope
               </label>
-              <textarea
-                id="policy-set-rules-json"
-                name="policy_set[rules_json]"
-                rows="10"
-                spellcheck="false"
-                placeholder={rules_json_placeholder()}
-                class="w-full rounded-xl border border-input bg-background px-3 py-2 font-mono text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              ><%= @rules_json %></textarea>
-              <p :if={@rules_error} class="mt-1 text-sm text-destructive">
-                {@rules_error}
-              </p>
+              <select
+                id="policy-set-scope"
+                name="policy_set[scope]"
+                class="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              >
+                <option value="workspace" selected={@form[:scope].value in [nil, "workspace"]}>
+                  Workspace
+                </option>
+                <option value="global" selected={@form[:scope].value == "global"}>
+                  Global
+                </option>
+              </select>
             </div>
 
+            <.input_component
+              field={@form[:description]}
+              label="Description"
+              placeholder="Example: no rm -rf rules"
+              required
+            />
+
+            <.textarea
+              name="policy_set[rules_json]"
+              value={@rules_json}
+              label="Rules JSON (optional)"
+              placeholder={rules_json_placeholder()}
+              spellcheck="false"
+              class="min-h-40 font-mono text-xs"
+              errors={if @rules_error, do: [@rules_error], else: []}
+            />
+
             <div class="flex items-center justify-end gap-3 border-t pt-4">
-              <button
-                type="button"
-                phx-click="close_create_modal"
-                class="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                class="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary"
-              >
-                Create policy set
-              </button>
+              <.button variant="outline" phx-click="close_create_modal">Cancel</.button>
+              <.button type="submit">Create policy set</.button>
             </div>
           </.form>
         </div>
@@ -380,8 +350,6 @@ defmodule ControlKeelWeb.PolicyStudioLive do
     socket
     |> assign(:packs, Enum.sort_by(packs, fn {name, _} -> pack_sort_order(name) end))
     |> assign(:pack_names, MapSet.new(Map.keys(packs)))
-    |> assign(:pack_count, map_size(packs))
-    |> assign(:rule_count, length(all_rules))
     |> assign(:block_count, Enum.count(all_rules, &(&1.action == "block")))
     |> assign(:blocked_rules, blocked_rules)
   end
@@ -529,17 +497,19 @@ defmodule ControlKeelWeb.PolicyStudioLive do
   defp pack_sort_order("software"), do: 2
   defp pack_sort_order(_), do: 3
 
-  defp status_pill_class("active"), do: "bg-[rgba(125,226,174,0.12)] text-[#7de2ae]"
-  defp status_pill_class("disabled"), do: "bg-[rgba(255,143,107,0.12)] text-[#ffd6cb]"
-  defp status_pill_class("archived"), do: "bg-muted text-muted-foreground"
-  defp status_pill_class(_), do: "bg-muted text-muted-foreground"
+  defp status_pill_class("active"), do: "bg-success/10 text-success ring-success/20"
+  defp status_pill_class("disabled"), do: "bg-warning/10 text-warning ring-warning/20"
+
+  defp status_pill_class(_), do: "bg-muted text-muted-foreground ring-border"
 
   defp rule_name(id) do
     id |> String.split(".") |> List.last() |> String.replace("_", " ")
   end
 
-  defp rule_tag_class("block"), do: "bg-destructive/15 text-destructive border-destructive/15"
+  defp rule_tag_class("block"), do: "bg-destructive/10 text-destructive ring-destructive/20"
+  defp rule_tag_class("warn"), do: "bg-warning/10 text-warning ring-warning/20"
 
-  defp rule_tag_class("warn"),
-    do: "bg-[var(--ck-warning)]/15 text-[var(--ck-warning)] border-[var(--ck-warning)]/15"
+  defp rule_tag_class("escalate_to_human"), do: "bg-info/10 text-info ring-info/20"
+
+  defp rule_tag_class(_), do: "bg-muted text-muted-foreground ring-border"
 end
