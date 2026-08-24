@@ -343,6 +343,9 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
     """
   end
 
+  # TODO(auth): the workspace lookup + org-relation checks below are duplicated
+  # across workspace LiveViews. Extract into a shared on_mount hook when
+  # centralized auth lands (CLI/web parity PR).
   defp check_workspace_access(%Workspace{org_id: ws_org_id}, assigns) do
     case assigns[:current_org_id] do
       nil ->

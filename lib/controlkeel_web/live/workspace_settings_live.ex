@@ -17,7 +17,6 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
   alias ControlKeel.Mission.Workspace
   alias ControlKeel.Platform
   alias ControlKeel.Repo
-  alias ControlKeel.Runtime.Mode
 
   @tabs ["policies", "tool_policy"]
 
@@ -538,29 +537,21 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
 
   defp check_org_slug(_, _), do: {:error, "Workspace does not belong to this organization."}
 
-  defp check_workspace_access(workspace, assigns) do
-    if Mode.current() == :local do
-      :ok
-    else
-      check_cloud_workspace_access(workspace, assigns)
+  # TODO(auth): the workspace lookup + org-relation checks below are duplicated
+  # across workspace LiveViews. Extract into a shared on_mount hook and restore
+  # role enforcement when centralized auth lands (CLI/web parity PR).
+  defp check_workspace_access(%Workspace{org_id: ws_org_id}, assigns) do
+    case assigns[:current_org_id] do
+      nil ->
+        :ok
+
+      org_id when is_integer(org_id) and org_id == ws_org_id ->
+        :ok
+
+      _ ->
+        {:error, "Workspace belongs to a different organization."}
     end
   end
-
-  defp check_cloud_workspace_access(%Workspace{org_id: nil}, _),
-    do: {:error, "Workspace is not bound to an org."}
-
-  defp check_cloud_workspace_access(%Workspace{org_id: ws_org}, %{
-         current_org_id: org_id,
-         current_membership: m
-       })
-       when is_integer(ws_org) and ws_org == org_id do
-    if m && Accounts.role_at_least?(m.role, "admin"),
-      do: :ok,
-      else: {:error, "Admin or owner role required."}
-  end
-
-  defp check_cloud_workspace_access(_, _),
-    do: {:error, "Workspace belongs to a different organization."}
 
   defp redirect_with_flash(socket, kind, msg, path) do
     socket
