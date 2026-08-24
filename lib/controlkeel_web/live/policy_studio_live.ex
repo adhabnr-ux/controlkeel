@@ -432,7 +432,7 @@ defmodule ControlKeelWeb.PolicyStudioLive do
 
   defp assign_policy_sets(socket) do
     assignments_by_set =
-      Platform.list_workspace_policy_sets()
+      Platform.list_workspace_policy_assignments()
       |> Enum.group_by(& &1.policy_set_id)
 
     policy_sets =

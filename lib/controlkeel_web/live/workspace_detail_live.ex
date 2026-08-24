@@ -41,7 +41,7 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
          ]
        )
        |> assign(:sessions, sessions)
-       |> assign(:policy_assignments, Platform.list_workspace_policy_sets(ws_id))
+       |> assign(:policy_assignments, Platform.list_workspace_policy_assignments(ws_id))
        |> assign(:tool_policy_mode, tool_policy.mode)
        |> assign(:tool_policy_tools, WorkspaceToolPolicy.decode_tools(tool_policy))}
     else

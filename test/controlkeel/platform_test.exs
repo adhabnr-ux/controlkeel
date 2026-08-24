@@ -41,6 +41,38 @@ defmodule ControlKeel.PlatformTest do
     assert {:ok, _authed} = Platform.authenticate_service_account(rotated_token)
   end
 
+  test "assignment listings split display from evaluation on disabled rows" do
+    session = session_fixture()
+    set_a = policy_set_fixture(%{name: "Enabled Set"})
+    set_b = policy_set_fixture(%{name: "Disabled Set"})
+
+    {:ok, _} = Platform.apply_policy_set(session.workspace_id, set_a.id, %{"precedence" => 10})
+    {:ok, _} = Platform.apply_policy_set(session.workspace_id, set_b.id, %{"enabled" => false})
+
+    evaluation_ids =
+      session.workspace_id
+      |> Platform.list_workspace_policy_sets()
+      |> Enum.map(& &1.policy_set_id)
+
+    assert evaluation_ids == [set_a.id]
+
+    display_ids =
+      session.workspace_id
+      |> Platform.list_workspace_policy_assignments()
+      |> Enum.map(&{&1.policy_set_id, &1.enabled})
+
+    assert display_ids == [{set_a.id, true}, {set_b.id, false}]
+
+    # Nil (all-workspace) listings follow the same split.
+    assert Enum.any?(Platform.list_workspace_policy_sets(), &(&1.policy_set_id == set_b.id)) ==
+             false
+
+    assert Enum.any?(
+             Platform.list_workspace_policy_assignments(),
+             &(&1.policy_set_id == set_b.id)
+           )
+  end
+
   test "applied workspace policy sets participate in fast path scanning" do
     session = session_fixture()
     policy_set = policy_set_fixture()

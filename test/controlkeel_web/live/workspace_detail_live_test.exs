@@ -95,6 +95,26 @@ defmodule ControlKeelWeb.WorkspaceDetailLiveTest do
       assert html =~ "Recursive force-delete commands are blocked."
     end
 
+    test "renders a marker for disabled policy assignments" do
+      {:ok, org} = Accounts.create_org(%{name: "DisWs", slug: "disws"})
+      ws = create_workspace(%{name: "Dis", slug: "dis", industry: "web", org_id: org.id})
+
+      set =
+        ControlKeel.PlatformFixtures.policy_set_fixture(%{name: "paused-set"})
+
+      {:ok, _} =
+        ControlKeel.Platform.apply_policy_set(ws.id, set.id, %{
+          "precedence" => 7,
+          "enabled" => false
+        })
+
+      {:ok, _view, html} = live(build_conn(), ~p"/organizations/disws/workspaces/#{ws.id}")
+
+      assert html =~ "paused-set"
+      assert html =~ "precedence 7"
+      assert html =~ ", disabled"
+    end
+
     test "shows an empty state when the workspace has no sessions" do
       {:ok, org} = Accounts.create_org(%{name: "Empty Org", slug: "empty-org"})
       ws = create_workspace(%{name: "Empty", slug: "empty", industry: "web", org_id: org.id})

@@ -206,9 +206,99 @@ defmodule ControlKeelWeb.WorkspaceSettingsLiveTest do
       html = render_click(view, "remove_policy_set", %{"policy-set-id" => "#{set.id}"})
 
       assert html =~ "Policy set removed."
-      assert Platform.list_workspace_policy_sets(ws.id) == []
+      assert Platform.list_workspace_policy_assignments(ws.id) == []
       # Back in the dropdown once removed.
       assert has_element?(view, "#policy-set-select option[value='#{set.id}']")
+    end
+
+    test "disabled assignments are listed with a marker and kept out of the dropdown" do
+      {org, ws} = org_workspace()
+      set = policy_set_fixture!("paused-set")
+      {:ok, _} = Platform.apply_policy_set(ws.id, set.id, %{"enabled" => false})
+
+      {:ok, view, html} =
+        live(build_conn(), ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings")
+
+      assert html =~ "paused-set"
+      assert html =~ "precedence 100"
+      assert html =~ ", disabled"
+      # The disabled row still occupies the assignment slot: re-applying via
+      # the dropdown would silently flip it to enabled, so it is not offered.
+      refute has_element?(view, "#policy-set-select option[value='#{set.id}']")
+      # Removing the disabled assignment works without an enabled re-apply.
+      html = render_click(view, "remove_policy_set", %{"policy-set-id" => "#{set.id}"})
+      assert html =~ "Policy set removed."
+      assert Platform.list_workspace_policy_assignments(ws.id) == []
+    end
+
+    test "toggle_assignment disables an enabled assignment and stops rule evaluation" do
+      {org, ws} = org_workspace()
+      set = policy_set_fixture!("toggle-off")
+      {:ok, _} = Platform.apply_policy_set(ws.id, set.id, %{precedence: 25})
+
+      {:ok, view, _html} =
+        live(build_conn(), ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings")
+
+      html =
+        render_click(
+          view,
+          "toggle_assignment",
+          %{"policy-set-id" => "#{set.id}"}
+        )
+
+      assert html =~ "Policy set disabled."
+      assert html =~ ", disabled"
+
+      assert [%{enabled: false, precedence: 25}] =
+               Platform.list_workspace_policy_assignments(ws.id)
+
+      # Disabled assignments no longer participate in rule evaluation.
+      assert Platform.list_workspace_policy_sets(ws.id) == []
+    end
+
+    test "toggle_assignment re-enables a disabled assignment preserving precedence" do
+      {org, ws} = org_workspace()
+      set = policy_set_fixture!("toggle-on")
+      {:ok, _} = Platform.apply_policy_set(ws.id, set.id, %{precedence: 15, enabled: false})
+
+      {:ok, view, _html} =
+        live(build_conn(), ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings")
+
+      assert has_element?(
+               view,
+               "button[phx-click='toggle_assignment'][phx-value-policy-set-id='#{set.id}']",
+               "Enable"
+             )
+
+      html =
+        render_click(
+          view,
+          "toggle_assignment",
+          %{"policy-set-id" => "#{set.id}"}
+        )
+
+      assert html =~ "Policy set enabled."
+      refute html =~ ", disabled"
+
+      assert [%{enabled: true, precedence: 15}] =
+               Platform.list_workspace_policy_assignments(ws.id)
+
+      assert [%{policy_set_id: set_id}] = Platform.list_workspace_policy_sets(ws.id)
+      assert set_id == set.id
+    end
+
+    test "toggle_assignment with an unknown policy set id flashes an error" do
+      {org, ws} = org_workspace()
+      set = policy_set_fixture!("not-toggled")
+      {:ok, _} = Platform.apply_policy_set(ws.id, set.id, %{precedence: 1})
+
+      {:ok, view, _html} =
+        live(build_conn(), ~p"/organizations/#{org.slug}/workspaces/#{ws.id}/settings")
+
+      html = render_click(view, "toggle_assignment", %{"policy-set-id" => "999999"})
+
+      assert html =~ "Policy set assignment not found."
+      assert [%{enabled: true}] = Platform.list_workspace_policy_assignments(ws.id)
     end
 
     test "remove with an invalid policy set id flashes an error" do

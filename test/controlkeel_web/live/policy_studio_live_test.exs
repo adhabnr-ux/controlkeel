@@ -67,6 +67,34 @@ defmodule ControlKeelWeb.PolicyStudioLiveTest do
     assert has_element?(view, "span[title='block, security']", "destructive rm rf")
   end
 
+  test "lists disabled assignments with a marker", %{conn: conn} do
+    {:ok, set} =
+      ControlKeel.Platform.create_policy_set(%{
+        "name" => "paused-set",
+        "description" => "Paused controls",
+        "rules" => [
+          %{
+            "id" => "cost.overrun",
+            "category" => "cost",
+            "severity" => "high",
+            "action" => "warn",
+            "plain_message" => "over budget",
+            "matcher" => %{"type" => "budget", ratio_gte: 1.0}
+          }
+        ]
+      })
+
+    {:ok, org} = Accounts.create_org(%{name: "Paused Org", slug: "paused-org"})
+    ws = workspace_fixture(%{org_id: org.id})
+    {:ok, _} = ControlKeel.Platform.apply_policy_set(ws.id, set.id, %{"enabled" => false})
+
+    {:ok, _view, html} = live(conn, ~p"/policies")
+
+    assert html =~ "paused-set"
+    assert html =~ "workspace ##{ws.id}"
+    assert html =~ ", disabled"
+  end
+
   test "block count badge shows destructive class", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/policies")
 

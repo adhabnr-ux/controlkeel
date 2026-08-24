@@ -139,6 +139,41 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
   end
 
   @impl true
+  def handle_event("toggle_assignment", %{"policy-set-id" => id}, socket) do
+    with {:ok, set_id} <- parse_int(id),
+         %{} = assignment <- find_assignment(socket.assigns.policy_assignments, set_id) do
+      # Re-apply flips the enabled flag via the upsert while keeping precedence.
+      case Platform.apply_policy_set(socket.assigns.workspace.id, set_id, %{
+             "precedence" => assignment.precedence,
+             "enabled" => not assignment.enabled
+           }) do
+        {:ok, assignment} ->
+          {:noreply,
+           socket
+           |> put_flash(
+             :info,
+             "Policy set #{if assignment.enabled, do: "enabled", else: "disabled"}."
+           )
+           |> refresh_policy_assigns()}
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          msg = Enum.map_join(changeset.errors, ", ", fn {f, {m, _}} -> "#{f}: #{m}" end)
+          {:noreply, put_flash(socket, :error, msg)}
+      end
+    else
+      :error ->
+        {:noreply, put_flash(socket, :error, "Invalid policy set id.")}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Policy set assignment not found.")}
+    end
+  end
+
+  defp find_assignment(assignments, set_id) do
+    Enum.find(assignments, &(&1.policy_set_id == set_id)) || {:error, :not_found}
+  end
+
+  @impl true
   def handle_event("mode_changed", %{"policy" => %{"mode" => mode}}, socket) do
     {:noreply, assign(socket, :live_mode, mode)}
   end
@@ -271,14 +306,28 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
                   <% end %>
                 </p>
               </div>
-              <button
-                type="button"
-                phx-click="remove_policy_set"
-                phx-value-policy-set-id={a.policy_set_id}
-                class="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium text-destructive transition hover:bg-destructive/10"
-              >
-                Remove
-              </button>
+              <div class="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  phx-click="toggle_assignment"
+                  phx-value-policy-set-id={a.policy_set_id}
+                  class="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                >
+                  <%= if a.enabled do %>
+                    Disable
+                  <% else %>
+                    Enable
+                  <% end %>
+                </button>
+                <button
+                  type="button"
+                  phx-click="remove_policy_set"
+                  phx-value-policy-set-id={a.policy_set_id}
+                  class="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium text-destructive transition hover:bg-destructive/10"
+                >
+                  Remove
+                </button>
+              </div>
             </li>
           <% end %>
         </ul>
@@ -446,7 +495,10 @@ defmodule ControlKeelWeb.WorkspaceSettingsLive do
   end
 
   defp refresh_policy_assigns(socket) do
-    assignments = Platform.list_workspace_policy_sets(socket.assigns.workspace.id)
+    # Display list includes disabled assignments; the dropdown excludes any
+    # set with an assignment row so re-applying never silently flips a
+    # disabled assignment back to enabled via the upsert.
+    assignments = Platform.list_workspace_policy_assignments(socket.assigns.workspace.id)
     assigned_ids = Enum.map(assignments, & &1.policy_set_id)
 
     available_sets =
