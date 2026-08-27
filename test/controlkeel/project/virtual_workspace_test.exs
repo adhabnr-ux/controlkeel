@@ -27,6 +27,11 @@ defmodule ControlKeel.Project.VirtualWorkspaceTest do
     )
 
     File.write!(
+      Path.join(tmp_dir, "lib/matcher.ex"),
+      "defmodule Matcher do\n  def match?, do: true\nend\n"
+    )
+
+    File.write!(
       Path.join(tmp_dir, "deps/vendor/checkpoint_store.ex"),
       "defmodule Vendor.CheckpointStore do\n  @needle :needle\nend\n"
     )
@@ -174,6 +179,35 @@ defmodule ControlKeel.Project.VirtualWorkspaceTest do
 
     assert Enum.any?(rest, &(&1["orientation_hint"] == "test"))
     refute Enum.any?(result["matches"], &String.starts_with?(&1["path"], "deps/"))
+  end
+
+  test "find with glob pattern matches basenames", %{session: session} do
+    assert {:ok, result} = VirtualWorkspace.find(session.id, "*.ex", limit: 10)
+
+    assert result["match_mode"] == "glob"
+    assert result["count"] >= 2
+
+    paths = Enum.map(result["matches"], & &1["path"])
+    assert "lib/checkpoint_store.ex" in paths
+    assert "lib/matcher.ex" in paths
+    refute Enum.any?(paths, &String.starts_with?(&1, "deps/"))
+  end
+
+  test "find with glob pattern crosses directory segments", %{session: session} do
+    assert {:ok, result} = VirtualWorkspace.find(session.id, "**/*test*", limit: 10)
+
+    assert result["match_mode"] == "glob"
+    assert result["count"] >= 1
+
+    paths = Enum.map(result["matches"], & &1["path"])
+    assert "test/checkpoint_store_test.exs" in paths
+  end
+
+  test "find with non-glob query uses substring matching", %{session: session} do
+    assert {:ok, result} = VirtualWorkspace.find(session.id, "checkpoint", limit: 10)
+
+    assert result["match_mode"] == "substring"
+    assert result["count"] >= 2
   end
 
   test "grep emits file summaries and per-match orientation metadata", %{session: session} do

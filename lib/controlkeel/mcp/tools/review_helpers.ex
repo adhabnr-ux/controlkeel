@@ -64,18 +64,22 @@ defmodule ControlKeel.MCP.Tools.ReviewHelpers do
     %{
       "primary" =>
         "Review #{review.review_type} ##{review.id} in the ControlKeel UI when available.",
-      "fallback_status_command" => "controlkeel review status #{review.id}",
-      "fallback_approve_command" => "controlkeel review approve #{review.id}",
-      "fallback_deny_command" => "controlkeel review deny #{review.id} --feedback '<reason>'"
+      "fallback_status_command" => "controlkeel review plan open --id #{review.id}",
+      "fallback_approve_command" =>
+        "controlkeel review plan respond #{review.id} --decision approved",
+      "fallback_deny_command" =>
+        "controlkeel review plan respond #{review.id} --decision denied --feedback-notes '<reason>'"
     }
   end
 
   def approval_instructions(review, browser_url) do
     %{
       "primary" => "Open #{browser_url} to approve or deny #{review.review_type} ##{review.id}.",
-      "fallback_status_command" => "controlkeel review status #{review.id}",
-      "fallback_approve_command" => "controlkeel review approve #{review.id}",
-      "fallback_deny_command" => "controlkeel review deny #{review.id} --feedback '<reason>'"
+      "fallback_status_command" => "controlkeel review plan open --id #{review.id}",
+      "fallback_approve_command" =>
+        "controlkeel review plan respond #{review.id} --decision approved",
+      "fallback_deny_command" =>
+        "controlkeel review plan respond #{review.id} --decision denied --feedback-notes '<reason>'"
     }
   end
 

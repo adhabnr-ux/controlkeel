@@ -95,13 +95,18 @@ defmodule ControlKeel.Project.VirtualWorkspace do
          {:ok, scope_path, scope_relative_path} <- safe_path(root, Keyword.get(opts, :path, ".")),
          {:ok, limit} <- normalize_positive_integer(Keyword.get(opts, :limit, 50), "limit") do
       normalized_query = String.downcase(String.trim(query))
+      matcher = query_matcher(normalized_query)
 
       matches =
         walk_paths(scope_path)
         |> Stream.map(&Path.relative_to(&1, root))
         |> Stream.reject(&(&1 == "."))
-        |> Stream.filter(&String.contains?(String.downcase(&1), normalized_query))
-        |> Enum.map(&find_candidate(root, &1, normalized_query))
+        |> Stream.filter(fn relative ->
+          path = String.downcase(relative)
+          basename = relative |> Path.basename() |> String.downcase()
+          matcher.(path, basename) != []
+        end)
+        |> Enum.map(&find_candidate(root, &1, normalized_query, matcher))
         |> Enum.sort_by(fn {sort_key, _result} -> sort_key end)
         |> Enum.take(min(limit, @max_find_results))
         |> Enum.map(fn {_sort_key, result} -> result end)
@@ -113,6 +118,7 @@ defmodule ControlKeel.Project.VirtualWorkspace do
          "project_root" => root,
          "path" => scope_relative_path,
          "query" => normalized_query,
+         "match_mode" => if(matcher_glob?(normalized_query), do: "glob", else: "substring"),
          "matches" => matches,
          "count" => length(matches),
          "limited" => length(matches) == min(limit, @max_find_results),
@@ -150,10 +156,11 @@ defmodule ControlKeel.Project.VirtualWorkspace do
     end
   end
 
-  defp find_candidate(root, relative, normalized_query) do
+  defp find_candidate(root, relative, normalized_query, matcher) do
     absolute = Path.join(root, relative)
     basename = relative |> Path.basename() |> String.downcase()
     path = String.downcase(relative)
+    bases = matcher.(path, basename)
 
     match_quality = match_quality(path, basename, normalized_query)
     path_depth = path_depth(relative)
@@ -166,7 +173,7 @@ defmodule ControlKeel.Project.VirtualWorkspace do
     result = %{
       "path" => relative,
       "type" => file_type(absolute),
-      "matched_on" => matched_on(path, basename, normalized_query),
+      "matched_on" => bases,
       "path_depth" => path_depth,
       "orientation_hint" => orientation_hint,
       "orientation_score" =>
@@ -174,6 +181,67 @@ defmodule ControlKeel.Project.VirtualWorkspace do
     }
 
     {sort_key, result}
+  end
+
+  # Query matchers: substring (default) or glob when the query contains
+  # `*`, `?` (or `**`). Globs translate to anchored, case-insensitive
+  # regexes matched against both the project-relative path and the
+  # basename. `*` stays within one path segment; `**` crosses segments.
+  defp matcher_glob?(query) do
+    String.contains?(query, "*") or String.contains?(query, "?")
+  end
+
+  defp query_matcher(query) do
+    if matcher_glob?(query) do
+      case compile_glob_regex(query) do
+        {:ok, regex} -> glob_matcher(regex)
+        :error -> substring_matcher(query)
+      end
+    else
+      substring_matcher(query)
+    end
+  end
+
+  defp substring_matcher(query) do
+    fn path, basename ->
+      []
+      |> maybe_add_match_basis(String.contains?(path, query), "path")
+      |> maybe_add_match_basis(String.contains?(basename, query), "basename")
+      |> Enum.reverse()
+    end
+  end
+
+  defp glob_matcher(regex) do
+    fn path, basename ->
+      []
+      |> maybe_add_match_basis(Regex.match?(regex, path), "path")
+      |> maybe_add_match_basis(Regex.match?(regex, basename), "basename")
+      |> Enum.reverse()
+    end
+  end
+
+  defp compile_glob_regex(glob) do
+    source =
+      glob
+      |> String.split("**")
+      |> Enum.map_join(".*", &translate_glob_segment/1)
+
+    case Regex.compile("^" <> source <> "$", "i") do
+      {:ok, regex} -> {:ok, regex}
+      {:error, _reason} -> :error
+    end
+  end
+
+  defp translate_glob_segment(segment) do
+    segment
+    |> String.split("*")
+    |> Enum.map_join("[^/]*", &translate_glob_question/1)
+  end
+
+  defp translate_glob_question(part) do
+    part
+    |> String.split("?")
+    |> Enum.map_join("[^/]", &Regex.escape/1)
   end
 
   defp annotate_grep_results(matches) do
@@ -229,13 +297,6 @@ defmodule ControlKeel.Project.VirtualWorkspace do
       String.contains?(basename, query) -> 20
       true -> 40
     end
-  end
-
-  defp matched_on(path, basename, query) do
-    []
-    |> maybe_add_match_basis(String.contains?(path, query), "path")
-    |> maybe_add_match_basis(String.contains?(basename, query), "basename")
-    |> Enum.reverse()
   end
 
   defp maybe_add_match_basis(bases, true, basis), do: [basis | bases]

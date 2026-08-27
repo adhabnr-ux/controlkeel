@@ -4483,6 +4483,25 @@ defmodule ControlKeel.Skills.Exporter do
         }
       }
 
+      // CLI commands emit a `{command, data, status, version}` envelope; unwrap it so
+      // callers can read `review.id`, `session_id`, `browser_url` at the top level.
+      // Older flat payloads pass through unchanged.
+      const parseCliJson = (output: string) => {
+        const payload = parseJson(output)
+
+        if (
+          payload != null &&
+          typeof payload === "object" &&
+          !Array.isArray(payload) &&
+          payload.data != null &&
+          typeof payload.data === "object"
+        ) {
+          return payload.data
+        }
+
+        return payload
+      }
+
       const toText = async (output: unknown) => {
         if (typeof output === "string") {
           return output
@@ -4657,7 +4676,7 @@ defmodule ControlKeel.Skills.Exporter do
           )
         }
 
-        const contextPayload = parseJson([contextOut, contextErr].filter(Boolean).join("\n"))
+        const contextPayload = parseCliJson([contextOut, contextErr].filter(Boolean).join("\n"))
         const contextTaskId = contextPayload?.current_task?.id
         const contextSessionId = contextPayload?.session_id
 
@@ -4731,7 +4750,7 @@ defmodule ControlKeel.Skills.Exporter do
             )
           }
 
-          const submitPayload = parseJson([submitOut, submitErr].filter(Boolean).join("\n"))
+          const submitPayload = parseCliJson([submitOut, submitErr].filter(Boolean).join("\n"))
 
           if (typeof submitPayload?.error === "string" && submitPayload.error.includes("session_id")) {
             throw new Error(
@@ -4761,7 +4780,7 @@ defmodule ControlKeel.Skills.Exporter do
             const openExit = await openProc.exited
 
             if (openExit === 0) {
-              openPayload = parseJson([openOut, openErr].filter(Boolean).join("\n"))
+              openPayload = parseCliJson([openOut, openErr].filter(Boolean).join("\n"))
             } else {
               openPayload = {
                 error: `controlkeel review plan open failed with exit code ${openExit}${openErr.trim() ? `: ${openErr.trim()}` : ""}`,
@@ -4815,7 +4834,7 @@ defmodule ControlKeel.Skills.Exporter do
                       ? "browser_not_opened"
                       : "browser_unreachable",
               guidance:
-                "Browser review is unavailable, the CK review server is not reachable, or the browser did not actually open. Ask the user for explicit approval in chat, then record it with `controlkeel review plan respond --id <review_id> --decision approved --feedback-notes \"User approved in chat; browser/review server unavailable\" --json` or `ck_review_feedback`.",
+                "Browser review is unavailable, the CK review server is not reachable, or the browser did not actually open. Ask the user for explicit approval in chat, then record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes \"User approved in chat; browser/review server unavailable\" --json` or `ck_review_feedback`.",
             })
           }
 
@@ -4831,7 +4850,7 @@ defmodule ControlKeel.Skills.Exporter do
           const waitOut = await new Response(waitProc.stdout).text()
           const waitErr = await new Response(waitProc.stderr).text()
           const waitExit = await waitProc.exited
-          const waitPayload = parseJson([waitOut, waitErr].filter(Boolean).join("\n"))
+          const waitPayload = parseCliJson([waitOut, waitErr].filter(Boolean).join("\n"))
           const waitMessage = typeof waitPayload?.message === "string" ? waitPayload.message.toLowerCase() : ""
           const waitError = typeof waitPayload?.error === "string" ? waitPayload.error.toLowerCase() : ""
           const waitTimedOut = waitMessage.includes("timeout") || waitError.includes("timed out")
@@ -4848,7 +4867,7 @@ defmodule ControlKeel.Skills.Exporter do
                 manualApprovalRequired: true,
                 reason: "review_timeout",
                 guidance:
-                  "Plan review is still pending after timeout. Show the `browser_url` to the user if reachable. If browser review is unavailable or the user explicitly approves in chat, record it with `controlkeel review plan respond --id <review_id> --decision approved --feedback-notes \"User approved in chat after timeout/browser issue\" --json` (or `ck_review_feedback`) before proceeding.",
+                  "Plan review is still pending after timeout. Show the `browser_url` to the user if reachable. If browser review is unavailable or the user explicitly approves in chat, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes \"User approved in chat after timeout/browser issue\" --json` (or `ck_review_feedback`) before proceeding.",
               })
             }
 
@@ -4993,7 +5012,7 @@ defmodule ControlKeel.Skills.Exporter do
     3. Run `controlkeel review plan submit --body-file .opencode/review-plan.md --submitted-by opencode --task-id <task_id> --json` (or use `--session-id <session_id>`)
     4. Read the returned `review.id` and `browser_url`
     5. If `browser_url` is available, wait with `controlkeel review plan wait --id <review_id> --timeout 30 --json`
-    6. If `browser_url` is missing/unreachable, the browser does not actually open, **or** wait times out while still `pending`, do **not** loop on wait; ask for explicit user approval in chat and record it with `controlkeel review plan respond --id <review_id> --decision approved --feedback-notes "User approved in chat; browser unavailable or timed out" --json` (or `ck_review_feedback`)
+    6. If `browser_url` is missing/unreachable, the browser does not actually open, **or** wait times out while still `pending`, do **not** loop on wait; ask for explicit user approval in chat and record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat; browser unavailable or timed out" --json` (or `ck_review_feedback`)
     7. Do not execute until the review is approved
 
     Fallback when the `submit_plan` tool is stale in a long-running OpenCode session:
@@ -5097,6 +5116,25 @@ defmodule ControlKeel.Skills.Exporter do
 
           throw new Error(`ControlKeel returned invalid JSON: ${output}`)
         }
+      }
+
+      // CLI commands emit a `{command, data, status, version}` envelope; unwrap it so
+      // callers can read `review.id`, `session_id`, `browser_url` at the top level.
+      // Older flat payloads pass through unchanged.
+      const parseCliJson = (output) => {
+        const payload = parseJson(output)
+
+        if (
+          payload != null &&
+          typeof payload === "object" &&
+          !Array.isArray(payload) &&
+          payload.data != null &&
+          typeof payload.data === "object"
+        ) {
+          return payload.data
+        }
+
+        return payload
       }
 
       const toText = async (output) => {
@@ -5267,7 +5305,7 @@ defmodule ControlKeel.Skills.Exporter do
           )
         }
 
-        const contextPayload = parseJson([contextOut, contextErr].filter(Boolean).join("\n"))
+        const contextPayload = parseCliJson([contextOut, contextErr].filter(Boolean).join("\n"))
         const contextTaskId = contextPayload?.current_task?.id
         const contextSessionId = contextPayload?.session_id
 
@@ -5334,7 +5372,7 @@ defmodule ControlKeel.Skills.Exporter do
             )
           }
 
-          const submitPayload = parseJson([submitOut, submitErr].filter(Boolean).join("\n"))
+          const submitPayload = parseCliJson([submitOut, submitErr].filter(Boolean).join("\n"))
 
           if (typeof submitPayload?.error === "string" && submitPayload.error.includes("session_id")) {
             throw new Error(
@@ -5364,7 +5402,7 @@ defmodule ControlKeel.Skills.Exporter do
             const openExit = await openProc.exited
 
             if (openExit === 0) {
-              openPayload = parseJson([openOut, openErr].filter(Boolean).join("\n"))
+              openPayload = parseCliJson([openOut, openErr].filter(Boolean).join("\n"))
             } else {
               openPayload = {
                 error: `controlkeel review plan open failed with exit code ${openExit}${openErr.trim() ? `: ${openErr.trim()}` : ""}`,
@@ -5418,7 +5456,7 @@ defmodule ControlKeel.Skills.Exporter do
                       ? "browser_not_opened"
                       : "browser_unreachable",
               guidance:
-                "Browser review is unavailable, the CK review server is not reachable, or the browser did not actually open. Ask the user for explicit approval in chat, then record it with `controlkeel review plan respond --id <review_id> --decision approved --feedback-notes \"User approved in chat; browser/review server unavailable\" --json` or `ck_review_feedback`.",
+                "Browser review is unavailable, the CK review server is not reachable, or the browser did not actually open. Ask the user for explicit approval in chat, then record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes \"User approved in chat; browser/review server unavailable\" --json` or `ck_review_feedback`.",
             })
           }
 
@@ -5434,7 +5472,7 @@ defmodule ControlKeel.Skills.Exporter do
           const waitOut = await new Response(waitProc.stdout).text()
           const waitErr = await new Response(waitProc.stderr).text()
           const waitExit = await waitProc.exited
-          const waitPayload = parseJson([waitOut, waitErr].filter(Boolean).join("\n"))
+          const waitPayload = parseCliJson([waitOut, waitErr].filter(Boolean).join("\n"))
           const waitMessage = typeof waitPayload?.message === "string" ? waitPayload.message.toLowerCase() : ""
           const waitError = typeof waitPayload?.error === "string" ? waitPayload.error.toLowerCase() : ""
           const waitTimedOut = waitMessage.includes("timeout") || waitError.includes("timed out")
@@ -5451,7 +5489,7 @@ defmodule ControlKeel.Skills.Exporter do
                 manualApprovalRequired: true,
                 reason: "review_timeout",
                 guidance:
-                  "Plan review is still pending after timeout. Show the `browser_url` to the user if reachable. If browser review is unavailable or the user explicitly approves in chat, record it with `controlkeel review plan respond --id <review_id> --decision approved --feedback-notes \"User approved in chat after timeout/browser issue\" --json` (or `ck_review_feedback`) before proceeding.",
+                  "Plan review is still pending after timeout. Show the `browser_url` to the user if reachable. If browser review is unavailable or the user explicitly approves in chat, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes \"User approved in chat after timeout/browser issue\" --json` (or `ck_review_feedback`) before proceeding.",
               })
             }
 
