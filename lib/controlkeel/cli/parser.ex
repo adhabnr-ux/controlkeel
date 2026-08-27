@@ -98,7 +98,7 @@ defmodule ControlKeel.CLI.Parser do
     scope: :string,
     json: :boolean
   ]
-  @skills_doctor_switches [project_root: :string, json: :boolean]
+  @skills_doctor_switches [project_root: :string, json: :boolean, prune_duplicates: :boolean]
   @token_audit_switches [mode: :string, format: :string, project_root: :string, json: :boolean]
   @tool_groups_suggest_switches [
     project_root: :string,

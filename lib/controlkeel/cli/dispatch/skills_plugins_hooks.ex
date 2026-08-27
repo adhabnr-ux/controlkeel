@@ -213,9 +213,16 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
           "",
           "⚠️  TOKEN OPTIMIZATION WARNING:",
           "  Found #{duplicate_copy_count} duplicate skill copies on disk.",
-          "  CK now counts effective skills once in token audit, but some MCP hosts may still load duplicate native skill directories.",
-          "  Run 'controlkeel token audit --mode skills' to see effective skills, installed copies, and excess duplicate tokens."
+          "  CK counts effective skills once in token audit, but MCP hosts may still load duplicate native skill directories.",
+          "  Run 'controlkeel skills doctor --prune-duplicates' to remove redundant copies."
         ]
+      else
+        []
+      end
+
+    prune_result =
+      if options[:prune_duplicates] == true and duplicate_copy_count > 0 do
+        prune_duplicate_skills(root, analysis)
       else
         []
       end
@@ -247,6 +254,7 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
            "Hint: token audit deduplicates effective CK skills, but host-native skill directories can still add context overhead"
          ] ++
            token_hint ++
+           prune_result ++
            [
              "Provider source: #{provider_status["selected_source"]}",
              "Provider: #{provider_status["selected_provider"]}",
@@ -314,6 +322,89 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
 
       _ ->
         {:error, ["Failed to suggest tool groups"]}
+    end
+  end
+
+  # Finds duplicate skill copies and removes user-level copies (always redundant).
+  # Project-level host-specific copies are listed but not removed — the user's
+  # primary host directory is kept, compat .agents/skills/ is kept.
+  defp prune_duplicate_skills(project_root, analysis) do
+    user_home =
+      System.get_env("CONTROLKEEL_HOME") || System.get_env("HOME") || System.user_home!()
+
+    # Collect all skill locations from diagnostics
+    duplicate_diagnostics =
+      analysis.diagnostics
+      |> Enum.filter(&(&1.code == "duplicate_skill_copy"))
+
+    if duplicate_diagnostics == [] do
+      ["No duplicate skill copies found."]
+    else
+      # Group by skill name from the path
+      grouped =
+        duplicate_diagnostics
+        |> Enum.map(fn diag ->
+          skill_path = diag.path || ""
+          skill_name = skill_path |> Path.split() |> List.last()
+          {skill_name, skill_path}
+        end)
+        |> Enum.group_by(fn {name, _path} -> name end, fn {_name, path} -> path end)
+
+      # Separate user-level (always waste) from project-level
+      {user_paths, project_paths} =
+        grouped
+        |> Enum.flat_map(fn {_name, paths} -> paths end)
+        |> Enum.split_with(&String.starts_with?(&1, user_home))
+
+      # Remove user-level copies (always redundant — hosts load project-level)
+      pruned_user =
+        if user_paths != [] do
+          removed =
+            user_paths
+            |> Enum.reject(&(File.exists?(Path.join(&1, "SKILL.md")) == false))
+            |> Enum.map(fn path ->
+              File.rm_rf!(path)
+              path
+            end)
+
+          if removed != [] do
+            count = length(removed)
+
+            ["", "✓ Pruned #{count} user-level duplicate skill copy(s):"] ++
+              Enum.map(removed, &"  rm -rf #{&1}")
+          else
+            []
+          end
+        else
+          []
+        end
+
+      # List project-level duplicates (not auto-removed)
+      pruned_project =
+        if project_paths != [] do
+          grouped_project =
+            project_paths
+            |> Enum.group_by(fn path ->
+              # Extract the host dir (e.g., .claude, .codex)
+              relative = Path.relative_to(path, project_root)
+              relative |> Path.split() |> List.first()
+            end)
+
+          lines =
+            grouped_project
+            |> Enum.flat_map(fn {host_dir, paths} ->
+              skill_names = Enum.map(paths, &Path.basename/1) |> Enum.join(", ")
+              ["  #{host_dir}/skills/: #{skill_names}"]
+            end)
+
+          ["", "ℹ️  Project-level host-specific copies (kept — your primary host needs these):"] ++
+            lines ++
+            ["  # To remove extras: keep only your primary host dir + .agents/skills/"]
+        else
+          []
+        end
+
+      pruned_user ++ pruned_project
     end
   end
 end

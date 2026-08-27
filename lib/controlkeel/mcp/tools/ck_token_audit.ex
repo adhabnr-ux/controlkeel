@@ -533,23 +533,91 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
     # Check for duplicates
     recommendations =
       if Enum.empty?(duplicates) do
-        recommendations
+        # Even without same-name duplicates, multiple host-specific dirs
+        # mean the same skills exist in .claude/, .codex/, .opencode/, etc.
+        # Recommend keeping only the primary host + compat.
+        host_dirs =
+          all_skills
+          |> Enum.map(& &1["location"])
+          |> Enum.filter(&String.starts_with?(&1, "project:."))
+          |> Enum.map(&String.replace_leading(&1, "project:", ""))
+          |> Enum.map(&Path.dirname/1)
+          |> Enum.uniq()
+          |> Enum.sort()
+
+        if length(host_dirs) > 2 do
+          primary = List.first(host_dirs)
+          compat = ".agents"
+
+          [
+            "Skills exist in #{length(host_dirs)} host directories: #{Enum.join(host_dirs, ", ")}",
+            "Each host loads only its native dir. Keep #{primary}/skills/ + #{compat}/skills/ and remove extras to save tokens."
+            | recommendations
+          ]
+        else
+          recommendations
+        end
       else
         duplicate_count = length(duplicates)
         duplicate_tokens = Enum.sum(Enum.map(duplicates, & &1["total_tokens"]))
+        installed = length(all_skills)
+        effective = length(effective_skills)
 
-        [
-          "Found #{duplicate_count} duplicate skill(s) wasting ~#{duplicate_tokens} tokens",
-          "Remove duplicate skills from either user-level (~/.claude/skills/) or project-level (.claude/skills/ or .agents/skills/)"
-          | recommendations
-        ]
+        summary =
+          "Found #{duplicate_count} duplicate skill(s): #{installed} installed copies → #{effective} effective. ~#{duplicate_tokens} wasted tokens."
+
+        # Separate user-level copies (always waste) from project-level (host-specific)
+        {user_copies, project_copies} =
+          Enum.flat_map(duplicates, fn dup ->
+            Enum.drop(dup["instances"], 1)
+          end)
+          |> Enum.split_with(&String.starts_with?(&1["location"], "user:"))
+
+        user_commands =
+          if user_copies != [] do
+            paths = Enum.map(user_copies, & &1["path"])
+
+            commands =
+              paths
+              |> Enum.map(&"  rm -rf #{&1}")
+              |> Enum.join("\n")
+
+            [
+              "User-level skill copies are always redundant (hosts load project-level). Remove:",
+              commands
+            ]
+          else
+            []
+          end
+
+        project_commands =
+          if project_copies != [] do
+            # Group by location to show which host dirs are redundant
+            grouped = Enum.group_by(project_copies, & &1["location"])
+
+            lines =
+              Enum.flat_map(grouped, fn {location, skills} ->
+                skill_names = Enum.map(skills, & &1["name"]) |> Enum.join(", ")
+                ["  #{location}: #{skill_names}"]
+              end)
+
+            [
+              "Project-level: each host loads only its native dir. Redundant compat copies:",
+              Enum.join(lines, "\n"),
+              "  # Keep .opencode/skills/ (or your primary host) + .agents/skills/ (compat)"
+            ]
+          else
+            []
+          end
+
+        [summary] ++ user_commands ++ project_commands ++ recommendations
       end
 
     # Check total skill count
     recommendations =
       if length(all_skills) > 10 do
         [
-          "Total of #{length(all_skills)} skills installed. Consider disabling unused skills to reduce token overhead."
+          "Total of #{length(all_skills)} skill copies installed (#{length(effective_skills)} effective). Run 'controlkeel skills doctor' for cleanup guidance."
           | recommendations
         ]
       else

@@ -413,8 +413,8 @@ defmodule ControlKeel.CLITasksTest do
     assert {:ok, doctor_lines} = CLI.run_command(parsed_doctor, tmp_dir)
     doctor_output = Enum.join(doctor_lines, "\n")
 
-    assert doctor_output =~ "controlkeel token audit --mode skills"
-    refute doctor_output =~ "controlkeel token audit mode=skills"
+    assert doctor_output =~ "controlkeel skills doctor --prune-duplicates"
+    refute doctor_output =~ "controlkeel token audit --mode skills"
 
     assert {:ok, parsed_audit} =
              CLI.parse(["token", "audit", "--mode", "skills", "--project-root", tmp_dir])
