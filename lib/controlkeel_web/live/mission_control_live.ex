@@ -107,7 +107,6 @@ defmodule ControlKeelWeb.MissionControlLive do
     {:noreply, socket |> assign(:selected_finding, nil) |> assign(:selected_fix, nil)}
   end
 
-  @impl true
   def handle_event("approve_finding", %{"id" => id}, socket) do
     with {:ok, finding_id} <- parse_id(id),
          %{} = finding <- Enum.find(socket.assigns.session.findings, &(&1.id == finding_id)),
@@ -213,13 +212,21 @@ defmodule ControlKeelWeb.MissionControlLive do
           </div>
         </div>
       <% end %>
-      <div class="space-y-1 mb-12">
-        <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
-          {@session.title}
-        </h2>
-        <p class="text-muted-foreground">
-          {@session.objective}
-        </p>
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12">
+        <div class="space-y-1 min-w-0">
+          <h2 class="text-2xl font-semibold text-primary leading-6 tracking-wide uppercase">
+            {@session.title}
+          </h2>
+          <p class="text-muted-foreground">
+            {@session.objective}
+          </p>
+        </div>
+        <.link
+          navigate={~p"/sessions/#{@session.id}/deploy-review"}
+          class="inline-flex shrink-0 items-center gap-2 rounded-3xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 cursor-pointer"
+        >
+          <.icon name="hero-cloud-arrow-up" class="size-4" /> Deployment Advisor
+        </.link>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-5">

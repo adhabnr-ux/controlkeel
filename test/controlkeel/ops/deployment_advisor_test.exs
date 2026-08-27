@@ -186,6 +186,40 @@ defmodule ControlKeel.Ops.DeploymentAdvisorTest do
     assert File.read!(path) == "existing-content"
   end
 
+  test "generate_files reports per-file failures without raising", %{tmp_dir: tmp_dir} do
+    File.write!(Path.join(tmp_dir, ".github"), "not a directory")
+
+    generators = [
+      %{name: "Env Template", filename: ".env.example", content: "SECRET_KEY_BASE=dev"},
+      %{name: "CI Pipeline", filename: ".github/workflows/ci.yml", content: "ci"}
+    ]
+
+    ci_path = Path.join(tmp_dir, ".github/workflows/ci.yml")
+
+    assert {:ok,
+            [
+              {:ok, "Env Template", env_path, _content, :written},
+              {:error, "CI Pipeline", ^ci_path, reason}
+            ]} =
+             Advisor.generate_files(tmp_dir, generators)
+
+    assert is_atom(reason)
+    assert File.exists?(env_path)
+    refute File.exists?(ci_path)
+  end
+
+  test "generate_files overwrites existing files when overwrite is set", %{tmp_dir: tmp_dir} do
+    path = Path.join(tmp_dir, "test_overwrite.txt")
+    File.write!(path, "old")
+
+    generators = [%{name: "Test", filename: "test_overwrite.txt", content: "new"}]
+
+    assert {:ok, [{:ok, "Test", ^path, "new", :written}]} =
+             Advisor.generate_files(tmp_dir, generators, overwrite: true)
+
+    assert File.read!(path) == "new"
+  end
+
   test "dns_ssl_guide returns DNS and SSL information" do
     guide = Advisor.dns_ssl_guide(:phoenix)
 

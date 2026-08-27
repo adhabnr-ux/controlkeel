@@ -134,7 +134,6 @@ defmodule ControlKeelWeb.Layouts do
       %{label: "Skills", href: ~p"/skills", icon: "hero-puzzle-piece"},
       %{label: "Proofs", href: ~p"/proofs", icon: "hero-shield-check"},
       %{label: "Policy Studio", href: ~p"/policies", icon: "hero-adjustments-horizontal"},
-      %{label: "Deploy", href: ~p"/deploy", icon: "hero-cloud-arrow-up"},
       %{label: "Benchmarks", href: ~p"/benchmarks", icon: "hero-chart-bar-square"},
       %{label: "Findings", href: ~p"/findings", icon: "hero-exclamation-triangle"},
       %{
@@ -489,7 +488,6 @@ defmodule ControlKeelWeb.Layouts do
     "workspaces" => "Workspaces",
     "policies" => "Policy Studio",
     "skills" => "Skills",
-    "deploy" => "Deploy",
     "cloud" => "Cloud",
     "observability" => "Observability",
     "repos" => "Repos",

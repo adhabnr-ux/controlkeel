@@ -93,6 +93,7 @@ defmodule ControlKeelWeb.Router do
       live "/sessions/start", OnboardingLive, :new
       live "/sessions/:id", MissionControlLive, :show
       live "/sessions/:id/reviews", SessionReviewsLive, :index
+      live "/sessions/:id/deploy-review", DeployReviewLive, :show
       live "/findings", FindingsLive, :index
       live "/benchmarks", BenchmarksLive, :index
       live "/benchmarks/runs/:id", BenchmarksLive, :show
@@ -111,7 +112,6 @@ defmodule ControlKeelWeb.Router do
       live "/workspaces/:id/tool-policy", WorkspaceToolPolicyLive, :edit
       live "/policies", PolicyStudioLive, :index
       live "/skills", SkillsLive, :index
-      live "/deploy", DeploymentLive, :index
     end
 
     # Observability section routes use the shared :dashboard framework layout;

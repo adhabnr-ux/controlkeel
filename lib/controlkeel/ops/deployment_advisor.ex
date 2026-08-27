@@ -51,18 +51,20 @@ defmodule ControlKeel.Ops.DeploymentAdvisor do
         path = Path.join(project_root, gen.filename)
         content = String.trim(gen.content || "")
 
-        if dry_run do
-          {:ok, gen.name, path, content, :skipped}
-        else
-          dir = Path.dirname(path)
-          File.mkdir_p!(dir)
-
-          if File.exists?(path) and not overwrite do
+        cond do
+          dry_run ->
             {:ok, gen.name, path, content, :skipped}
-          else
-            File.write(path, content)
-            {:ok, gen.name, path, content, :written}
-          end
+
+          File.exists?(path) and not overwrite ->
+            {:ok, gen.name, path, content, :skipped}
+
+          true ->
+            with :ok <- File.mkdir_p(Path.dirname(path)),
+                 :ok <- File.write(path, content) do
+              {:ok, gen.name, path, content, :written}
+            else
+              {:error, reason} -> {:error, gen.name, path, reason}
+            end
         end
       end)
 
