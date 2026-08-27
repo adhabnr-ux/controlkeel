@@ -4824,6 +4824,22 @@ defmodule ControlKeel.Skills.Exporter do
             guidance: overrides.guidance ?? null,
           })
 
+          // If the server auto-approved, skip the entire open/wait flow
+          const autoApproved = submitPayload?.auto_approved === true
+          const autoApproveReason = submitPayload?.auto_approve_reason ?? null
+
+          if (autoApproved) {
+            return buildPlanResult({
+              status: "approved",
+              waitSkipped: true,
+              manualApprovalRequired: false,
+              reason: "auto_approved",
+              guidance: autoApproveReason
+                ? `Plan auto-approved: ${autoApproveReason}`
+                : "Plan was auto-approved by ControlKeel (low risk, no blocked findings, within policy).",
+            })
+          }
+
           const openError = typeof openPayload?.open_error === "string" ? openPayload.open_error.trim() : ""
           const openFailure = typeof openPayload?.error === "string" ? openPayload.error.trim() : ""
           const browserNotOpened = openPayload?.opened !== true
@@ -5037,7 +5053,7 @@ defmodule ControlKeel.Skills.Exporter do
   def opencode_submit_plan_command_contents do
     """
     ---
-    description: Submit the current plan to ControlKeel browser review and wait for approval
+    description: Submit the current plan to ControlKeel for approval
     ---
 
     Save the current plan to a markdown file, then submit it through ControlKeel.
@@ -5046,10 +5062,13 @@ defmodule ControlKeel.Skills.Exporter do
     1. Save the plan to `.opencode/review-plan.md`
     2. Ensure `controlkeel version` reports `>= 0.1.26`
     3. Run `controlkeel review plan submit --body-file .opencode/review-plan.md --submitted-by opencode --task-id <task_id> --json` (or use `--session-id <session_id>`)
-    4. Read the returned `review.id` and `browser_url`
-    5. Present the plan summary to the user and ask for approval in this conversation
-    6. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json` (or `ck_review_feedback`)
-    7. Do not execute until the review is approved
+    4. Read the returned `review.id`, `browser_url`, and `auto_approved`
+    5. If `auto_approved` is true, the plan was approved automatically (low risk, no blocked findings). Proceed.
+    6. Otherwise, present the plan summary to the user and ask for approval in this conversation
+    7. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json` (or `ck_review_feedback`)
+    8. Do not execute until the review is approved
+
+    Auto-approval: For low-risk work (small scope, no security concerns, within established patterns), the server may auto-approve. Check `auto_approved` in the response.
 
     Fallback when the `submit_plan` tool is stale in a long-running OpenCode session:
     - If the tool returns an error like `ControlKeel CLI [object Object] is too old`, run the CLI flow above directly.
@@ -5468,6 +5487,22 @@ defmodule ControlKeel.Skills.Exporter do
             reason: overrides.reason ?? null,
             guidance: overrides.guidance ?? null,
           })
+
+          // If the server auto-approved, skip the entire open/wait flow
+          const autoApproved = submitPayload?.auto_approved === true
+          const autoApproveReason = submitPayload?.auto_approve_reason ?? null
+
+          if (autoApproved) {
+            return buildPlanResult({
+              status: "approved",
+              waitSkipped: true,
+              manualApprovalRequired: false,
+              reason: "auto_approved",
+              guidance: autoApproveReason
+                ? `Plan auto-approved: ${autoApproveReason}`
+                : "Plan was auto-approved by ControlKeel (low risk, no blocked findings, within policy).",
+            })
+          }
 
           const openError = typeof openPayload?.open_error === "string" ? openPayload.open_error.trim() : ""
           const openFailure = typeof openPayload?.error === "string" ? openPayload.error.trim() : ""
@@ -6025,10 +6060,11 @@ defmodule ControlKeel.Skills.Exporter do
     Suggested flow:
     1. Save the current plan to `#{suggested_path}`.
     2. Run `controlkeel review plan submit --body-file #{suggested_path} --submitted-by #{submitted_by} --json`
-    3. Read the returned `review.id` and `browser_url` (if available).
-    4. Present the plan summary to the user and ask for approval in this conversation.
-    5. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json`.
-    6. Do not begin implementation until approval is returned.
+    3. Read the returned `review.id`, `browser_url`, and `auto_approved`
+    4. If `auto_approved` is true, the plan was approved automatically. Proceed.
+    5. Otherwise, present the plan summary to the user and ask for approval in this conversation.
+    6. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json`.
+    7. Do not begin implementation until approval is returned.
     """
   end
 
