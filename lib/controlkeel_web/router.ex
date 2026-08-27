@@ -218,6 +218,7 @@ defmodule ControlKeelWeb.Router do
     get "/benchmarks", ApiController, :list_benchmarks
     post "/benchmarks/runs", ApiController, :create_benchmark_run
     get "/benchmarks/runs/:id", ApiController, :get_benchmark_run
+    get "/benchmarks/runs/:id/compare", ApiController, :compare_benchmark_run
     post "/benchmarks/runs/:id/import", ApiController, :import_benchmark_result
     get "/benchmarks/runs/:id/export", ApiController, :export_benchmark_run
     get "/budget", ApiController, :get_budget

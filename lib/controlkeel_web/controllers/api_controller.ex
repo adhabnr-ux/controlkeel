@@ -621,6 +621,16 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
+  def compare_benchmark_run(conn, %{"id" => id}) do
+    case Benchmark.compare_run(id) do
+      {:ok, comparison} ->
+        json(conn, %{comparison: comparison})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "benchmark run not found"})
+    end
+  end
+
   def import_benchmark_result(conn, %{"id" => id, "subject" => subject} = params) do
     attrs = Map.take(params, ~w(scenario_slug content path kind duration_ms metadata))
 
