@@ -12,23 +12,39 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
 
   alias ControlKeel.Accounts
   alias ControlKeel.Accounts.Org
+  alias ControlKeel.Accounts.WorkspaceToolPolicy
+  alias ControlKeel.MCP.ToolGroups
   alias ControlKeel.Mission
   alias ControlKeel.Mission.Workspace
+  alias ControlKeel.Platform
   alias ControlKeel.Repo
+  alias ControlKeel.Runtime.Mode
 
   @impl true
   def mount(%{"id" => id, "slug" => slug} = _params, _session, socket) do
     with {ws_id, ""} <- Integer.parse(id),
-         %Workspace{} = workspace <- Repo.get(Workspace, ws_id),
+         %Workspace{} = workspace <- Repo.get(Workspace, ws_id) |> Repo.preload(:org),
          :ok <- check_org_slug(workspace, %{slug: slug}),
          :ok <- check_workspace_access(workspace, socket.assigns) do
       sessions = Mission.list_all_sessions(ws_id)
+      tool_policy = Accounts.get_workspace_tool_policy(ws_id)
 
       {:ok,
        socket
        |> assign(:page_title, workspace.name)
        |> assign(:workspace, workspace)
-       |> assign(:sessions, sessions)}
+       |> assign(
+         :breadcrumbs,
+         [
+           %{label: "Organizations", to: ~p"/organizations"},
+           %{label: workspace.org.name, to: ~p"/organizations/#{workspace.org.slug}"},
+           %{label: workspace.name, to: nil}
+         ]
+       )
+       |> assign(:sessions, sessions)
+       |> assign(:policy_assignments, Platform.list_workspace_policy_assignments(ws_id))
+       |> assign(:tool_policy_mode, tool_policy.mode)
+       |> assign(:tool_policy_tools, WorkspaceToolPolicy.decode_tools(tool_policy))}
     else
       :error ->
         {:ok, redirect_with_flash(socket, :error, "Invalid workspace id.", ~p"/organizations")}
@@ -53,8 +69,8 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="w-full space-y-12">
-      <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+    <section class="w-full space-y-10">
+      <div class="flex flex-col md:flex-row justify-between gap-6">
         <div class="space-y-2">
           <div class="flex flex-wrap items-center gap-3">
             <h1 class="text-xl font-semibold tracking-tight sm:text-2xl text-foreground">
@@ -70,53 +86,37 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
             </span>
           </div>
 
-          <p class="text-sm text-muted-foreground">
-            Sessions launched under this workspace are indexed here.
+          <p class="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-xs text-muted-foreground">
+            <span class="font-mono">{@workspace.slug}</span>
+
+            <button
+              type="button"
+              aria-label="Copy workspace slug"
+              title="Copy slug"
+              phx-click={JS.dispatch("phx:copy-to-clipboard", detail: %{text: @workspace.slug})}
+              class="inline-flex items-center rounded p-0.5 text-muted-foreground transition hover:text-primary"
+            >
+              <.icon name="hero-clipboard" class="size-3.5" />
+            </button>
+
+            <span aria-hidden="true">·</span>
+            <span>
+              <%= if @workspace.budget_cents > 0 do %>
+                {"$#{Float.round(@workspace.budget_cents / 100, 2)}/mo budget"}
+              <% else %>
+                No monthly budget
+              <% end %>
+            </span>
           </p>
         </div>
 
-        <div class="flex flex-wrap gap-x-8 gap-y-3">
-          <div class="flex flex-col gap-1">
-            <span class="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Slug
-            </span>
-            <span class="font-mono text-sm text-foreground">{@workspace.slug}</span>
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <span class="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Sessions
-            </span>
-            <span class="text-sm font-semibold text-foreground">{length(@sessions)}</span>
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <span class="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Monthly budget
-            </span>
-            <span class="text-sm font-semibold text-foreground">
-              <%= if @workspace.budget_cents > 0 do %>
-                {"$#{Float.round(@workspace.budget_cents / 100, 2)}"}
-              <% else %>
-                <span class="text-muted-foreground">—</span>
-              <% end %>
-            </span>
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <span class="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Created
-            </span>
-            <span class="text-sm text-foreground">
-              {Calendar.strftime(@workspace.inserted_at, "%b %d, %Y")}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div class="flex items-center justify-between gap-3 mb-4">
-          <.section_title>Sessions</.section_title>
+        <div>
+          <.link
+            navigate={~p"/organizations/#{@workspace.org.slug}/workspaces/#{@workspace.id}/settings"}
+            class="inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+          >
+            <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+          </.link>
 
           <.link
             navigate={~p"/sessions/start"}
@@ -125,8 +125,144 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
             <.icon name="hero-plus" class="size-4" /> New Session
           </.link>
         </div>
+      </div>
 
-        <div class="bg-card border rounded-2xl shadow-card overflow-clip">
+      <div class="space-y-4">
+        <div class="space-y-1">
+          <.section_title>Governance</.section_title>
+          <p class="text-sm text-muted-foreground">
+            Controls currently applied to this workspace
+          </p>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+          <section class="rounded-2xl border bg-card p-5 shadow-card">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-sm font-semibold text-muted-foreground">Applied policies</p>
+              <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                {length(@policy_assignments)} applied
+              </span>
+            </div>
+
+            <%= if @policy_assignments == [] do %>
+              <p class="mt-4 text-sm text-muted-foreground">
+                No policy sets applied to this workspace. Go to settings to apply policy sets to
+                this workspace.
+              </p>
+            <% else %>
+              <ul class="mt-4 max-h-96 divide-y divide-border overflow-y-auto">
+                <%= for a <- @policy_assignments do %>
+                  <% entries =
+                    a.policy_set
+                    |> Platform.PolicySet.rule_entries()
+                    |> Enum.filter(&is_binary(&1["id"])) %>
+                  <li class="py-3 first:pt-0 last:pb-0">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <p class="text-sm font-semibold text-foreground">
+                        {a.policy_set.name}
+                      </p>
+                      <span class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-border">
+                        precedence {a.precedence}
+                        <%= unless a.enabled do %>
+                          , disabled
+                        <% end %>
+                      </span>
+                    </div>
+
+                    <%= if a.policy_set.description not in [nil, ""] do %>
+                      <p class="mt-0.5 text-xs text-muted-foreground">{a.policy_set.description}</p>
+                    <% end %>
+
+                    <%= if entries != [] do %>
+                      <div class="mt-2 space-y-1.5">
+                        <%= for rule <- entries do %>
+                          <div class="flex flex-wrap items-center gap-2">
+                            <.rule_tag
+                              action={rule["action"]}
+                              title={rule["action"]}
+                              class="px-2 py-0.5 text-[10px] font-semibold uppercase"
+                            >
+                              {rule["action"]}
+                            </.rule_tag>
+                            <span class="font-mono text-xs text-foreground">{rule["id"]}</span>
+                            <span class="text-xs text-muted-foreground">{rule["plain_message"]}</span>
+                          </div>
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <p class="mt-1 text-xs text-muted-foreground">No rules in this set.</p>
+                    <% end %>
+                  </li>
+                <% end %>
+              </ul>
+            <% end %>
+          </section>
+
+          <section class="rounded-2xl border bg-card p-5 shadow-card">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-sm font-semibold text-muted-foreground">Agent tools</p>
+              <div class="flex items-center gap-3">
+                <span class={[
+                  "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1",
+                  @tool_policy_mode == "allowlist" && "bg-info/10 text-info ring-info/20",
+                  @tool_policy_mode == "denylist" &&
+                    "bg-destructive/10 text-destructive ring-destructive/20",
+                  @tool_policy_mode == "inherit" && "bg-muted text-muted-foreground ring-border"
+                ]}>
+                  {@tool_policy_mode}
+                </span>
+
+                <.link
+                  navigate={
+                    ~p"/organizations/#{@workspace.org.slug}/workspaces/#{@workspace.id}/settings?tab=agent_tools"
+                  }
+                  class="text-xs font-medium text-primary transition hover:text-primary/80"
+                >
+                  Manage tools
+                </.link>
+              </div>
+            </div>
+
+            <%= cond do %>
+              <% @tool_policy_mode == "inherit" -> %>
+                <p class="mt-4 text-sm text-muted-foreground">
+                  Falls back to the global allowlist — no workspace override is set.
+                </p>
+              <% @tool_policy_tools == [] -> %>
+                <p class="mt-4 text-sm font-medium text-warning">
+                  No tools listed — every call is rejected.
+                </p>
+              <% true -> %>
+                <p class="mt-4 text-xs text-muted-foreground">
+                  {length(@tool_policy_tools)} tools governed by this workspace's gate.
+                </p>
+
+                <ul class="mt-2 max-h-96 divide-y divide-border overflow-y-auto">
+                  <%= for tool <- @tool_policy_tools do %>
+                    <li class="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                      <span class="font-mono text-xs text-foreground">{tool}</span>
+                      <%= if tool not in ToolGroups.all_tools() do %>
+                        <span class="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning ring-1 ring-warning/20">
+                          not in catalog
+                        </span>
+                      <% end %>
+                    </li>
+                  <% end %>
+                </ul>
+            <% end %>
+          </section>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex items-center gap-2 mb-4">
+          <.section_title>Sessions</.section_title>
+          <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            {length(@sessions)} total
+          </span>
+        </div>
+
+        <div class="bg-card border rounded-2xl shadow-card max-h-[32rem] overflow-y-auto">
           <table class="min-w-full divide-y divide-border text-left text-sm">
             <thead class="bg-muted text-xs uppercase tracking-[0.14em] text-muted-foreground sticky top-0 z-10">
               <tr>
@@ -135,13 +271,12 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
                 <th class="px-5 py-3 font-semibold">Workload</th>
                 <th class="px-5 py-3 font-semibold">Findings</th>
                 <th class="px-5 py-3 font-semibold">Budget</th>
-                <th class="px-5 py-3 font-semibold w-px whitespace-nowrap"></th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border">
               <%= if @sessions == [] do %>
                 <tr>
-                  <td colspan="6" class="px-5 py-12 text-center">
+                  <td colspan="5" class="px-5 py-12 text-center">
                     <p class="text-base font-medium text-foreground">No sessions yet.</p>
                     <p class="mt-1 text-sm text-muted-foreground">
                       Sessions launched under this workspace will appear here.
@@ -152,7 +287,12 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
                 <%= for session <- @sessions do %>
                   <tr class="transition hover:bg-muted/30">
                     <td class="max-w-sm px-5 py-4">
-                      <p class="font-medium text-foreground">{session.title}</p>
+                      <.link
+                        navigate={~p"/sessions/#{session.id}"}
+                        class="font-medium text-foreground hover:underline"
+                      >
+                        {session.title}
+                      </.link>
                       <p class="mt-1 line-clamp-1 text-xs text-muted-foreground">
                         {session.objective}
                       </p>
@@ -187,14 +327,6 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
                     <td class="px-5 py-4 text-muted-foreground">
                       ${session.budget_cents |> Kernel./(100) |> trunc()}
                     </td>
-                    <td class="px-4 text-right whitespace-nowrap w-px">
-                      <.link
-                        navigate={~p"/sessions/#{session.id}"}
-                        class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
-                      >
-                        Inspect <.icon name="hero-arrow-right" class="size-3" />
-                      </.link>
-                    </td>
                   </tr>
                 <% end %>
               <% end %>
@@ -206,18 +338,28 @@ defmodule ControlKeelWeb.WorkspaceDetailLive do
     """
   end
 
-  defp check_workspace_access(%Workspace{org_id: ws_org_id}, assigns) do
-    case assigns[:current_org_id] do
-      nil ->
-        :ok
-
-      org_id when is_integer(org_id) and org_id == ws_org_id ->
-        :ok
-
-      _ ->
-        {:error, "Workspace belongs to a different organization."}
+  # TODO(auth): the workspace lookup + access checks below are duplicated
+  # across workspace LiveViews. Extract into a shared on_mount hook when
+  # centralized auth lands (CLI/web parity PR).
+  # View access: local mode is open; cloud mode requires membership of the
+  # workspace's org (no role requirement — role gates live on write surfaces).
+  defp check_workspace_access(workspace, assigns) do
+    if Mode.current() == :local do
+      :ok
+    else
+      check_cloud_workspace_access(workspace, assigns)
     end
   end
+
+  defp check_cloud_workspace_access(%Workspace{org_id: nil}, _),
+    do: {:error, "Workspace is not bound to an org."}
+
+  defp check_cloud_workspace_access(%Workspace{org_id: ws_org}, %{current_org_id: org_id})
+       when is_integer(ws_org) and ws_org == org_id,
+       do: :ok
+
+  defp check_cloud_workspace_access(_, _),
+    do: {:error, "Workspace belongs to a different organization."}
 
   defp redirect_with_flash(socket, kind, msg, path) do
     socket

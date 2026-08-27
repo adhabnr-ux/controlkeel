@@ -4,7 +4,9 @@ defmodule ControlKeelWeb.WorkspaceDetailLiveTest do
   import Phoenix.LiveViewTest
 
   alias ControlKeel.Accounts
+  alias ControlKeel.Accounts.Membership
   alias ControlKeel.Mission
+  alias ControlKeel.Repo
 
   defp create_user!(email) do
     {:ok, user} = Accounts.create_user(%{email: email})
@@ -57,14 +59,62 @@ defmodule ControlKeelWeb.WorkspaceDetailLiveTest do
 
       assert html =~ "Core"
       assert html =~ "core"
-      # Header stat row mirrors the org home layout.
-      assert html =~ "Slug"
-      assert html =~ "Sessions"
-      assert html =~ "Monthly budget"
+      # Meta line presents workspace facts inline, not as stat columns.
+      assert html =~ "2 total"
+      assert html =~ "No monthly budget"
       # Session rows render in the sessions-style table.
       assert html =~ "First session"
       assert html =~ "Second session"
-      assert html =~ "$100"
+    end
+
+    test "renders applied policy sets with rules revealed on hover markup", %{} do
+      {:ok, org} = Accounts.create_org(%{name: "PolWs", slug: "polws"})
+      ws = create_workspace(%{name: "Pol", slug: "pol", industry: "web", org_id: org.id})
+
+      {:ok, set} =
+        ControlKeel.Platform.create_policy_set(%{
+          "name" => "no-rm-rf",
+          "description" => "Block destructive deletes",
+          "rules" => [
+            %{
+              "id" => "shell.destructive_rm_rf",
+              "category" => "security",
+              "severity" => "critical",
+              "action" => "block",
+              "plain_message" => "Recursive force-delete commands are blocked.",
+              "matcher" => %{"type" => "regex", patterns: ["rm -rf"]}
+            }
+          ]
+        })
+
+      {:ok, _assignment} = ControlKeel.Platform.apply_policy_set(ws.id, set.id, %{precedence: 10})
+
+      {:ok, _view, html} = live(build_conn(), ~p"/organizations/#{org.slug}/workspaces/#{ws.id}")
+
+      assert html =~ "Applied policies"
+      assert html =~ "precedence 10"
+      assert html =~ "shell.destructive_rm_rf"
+      assert html =~ "Recursive force-delete commands are blocked."
+    end
+
+    test "renders a marker for disabled policy assignments" do
+      {:ok, org} = Accounts.create_org(%{name: "DisWs", slug: "disws"})
+      ws = create_workspace(%{name: "Dis", slug: "dis", industry: "web", org_id: org.id})
+
+      set =
+        ControlKeel.PlatformFixtures.policy_set_fixture(%{name: "paused-set"})
+
+      {:ok, _} =
+        ControlKeel.Platform.apply_policy_set(ws.id, set.id, %{
+          "precedence" => 7,
+          "enabled" => false
+        })
+
+      {:ok, _view, html} = live(build_conn(), ~p"/organizations/disws/workspaces/#{ws.id}")
+
+      assert html =~ "paused-set"
+      assert html =~ "precedence 7"
+      assert html =~ ", disabled"
     end
 
     test "shows an empty state when the workspace has no sessions" do
@@ -139,6 +189,36 @@ defmodule ControlKeelWeb.WorkspaceDetailLiveTest do
 
       assert html =~ "Scoped"
       assert html =~ "Scoped"
+    end
+
+    test "a viewer role member of the workspace's org can view it" do
+      owner = create_user!("ws-view-owner@example.com")
+      {:ok, org} = Accounts.create_org_with_owner(owner.id, %{name: "ViewCo", slug: "viewco"})
+
+      ws =
+        create_workspace(%{name: "Viewable", slug: "viewable", industry: "web", org_id: org.id})
+
+      viewer = create_user!("ws-viewer@example.com")
+
+      %Membership{}
+      |> Membership.changeset(%{
+        user_id: viewer.id,
+        org_id: org.id,
+        role: "viewer",
+        status: "active"
+      })
+      |> Repo.insert!()
+
+      conn =
+        build_conn()
+        |> Plug.Test.init_test_session(%{
+          "current_user_id" => viewer.id,
+          "current_org_id" => org.id
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/organizations/viewco/workspaces/#{ws.id}")
+
+      assert html =~ "Viewable"
     end
 
     test "a user outside the org is refused access" do

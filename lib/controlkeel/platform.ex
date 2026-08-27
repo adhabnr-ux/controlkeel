@@ -149,16 +149,44 @@ defmodule ControlKeel.Platform do
     |> Repo.insert()
   end
 
-  def list_workspace_policy_sets(workspace_id) do
-    WorkspacePolicySet
-    |> where(
-      [assignment],
-      assignment.workspace_id == ^workspace_id and assignment.enabled == true
-    )
-    |> order_by([assignment], asc: assignment.precedence, asc: assignment.id)
-    |> preload(:policy_set)
+  @doc """
+  Enabled assignments for `workspace_id` (every workspace when `nil`), ordered
+  by precedence. Rule evaluation path — disabled assignments never run.
+  """
+  def list_workspace_policy_sets(workspace_id \\ nil)
+
+  def list_workspace_policy_sets(workspace_id)
+      when is_nil(workspace_id) or is_integer(workspace_id) do
+    workspace_id
+    |> workspace_policy_set_query()
+    |> where([assignment], assignment.enabled == true)
     |> Repo.all()
   end
+
+  @doc """
+  All assignments for `workspace_id` (every workspace when `nil`), including
+  disabled ones. Display counterpart to `list_workspace_policy_sets/1`.
+  """
+  def list_workspace_policy_assignments(workspace_id \\ nil)
+
+  def list_workspace_policy_assignments(workspace_id)
+      when is_nil(workspace_id) or is_integer(workspace_id) do
+    workspace_id
+    |> workspace_policy_set_query()
+    |> Repo.all()
+  end
+
+  defp workspace_policy_set_query(workspace_id) do
+    WorkspacePolicySet
+    |> maybe_where_workspace(workspace_id)
+    |> order_by([assignment], asc: assignment.precedence, asc: assignment.id)
+    |> preload(:policy_set)
+  end
+
+  defp maybe_where_workspace(query, nil), do: query
+
+  defp maybe_where_workspace(query, workspace_id) when is_integer(workspace_id),
+    do: where(query, [assignment], assignment.workspace_id == ^workspace_id)
 
   def apply_policy_set(workspace_id, policy_set_id, attrs \\ %{}) do
     attrs =
@@ -174,6 +202,17 @@ defmodule ControlKeel.Platform do
       on_conflict: [set: [precedence: attrs["precedence"] || 100, enabled: attrs["enabled"]]],
       conflict_target: [:workspace_id, :policy_set_id]
     )
+  end
+
+  def remove_workspace_policy_set(workspace_id, policy_set_id)
+      when is_integer(workspace_id) and is_integer(policy_set_id) do
+    case Repo.get_by(WorkspacePolicySet, workspace_id: workspace_id, policy_set_id: policy_set_id) do
+      nil ->
+        {:error, :not_found}
+
+      assignment ->
+        Repo.delete(assignment)
+    end
   end
 
   def workspace_policy_rules(workspace_id) when is_integer(workspace_id) do

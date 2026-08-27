@@ -353,6 +353,7 @@ defmodule ControlKeelWeb.CoreComponents do
   attr :value, :any
   attr :type, :string, default: "text"
   attr :field, Phoenix.HTML.FormField
+  attr :errors, :list, default: [], doc: "error messages rendered below the input"
   attr :hint, :string, default: nil
   attr :icon, :string, default: nil
   attr :class, :any, default: nil, doc: "additional classes appended to the default styling"
@@ -372,9 +373,11 @@ defmodule ControlKeelWeb.CoreComponents do
         id={@id}
         name={@name}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
+        aria-invalid={@errors != [] || nil}
         class={[input_component_field_class(), @class]}
         {@rest}
       />
+      <.component_field_error :for={msg <- @errors} message={msg} />
       <.component_field_hint :if={@hint} hint={@hint} />
     </div>
     """
@@ -399,6 +402,7 @@ defmodule ControlKeelWeb.CoreComponents do
   attr :label, :string, required: true
   attr :value, :any
   attr :field, Phoenix.HTML.FormField
+  attr :errors, :list, default: [], doc: "error messages rendered below the textarea"
   attr :hint, :string, default: nil
   attr :icon, :string, default: nil
   attr :class, :any, default: nil, doc: "additional classes appended to the default styling"
@@ -416,9 +420,11 @@ defmodule ControlKeelWeb.CoreComponents do
       <textarea
         id={@id}
         name={@name}
+        aria-invalid={@errors != [] || nil}
         class={[textarea_component_field_class(), @class]}
         {@rest}
       >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
+      <.component_field_error :for={msg <- @errors} message={msg} />
       <.component_field_hint :if={@hint} hint={@hint} />
     </div>
     """
@@ -443,11 +449,20 @@ defmodule ControlKeelWeb.CoreComponents do
     """
   end
 
+  attr :message, :string, required: true
+
+  defp component_field_error(assigns) do
+    ~H"""
+    <p class="mt-1.5 text-xs font-medium text-destructive">{@message}</p>
+    """
+  end
+
   defp assign_component_field(%{field: %Phoenix.HTML.FormField{} = field} = assigns) do
     assigns
     |> assign(field: nil, id: assigns.id || field.id)
     |> assign_new(:name, fn -> field.name end)
     |> assign_new(:value, fn -> field.value end)
+    |> assign(:errors, Enum.map(field.errors, &translate_error(&1)))
   end
 
   defp assign_component_field(assigns), do: assigns
@@ -552,6 +567,35 @@ defmodule ControlKeelWeb.CoreComponents do
     """
   end
 
+  @doc """
+  Renders a policy rule pill. Color reflects `action` (`block` / `warn` /
+  `escalate_to_human`); the label content goes in the inner block.
+
+  ## Examples
+
+      <.rule_tag action="block" class="px-2.5 py-1 text-xs font-medium">no rm rf</.rule_tag>
+  """
+  attr :action, :string, required: true
+  attr :title, :string, default: nil
+  attr :class, :any, default: nil, doc: "spacing/typography classes appended to the pill"
+  slot :inner_block, required: true, doc: "rule label"
+
+  def rule_tag(assigns) do
+    ~H"""
+    <span
+      title={@title}
+      class={["inline-flex rounded-full ring-1", rule_tag_class(@action), @class]}
+    >
+      {render_slot(@inner_block)}
+    </span>
+    """
+  end
+
+  defp rule_tag_class("block"), do: "bg-destructive/10 text-destructive ring-destructive/20"
+  defp rule_tag_class("warn"), do: "bg-warning/10 text-warning ring-warning/20"
+  defp rule_tag_class("escalate_to_human"), do: "bg-info/10 text-info ring-info/20"
+  defp rule_tag_class(_), do: "bg-muted text-muted-foreground ring-border"
+
   ## JS Commands
 
   def show(js \\ %JS{}, selector) do
@@ -573,6 +617,63 @@ defmodule ControlKeelWeb.CoreComponents do
         {"transition-all ease-in duration-200", "opacity-100 translate-y-0 sm:scale-100",
          "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"}
     )
+  end
+
+  @doc """
+  Renders a modal dialog shell: overlay, Escape-to-close, close button, and
+  focus-on-open. Content goes in the inner block; the LiveView owning the
+  modal handles the `on_close` event by toggling its open assign.
+
+  ## Examples
+
+      <.modal id="my-modal" title="Title" on_close="close_modal">
+        body
+      </.modal>
+  """
+  attr :id, :string, required: true
+  attr :title, :string, required: true
+  attr :on_close, :string, required: true, doc: "event pushed on backdrop click, X, or Escape"
+  attr :width, :string, default: "max-w-2xl"
+  slot :inner_block, required: true
+
+  def modal(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class="relative z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={"#{@id}-title"}
+      phx-mounted={JS.show(to: "##{@id}") |> JS.focus_first(to: "##{@id}")}
+      phx-remove={JS.hide(to: "##{@id}")}
+      phx-window-keydown={JS.push(@on_close)}
+      phx-key="escape"
+    >
+      <div
+        class="fixed inset-0 bg-overlay/70 backdrop-blur-sm transition-opacity"
+        phx-click={@on_close}
+        aria-hidden="true"
+      />
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class={"max-h-[90vh] w-full overflow-y-auto rounded-2xl border bg-card p-6 shadow-card #{@width}"}>
+          <div class="mb-5 flex items-center justify-between">
+            <h2 id={"#{@id}-title"} class="text-lg font-semibold text-foreground">
+              {@title}
+            </h2>
+            <button
+              type="button"
+              phx-click={@on_close}
+              class="rounded-md text-muted-foreground transition hover:text-foreground"
+              aria-label="Close"
+            >
+              <.icon name="hero-x-mark" class="size-5" />
+            </button>
+          </div>
+          {render_slot(@inner_block)}
+        </div>
+      </div>
+    </div>
+    """
   end
 
   @doc """
