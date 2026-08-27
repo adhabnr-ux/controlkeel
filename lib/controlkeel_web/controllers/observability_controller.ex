@@ -1,10 +1,10 @@
 defmodule ControlKeelWeb.ObservabilityController do
   use ControlKeelWeb, :controller
 
-  # TODO: Add `plug ControlKeelWeb.Plugs.RequireSessionAuth` when OAuth/session auth
-  # lands (refactor/web-auth). Should mirror LiveAuth.require_cloud_auth: passthrough
-  # in local mode, require membership in cloud/self_hosted, verify org ownership of
-  # the session's workspace to prevent cross-org data leakage.
+  # Mirrors LiveAuth.require_cloud_auth: passthrough in local mode, requires a
+  # signed-in user in cloud/self_hosted, and verifies org ownership of the
+  # session's workspace to prevent cross-org data leakage (CK-AUTH-001).
+  plug ControlKeelWeb.Plugs.RequireSessionAuth
 
   alias ControlKeel.Observability.Telemetry
 

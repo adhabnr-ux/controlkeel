@@ -7,6 +7,7 @@ defmodule ControlKeelWeb.DeployReviewLive do
 
   use ControlKeelWeb, :live_view
 
+  alias ControlKeel.Accounts
   alias ControlKeel.Mission
   alias ControlKeel.Ops.DeploymentAdvisor
   alias ControlKeel.Ops.HostingCost
@@ -30,7 +31,7 @@ defmodule ControlKeelWeb.DeployReviewLive do
          |> push_navigate(to: ~p"/")}
 
       session when not is_nil(org_id) and not is_nil(session) ->
-        if session_accessible?(session, org_id) do
+        if Accounts.session_accessible?(session, org_id) do
           {:ok, mount_session(socket, session)}
         else
           {:ok,
@@ -320,10 +321,4 @@ defmodule ControlKeelWeb.DeployReviewLive do
   end
 
   defp parse_non_negative_int(_value, default), do: default
-
-  defp session_accessible?(%{workspace_id: ws_id}, org_id) when is_integer(org_id) do
-    org_id
-    |> ControlKeel.Accounts.list_workspaces_for_org()
-    |> Enum.any?(fn ws -> ws.id == ws_id end)
-  end
 end

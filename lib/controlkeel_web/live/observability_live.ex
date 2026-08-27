@@ -1,6 +1,7 @@
 defmodule ControlKeelWeb.ObservabilityLive do
   use ControlKeelWeb, :live_view
 
+  alias ControlKeel.Accounts
   alias ControlKeel.Observability
   alias ControlKeelWeb.CommandPill
 
@@ -13,7 +14,7 @@ defmodule ControlKeelWeb.ObservabilityLive do
 
     case Observability.session_run(id) do
       {:ok, run} ->
-        if org_owns_session?(org_id, run.session) do
+        if Accounts.session_accessible?(run.session, org_id) do
           {:ok,
            socket
            |> assign(:page_title, "Observability — #{run.session.title}")
@@ -34,16 +35,6 @@ defmodule ControlKeelWeb.ObservabilityLive do
          |> push_navigate(to: ~p"/")}
     end
   end
-
-  defp org_owns_session?(nil, _session), do: true
-
-  defp org_owns_session?(org_id, %{workspace_id: ws_id}) when is_integer(org_id) do
-    org_id
-    |> ControlKeel.Accounts.list_workspaces_for_org()
-    |> Enum.any?(fn ws -> ws.id == ws_id end)
-  end
-
-  defp org_owns_session?(_org_id, _session), do: true
 
   @impl true
   def render(assigns) do

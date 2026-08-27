@@ -634,6 +634,29 @@ defmodule ControlKeel.Accounts do
   end
 
   @doc """
+  Shared session-access gate for org-scoped surfaces.
+
+  Returns `true` when `session` is accessible from `org_id`:
+
+    * `org_id` is `nil` (local mode, or no org selected) — passthrough.
+    * otherwise the session's workspace must belong to the org.
+
+  Every web surface that renders org-scoped session data should route its
+  access decision through this predicate instead of copying the
+  workspace-membership check per view (issue #83).
+  """
+  @spec session_accessible?(%{workspace_id: integer() | nil}, integer() | nil) :: boolean()
+  def session_accessible?(_session, nil), do: true
+
+  def session_accessible?(%{workspace_id: ws_id}, org_id) when is_integer(org_id) do
+    org_id
+    |> list_workspaces_for_org()
+    |> Enum.any?(&(&1.id == ws_id))
+  end
+
+  def session_accessible?(_session, _org_id), do: true
+
+  @doc """
   List workspaces visible to a user through their active memberships.
 
   Returns workspaces of every org where the user has an `active` membership.

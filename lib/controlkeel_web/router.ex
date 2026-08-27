@@ -164,6 +164,8 @@ defmodule ControlKeelWeb.Router do
   scope "/", ControlKeelWeb do
     pipe_through [:browser, :require_cloud_auth]
 
+    # Session export is auth-gated via Plugs.RequireSessionAuth (mirrors
+    # LiveAuth.require_cloud_auth plus org ownership of the session).
     get "/observability/sessions/:id/export.json", ObservabilityController, :export_session
   end
 
