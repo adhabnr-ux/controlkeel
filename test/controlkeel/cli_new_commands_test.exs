@@ -306,7 +306,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
 
       assert Enum.any?(
                open_lines,
-               &String.contains?(&1, "Manual approval fallback")
+               &String.contains?(&1, "ask the user for explicit approval")
              )
 
       assert {:ok, respond_lines} =

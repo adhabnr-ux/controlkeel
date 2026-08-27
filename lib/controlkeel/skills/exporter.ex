@@ -744,8 +744,10 @@ defmodule ControlKeel.Skills.Exporter do
 
     1. Save the plan to `.roo/review-plan.md`.
     2. Run `controlkeel review plan submit --body-file .roo/review-plan.md --submitted-by roo-code --json`.
-    3. Wait with `controlkeel review plan wait --id <review_id> --json`.
-    4. Do not continue until ControlKeel approves the plan.
+    3. Read the returned `review.id` and `browser_url` (if available).
+    4. Present the plan summary to the user and ask for approval in this conversation.
+    5. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json`.
+    6. Do not execute until the review is approved.
     """
   end
 
@@ -833,8 +835,10 @@ defmodule ControlKeel.Skills.Exporter do
 
     1. Save the plan to `goose/review-plan.md`.
     2. Run `controlkeel review plan submit --body-file goose/review-plan.md --submitted-by goose --json`.
-    3. Wait with `controlkeel review plan wait --id <review_id> --json`.
-    4. Continue only after approval.
+    3. Read the returned `review.id` and `browser_url` (if available).
+    4. Present the plan summary to the user and ask for approval in this conversation.
+    5. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json`.
+    6. Do not execute until the review is approved.
     """
   end
 
@@ -966,8 +970,10 @@ defmodule ControlKeel.Skills.Exporter do
 
     1. Save the current implementation plan to `.factory/review-plan.md`.
     2. Run `controlkeel review plan submit --body-file .factory/review-plan.md --submitted-by droid --json`.
-    3. Wait with `controlkeel review plan wait --id <review_id> --json`.
-    4. Do not begin implementation until the review is approved.
+    3. Read the returned `review.id` and `browser_url` (if available).
+    4. Present the plan summary to the user and ask for approval in this conversation.
+    5. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json`.
+    6. Do not begin implementation until the review is approved.
     """
   end
 
@@ -997,7 +1003,7 @@ defmodule ControlKeel.Skills.Exporter do
 
     1. Read the last stored review id from your notes or prior command output.
     2. Run `controlkeel review plan open --id <review_id> --json`.
-    3. If the review is still pending, run `controlkeel review plan wait --id <review_id> --json`.
+    3. If the review is still pending, ask the user for approval in this conversation, then record it with `controlkeel review plan respond <review_id> --decision approved --json`.
     """
   end
 
@@ -2727,8 +2733,10 @@ defmodule ControlKeel.Skills.Exporter do
 
     1. Save the current plan to `.cline/review-plan.md`.
     2. Run `controlkeel review plan submit --body-file .cline/review-plan.md --submitted-by cline --json`.
-    3. Wait with `controlkeel review plan wait --id <review_id> --json`.
-    4. Do not execute until the review is approved.
+    3. Read the returned `review.id` and `browser_url` (if available).
+    4. Present the plan summary to the user and ask for approval in this conversation.
+    5. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json`.
+    6. Do not execute until the review is approved.
     """
   end
 
@@ -2788,8 +2796,10 @@ defmodule ControlKeel.Skills.Exporter do
 
     1. Save the current plan to `.cursor/review-plan.md`.
     2. Run `controlkeel review plan submit --body-file .cursor/review-plan.md --submitted-by cursor --json`.
-    3. Wait with `controlkeel review plan wait --id <review_id> --json`.
-    4. Only implement after approval.
+    3. Read the returned `review.id` and `browser_url` (if available).
+    4. Present the plan summary to the user and ask for approval in this conversation.
+    5. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json`.
+    6. Only implement after approval.
     """
   end
 
@@ -2803,8 +2813,9 @@ defmodule ControlKeel.Skills.Exporter do
     1. Capture the current diff: `git diff --staged` (or `git diff` for unstaged).
     2. Call `ck_validate` with `content` set to the diff and `kind: "code"`.
     3. If validation passes, call `ck_review_submit` with `review_type: "diff"`, `submission_body` set to the diff, and `submitted_by: "cursor"`.
-    4. Wait for review with `ck_review_status` or `controlkeel review plan wait --id <review_id> --json`.
-    5. Only commit after approval.
+    4. Read the returned review.id. Present the diff summary to the user and ask for approval in this conversation.
+    5. After approval, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json` (or `ck_review_feedback`).
+    6. Only commit after approval.
     """
   end
 
@@ -3655,8 +3666,10 @@ defmodule ControlKeel.Skills.Exporter do
 
     1. Save the current plan to `.augment/review-plan.md`.
     2. Run `controlkeel review plan submit --body-file .augment/review-plan.md --submitted-by augment --json`.
-    3. Wait with `controlkeel review plan wait --id <review_id> --json`.
-    4. Do not implement until the review is approved.
+    3. Read the returned `review.id` and `browser_url` (if available).
+    4. Present the plan summary to the user and ask for approval in this conversation.
+    5. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json`.
+    6. Do not implement until the review is approved.
     """
   end
 
@@ -3719,7 +3732,7 @@ defmodule ControlKeel.Skills.Exporter do
 
     In headless runs, prefer structured CLI calls:
     - `controlkeel review plan submit --json`
-    - `controlkeel review plan wait --json`
+    - `controlkeel review plan respond <id> --decision approved --json` (after inline approval)
     - `controlkeel findings --format json`
     """
   end
@@ -3738,7 +3751,7 @@ defmodule ControlKeel.Skills.Exporter do
     name: controlkeel-submit-plan
     description: Submit the current plan to ControlKeel and wait for review.
     prompt: |
-      Save the plan to `.continue/review-plan.md`, run `controlkeel review plan submit --body-file .continue/review-plan.md --submitted-by continue --json`, then wait with `controlkeel review plan wait --id <review_id> --json`.
+      Save the plan to `.continue/review-plan.md`, run `controlkeel review plan submit --body-file .continue/review-plan.md --submitted-by continue --json`. Read the returned review.id and browser_url. Present the plan summary to the user and ask for approval in this conversation. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json`.
     """
   end
 
@@ -4821,7 +4834,11 @@ defmodule ControlKeel.Skills.Exporter do
             browserUrl.includes("localhost") &&
             openPayload?.remote === true
 
-          if (!browserUrl || serverUnavailable || openError || openFailure || remoteLocalhostMismatch || browserNotOpened) {
+          // Default: always return inline approval guidance.
+          const browserAvailable =
+            browserUrl && !serverUnavailable && !openError && !openFailure && !remoteLocalhostMismatch && !browserNotOpened
+
+          if (!browserAvailable) {
             return buildPlanResult({
               waitSkipped: true,
               manualApprovalRequired: true,
@@ -4834,9 +4851,28 @@ defmodule ControlKeel.Skills.Exporter do
                       ? "browser_not_opened"
                       : "browser_unreachable",
               guidance:
-                "Browser review is unavailable, the CK review server is not reachable, or the browser did not actually open. Ask the user for explicit approval in chat, then record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes \"User approved in chat; browser/review server unavailable\" --json` or `ck_review_feedback`.",
+                "Ask the user for explicit approval in this conversation. " +
+                "Present the plan summary and ask: 'Do you approve this plan? (yes/no)'. " +
+                "After the user says yes, record it with: `controlkeel review plan respond <review_id> --decision approved --feedback-notes \"User approved in chat\" --json` " +
+                "or call `ck_review_feedback` with review_id=<review_id> decision=\"approved\".",
             })
           }
+
+          // Browser is available. If the caller explicitly passed wait_timeout_seconds,
+          // honor it (opt-in blocking). Otherwise, return immediately with inline guidance.
+          if (waitTimeoutSeconds == null) {
+            return buildPlanResult({
+              waitSkipped: true,
+              manualApprovalRequired: false,
+              reason: "browser_available_inline_default",
+              guidance:
+                "Browser review is available at: " + browserUrl + "\n" +
+                "You can: (a) ask the user to approve inline in this conversation, or (b) pass wait_timeout_seconds to block until the browser review is completed. " +
+                "To record inline approval: `controlkeel review plan respond <review_id> --decision approved --feedback-notes \"User approved in chat\" --json`.",
+            })
+          }
+
+          // Opt-in blocking: caller explicitly asked to wait for browser review.
 
           const waitEnv = process.env.LOGGER_LEVEL
             ? process.env
@@ -5011,8 +5047,8 @@ defmodule ControlKeel.Skills.Exporter do
     2. Ensure `controlkeel version` reports `>= 0.1.26`
     3. Run `controlkeel review plan submit --body-file .opencode/review-plan.md --submitted-by opencode --task-id <task_id> --json` (or use `--session-id <session_id>`)
     4. Read the returned `review.id` and `browser_url`
-    5. If `browser_url` is available, wait with `controlkeel review plan wait --id <review_id> --timeout 30 --json`
-    6. If `browser_url` is missing/unreachable, the browser does not actually open, **or** wait times out while still `pending`, do **not** loop on wait; ask for explicit user approval in chat and record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat; browser unavailable or timed out" --json` (or `ck_review_feedback`)
+    5. Present the plan summary to the user and ask for approval in this conversation
+    6. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json` (or `ck_review_feedback`)
     7. Do not execute until the review is approved
 
     Fallback when the `submit_plan` tool is stale in a long-running OpenCode session:
@@ -5443,7 +5479,11 @@ defmodule ControlKeel.Skills.Exporter do
             browserUrl.includes("localhost") &&
             openPayload?.remote === true
 
-          if (!browserUrl || serverUnavailable || openError || openFailure || remoteLocalhostMismatch || browserNotOpened) {
+          // Default: always return inline approval guidance.
+          const browserAvailable =
+            browserUrl && !serverUnavailable && !openError && !openFailure && !remoteLocalhostMismatch && !browserNotOpened
+
+          if (!browserAvailable) {
             return buildPlanResult({
               waitSkipped: true,
               manualApprovalRequired: true,
@@ -5456,9 +5496,28 @@ defmodule ControlKeel.Skills.Exporter do
                       ? "browser_not_opened"
                       : "browser_unreachable",
               guidance:
-                "Browser review is unavailable, the CK review server is not reachable, or the browser did not actually open. Ask the user for explicit approval in chat, then record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes \"User approved in chat; browser/review server unavailable\" --json` or `ck_review_feedback`.",
+                "Ask the user for explicit approval in this conversation. " +
+                "Present the plan summary and ask: 'Do you approve this plan? (yes/no)'. " +
+                "After the user says yes, record it with: `controlkeel review plan respond <review_id> --decision approved --feedback-notes \"User approved in chat\" --json` " +
+                "or call `ck_review_feedback` with review_id=<review_id> decision=\"approved\".",
             })
           }
+
+          // Browser is available. If the caller explicitly passed wait_timeout_seconds,
+          // honor it (opt-in blocking). Otherwise, return immediately with inline guidance.
+          if (waitTimeoutSeconds == null) {
+            return buildPlanResult({
+              waitSkipped: true,
+              manualApprovalRequired: false,
+              reason: "browser_available_inline_default",
+              guidance:
+                "Browser review is available at: " + browserUrl + "\n" +
+                "You can: (a) ask the user to approve inline in this conversation, or (b) pass wait_timeout_seconds to block until the browser review is completed. " +
+                "To record inline approval: `controlkeel review plan respond <review_id> --decision approved --feedback-notes \"User approved in chat\" --json`.",
+            })
+          }
+
+          // Opt-in blocking: caller explicitly asked to wait for browser review.
 
           const waitEnv = process.env.LOGGER_LEVEL
             ? process.env
@@ -5788,8 +5847,10 @@ defmodule ControlKeel.Skills.Exporter do
     Save the current plan to `.gemini/review-plan.md`, then submit it with:
     !{controlkeel review plan submit --body-file .gemini/review-plan.md --submitted-by gemini-cli --json}
 
-    Read the returned review id and wait with:
-    !{controlkeel review plan wait --id <review_id> --json}
+    Read the returned review id and browser_url. Present the plan summary to the user and ask for approval in this conversation.
+
+    After the user approves, record it with:
+    !{controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json}
 
     Do not continue until the review is approved.
     \"\"\"
@@ -5815,8 +5876,8 @@ defmodule ControlKeel.Skills.Exporter do
     Re-open the most recent ControlKeel review you are tracking for this task:
     !{controlkeel review plan open --id <review_id> --json}
 
-    If the review is still pending, wait with:
-    !{controlkeel review plan wait --id <review_id> --json}
+    If the review is still pending, ask the user for approval in this conversation, then record it with:
+    !{controlkeel review plan respond <review_id> --decision approved --json}
     \"\"\"
     """
   end
@@ -5859,8 +5920,10 @@ defmodule ControlKeel.Skills.Exporter do
     Workflow:
     1. Confirm the plan file is up to date.
     2. Run `controlkeel review plan submit --body-file PLAN.md --submitted-by pi --json`.
-    3. Wait with `controlkeel review plan wait --id <review_id> --json`.
-    4. Only switch into execution after approval.
+    3. Read the returned `review.id` and `browser_url` (if available).
+    4. Present the plan summary to the user and ask for approval in this conversation.
+    5. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json`.
+    6. Only switch into execution after approval.
     """
   end
 
@@ -5888,7 +5951,9 @@ defmodule ControlKeel.Skills.Exporter do
     Suggested flow:
     1. Save the completion notes to `.codex/completion.md`
     2. Run `controlkeel review plan submit --title "Completion review" --body-file .codex/completion.md --submitted-by codex-cli --json`
-    3. Wait with `controlkeel review plan wait --id <review_id> --json` before presenting the task as complete
+    3. Present the completion summary to the user and ask for approval in this conversation.
+    4. After approval, record it with `controlkeel review plan respond <review_id> --decision approved --json`.
+    5. Present the task as complete after approval is recorded.
     """
   end
 
@@ -5902,7 +5967,8 @@ defmodule ControlKeel.Skills.Exporter do
     Suggested flow:
     1. Save the current summary to `.codex/review.md`
     2. Run `controlkeel review plan submit --title "Codex review" --body-file .codex/review.md --submitted-by codex-cli --json`
-    3. Wait with `controlkeel review plan wait --id <review_id> --json`
+    3. Present the summary to the user and ask for approval in this conversation.
+    4. After approval, record it with `controlkeel review plan respond <review_id> --decision approved --json`.
     """
   end
 
@@ -5931,7 +5997,7 @@ defmodule ControlKeel.Skills.Exporter do
     Suggested flow:
     1. Read the last stored review id from your working notes or command output
     2. Run `controlkeel review plan open --id <review_id> --json`
-    3. If still pending, run `controlkeel review plan wait --id <review_id> --json`
+    3. If still pending, ask the user for approval in this conversation, then record it with `controlkeel review plan respond <review_id> --decision approved --json`.
     """
   end
 
@@ -5959,8 +6025,10 @@ defmodule ControlKeel.Skills.Exporter do
     Suggested flow:
     1. Save the current plan to `#{suggested_path}`.
     2. Run `controlkeel review plan submit --body-file #{suggested_path} --submitted-by #{submitted_by} --json`
-    3. Wait with `controlkeel review plan wait --id <review_id> --json`
-    4. Do not begin implementation until approval is returned.
+    3. Read the returned `review.id` and `browser_url` (if available).
+    4. Present the plan summary to the user and ask for approval in this conversation.
+    5. After the user approves, record it with `controlkeel review plan respond <review_id> --decision approved --feedback-notes "User approved in chat" --json`.
+    6. Do not begin implementation until approval is returned.
     """
   end
 
@@ -5988,7 +6056,7 @@ defmodule ControlKeel.Skills.Exporter do
     Suggested flow:
     1. Read the last stored review id from your notes or prior command output.
     2. Run `controlkeel review plan open --id <review_id> --json`
-    3. If the review is still pending, run `controlkeel review plan wait --id <review_id> --json`
+    3. If the review is still pending, ask the user for approval in this conversation, then record it with `controlkeel review plan respond <review_id> --decision approved --json`.
     """
   end
 
@@ -6002,8 +6070,9 @@ defmodule ControlKeel.Skills.Exporter do
 
     1. Save the plan to `.github/controlkeel-plan.md`
     2. Run `controlkeel review plan submit --body-file .github/controlkeel-plan.md --submitted-by copilot --json`
-    3. Wait with `controlkeel review plan wait --id <review_id> --json`
-    4. Do not implement until the review is approved
+    3. Present the plan summary to the user and ask for approval in this conversation.
+    4. After approval, record it with `controlkeel review plan respond <review_id> --decision approved --json`.
+    5. Do not implement until the review is approved.
     """
   end
 
@@ -6597,8 +6666,9 @@ defmodule ControlKeel.Skills.Exporter do
 
     1. Save the current plan or diff to a markdown file.
     2. Run `controlkeel review plan submit --body-file <file> --submitted-by aider --json`.
-    3. Wait with `controlkeel review plan wait --id <review_id> --json`.
-    4. Summarize blocked findings and proof status before completion.
+    3. Present the plan summary to the user and ask for approval in this conversation.
+    4. After approval, record it with `controlkeel review plan respond <review_id> --decision approved --json`.
+    5. Summarize blocked findings and proof status before completion.
     """
   end
 

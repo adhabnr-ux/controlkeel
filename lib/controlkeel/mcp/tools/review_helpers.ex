@@ -59,23 +59,28 @@ defmodule ControlKeel.MCP.Tools.ReviewHelpers do
 
   @doc """
   Builds approval instructions for a review.
+  Primary method: ask the user for approval inline in this conversation.
+  Fallback: browser URL (if available) or CLI commands.
   """
   def approval_instructions(review, nil) do
     %{
       "primary" =>
-        "Review #{review.review_type} ##{review.id} in the ControlKeel UI when available.",
-      "fallback_status_command" => "controlkeel review plan open --id #{review.id}",
+        "Ask the user for explicit approval in this conversation. After approval, record it with: controlkeel review plan respond #{review.id} --decision approved --feedback-notes \"User approved in chat\" --json",
       "fallback_approve_command" =>
         "controlkeel review plan respond #{review.id} --decision approved",
       "fallback_deny_command" =>
-        "controlkeel review plan respond #{review.id} --decision denied --feedback-notes '<reason>'"
+        "controlkeel review plan respond #{review.id} --decision denied --feedback-notes '<reason>'",
+      "browser_url" => nil
     }
   end
 
   def approval_instructions(review, browser_url) do
     %{
-      "primary" => "Open #{browser_url} to approve or deny #{review.review_type} ##{review.id}.",
-      "fallback_status_command" => "controlkeel review plan open --id #{review.id}",
+      "primary" =>
+        "Ask the user for explicit approval in this conversation. After approval, record it with: controlkeel review plan respond #{review.id} --decision approved --feedback-notes \"User approved in chat\" --json",
+      "browser_url" => browser_url,
+      "browser_hint" =>
+        "Alternatively, open #{browser_url} for browser-based review if the CK review server is running.",
       "fallback_approve_command" =>
         "controlkeel review plan respond #{review.id} --decision approved",
       "fallback_deny_command" =>
