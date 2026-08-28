@@ -403,6 +403,7 @@ defmodule ControlKeelWeb.Layouts do
   """
   attr :current_path, :string, default: nil
   attr :page_action, :any, default: nil
+
   attr :breadcrumbs, :list,
     default: nil,
     doc: """
