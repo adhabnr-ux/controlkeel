@@ -17,7 +17,8 @@ defmodule ControlKeel.Skills.Installer do
     with %SkillTarget{} = target <- SkillTarget.get(target_id),
          {:ok, scope} <- normalize_scope(target, Keyword.get(opts, :scope, target.default_scope)),
          analysis <- Registry.analyze(project_root, trust_project_skills: true),
-         {:ok, result} <- do_install(target, scope, project_root, analysis.skills, opts) do
+         skills = canonical_skills(analysis.skills, project_root),
+         {:ok, result} <- do_install(target, scope, project_root, skills, opts) do
       :telemetry.execute(
         [:controlkeel, :skills, :installed],
         %{count: 1},
@@ -70,7 +71,7 @@ defmodule ControlKeel.Skills.Installer do
   """
   def cleanup_stale_skills(project_root, attached_agents) when is_map(attached_agents) do
     analysis = Registry.analyze(project_root, trust_project_skills: true)
-    current_names = Enum.map(analysis.skills, & &1.name)
+    current_names = analysis.skills |> canonical_skills(project_root) |> Enum.map(& &1.name)
 
     skill_dirs =
       attached_agents
@@ -104,7 +105,7 @@ defmodule ControlKeel.Skills.Installer do
   """
   def sync_all_skill_dirs(project_root, attached_agents) when is_map(attached_agents) do
     analysis = Registry.analyze(project_root, trust_project_skills: true)
-    skills = analysis.skills
+    skills = canonical_skills(analysis.skills, project_root)
 
     root = Path.expand(project_root)
 
@@ -334,7 +335,7 @@ defmodule ControlKeel.Skills.Installer do
     install_plugin_bundle("claude-plugin", "claude", scope, project_root)
   end
 
-  defp do_install(%SkillTarget{id: "devin-terminal-native"}, scope, project_root, _skills, opts)
+  defp do_install(%SkillTarget{id: "devin-terminal-native"}, scope, project_root, skills, opts)
        when scope in ["user", "project"] do
     {:ok, plan} = Exporter.export("devin-terminal-native", project_root, scope: scope)
 
@@ -355,7 +356,7 @@ defmodule ControlKeel.Skills.Installer do
     File.mkdir_p!(hooks_root)
     File.mkdir_p!(compat_root)
 
-    copy_tree_contents(Path.join(plan.output_dir, ".devin/skills"), native_skill_root)
+    copy_skills(skills, native_skill_root)
     copy_tree_contents(Path.join(plan.output_dir, ".devin/agents"), agent_root)
     copy_tree_contents(Path.join(plan.output_dir, ".devin/hooks"), hooks_root)
 
@@ -479,6 +480,10 @@ defmodule ControlKeel.Skills.Installer do
 
     copy_skills(skills, Path.join(project_root, ".agents/skills"))
     copy_tree_contents(Path.join(plan.output_dir, ".cursor"), Path.join(project_root, ".cursor"))
+    # The tree copy above writes `.cursor/skills` from the export plan without
+    # an ownership manifest; re-run it through copy_skills so the destination
+    # records CK ownership and future installs can prune stale names there.
+    copy_skills(skills, Path.join(project_root, ".cursor/skills"))
 
     # Guard: do not overwrite an existing plugin.json if the exported version is
     # older than what is already on disk. This prevents the installed binary
@@ -1204,6 +1209,42 @@ defmodule ControlKeel.Skills.Installer do
   defp safe_skill_name?(name) do
     is_binary(name) and name not in ["", ".", ".."] and
       not String.contains?(name, "/") and not String.contains?(name, "\\")
+  end
+
+  # The canonical install/prune set: builtins (`priv/skills`) plus genuinely
+  # user-authored skills. A skill name whose every on-disk copy lives in a
+  # CK-managed destination (a dir whose `.controlkeel-skills.json` manifest
+  # claims it) is a stale CK write — it must not resurrect via the install
+  # loop, which would otherwise re-copy it from the union catalog forever.
+  # Public: the exporter shares this contract so dist plans never ship a
+  # stale name back into blind tree-copy targets.
+  def canonical_skills(skills, project_root) do
+    managed = managed_skill_names(project_root)
+
+    Enum.reject(skills, fn skill ->
+      not builtin?(skill) and skill.name in managed
+    end)
+  end
+
+  defp builtin?(skill) do
+    norm = skill.path |> to_string() |> String.replace("\\", "/")
+    String.contains?(norm, "/priv/skills/")
+  end
+
+  defp managed_skill_names(project_root) do
+    Registry.managed_skill_root_candidates(project_root)
+    |> Enum.flat_map(fn root ->
+      listing = map_dir_listing(root)
+      read_skills_manifest(root) |> Enum.filter(&(&1 in listing))
+    end)
+    |> MapSet.new()
+  end
+
+  defp map_dir_listing(root) do
+    case File.ls(root) do
+      {:ok, entries} -> entries
+      _ -> []
+    end
   end
 
   defp read_skills_manifest(destination_root) do

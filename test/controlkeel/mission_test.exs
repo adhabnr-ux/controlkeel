@@ -811,7 +811,7 @@ defmodule ControlKeel.MissionTest do
 
   describe "complete_task/1" do
     test "marks task done and persists a proof bundle when no open or blocked findings exist" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "in_progress"})
       # ensure finding is resolved so it won't block
       _resolved = finding_fixture(%{session: session, status: "approved"})
@@ -822,7 +822,7 @@ defmodule ControlKeel.MissionTest do
     end
 
     test "records advisory signal when completion has no task-check evidence" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "in_progress"})
 
       assert {:ok, done_task} = Mission.complete_task(task)
@@ -836,7 +836,7 @@ defmodule ControlKeel.MissionTest do
     end
 
     test "marks task verified when completion has sufficient governed evidence" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "in_progress"})
 
       assert {:ok, _run} = Platform.claim_task(task.id)

@@ -22,6 +22,7 @@ defmodule ControlKeel.MissionFixtures do
   end
 
   def session_fixture(attrs \\ %{}) do
+    attrs = Map.new(attrs)
     workspace = Map.get_lazy(attrs, :workspace, fn -> workspace_fixture() end)
 
     {:ok, session} =
@@ -105,6 +106,21 @@ defmodule ControlKeel.MissionFixtures do
         if task, do: Mission.get_session!(task.session_id), else: session_fixture()
       end)
 
+    plan_attrs =
+      if attrs[:plan_phase] do
+        %{
+          "plan_phase" => attrs[:plan_phase],
+          "research_summary" => "Fixture research pass covering the touched surfaces.",
+          "options_considered" => ["direct implementation", "phased rollout"],
+          "selected_option" => "direct implementation",
+          "rejected_options" => ["phased rollout"],
+          "implementation_steps" => ["Prepare changes", "Verify behavior"],
+          "validation_plan" => ["mix test test/controlkeel/platform_test.exs"]
+        }
+      else
+        %{}
+      end
+
     {:ok, review} =
       attrs
       |> Enum.into(%{
@@ -114,8 +130,10 @@ defmodule ControlKeel.MissionFixtures do
         task_id: task && task.id,
         submitted_by: "fixture"
       })
+      |> Map.merge(plan_attrs)
       |> Map.delete(:session)
       |> Map.delete(:task)
+      |> Map.delete(:plan_phase)
       |> Mission.submit_review()
 
     review

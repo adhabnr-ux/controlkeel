@@ -58,7 +58,13 @@ defmodule ControlKeel.MCP.Tools.CkBudget do
        when is_binary(project_root) do
     token_overhead = token_overhead_summary(project_root)
 
-    Map.put(result, "token_overhead", token_overhead)
+    result
+    |> Map.put("token_overhead", token_overhead)
+    |> Map.put("token_overhead_deprecated", true)
+    |> Map.put(
+      "token_overhead_hint",
+      "Prefer `ck_observability` (report=costs) for token/cost overhead — `include_token_overhead` runs 3 synchronous audits and is deprecated."
+    )
   end
 
   defp maybe_attach_token_overhead(result, _normalized), do: result

@@ -4,7 +4,7 @@ defmodule ControlKeel.Platform do
   import Ecto.Query, warn: false
 
   alias Ecto.Multi
-  alias ControlKeel.{AuditExports, Mission, Repo}
+  alias ControlKeel.{AuditExports, Budget, Mission, Repo}
   alias ControlKeel.Mission.Decomposition
   alias ControlKeel.Mission.{ProofBundle, Session, Task}
 
@@ -433,35 +433,70 @@ defmodule ControlKeel.Platform do
   def claim_task(task_id, service_account \\ nil, attrs \\ %{}) do
     with %Task{} = task <- Mission.get_task(task_id),
          true <- task.status in ["ready", "queued", "in_progress"] || {:error, :invalid_status} do
-      run = active_task_run(task.id)
+      normalized = Utils.stringify_keys_deep_list(attrs)
 
-      attrs =
-        attrs
-        |> Utils.stringify_keys_deep_list()
-        |> Map.put_new("execution_mode", execution_mode_for(service_account))
-        |> Map.put_new("metadata", %{})
-        |> Map.put_new("output", %{})
-        |> Map.put("claimed_at", now())
-        |> Map.put("started_at", now())
-        |> Map.put("status", "in_progress")
-        |> Map.put("task_id", task.id)
-        |> Map.put("session_id", task.session_id)
-        |> maybe_put_service_account(service_account)
+      skip_budget_check =
+        Utils.truthy?(Map.get(normalized, "skip_budget_check")) ||
+          Utils.truthy?(Map.get(normalized, "allow_budget_exhausted")) ||
+          Utils.truthy?(Map.get(normalized, "force"))
 
-      result =
-        if run do
-          run |> TaskRun.changeset(attrs) |> Repo.update()
-        else
-          %TaskRun{} |> TaskRun.changeset(attrs) |> Repo.insert()
+      estimated_cost =
+        case Map.get(normalized, "estimated_cost_cents") do
+          value when is_integer(value) and value >= 0 ->
+            value
+
+          value when is_binary(value) ->
+            try do
+              String.to_integer(value)
+            rescue
+              _ -> task.estimated_cost_cents || 0
+            end
+
+          _ ->
+            task.estimated_cost_cents || 0
         end
 
-      with {:ok, task_run} <- result,
-           {:ok, task} <- Mission.update_task(task, %{status: "in_progress"}) do
-        emit_event("task.started", task_event_payload(task),
-          workspace_id: workspace_id_for_task(task)
-        )
+      provider = Map.get(normalized, "provider") || "openai"
 
-        {:ok, Repo.preload(task_run, [:service_account, :check_results])}
+      budget_ok =
+        if skip_budget_check do
+          true
+        else
+          Budget.provider_has_headroom?(task.session_id, provider, estimated_cost)
+        end
+
+      if not budget_ok do
+        {:error, :budget_exhausted}
+      else
+        run = active_task_run(task.id)
+
+        attrs =
+          normalized
+          |> Map.put_new("execution_mode", execution_mode_for(service_account))
+          |> Map.put_new("metadata", %{})
+          |> Map.put_new("output", %{})
+          |> Map.put("claimed_at", now())
+          |> Map.put("started_at", now())
+          |> Map.put("status", "in_progress")
+          |> Map.put("task_id", task.id)
+          |> Map.put("session_id", task.session_id)
+          |> maybe_put_service_account(service_account)
+
+        result =
+          if run do
+            run |> TaskRun.changeset(attrs) |> Repo.update()
+          else
+            %TaskRun{} |> TaskRun.changeset(attrs) |> Repo.insert()
+          end
+
+        with {:ok, task_run} <- result,
+             {:ok, task} <- Mission.update_task(task, %{status: "in_progress"}) do
+          emit_event("task.started", task_event_payload(task),
+            workspace_id: workspace_id_for_task(task)
+          )
+
+          {:ok, Repo.preload(task_run, [:service_account, :check_results])}
+        end
       end
     else
       nil -> {:error, :not_found}

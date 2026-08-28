@@ -63,15 +63,26 @@ defmodule ControlKeel.Memory.Store do
   end
 
   def search(query, opts \\ []) do
+    strategy = Keyword.get(opts, :retrieval_strategy, retrieval_strategy())
+    label = strategy_to_label(strategy)
+
     result =
       case mode() do
-        :pgvector -> Pgvector.search(query, opts)
-        :sqlite -> Sqlite.search(query, opts)
+        :pgvector -> Pgvector.search(query, Keyword.put(opts, :retrieval_strategy, strategy))
+        :sqlite -> Sqlite.search(query, Keyword.put(opts, :retrieval_strategy, strategy))
       end
 
     case result do
-      %{} = r -> Map.put_new(r, :retrieval_strategy, retrieval_strategy_label())
+      %{} = r -> Map.put_new(r, :retrieval_strategy, label)
       other -> other
     end
   end
+
+  defp strategy_to_label(:single_vector), do: "single_vector"
+  defp strategy_to_label(:bm25), do: "bm25"
+  defp strategy_to_label(:hybrid_bm25_vector), do: "hybrid_bm25_vector"
+  defp strategy_to_label(:late_interaction), do: "late_interaction"
+  defp strategy_to_label(:late_interaction_rerank), do: "late_interaction_rerank"
+  defp strategy_to_label(other) when is_binary(other), do: other
+  defp strategy_to_label(other), do: to_string(other)
 end

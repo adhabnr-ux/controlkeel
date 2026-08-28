@@ -1,9 +1,12 @@
 ---
 name: parallel-review
-description: "Run security + code quality reviews concurrently, synthesize deduplicated findings. Trigger: 'full review', 'parallel review', 'both reviews', comprehensive pre-merge check."
-when_to_use: "Activate ONLY when explicitly asked for comprehensive security+quality review. Do NOT use when only one review type is needed."
+description: "DEPRECATED for inline use — this is now a CLI composite (`controlkeel review --parallel`). Kept callable only for explicitly requested comprehensive security+quality orchestration; otherwise invoke security-review + deep-code-quality-review separately or via that CLI."
+when_to_use: "Do NOT invoke via skills when possible — use `controlkeel review --parallel` (CLI). Invoke this skill only when explicitly asked for comprehensive security+quality orchestration."
+
 argument-hint: "[PR, branch, or diff]"
 disable-model-invocation: true
+deprecated: true
+prefer_cli: "controlkeel review --parallel"
 license: Apache-2.0
 compatibility:
   - opencode-native

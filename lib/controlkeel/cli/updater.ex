@@ -176,10 +176,20 @@ defmodule ControlKeel.CLI.Updater do
 
         case install_direct_binary(path, latest_version, opts) do
           :ok ->
+            killed = cleanup_orphaned_mcp_processes(path)
+
+            message =
+              if killed > 0 do
+                "Replaced #{path} with ControlKeel #{latest_version}. Stopped #{killed} orphaned MCP server(s) (hosts will respawn)."
+              else
+                "Replaced #{path} with ControlKeel #{latest_version}."
+              end
+
             %{
               "status" => "applied",
               "channel" => "github_release_binary",
-              "message" => "Replaced #{path} with ControlKeel #{latest_version}."
+              "message" => message,
+              "orphaned_mcp_killed" => killed
             }
 
           {:error, reason} ->
@@ -188,6 +198,60 @@ defmodule ControlKeel.CLI.Updater do
               "channel" => "github_release_binary",
               "message" => "Failed to replace #{path}: #{format_reason(reason)}"
             }
+        end
+    end
+  end
+
+  # After replacing the binary, any MCP server BEAM processes spawned from the
+  # previous release directory may still be running (spinning at 100% CPU or
+  # failing with -32001 timeouts).  Find them by matching processes whose
+  # command-line contains the current binary path with the old version suffix
+  # and the `-extra mcp` launch flag, then send SIGTERM.
+  defp cleanup_orphaned_mcp_processes(_current_binary_path) do
+    case :os.type() do
+      {:win32, _} ->
+        0
+
+      _ ->
+        try do
+          {ps_output, 0} = System.cmd("ps", ["aux"], stderr_to_stdout: true)
+
+          # Extract the expected old release path pattern from the current executable
+          # e.g. /path/to/.burrito/controlkeel_erts-XXX_0.4.1/... (old version dir)
+          # vs controlkeel_erts-XXX_0.4.2/... (new/current)
+          # Since the old dir is gone by the time we run, look for any beam.smp
+          # process running with `-extra mcp` flag — those are MCP servers.
+          ps_output
+          |> String.split("\n")
+          |> Enum.filter(fn line ->
+            String.contains?(line, "beam.smp") and
+              (String.contains?(line, " -extra mcp") or
+                 String.ends_with?(String.trim_trailing(line), "mcp"))
+          end)
+          |> Enum.each(fn line ->
+            parts = String.split(line)
+
+            if parts != [] and hd(parts) =~ ~r/^\d+$/ do
+              pid = hd(parts)
+
+              try do
+                System.cmd("kill", ["-TERM", pid], stderr_to_stdout: true)
+              rescue
+                _ -> :ok
+              end
+            end
+          end)
+
+          # Count killed
+          ps_output
+          |> String.split("\n")
+          |> Enum.count(fn line ->
+            String.contains?(line, "beam.smp") and
+              (String.contains?(line, " -extra mcp") or
+                 String.ends_with?(String.trim_trailing(line), "mcp"))
+          end)
+        rescue
+          _ -> 0
         end
     end
   end

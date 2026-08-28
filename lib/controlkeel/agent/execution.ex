@@ -384,6 +384,9 @@ defmodule ControlKeel.Agent.Execution do
 
             {:error, {:policy_blocked, reason}}
 
+          {:error, :proof_not_ready, detail} ->
+            {:error, {:proof_not_ready, detail}}
+
           {:error, reason} ->
             {:error, reason}
         end
@@ -504,6 +507,16 @@ defmodule ControlKeel.Agent.Execution do
              }
            }}
 
+        {:error, :proof_not_ready, detail} ->
+          _ =
+            record_delegate_result(task, integration, "failed", %{
+              "mode" => "embedded",
+              "package_root" => package_root,
+              "error" => "proof_not_ready: #{detail}"
+            })
+
+          {:error, {:proof_not_ready, detail}}
+
         {:error, reason} ->
           _ =
             record_delegate_result(task, integration, "failed", %{
@@ -578,6 +591,16 @@ defmodule ControlKeel.Agent.Execution do
            "oauth_client_id" => service_account_context[:oauth_client_id],
            "client_secret" => service_account_context[:client_secret]
          }}
+
+      {:error, :proof_not_ready, detail} ->
+        _ =
+          record_delegate_result(task, integration, "failed", %{
+            "mode" => mode,
+            "package_root" => package_root,
+            "error" => "proof_not_ready: #{detail}"
+          })
+
+        {:error, {:proof_not_ready, detail}}
 
       {:error, reason} ->
         _ =

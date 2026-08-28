@@ -56,12 +56,15 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
       |> then(fn o -> if session_id, do: [{:session_id, session_id} | o], else: o end)
 
     ratios = Budget.amplification_ratios(opts)
+    costs_report = safe_costs_report(limit: limit)
 
     flagged = Enum.filter(ratios, &(&1.ratio >= 5.0))
 
     {:ok,
      %{
        "mode" => "amplification",
+       "deprecated" => true,
+       "use_instead" => "ck_observability with report=costs",
        "session_id" => session_id,
        "total_sessions" => length(ratios),
        "flagged_count" => length(flagged),
@@ -77,12 +80,30 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
                if(r.ratio >= 20.0, do: "danger", else: if(r.ratio >= 5.0, do: "warn", else: "ok"))
            }
          end),
+       "costs_summary" => costs_report,
        "recommendations" => build_amplification_recommendations(flagged)
      }}
   end
 
+  # Prefer ck_observability:costs for cost/token-overhead analysis. This path
+  # is kept for backward compatibility — callers should migrate.
+  defp safe_costs_report(opts) do
+    case ControlKeel.MCP.Tools.CkObservability.call(
+           Map.merge(%{"report" => "costs"}, Map.new(opts, fn {k, v} -> {to_string(k), v} end))
+         ) do
+      {:ok, payload} ->
+        Map.take(payload, ["totals", "by_provider", "by_model", "recommendations"])
+
+      _ ->
+        nil
+    end
+  end
+
   defp build_amplification_recommendations([]),
-    do: ["No sessions exceed the 5× amplification threshold."]
+    do: [
+      "No sessions exceed the 5× amplification threshold.",
+      "Prefer `ck_observability` (report=costs) for cost/token-overhead analysis — `amplification` is deprecated."
+    ]
 
   defp build_amplification_recommendations(flagged) do
     danger = Enum.count(flagged, &(&1.ratio >= 20.0))
@@ -110,7 +131,10 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
         recs
       end
 
-    Enum.reverse(recs)
+    Enum.reverse([
+      "Deprecation: `amplification` is deprecated — use `ck_observability` (report=costs) instead."
+      | recs
+    ])
   end
 
   defp audit_full(project_root) do
@@ -533,23 +557,84 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
     # Check for duplicates
     recommendations =
       if Enum.empty?(duplicates) do
-        recommendations
+        # Even without same-name duplicates, multiple host-specific dirs
+        # mean the same skills exist in .claude/, .codex/, .opencode/, etc.
+        # Recommend keeping only the primary host + compat.
+        host_dirs =
+          all_skills
+          |> Enum.map(& &1["location"])
+          |> Enum.filter(&String.starts_with?(&1, "project:."))
+          |> Enum.map(&String.replace_leading(&1, "project:", ""))
+          |> Enum.map(&Path.dirname/1)
+          |> Enum.uniq()
+          |> Enum.sort()
+
+        if length(host_dirs) > 2 do
+          primary = List.first(host_dirs)
+          compat = ".agents"
+
+          [
+            "Skills exist in #{length(host_dirs)} host directories: #{Enum.join(host_dirs, ", ")}",
+            "Each host loads only its native dir. Keep #{primary}/skills/ + #{compat}/skills/ and remove extras to save tokens."
+            | recommendations
+          ]
+        else
+          recommendations
+        end
       else
         duplicate_count = length(duplicates)
         duplicate_tokens = Enum.sum(Enum.map(duplicates, & &1["total_tokens"]))
+        installed = length(all_skills)
+        effective = length(effective_skills)
 
-        [
-          "Found #{duplicate_count} duplicate skill(s) wasting ~#{duplicate_tokens} tokens",
-          "Remove duplicate skills from either user-level (~/.claude/skills/) or project-level (.claude/skills/ or .agents/skills/)"
-          | recommendations
-        ]
+        summary =
+          "Found #{duplicate_count} duplicate skill(s): #{installed} installed copies → #{effective} effective. ~#{duplicate_tokens} wasted tokens."
+
+        # Separate user-level copies (always waste) from project-level (host-specific)
+        {user_copies, project_copies} =
+          Enum.flat_map(duplicates, fn dup ->
+            Enum.drop(dup["instances"], 1)
+          end)
+          |> Enum.split_with(&String.starts_with?(&1["location"], "user:"))
+
+        user_commands =
+          if user_copies != [] do
+            paths = Enum.map(user_copies, & &1["path"]) |> Enum.join(" ")
+
+            [
+              "User-level skill copies are always redundant (hosts load project-level). Remove with: rm -rf #{paths}"
+            ]
+          else
+            []
+          end
+
+        project_commands =
+          if project_copies != [] do
+            # Group by location to show which host dirs are redundant
+            grouped = Enum.group_by(project_copies, & &1["location"])
+
+            detail =
+              Enum.map_join(grouped, "; ", fn {location, skills} ->
+                skill_names = Enum.map(skills, & &1["name"]) |> Enum.join(", ")
+                "#{location}: #{skill_names}"
+              end)
+
+            [
+              "Project-level: each host loads only its native dir. Copies: #{detail}",
+              "Keep .opencode/skills/ (or your primary host) + .agents/skills/ (compat)"
+            ]
+          else
+            []
+          end
+
+        [summary] ++ user_commands ++ project_commands ++ recommendations
       end
 
     # Check total skill count
     recommendations =
       if length(all_skills) > 10 do
         [
-          "Total of #{length(all_skills)} skills installed. Consider disabling unused skills to reduce token overhead."
+          "Total of #{length(all_skills)} skill copies installed (#{length(effective_skills)} effective). Run 'controlkeel skills doctor' for cleanup guidance."
           | recommendations
         ]
       else

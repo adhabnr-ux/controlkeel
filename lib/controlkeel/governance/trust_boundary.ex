@@ -65,20 +65,29 @@ defmodule ControlKeel.Governance.TrustBoundary do
       Utils.normalize_enum(
         Map.get(input, "source_type") || Map.get(input, :source_type),
         @source_types,
-        "repository"
+        "untrusted"
       )
 
-    trust_level =
-      Utils.normalize_enum(
-        Map.get(input, "trust_level") || Map.get(input, :trust_level),
-        @trust_levels,
-        inferred_trust_level(source_type)
-      )
+    raw_trust_level = Map.get(input, "trust_level") || Map.get(input, :trust_level)
+
+    explicit_trust_level? =
+      is_binary(raw_trust_level) and String.trim(raw_trust_level) in @trust_levels
 
     kind =
       Map.get(input, "kind") ||
         Map.get(input, :kind) ||
         "code"
+
+    trust_level =
+      if kind in ["code", "shell"] and not explicit_trust_level? do
+        "untrusted"
+      else
+        Utils.normalize_enum(
+          raw_trust_level,
+          @trust_levels,
+          inferred_trust_level(source_type)
+        )
+      end
 
     intended_use =
       Utils.normalize_enum(

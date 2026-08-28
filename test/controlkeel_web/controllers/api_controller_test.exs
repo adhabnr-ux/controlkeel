@@ -1152,7 +1152,7 @@ defmodule ControlKeelWeb.ApiControllerTest do
 
   describe "POST /api/v1/tasks/:id/complete" do
     test "marks task done when no open findings exist", %{conn: conn} do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "in_progress"})
       _resolved = finding_fixture(%{session: session, status: "approved"})
 
@@ -1366,7 +1366,7 @@ defmodule ControlKeelWeb.ApiControllerTest do
     test "service account tokens are workspace-scoped for graph and task execution endpoints", %{
       conn: conn
     } do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
 
       _arch =
         task_fixture(%{

@@ -414,276 +414,194 @@ defmodule ControlKeel.CLI.Help do
         "Use the A2A surface only for the narrow governed capabilities CK advertises."
       ],
       related: ["attach", "providers", "skills"]
+    },
+    %{
+      id: "observability",
+      title: "Observability, costs, and telemetry",
+      summary:
+        "Inspect telemetry, timelines, costs, memory quality, learning-loop signals, and generated benchmark candidates. Export observability envelopes for replay.",
+      keywords: [
+        "observability",
+        "obs",
+        "telemetry",
+        "timeline",
+        "costs",
+        "memory",
+        "trends",
+        "problems",
+        "benchmarks",
+        "loop"
+      ],
+      phrases: ["observability export", "show costs", "memory quality", "obs status"],
+      commands: [
+        "controlkeel obs status",
+        "controlkeel obs export <id>",
+        "controlkeel obs costs --by provider",
+        "controlkeel obs timeline"
+      ],
+      next_steps: [
+        "Use `controlkeel obs status` for current session overview.",
+        "Use `controlkeel obs export <id>` to create a portable envelope.",
+        "Use `controlkeel obs costs --by provider` to break down spend."
+      ],
+      related: ["benchmarks", "learning", "providers"]
+    },
+    %{
+      id: "cloud",
+      title: "Cloud sync, orgs, and self-host",
+      summary:
+        "Operate cloud sync, workspace enrollment, enterprise orgs, audit exports, and self-host bundles. Manage service accounts and policy sets.",
+      keywords: [
+        "cloud",
+        "sync",
+        "org",
+        "organization",
+        "workspace",
+        "selfhost",
+        "audit",
+        "service-account",
+        "webhook",
+        "govern"
+      ],
+      phrases: ["cloud sync", "create org", "selfhost verify", "cloud push"],
+      commands: [
+        "controlkeel cloud doctor",
+        "controlkeel cloud push",
+        "controlkeel org list",
+        "controlkeel selfhost verify"
+      ],
+      next_steps: [
+        "Use `cloud doctor` to check runtime mode and sync endpoint.",
+        "Use `org list` and `org invite` for enterprise org management.",
+        "Use `selfhost verify` before air-gapped deploys."
+      ],
+      related: ["mcp", "providers", "deploy"]
+    },
+    %{
+      id: "benchmarks",
+      title: "Benchmarks and eval harness",
+      summary:
+        "Run validation evals, benchmark suites, import manual outputs, and export results for comparison across subjects.",
+      keywords: [
+        "benchmark",
+        "eval",
+        "harness",
+        "suite",
+        "compare",
+        "import",
+        "export",
+        "regression"
+      ],
+      phrases: ["run benchmark", "eval list", "benchmark compare", "eval run"],
+      commands: [
+        "controlkeel benchmark list",
+        "controlkeel benchmark run --suite governance-regression",
+        "controlkeel eval list",
+        "controlkeel benchmark compare <run-id>"
+      ],
+      next_steps: [
+        "Use `benchmark list` to see built-in suites.",
+        "Use `benchmark run` to persist a matrix.",
+        "Use `benchmark compare` to diff subjects."
+      ],
+      related: ["observability", "learning", "security"]
+    },
+    %{
+      id: "deploy",
+      title: "Deployment and runtime bundles",
+      summary:
+        "Analyze deployment posture, export runtime bundles, and inspect DNS, migrations, scaling, and hosting costs.",
+      keywords: [
+        "deploy",
+        "runtime",
+        "export",
+        "dns",
+        "migration",
+        "scaling",
+        "hosting",
+        "cost",
+        "analyze"
+      ],
+      phrases: ["deploy analyze", "runtime export", "hosting cost", "deploy dns"],
+      commands: [
+        "controlkeel deploy analyze --project-root .",
+        "controlkeel deploy cost --stack phoenix",
+        "controlkeel runtime export devin"
+      ],
+      next_steps: [
+        "Use `deploy analyze` to generate deployment files.",
+        "Use `deploy cost` to compare hosting tiers.",
+        "Use `runtime export` for handoff bundles."
+      ],
+      related: ["cloud", "benchmarks", "providers"]
+    },
+    %{
+      id: "learning",
+      title: "Learning loop and outcomes",
+      summary:
+        "Record outcomes and surface learning-loop scores for routing and continuous improvement across sessions.",
+      keywords: ["learning", "outcome", "leaderboard", "score", "routing", "improvement"],
+      phrases: ["record outcome", "leaderboard", "learning loop", "outcome score"],
+      commands: [
+        "controlkeel outcome record <session-id> <outcome>",
+        "controlkeel outcome leaderboard",
+        "controlkeel outcome score <agent-id>"
+      ],
+      next_steps: [
+        "Use `outcome record` after session completion.",
+        "Use `outcome leaderboard` to compare agents.",
+        "Use `outcome score` for single-agent history."
+      ],
+      related: ["run", "benchmarks", "observability"]
+    },
+    %{
+      id: "security",
+      title: "Sandbox, precommit, and security gates",
+      summary:
+        "Inspect sandbox adapters, precommit policy checks, and governed code execution posture. Keep execution and commits policy-gated.",
+      keywords: ["security", "sandbox", "precommit", "gate", "execution", "code-mode", "policy"],
+      phrases: ["sandbox status", "precommit check", "security gate", "code mode"],
+      commands: [
+        "controlkeel sandbox status",
+        "controlkeel precommit-check --domain-pack software",
+        "controlkeel precommit-install"
+      ],
+      next_steps: [
+        "Use `sandbox status` to check adapter availability.",
+        "Use `precommit-check` to scan staged files.",
+        "Use `precommit-install` to add the hook."
+      ],
+      related: ["review", "run", "findings"]
     }
   ]
 
   def usage_text do
+    catalog_lines =
+      Catalog.all()
+      |> Enum.map(fn e -> "  controlkeel #{e.path}  — #{e.summary}" end)
+      |> Enum.join("\n")
+
+    help_topics =
+      Catalog.all()
+      |> Enum.map(& &1.help_topic)
+      |> Enum.uniq()
+      |> Enum.sort()
+      |> Enum.join(", ")
+
     """
     ControlKeel CLI
 
     Guided help:
       controlkeel help                     Show the overview and common entry points
-      controlkeel help <topic>             Show guided help for a topic such as attach, codex, review, findings, run, skills, providers, troubleshooting, mcp, worktrees, checkpoints, git, or monitoring
+      controlkeel help <topic>             Show guided help for a topic such as #{help_topics}
       controlkeel help <question ...>      Route a free-form question such as:
-                                          - controlkeel help how do i attach codex
-                                          - controlkeel help why is my task blocked
-                                          - controlkeel help ck_context not connected
-                                          - controlkeel help what can controlkeel do
+                                           - controlkeel help how do i attach codex
+                                           - controlkeel help why is my task blocked
+                                           - controlkeel help ck_context not connected
+                                           - controlkeel help what can controlkeel do
 
-    Commands:
-      controlkeel                     Start the web app
-      controlkeel serve               Start the web app
-      controlkeel setup [options]     Bootstrap the project and show detected hosts,
-                                      provider state, core loop, and suggested next steps
-      controlkeel init [options]      Initialize ControlKeel in the current project
-      controlkeel attach <agent>      Register ControlKeel MCP server with your coding tool
-                                      Native skills install by default unless --mcp-only
-                                      Flags: --mcp-only, --no-native, --with-skills,
-                                             --scope user|project
-                                      Supported: #{supported_attach_agents_text()}
-      controlkeel attach doctor [--project-root /abs/path]
-                                      Run post-attach health checks and verification hints
-      controlkeel review diff [options]
-                                      Review a git diff between two refs before merge
-      controlkeel review pr [options] Review a PR patch from --url <github-pr>, --patch <file>, or --stdin
-      controlkeel review socket [options]
-                  Review a Socket report from --report <file> or --stdin
-      controlkeel review plan submit [options]
-                                      Submit a plan for browser review from --body-file <file> or --stdin
-      controlkeel review plan open --id <review-id>
-                                      Print the browser review URL and current state
-      controlkeel review plan respond <review-id> --decision approved|denied [--feedback-notes ...]
-                                      Record an approval or denial for a submitted plan review
-      controlkeel release-ready [options]
-                                      Check proof-backed release readiness for a session
-      controlkeel govern install github
-                                      Scaffold repo-native GitHub governance workflows
-      controlkeel plugin export codex|claude|copilot|openclaw|augment|droid
-                                      Export a first-class plugin bundle for a supported agent
-      controlkeel plugin install codex|claude|copilot|openclaw [--scope user|project] [--mode local|hosted]
-                                      Install a plugin bundle with local and hosted MCP templates
-      controlkeel agents doctor       Show bidirectional execution and install readiness
-      controlkeel cloud doctor        Show cloud-mode boundary status (runtime mode, cloud repo,
-                                      bus, service accounts, hosted MCP/A2A, telemetry sync)
-      controlkeel cloud connect [--rotate] [--enroll URL] [--name N] [--invite TOKEN]
-                                      Generate (or rotate) a local workspace identity keypair.
-                                      With --enroll, posts a proof-of-possession envelope to
-                                      <URL>/cloud/v1/workspaces/register so the control plane
-                                      (e.g. https://controlkeel.com) accepts subsequent telemetry.
-                                      --invite binds the workspace to an org via an invitation token.
-       controlkeel cloud push           Push unsynced governance records (findings, memory, reviews,
-                                       digests) to the configured cloud endpoint. Idempotent by external_id.
-       controlkeel cloud pull           Pull remote governance records from the cloud endpoint and
-                                       upsert locally. Conflicts on editable records use lock_version.
-       controlkeel cloud migrate        Check and apply cloud sync migrations (external_id, lock_version).
-      controlkeel telemetry status    Show opt-in cloud telemetry sync state (disabled by default)
-      controlkeel telemetry enable --level health|governance|evidence|full_audit
-                                       Opt in to cloud telemetry at the specified level.
-                                       Requires `controlkeel cloud connect` first.
-                                       Events sync only when a telemetry endpoint is configured.
-      controlkeel telemetry disable   Opt out of cloud telemetry. Workspace identity is preserved.
-      controlkeel telemetry queue [--limit N]
-                                      Inspect pending telemetry events queued for upstream sync.
-      controlkeel telemetry flush [--limit N]
-                                      Drain queued telemetry events to the configured endpoint.
-                                      No-op when no endpoint is set; events stay queued.
-      controlkeel mcp registry list   List vetted downstream MCP servers (allowlist + denylist)
-      controlkeel mcp registry check <server-name> [--attested]
-                                      Show whether a downstream MCP server is allowed
-      controlkeel mcp guardrails list Show active content guardrails (secret/PII patterns)
-                                      that scan inbound tool arguments at the hosted gateway
-      controlkeel user create --email <email> [--name <name>]
-                                      Create a cloud user
-      controlkeel org create --name <name> --slug <slug>
-                                      Create a cloud org
-      controlkeel org list            List active orgs with budget and status
-      controlkeel org budget set <slug> --cents N
-      controlkeel org budget set <slug> --clear
-                                      Set or clear an org-level budget cap
-      controlkeel org budget show <slug>
-                                      Show org budget rollup and per-workspace breakdown
-      controlkeel org invite <slug> --email <email> [--role owner|admin|member|viewer]
-                                      Invite a user to an org. Prints the raw invitation
-                                      token; deliver it to the invitee out of band
-      controlkeel org members <slug>  List members of an org
-      controlkeel agents list [--json]
-                                      List runnable/attached agent integrations
-      controlkeel route-agent --task "..." [--risk-tier low|medium|high|critical] [--budget-remaining-cents N] [--allowed-agents a,b] [--domain-pack software] [--json]
-                                      Ask CK router for a best-fit agent recommendation
-      controlkeel task complete <task-id>
-                                      Mark a task complete (gated by unresolved findings)
-      controlkeel task claim <task-id> [--execution-mode agent|human|runtime]
-                                      Claim a task run and mark in progress
-      controlkeel task heartbeat <task-id> [--progress N] [--note "..."]
-                                      Record task heartbeat/progress metadata
-      controlkeel task checks <task-id> --checks '[{"check_type":"ci","status":"passed"}]'
-                                      Record structured task checks for the active run
-      controlkeel task report <task-id> [--status done|failed|blocked|paused|in_progress] [--output '{...}'] [--metadata '{...}']
-                                      Report task run outcome/output metadata
-      controlkeel run task <id> [--agent auto|<id>] [--mode auto|embedded|handoff|runtime] [--sandbox local|docker|e2b|nono]
-                                      Run or hand off a governed task through a supported agent
-      controlkeel eval list             List available eval suites
-      controlkeel selfhost verify       Check required/recommended env vars + Repo reachability
-                                        for an air-gapped/self-host deployment. Exits non-zero
-                                        when required env vars are missing or the Repo is down.
-      controlkeel selfhost manifest     List paths that belong in an air-gapped install bundle
-      controlkeel selfhost install-guide
-                                        Print the INSTALL.md content for this release
-      controlkeel agents discover <path> [--max-depth N] [--json]
-                                        Scan a directory tree for agent-host config files
-                                        (.cursor/, .codex/, .claude/, AGENTS.md, CLAUDE.md, etc.)
-                                        Closes the "shadow AI" enterprise inventory gap.
-      controlkeel audit export --workspace <slug>|--org <slug>
-                                        [--since ISO8601] [--until ISO8601] [--template soc2|gdpr] [--sign --signing-key-env ENV] [--out FILE]
-                                        Export an audit bundle (findings, reviews, audit events,
-                                        MCP tool calls, cloud-agent runs, received telemetry) for
-                                        SOC 2 / GDPR procurement. Prints JSON to stdout or --out.
-      controlkeel eval run [--suite <slug>]
-                                        Run an eval suite against ck_validate fixtures.
-                                        Exits non-zero on regression. Default suite:
-                                        governance-regression.
-      controlkeel run cloud-agent <task-id> --runtime <runtime> [--budget-cents N] [--scopes "a,b,c"] [--note "..."]
-                                      Create a cloud-runtime handoff package for a task.
-                                      Runtimes: devin, open-swe, cursor-cloud-agents, replit-agent,
-                                      warp-oz, executor, virtual-bash, cloudflare-workers,
-                                      codex-app-server, enterprise-internal. Prints the raw
-                                      callback token; deliver out of band to the cloud runtime.
-      controlkeel run session <id> [--agent auto|<id>] [--mode auto|embedded|handoff|runtime] [--sandbox local|docker|e2b|nono]
-                                      Run all ready tasks for a governed session
-      controlkeel sandbox status       Show execution sandbox adapter availability
-      controlkeel sandbox config local|docker|e2b|nono
-                                      Set the default execution sandbox adapter
-      controlkeel registry sync acp  Refresh the cached ACP registry metadata
-      controlkeel registry status acp
-                                      Show ACP registry cache freshness and matches
-      controlkeel status              Show current session status
-      controlkeel obs status          Show compact observability for the current session
-      controlkeel obs loop            Show the local human-gated learning loop status
-      controlkeel obs run <id>        Show observability for a session run
-      controlkeel obs problems        Show grouped observability problems
-      controlkeel obs costs [--by model|tool|source|provider]
-                                      Show local cost and efficiency totals
-      controlkeel obs imports        List persisted local observability imports
-      controlkeel obs trends [--days N]
-                                      Show local run/import/cost trend summaries
-      controlkeel obs recommend      Show prioritized observability recommendations
-      controlkeel obs evals          Show advisory eval candidates from problems
-      controlkeel obs evals save     Save current advisory eval candidates locally
-      controlkeel obs evals persisted
-                                      List saved local eval candidates
-      controlkeel obs benchmarks draft
-                                      Generate local benchmark drafts from saved evals
-      controlkeel obs benchmarks drafts
-                                      List local benchmark drafts
-      controlkeel obs benchmarks materialize
-                                      Create local scenarios from approved drafts
-      controlkeel obs benchmarks scenarios
-                                      List generated observability scenarios
-      controlkeel obs benchmarks history
-                                      Show generated benchmark run history/readiness
-      controlkeel obs benchmarks run --dry-run [--suite slug] [--subjects ids]
-                                      Preview generated observability benchmark execution
-      controlkeel obs benchmarks run --execute --suite slug --subjects ids
-                                      Run generated observability benchmarks via local runner (explicit only)
-      controlkeel obs benchmarks approve|reject|archive <id>
-                                      Review a local benchmark draft without running it
-      controlkeel obs compare [--by source|model|provider|tool]
-                                      Compare local invocation groups
-      controlkeel obs regressions [--days N]
-                                      Show local benchmark regression posture
-      controlkeel obs promotions
-                                      Show advisory promotion candidates without mutating artifacts
-      controlkeel obs timeline [id]   Show recent session timeline events
-      controlkeel obs memory [id]     Show session memory and context summary
-      controlkeel obs memory-quality [--stale-days N]
-                                      Show workspace memory quality signals
-      controlkeel obs export <id>     Export a local observability envelope
-      controlkeel obs import <file> --dry-run|--persist
-                                      Preview or persist a local observability envelope snapshot
-      controlkeel update [options]    Check for a newer GitHub release and refresh attached surfaces
-      controlkeel context [options]   Show governed session context via the CK context surface
-      controlkeel validate [options]  Validate proposed content via the CK validation surface
-      controlkeel findings [options]  List findings for the current session
-      controlkeel approve <id>        Approve a finding in the current session
-      controlkeel proofs [options]    List proof bundles for the current session
-      controlkeel proof <id>          Show a proof bundle by proof id or task id
-      controlkeel audit-log <id>      Export a session audit log as json|csv|pdf
-      controlkeel pause <task-id>     Pause a task and capture a resume packet
-      controlkeel resume <task-id>    Resume a paused or blocked task
-      controlkeel memory search <q>   Search typed memory for the current session
-      controlkeel skills list         List skills, diagnostics, and compatibility targets
-      controlkeel skills validate     Validate the catalog for the current project
-      controlkeel skills export       Export native skill/plugin bundles
-      controlkeel skills install      Install skills for a native target
-      controlkeel skills doctor       Show trust, catalog, and install health
-      controlkeel benchmark list [--domain-pack pack]
-                                      List built-in suites and recent runs
-      controlkeel benchmark run [options]
-                                      Run a benchmark suite and persist the matrix
-      controlkeel benchmark show <id> Show a benchmark run with subject summaries
-      controlkeel benchmark import <run-id> <subject> <json-file>
-                                      Import manual benchmark output for a subject
-      controlkeel benchmark export <run-id> [--format json|csv]
-                                      Export a benchmark run
-      controlkeel policy list         List recent policy artifacts and training runs
-      controlkeel policy train --type router|budget_hint
-                                      Train a new policy artifact
-      controlkeel policy show <id>    Show a policy artifact
-      controlkeel policy promote <id> Promote a policy artifact if gates pass
-      controlkeel policy archive <id> Archive a policy artifact
-      controlkeel service-account create|list|revoke|rotate
-                                      Manage workspace-scoped machine credentials
-      controlkeel policy-set create|list|apply
-                                      Manage enterprise policy sets and assignments
-      controlkeel webhook create|list|replay
-                                      Manage outbound CI/CD webhooks and deliveries
-      controlkeel graph show <id>     Show the persisted task DAG for a session
-      controlkeel execute <id>        Materialize ready tasks and task runs
-      controlkeel worker start [--service-account-token TOKEN]
-                                      Poll ready work for a workspace service account
-      controlkeel provider list|show|default|set-key|set-base-url|set-model|doctor
-                                      Inspect and configure CK provider brokerage
-      controlkeel runtime export <id> [--project-root /abs/path]
-                                      Export headless/runtime bundles: open-swe, devin, executor, warp-oz, cloudflare-workers, virtual-bash, multica-cloud
-      controlkeel bootstrap [--project-root /abs/path] [--ephemeral-ok]
-                                      Auto-create project or ephemeral binding on first use
-      controlkeel watch [--interval N] [--status]
-                                      Stream findings and budget live (default: 2000ms), or print one-shot status with --status
-      controlkeel mcp [--project-root /abs/path]
-                                      Run the MCP server for a project
-      controlkeel deploy analyze [--project-root /abs/path]
-                                      Analyze project stack and generate deployment files
-      controlkeel deploy cost [--stack phoenix|react|rails|node|python|static]
-                                      Compare hosting costs across 9 platforms
-      controlkeel deploy dns <stack>   Show DNS and SSL setup guide
-      controlkeel deploy migration <stack>
-                                      Show database migration guide
-      controlkeel deploy scaling <stack>
-                                      Show scaling and infrastructure guide
-      controlkeel cost optimize [--session-id ID] [--provider PROVIDER] [--model MODEL]
-                                      Get cost optimization suggestions
-      controlkeel cost compare [--tokens N]
-                                      Compare agent costs for a token budget
-      controlkeel precommit-check [--domain-pack PACK] [--enforce]
-                                      Scan staged files for policy violations
-      controlkeel precommit-install [--enforce]
-                                      Install git pre-commit hook
-      controlkeel precommit-uninstall  Remove ControlKeel pre-commit hook
-      controlkeel progress [--session-id ID]
-                                      Show session progress, tasks, and findings
-      controlkeel findings translate [--session-id ID]
-                                      Translate findings to plain English
-      controlkeel outcome record <session-id> <outcome>
-                                      Record an agent outcome (deploy_success, test_pass, etc.)
-      controlkeel outcome score <agent-id>
-                                      Show agent score from outcomes
-      controlkeel outcome leaderboard  Show agent leaderboard by outcome scores
-      controlkeel help [topic or question]
-                                      Show guided help for a topic or question
-      controlkeel version             Show the current version
-      controlkeel update --apply      Apply a safe self update when the install channel supports it
-      controlkeel update --sync-attached
-                                      Refresh attached plugins, hooks, skills, agents, and commands
+    Catalog (#{length(Catalog.all())} commands, #{map_size(Catalog.families())} families):
+    #{catalog_lines}
     """
   end
 
@@ -822,6 +740,8 @@ defmodule ControlKeel.CLI.Help do
   end
 
   defp general_help do
+    topics = @topics |> Enum.map(&"      - #{&1.id}") |> Enum.join("\n")
+
     """
     ControlKeel help
 
@@ -849,23 +769,8 @@ defmodule ControlKeel.CLI.Help do
       - `controlkeel findings`
       - `controlkeel agents doctor`
 
-    Topics:
-      - overview
-      - getting-started
-      - attach
-      - codex
-      - review
-      - findings
-      - run
-      - sessions
-      - skills
-      - providers
-      - troubleshooting
-      - worktrees
-      - checkpoints
-      - git
-      - monitoring
-      - mcp
+    Topics (#{length(@topics)}):
+    #{topics}
     """
   end
 
@@ -1041,12 +946,6 @@ defmodule ControlKeel.CLI.Help do
     |> String.downcase()
     |> String.replace(~r/[^a-z0-9]+/u, " ")
     |> String.split(" ", trim: true)
-  end
-
-  defp supported_attach_agents_text do
-    Integration.attach_catalog()
-    |> Enum.map(& &1.id)
-    |> Enum.join(", ")
   end
 
   defp topics do

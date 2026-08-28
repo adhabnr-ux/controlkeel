@@ -391,7 +391,8 @@ defmodule ControlKeel.CLITasksTest do
 
     skill_name = "shared-skill"
 
-    for subdir <- [".agents/skills", ".claude/skills"] do
+    # Identical copy in a second host dir: expected distribution (info, not warn).
+    for {subdir, body_extra} <- [{".agents/skills", ""}, {".claude/skills", ""}] do
       skill_dir = Path.join([tmp_dir, subdir, skill_name])
       File.mkdir_p!(skill_dir)
 
@@ -404,7 +405,7 @@ defmodule ControlKeel.CLITasksTest do
         ---
         # Shared Skill
 
-        Use CK governance for setup checks.
+        Use CK governance for setup checks.#{body_extra}
         """
       )
     end
@@ -413,8 +414,33 @@ defmodule ControlKeel.CLITasksTest do
     assert {:ok, doctor_lines} = CLI.run_command(parsed_doctor, tmp_dir)
     doctor_output = Enum.join(doctor_lines, "\n")
 
-    assert doctor_output =~ "controlkeel token audit --mode skills"
-    refute doctor_output =~ "controlkeel token audit mode=skills"
+    # Identical cross-host copies are expected distribution: info line, no warning.
+    assert doctor_output =~ "expected distribution"
+    refute doctor_output =~ "SHADOWED SKILL COPIES"
+
+    # A differing copy under the same name is real drift: warn + prune guidance.
+    shadow_dir = Path.join([tmp_dir, ".cursor/skills", skill_name])
+    File.mkdir_p!(shadow_dir)
+
+    File.write!(
+      Path.join(shadow_dir, "SKILL.md"),
+      """
+      ---
+      name: shared-skill
+      description: Divergent copy that shadows the preferred definition
+      ---
+      # Shared Skill (divergent)
+
+      Different body content.
+      """
+    )
+
+    assert {:ok, doctor_lines2} = CLI.run_command(parsed_doctor, tmp_dir)
+    doctor_output2 = Enum.join(doctor_lines2, "\n")
+
+    assert doctor_output2 =~ "SHADOWED SKILL COPIES"
+    assert doctor_output2 =~ "controlkeel skills doctor --prune-duplicates"
+    refute doctor_output2 =~ "controlkeel token audit --mode skills"
 
     assert {:ok, parsed_audit} =
              CLI.parse(["token", "audit", "--mode", "skills", "--project-root", tmp_dir])
@@ -424,7 +450,7 @@ defmodule ControlKeel.CLITasksTest do
 
     assert audit_output =~ "Duplicate skill groups: 1"
     assert audit_output =~ "Duplicate skill tokens:"
-    assert audit_output =~ "#{skill_name}: 2 copies"
+    assert audit_output =~ "#{skill_name}: 3 copies"
     refute audit_output =~ "() tokens"
   end
 

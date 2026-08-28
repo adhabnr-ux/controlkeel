@@ -1889,14 +1889,15 @@ defmodule ControlKeel.CLI do
 
   def manual_approval_lines(review, %{server_serving: false}) do
     [
-      "Manual approval fallback: review server is not reachable from this CLI session.",
-      "Approve from CLI after explicit human approval: controlkeel review plan respond --id #{review.id} --decision approved --feedback-notes \"User approved in chat; review server unavailable\""
+      "Approval: ask the user for explicit approval in this conversation, then record it with:",
+      "  controlkeel review plan respond #{review.id} --decision approved --feedback-notes \"User approved in chat\" --json"
     ]
   end
 
   def manual_approval_lines(_review, %{opened: false}) do
     [
-      "Manual approval fallback: browser did not open automatically; ask for explicit approval in chat or open the URL manually."
+      "Approval: ask the user for explicit approval in this conversation, then record it with:",
+      "  controlkeel review plan respond <review_id> --decision approved --feedback-notes \"User approved in chat\" --json"
     ]
   end
 

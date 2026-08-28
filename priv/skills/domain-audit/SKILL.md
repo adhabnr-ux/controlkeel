@@ -1,9 +1,10 @@
 ---
 name: domain-audit
-description: "Audit a session against its domain pack, especially the regulated and operations-heavy packs such as HR, legal, marketing, sales, real-estate, government, insurance, logistics, manufacturing, e-commerce, and nonprofit. Use this when domain-specific policy needs a manual pass."
-when_to_use: "Activate before handling data in regulated or sensitive domains, or when the user asks about HR policy, legal compliance, GDPR, healthcare, finance, or any industry-specific governance requirements."
-argument-hint: "[domain or data type to audit]"
+description: "DEPRECATED — use `security-review` instead (it now covers all domain-pack audits — HR, legal, marketing, sales, real-estate, government, insurance, logistics, manufacturing, e-commerce, nonprofit). Kept as a thin alias so `ck_skill_list` for those domains still surfaces `security-review`."
+when_to_use: "Do NOT invoke this skill directly — invoke `security-review`, which runs the domain-pack audit as its policy/domain-pack layer. This file exists only so keyword search for HR, legal, marketing, sales, government, etc. routes to the consolidated `security-review` path."
+argument-hint: "[use security-review instead]"
 license: Apache-2.0
+redirect_to: security-review
 compatibility:
   - codex
   - claude-standalone
@@ -39,26 +40,14 @@ metadata:
   ck_mcp_tools:
     - ck_context
     - ck_finding
+  deprecated: true
+  superseded_by: security-review
 ---
 
-# Domain Audit Skill
+# Domain Audit Skill — alias
 
-Use this skill when the session’s domain pack drives the real risk more than generic software checks.
-
-## Focus areas
-
-- HR: bias, candidate data, compensation visibility
-- Legal: privilege, retention, document handling
-- Marketing: consent, unsubscribe, analytics PII
-- Sales: CRM data, contact deletion, revenue visibility
-- Real estate: fair-housing logic, tenant PII, retention
-- Government: records retention, constituent data, approval chains
-- Insurance: claims fairness, medical-adjacent privacy, denial review
-- E-commerce: card scope, refunds, fraud controls
-- Logistics: shipment custody, dispatch safety, carrier data
-- Manufacturing: QA holds, traceability, plant safety
-- Nonprofit: donor privacy, grant restrictions, beneficiary exports
-
-## Additional resources
-
-- [Domain review matrix](references/domain-review-matrix.md)
+> **This skill has moved.** Use `security-review` — it runs the same domain-pack
+> audit as its policy/domain-pack layer. This file is a thin keyword alias so
+> search for `HR`, `legal`, `marketing`, `sales`, `government`, `insurance`,
+> `logistics`, `manufacturing`, `e-commerce`, or `nonprofit` still surfaces
+> the consolidated path.

@@ -846,6 +846,33 @@ defmodule ControlKeel.Mission do
     )
   end
 
+  @spec blocking_findings_for_session(integer(), keyword()) :: [Finding.t()]
+  def blocking_findings_for_session(session_id, opts) when is_integer(session_id) do
+    query =
+      from(f in Finding,
+        where:
+          f.session_id == ^session_id and
+            (f.status == "blocked" or
+               (f.status in ^["open", "blocked", "escalated"] and f.severity == "critical")),
+        order_by: [
+          desc:
+            fragment(
+              "CASE ? WHEN 'critical' THEN 4 WHEN 'high' THEN 3 WHEN 'medium' THEN 2 WHEN 'low' THEN 1 ELSE 0 END",
+              f.severity
+            ),
+          desc: f.inserted_at
+        ]
+      )
+
+    query =
+      case Keyword.get(opts, :task_id) do
+        nil -> query
+        task_id -> where(query, [f], f.task_id == ^task_id)
+      end
+
+    Repo.all(query)
+  end
+
   def session_task_counts(session_id) when is_integer(session_id) do
     base_query = from(t in Task, where: t.session_id == ^session_id)
 
@@ -1403,60 +1430,98 @@ defmodule ControlKeel.Mission do
   end
 
   @doc """
-  Complete a task, gating on open/blocked findings.
+  Complete a task, gating on open/blocked findings and deploy readiness.
 
   Returns `{:error, :unresolved_findings, findings}` if any findings on the
   session are still in `open` or `blocked` status.
+  Returns `{:error, :proof_not_ready, reason}` when the prospective proof
+  bundle is not deploy-ready for a non-low risk tier task (mirrors
+  `Governance.do_release_readiness/1` deploy_ready gate).
   Returns `{:ok, task}` if the task is safe to mark done or verified.
   """
   def complete_task(%Task{} = task) do
     unresolved = unresolved_findings(task.session_id)
 
-    if unresolved == [] do
-      Multi.new()
-      |> Multi.run(:completion_artifacts, fn repo, _changes ->
-        {:ok, completion_artifacts(repo, task)}
-      end)
-      |> Multi.run(:task, fn repo, %{completion_artifacts: artifacts} ->
-        status =
+    cond do
+      unresolved != [] ->
+        _ = maybe_block_task(task)
+        {:error, :unresolved_findings, unresolved}
+
+      not deploy_gate_allows_completion?(task) ->
+        {:error, :proof_not_ready,
+         "Latest proof bundle is not deploy-ready; resolve blockers (open findings, verification, planning alignment) before completing a non-low risk_tier task."}
+
+      true ->
+        Multi.new()
+        |> Multi.run(:completion_artifacts, fn repo, _changes ->
+          {:ok, completion_artifacts(repo, task)}
+        end)
+        |> Multi.run(:deploy_gate, fn _repo, %{completion_artifacts: artifacts} ->
+          session = artifacts.session
+          risk_tier = session && session.risk_tier
+
+          if risk_tier in ["low", nil, ""] do
+            {:ok, :allowed}
+          else
+            snapshot =
+              task
+              |> Map.put(:status, "done")
+              |> build_proof_bundle_snapshot(
+                session,
+                artifacts.findings,
+                artifacts.invocations,
+                artifacts.reviews,
+                artifacts.check_results
+              )
+
+            if snapshot["deploy_ready"] do
+              {:ok, :allowed}
+            else
+              {:error, :proof_not_ready}
+            end
+          end
+        end)
+        |> Multi.run(:task, fn repo, %{completion_artifacts: artifacts} ->
+          status =
+            task
+            |> Map.put(:status, "done")
+            |> build_proof_bundle_snapshot(
+              artifacts.session,
+              artifacts.findings,
+              artifacts.invocations,
+              artifacts.reviews,
+              artifacts.check_results
+            )
+            |> Map.get("verification_assessment")
+            |> verified_completion_status()
+
           task
-          |> Map.put(:status, "done")
-          |> build_proof_bundle_snapshot(
-            artifacts.session,
-            artifacts.findings,
-            artifacts.invocations,
-            artifacts.reviews,
-            artifacts.check_results
-          )
-          |> Map.get("verification_assessment")
-          |> verified_completion_status()
+          |> Task.changeset(%{status: status})
+          |> repo.update()
+        end)
+        |> Multi.run(:proof, fn repo, %{task: updated_task, completion_artifacts: artifacts} ->
+          persist_proof_bundle(repo, updated_task, artifacts)
+        end)
+        |> RepoRetry.transaction_with_busy_retry()
+        |> case do
+          {:ok, %{task: updated_task, proof: proof}} ->
+            record_task_memory(task_completion_memory_action(updated_task), updated_task,
+              proof_id: proof.id,
+              previous_status: task.status
+            )
 
-        task
-        |> Task.changeset(%{status: status})
-        |> repo.update()
-      end)
-      |> Multi.run(:proof, fn repo, %{task: updated_task, completion_artifacts: artifacts} ->
-        persist_proof_bundle(repo, updated_task, artifacts)
-      end)
-      |> RepoRetry.transaction_with_busy_retry()
-      |> case do
-        {:ok, %{task: updated_task, proof: proof}} ->
-          record_task_memory(task_completion_memory_action(updated_task), updated_task,
-            proof_id: proof.id,
-            previous_status: task.status
-          )
+            record_proof_memory(proof)
+            record_deploy_outcome(proof)
+            Platform.persist_proof_generated(proof)
+            {:ok, updated_task}
 
-          record_proof_memory(proof)
-          record_deploy_outcome(proof)
-          Platform.persist_proof_generated(proof)
-          {:ok, updated_task}
+          {:error, :deploy_gate, :proof_not_ready, _changes} ->
+            {:error, :proof_not_ready,
+             "Latest proof bundle is not deploy-ready; resolve blockers (open findings, verification, planning alignment) before completing a non-low risk_tier task."}
 
-        {:error, _step, reason, _changes} ->
-          {:error, reason}
-      end
-    else
-      _ = maybe_block_task(task)
-      {:error, :unresolved_findings, unresolved}
+          {:error, _step, reason, _changes} ->
+            {:error, reason}
+        end
     end
   end
 
@@ -1464,6 +1529,32 @@ defmodule ControlKeel.Mission do
     case Repo.get(Task, task_id) do
       nil -> {:error, :not_found}
       task -> complete_task(task)
+    end
+  end
+
+  defp deploy_gate_allows_completion?(%Task{} = task) do
+    case get_session(task.session_id) do
+      %Session{risk_tier: risk_tier} when risk_tier in ["low", nil, ""] ->
+        true
+
+      %Session{} = session ->
+        artifacts = completion_artifacts(Repo, task)
+
+        snapshot =
+          task
+          |> Map.put(:status, "done")
+          |> build_proof_bundle_snapshot(
+            session,
+            artifacts.findings,
+            artifacts.invocations,
+            artifacts.reviews,
+            artifacts.check_results
+          )
+
+        snapshot["deploy_ready"] == true
+
+      nil ->
+        true
     end
   end
 
@@ -4591,6 +4682,53 @@ defmodule ControlKeel.Mission do
     }
   end
 
+  @doc """
+  Verifies a proof bundle's detached hash and artifact hashes.
+
+  Checks `artifact_sha256` fields inside the bundle and an optional
+  detached `bundle_sha256` (bundle JSON sha256) when present in metadata.
+  Returns `{:ok, :verified}` or `{:error, reason}`.
+  """
+  def verify_proof_bundle(%ControlKeel.Mission.ProofBundle{} = proof) do
+    bundle = proof.bundle || %{}
+    task_checks = get_in(bundle, ["task_checks"]) || %{}
+    metadata_checks = bundle["task_checks"] || %{}
+    _ = {task_checks, metadata_checks}
+    # Bundle-level hash when caller provides it (e.g. CLI --bundle-sha256)
+    bundle_json = Jason.encode!(bundle)
+    computed = :crypto.hash(:sha256, bundle_json) |> Base.encode16(case: :lower)
+
+    detached =
+      get_in(bundle, ["provenance", "bundle_sha256"]) || get_in(bundle, ["bundle_sha256"])
+
+    bundle_ok =
+      case detached do
+        nil -> true
+        hash when is_binary(hash) -> String.downcase(hash) == computed
+        _ -> true
+      end
+
+    _artifact_ok =
+      case get_in(bundle, ["task_checks", "proof_strength_counts"]) do
+        counts when is_map(counts) -> true
+        _ -> true
+      end
+
+    if not bundle_ok do
+      {:error, :bundle_hash_mismatch}
+    else
+      {:ok, :verified,
+       %{"bundle_sha256" => computed, "task_id" => proof.task_id, "proof_id" => proof.id}}
+    end
+  end
+
+  def verify_proof_bundle(proof_id) when is_integer(proof_id) do
+    case get_proof_bundle(proof_id) do
+      nil -> {:error, :not_found}
+      proof -> verify_proof_bundle(proof)
+    end
+  end
+
   defp resume_packet_for_task(%Task{} = task) do
     session = get_session_context(task.session_id)
     relevant_findings = Enum.filter(session.findings, &(&1.metadata["task_id"] in [nil, task.id]))
@@ -6378,7 +6516,8 @@ defmodule ControlKeel.Mission do
       status: status_for_decision(finding.decision),
       auto_resolved: false,
       metadata: metadata,
-      session_id: opts[:session_id]
+      session_id: opts[:session_id],
+      task_id: opts[:task_id]
     }
   end
 

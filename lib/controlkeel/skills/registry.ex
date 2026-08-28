@@ -417,6 +417,25 @@ defmodule ControlKeel.Skills.Registry do
     )
   end
 
+  @doc """
+  All filesystem roots CK may have written skills to (project + user scope).
+
+  Used by the installer to distinguish CK-managed destination copies (covered
+  by a `.controlkeel-skills.json` manifest) from user-authored originals, so a
+  stale CK write cannot resurrect through the install catalog loop.
+  """
+  def managed_skill_root_candidates(project_root \\ nil) do
+    project =
+      if project_root do
+        Enum.map(@project_skill_dirs, &Path.join(Path.expand(project_root), &1))
+      else
+        []
+      end
+
+    user = user_skill_dirs()
+    project ++ user
+  end
+
   defp user_home do
     System.get_env("CONTROLKEEL_HOME") || System.get_env("HOME") || System.user_home!()
   end

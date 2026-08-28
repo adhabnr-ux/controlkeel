@@ -330,8 +330,27 @@ defmodule ControlKeel.Benchmark.Runner do
         decision -> outcome["decision"] == decision
       end
 
-    Map.put(outcome, "matched_expected", rules_match and decision_match)
+    matched = rules_match and decision_match
+
+    outcome
+    |> Map.put("matched_expected", matched)
+    |> Map.put("severity_weight", severity_weight(scenario))
+    |> Map.put("weighted_score", if(matched, do: severity_weight(scenario), else: 0.0))
   end
+
+  defp severity_weight(%{metadata: metadata}) when is_map(metadata) do
+    case Map.get(metadata, "risk_tier") || Map.get(metadata, "riskTier") do
+      "critical" -> 3.0
+      "high" -> 2.0
+      "moderate" -> 1.2
+      "medium" -> 1.0
+      "low" -> 0.5
+      "none" -> 0.3
+      _ -> 1.0
+    end
+  end
+
+  defp severity_weight(_scenario), do: 1.0
 
   defp normalize_duration(value) when is_integer(value) and value >= 0, do: value
 
