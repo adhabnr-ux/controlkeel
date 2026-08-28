@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.4.4 — 2026-08-28
+
+### What's changed
+
+- Merge pull request #129 from aryaminus/bolt-optimize-elixir-list-allocations-2068596476068327017
+- Optimize unique count and list length calculations
+
 ## v0.4.3 — 2026-08-28
 
 ### What's changed
