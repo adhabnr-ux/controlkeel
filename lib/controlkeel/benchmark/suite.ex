@@ -11,6 +11,7 @@ defmodule ControlKeel.Benchmark.Suite do
     field :version, :integer, default: 1
     field :status, :string, default: "active"
     field :metadata, :map, default: %{}
+    field :last_run_at, :utc_datetime
 
     has_many :scenarios, Scenario
     has_many :runs, Run
@@ -20,7 +21,7 @@ defmodule ControlKeel.Benchmark.Suite do
 
   def changeset(suite, attrs) do
     suite
-    |> cast(attrs, [:slug, :name, :description, :version, :status, :metadata])
+    |> cast(attrs, [:slug, :name, :description, :version, :status, :metadata, :last_run_at])
     |> validate_required([:slug, :name, :description, :version, :status, :metadata])
     |> validate_number(:version, greater_than: 0)
     |> unique_constraint(:slug)

@@ -28,7 +28,7 @@ defmodule ControlKeel.Agent.ExecutionTest do
   test "embedded execution runs a configured direct command and completes the task", %{
     tmp_dir: tmp_dir
   } do
-    session = session_fixture()
+    session = session_fixture(risk_tier: "low")
     task = task_fixture(%{session: session})
 
     script_path = Path.join(tmp_dir, "codex-executor.sh")
@@ -62,7 +62,7 @@ defmodule ControlKeel.Agent.ExecutionTest do
   end
 
   test "handoff execution creates hosted credentials and waits for callback", %{tmp_dir: tmp_dir} do
-    session = session_fixture()
+    session = session_fixture(risk_tier: "low")
     task = task_fixture(%{session: session})
 
     assert {:ok, result} =
@@ -84,7 +84,7 @@ defmodule ControlKeel.Agent.ExecutionTest do
   end
 
   test "policy-gated execution blocks when the session has blocked findings", %{tmp_dir: tmp_dir} do
-    session = session_fixture()
+    session = session_fixture(risk_tier: "low")
     _finding = finding_fixture(%{session: session, status: "blocked"})
     task = task_fixture(%{session: session})
 
@@ -100,7 +100,7 @@ defmodule ControlKeel.Agent.ExecutionTest do
   end
 
   test "embedded execution tracks sandbox adapter in metadata", %{tmp_dir: tmp_dir} do
-    session = session_fixture()
+    session = session_fixture(risk_tier: "low")
     task = task_fixture(%{session: session})
 
     script_path = Path.join(tmp_dir, "test-executor.sh")
@@ -133,7 +133,7 @@ defmodule ControlKeel.Agent.ExecutionTest do
   end
 
   test "execution is blocked while a submitted plan review is pending", %{tmp_dir: tmp_dir} do
-    session = session_fixture()
+    session = session_fixture(risk_tier: "low")
     task = task_fixture(%{session: session})
 
     assert {:ok, review} =

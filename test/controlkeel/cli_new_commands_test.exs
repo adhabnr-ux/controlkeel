@@ -964,7 +964,7 @@ defmodule ControlKeel.CLI.NewCommandsTest do
     end
 
     test "task lifecycle commands complete claim heartbeat checks and report", %{tmp_dir: tmp_dir} do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "queued"})
       write_binding(tmp_dir, session)
 

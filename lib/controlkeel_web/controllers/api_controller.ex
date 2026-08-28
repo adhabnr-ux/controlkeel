@@ -905,6 +905,17 @@ defmodule ControlKeelWeb.ApiController do
             "#{length(findings)} finding(s) must be approved or resolved before marking this task done.",
           findings: Enum.map(findings, &finding_summary/1)
         })
+
+      {:error, :proof_not_ready, reason} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "proof_not_ready", message: reason})
+
+      {:error, :budget_exhausted} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "budget_exhausted"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -942,6 +953,14 @@ defmodule ControlKeelWeb.ApiController do
 
         {:error, :not_found} ->
           conn |> put_status(:not_found) |> json(%{error: "task not found"})
+
+        {:error, :budget_exhausted} ->
+          conn
+          |> put_status(:unprocessable_entity)
+          |> json(%{
+            error: "budget_exhausted",
+            message: "Session budget exhausted; use skip_budget_check/force to bypass."
+          })
 
         {:error, reason} ->
           conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})

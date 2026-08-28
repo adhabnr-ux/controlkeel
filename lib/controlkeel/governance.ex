@@ -21,6 +21,22 @@ defmodule ControlKeel.Governance do
     ".github/controlkeel/README.md"
   ]
 
+  @guard_removal_patterns [
+    ~r/plug\s+.*auth/i,
+    ~r/\bensure_auth\b/i,
+    ~r/\bauthenticate\b/i,
+    ~r/\bauthorize\b/i,
+    ~r/\bcurrent_user\b/,
+    ~r/\brequire_login\b/i,
+    ~r/\brequire_auth\b/i,
+    ~r/\bverify.*token\b/i,
+    ~r/\bcheck.*permission\b/i,
+    ~r/\bbefore_action\b/i,
+    ~r/\bis_authenticated\b/i,
+    ~r/\blogged_in\b/i,
+    ~r/\bhas_role\?|\brole_required\b/i
+  ]
+
   def review_diff(base_ref, head_ref, opts \\ [])
       when is_binary(base_ref) and is_binary(head_ref) do
     project_root = opts[:project_root] || File.cwd!()
@@ -59,8 +75,12 @@ defmodule ControlKeel.Governance do
         |> Enum.map(&attach_fragment_metadata(&1, fragment))
       end)
 
+    guard_removal_findings =
+      fragments
+      |> Enum.flat_map(&guard_removal_findings(&1))
+
     dependency_findings = dependency_review_findings(dependency_review)
-    findings = scan_findings ++ dependency_findings
+    findings = scan_findings ++ guard_removal_findings ++ dependency_findings
     decision = final_decision(findings)
     review_summary = review_summary(decision, findings, fragments)
 
@@ -353,6 +373,9 @@ defmodule ControlKeel.Governance do
           String.starts_with?(line, " ") and fragment ->
             {state, increment_fragment_line(fragment)}
 
+          String.starts_with?(line, "-") and not String.starts_with?(line, "---") and fragment ->
+            {state, append_deleted_line(fragment, String.trim_leading(line, "-"))}
+
           String.starts_with?(line, "-") and not String.starts_with?(line, "---") ->
             {state, fragment}
 
@@ -394,7 +417,8 @@ defmodule ControlKeel.Governance do
       kind: infer_kind(path),
       start_line: parsed_start,
       current_line: parsed_start,
-      added_lines: []
+      added_lines: [],
+      deleted_lines: []
     })
   end
 
@@ -406,6 +430,10 @@ defmodule ControlKeel.Governance do
     }
   end
 
+  defp append_deleted_line(fragment, line) do
+    %{fragment | deleted_lines: fragment.deleted_lines ++ [line]}
+  end
+
   defp increment_fragment_line(fragment) do
     %{fragment | current_line: fragment.current_line + 1}
   end
@@ -413,13 +441,34 @@ defmodule ControlKeel.Governance do
   defp flush_fragment(state, nil), do: state
 
   defp flush_fragment(state, fragment) do
-    if fragment.path && fragment.added_lines != [] do
+    has_content = fragment.path && (fragment.added_lines != [] || fragment.deleted_lines != [])
+
+    if has_content do
+      added_content = Enum.join(fragment.added_lines, "\n")
+      deleted_content = Enum.join(fragment.deleted_lines, "\n")
+
+      combined_content =
+        cond do
+          added_content != "" and deleted_content != "" ->
+            added_content <> "\n" <> deleted_content
+
+          added_content != "" ->
+            added_content
+
+          true ->
+            deleted_content
+        end
+
       finalized = %{
         path: fragment.path,
         kind: fragment.kind,
         start_line: fragment.start_line,
         added_line_count: length(fragment.added_lines),
-        content: Enum.join(fragment.added_lines, "\n")
+        deleted_line_count: length(fragment.deleted_lines),
+        deleted_lines: fragment.deleted_lines,
+        content: combined_content,
+        added_content: added_content,
+        deleted_content: deleted_content
       }
 
       %{state | fragments: [finalized | state.fragments]}
@@ -446,6 +495,7 @@ defmodule ControlKeel.Governance do
     |> Map.take([:content, :path, :kind])
     |> Map.put(:session_id, session_id)
     |> Map.put(:domain_pack, domain_pack)
+    |> Map.put("source", "patch_review")
     |> FastPath.scan()
     |> Map.get(:findings, [])
   end
@@ -455,6 +505,7 @@ defmodule ControlKeel.Governance do
       finding.metadata
       |> Map.put("chunk_start_line", fragment.start_line)
       |> Map.put("chunk_added_line_count", fragment.added_line_count)
+      |> maybe_put("chunk_deleted_line_count", Map.get(fragment, :deleted_line_count))
 
     %Scanner.Finding{
       finding
@@ -465,6 +516,42 @@ defmodule ControlKeel.Governance do
           }),
         metadata: metadata
     }
+  end
+
+  defp guard_removal_findings(%{deleted_lines: deleted_lines, path: path, kind: kind} = fragment)
+       when is_list(deleted_lines) and deleted_lines != [] do
+    deleted_lines
+    |> Enum.filter(&guard_relevant_line?/1)
+    |> Enum.map(fn line ->
+      %Scanner.Finding{
+        id: guard_removal_fingerprint(path, line),
+        severity: "critical",
+        category: "security",
+        rule_id: "security.guard_removal",
+        decision: "block",
+        plain_message:
+          "Security guard/auth check appears to have been removed (#{String.trim(line) |> String.slice(0, 80)}). Verify this deletion is intentional and does not weaken access control.",
+        location: %{"path" => path, "kind" => kind},
+        metadata: %{
+          "scanner" => "governance",
+          "matcher" => "guard_removal",
+          "deleted_line" => String.trim(line),
+          "chunk_start_line" => fragment.start_line,
+          "chunk_deleted_line_count" => fragment.deleted_line_count
+        }
+      }
+    end)
+  end
+
+  defp guard_removal_findings(_fragment), do: []
+
+  defp guard_relevant_line?(line) when is_binary(line) do
+    Enum.any?(@guard_removal_patterns, &Regex.match?(&1, line))
+  end
+
+  defp guard_removal_fingerprint(path, line) do
+    seed = "security.guard_removal:#{path}:#{line}"
+    "gr_" <> (:crypto.hash(:sha256, seed) |> Base.encode16(case: :lower) |> binary_part(0, 12))
   end
 
   defp dependency_review_findings(review) when review == %{}, do: []

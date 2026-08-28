@@ -255,15 +255,57 @@ defmodule ControlKeel.Benchmark do
         _ -> Float.round(matched_expected / length(evaluated) * 100, 1)
       end
 
+    weighted_hit_rate = weighted_expected_rule_hit_rate(evaluated)
     classification = classification_metrics(run)
 
     %{
       block_rate: block_rate,
       expected_rule_hit_rate: expected_rule_hit_rate,
+      weighted_expected_rule_hit_rate: weighted_hit_rate,
       evaluated_results: length(evaluated),
       classification: classification
     }
   end
+
+  @doc false
+  def weighted_expected_rule_hit_rate(results) when is_list(results) do
+    case results do
+      [] ->
+        0.0
+
+      _ ->
+        {weighted_matched, weighted_total} =
+          Enum.reduce(results, {0.0, 0.0}, fn result, {matched_acc, total_acc} ->
+            weight =
+              case result do
+                %{metadata: %{"severity_weight" => w}} when is_number(w) -> w * 1.0
+                %{"severity_weight" => w} when is_number(w) -> w * 1.0
+                _ -> scenario_weight(result.scenario)
+              end
+
+            matched_add = if result.matched_expected, do: weight, else: 0.0
+            {matched_acc + matched_add, total_acc + weight}
+          end)
+
+        if weighted_total == 0.0,
+          do: 0.0,
+          else: Float.round(weighted_matched / weighted_total * 100, 1)
+    end
+  end
+
+  defp scenario_weight(%{metadata: metadata}) when is_map(metadata) do
+    case Map.get(metadata, "risk_tier") do
+      "critical" -> 3.0
+      "high" -> 2.0
+      "moderate" -> 1.2
+      "medium" -> 1.0
+      "low" -> 0.5
+      "none" -> 0.3
+      _ -> 1.0
+    end
+  end
+
+  defp scenario_weight(_), do: 1.0
 
   # Only inline a comparison in exports when there is more than one subject to
   # compare. A single-subject "comparison" is degenerate (a subject versus
@@ -861,10 +903,25 @@ defmodule ControlKeel.Benchmark do
         "eval_staleness"
       )
 
+    blocked = []
+
+    blocked =
+      if (split_summary["held_out"] || 0) == 0 do
+        ["missing_holdout_evidence" | blocked]
+      else
+        blocked
+      end
+
     %{
-      "status" => if(warnings == [], do: "ready", else: "warn"),
+      "status" =>
+        cond do
+          blocked != [] -> "blocked"
+          warnings != [] -> "warn"
+          true -> "ready"
+        end,
       "evidence_channels" => Enum.reverse(evidence_channels),
-      "warnings" => Enum.reverse(warnings)
+      "warnings" => Enum.reverse(warnings),
+      "blocked" => Enum.reverse(blocked)
     }
   end
 
@@ -872,21 +929,44 @@ defmodule ControlKeel.Benchmark do
   def integrity_findings(profile, attrs \\ %{}) when is_map(profile) do
     integrity = Map.get(profile, "promotion_integrity") || promotion_integrity_profile(profile)
     warnings = integrity["warnings"] || []
+    blocked = integrity["blocked"] || []
 
-    Enum.map(warnings, fn warning ->
-      %{
-        "category" => "governance-product",
-        "severity" => "medium",
-        "rule_id" => "benchmarks.#{warning}",
-        "title" => benchmark_integrity_title(warning),
-        "plain_message" => benchmark_integrity_message(warning),
-        "metadata" =>
-          Map.merge(attrs, %{
-            "diagnostic_source" => "benchmark_promotion_integrity",
-            "promotion_integrity" => integrity
-          })
-      }
-    end)
+    warning_findings =
+      Enum.map(warnings, fn warning ->
+        %{
+          "category" => "governance-product",
+          "severity" => "medium",
+          "rule_id" => "benchmarks.#{warning}",
+          "title" => benchmark_integrity_title(warning),
+          "plain_message" => benchmark_integrity_message(warning),
+          "metadata" =>
+            Map.merge(attrs, %{
+              "diagnostic_source" => "benchmark_promotion_integrity",
+              "promotion_integrity" => integrity
+            })
+        }
+      end)
+
+    blocked_findings =
+      Enum.map(blocked, fn warning ->
+        %{
+          "category" => "governance-product",
+          "severity" => "critical",
+          "rule_id" => "benchmarks.#{warning}",
+          "title" => benchmark_integrity_title(warning) <> " (blocking)",
+          "plain_message" =>
+            benchmark_integrity_message(warning) <>
+              " Promotion is blocked until held-out evidence is present.",
+          "metadata" =>
+            Map.merge(attrs, %{
+              "diagnostic_source" => "benchmark_promotion_integrity",
+              "promotion_integrity" => integrity,
+              "blocking" => true
+            })
+        }
+      end)
+
+    warning_findings ++ blocked_findings
   end
 
   defp scenario_behavior_tags(%Scenario{} = scenario) do
@@ -1116,9 +1196,38 @@ defmodule ControlKeel.Benchmark do
     refreshed = get_run!(run_id)
     aggregates = aggregate_run(refreshed)
 
-    refreshed
-    |> Run.changeset(aggregates)
-    |> RepoRetry.update_with_busy_retry(@busy_retry_backoff_ms)
+    result =
+      refreshed
+      |> Run.changeset(aggregates)
+      |> RepoRetry.update_with_busy_retry(@busy_retry_backoff_ms)
+
+    case result do
+      {:ok, updated} ->
+        # per-suite staleness tracking
+        _ =
+          updated.suite_id
+          |> then(fn sid -> Repo.get(ControlKeel.Benchmark.Suite, sid) end)
+          |> case do
+            nil ->
+              :ok
+
+            suite ->
+              suite
+              |> ControlKeel.Benchmark.Suite.changeset(%{
+                last_run_at: DateTime.utc_now() |> DateTime.truncate(:second)
+              })
+              |> RepoRetry.update_with_busy_retry(@busy_retry_backoff_ms)
+              |> case do
+                {:ok, _} -> :ok
+                _ -> :ok
+              end
+          end
+
+        {:ok, updated}
+
+      other ->
+        other
+    end
   end
 
   defp aggregate_run(%Run{} = run) do

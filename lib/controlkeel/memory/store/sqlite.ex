@@ -58,17 +58,108 @@ defmodule ControlKeel.Memory.Store.Sqlite do
   end
 
   def search(query, opts \\ []) do
+    strategy = Keyword.get(opts, :retrieval_strategy, :single_vector)
+    normalized = normalize_strategy(strategy)
+
+    case normalized do
+      :bm25 -> search_bm25(query, opts)
+      :single_vector -> search_vector(query, opts)
+      _hybrid -> search_hybrid(query, opts)
+    end
+  end
+
+  defp normalize_strategy(strategy) when is_atom(strategy), do: strategy
+
+  defp normalize_strategy(strategy) when is_binary(strategy) do
+    case strategy do
+      "bm25" -> :bm25
+      "single_vector" -> :single_vector
+      "hybrid_bm25_vector" -> :hybrid_bm25_vector
+      _ -> :hybrid_bm25_vector
+    end
+  end
+
+  defp normalize_strategy(_), do: :single_vector
+
+  defp search_bm25(query, opts) do
     top_k = opts[:top_k] || Application.get_env(:controlkeel, :memory_top_k, 5)
     candidate_limit = max(top_k * @candidate_multiplier, 25)
     include_body = Keyword.get(opts, :include_body, false)
     include_metadata = Keyword.get(opts, :include_metadata, false)
-    lexical = lexical_hits(query, opts, candidate_limit)
+    lexical = lexical_hits_with_scores(query, opts, candidate_limit)
     records = load_records(Map.keys(lexical), query, opts, candidate_limit)
+
+    entries =
+      records
+      |> Enum.map(fn record ->
+        lexical_score = Map.get(lexical, record.id, fallback_lexical_score(record))
+        workspace_bonus = if(record.workspace_id == opts[:workspace_id], do: 0.75, else: 0.0)
+        session_bonus = if(record.session_id == opts[:session_id], do: 0.35, else: 0.0)
+
+        domain_bonus =
+          if record.metadata["domain_pack"] &&
+               record.metadata["domain_pack"] == opts[:domain_pack] do
+            0.2
+          else
+            0.0
+          end
+
+        recency_bonus = recency_bonus(record.inserted_at)
+        score = lexical_score + workspace_bonus + session_bonus + domain_bonus + recency_bonus
+
+        base = %{
+          id: record.id,
+          record_type: record.record_type,
+          title: record.title,
+          summary: record.summary,
+          source_type: record.source_type,
+          source_id: record.source_id,
+          session_id: record.session_id,
+          task_id: record.task_id,
+          workspace_id: record.workspace_id,
+          inserted_at: record.inserted_at,
+          lexical_score: Float.round(lexical_score, 4),
+          semantic_score: 0.0,
+          score: Float.round(score, 4)
+        }
+
+        base
+        |> maybe_add_field(:body, record.body, include_body)
+        |> maybe_add_field(:tags, record.tags, true)
+        |> maybe_add_field(:metadata, record.metadata, include_metadata)
+      end)
+      |> Enum.sort_by(& &1.score, :desc)
+      |> Enum.take(top_k)
+
+    %{
+      entries: entries,
+      query: query,
+      total_count: length(entries),
+      semantic_available: false
+    }
+  end
+
+  defp search_vector(query, opts) do
+    top_k = opts[:top_k] || Application.get_env(:controlkeel, :memory_top_k, 5)
+    candidate_limit = max(top_k * @candidate_multiplier, 25)
+    include_body = Keyword.get(opts, :include_body, false)
+    include_metadata = Keyword.get(opts, :include_metadata, false)
 
     {semantic_available, query_embedding} =
       case Embeddings.embed(query) do
         {:ok, payload} -> {true, payload.embedding}
         _error -> {false, nil}
+      end
+
+    records =
+      if semantic_available do
+        Record
+        |> maybe_scope_records(opts)
+        |> order_by([r], desc: r.inserted_at)
+        |> limit(^candidate_limit)
+        |> Repo.all()
+      else
+        fallback_records(query, opts, candidate_limit)
       end
 
     embeddings =
@@ -77,6 +168,8 @@ defmodule ControlKeel.Memory.Store.Sqlite do
       else
         %{}
       end
+
+    lexical = %{}
 
     entries =
       records
@@ -102,7 +195,164 @@ defmodule ControlKeel.Memory.Store.Sqlite do
     }
   end
 
-  defp lexical_hits(query, opts, limit) when is_binary(query) do
+  defp search_hybrid(query, opts) do
+    top_k = opts[:top_k] || Application.get_env(:controlkeel, :memory_top_k, 5)
+    candidate_limit = max(top_k * @candidate_multiplier, 25)
+    include_body = Keyword.get(opts, :include_body, false)
+    include_metadata = Keyword.get(opts, :include_metadata, false)
+
+    lexical = lexical_hits_with_scores(query, opts, candidate_limit)
+
+    {semantic_available, query_embedding} =
+      case Embeddings.embed(query) do
+        {:ok, payload} -> {true, payload.embedding}
+        _error -> {false, nil}
+      end
+
+    lexical_ids = Map.keys(lexical)
+
+    vector_records =
+      if semantic_available do
+        Record
+        |> maybe_scope_records(opts)
+        |> order_by([r], desc: r.inserted_at)
+        |> limit(^candidate_limit)
+        |> Repo.all()
+      else
+        []
+      end
+
+    vector_ids = Enum.map(vector_records, & &1.id)
+    all_ids = (lexical_ids ++ vector_ids) |> Enum.uniq()
+
+    records =
+      if all_ids == [] do
+        fallback_records(query, opts, candidate_limit)
+      else
+        Record
+        |> where([r], r.id in ^all_ids)
+        |> maybe_scope_records(opts)
+        |> Repo.all()
+        |> case do
+          [] -> fallback_records(query, opts, candidate_limit)
+          found -> found
+        end
+      end
+
+    embeddings =
+      if semantic_available do
+        load_embeddings(records)
+      else
+        %{}
+      end
+
+    semantic_scores =
+      if semantic_available and query_embedding do
+        Enum.into(records, %{}, fn record ->
+          {record.id, cosine_similarity(query_embedding, Map.get(embeddings, record.id))}
+        end)
+      else
+        %{}
+      end
+
+    # RRF fusion with raw bm25 magnitude: normalize bm25 to 0..1 then RRF
+    max_bm25 =
+      case Map.values(lexical) do
+        [] -> 1.0
+        values -> Enum.max(values) |> max(1.0)
+      end
+
+    rrf_k = 60
+
+    entries =
+      records
+      |> Enum.map(fn record ->
+        bm25_raw = Map.get(lexical, record.id, 0.0)
+        sem_raw = Map.get(semantic_scores, record.id, 0.0)
+
+        # Rank-based RRF: compute rank per signal
+        bm25_rank = bm25_rank_for(record.id, lexical)
+        sem_rank = semantic_rank_for(record.id, semantic_scores)
+
+        # Use raw magnitude for bm25 component (not 1/rank) per spec
+        bm25_magnitude = bm25_raw / max_bm25
+        bm25_rrf = if bm25_rank, do: 1.0 / (rrf_k + bm25_rank), else: 0.0
+        sem_rrf = if sem_rank, do: 1.0 / (rrf_k + sem_rank), else: 0.0
+
+        # Hybrid: normalize bm25 magnitude + semantic cosine, fused via RRF
+        fused = bm25_magnitude * 0.5 + sem_raw * 0.8 + bm25_rrf + sem_rrf
+
+        workspace_bonus = if(record.workspace_id == opts[:workspace_id], do: 0.75, else: 0.0)
+        session_bonus = if(record.session_id == opts[:session_id], do: 0.35, else: 0.0)
+
+        domain_bonus =
+          if record.metadata["domain_pack"] &&
+               record.metadata["domain_pack"] == opts[:domain_pack] do
+            0.2
+          else
+            0.0
+          end
+
+        recency_bonus = recency_bonus(record.inserted_at)
+        score = fused + workspace_bonus + session_bonus + domain_bonus + recency_bonus
+
+        base = %{
+          id: record.id,
+          record_type: record.record_type,
+          title: record.title,
+          summary: record.summary,
+          source_type: record.source_type,
+          source_id: record.source_id,
+          session_id: record.session_id,
+          task_id: record.task_id,
+          workspace_id: record.workspace_id,
+          inserted_at: record.inserted_at,
+          lexical_score: Float.round(bm25_raw, 4),
+          semantic_score: Float.round(sem_raw, 4),
+          score: Float.round(score, 4)
+        }
+
+        base
+        |> maybe_add_field(:body, record.body, include_body)
+        |> maybe_add_field(:tags, record.tags, true)
+        |> maybe_add_field(:metadata, record.metadata, include_metadata)
+      end)
+      |> Enum.sort_by(& &1.score, :desc)
+      |> Enum.take(top_k)
+
+    %{
+      entries: entries,
+      query: query,
+      total_count: length(entries),
+      semantic_available: semantic_available
+    }
+  end
+
+  defp bm25_rank_for(id, lexical) do
+    sorted =
+      lexical
+      |> Enum.sort_by(fn {_id, score} -> score end, :desc)
+      |> Enum.map(fn {rid, _} -> rid end)
+
+    case Enum.find_index(sorted, &(&1 == id)) do
+      nil -> nil
+      idx -> idx + 1
+    end
+  end
+
+  defp semantic_rank_for(id, semantic_scores) do
+    sorted =
+      semantic_scores
+      |> Enum.sort_by(fn {_id, score} -> score end, :desc)
+      |> Enum.map(fn {rid, _} -> rid end)
+
+    case Enum.find_index(sorted, &(&1 == id)) do
+      nil -> nil
+      idx -> idx + 1
+    end
+  end
+
+  defp lexical_hits_with_scores(query, opts, limit) when is_binary(query) do
     if sqlite_fts_available?() and String.trim(query) != "" do
       match = fts_query(query)
 
@@ -118,9 +368,17 @@ defmodule ControlKeel.Memory.Store.Sqlite do
 
       case SQL.query(Repo.active(), sql, filter_params(match, opts) ++ [limit]) do
         {:ok, %{rows: rows}} ->
-          rows
-          |> Enum.with_index(1)
-          |> Enum.into(%{}, fn {[id, _rank], index} -> {id, 1.0 / index} end)
+          Enum.into(rows, %{}, fn [id, bm25_score] ->
+            # bm25 returns negative scores; negate to get positive magnitude
+            magnitude =
+              case bm25_score do
+                nil -> 0.0
+                v when is_number(v) -> abs(v)
+                _ -> 0.0
+              end
+
+            {id, magnitude}
+          end)
 
         _error ->
           %{}
@@ -129,6 +387,10 @@ defmodule ControlKeel.Memory.Store.Sqlite do
       %{}
     end
   end
+
+  # Legacy helper retained for backwards compat; now delegates to raw bm25 magnitude.
+  # lexical_hits/3 retained for external callers; delegate to scored variant
+  def lexical_hits(query, opts, limit), do: lexical_hits_with_scores(query, opts, limit)
 
   defp load_records([], query, opts, limit), do: fallback_records(query, opts, limit)
 

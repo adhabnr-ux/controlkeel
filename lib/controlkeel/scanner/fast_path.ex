@@ -138,6 +138,7 @@ defmodule ControlKeel.Scanner.FastPath do
       "content" => Map.get(input, "content", Map.get(input, :content, "")),
       "path" => Map.get(input, "path", Map.get(input, :path)),
       "kind" => Map.get(input, "kind", Map.get(input, :kind, "code")),
+      "source" => Map.get(input, "source", Map.get(input, :source)),
       "session_id" =>
         normalize_optional_integer(Map.get(input, "session_id", Map.get(input, :session_id))),
       "task_id" =>
@@ -164,18 +165,38 @@ defmodule ControlKeel.Scanner.FastPath do
     |> Map.merge(TrustBoundary.normalize_validation_context(input))
   end
 
-  defp domain_rules_for(%{"domain_pack" => nil}), do: []
+  defp domain_rules_for(normalized) do
+    packs = collect_domain_packs(normalized)
 
-  defp domain_rules_for(%{"domain_pack" => domain_pack}) do
-    if Domains.supported_pack?(domain_pack) do
-      PackLoader.load!(domain_pack)
-    else
-      []
-    end
+    packs
+    |> Enum.flat_map(fn pack ->
+      case PackLoader.load(pack) do
+        {:ok, rules} -> rules
+        {:error, _} -> []
+      end
+    end)
+    |> uniq_rules()
+  end
+
+  defp collect_domain_packs(%{"domain_pack" => domain_pack, "policy_packs" => policy_packs}) do
+    singular =
+      case domain_pack do
+        pack when is_binary(pack) and pack != "" -> [pack]
+        _ -> []
+      end
+
+    list_packs =
+      (policy_packs || [])
+      |> Enum.filter(&Domains.supported_pack?/1)
+
+    (singular ++ list_packs)
+    |> Enum.uniq()
+    |> Enum.filter(&Domains.supported_pack?/1)
   end
 
   defp ai_tool_rules_for(input) do
-    if ai_tools_explicitly_requested?(input) or ai_tool_config_path?(Map.get(input, "path")) do
+    if ai_tools_explicitly_requested?(input) or ai_tool_config_path?(Map.get(input, "path")) or
+         privileged_capability_requested?(input) do
       load_pack_rules("ai_tools")
     else
       []
@@ -185,6 +206,14 @@ defmodule ControlKeel.Scanner.FastPath do
   defp ai_tools_explicitly_requested?(%{"policy_packs" => packs}) do
     "ai_tools" in packs or
       Application.get_env(:controlkeel, :enforce_ai_tools_policy, false) == true
+  end
+
+  defp privileged_capability_requested?(input) do
+    caps =
+      (Map.get(input, "requested_capabilities") || []) ++
+        (Map.get(input, "high_impact_capabilities") || [])
+
+    Enum.any?(caps, &(&1 in ["network", "deploy", "secrets"]))
   end
 
   defp ai_tool_config_path?(path) when is_binary(path) do
@@ -259,6 +288,32 @@ defmodule ControlKeel.Scanner.FastPath do
         |> Map.get("domain_pack")
         |> normalize_supported_pack()
     end
+  end
+
+  defp budget_findings(
+         %{"session_id" => nil, "kind" => kind, "path" => path, "source" => source},
+         rules
+       )
+       when is_binary(source) and source != "patch_review" and is_list(rules) and
+              length(rules) > 0 do
+    [
+      %Scanner.Finding{
+        id: budget_fingerprint("cost.untracked_budget", 0, 0, 0),
+        severity: "medium",
+        category: "cost",
+        rule_id: "cost.untracked_budget",
+        decision: "warn",
+        plain_message:
+          "Budget tracking is disabled for anonymous validation (no session_id). Cost guardrails cannot be enforced — attach a session to enable budget checks.",
+        location: %{"path" => path, "kind" => kind},
+        metadata: %{
+          "scanner" => "fast_path",
+          "matcher" => "budget",
+          "untracked" => true,
+          "reason" => "anonymous_validate"
+        }
+      }
+    ]
   end
 
   defp budget_findings(%{"session_id" => nil}, _rules), do: []
@@ -339,10 +394,25 @@ defmodule ControlKeel.Scanner.FastPath do
   defp destructive_shell_findings(_normalized), do: []
 
   defp security_workflow_findings(normalized) do
-    if SecurityWorkflow.security_validation_requested?(normalized) do
-      build_security_workflow_findings(normalized)
-    else
-      []
+    kind = normalized["kind"] || "code"
+    always_evaluate = kind in ["code", "shell"]
+    phase = normalized["security_workflow_phase"]
+
+    target_scope_required =
+      phase == "reproduction" and is_nil(normalized["target_scope"])
+
+    cond do
+      always_evaluate ->
+        build_security_workflow_findings(normalized)
+
+      target_scope_required ->
+        build_security_workflow_findings(normalized)
+
+      SecurityWorkflow.security_validation_requested?(normalized) ->
+        build_security_workflow_findings(normalized)
+
+      true ->
+        []
     end
   end
 

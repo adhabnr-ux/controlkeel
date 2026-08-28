@@ -155,6 +155,17 @@ defmodule ControlKeel.PlatformTest do
 
     assert length(checks) == 1
 
+    # Non-low risk_tier sessions require an approved, execution-ready plan
+    # before completion (deploy_ready gate: planning continuity must align).
+    plan_review =
+      review_fixture(%{task: feature, session: session, plan_phase: "implementation_plan"})
+
+    {:ok, _approved} =
+      Mission.respond_review(plan_review.id, %{
+        "decision" => "approved",
+        "reviewed_by" => "test-operator"
+      })
+
     assert {:ok, _task_run} =
              Platform.report_task(feature.id, account, %{
                "status" => "done",

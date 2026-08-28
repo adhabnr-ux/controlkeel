@@ -152,8 +152,52 @@ defmodule ControlKeel.CLI.Dispatch.Execution do
         {:error,
          "Task has #{length(findings)} unresolved findings; resolve or approve them before completing."}
 
+      {:error, :proof_not_ready, reason} ->
+        {:error, "Proof not ready: #{reason}"}
+
+      {:error, :budget_exhausted} ->
+        {:error,
+         "Budget exhausted: cannot claim/complete without headroom. Use --force to bypass."}
+
       {:error, reason} ->
         {:error, "Failed to complete task: #{format_cli_error(reason)}"}
+    end
+  end
+
+  def run_command(%{command: :proof_verify, args: [target]}, _project_root) do
+    result =
+      case Integer.parse(target) do
+        {id, ""} ->
+          case Mission.get_proof_bundle(id) do
+            nil ->
+              case Mission.latest_proof_bundle_for_task(id) do
+                nil -> {:error, :not_found}
+                proof -> Mission.verify_proof_bundle(proof)
+              end
+
+            proof ->
+              Mission.verify_proof_bundle(proof)
+          end
+
+        _ ->
+          {:error, :invalid_id}
+      end
+
+    case result do
+      {:ok, :verified, meta} ->
+        {:ok, ["Proof verified: #{inspect(meta)}"]}
+
+      {:error, :bundle_hash_mismatch} ->
+        {:error, "Proof bundle hash mismatch (detached bundle_sha256 does not match computed)."}
+
+      {:error, :artifact_hash_mismatch} ->
+        {:error, "Proof artifact hash mismatch."}
+
+      {:error, :not_found} ->
+        {:error, "Proof not found for #{target}."}
+
+      {:error, reason} ->
+        {:error, "Proof verify failed: #{inspect(reason)}"}
     end
   end
 

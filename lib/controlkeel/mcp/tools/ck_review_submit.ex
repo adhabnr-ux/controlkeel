@@ -4,8 +4,6 @@ defmodule ControlKeel.MCP.Tools.CkReviewSubmit do
   alias ControlKeel.Mission
   alias ControlKeel.MCP.Tools.ReviewHelpers
 
-  @auto_approve_fields ~w(auto_approve auto_approve_reason)
-
   def call(arguments) when is_map(arguments) do
     try do
       do_call(arguments)

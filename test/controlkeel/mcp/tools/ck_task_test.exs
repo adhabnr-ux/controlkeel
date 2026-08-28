@@ -8,7 +8,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
 
   describe "status mode" do
     test "returns task details for a valid task in the session" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session})
 
       assert {:ok, result} =
@@ -26,7 +26,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when task_id is missing" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
 
       assert {:error, {:invalid_arguments, message}} =
                CkTask.call(%{"session_id" => session.id, "mode" => "status"})
@@ -35,7 +35,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when task does not exist" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
 
       assert {:error, {:invalid_arguments, message}} =
                CkTask.call(%{
@@ -48,8 +48,8 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when task belongs to a different session" do
-      session_a = session_fixture()
-      session_b = session_fixture()
+      session_a = session_fixture(risk_tier: "low")
+      session_b = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session_a})
 
       assert {:error, {:invalid_arguments, message}} =
@@ -65,7 +65,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
 
   describe "claim mode" do
     test "claims an available task" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "ready"})
 
       assert {:ok, result} =
@@ -78,7 +78,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error for already completed task" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "done"})
 
       assert {:error, {:invalid_arguments, message}} =
@@ -88,7 +88,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when task_id is missing" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
 
       assert {:error, {:invalid_arguments, message}} =
                CkTask.call(%{"session_id" => session.id, "mode" => "claim"})
@@ -99,7 +99,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
 
   describe "complete mode" do
     test "completes a task" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "in_progress"})
 
       assert {:ok, result} =
@@ -115,7 +115,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when task has unresolved findings" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "in_progress"})
       finding_fixture(%{session: session, task_id: task.id, status: "blocked"})
 
@@ -130,7 +130,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when task_id is missing" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
 
       assert {:error, {:invalid_arguments, message}} =
                CkTask.call(%{"session_id" => session.id, "mode" => "complete"})
@@ -141,7 +141,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
 
   describe "heartbeat mode" do
     test "records a heartbeat for a claimed task" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "in_progress"})
       assert {:ok, _run} = Platform.claim_task(task.id)
 
@@ -160,7 +160,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when task has not been claimed" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session})
 
       assert {:error, {:invalid_arguments, message}} =
@@ -174,7 +174,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when task_id is missing" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
 
       assert {:error, {:invalid_arguments, message}} =
                CkTask.call(%{"session_id" => session.id, "mode" => "heartbeat"})
@@ -185,7 +185,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
 
   describe "checks mode" do
     test "records check results for a claimed task" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "in_progress"})
       assert {:ok, _run} = Platform.claim_task(task.id)
 
@@ -217,7 +217,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "records git head sha and dirty state when project_root provided" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "in_progress"})
       assert {:ok, _run} = Platform.claim_task(task.id)
 
@@ -250,7 +250,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "records checks without git fields when project_root is not a git repo" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "in_progress"})
       assert {:ok, _run} = Platform.claim_task(task.id)
 
@@ -284,7 +284,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when checks is missing" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session})
 
       assert {:error, {:invalid_arguments, message}} =
@@ -298,7 +298,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when checks is not an array" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session})
 
       assert {:error, {:invalid_arguments, message}} =
@@ -313,7 +313,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when task_id is missing" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
 
       assert {:error, {:invalid_arguments, message}} =
                CkTask.call(%{"session_id" => session.id, "mode" => "checks", "checks" => []})
@@ -323,7 +323,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
   end
 
   test "payload command evidence is classified as command_output" do
-    session = session_fixture()
+    session = session_fixture(risk_tier: "low")
     task = task_fixture(%{session: session, status: "in_progress"})
     assert {:ok, _run} = Platform.claim_task(task.id)
 
@@ -352,7 +352,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
   end
 
   test "artifact sha is not copied into output sha" do
-    session = session_fixture()
+    session = session_fixture(risk_tier: "low")
     task = task_fixture(%{session: session, status: "in_progress"})
     assert {:ok, _run} = Platform.claim_task(task.id)
 
@@ -380,7 +380,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
   end
 
   test "output sha covers full output and records truncation metadata" do
-    session = session_fixture()
+    session = session_fixture(risk_tier: "low")
     task = task_fixture(%{session: session, status: "in_progress"})
     assert {:ok, _run} = Platform.claim_task(task.id)
 
@@ -410,7 +410,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
 
   describe "report mode" do
     test "submits a task report" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
       task = task_fixture(%{session: session, status: "in_progress"})
       assert {:ok, _run} = Platform.claim_task(task.id)
 
@@ -430,7 +430,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
     end
 
     test "returns error when task_id is missing" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
 
       assert {:error, {:invalid_arguments, message}} =
                CkTask.call(%{"session_id" => session.id, "mode" => "report"})
@@ -441,7 +441,7 @@ defmodule ControlKeel.MCP.Tools.CkTaskTest do
 
   describe "validation" do
     test "returns error for invalid mode" do
-      session = session_fixture()
+      session = session_fixture(risk_tier: "low")
 
       assert {:error, {:invalid_arguments, message}} =
                CkTask.call(%{"session_id" => session.id, "mode" => "invalid"})

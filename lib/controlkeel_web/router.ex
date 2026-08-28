@@ -44,6 +44,10 @@ defmodule ControlKeelWeb.Router do
       include_resource_metadata: false
   end
 
+  pipeline :require_cloud_auth do
+    plug ControlKeelWeb.Plugs.RequireCloudAuth
+  end
+
   pipeline :proxy_api do
   end
 
@@ -154,10 +158,12 @@ defmodule ControlKeelWeb.Router do
       live "/observability/sessions/:id/timeline", ObservabilityTimelineLive, :show
       live "/observability/sessions/:id", ObservabilityLive, :show
     end
+  end
 
-    # TODO: Auth-gate this route when OAuth/session auth is implemented (refactor/web-auth).
-    # Currently unprotected — the LiveView equivalents are gated via LiveAuth.require_cloud_auth
-    # but this controller GET has no equivalent plug. See Copilot review 2026-07-13.
+  # Session export is authenticated in cloud/self_hosted (passthrough in local mode).
+  scope "/", ControlKeelWeb do
+    pipe_through [:browser, :require_cloud_auth]
+
     get "/observability/sessions/:id/export.json", ObservabilityController, :export_session
   end
 
