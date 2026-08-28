@@ -963,7 +963,8 @@ defmodule ControlKeelWeb.BenchmarksLive do
   defp format_percent(value), do: "#{Float.round(value, 1)}%"
 
   defp comparable_run?(%Benchmark.Run{subjects: subjects}) do
-    subjects |> List.wrap() |> Enum.uniq() |> length() >= 2
+    # Optimize unique count by avoiding intermediate list allocations
+    subjects |> List.wrap() |> MapSet.new() |> MapSet.size() >= 2
   end
 
   defp assign_run_details(socket, %Benchmark.Run{} = run) do
