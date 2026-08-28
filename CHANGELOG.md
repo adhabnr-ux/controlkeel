@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.4.3 — 2026-08-28
+
+### What's changed
+
+- Merge pull request #134 from aryaminus/fix/p2-god-module-splits
+- Merge pull request #133 from aryaminus/fix/p2-streamable-http-mcp
+- Merge pull request #132 from aryaminus/fix/p2-llm-judge-harness
+- refactor: first god-module split — Mission.FindingOps + API.FindingController
+- feat(mcp): Streamable HTTP session semantics (Mcp-Session-Id lifecycle)
+- feat(benchmark): LLM-as-judge harness for eval_mode=llm_judge
+- Merge pull request #128 from aryaminus/fix/dogfood-mcp-cli-review-loop
+- fix(surface): token-surface deprecation, honest skills doctor signal, alias deprecated skills
+- fix(housekeeping): honest skills doctor signal, installer self-heal, token audit join
+- style: mix format
+- fix(audit): full P0+P1 remediation across governance, storage, policy, eval, CLI
+- feat: smart auto-approval for low-risk work
+- fix: inline-first approval flow across all clients
+- fix: actionable duplicate skill cleanup guidance + --prune-duplicates flag
+- fix: MCP/CLI review loop, ck_fs_find glob support, updater orphan cleanup
+
 ## v0.4.2 — 2026-08-27
 
 ### What's changed
