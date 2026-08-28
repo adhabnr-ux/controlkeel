@@ -56,12 +56,15 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
       |> then(fn o -> if session_id, do: [{:session_id, session_id} | o], else: o end)
 
     ratios = Budget.amplification_ratios(opts)
+    costs_report = safe_costs_report(limit: limit)
 
     flagged = Enum.filter(ratios, &(&1.ratio >= 5.0))
 
     {:ok,
      %{
        "mode" => "amplification",
+       "deprecated" => true,
+       "use_instead" => "ck_observability with report=costs",
        "session_id" => session_id,
        "total_sessions" => length(ratios),
        "flagged_count" => length(flagged),
@@ -77,12 +80,30 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
                if(r.ratio >= 20.0, do: "danger", else: if(r.ratio >= 5.0, do: "warn", else: "ok"))
            }
          end),
+       "costs_summary" => costs_report,
        "recommendations" => build_amplification_recommendations(flagged)
      }}
   end
 
+  # Prefer ck_observability:costs for cost/token-overhead analysis. This path
+  # is kept for backward compatibility — callers should migrate.
+  defp safe_costs_report(opts) do
+    case ControlKeel.MCP.Tools.CkObservability.call(
+           Map.merge(%{"report" => "costs"}, Map.new(opts, fn {k, v} -> {to_string(k), v} end))
+         ) do
+      {:ok, payload} ->
+        Map.take(payload, ["totals", "by_provider", "by_model", "recommendations"])
+
+      _ ->
+        nil
+    end
+  end
+
   defp build_amplification_recommendations([]),
-    do: ["No sessions exceed the 5× amplification threshold."]
+    do: [
+      "No sessions exceed the 5× amplification threshold.",
+      "Prefer `ck_observability` (report=costs) for cost/token-overhead analysis — `amplification` is deprecated."
+    ]
 
   defp build_amplification_recommendations(flagged) do
     danger = Enum.count(flagged, &(&1.ratio >= 20.0))
@@ -110,7 +131,10 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
         recs
       end
 
-    Enum.reverse(recs)
+    Enum.reverse([
+      "Deprecation: `amplification` is deprecated — use `ck_observability` (report=costs) instead."
+      | recs
+    ])
   end
 
   defp audit_full(project_root) do

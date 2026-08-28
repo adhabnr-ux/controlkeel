@@ -1,10 +1,11 @@
 ---
 name: handoff
-description: "Persist session state and hand off in-progress work to a background agent or delegated execution. Use when work outgrows the current session, context is near limit, or a task needs to continue unattended."
-when_to_use: "Activate when the user says 'hand off', 'delegate this', 'continue in background', 'pass this off', or when context pressure is high and significant work remains. Also activate when ck_route recommends a different agent for the remaining work."
+description: "Persist session state and hand off in-progress work to a background agent — the *delegation step* of `end-of-shift`. Use when work outgrows the current session or must continue unattended; for a full session close (validation + proof + findings + budget + digest + learning before handoff) prefer `end-of-shift`."
+when_to_use: "Activate ONLY for mid-session delegation (context near limit, `ck_route` recommends a different agent/runtime, user says hand off/delegate/pass off). For an end-of-shift wrap-up (validate remaining work, finalize proofs, synthesize learnings), use `end-of-shift` instead — `handoff` is that skill's final step."
 argument-hint: "[optional: specific task or remaining work to hand off]"
 disable-model-invocation: true
 license: Apache-2.0
+redirect_to: end-of-shift
 compatibility:
   - codex
   - claude-standalone
@@ -35,8 +36,9 @@ compatibility:
   - forge-acp
 metadata:
   author: controlkeel
-  version: "1.0"
+  version: "1.1"
   category: execution
+  superseded_by: end-of-shift
   ck_mcp_tools:
     - ck_context
     - ck_memory_record
@@ -46,7 +48,12 @@ metadata:
     - ck_goal
 ---
 
-# Handoff Skill
+# Handoff Skill — delegation step
+
+> This skill is the **delegation sub-step** of `end-of-shift`. A full end-of-shift
+> run validates remaining work, finalizes proofs, records digests/learnings, and THEN
+> hands off. Use this skill alone only for mid-session delegation; otherwise prefer
+> `end-of-shift`.
 
 Transfer in-progress work to another agent or execution context with full state preservation, so work continues seamlessly after the current session ends or context runs out.
 

@@ -1,7 +1,7 @@
 ---
 name: end-of-shift
-description: "Close a governed work session with validation, proof, findings, budget, digest, learning, and handoff checks. Use when the user asks to wrap up, stop for the day, or leave work ready for another agent."
-when_to_use: "Activate only at an explicit session stop point or when the user asks for end-of-shift validation. Do not run expensive full-suite or benchmark work unless project policy or the approved plan requires it."
+description: "Close a governed work session — the unified session-close path (validation + proof + findings + budget + digest + learning) that ends with the `handoff` delegation step when work remains. Prefer this over bare `handoff` for any end-of-shift wrap-up. Use when the user asks to wrap up, stop for the day, or leave work ready for another agent."
+when_to_use: "Activate at any explicit session stop point (wrap up, stop for the day, leave work for another agent). It subsumes the bare `handoff` flow — `handoff` is just this skill's final delegation step, kept callable alone for mid-session delegation. Activate only at for end-of-shift validation. Do not run expensive full-suite or benchmark work unless project policy or the approved plan requires it."
 argument-hint: "[completed work or remaining task]"
 disable-model-invocation: true
 license: Apache-2.0
@@ -27,8 +27,10 @@ result-schema:
     handoff_reference: {type: [string, "null"]}
 metadata:
   author: controlkeel
-  version: "1.0"
+  version: "1.1"
   category: execution
+  supersedes: handoff
+  subsumes: handoff
   ck_mcp_tools:
     - ck_context
     - ck_git_status
@@ -42,7 +44,9 @@ metadata:
     - ck_checkpoint_create
 ---
 
-# End of Shift
+# End of Shift — unified session-close
+
+> `handoff` is step 7 of this skill (mid-session delegation without the earlier validation/proof/digest/learning gates). Use bare `handoff` only for mid-session delegation; this skill is the full close — it validates, finalizes proof, checks budget, synthesizes learnings, then hands off if work remains.
 
 Close work with enough verified state that the next human or agent can continue without reconstructing the session from chat.
 

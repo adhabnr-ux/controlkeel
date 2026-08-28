@@ -1,9 +1,10 @@
 ---
 name: compliance-audit
-description: "Run a structured compliance audit against active ControlKeel policy packs and domain controls. Use this before shipping regulated data flows, external integrations, or document exports."
-when_to_use: "Activate before exporting data, integrating with external services, or when the user asks about compliance, regulatory requirements, GDPR, SOC2, HIPAA, or policy packs."
-argument-hint: "[data flow, integration, or domain to audit]"
+description: "DEPRECATED — use `security-review` instead (it now covers all of this — regulated flows, policy packs, domain controls). Kept as a thin alias for search (compliance/GDPR/SOC2/HIPAA) so existing `ck_skill_list` queries still surface `security-review`."
+when_to_use: "Do NOT invoke this skill directly — invoke `security-review`, which runs the compliance audit as its policy/domain-pack layer. This file exists only so keyword search for compliance, GDPR, SOC2, HIPAA routes to the consolidated `security-review` path."
+argument-hint: "[use security-review instead]"
 license: Apache-2.0
+redirect_to: security-review
 compatibility:
   - codex
   - claude-standalone
@@ -40,18 +41,13 @@ metadata:
     - ck_context
     - ck_validate
     - ck_finding
+  deprecated: true
+  superseded_by: security-review
 ---
 
-# Compliance Audit Skill
+# Compliance Audit Skill — alias
 
-## Audit flow
-
-1. Call `ck_context` and confirm the active compliance profile for the session.
-2. Review only the pack sections that match the active domain pack and data flows.
-3. Use `ck_validate` for concrete snippets and configs when the checklist points to code.
-4. Persist each failing control with `ck_finding`.
-5. End with packs checked, controls reviewed, blockers, and required approvals.
-
-## Additional resources
-
-- For the full domain-by-domain checklist, see [references/control-matrix.md](references/control-matrix.md)
+> **This skill has moved.** Use `security-review` — it runs the same compliance audit
+> as its policy/domain-pack layer (active compliance profile → pack sections →
+> `ck_validate` → `ck_finding`). This file is a thin keyword alias so search for
+> `compliance`, `GDPR`, `SOC2`, `HIPAA` still surfaces the consolidated path.

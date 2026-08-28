@@ -1,9 +1,10 @@
 ---
 name: security-review
-description: "Run a structured security review before marking a task done. Use this for code, config, architecture, or release reviews that need OWASP, baseline pack, and domain-pack coverage."
-when_to_use: "Use before merging, deploying, or signing off on code, config, or architecture changes. Activate when reviewing auth, input handling, secrets, or third-party dependencies."
-argument-hint: "[file, PR, or area to review]"
+description: "Run a structured security review before marking a task done. Services as the single audit skill for OWASP, baseline pack, domain-pack (HR/legal/marketing/sales/real-estate/government/insurance/logistics/manufacturing/e-commerce/nonprofit), and compliance (GDPR/SOC2/HIPAA/policy packs) — subsumes the deprecated `compliance-audit` and `domain-audit` aliases. Use this for code, config, architecture, or release reviews; the domain/compliance layer is triggered by the session's active domain pack and data flows."
+when_to_use: "Use before merging, deploying, or signing off on code, config, or architecture changes (including regulated data flows, external integrations, exports, and any session whose domain pack is HR/legal/marketing/sales/real-estate/government/insurance/logistics/manufacturing/e-commerce/nonprofit). Activates for auth/input/secrets/deps and for domain/compliance coverage — the policy/domain-pack layer is driven by `ck_context`'s active compliance profile."
+argument-hint: "[file, PR, area, or domain-pack scope to review]"
 license: Apache-2.0
+redirect_to: security-review
 compatibility:
   - codex
   - claude-standalone
@@ -36,6 +37,10 @@ metadata:
   author: controlkeel
   version: "2.1"
   category: security
+  subsumes:
+    - compliance-audit
+    - domain-audit
+    - agent-pattern-verification
   ck_mcp_tools:
     - ck_validate
     - ck_context

@@ -20,10 +20,20 @@ defmodule ControlKeel.Repo.Migrations.AddOrgFkToWorkspaces do
     if sqlite_repo?() do
       rebuild_workspaces_with_fk()
     else
+      # On Postgres, 20260524142342_add_org_to_workspaces already added
+      # `references(:orgs, on_delete: :nilify_all)` which creates the same FK
+      # with name workspaces_org_id_fkey. Guard the ADD so migrate is
+      # idempotent on DBs that already have it.
       execute("""
-      ALTER TABLE workspaces
-      ADD CONSTRAINT workspaces_org_id_fkey
-      FOREIGN KEY (org_id) REFERENCES orgs(id) ON DELETE SET NULL
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'workspaces_org_id_fkey'
+        ) THEN
+          ALTER TABLE workspaces
+            ADD CONSTRAINT workspaces_org_id_fkey
+            FOREIGN KEY (org_id) REFERENCES orgs(id) ON DELETE SET NULL;
+        END IF;
+      END $$
       """)
     end
   end
