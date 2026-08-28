@@ -575,16 +575,10 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
 
         user_commands =
           if user_copies != [] do
-            paths = Enum.map(user_copies, & &1["path"])
-
-            commands =
-              paths
-              |> Enum.map(&"  rm -rf #{&1}")
-              |> Enum.join("\n")
+            paths = Enum.map(user_copies, & &1["path"]) |> Enum.join(" ")
 
             [
-              "User-level skill copies are always redundant (hosts load project-level). Remove:",
-              commands
+              "User-level skill copies are always redundant (hosts load project-level). Remove with: rm -rf #{paths}"
             ]
           else
             []
@@ -595,16 +589,15 @@ defmodule ControlKeel.MCP.Tools.CkTokenAudit do
             # Group by location to show which host dirs are redundant
             grouped = Enum.group_by(project_copies, & &1["location"])
 
-            lines =
-              Enum.flat_map(grouped, fn {location, skills} ->
+            detail =
+              Enum.map_join(grouped, "; ", fn {location, skills} ->
                 skill_names = Enum.map(skills, & &1["name"]) |> Enum.join(", ")
-                ["  #{location}: #{skill_names}"]
+                "#{location}: #{skill_names}"
               end)
 
             [
-              "Project-level: each host loads only its native dir. Redundant compat copies:",
-              Enum.join(lines, "\n"),
-              "  # Keep .opencode/skills/ (or your primary host) + .agents/skills/ (compat)"
+              "Project-level: each host loads only its native dir. Copies: #{detail}",
+              "Keep .opencode/skills/ (or your primary host) + .agents/skills/ (compat)"
             ]
           else
             []

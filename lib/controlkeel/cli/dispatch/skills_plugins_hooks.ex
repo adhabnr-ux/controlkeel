@@ -207,17 +207,34 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
     duplicate_copy_count =
       Enum.count(analysis.diagnostics, &(&1.code == "duplicate_skill_copy"))
 
+    shadowed_copy_count =
+      Enum.count(analysis.diagnostics, &(&1.code == "shadowed_skill"))
+
+    # Identical copies across distinct host dirs are expected distribution:
+    # each host loads only its native directory. Only content drift (shadowed
+    # copies) is a real problem — a warning that fires on healthy state just
+    # teaches operators to ignore it.
     token_hint =
-      if duplicate_copy_count > 0 do
-        [
-          "",
-          "⚠️  TOKEN OPTIMIZATION WARNING:",
-          "  Found #{duplicate_copy_count} duplicate skill copies on disk.",
-          "  CK counts effective skills once in token audit, but MCP hosts may still load duplicate native skill directories.",
-          "  Run 'controlkeel skills doctor --prune-duplicates' to remove redundant copies."
-        ]
-      else
-        []
+      cond do
+        shadowed_copy_count > 0 ->
+          [
+            "",
+            "⚠️  SHADOWED SKILL COPIES:",
+            "  Found #{shadowed_copy_count} skill name(s) with DIFFERING content across dirs.",
+            "  Hosts may load a different version than CK's preferred one — review and align them.",
+            "  Run 'controlkeel skills doctor --prune-duplicates' to collapse redundant copies."
+          ]
+
+        duplicate_copy_count > 0 ->
+          [
+            "",
+            "ℹ️  #{duplicate_copy_count} identical skill copies across host dirs (expected distribution —",
+            "  each host loads only its native directory; CK counts each skill once).",
+            "  Run 'controlkeel skills doctor --prune-duplicates' only to collapse user-level duplicates."
+          ]
+
+        true ->
+          []
       end
 
     prune_result =
@@ -234,6 +251,8 @@ defmodule ControlKeel.CLI.Dispatch.SkillsPluginsHooks do
           "trusted_project_skills" => analysis.trusted_project?,
           "catalog_size" => length(analysis.skills),
           "duplicate_identical_skill_copies" => duplicate_copy_count,
+          "shadowed_skill_copies" => shadowed_copy_count,
+          "identical_copies_expected" => shadowed_copy_count == 0,
           "provider" => provider_status,
           "attachable_clients" => attach_clients,
           "headless_runtimes" => runtimes,

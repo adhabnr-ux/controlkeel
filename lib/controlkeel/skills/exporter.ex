@@ -3,6 +3,7 @@ defmodule ControlKeel.Skills.Exporter do
 
   alias ControlKeel.Ops.Distribution
   alias ControlKeel.Skills
+  alias ControlKeel.Skills.Installer
   alias ControlKeel.Skills.SkillExportPlan
   alias ControlKeel.Skills.SkillTarget
   alias ControlKeel.Utils.Yaml, as: UtilsYaml
@@ -14,8 +15,9 @@ defmodule ControlKeel.Skills.Exporter do
          analysis <- Skills.validate(project_root, trust_project_skills: true),
          root <- export_root(project_root, target.id),
          :ok <- reset_export_root(root),
+         skills = Installer.canonical_skills(analysis.skills, project_root),
          {:ok, writes, instructions} <-
-           write_target(target, root, project_root, analysis.skills, opts) do
+           write_target(target, root, project_root, skills, opts) do
       :telemetry.execute(
         [:controlkeel, :skills, :exported],
         %{count: 1},
