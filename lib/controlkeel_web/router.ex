@@ -48,6 +48,10 @@ defmodule ControlKeelWeb.Router do
     plug ControlKeelWeb.Plugs.RequireCloudAuth
   end
 
+  pipeline :require_session_auth do
+    plug ControlKeelWeb.Plugs.RequireSessionAuth
+  end
+
   pipeline :proxy_api do
   end
 
@@ -162,7 +166,7 @@ defmodule ControlKeelWeb.Router do
 
   # Session export is authenticated in cloud/self_hosted (passthrough in local mode).
   scope "/", ControlKeelWeb do
-    pipe_through [:browser, :require_cloud_auth]
+    pipe_through [:browser, :require_session_auth]
 
     # Session export is auth-gated via Plugs.RequireSessionAuth (mirrors
     # LiveAuth.require_cloud_auth plus org ownership of the session).
