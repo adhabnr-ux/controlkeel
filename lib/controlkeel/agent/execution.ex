@@ -434,14 +434,20 @@ defmodule ControlKeel.Agent.Execution do
     sandbox_choice = Process.get(:ck_execution_sandbox)
     _ = maybe_flag_host_execution(task, session, sandbox_choice)
 
+    result_path = Path.join(package_root, "result.json")
+    heartbeat_path = Path.join(package_root, "progress.json")
+
     with {:ok, command, args} <- direct_command(integration.id),
-         result_path = Path.join(package_root, "result.json"),
          sandbox_opts = direct_run_env(task, session, integration, package_root, result_path),
-         {:ok, %{output: output, exit_status: exit_status}} <-
+         {:ok, run_result} <-
            ExecutionSandbox.run(command, args,
              env: sandbox_opts,
-             sandbox: sandbox_choice
-           ) do
+             sandbox: sandbox_choice,
+             timeout_ms: executor_timeout_ms(),
+             result_path: result_path,
+             heartbeat_path: heartbeat_path
+           ),
+         %{output: output, exit_status: exit_status} = run_result do
       payload = direct_result_payload(output, result_path)
       validation = validate_result_payload(payload, session, task)
       status = direct_result_status(exit_status, validation)
@@ -460,7 +466,10 @@ defmodule ControlKeel.Agent.Execution do
                 "args" => args,
                 "output" => String.slice(output, 0, 4_000)
               },
-              metadata: %{"transport" => "embedded"}
+              metadata:
+                %{"transport" => "embedded"}
+                |> Map.put("timed_out", Map.get(run_result, :timed_out, false))
+                |> Map.put("killed_on_result", Map.get(run_result, :killed_on_result, false))
             }
           ] ++ validation_checks(validation)
         )
@@ -476,6 +485,9 @@ defmodule ControlKeel.Agent.Execution do
                "command" => [command | args],
                "validation" => validation,
                "result_ref" => result_ref,
+               "heartbeat_path" => heartbeat_path,
+               "timed_out" => Map.get(run_result, :timed_out, false),
+               "killed_on_result" => Map.get(run_result, :killed_on_result, false),
                "execution_sandbox" =>
                  ExecutionSandbox.adapter_name(sandbox: Process.get(:ck_execution_sandbox))
              }
@@ -848,6 +860,23 @@ defmodule ControlKeel.Agent.Execution do
   end
 
   defp build_input_refs_env(_task), do: "[]"
+
+  # Hard deadline for headless agent-CLI sub-workers (agy -p, claude -p, codex
+  # exec, …). These CLIs can idle after delivering their result; the streaming
+  # Local adapter kills on result delivery and enforces this deadline as a
+  # backstop. Override per deployment with CONTROLKEEL_EXECUTOR_TIMEOUT_MS.
+  defp executor_timeout_ms do
+    case System.get_env("CONTROLKEEL_EXECUTOR_TIMEOUT_MS") do
+      nil ->
+        600_000
+
+      raw ->
+        case Integer.parse(raw) do
+          {ms, ""} when ms > 0 -> ms
+          _ -> 600_000
+        end
+    end
+  end
 
   defp direct_command_available?(agent_id) do
     configured_command(agent_id) != nil
