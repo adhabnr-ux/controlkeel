@@ -84,10 +84,10 @@ defmodule ControlKeel.Governance.TechDebtDetector do
     |> Enum.reject(&tech_debt_rule?/1)
     |> Enum.group_by(& &1.rule_id)
     |> Enum.flat_map(fn {rule_id, items} ->
-      distinct_sessions = items |> Enum.map(& &1.session_id) |> Enum.uniq()
+      distinct_sessions = items |> MapSet.new(& &1.session_id)
 
-      if length(distinct_sessions) >= threshold do
-        [build_unresolved_pattern_signal(rule_id, items, distinct_sessions)]
+      if MapSet.size(distinct_sessions) >= threshold do
+        [build_unresolved_pattern_signal(rule_id, items, MapSet.to_list(distinct_sessions))]
       else
         []
       end
@@ -127,7 +127,7 @@ defmodule ControlKeel.Governance.TechDebtDetector do
   end
 
   defp build_repeated_patch_signal(path, items) do
-    session_ids = items |> Enum.map(& &1.session_id) |> Enum.uniq() |> Enum.sort()
+    session_ids = items |> MapSet.new(& &1.session_id) |> Enum.sort()
 
     %{
       rule_id: "CK-TECHDEBT-001",
