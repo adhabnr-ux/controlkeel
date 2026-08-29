@@ -1,6 +1,7 @@
 defmodule ControlKeelWeb.SessionReviewsLive do
   use ControlKeelWeb, :live_view
 
+  alias ControlKeel.Accounts
   alias ControlKeel.Mission
 
   @refresh_interval_ms 2_000
@@ -17,7 +18,7 @@ defmodule ControlKeelWeb.SessionReviewsLive do
          |> push_navigate(to: ~p"/")}
 
       session when not is_nil(org_id) and not is_nil(session) ->
-        if session_accessible?(session, org_id) do
+        if Accounts.session_accessible?(session, org_id) do
           {:ok, mount_session(socket, session)}
         else
           {:ok,
@@ -143,10 +144,4 @@ defmodule ControlKeelWeb.SessionReviewsLive do
   defp review_status_pill_class(_status),
     do:
       "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 bg-info/10 text-info ring-info/20"
-
-  defp session_accessible?(%{workspace_id: ws_id}, org_id) when is_integer(org_id) do
-    org_id
-    |> ControlKeel.Accounts.list_workspaces_for_org()
-    |> Enum.any?(fn ws -> ws.id == ws_id end)
-  end
 end

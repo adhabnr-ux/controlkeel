@@ -24,7 +24,7 @@ defmodule ControlKeelWeb.MissionControlLive do
          |> push_navigate(to: ~p"/")}
 
       session when not is_nil(org_id) and not is_nil(session) ->
-        if session_accessible?(session, org_id) do
+        if ControlKeel.Accounts.session_accessible?(session, org_id) do
           if connected?(socket), do: schedule_refresh()
           project_root = socket.endpoint.config(:project_root) || File.cwd!()
 
@@ -1355,11 +1355,5 @@ defmodule ControlKeelWeb.MissionControlLive do
       total_findings: 0,
       blocked_findings_total: 0
     }
-  end
-
-  defp session_accessible?(%{workspace_id: ws_id}, org_id) when is_integer(org_id) do
-    org_id
-    |> ControlKeel.Accounts.list_workspaces_for_org()
-    |> Enum.any?(fn ws -> ws.id == ws_id end)
   end
 end

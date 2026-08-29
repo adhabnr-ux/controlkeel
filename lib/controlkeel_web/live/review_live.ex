@@ -1,6 +1,7 @@
 defmodule ControlKeelWeb.ReviewLive do
   use ControlKeelWeb, :live_view
 
+  alias ControlKeel.Accounts
   alias ControlKeel.Mission
 
   @impl true
@@ -13,29 +14,26 @@ defmodule ControlKeelWeb.ReviewLive do
      |> assign(:response_form, response_form())}
   end
 
-  # TODO(security): backend endpoints/contexts lack per-user auth/token checks.
-  # See https://github.com/aryaminus/controlkeel/issues/83
+  # Cross-session ownership is enforced by matching review.session_id against
+  # the sid path segment; org-level access is enforced via the shared
+  # Accounts.session_accessible?/2 gate (issue #83).
   @impl true
   def handle_params(%{"rid" => rid, "sid" => sid}, _uri, socket) do
     with {:ok, review_id} <- parse_integer(rid),
          {:ok, session_id} <- parse_integer(sid) do
       case Mission.get_review_with_context(review_id) do
         nil ->
-          {:noreply,
-           socket
-           |> put_flash(:error, "Review not found.")
-           |> assign(:review, nil)
-           |> assign(:diff_chunks, [])}
+          {:noreply, review_not_found(socket)}
 
         %{session_id: ^session_id} = review ->
-          {:noreply, assign_review(socket, review)}
+          if Accounts.session_accessible?(review.session, socket.assigns[:current_org_id]) do
+            {:noreply, assign_review(socket, review)}
+          else
+            {:noreply, review_not_found(socket)}
+          end
 
         _review ->
-          {:noreply,
-           socket
-           |> put_flash(:error, "Review not found.")
-           |> assign(:review, nil)
-           |> assign(:diff_chunks, [])}
+          {:noreply, review_not_found(socket)}
       end
     else
       :error ->
@@ -370,6 +368,13 @@ defmodule ControlKeelWeb.ReviewLive do
     |> assign(:page_title, review.title)
     |> assign(:diff_chunks, diff_chunks(review))
     |> assign(:response_form, response_form(review))
+  end
+
+  defp review_not_found(socket) do
+    socket
+    |> put_flash(:error, "Review not found.")
+    |> assign(:review, nil)
+    |> assign(:diff_chunks, [])
   end
 
   defp response_form(review \\ nil) do
