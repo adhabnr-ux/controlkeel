@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.5 — 2026-08-29
+
+### What's changed
+
+- Merge pull request #127 from aryaminus/security/session-access-gate
+- fix(router): wire RequireSessionAuth as the auth gate for session export
+- security(web): shared session-access gate + auth-gate observability export
+
 ## v0.4.4 — 2026-08-28
 
 ### What's changed
