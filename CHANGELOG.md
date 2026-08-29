@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.4.6 — 2026-08-29
+
+### What's changed
+
+- Merge pull request #138 from aryaminus/bolt-optimize-mapset-10352913783534547198
+- Optimize intermediate list allocations with MapSet
+
 ## v0.4.5 — 2026-08-29
 
 ### What's changed
