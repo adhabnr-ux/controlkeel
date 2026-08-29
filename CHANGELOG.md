@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.4.7 — 2026-08-29
+
+### What's changed
+
+- Merge pull request #139 from aryaminus/fix/sub-worker-liveness
+- fix(sandbox): harden sub-worker child-process execution (timeout, kill-on-result, heartbeat)
+
 ## v0.4.6 — 2026-08-29
 
 ### What's changed
