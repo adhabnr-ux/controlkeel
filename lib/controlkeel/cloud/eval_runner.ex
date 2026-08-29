@@ -158,7 +158,7 @@ defmodule ControlKeel.Cloud.EvalRunner do
     }
 
     result = FastPath.scan(input)
-    actual_rule_ids = result.findings |> Enum.map(& &1.rule_id) |> Enum.uniq() |> Enum.sort()
+    actual_rule_ids = result.findings |> MapSet.new(& &1.rule_id) |> Enum.sort()
     expected_rule_ids = Map.get(c, :expected_rule_ids, []) |> Enum.sort()
     expected_decisions = Map.get(c, :expected_decisions, []) |> MapSet.new()
 
