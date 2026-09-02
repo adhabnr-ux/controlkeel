@@ -39,7 +39,7 @@ defmodule ControlKeelWeb.ApiController do
     apply(__MODULE__, action_name(conn), [conn, conn.params])
   end
 
-  # ─── Sessions ──────────────────────────────────────────────────────────────
+  # ─── Sessions ────────────────────────────────────────────────────────────────
 
   def list_sessions(conn, _params) do
     sessions = Mission.list_recent_sessions(50, current_workspace_id(conn))
@@ -258,7 +258,7 @@ defmodule ControlKeelWeb.ApiController do
     })
   end
 
-  # ─── Tasks ─────────────────────────────────────────────────────────────────
+  # ─── Tasks ───────────────────────────────────────────────────────────────────
 
   def create_task(conn, %{"session_id" => session_id} = params) do
     case Mission.get_session(session_id) do
@@ -346,7 +346,7 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  # ─── Validate ──────────────────────────────────────────────────────────────────
+  # ─── Validate ────────────────────────────────────────────────────────────────
 
   def validate(conn, params) do
     input = Map.take(params, ~w(content path kind session_id domain_pack))
@@ -364,7 +364,7 @@ defmodule ControlKeelWeb.ApiController do
 
   # ─── Findings ────────────────────────────────────────────────────────────────
 
-  # ─── Budget ───────────────────────────────────────────────────────────────────
+  # ─── Budget ──────────────────────────────────────────────────────────────────
 
   def get_budget(conn, params) do
     session_id = Map.get(params, "session_id")
@@ -404,7 +404,7 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  # ─── Task Update ───────────────────────────────────────────────────────────
+  # ─── Task Update ─────────────────────────────────────────────────────────────
 
   def update_task(conn, %{"id" => id} = params) do
     case Mission.get_task!(id) do
@@ -433,7 +433,7 @@ defmodule ControlKeelWeb.ApiController do
       conn |> put_status(:not_found) |> json(%{error: "task not found"})
   end
 
-  # ─── Proof Bundle ───────────────────────────────────────────────────────────
+  # ─── Proof Bundle ─────────────────────────────────────────────────────────────
 
   def proof_bundle(conn, %{"task_id" => task_id}) do
     with {:ok, parsed_task_id} <- parse_integer_param(task_id),
@@ -481,7 +481,7 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  # ─── Benchmarks ──────────────────────────────────────────────────────────
+  # ─── Benchmarks ───────────────────────────────────────────────────────────────
 
   def list_benchmarks(conn, params) do
     domain_pack = Map.get(params, "domain_pack")
@@ -732,7 +732,7 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  # ─── Audit Log ───────────────────────────────────────────────────────────
+  # ─── Audit Log ────────────────────────────────────────────────────────────────
 
   def audit_log(conn, %{"id" => session_id} = params) do
     format = Map.get(params, "format", "json")
@@ -799,7 +799,7 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  # ─── Graph / Execution ────────────────────────────────────────────────────────
+  # ─── Graph / Execution ───────────────────────────────────────────────────────
 
   def session_graph(conn, %{"id" => session_id}) do
     with :ok <- authorize_session_access(conn, session_id, "tasks:read") do
@@ -827,7 +827,7 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  # ─── Complete Task ───────────────────────────────────────────────────────────
+  # ─── Complete Task ─────────────────────────────────────────────────────────────
 
   def complete_task(conn, %{"id" => task_id}) do
     case Mission.complete_task(String.to_integer(task_id)) do
@@ -986,7 +986,7 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  # ─── Platform ─────────────────────────────────────────────────────────────
+  # ─── Platform ────────────────────────────────────────────────────────────────
 
   def list_service_accounts(conn, %{"id" => workspace_id}) do
     with :ok <- authorize_workspace_access(conn, workspace_id, "service_accounts:read") do
@@ -1248,7 +1248,7 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  # ─── Providers and Bootstrap ──────────────────────────────────────────────────
+  # ─── Providers and Bootstrap ────────────────────────────────────────────────
 
   def list_providers(conn, params) do
     project_root = Map.get(params, "project_root", File.cwd!())
@@ -1301,7 +1301,7 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  # ─── Repo Governance ───────────────────────────────────────────────────────
+  # ─── Repo Governance ────────────────────────────────────────────────────────
 
   def review_diff(conn, params) do
     project_root = Map.get(params, "project_root", File.cwd!())
@@ -1405,7 +1405,7 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  # ─── Skills ────────────────────────────────────────────────────────────────
+  # ─── Skills ───────────────────────────────────────────────────────────────────
 
   def list_skills(conn, params) do
     project_root = Map.get(params, "project_root")
@@ -1549,7 +1549,7 @@ defmodule ControlKeelWeb.ApiController do
     end
   end
 
-  # ─── Agent Router ───────────────────────────────────────────────────────────
+  # ─── Agent Router ─────────────────────────────────────────────────────────────
 
   def route_agent(conn, params) do
     task_title = Map.get(params, "task", "")
@@ -1699,7 +1699,7 @@ defmodule ControlKeelWeb.ApiController do
     }
   end
 
-  # ─── Serializers ───────────────────────────────────────────────────────────
+  # ─── Serializers ─────────────────────────────────────────────────────────────
 
   defp session_summary(session) do
     %{
