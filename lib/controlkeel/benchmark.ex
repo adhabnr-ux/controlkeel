@@ -898,3 +898,879 @@ defmodule ControlKeel.Benchmark do
     behavior_tag_summary = Map.get(profile, "behavior_tag_summary") || %{}
     classification = Map.get(profile, "classification") || %{}
     scenario_count = Map.get(profile, "scenario_count") || 0
+
+    evidence_channels =
+      []
+      |> maybe_channel(scenario_count > 0, "scenarios")
+      |> maybe_channel((split_summary["held_out"] || 0) > 0, "held_out")
+      |> maybe_channel(map_size(behavior_tag_summary) >= 2, "behavior_tags")
+      |> maybe_channel(not is_nil(classification["youdens_j"]), "classification")
+
+    warnings =
+      []
+      |> maybe_integrity_warning(
+        (split_summary["held_out"] || 0) > 0,
+        "missing_holdout_evidence"
+      )
+      |> maybe_integrity_warning(
+        map_size(behavior_tag_summary) >= 2,
+        "low_behavior_diversity"
+      )
+      |> maybe_integrity_warning(
+        not is_nil(classification["youdens_j"]),
+        "missing_classification_evidence"
+      )
+      |> maybe_integrity_warning(
+        length(evidence_channels) > 1,
+        "single_score_promotion"
+      )
+      |> maybe_integrity_warning(
+        has_trace_derived_scenarios?(profile),
+        "eval_staleness"
+      )
+
+    blocked = []
+
+    blocked =
+      if (split_summary["held_out"] || 0) == 0 do
+        ["missing_holdout_evidence" | blocked]
+      else
+        blocked
+      end
+
+    %{
+      "status" =>
+        cond do
+          blocked != [] -> "blocked"
+          warnings != [] -> "warn"
+          true -> "ready"
+        end,
+      "evidence_channels" => Enum.reverse(evidence_channels),
+      "warnings" => Enum.reverse(warnings),
+      "blocked" => Enum.reverse(blocked)
+    }
+  end
+
+  @doc false
+  def integrity_findings(profile, attrs \\ %{}) when is_map(profile) do
+    integrity = Map.get(profile, "promotion_integrity") || promotion_integrity_profile(profile)
+    warnings = integrity["warnings"] || []
+    blocked = integrity["blocked"] || []
+
+    warning_findings =
+      Enum.map(warnings, fn warning ->
+        %{
+          "category" => "governance-product",
+          "severity" => "medium",
+          "rule_id" => "benchmarks.#{warning}",
+          "title" => benchmark_integrity_title(warning),
+          "plain_message" => benchmark_integrity_message(warning),
+          "metadata" =>
+            Map.merge(attrs, %{
+              "diagnostic_source" => "benchmark_promotion_integrity",
+              "promotion_integrity" => integrity
+            })
+        }
+      end)
+
+    blocked_findings =
+      Enum.map(blocked, fn warning ->
+        %{
+          "category" => "governance-product",
+          "severity" => "critical",
+          "rule_id" => "benchmarks.#{warning}",
+          "title" => benchmark_integrity_title(warning) <> " (blocking)",
+          "plain_message" =>
+            benchmark_integrity_message(warning) <>
+              " Promotion is blocked until held-out evidence is present.",
+          "metadata" =>
+            Map.merge(attrs, %{
+              "diagnostic_source" => "benchmark_promotion_integrity",
+              "promotion_integrity" => integrity,
+              "blocking" => true
+            })
+        }
+      end)
+
+    warning_findings ++ blocked_findings
+  end
+
+  defp scenario_behavior_tags(%Scenario{} = scenario) do
+    metadata = scenario.metadata || %{}
+
+    [
+      scenario.category,
+      metadata["domain_pack"],
+      metadata["task_type"],
+      metadata["artifact_type"],
+      metadata["security_workflow_phase"],
+      metadata["memory_sharing_strategy"],
+      metadata["memory_surface"],
+      metadata["retrieval_strategy"],
+      metadata["compaction_strategy"],
+      metadata["handoff_contract"],
+      metadata["artifact_scope"],
+      metadata["skill_detection"],
+      metadata["token_snapshot"],
+      metadata["observed_skill_reads"]
+      | List.wrap(metadata["behavior_tags"])
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.map(&to_string/1)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.uniq()
+  end
+
+  defp ensure_builtin_suites do
+    Enum.each(BuiltinSuites.list(), &ensure_builtin_suite/1)
+  end
+
+  defp ensure_builtin_suite(slug) do
+    with {:ok, payload} <- BuiltinSuites.load(slug) do
+      expected_scenarios = payload["scenarios"] || []
+
+      case Repo.get_by(Suite, slug: slug) |> Repo.preload(:scenarios) do
+        %Suite{} = suite ->
+          if builtin_suite_current?(suite, payload, expected_scenarios) do
+            {:ok, suite}
+          else
+            sync_builtin_suite(payload, expected_scenarios)
+          end
+
+        _suite ->
+          sync_builtin_suite(payload, expected_scenarios)
+      end
+    end
+  end
+
+  defp sync_scenarios(%Suite{} = suite, scenario_payloads) do
+    existing =
+      Scenario
+      |> where([scenario], scenario.suite_id == ^suite.id)
+      |> Repo.all()
+      |> Map.new(fn scenario -> {scenario.slug, scenario} end)
+
+    incoming_slugs = Enum.map(scenario_payloads, & &1["slug"])
+
+    Enum.each(scenario_payloads, fn payload ->
+      scenario =
+        existing[payload["slug"]] ||
+          %Scenario{}
+
+      scenario
+      |> Scenario.changeset(%{
+        suite_id: suite.id,
+        slug: payload["slug"],
+        name: payload["name"],
+        category: payload["category"],
+        incident_label: payload["incident_label"],
+        path: payload["path"],
+        kind: payload["kind"] || "code",
+        content: payload["content"],
+        expected_rules: payload["expected_rules"] || [],
+        expected_decision: payload["expected_decision"],
+        position: payload["position"] || 0,
+        split: payload["split"] || "public",
+        metadata: Metadata.normalize_scenario_metadata(payload)
+      })
+      |> Repo.insert_or_update!()
+    end)
+
+    Scenario
+    |> where([scenario], scenario.suite_id == ^suite.id and scenario.slug not in ^incoming_slugs)
+    |> Repo.delete_all()
+  end
+
+  defp create_run_record(suite, scenarios, subject_ids, baseline_subject, metadata) do
+    %Run{}
+    |> Run.changeset(%{
+      suite_id: suite.id,
+      status: "running",
+      baseline_subject: baseline_subject,
+      subjects: subject_ids,
+      started_at: now(),
+      total_scenarios: length(scenarios),
+      caught_count: 0,
+      blocked_count: 0,
+      catch_rate: 0.0,
+      metadata: metadata
+    })
+    |> RepoRetry.insert_with_busy_retry(@busy_retry_backoff_ms)
+  end
+
+  defp builtin_suite_count(domain_pack) do
+    BuiltinSuites.list()
+    |> Enum.reduce(0, fn slug, count ->
+      case BuiltinSuites.load(slug) do
+        {:ok, payload} ->
+          if builtin_suite_matches_domain?(payload, domain_pack) do
+            count + 1
+          else
+            count
+          end
+
+        _error ->
+          count
+      end
+    end)
+  end
+
+  defp builtin_suite_matches_domain?(_payload, nil), do: true
+
+  defp builtin_suite_matches_domain?(payload, domain_pack) do
+    payload
+    |> Map.get("scenarios", [])
+    |> Enum.any?(fn scenario ->
+      get_in(scenario, ["metadata", "domain_pack"]) == domain_pack
+    end)
+  end
+
+  defp builtin_suite_current?(suite, payload, expected_scenarios) do
+    suite.name == payload["name"] and
+      suite.description == payload["description"] and
+      suite.version == payload["version"] and
+      suite.status == (payload["status"] || "active") and
+      suite.metadata == (payload["metadata"] || %{}) and
+      length(suite.scenarios) == length(expected_scenarios) and
+      Enum.all?(suite.scenarios, &Metadata.metadata_complete?(&1.metadata))
+  end
+
+  defp sync_builtin_suite(payload, expected_scenarios) do
+    RepoRetry.transaction_with_busy_retry(
+      fn ->
+        suite =
+          Repo.get_by(Suite, slug: payload["slug"]) ||
+            %Suite{}
+
+        {:ok, suite} =
+          suite
+          |> Suite.changeset(%{
+            slug: payload["slug"],
+            name: payload["name"],
+            description: payload["description"],
+            version: payload["version"],
+            status: payload["status"] || "active",
+            metadata: payload["metadata"] || %{}
+          })
+          |> Repo.insert_or_update()
+
+        sync_scenarios(suite, expected_scenarios)
+        suite
+      end,
+      @busy_retry_backoff_ms
+    )
+  end
+
+  defp maybe_exclude_internal(suites, true), do: suites
+  defp maybe_exclude_internal(suites, false), do: Enum.reject(suites, &Metadata.suite_internal?/1)
+
+  defp maybe_filter_suites_by_domain(suites, nil), do: suites
+
+  defp maybe_filter_suites_by_domain(suites, domain_pack) do
+    Enum.filter(suites, fn suite ->
+      Enum.any?(suite.scenarios, fn scenario ->
+        get_in(scenario.metadata || %{}, ["domain_pack"]) == domain_pack
+      end)
+    end)
+  end
+
+  defp maybe_filter_runs_by_domain(runs, nil), do: runs
+
+  defp maybe_filter_runs_by_domain(runs, domain_pack) do
+    Enum.filter(runs, fn run ->
+      Enum.any?(run.results, fn result ->
+        get_in(result.scenario.metadata || %{}, ["domain_pack"]) == domain_pack
+      end)
+    end)
+  end
+
+  defp insert_results(run, result_attrs) do
+    Enum.reduce_while(result_attrs, {:ok, []}, fn attrs, {:ok, acc} ->
+      attrs =
+        attrs
+        |> Utils.stringify_keys()
+        |> Map.put("run_id", run.id)
+        |> Map.put_new("payload", %{})
+        |> Map.put_new("metadata", %{})
+
+      case %Result{}
+           |> Result.changeset(attrs)
+           |> RepoRetry.insert_with_busy_retry(@busy_retry_backoff_ms) do
+        {:ok, result} -> {:cont, {:ok, [result | acc]}}
+        {:error, changeset} -> {:halt, {:error, changeset}}
+      end
+    end)
+  end
+
+  defp recalculate_run(run_id) do
+    run = get_run(run_id)
+    overheads = calculate_overheads(run)
+
+    Enum.each(run.results, fn result ->
+      case Map.fetch(overheads, result.id) do
+        {:ok, overhead_percent} ->
+          result
+          |> Result.changeset(%{overhead_percent: overhead_percent})
+          |> RepoRetry.update_with_busy_retry!(@busy_retry_backoff_ms)
+
+        :error ->
+          :ok
+      end
+    end)
+
+    refreshed = get_run!(run_id)
+    aggregates = aggregate_run(refreshed)
+
+    result =
+      refreshed
+      |> Run.changeset(aggregates)
+      |> RepoRetry.update_with_busy_retry(@busy_retry_backoff_ms)
+
+    case result do
+      {:ok, updated} ->
+        # per-suite staleness tracking
+        _ =
+          updated.suite_id
+          |> then(fn sid -> Repo.get(ControlKeel.Benchmark.Suite, sid) end)
+          |> case do
+            nil ->
+              :ok
+
+            suite ->
+              suite
+              |> ControlKeel.Benchmark.Suite.changeset(%{
+                last_run_at: DateTime.utc_now() |> DateTime.truncate(:second)
+              })
+              |> RepoRetry.update_with_busy_retry(@busy_retry_backoff_ms)
+              |> case do
+                {:ok, _} -> :ok
+                _ -> :ok
+              end
+          end
+
+        {:ok, updated}
+
+      other ->
+        other
+    end
+  end
+
+  defp aggregate_run(%Run{} = run) do
+    results = run.results
+
+    evaluated =
+      Enum.filter(results, fn result ->
+        result.status in ["completed", "failed", "timed_out"]
+      end)
+
+    caught_count = Enum.count(evaluated, &(&1.findings_count > 0))
+    blocked_count = Enum.count(evaluated, &(&1.decision == "block"))
+    latencies = Enum.reject(Enum.map(evaluated, & &1.latency_ms), &is_nil/1)
+    overheads = Enum.reject(Enum.map(results, & &1.overhead_percent), &is_nil/1)
+
+    %{
+      status: aggregate_status(results),
+      finished_at: now(),
+      caught_count: caught_count,
+      blocked_count: blocked_count,
+      catch_rate: percentage(caught_count, length(evaluated)),
+      median_latency_ms: median(latencies),
+      average_overhead_percent: average(overheads)
+    }
+  end
+
+  defp calculate_overheads(%Run{} = run) do
+    baseline_latencies =
+      run.results
+      |> Enum.filter(&(&1.subject == run.baseline_subject))
+      |> Map.new(fn result -> {result.scenario_id, result.latency_ms} end)
+
+    Enum.reduce(run.results, %{}, fn result, acc ->
+      overhead =
+        cond do
+          result.subject == run.baseline_subject and is_integer(result.latency_ms) ->
+            0.0
+
+          is_integer(result.latency_ms) and is_integer(baseline_latencies[result.scenario_id]) and
+              baseline_latencies[result.scenario_id] > 0 ->
+            Float.round(
+              (result.latency_ms - baseline_latencies[result.scenario_id]) /
+                baseline_latencies[result.scenario_id] * 100,
+              2
+            )
+
+          true ->
+            nil
+        end
+
+      if is_nil(overhead), do: acc, else: Map.put(acc, result.id, overhead)
+    end)
+  end
+
+  defp aggregate_status(results) do
+    statuses = Enum.map(results, & &1.status)
+
+    cond do
+      Enum.any?(statuses, &(&1 == "awaiting_import")) -> "awaiting_import"
+      Enum.any?(statuses, &(&1 == "failed")) -> "partial"
+      Enum.any?(statuses, &(&1 == "timed_out")) -> "partial"
+      true -> "completed"
+    end
+  end
+
+  defp find_result_for_import(run, subject, scenario_slug) do
+    Enum.find(run.results, fn result ->
+      result.subject == subject and result.scenario.slug == scenario_slug
+    end)
+  end
+
+  defp update_result_from_outcome(result, outcome) do
+    result
+    |> Result.changeset(%{
+      status: outcome["status"],
+      decision: outcome["decision"],
+      findings_count: outcome["findings_count"],
+      matched_expected: outcome["matched_expected"],
+      latency_ms: outcome["latency_ms"],
+      payload: outcome["payload"],
+      metadata: outcome["metadata"]
+    })
+    |> RepoRetry.update_with_busy_retry(@busy_retry_backoff_ms)
+  end
+
+  defp maybe_filter_scenarios(scenarios, []), do: scenarios
+  defp maybe_filter_scenarios(scenarios, slugs), do: Enum.filter(scenarios, &(&1.slug in slugs))
+
+  defp maybe_filter_scenarios_by_domain(scenarios, nil), do: scenarios
+
+  defp maybe_filter_scenarios_by_domain(scenarios, domain_pack) do
+    Enum.filter(scenarios, fn scenario ->
+      get_in(scenario.metadata || %{}, ["domain_pack"]) == domain_pack
+    end)
+  end
+
+  defp normalize_scenario_slugs(nil), do: []
+  defp normalize_scenario_slugs(slugs) when is_list(slugs), do: Enum.map(slugs, &to_string/1)
+
+  defp normalize_scenario_slugs(slugs) when is_binary(slugs) do
+    slugs
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp normalize_scenario_slugs(_value), do: []
+
+  defp run_metadata(suite, subjects, project_root, domain_pack) do
+    %{
+      "controlkeel_version" => controlkeel_version(),
+      "suite_version" => suite.version,
+      "domain_pack_filter" => domain_pack,
+      "subject_config_hash" => SubjectLoader.subject_config_hash(subjects),
+      "project_root" => Path.expand(project_root),
+      "eval_profile" => suite_eval_profile(suite),
+      "subjects" =>
+        Enum.map(subjects, &Map.take(&1, ["id", "label", "type", "configured", "output_mode"]))
+    }
+  end
+
+  defp normalize_domain_pack_filter(nil), do: nil
+
+  defp normalize_domain_pack_filter(value) do
+    pack = Domains.normalize_pack(value, "__unsupported__")
+    if Domains.supported_pack?(pack), do: pack, else: nil
+  end
+
+  defp preload_run(nil), do: nil
+
+  defp preload_run(run) do
+    Repo.preload(run,
+      suite: [scenarios: from(scenario in Scenario, order_by: scenario.position)],
+      results: [scenario: []]
+    )
+  end
+
+  defp run_export(run) do
+    detail_metrics = run_detail_metrics(run)
+
+    %{
+      run: %{
+        id: run.id,
+        status: run.status,
+        suite: %{
+          slug: run.suite.slug,
+          name: run.suite.name,
+          version: run.suite.version
+        },
+        baseline_subject: run.baseline_subject,
+        subjects: run.subjects,
+        started_at: run.started_at,
+        finished_at: run.finished_at,
+        total_scenarios: run.total_scenarios,
+        caught_count: run.caught_count,
+        blocked_count: run.blocked_count,
+        catch_rate: run.catch_rate,
+        block_rate: detail_metrics.block_rate,
+        expected_rule_hit_rate: detail_metrics.expected_rule_hit_rate,
+        classification: detail_metrics.classification,
+        median_latency_ms: run.median_latency_ms,
+        average_overhead_percent: run.average_overhead_percent,
+        comparison: maybe_comparison(run),
+        eval_profile: run_eval_profile(run),
+        metadata: run.metadata
+      },
+      results:
+        Enum.map(run.results, fn result ->
+          %{
+            id: result.id,
+            scenario_slug: result.scenario.slug,
+            scenario_name: result.scenario.name,
+            subject: result.subject,
+            subject_type: result.subject_type,
+            status: result.status,
+            decision: result.decision,
+            findings_count: result.findings_count,
+            matched_expected: result.matched_expected,
+            latency_ms: result.latency_ms,
+            overhead_percent: result.overhead_percent,
+            payload: result.payload,
+            metadata: result.metadata
+          }
+        end)
+    }
+  end
+
+  # --- EvalPort / OpenEval export (`--format openeval`) -----------------
+  #
+  # Produces a single bundle document `{"suite": <EvalSuite>, "result_set":
+  # <ResultSet>}` from one run, per aryaminus/controlkeel#121: the CLI is
+  # addressed by run id, `run.suite.scenarios` is already preloaded (see
+  # `run_matrix/1`), and shipping the suite alongside the results it explains
+  # is the portability property EvalPort exists for -- two commands emitting
+  # a `ResultSet` and an `EvalSuite` separately would be two chances for
+  # someone to pair a `ResultSet` with a stale `EvalSuite`.
+  #
+  # Field mapping (agreed in the issue thread):
+  #   Suite{slug,name,description,metadata}    -> EvalSuite{id,name,description,metadata}
+  #   Suite.version (integer)                   -> metadata.controlkeel_suite_version (string) / ResultSet.suite_version (string)
+  #   Scenario.content                          -> TestCase.input
+  #   Scenario.slug                             -> TestCase.id
+  #   Scenario.expected_rules (rule ids)         -> one Grader{type: "custom", params: %{handler: "controlkeel.policy_rule"}} per rule,
+  #                                                  id == rule id, referenced by every TestCase whose expected_rules includes it
+  #   Scenario.expected_decision (block/warn)    -> TestCase.expected_output, PLUS (only when expected_rules == []) a shared
+  #                                                  Grader{id: "controlkeel.policy_decision", type: "custom"} asserting the
+  #                                                  decision, since there is no rule id to assert instead
+  #   Scenario.{path,kind,split,incident_label,
+  #             category} + metadata            -> TestCase.metadata (controlkeel_-prefixed) + TestCase.tags
+  #   Result per (run, scenario, subject)        -> one Result in the run's single ResultSet; findings (by rule_id) drive
+  #                                                  per-rule GraderResult.passed for fidelity with `Runner.finalize/2`'s
+  #                                                  superset-tolerant, all-of rule match; decision drives the
+  #                                                  controlkeel.policy_decision GraderResult for expected_rules == [] scenarios
+  #   Run.{subjects,baseline_subject,
+  #         catch_rate,median_latency_ms}        -> ResultSet.{runner,summary}
+  #
+  # Multiple subjects land in ONE flat `results` list (the bundle is
+  # addressed by run, not by subject); each Result carries
+  # `metadata.controlkeel_subject` so a consumer can regroup by subject.
+  defp openeval_export(%Run{} = run) do
+    %{
+      "suite" => openeval_suite(run.suite),
+      "result_set" => openeval_result_set(run)
+    }
+  end
+
+  defp openeval_suite(%Suite{} = suite) do
+    scenarios = Enum.sort_by(suite.scenarios, & &1.position)
+
+    %{
+      "version" => @openeval_spec_version,
+      "id" => suite.slug,
+      "name" => suite.name,
+      "description" => suite.description,
+      "test_cases" => Enum.map(scenarios, &openeval_test_case/1),
+      "graders" => openeval_graders(scenarios),
+      "metadata" =>
+        Map.put(suite.metadata || %{}, "controlkeel_suite_version", to_string(suite.version))
+    }
+  end
+
+  defp openeval_test_case(%Scenario{} = scenario) do
+    %{
+      "id" => scenario.slug,
+      "input" => scenario.content,
+      "graders" => openeval_test_case_grader_ids(scenario),
+      "expected_output" => scenario.expected_decision,
+      "tags" => openeval_tags(scenario),
+      "metadata" => openeval_test_case_metadata(scenario)
+    }
+  end
+
+  defp openeval_test_case_grader_ids(%Scenario{expected_rules: []}) do
+    ["controlkeel.policy_decision"]
+  end
+
+  defp openeval_test_case_grader_ids(%Scenario{expected_rules: rules}) when is_list(rules) do
+    rules
+  end
+
+  defp openeval_test_case_metadata(%Scenario{} = scenario) do
+    %{}
+    |> maybe_put("controlkeel_path", scenario.path)
+    |> maybe_put("controlkeel_kind", scenario.kind)
+    |> maybe_put("controlkeel_split", scenario.split)
+    |> maybe_put("controlkeel_category", scenario.category)
+    |> maybe_put("controlkeel_incident_label", scenario.incident_label)
+    |> Map.merge(prefix_metadata(scenario.metadata))
+  end
+
+  defp openeval_tags(%Scenario{} = scenario) do
+    [scenario.category, scenario.split]
+    |> Enum.concat(List.wrap(get_in(scenario.metadata || %{}, ["risk_tier"])))
+    |> Enum.reject(&(is_nil(&1) or &1 == ""))
+    |> Enum.uniq()
+  end
+
+  # One suite-level Grader per distinct rule id referenced across all
+  # scenarios' `expected_rules`, plus the shared `controlkeel.policy_decision`
+  # fallback grader when any scenario has an empty `expected_rules` (see
+  # `openeval_test_case_grader_ids/1`). Built from the scenario set so the
+  # `graders` list never dangles a reference a test case actually uses,
+  # which is exactly what EvalPort's own `validate_suite` checks for.
+  defp openeval_graders(scenarios) when is_list(scenarios) do
+    rule_graders =
+      scenarios
+      |> Enum.flat_map(& &1.expected_rules)
+      |> Enum.uniq()
+      |> Enum.sort()
+      |> Enum.map(fn rule_id ->
+        %{
+          "id" => rule_id,
+          "type" => "custom",
+          "params" => %{"handler" => "controlkeel.policy_rule"}
+        }
+      end)
+
+    decision_grader =
+      if Enum.any?(scenarios, &(&1.expected_rules == [])) do
+        [
+          %{
+            "id" => "controlkeel.policy_decision",
+            "type" => "custom",
+            "params" => %{"handler" => "controlkeel.policy_decision"}
+          }
+        ]
+      else
+        []
+      end
+
+    rule_graders ++ decision_grader
+  end
+
+  defp openeval_result_set(%Run{} = run) do
+    %{
+      "version" => @openeval_spec_version,
+      "suite_id" => run.suite.slug,
+      "suite_version" => to_string(run.suite.version),
+      "run_id" => to_string(run.id),
+      "started_at" => openeval_timestamp(run.started_at),
+      "completed_at" => run.finished_at && openeval_timestamp(run.finished_at),
+      "results" => Enum.map(run.results, &openeval_result/1),
+      "runner" => %{"name" => "controlkeel", "version" => controlkeel_version()},
+      "summary" => %{
+        "subjects" => run.subjects,
+        "baseline_subject" => run.baseline_subject,
+        "catch_rate" => run.catch_rate,
+        "median_latency_ms" => run.median_latency_ms
+      }
+    }
+  end
+
+  defp openeval_result(%Result{} = result) do
+    grader_results = openeval_grader_results(result)
+
+    %{
+      "test_case_id" => result.scenario.slug,
+      "passed" => Enum.all?(grader_results, & &1["passed"]),
+      "grader_results" => grader_results,
+      "duration_ms" => result.latency_ms,
+      "metadata" => %{"controlkeel_subject" => result.subject}
+    }
+  end
+
+  # Faithful to `Runner.finalize/2`'s rule match: an expected rule id counts
+  # as matched if it appears among the fired findings' rule ids (superset
+  # tolerant -- extra findings never break the match), which is why this
+  # reads `result.payload["findings"]` rather than reusing
+  # `result.matched_expected` (that field also folds in decision_match,
+  # which is asserted separately below only for `expected_rules == []`).
+  defp openeval_grader_results(%Result{scenario: %Scenario{expected_rules: []}} = result) do
+    expected = result.scenario.expected_decision
+    decision_match = is_nil(expected) or expected == "" or result.decision == expected
+
+    [
+      %{
+        "grader_id" => "controlkeel.policy_decision",
+        "type" => "custom",
+        "score" => if(decision_match, do: 1.0, else: 0.0),
+        "passed" => decision_match,
+        "reason" => "decision=#{result.decision || "n/a"}, findings=#{result.findings_count}"
+      }
+    ]
+  end
+
+  defp openeval_grader_results(%Result{} = result) do
+    actual_rules =
+      result.payload
+      |> Kernel.||(%{})
+      |> Map.get("findings", [])
+      |> Enum.map(& &1["rule_id"])
+      |> MapSet.new()
+
+    reason = "decision=#{result.decision || "n/a"}, findings=#{result.findings_count}"
+
+    Enum.map(result.scenario.expected_rules, fn rule_id ->
+      matched = MapSet.member?(actual_rules, rule_id)
+
+      %{
+        "grader_id" => rule_id,
+        "type" => "custom",
+        "score" => if(matched, do: 1.0, else: 0.0),
+        "passed" => matched,
+        "reason" => reason
+      }
+    end)
+  end
+
+  defp openeval_timestamp(%DateTime{} = dt), do: DateTime.to_iso8601(dt)
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, _key, ""), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  defp prefix_metadata(metadata) when is_map(metadata) do
+    Map.new(metadata, fn {key, value} -> {"controlkeel_#{key}", value} end)
+  end
+
+  defp prefix_metadata(_metadata), do: %{}
+
+  defp export_csv(run) do
+    header =
+      "run_id,suite_slug,scenario_slug,scenario_name,subject,subject_type,status,decision,findings_count,matched_expected,latency_ms,overhead_percent\r\n"
+
+    rows =
+      Enum.map_join(run.results, "", fn result ->
+        [
+          run.id,
+          run.suite.slug,
+          result.scenario.slug,
+          csv_escape(result.scenario.name),
+          result.subject,
+          result.subject_type,
+          result.status,
+          result.decision || "",
+          result.findings_count,
+          result.matched_expected,
+          result.latency_ms || "",
+          result.overhead_percent || ""
+        ]
+        |> Enum.join(",")
+        |> Kernel.<>("\r\n")
+      end)
+
+    header <> rows
+  end
+
+  defp csv_escape(nil), do: "\"\""
+
+  defp csv_escape(value) do
+    "\"" <> (value |> to_string() |> String.replace("\"", "\"\"")) <> "\""
+  end
+
+  defp percentage(_count, 0), do: 0.0
+  defp percentage(count, total), do: Float.round(count / total * 100, 1)
+
+  defp count_by(values, mapper) do
+    values
+    |> Enum.group_by(mapper)
+    |> Enum.reject(fn {key, _rows} -> is_nil(key) end)
+    |> Enum.into(%{}, fn {key, rows} -> {key, length(rows)} end)
+  end
+
+  defp maybe_channel(channels, true, channel), do: [channel | channels]
+  defp maybe_channel(channels, false, _channel), do: channels
+
+  defp maybe_integrity_warning(warnings, true, _warning), do: warnings
+  defp maybe_integrity_warning(warnings, false, warning), do: [warning | warnings]
+
+  defp benchmark_integrity_title("missing_holdout_evidence"), do: "Missing holdout evidence"
+  defp benchmark_integrity_title("low_behavior_diversity"), do: "Low benchmark behavior diversity"
+
+  defp benchmark_integrity_title("missing_classification_evidence"),
+    do: "Missing classification evidence"
+
+  defp benchmark_integrity_title("single_score_promotion"),
+    do: "Single-score promotion risk"
+
+  defp benchmark_integrity_title("eval_staleness"),
+    do: "Stale benchmark evaluation set"
+
+  defp benchmark_integrity_title(warning), do: warning
+
+  defp benchmark_integrity_message("missing_holdout_evidence") do
+    "Benchmark promotion evidence has no held-out split coverage; avoid treating public-suite score as sufficient."
+  end
+
+  defp benchmark_integrity_message("low_behavior_diversity") do
+    "Benchmark promotion evidence has too few behavior tags to protect against narrow metric gaming."
+  end
+
+  defp benchmark_integrity_message("missing_classification_evidence") do
+    "Benchmark promotion evidence is missing classification metrics such as TPR/FPR or Youden's J."
+  end
+
+  defp benchmark_integrity_message("single_score_promotion") do
+    "Promotion evidence relies on a single channel; multi-channel corroboration is needed to resist metric gaming."
+  end
+
+  defp benchmark_integrity_message("eval_staleness") do
+    "The evaluation set has not been refreshed with trace-derived scenarios; repeated passes on the same set may mask regressions."
+  end
+
+  defp benchmark_integrity_message(warning),
+    do: "Benchmark promotion integrity warning: #{warning}."
+
+  defp scenario_split(%Scenario{} = scenario), do: scenario.split || "public"
+
+  defp has_trace_derived_scenarios?(profile) do
+    curation_mode = Map.get(profile, "curation_mode") || "hand_curated_plus_trace_promoted"
+    String.contains?(curation_mode, "trace")
+  end
+
+  defp average([]), do: nil
+  defp average(values), do: Float.round(Enum.sum(values) / length(values), 1)
+
+  defp median([]), do: nil
+
+  defp median(values) do
+    sorted = Enum.sort(values)
+    length = Kernel.length(sorted)
+    midpoint = div(length, 2)
+
+    if rem(length, 2) == 1 do
+      Enum.at(sorted, midpoint)
+    else
+      div(Enum.at(sorted, midpoint - 1) + Enum.at(sorted, midpoint), 2)
+    end
+  end
+
+  defp now do
+    DateTime.utc_now() |> DateTime.truncate(:second)
+  end
+
+  defp controlkeel_version do
+    Application.spec(:controlkeel, :vsn)
+    |> Kernel.||("0.1.0")
+    |> to_string()
+  end
+end
