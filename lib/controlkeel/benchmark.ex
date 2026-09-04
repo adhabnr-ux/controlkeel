@@ -1575,7 +1575,17 @@ defmodule ControlKeel.Benchmark do
       "run_id" => to_string(run.id),
       "started_at" => openeval_timestamp(run.started_at),
       "completed_at" => run.finished_at && openeval_timestamp(run.finished_at),
-      "results" => Enum.map(run.results, &openeval_result/1),
+      "results" =>
+        run.results
+        # Only results that actually ran get a Result -- e.g. an
+        # `awaiting_import` result (pending manual import) has no payload,
+        # so every rule grader would evaluate `matched=false` and the
+        # bundle would report "failed" for work that never happened. This
+        # mirrors the `evaluated` convention `subject_metrics/2` already
+        # established below (`status in ["completed", "failed",
+        # "timed_out"]`) -- see aryaminus/controlkeel#153 review.
+        |> Enum.filter(&(&1.status in ["completed", "failed", "timed_out"]))
+        |> Enum.map(&openeval_result/1),
       "runner" => %{"name" => "controlkeel", "version" => controlkeel_version()},
       "summary" => %{
         "subjects" => run.subjects,
