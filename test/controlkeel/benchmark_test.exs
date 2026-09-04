@@ -469,7 +469,7 @@ defmodule ControlKeel.BenchmarkTest do
     script = """
     output_dir = System.fetch_env!("CONTROLKEEL_BENCHMARK_OUTPUT_DIR")
     File.write!(Path.join(output_dir, ".controlkeel_metrics.json"), #{inspect(metrics_json)})
-    IO.write("OPENAI_KEY = \\"AKIAIOSFODNN7EXAMPLE\\"")
+    IO.write("OPENAI_KEY = \\\"AKIAIOSFODNN7EXAMPLE\\\"")
     """
 
     write_benchmark_subjects!(tmp_dir, [
@@ -915,6 +915,48 @@ defmodule ControlKeel.BenchmarkTest do
       assert {:ok, _} = Benchmark.export_run(run.id, "openeval")
       assert {:ok, _} = Benchmark.export_run(run.id, "json")
       assert {:ok, _} = Benchmark.export_run(run.id, "csv")
+    end
+
+    test "excludes results still awaiting manual import so a pending case isn't reported as a failure",
+         %{tmp_dir: tmp_dir} do
+      write_benchmark_subjects!(tmp_dir, [
+        %{
+          "id" => "manual_subject",
+          "label" => "Manual Subject",
+          "type" => "manual_import"
+        }
+      ])
+
+      {:ok, run} =
+        Benchmark.run_suite(
+          %{
+            "suite" => "vibe_failures_v1",
+            "subjects" => "manual_subject",
+            "baseline_subject" => "manual_subject",
+            "scenario_slugs" => "hardcoded_api_key_python_webhook"
+          },
+          tmp_dir
+        )
+
+      [pending_result] = run.results
+      assert pending_result.status == "awaiting_import"
+
+      assert {:ok, output} = Benchmark.export_run(run.id, "openeval")
+      assert {:ok, bundle} = Jason.decode(output)
+
+      # The suite (the full built-in suite, not just the scenarios this run
+      # actually exercised) still travels with the bundle -- it describes
+      # the shape a Suite defines, not this run's outcomes -- but a result
+      # that never actually ran must not appear in `result_set.results`:
+      # mapping it as-is would evaluate every rule grader `matched=false`
+      # and report "failed" for work that hasn't happened yet.
+      # See aryaminus/controlkeel#153 review.
+      assert "hardcoded_api_key_python_webhook" in Enum.map(
+               bundle["suite"]["test_cases"],
+               & &1["id"]
+             )
+
+      assert bundle["result_set"]["results"] == []
     end
   end
 
